@@ -1,0 +1,109 @@
+{
+  "scope": "Installed app8 bounded task checks; authority negative fixture failed and was corrected in app9, retaining its failure. No rendered input chooser proof.",
+  "files": [
+    {
+      "file": "targeted8-selftest-activity.log",
+      "sha256": "d07429554fe3532ec7485adaad38dd44d4799ebd31cd9f9e46fed7b153c4dfcd"
+    },
+    {
+      "file": "targeted8-selftest-activity.out",
+      "sha256": "cf1a37fc19f589dc2e0b13d684d67ecc7b3db60afb4a4094fb8e82366d17d83d"
+    },
+    {
+      "file": "targeted8-selftest-agent-panes.log",
+      "sha256": "1af0f4b85082b70313df7ce08df76511913bbbc0cf3f97add6ec0df46deba75f"
+    },
+    {
+      "file": "targeted8-selftest-agent-presentation.log",
+      "sha256": "04b5f42dc0aee10b959447618c332a4a2d670c4c6d7e581b72fe693ad732d3d4"
+    },
+    {
+      "file": "targeted8-selftest-agent-presentation.out",
+      "sha256": "702df8c38adc0d6f2237b412611b01621e1cc01c3b9c9ca7087481145ff473d1"
+    },
+    {
+      "file": "targeted8-selftest-meeting-resume.log",
+      "sha256": "34348d34a6a01d0d7bc96bb95843a70252213bb5c6f3e7298f3a97dd4286bac0"
+    },
+    {
+      "file": "targeted8-selftest-meeting-resume.out",
+      "sha256": "eda213e6440280d8c370b458c560866ee70c40d44a037f7710e78b3d6db74f6d"
+    },
+    {
+      "file": "targeted8-selftest-store-isolation.log",
+      "sha256": "c56e17c6bc069338807748325193ed9d6ed616928cd82fb733d5a6e3b1d71b69"
+    },
+    {
+      "file": "targeted8-selftest-store-isolation.out",
+      "sha256": "dcb5879fec650d82a2f69a398b1ebbe3536bdfc3814a1ec5035a5e450ad3e4b5"
+    },
+    {
+      "file": "targeted8-selftest-task-authority.log",
+      "sha256": "be0659858fb8517cd4af146ac6843ea8a33f9e4581f09e04f97e11c5ac53d83a"
+    },
+    {
+      "file": "targeted8-selftest-task-authority.out",
+      "sha256": "68b2baaf5d3199f5d4949a4e96d61bb30901eab2388115f9e74aeb85b601d2bf"
+    },
+    {
+      "file": "targeted8-selftest-task-durability.log",
+      "sha256": "4b7ffee41b79f6b9818e124a2fd41ec7e67ad152abcb03dbfa961a8408b534dd"
+    },
+    {
+      "file": "targeted8-selftest-task-durability.out",
+      "sha256": "12e98cf8e01ebbccadcb74b25366d661d20e18192910fb1af2497dfb5100277f"
+    },
+    {
+      "file": "targeted8-selftest-task-history-repair.log",
+      "sha256": "cb0fd401ec14034e7a50c8835f399af8b0678b2ca6811132580698aae927380a"
+    },
+    {
+      "file": "targeted8-selftest-task-history-repair.out",
+      "sha256": "938483e9539b55a323808ba7cb76c464d9879535737c1b3e72f1818c33c8087e"
+    },
+    {
+      "file": "targeted8-selftest-task-recovery.log",
+      "sha256": "055f7eb42de95748ea31aeb61ff6872aabd66cab9de717264b5c2746855f80b8"
+    },
+    {
+      "file": "targeted8-selftest-task-recovery.out",
+      "sha256": "4c5825f3e5b688c57c88e95545baf6890175e09247d91eb163876d358943a4bd"
+    },
+    {
+      "file": "targeted8-selftest-task-restoration.log",
+      "sha256": "8da097c546c80df801884cd5b4af80751f583b40974fa36d7f312c93d9339eb9"
+    },
+    {
+      "file": "targeted8-selftest-task-restoration.out",
+      "sha256": "614a39af5b333b48733ba8ab7eeb06aeb14babbd0a494ef7451c0dd6e74c21f1"
+    },
+    {
+      "file": "targeted8-selftest-tasks.log",
+      "sha256": "1364e765888ac1e644ed1b6ea87d56f7b2be8d7dfcbc3a0a4c972b1ee0aafd86"
+    },
+    {
+      "file": "targeted8-selftest-tasks.out",
+      "sha256": "bb2bd8aef6124dffea437d7ab485c9e2ecbea32a1a1b749d5eb18003684b936a"
+    },
+    {
+      "file": "targeted8-selftest-tool-review.log",
+      "sha256": "d2fd7690b7082ab4722009b09e048d09ac099f868fcb22ed374bcdedc3befb06"
+    },
+    {
+      "file": "targeted8-selftest-toolloop-production.log",
+      "sha256": "9e637e2520608a24b1d88d6cf84caaeaf02eb41f1b0d6af9dc596adc2be71111"
+    },
+    {
+      "file": "targeted8-selftest-toolloop-production.out",
+      "sha256": "f7405a5292ebb2c7d7c975176de0c15f9f4cf07b174107c4866a26c2c0a73433"
+    },
+    {
+      "file": "targeted8-selftest-ui-strings.log",
+      "sha256": "af53f2bcf50c0d3dfb9f3bd3a25c6c6fbdb92d6c69a6efc79215652c077dc6b0"
+    },
+    {
+      "file": "targeted8-summary.json",
+      "sha256": "e02114cbaf12f510df8b7c6869ef8a937ac924d174211cf100dbde66900cc9b6"
+    }
+  ]
+}

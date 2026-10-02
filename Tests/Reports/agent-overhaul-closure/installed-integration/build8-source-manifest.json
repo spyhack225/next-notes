@@ -1,0 +1,2705 @@
+{
+  "scope": "Frozen shared source input during serial build8; includes preserved foreign changes. Not a build verdict.",
+  "sources": [
+    {
+      "path": "Sources/NextNotes/Activation/ActivationController.swift",
+      "sha256": "dc61f4bd263402feefdca86c06697ab6ba12d396610f0be45ec3518ac9eaf44f"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/AgentCaptureController.swift",
+      "sha256": "1ac68de05aafd3c9eae70597a79beca7b9ea3dc2ab65c6aa9a22483f438eee6a"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/LocalVoiceTurnDetector.swift",
+      "sha256": "2d5385c7df380540113be506d44f4f9d06326eae4f3f3e1c67bcb2052cc2eb3f"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/ShortcutActivation.swift",
+      "sha256": "43c9e3bc3f2aee6dcf8b439b21cf048c9a8bab832b5d48fa7bb921760943a4c0"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/VoiceTurnPolicy.swift",
+      "sha256": "7b820d09be59a3e7a1711b4344a39b9c530fba674b1cdca950f2e85baf4de1c4"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/SherpaKeywordSpotter.swift",
+      "sha256": "65044ba5b8f76ad1a121409cdcb7ffbe03d07c3986b5bd48d076bcc9f4eb31f3"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakePhraseConfirmation.swift",
+      "sha256": "358722b9118332c91a986bd392530a7e8a494aea0218c8e8e16c92266048f0c3"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordAudioMonitor.swift",
+      "sha256": "d2ecdc4c3eb10883194a446a9939728ded2aa84971185dd29c096cf2d3cb73ac"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordCalibrationStore.swift",
+      "sha256": "b075e06c37bb77d55a4b22a9e2628d35d95ed8b609a98f622c7bc3f3c85226cd"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordCalibrator.swift",
+      "sha256": "3d5a92b058fa3aae4612158af270caf622c7a0a11c252306f7db04bed46d5401"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordConfiguration.swift",
+      "sha256": "eb8228bd2d06a91d6db3de712b9dda920af4fac140b1b5da2bc47115cb4ed567"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordDetector.swift",
+      "sha256": "ac2398346a776faa8b16c935fe8b70190ba59946903f1668ddf7e2810901adcb"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordKeywords.swift",
+      "sha256": "b814215329ab5e4b3f5f4e792f5743b36bca89ae80beb4da8cfac8e38c57beed"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordLiveSelfTest.swift",
+      "sha256": "a193989454a4e0414aa030cbebe9679302e200eab044b14f42ca91c8ea49a8f5"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordModelManager.swift",
+      "sha256": "8d52acad85e5e91caaa5cb0e24c51c396397afa293179faecc7468acc7b26538"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordModels.swift",
+      "sha256": "47ef410b7ff10a97dcb7e539f1bd556a12664fde64544b09908cf6f3ac4e9976"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordPhoneLexicon.swift",
+      "sha256": "3f46b44b717601690b4b1cc3da621447fa5eaeee2643fdfc04092de082b660a9"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordRoomRecorder.swift",
+      "sha256": "3b277fefa5cd4596877465507bc34f484e3ab65262b92db42d941e85479eecd9"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordTelemetry.swift",
+      "sha256": "3c0eba19372d98d7cca9336aa556ba6e62d090830fc3da57311f9099d2a12574"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordTrainer.swift",
+      "sha256": "8b144d056f562c04d203c4c917b33587a5b4c0149fde70e4313108be44087b8f"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordTuning.swift",
+      "sha256": "df8753533cbe0ab3a1286ff5756414bb7c226e8d66f26b2b1c7da5259dfe0871"
+    },
+    {
+      "path": "Sources/NextNotes/Activation/WakeWord/WakeWordVariants.swift",
+      "sha256": "d8979106c3223f8724f21890f669315296fadb2277c2a52b36a34cbcd2a97c26"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ACPConfirmation.swift",
+      "sha256": "9627d710296362548fcc5d8324d8c6c9ae892d8aa8a5b80ad40c145d97cd7903"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AEC3ProbeBridge.swift",
+      "sha256": "4b29456ecaf4fd0ccd08b17a94ef63958a95e7b2cc1433f0d74275eef62aab86"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AcousticEchoProbe.swift",
+      "sha256": "23c1b56eb8c2594483825bbce09eaca4c5d1f8afbd65cf3722bd2a1a7d272673"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AcousticEchoProcessor.swift",
+      "sha256": "47f91936e877c930674ae05633012016d13e20eb647ad0f3b2f158b8c53be86b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AcousticHybridProbe.swift",
+      "sha256": "0e420189eaefefe55a6c8b504d995292dae6675fd3c8d7368ab7df1f31879a18"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AcousticLiveProbe.swift",
+      "sha256": "2266da56acc48f2a09ac9facf2e11b68fea8238292b2602795fd207e293131df"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ActionRuntime.swift",
+      "sha256": "f67e96ea5ce6e1653259338c6e60acb58a69faa73020e53bb21475dbee6fd4ca"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Activity/AgentActivity.swift",
+      "sha256": "1858a2b1d2b9a8c92a27499e1056eccc5b983921f3da2351ccb96b74f321e031"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Activity/AgentActivityProjector.swift",
+      "sha256": "1624196066cdada0174bd3bf4a68609436e39e28b9f990efd8af25fe0534d32a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Activity/AgentActivityStore.swift",
+      "sha256": "f7589ae98c36ea268e4b7c7a693fc935835f383790d5838d781cca846b84607d"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentAccountRead.swift",
+      "sha256": "1922998db8e16fe3ad4f4d03e765a5945cd21b74afe9178787084e34c5ec8853"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentAnswerBudget.swift",
+      "sha256": "223af3c6df4109c4ab97c439191f502ae7d2b80bcc754807014b290f1df354bf"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentAnswersSelfTest.swift",
+      "sha256": "6d848f0cb736a8bcaafa32bbef295b00ec1318691af7fc494bdd5f62374211db"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentCapabilityManifest.swift",
+      "sha256": "bba2323a95dbba3eb7dad4a6cf84581abab7c04f7705e77479fce0775cb908fc"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentCapabilityManifestSelfTest.swift",
+      "sha256": "d7b4795f9486b5513502c58ca3e076a897b53b76b2da3a177c31494fb4180984"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentDirectIntent.swift",
+      "sha256": "164ea103da01ec1d4ab12c5edd6208206fe8e70dbb680abba0227aca672dec23"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentEntityResolver.swift",
+      "sha256": "dec7e92cef9771442db11cf263685498226715e1304c51ec245487f83b32a6b5"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentHistoryBudget.swift",
+      "sha256": "634f414c1d16e2b9d28823976b7d9179242672e988002e62ef5875b7a8b4b824"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentIdentifierGrounding.swift",
+      "sha256": "d72b732e2515d17118598fb7154c5d51859ba3724f24eba6d29a3b0e6433a0e4"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentModels.swift",
+      "sha256": "e62bc2a7db301cbe1222ea43c4b64e22ffed7a2df1886d321ca7a7d4c94a4e2a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentPCMSourceProbe.swift",
+      "sha256": "ccfaa46a7b21dd0b42ec5f62c387ce3ddde2b9fcab21b5f58bada9bcd59f0c20"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentPrompts.swift",
+      "sha256": "e46bb2e0ee7db001df7923e742d78307cb862d69fb05c9bbaaba5abf6503370a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentRefusalGuard.swift",
+      "sha256": "103a9cecca239c9cf0eb797cccffa54cbed4873d5b5d653018fce8bd728dd79c"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentReplyRenderer.swift",
+      "sha256": "34b962f264470c9352f485d9e8ac2b85953ee751db410735cd211fc6d04b8f1a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentService.swift",
+      "sha256": "2c485b8f1eaf46b377bf879a5851c280696a93bafa819218932a7b4598f1e74c"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentSessionBoundary.swift",
+      "sha256": "96dbf2edc01a4e3aecc79aed1d6d3a3dee386042d5979811467c2150706e6b99"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentSessionSelfTest.swift",
+      "sha256": "b9f565f9e34da79ca30eba296775c1a08154dcda3ae3917096ce293d5efe3152"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentToolCall.swift",
+      "sha256": "ccf7ce88213d1d25051cdcc6a44a7dd97517e94d3b11cef966af5efdccf0827d"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentToolLoop.swift",
+      "sha256": "cd7f1767866b385507f1c75227a38cd75579562af24f63d1d7c5e8bbbae7d7d6"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentTurnIntent.swift",
+      "sha256": "b04f8407bc45e0e719d8cfbb4e050c3e1f0afec1c32579d9850a848c98aba9b0"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ApprovalFreshness.swift",
+      "sha256": "d8e3453d6b92de7e33aa9cc7c7546e35d7bbdc84d5c222937238850957faec9a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift",
+      "sha256": "fd4d645ada9f5fdd5a1f2e1d66f3a633af559b5c9383e2cfdd015d1a7dd243d9"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/ACPCompatibilityCLIBackend.swift",
+      "sha256": "d8d44e346f8045ae700ba6ebb3cf520b0b111be0a816fffdf740a77ff20e259b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/ACPSession.swift",
+      "sha256": "861bcfa619e51ffc285194f528da5c2bd94849ad64483044c03423f85bb87551"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/AgentBackend.swift",
+      "sha256": "38929c53dd3b73b69e2ab06f331936c56ff781c28183892224786b135e75258f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/AgentHarnessRouter.swift",
+      "sha256": "04834e7532d585263089b34da044498bd83e9fd519cb7fdbe93652f9aa8e5c15"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/AgentStdioFixtures.swift",
+      "sha256": "7545f24570999adba51ab93a6ce378e99e53299830af3377040ed2a134e3840f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/CodexComputerUse.swift",
+      "sha256": "dd5aa60561d9db5427a764419b3d7c88baa233fb5a79f26da6515148b5ea7f1f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/CodexQuotaStore.swift",
+      "sha256": "cb0e595cbb1699ca3cb6c8e9b1df1b88f57ac74055dfe3d750577d3745ad3a96"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift",
+      "sha256": "8265b2b878bc41e1125ffd838a764f4a94d064b6ec513eafad021be0c472bda5"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/LocalAgentBackend.swift",
+      "sha256": "03ab569742752c8caaaf4fbe52068c8acae9f4d8983f7891868c099ce4295103"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/VisionHandoff.swift",
+      "sha256": "614eccc62128daee1d2103296dd5436577e35d5c14b2b7099f4827dc78ccadb8"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ConcurrentVoiceSelfTest.swift",
+      "sha256": "aee1c2e10c2ceb9314799d9b82abdac3c3ae4206e8ef70da66993bfc1f2d664a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Duplex/VoiceContracts.swift",
+      "sha256": "1544a4e8dadb7e419ac7411027baf81a7a8e67bb87b004823bec738ce9801997"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Duplex/VoiceDuplexWorkSelfTest.swift",
+      "sha256": "a1cf7d6856a9ff0ddd274b466369ce01a0c606003b6f99eb20fa239d9789d619"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Duplex/VoiceSession.swift",
+      "sha256": "36d2cfc07ea184f5954d34c7b0e5976ad3834b67db37ca242b7fdf97c9a58d59"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Duplex/VoiceSessionReducerSelfTest.swift",
+      "sha256": "c9ead9ecb8164ac82354a4145f926d7ade7b2219740ac79298e839be8ce65655"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/FunctionCallGrounding.swift",
+      "sha256": "ef43a3586042088834f910fafd3ca4079557f4af2bbcab4b22efd4a0c7ddc58b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/FunctionCallProposer.swift",
+      "sha256": "0754e1767297f23a6f903befb0ead55cdef5b7020428755d0632c09e394f5677"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/FunctionCallRelevance.swift",
+      "sha256": "fdc3a0c7feb7d37f7278cec33aaa3f611d760f9fc213925779f343bfea4f32fc"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/FunctionCallSelfTest.swift",
+      "sha256": "34fa54e01ff5509f20115ddb0c8805e3f3817a1009b325badbebebff55fa58c0"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/FunctionCallStore.swift",
+      "sha256": "18668576f74ebcd7bf1fffdc96b2bfeaf96944f97700fa48a0879e9601ee4a06"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/FunctionCallWatcher.swift",
+      "sha256": "c05c5183ecc1a4bd086eea9739ca46c462158f0d10fcfeac2ad23446b62b83b2"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/LocalModelFunctionCallProposer.swift",
+      "sha256": "b130b29a101ad720b030a03a71c3bf546914b0586a75510e0486af5208f47092"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/NeedleEngine.swift",
+      "sha256": "379d8d52ab7e31afc3304f2482391910cada1f0443ed66a60fc653b98ad90634"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/NeedleFunctionCallProposer.swift",
+      "sha256": "dbd9334fa187c388313033e51d25dc42b340096bfa4409668998e440f91da60c"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/FunctionCalling/NeedleServer.swift",
+      "sha256": "7d22787269d1017a43d11ecfb2463f2e2713f80fee72bb1df5969b3dd6cbacbd"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Goals/AgentGoal.swift",
+      "sha256": "4908237ce5290ff6d64fc400a0a0d68257fb97708553bc89f225bf09c32dd580"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Goals/GoalSelfTest.swift",
+      "sha256": "dcf9fe88ef05a3fbfe25699c5ce367a7b9ffe10c56bb595239a7172f067011ce"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift",
+      "sha256": "fa58753eab248d4473939ed4494343e3cc697925d9e0e814d90f7c57dcf52434"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Identity/AgentAvatarChoreography.swift",
+      "sha256": "48c8a6b1c54a9efe74c9a51953c4f7e2c273912fba0c6172efc0acddc201e32b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Identity/AgentAvatarSelfTest.swift",
+      "sha256": "4da9947e1025875e7351c019c8571f9da0a1e7ff5c1b8ac56b1bb30cc2022285"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Identity/AgentAvatarSheet.swift",
+      "sha256": "765496f9ac1447711e9650146bf69a3c8723921d47fb0e9c575e01515ea30dc2"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Identity/AgentAvatarState.swift",
+      "sha256": "f578d4b898c9e063548fb226119064a0da6927c97751fbba31f4dd9096c8c979"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Identity/AgentIdentityStore.swift",
+      "sha256": "f7248b0fa096eeb3ddf15f5120183e7d385eb8708b9e79949823b3bc1d8610b7"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Identity/NotionAvatarConfig.swift",
+      "sha256": "402976a1250b07f320f32dba701630cf45210f180b1316bede05f2fa0312287f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Identity/NotionAvatarRenderer.swift",
+      "sha256": "e8ff627d1afa863367bbc7ed92542e2ff688ce73e99e14e22e8475a9f5cf9d88"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/LLMProviderTools.swift",
+      "sha256": "c38c50a63f8ec55a70771addcecdd9f4968d723495a359da451285bebead6211"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/LiveEval/ExplicitMemorySaveSelfTest.swift",
+      "sha256": "e938b86633211b1a776646863fc170ef4761bd166e12f592180353a4074e8ff5"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/LiveEval/NeedleFirstStepSelfTest.swift",
+      "sha256": "18ad6e1eeec5fc9a56fbb550361393296eb475dd98703b235fc3c984727afe5d"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift",
+      "sha256": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift",
+      "sha256": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift",
+      "sha256": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift",
+      "sha256": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/MeetingAgent.swift",
+      "sha256": "44841415f94512c8b85437fbc6de6ff27a856defd49bb5a087d387505999c5cc"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/MeetingLiveToolSelfTest.swift",
+      "sha256": "12f6deb67c4fba59861003020b9c42801259d1be46d67c28bcbb5557c3f53eca"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/PCMProbeSpeechBacking.swift",
+      "sha256": "94d4bf4aa728b19a244b5a17966d0f89ed7640576a53e766178c376d166c4809"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/PendingAction.swift",
+      "sha256": "7dd7ab98d0fff2a6380bbac98ca56b31489ffab29811925bc3e85ea218d06806"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/FirstIngestionGate.swift",
+      "sha256": "e00744af442a67349ebc89a176180b88a1df1c5bfdb1155cf039532d510e21cd"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/PermissionBroker.swift",
+      "sha256": "9c24e94b2f3f81a1e7a0c047950cf1df8ca7ea2f66dc103a129ad5b30b8a08e3"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/PermissionGate.swift",
+      "sha256": "54b4c5120cafcf2a7cde5ab7b9ad87b57b8322558d2488652a2b1c4ea868ec67"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/PermissionPolicy.swift",
+      "sha256": "58e78e1392ad6ccc0f621a099269bb31f3e7a6d3a7d230c36c438aa4ea5c1c80"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/PermissionRequest.swift",
+      "sha256": "9da20d0367fa774ad23e57170ec979d75a77be9882b36b7942757f6558476408"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/PermissionScope.swift",
+      "sha256": "101afbf72e724cf732946b55ea98f5effcead943dea815eb32ea1143cba0a01e"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/RemoteAccessPolicy.swift",
+      "sha256": "9bcd6ab2d3dc3ccb738b019f3f75e2f212e9380b78e54ba8acf5aac3291e55de"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallContext.swift",
+      "sha256": "ab9b292a2cc095bdb0ad22ddccaee1d3c5c86ac75f69942762a5fb22b21a09ce"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallInspector.swift",
+      "sha256": "d60bf7e73ffa35a0046d7d5dbecb645b39c216932e975ccd86feb932a52431eb"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallReview.swift",
+      "sha256": "20ea9939b3c3c6d4942e5cab17446b34636840386c41073892824d142b416689"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallReviewBuilder.swift",
+      "sha256": "55cbd25db7bde6ad19415ecd9e9f3b0cc5dbe36022513bdfe2a177cb84842a2a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallReviewFollowUp.swift",
+      "sha256": "d70204dfcb355e2b488a7d5f399f7236a46408dd52a253ae9a3d43e988485dba"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallReviewGuidedSelfTest.swift",
+      "sha256": "af4b7df6dcd35ec705a1ebe7899ccfd530ab90e6647c140972f50db7c8f1f702"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallReviewSelfTest.swift",
+      "sha256": "4d388aa83585316bae7f35394b67e7459aba559ba43f4de0a64c1755dd7380cd"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallReviewStore.swift",
+      "sha256": "5bde038c10c0ae0a26e251520ca068ba702afc8cc575e693705d3aacec9a5f89"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallValidation.swift",
+      "sha256": "900dbfe254e8012bb291f821ec20cd948897648a9acf31f41cfd239bdbda27ec"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Planner/AgentPlannerBackend.swift",
+      "sha256": "a2064304b79b8de289f731bb7615226444903bc6579affce32eecb29be5ae4c8"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Planner/FoundationModelsToolPlanner.swift",
+      "sha256": "9c4eacdd82d5d79797a25bceb608c20f22cd168ba4e5581d91b56bcea77d0e96"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Planner/LlamaGrammarPlanner.swift",
+      "sha256": "49faf6615eac9a637571d46ea6b2085d61be291a3d79ea8532426bab32193d9b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Planner/NativeToolsSelfTest.swift",
+      "sha256": "2b17d1f2a5df9a0fd9d7062fc2ba31c718c7dad9f96dd6463a2fab6d56e82035"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Planner/OpenAIToolsPlanner.swift",
+      "sha256": "b8fd2a4b12dc8c3ccb277567f7445cefeb41a3bf6eee1aebb1844afb8e52df0b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Planner/PromptConventionPlanner.swift",
+      "sha256": "ccb98acc8e657d22d9a3c2196c30c1d231e79406370a3dacc2dcffd681ee4dbc"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Planner/ToolStepRunner.swift",
+      "sha256": "121d289b5fa4cdfe8f1749fe04ea8690f369a834cc05ad8ab47ef3c92e5d008b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+      "sha256": "1c0cf45391ef495a05f1aa28315f6cce7d7c973408fcfc99471c750dd1503103"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/RealtimeAgent.swift",
+      "sha256": "b0e88e04ccf8d680e61bdf43604fab24999a1bb4c559c73c04d31d3029aac470"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/RealtimeAgentLocalModelSelfTest.swift",
+      "sha256": "a495954f0b29530f7bd3601f14edfe396aa044b743e3ccf932b3d8e6932f2500"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift",
+      "sha256": "eac01f98fd0042dbbef6d35a81f27519532d0c4e3685334d0f1880c9c848af23"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+      "sha256": "37762cbf308d3b3e43d354f752a44688b4ba932df3571a3aa3acfce6c117fd1f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/AgentSchedule.swift",
+      "sha256": "bc427f726200e348920c173fd9a6e1244eb41a972ccd9b73c6e9542ea4a07394"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/AgentScheduler.swift",
+      "sha256": "46c92fc3014f0a1931832dd80b6e7938fd04c3e1b2082221733e9a0c8cecf151"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/AgentTriggerEvents.swift",
+      "sha256": "effd2d7f267f4aa6f3c3d39c34fa30ce2ec12bde0eb46e0c7cb9dee27ff1296d"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/DigestSelfTest.swift",
+      "sha256": "b33b628ce93250bb1c21801ef458525ae8a9b8321dd54b04bd6fcf7275f6295e"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/DigestTemplate.swift",
+      "sha256": "81f9e6213d3314c8ed446c3e81a5312d95800c8c6877e7d1726db0b581d04bc3"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/PodcastSelfTest.swift",
+      "sha256": "324bb6cab4e1f83c5fb18326840173321b96841467b0885d74a4f6cd122d0716"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/PodcastTemplate.swift",
+      "sha256": "06916513979c27cafadd385ccc5f04329f904ac4a92a6e37af07f54c0172fef2"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/RecurrenceRule.swift",
+      "sha256": "54e14355706014127c860042d505f533ddf1e34d1726b1b17d8fe701237f292c"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/RoutineAuthoritySelfTest.swift",
+      "sha256": "b716e9574c7172f0c76b1c7f391d5461576725a1f92920e77e42f40716b14c0e"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/ScheduleNotifications.swift",
+      "sha256": "8ba6731bbf81a9fdafca3d3998e00aa7a04147d9dda0b209d1d3f427c89e46bf"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/ScheduleSelfTest.swift",
+      "sha256": "a1ab063df79ff5dc0da03c2693c28eff389b26f19e14ad035462e602b419922f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/ScheduleStore.swift",
+      "sha256": "fa81740d55ef8376e3ffe8a37e2e60770005d59a4530c77dbdac7c5af239f3da"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/ScheduleTools.swift",
+      "sha256": "37a5ae81864557fd1bd2f5d84e670f07f1e451407a5038487f3c20e45c85b379"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Schedules/ScheduledRunner.swift",
+      "sha256": "c662efed55a3beed754eea74df1890dffa675d32238f3a2a7a48adf7edcf3d19"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Skills/SkillLibrary.swift",
+      "sha256": "e20f7bde90bec9d8c86ad72fc6366563c996f867413cd2d25cf73ee323e09953"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Skills/SkillPromptIndex.swift",
+      "sha256": "f85dce96461cf50826b4be3f53aece101edc4adfcb7418699290305f6e57faea"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Skills/SkillRegistryClient.swift",
+      "sha256": "a00a379118b795e73fa61bdacc5370f1c263cf0c94d1145e5a5e7c21b139ba52"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Skills/SkillTools.swift",
+      "sha256": "adab636270133f06ef236133abf7876055fbb028199e922bd1e6a2d76683d7a5"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Skills/SkillsSelfTest.swift",
+      "sha256": "9de546512e76f8e37df9d4e9652f333b92edc96d947680ee2b080e8058d1836a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift",
+      "sha256": "0c199fc3abf89765f9debb0fb326e57eb34a83ed81460946785a04347e552730"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/AgentSpeechPolicy.swift",
+      "sha256": "40657a4651c2caae903264fe55afbc3304301c7046bd2e9b3f4c3f4ab21637a4"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+      "sha256": "96856fe552b1b12f952ca26cb14f7793a629215f2c186e88b20221d5d8d1504c"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift",
+      "sha256": "66bf1d77947a768a6cc18334c07a6d9a9c7b65cba66f2adcf30f4f2f3ca50630"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift",
+      "sha256": "5928d8f6d3aec10d1003ab41300d68cbce423a214186c6899bdbb8ad96061150"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift",
+      "sha256": "2612896915d6b4dae22ab47838f71ba53a2b86ed66f587dbca7f39daebfa24ee"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift",
+      "sha256": "0334fa3ad9708e99c1e9088867b3ad19e863433c3fbd1f95915a7e3931698ecd"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/PocketTtsSessionSelfTest.swift",
+      "sha256": "461cce95fc6674b17cb2f599ef6ad2e914d06ceee90c4899c9e8f7e72f716258"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/RealtimePCMFloatRing.swift",
+      "sha256": "993d30d34368e218153865adf03594df480d2117be5b70d76b2641669695e490"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/RealtimePCMReferenceRing.swift",
+      "sha256": "9c30f8441c29b7b31a0ce45ab0c265c4518d3c4921964a331dd4278acc63d88b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/StreamingSpeechBuffer.swift",
+      "sha256": "826697d1178cc63af9b82c3a4a5da56495f1413ce770aa0e5393a2df5a51bb01"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/VoicePlaybackReference.swift",
+      "sha256": "5ccf67b7f4edbb52939a0e41a8920f63fed6720800b54daa8e5d838afef563fa"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentArtifactLedger.swift",
+      "sha256": "b9b8143508453032fee75f632172ac669c6ce5281723243a410c5d4df0ede15c"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTask.swift",
+      "sha256": "e4f84014066d7b6179e0e4bc497293b8a7b64d0bd92c232b56c9ad84e05cc6b2"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "sha256": "e1e7566fb603b0d2c398d0646b46fcd73aafcdb1219a30c326a1e05e85e7186f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift",
+      "sha256": "4a6bb75f8e263721e74ec15f126f872b553a62d8b5856443ab6c40b9167fe245"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskAuthoritySelfTest.swift",
+      "sha256": "415605c8e3b174d04f6a2746464f6ab57b8eb4d479c4982cd892ff3c4012c37a"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift",
+      "sha256": "a73195a3ea016122cbe58abfd976578f3b6c495b822d5b2377debd0e4d48e30b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift",
+      "sha256": "4f4199112443423a0424ef916b96d01f421765102938cde5b8dc29977ffddbd3"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskHistoryRepairSelfTest.swift",
+      "sha256": "4cb5a8e7b26820d16b0ba08794a3e75d370ad2be59d6d3e28674eedf499e854c"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskPermissionJournalSelfTest.swift",
+      "sha256": "fe56d6094c1f31ea372b34880e6e17d8f7ae96f64390af92d4db09081c470a11"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskRecoveryPlanner.swift",
+      "sha256": "6f29af04e8b47586d5d38667d6de990507906dc5bb570ff78537a101e65b9c53"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskRecoveryPlannerSelfTest.swift",
+      "sha256": "6aae1f988d6ade21ec7b850ef74c157dc47532c7e189aa973caf196e3cf8a6ae"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskRecoverySelfTest.swift",
+      "sha256": "ca91d40a271485af69e9f0b7f2fb76e0b50aa38fb2d19f5248fe80eac5d7c993"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskRestorationProductionSelfTest.swift",
+      "sha256": "ff1e64326ed21b410802c3a1eb6ef227f48bd516707bc704ad1b5680e71f44f4"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskRestorationSelfTest.swift",
+      "sha256": "6fdfd9078abe7bab10edd78dccbd4ee9a3a0f32b6accbd00ef1e432c15e0f499"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift",
+      "sha256": "f06b561e3b63d05902fb97cd55e53cf2c8fc0fd8186980e2acb02f0298f77b23"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskStoreSchema.swift",
+      "sha256": "6447b03e5c4875701d3b182ce8705f618fc2cdc701d8239cddfb5e580202e247"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskStoreSelfTest.swift",
+      "sha256": "b51790378dcac017d60523e834d14a6392fa99ec17ce07110edfe1c946bb6a42"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ToolClaimGuard.swift",
+      "sha256": "bc0d4a07ad02272cf1c472e7a24d752639d9f824f28ba89500adf8c9908ff2e8"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ToolLoopBudget.swift",
+      "sha256": "daacc0e09ff208b0137c1b84c1dd59757427a75c786fe2cb8cea228c14440f0f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ToolStepOutcome.swift",
+      "sha256": "8ee1f03df5405fbd3d902103677c83182ee1452686c7d7fd94b4cf78d16c9387"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/AgentTool.swift",
+      "sha256": "3bad1fecbfb17cf45737eb0c51f6fe8ebf4589b79084e5a102f94849b3eae51f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift",
+      "sha256": "46d05129644780e2a9d09080c47b1699d3f8440d786df2624273f74e7a21a678"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/AgentToolRegistry.swift",
+      "sha256": "b6dd38e9a0c9585a0c83c2ca87d71c180f5ff54f67a6ab1a3f354442071f643e"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/ComputerTools.swift",
+      "sha256": "4917aa1e3acace9f85442ba8b91d28ff4085c3c3feeba7574854c049727a1ac2"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/FilesystemTools.swift",
+      "sha256": "82554749242e30faba996a38bdf780cbd614d4ac836d0206d3defda3335278db"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/MeetingTools.swift",
+      "sha256": "52c2d7c7a5d7a46005a5cc2f2bc8c92bc550940d5fcd76d71d3ce5876b55066e"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/ShellTools.swift",
+      "sha256": "3ad8e5c4f306f8563a244dae732598aff479511748bf7d03e39b79bf2a958aa0"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/ToolRouter.swift",
+      "sha256": "54c4c9ff5c59a7398584ea2102fd184939aa876dbd6ef9207808213aef0a2b77"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Voice/MainActorStallProbe.swift",
+      "sha256": "08db5a9f531d8cfb7219ab95cd55a72329f11c412469c0d4e81b7a70f0fc5fd1"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift",
+      "sha256": "7dff6c628a667ebb4dc9bfbe5059ecaceb0152e43dece224b0e724fabfbfc938"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Voice/VoiceLatencyTimeline.swift",
+      "sha256": "bc2d80d98c0bee4a810d29f1da6e9a9395e66bcad9198818d3ed1b7d77ad569b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceAnnouncementQueue.swift",
+      "sha256": "f7aea15b80e0088192f3d93228fe870374db59c7402dc39e1e0815cbc67e748d"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceCapabilityConversationSelfTest.swift",
+      "sha256": "591b7f4863cff78acbf68199d3dad7124e3fd81f5277cf039f766ea901038872"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceCapabilitySnapshot.swift",
+      "sha256": "6ee58b317e3eeb59ead649783a87f464a2f4742b0419edc2a7f414f61a02a601"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift",
+      "sha256": "6e7c3839f535732374121ee5108270fdd576964872b80ef513fcd551da91d6b8"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceConversationSelfTest.swift",
+      "sha256": "71e7a56e39e9a6a1d088318bf4adc2497c7de39de915219c4fe6a82ebe2e7517"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceConversationWork.swift",
+      "sha256": "3ada3046f7ce3f9f271877b4075d280ea847180dfbc71062f90298573a62323e"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceDeliverySelfTest.swift",
+      "sha256": "624ff0bb56a4225b6c38ada1e8a95f2a891cd110e065baec96c71ebe0f1021c5"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceEchoLiveProbe.swift",
+      "sha256": "1e1e27c97675da1e36280891ebc25b53472808258314e9e5df0a62e90024061f"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceFrontendFailure.swift",
+      "sha256": "1e00e4cdd55efa6d1fc90b9b98b2e8a761cb75d6f9610556da668322486c43ef"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift",
+      "sha256": "0737862c5f04346f639868d5f5d2b7b71c151de97992bb2b5d8ce914191cd3c7"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/VoiceWorkLifecycleSelfTest.swift",
+      "sha256": "1ca65ede57d45b7b77960fbc3ffc149f99422ea4bf4f086c75dda244a622b59e"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/WorkspaceInstaller.swift",
+      "sha256": "1838c5fdebec5598f77a38217dfca09a52df852ae77d2460cb504af139b2e754"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/WorkspaceToolRunner+UnknownOutcome.swift",
+      "sha256": "b355d52665e802f08d820c061257aa160b1adf38f95e279a40a3c9c7ca4871da"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/WorkspaceToolRunner.swift",
+      "sha256": "20051a3bbe6778e3acd0abb9cf8f7ca003008f1ad068adf5d7e17d6c8513f1ef"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/WorkspaceTools.swift",
+      "sha256": "54f4f31df313cf1d1efa56810953302bae225cddb299a68c6d63de364094d6c0"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/CalendarProvider.swift",
+      "sha256": "d1b5ad743860761668eb8430da247c2449fc18c67e73cb2bda00aacece76413b"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/CalendarService.swift",
+      "sha256": "fa53d2bc8129a56b3ccbf95f84d40280146eeee4ac94d402576334b4936b1fa9"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/ConferenceURLDetector.swift",
+      "sha256": "482058bb183e5926ab70f05cabdf55689336b6e9ab4250de9f66a5a1389ae49c"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/EventKitCalendarProvider.swift",
+      "sha256": "15731375e1ff0774a0f4783d16e777f27403b12f4e7bf3e9ed5bc2439896b3a7"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/FakeCalendarProvider.swift",
+      "sha256": "f37f9a52b2866467e801770ea77ae416b2d7b86ae57e945b433c4cbe5de594ba"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/Google/GoogleCalendarModels.swift",
+      "sha256": "e4c10a0e751e38d6c325eab9bd0cfa7f2666f8afa7b8d83d963367000f36aeaa"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift",
+      "sha256": "b96cbfee5b4e8f88e51b116aa27cc13470cc89fe4010a4bb2a8f9002bf87cf2d"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/Google/GoogleClientConfig.swift",
+      "sha256": "56726cdda833b1ea3ad776ea8ee160c7f42af2b58c6a2b4549ffd903db6bcb8f"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/Google/GoogleOAuthClient.swift",
+      "sha256": "5ae30a205cef1df858c297b973483b7be0228390c05aba779c4174e939ecd86c"
+    },
+    {
+      "path": "Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift",
+      "sha256": "11829f19dbff25649b14b9fee27cb613a33a517b23ca4880f57775a6a03359e4"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/AccessibilitySnapshot.swift",
+      "sha256": "c5de8d7de9b67d27a133aa266687b8faf3bd89972d414356e9685f2ad31e15a4"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/BrowserActionValiditySelfTest.swift",
+      "sha256": "8b6f9d8eb07b60eb6a0756e83351e5689f523d25f4b6493c72f06d42c092a952"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/BrowserCDPClient.swift",
+      "sha256": "ecb1213693ccb24daa3b93cfc5f9120de28be440f5b694ef727c84ed55937b3e"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/BrowserExecutor.swift",
+      "sha256": "a0202ac97cec0cb37deb86b755fe401b72c6c8e60b375635d898f905fef41448"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/BrowserToolExecutor.swift",
+      "sha256": "5548b5c0c39148f855173373203365b9c563858c20232484ac965143c9e6c415"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/ComputerIntent.swift",
+      "sha256": "ccec9f84d4e2c23abfd81be2209ea9565ba9f08d0dd4775723468aa9437593c9"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/ComputerSelfTestHarness.swift",
+      "sha256": "dc8777958eaac39398ae7c64e75b14365aea50b71d7112a01c01ca4c030dd628"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/ComputerToolExecutor.swift",
+      "sha256": "8364af0d651bb55b546888aca7ec7e81861d7795efbd78140b3e4536c591379f"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/ComputerYieldLiveSelfTest.swift",
+      "sha256": "38d1dd0dbde6c5b34785c5c223b3acec2e5f227b496a5c1a8b4229cdaa45608e"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/ComputerYieldSelfTest.swift",
+      "sha256": "4ee76b998c34412c6947189f03811667bb80039fa56da97479bb3affd38d7a3d"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/HumanInputWatch.swift",
+      "sha256": "5a89d969611347318a15199719f0d4ca1b060498230771114c988b53d1074cef"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/ScreenCapture.swift",
+      "sha256": "c05dd39ddb60cc47fd36a46d84453847110ee2b94664055110118c3400777e55"
+    },
+    {
+      "path": "Sources/NextNotes/Computer/SecureFieldRule.swift",
+      "sha256": "16ff8badf36c297f304e483acd2bdcb8f7ceb199fab1bfb0b13e00ba631219f7"
+    },
+    {
+      "path": "Sources/NextNotes/Context/AXAppAdapters.swift",
+      "sha256": "09b7a57e4da8712d669b02c298fad9c8d9ede99552b5ea44419aa26ccdf56019"
+    },
+    {
+      "path": "Sources/NextNotes/Context/AXHarvester.swift",
+      "sha256": "82a92dca9f77774734f81b24829503c1eb85760a75c50163b1c6db3a59ece50a"
+    },
+    {
+      "path": "Sources/NextNotes/Context/ComputerContext.swift",
+      "sha256": "d3e193552b20ea027620e5692a87264c1e04f6b7b97cb351ebbaa52db100b6ef"
+    },
+    {
+      "path": "Sources/NextNotes/Context/ContextEngine.swift",
+      "sha256": "86bf9c3b55c654e35d7fa7b7c5e96227faecaa96bc77eb7c80bfc029baff471f"
+    },
+    {
+      "path": "Sources/NextNotes/Context/ContextPrivacyFilter.swift",
+      "sha256": "e120442b4c9c827c815b204479422168a2b8c292e23597d93d98cc2265d50870"
+    },
+    {
+      "path": "Sources/NextNotes/Context/ScreenContext.swift",
+      "sha256": "53cda27312ddbfe0f0eae8533544d488afd0a5060792482cae4b902ba87deb68"
+    },
+    {
+      "path": "Sources/NextNotes/Context/ScreenContextStore.swift",
+      "sha256": "5dbf989dbf64290e31a382e235e521d8d919de59080a6408bd04a6ef4f02e1e4"
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioCapture.swift",
+      "sha256": "991a2b56af83a7a7682b1d341fde09c95dbdbad4ceebb968853f46f1cd6cd270"
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioCaptureHub.swift",
+      "sha256": "b2d1cb1f94ef6d3afd9c99683ae731b99d9229a17bb125deb90bdc3effbbad87"
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioConversion.swift",
+      "sha256": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1"
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioSinkCaptureRing.swift",
+      "sha256": "4ca0402e30333c20329941330243399fe3cef2d7970a55ebcac1f6b69f7cd627"
+    },
+    {
+      "path": "Sources/NextNotes/Core/CommandKeySelfTest.swift",
+      "sha256": "b915e8c490e20af02ae99d363d3297f9ee0470cda1b886872da0039605eb208e"
+    },
+    {
+      "path": "Sources/NextNotes/Core/Compute/ComputeJob.swift",
+      "sha256": "d26b3dd988b0c1ac4bd0daeb35d290997b101abf5da721b7fb8f6cf43813b2ef"
+    },
+    {
+      "path": "Sources/NextNotes/Core/Compute/ComputeScheduler.swift",
+      "sha256": "04c61214a7a24c880a1b47e133dad997899de0626641ee94a1d05ecc25eaefe8"
+    },
+    {
+      "path": "Sources/NextNotes/Core/Compute/MeetingResourcePolicySelfTest.swift",
+      "sha256": "a4f92c72eaf5a56c131af363171745607e71189ecb2f6b658431e7d16c89fb19"
+    },
+    {
+      "path": "Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift",
+      "sha256": "2a7a01634ae429d890465f7cbb1cb7c28ae1971ddc8b8bdf69883cc138af1cc6"
+    },
+    {
+      "path": "Sources/NextNotes/Core/Compute/ModelRuntimeManager.swift",
+      "sha256": "00f5327eb054b115d15ba0e8164e4478e706410dad72f3b823830199924b5b84"
+    },
+    {
+      "path": "Sources/NextNotes/Core/DictationController.swift",
+      "sha256": "87efda730e7f97615e8c315392f729d6284615aa16bf8dbe171c69143d3a358f"
+    },
+    {
+      "path": "Sources/NextNotes/Core/DictationErrorText.swift",
+      "sha256": "f2cb63a7f2514602547d031f8f49752c6688be4e49d70eac6aa34af232c398e1"
+    },
+    {
+      "path": "Sources/NextNotes/Core/DictationHoldOutcome.swift",
+      "sha256": "9558583eb590b216e4ae8c22707bceca44ba6f6b16c2f65a5ea82a871a30287a"
+    },
+    {
+      "path": "Sources/NextNotes/Core/EngineComparison.swift",
+      "sha256": "9e536efe10873114edf5b6a3e3bc9c929d2b47fd84b7f83cbbf87894bb7087bc"
+    },
+    {
+      "path": "Sources/NextNotes/Core/HotkeyMonitor.swift",
+      "sha256": "07820ade5b38b7ed62b40c35917210e4951bf9def174c74b44d413ae6ae5bcf8"
+    },
+    {
+      "path": "Sources/NextNotes/Core/SystemAudioCapture.swift",
+      "sha256": "58d6667f55edcbc4e4512735206da740cbace9b31d66c361093ecca45ed2538b"
+    },
+    {
+      "path": "Sources/NextNotes/Core/TextInjector.swift",
+      "sha256": "58fba9ba5867faac7d49a3747176b5ef56316090ad507dac3fa69cfffe234299"
+    },
+    {
+      "path": "Sources/NextNotes/Core/WisprTrigger.swift",
+      "sha256": "decfbe82d4181caacbc1fc2a15f3432430182c8f5ff60aa85d21ac76ba3a68f1"
+    },
+    {
+      "path": "Sources/NextNotes/Dictionary/CorrectionLearner.swift",
+      "sha256": "57e805d589c8f5f0442f4c5133a55de62244a86bd8232e9d97e00fd09b4d10a0"
+    },
+    {
+      "path": "Sources/NextNotes/Dictionary/DictionaryStore.swift",
+      "sha256": "baf619489298fefedc70fc85b244f03bf455d4f263372597ec36d373625f3790"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/AppLLMCleanupFormatter.swift",
+      "sha256": "700da5d32cf479572b01ad68bc9872833376d829d8223a4df64d892de2e62074"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/AppleModelWarmth.swift",
+      "sha256": "dc38f4ee061172a4b907767315dfd6dbde5d7a1ae17b941ffeb3545c025a6237"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/ChainedFormatter.swift",
+      "sha256": "127927d66faede1d325e69ca8cf7f83dbe850d5efc61d6e60818622dd6c8e0aa"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupDecision.swift",
+      "sha256": "5a091eeb0c6c86e9cd0ece2bfe08151269d250736ced1af18171b8e757c53031"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupEvalCases.swift",
+      "sha256": "fa89bc08880b0dfeb14579e33fa0f06b0593205f2bb2dba778e363acffbcac42"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupGuard.swift",
+      "sha256": "55d79727e9e554b14ca4435b3caa84e31eb08318fe5d8ecef5287b3565d93997"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupInstructions.swift",
+      "sha256": "d94ddaabda0a5069e63aaef6e9b73b185dc1ae4c11138e4b0eedf491ea888d5b"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupPressureProbe.swift",
+      "sha256": "68b5dd99510eea9dfa2c172be28bc3dacd78ef8de1cdad3ed65797aaea23bca7"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupRouter.swift",
+      "sha256": "f520db69453866d354507929a3948c5cbb31d608062f66f1be637687bc5f9782"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupTrace.swift",
+      "sha256": "f98fa4b2277f40468dded0a59368eb9b9fa985de55c28726cd16c369d9897820"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupWarmthProbe.swift",
+      "sha256": "a83fe29ca9a6a43249f929666f25fbfba489b2cdc2784b93c0e468d9ed51dd29"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/FoundationModelCommandProcessor.swift",
+      "sha256": "8c9808255d0cd79edc407f0afa3ea2d02666e1a59c4ee24536d1eb8944072046"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/FoundationModelFormatter.swift",
+      "sha256": "8aabf97bd7bec0ca32a01948ba82bb23916592d14d3ea95ff9ba91caf818e999"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/IncrementalCleanup.swift",
+      "sha256": "4027c59debb7524dc0c5d1fb90a0708f5fb4a5f9e92a48595dee8093b828b5a6"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/ChatTemplate.swift",
+      "sha256": "57be2c88cafa4b27a66c85e1dd69949c2636164e754591a049484d2e97b6b57e"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/ChatTemplateSelfTest.swift",
+      "sha256": "bc0e4512dcb6101fe889bf48bd141b2b3167abd577cd565ffd889256a213e780"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/FoundationModelLLMProvider.swift",
+      "sha256": "787460d0881caa99f55dc4ff01614145241ef2db9454ce1658216ae01c401f1d"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/GBNFGrammar.swift",
+      "sha256": "7a4ef23657481111c6d035dfd1de8f8bc24f4b3f1543a21ec0d7d38f6befc789"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/GGUFMetadata.swift",
+      "sha256": "f3a38342f4629709b0f6135e6ffcfd2932aed8416187bd318ad73b94404f7d2c"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LLMProvider.swift",
+      "sha256": "40fddb0c8fd56ac5595c18786e54bb4fe80e9994499469b187b0a334101539f8"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LlamaArchitectures.swift",
+      "sha256": "e18078d2711ab4430bcf0466de8950a1b10b47d00b2120f9e2bb79a628dfffc0"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LlamaBackend.swift",
+      "sha256": "6143164ccfc331c1a9156fc167b970b8b7f21e36cecb9bbe7941ffb44a14fb23"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LlamaHelpers.swift",
+      "sha256": "c77b839bc067e7bf13213beb212e217fda56996ac925881503af0f0670cfee5c"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LlamaLLMProvider.swift",
+      "sha256": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LlamaLoadProbe.swift",
+      "sha256": "e58744ddfd3a1f9da7738bae525951ecb171e7b9920d290d1d88ee5ab32881ae"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LocalVoiceDecision.swift",
+      "sha256": "93035309d23a5abea1182823b5bfadb4d0f575f1ac99f5c1dde89a0018942fe2"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift",
+      "sha256": "61e42da686cb130d13c8136bd00d8ce0848e5b6587fc51469fb6c008fd92d1c1"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontendSelfTest.swift",
+      "sha256": "d04b38355303abe77e434886684cb18777428e49d58d4eae6be8940af908520f"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontendSpeculationSelfTest.swift",
+      "sha256": "d37e0634f28181e682d879d1784c36f4af80783df6de4bd7d4cc4a48a39c466f"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LocalVoicePrompt.swift",
+      "sha256": "8300330913b92aa7cce6929104eece1c37918b87068a24d6800ed5427952cb56"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/LocalVoicePromptProbe.swift",
+      "sha256": "e182ffe3b470fb1951856e21f11e3490e3389e63dd0b84ffd6a5ca59f7c28884"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+      "sha256": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/NotesModels.swift",
+      "sha256": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/OpenAICompatibleLLMProvider.swift",
+      "sha256": "61f96029d2ac78322662ce89136539bf02abf62cd4f5766c498078e66f304fc1"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/OpenRouterLLMProvider.swift",
+      "sha256": "0ea4bf75832ac7c7fa1387803a71e845cdf58b0430038074d4a51024e6bb0391"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/OpenRouterReasoning.swift",
+      "sha256": "693d75006af8e4af14fee0f20fec50a436383410a6574c7384e85688e44df95a"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift",
+      "sha256": "4adf423c73bedc4a5769ba9d70c176a7730b650bb1535c4864b2a77deabdc937"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/PrefixReuse.swift",
+      "sha256": "4b9df21dee6fe32bb20eef0791c6e39f3c989a81833a1b24a30505ce924d9d89"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift",
+      "sha256": "e40c7bc6ee9b01da4f208e00d1d226089abd03010b87a77a2747eabf4d7128b7"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/S1MiniFormatter.swift",
+      "sha256": "bc3daf26dad159bc1e00872f5cee8bb1c1a9674cef9dbd7fabcb7e4a85250569"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/SentenceChunker.swift",
+      "sha256": "1e83589c9e48eaaec3579cb5d7cf048ec36d6c757e756d713db29744c5c1034c"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/SpokenStructure.swift",
+      "sha256": "dcb69b44d5896b18d323c58e2db2d941dde433564c9d9f446a1f88094bf50c01"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/StructurePlan.swift",
+      "sha256": "e5b1dbe8e385d0c9efe11a2614871e9f5f2729bfc32524fd8f7b2fda2709865c"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/StructurePlanProbe.swift",
+      "sha256": "4037831076e47bad4bcf43fadf969aaf4a9dfd89ce6471b7402696cb20a958c9"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/StructurePlanner.swift",
+      "sha256": "002b3aebfe505bcf9e05edd01d66f90ce266f7514c8580ffbc81138e52eb3a97"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/Targets/InstalledApps.swift",
+      "sha256": "fe3eb0cec68dc99ff30970eed4ec5f073aec5279250b8e5956c4c7779f1f5fac"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/Targets/OutputFormatInstructions.swift",
+      "sha256": "2b95e84edbb646ccad4fa2999204933842debefd09853456064364e92f438678"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/Targets/OutputProfile.swift",
+      "sha256": "ce5df0a3e1f4c31cc455e408c2cf91f69c2856297dd83deaa3a2eb85253c3ac5"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/Targets/OutputProfileDefaults.swift",
+      "sha256": "02099193b75ec7082b6fb04e574642139ebd0c23a3a6b3180d4e991c4fb22d55"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/Targets/OutputProfileStore.swift",
+      "sha256": "fb3081c643092a1eda8aa5d62ac1b20e7376a71cf8972bc2b5fb351f38958eee"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/TextFormatter.swift",
+      "sha256": "50dd78631a79bc21547d51f81d6b72642cc776c3b1952daa8387eeb91d8d3710"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Agent/IMessageAuthoritySelfTest.swift",
+      "sha256": "8c20761491b086d88068fd4d61df9e3a9202be01f74a0b644cabc14d9476d1f2"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Agent/IMessageConversationMapper.swift",
+      "sha256": "d0aa20a3ce77f3bf53bf8b3bc5bb922ae2ed0a6bd85de89692b38f7dbd67f77e"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Agent/IMessageInteractionAdapter.swift",
+      "sha256": "4f601c506937a6fbf3831bc89b96e015fba2ed323bfbd292fe12005c76724dd3"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Agent/RemoteAgentTurn.swift",
+      "sha256": "857951fc5e9a220bb49868cb9ef23ae185bbe415a312a1db6395c164f4c98640"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Approval/IMessageApprovalSelfTest.swift",
+      "sha256": "84067045d284e1345fccb12d519405b5f12d1316de634ad761f16e7051bf857a"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Approval/RemoteApproval.swift",
+      "sha256": "1aac8bafac094fd4791cb72984eadc352bb2b94c9d25e326746f45534b6cd60f"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Attachments/MessagesAttachmentCopier.swift",
+      "sha256": "8451f5eae44877e97817c95d8c03f7fe64f335995f2dbdcc59e2a52dc62e39d8"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Attachments/MessagesAttachmentPolicy.swift",
+      "sha256": "beb8d0ec439cb503c7fa7aaa9250bc57febdd0b64282cdeab8dc05e31a74c957"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Attachments/MessagesAttachmentReader.swift",
+      "sha256": "05d3a5cc31fe057918c0b14174baabb7d64abb12771f478c615b3f62e5f429d4"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Attachments/MessagesAttachmentSelfTest.swift",
+      "sha256": "8e5c4cd3315f53839592d9c3526e363f74565d3f64b6b3e8a568742a919ebc03"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Attachments/VoiceNoteTranscriber.swift",
+      "sha256": "30f2643adc18b1038888b806f3701e9ebec644ad4f8bd939eb700074e544b835"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Classify/IMessageClass.swift",
+      "sha256": "d9bcb200941baeb86681f6cfc0807e88508a63b38026d0d358c3f3ee27fa6514"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Classify/IMessageClassSelfTest.swift",
+      "sha256": "f496615e2abd527df42ccfdaa3c2a76afc9e1a647e5cd78d9c5bcc303fb1c45e"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Classify/IMessageDirection.swift",
+      "sha256": "08aef86bfada6ff71e3ab37eb17637d2047757561c13ed1f3ac94eba6ae9f4a1"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Classify/SelfChatMembership.swift",
+      "sha256": "f5215d286f1ac0b63f3cd1231adf94539b7c79782dca0b7bd6c865d81c4b56fc"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Consent/IMessageConsentSelfTest.swift",
+      "sha256": "73bba754c0357ac758313c50882e0185dea5ce051c6fc668a165cbb32451c336"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Consent/IMessageConsentState.swift",
+      "sha256": "9f9ab3dd21ce55161df4eb2d121609dcc45a37c30171cc4c96cf1c7e904d6b05"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Database/MessagesDatabase.swift",
+      "sha256": "7b0a81eb64fe9cba4e3f6956e32bcf66b99e368cf8d554d40d3ba31e6840fdef"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Database/MessagesDatabaseHealth.swift",
+      "sha256": "1e777c0ff41eb186a4e7e931ec2895b0d0b9a5579d3acc2a9124cb6316403225"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Database/MessagesDatabaseSelfTest.swift",
+      "sha256": "df0deec51618cc3599460d51199969f39ad4ce8c08f0697a7cdc4789edf65fa3"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Database/MessagesDecoder.swift",
+      "sha256": "98100585714b9a42ac4c0ac201a05fa26e14eb8bc71008f2d8a9e172fd4e6a83"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Database/MessagesDecoderSelfTest.swift",
+      "sha256": "40763ce186dadaf396286fee701cd0e682efbfcb10b99c234f790a4b8635bda4"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Database/MessagesQueries.swift",
+      "sha256": "cfa40668fd3e96c78bcb7d666db353fcdeb9aea68d62c1b012fc0be00a4819c5"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Database/MessagesSchema.swift",
+      "sha256": "a47d775f4c925f291a6665a2ccd71261350cc416bbc8dd541414f8343218463f"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Database/MessagesSelfFlowReport.swift",
+      "sha256": "d2c4b574f7410c84a802a93f72e4a7b959bac1a89bfbe19c34bb3340772f0987"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/IMessageBridge.swift",
+      "sha256": "818f2a7142865cd277a82b715836849919df993985bb4bb712ad9f2fdeb69672"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/IMessageReport.swift",
+      "sha256": "06216c5b41d737f270444904be0a047639213a759917e15b49dbeca20eb3c517"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Observability/IMessageCount.swift",
+      "sha256": "4973744c4c8ae9f7320e4c906d5ecd496afbbe24b45b66914e66d6820a0062c9"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Observability/IMessageHealth.swift",
+      "sha256": "4d89cf01ad291dfcb7f40b833e23d4db44a6b1e36816396208970545c7e3b3c3"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Observability/IMessageReportSelfTest.swift",
+      "sha256": "730c697bed02462e4ebff83fa9995ff3dc71c53c28d44d2acddeb9ac2878b1a5"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Observability/IMessageUsage.swift",
+      "sha256": "80b1d1f95d1c93fc142502084ba3bc52571a05900bba5224900367c10fbe029d"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Pairing/IMessageConfiguration.swift",
+      "sha256": "77248d206c9fa1f739ed2ad4258274e096b646aeba0d10c4516175dbf9ed1f3a"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Pairing/IMessagePairNow.swift",
+      "sha256": "2e634fa372ff9e13c9225182ed0c3208448ca98776054d88edfcf8c40e7315db"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Pairing/RemoteIdentity.swift",
+      "sha256": "ff290d801017e5005304876f479e5c3e45c756431f4c211477acabcbb0160615"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Pairing/RemoteIdentityStore.swift",
+      "sha256": "a3777a4e87a9aa3ed2b7bec1463cc25fc30f9f55fcad08df076e66f42475f782"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Pairing/SelfChannel.swift",
+      "sha256": "de290b54c2dfdfb686665bf22fe1e3903c16edcaf320e42e777db7a6387bc05a"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Pairing/SelfChannelPairing.swift",
+      "sha256": "8eee2992d415d7230e6e8fa3b312bef6b90f051f01f3fea1ce30babc1fc0b6c7"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Pairing/SelfChannelSelfTest.swift",
+      "sha256": "20f7390171c809455fa0b88a6908a4a75b782716c5bac0cff1914b3a2f723035"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/AgentMessageFormat.swift",
+      "sha256": "5b68f27a610c548ddedfc1f551b446763b36031df92425b405172579dc50b73d"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/IMessageActionVerifier.swift",
+      "sha256": "f20af35f1d9486d68451fa1e903e559b88fdbfe4746d73afdfca47f48ffaf6c0"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/IMessageAddressProbe.swift",
+      "sha256": "bd553c0a22c3ca7c09fccb2a7cb4437e38a24c7fa16f37f68b4d97368ed00bed"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/IMessageOutboundStore.swift",
+      "sha256": "ae22ffcf27a053886040ea4d40c498a494adcd9ef7cf4297c38590600436b754"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/IMessageSendTest.swift",
+      "sha256": "244d7301a1c68344ef86f08cf739486a21b77c0ca76f8a9ce69f89942e0f4703"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/MessagesAppleEvent.swift",
+      "sha256": "e05e20016b2e8780c7946415772875628217bfc8a71847d2e0a1525f54655a59"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/MessagesSendPathProbe.swift",
+      "sha256": "d5489d63bb2dc75ea114a3363820d4c87e0c2390cc66d788f6bcb79fbc154c42"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/MessagesSender.swift",
+      "sha256": "fe854e1f54a2a7f2f7c7bfbbbad6320730e32426c12b26191ce9dc2d30c84b73"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/OutboundLedgerSelfTest.swift",
+      "sha256": "1d4096d72b23e8ff52f1f625c748064ef7c940c27caeaad8bb136b1d095a9ae3"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Sending/OutboundMessageLedger.swift",
+      "sha256": "0e0a6f818fca4345d099316e91e29962c0bf87d503331c401cdbc5188907bf02"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Watcher/AttachmentJoinResolver.swift",
+      "sha256": "70c77704dfe15369973058e3aef93460c69fe535fac93cdf5f030e04e6cb4804"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Watcher/MessagesWALWatcher.swift",
+      "sha256": "78502fe167252b58f792042ceed5cb97e6f5807e2808a79b19f66d2b11c27904"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Watcher/MessagesWatcher.swift",
+      "sha256": "442b39ec1ef0a24bae47b46cc6db3be20e50fcc8bf123d6f701960d4dfd5f9cf"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Watcher/MessagesWatcherSelfTest.swift",
+      "sha256": "bf860bb3dab76ccae7dbb4033ca16caf25d93385f7b07857539cf8f3a47db9a4"
+    },
+    {
+      "path": "Sources/NextNotes/IMessage/Watcher/MessagesWatermark.swift",
+      "sha256": "c58b35701082e36bce730c7f8b71c0acb9dcb36f5cb50ddd6c3e693883e1beba"
+    },
+    {
+      "path": "Sources/NextNotes/Integrations/Composio/ComposioBrowserAuth.swift",
+      "sha256": "57a2d7b99ff3eeef0cbf8feca3b1b2bcea05c21b54b48cd940f69a5164c8bdc5"
+    },
+    {
+      "path": "Sources/NextNotes/Integrations/Composio/ComposioCredentialStore.swift",
+      "sha256": "ac8ecb5bfaae0a042a845671e49240313630f51255a6273504447e5def528248"
+    },
+    {
+      "path": "Sources/NextNotes/Integrations/Composio/ComposioProvider.swift",
+      "sha256": "ea20eeb605241fa120afe041fd1baf4fd0912eea297a3c9b0e3d437eb2e09db9"
+    },
+    {
+      "path": "Sources/NextNotes/Integrations/MCP/CanonicalToolName.swift",
+      "sha256": "c64e7c9d9c0cd5822c5c4e8dfde8dbf8615e3bfc883fecc15c93bfa08409609a"
+    },
+    {
+      "path": "Sources/NextNotes/Integrations/MCP/MCPClient.swift",
+      "sha256": "43a26851b8184615bf00bde49bdfdd41799220924c7927cd46a6c66ad0eaf17c"
+    },
+    {
+      "path": "Sources/NextNotes/Integrations/MCP/MCPInputSchema.swift",
+      "sha256": "0b0064ddc5e4c332bca14afa770b9d2daaee704996fc449886956e73402adcd1"
+    },
+    {
+      "path": "Sources/NextNotes/Integrations/MCP/MCPRiskHint.swift",
+      "sha256": "75387fb8bc36ccecb3b31d32ab1d2081bbec408d4555922544c87c06425a43f3"
+    },
+    {
+      "path": "Sources/NextNotes/Integrations/MCP/MCPSession.swift",
+      "sha256": "eab2e095d74f2831731163f1402e5e185ebfb00ca888c2d3ce1ab43d16431fc3"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Assembler.swift",
+      "sha256": "a1f9588e7c9205765576f197d788e5873bd5919997ecf704006b806a65801a18"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/AssemblerSelfTest.swift",
+      "sha256": "badd0a5139c3a9c3c0c0f7bc25715235e7ab3ee418517c76918fe528cf9f314f"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Chunker.swift",
+      "sha256": "0fff156e791b0a4647869d2ec5d5074e5cc646f1e52a6dda094aeea8a57f51b1"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/EmbeddingModels.swift",
+      "sha256": "c7002906b251f91587e3e9f0499c1679efc14e89a483678ffe667a9e80d675bb"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/EmbeddingRuntime.swift",
+      "sha256": "b033276db8dc95f5f22f1706d5caab62070da13a1b19232b5b1d09eac475c006"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/EntityResolveSelfTest.swift",
+      "sha256": "90762a01703a682139b733506d06d55681c0781cfcf79409c70edcdf695d3be5"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/EntityResolver.swift",
+      "sha256": "8a5aa626d78d87c5912b39462aa18a25b878ee42f2228cc65c679e2f75175425"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Extractor.swift",
+      "sha256": "08f7f6b0f945f156404cbc4b3baa4ade5fc7379b1823f1deac6e071763465d88"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Files/FileCrawler.swift",
+      "sha256": "5c4d7579e253b64c0c2d2e53df711113a0b3c1b506ea57823c5e07804da1e66d"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Files/FileGraphOverlay.swift",
+      "sha256": "2a43fffffe5d358a9c19440ef5db4d0dfa794cf61b66242f6962c9b7929b123c"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Files/FileIndex.swift",
+      "sha256": "34b53d7a9e740caaca33f91e264de677c3f861159600832a9fc8018269dd9614"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Files/FileIndexSelfTest.swift",
+      "sha256": "586ee91d0f71487b547ac3c4a085f3588ed04e063f782c9018b1dd90fa3e0b41"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Files/FileIndexTools.swift",
+      "sha256": "ece4d0a8667f8635b639f02c4ca3f53da8f93b41a728594dca020b91e7e47155"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Files/FileIndexWatcher.swift",
+      "sha256": "2c026e8439704103edc91174ffa770b91b7d109801d53b7e2f951aae8185b64b"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Files/FileIndexer.swift",
+      "sha256": "5cfba17307929c411ac091af10d8bfddebe3a0968d326a91eb9222d561a51f9a"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Files/IndexedFoldersStore.swift",
+      "sha256": "479ec7dffc47edca5485f25b52823b8e622149f1d4fe82b789b44bfff398ab89"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/GraphLayoutSelfTest.swift",
+      "sha256": "21733d110af1fb4b9f93ea48a24a974b875d3991398cc74f48b4463a249bb75d"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/GraphStore.swift",
+      "sha256": "5d43d8a26a04e6080c2a21dbb2d2cf970f21a6301a0e0cbac83a49de7a05aaf7"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/HybridSearch.swift",
+      "sha256": "6a86976b3614d81e5c2389fd2afc09110abab6b4ea679c140ec97246d6c460aa"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeAsk.swift",
+      "sha256": "03e4955d85e2554933a01633ffb2f295a5c1bad718fc704a3b5816240912ebc7"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeAskSelfTest.swift",
+      "sha256": "ddaebbe926546ac6ed57b4be11e8fb3b85f46949011526e0dbc3da7b8c324133"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeEmbedSelfTest.swift",
+      "sha256": "6455ca9af65fdfec3b8834f15fa147e559c2ec9272aacd0995cee9bb234a69f1"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeEmbedding.swift",
+      "sha256": "2cc155b2de92ade7f3a5f8bafe8e6791071b39e42b14b327e94fb94f609d5db8"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeExtractSelfTest.swift",
+      "sha256": "8c0ae9274f2c36ae61ae197c2387326f76fc16467116c4a9626659c740357c8d"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeExtractionService.swift",
+      "sha256": "5b76ba104ac78c548369f62e30866f3b7ad074fa0328c11141cf06aab480e1ee"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeFixtures.swift",
+      "sha256": "b23dd0ca7ee8ff97e7f566ce6d2197227d9629e26563e55dc2feb3a7fad8a70b"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeGoldSet.swift",
+      "sha256": "ce5b9b657e6275aef7174cd1d23be39273509e10f03370ac6b5485096756f574"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeIndexSelfTest.swift",
+      "sha256": "ab570f39aedb518e1ba631a06e26a01b0d040f7fbdeb30187674c09ef9e71e4f"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeIndexer.swift",
+      "sha256": "f29ba6d9b1fbba357479920ab7a8795a82f76ae46de7a98c6a67656ca45816b3"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeSearch.swift",
+      "sha256": "d6bdaadfbd7b78d3dad7a262a2d33eb19e8861a4612570702291f756f64236ce"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeSearchSelfTest.swift",
+      "sha256": "f4a1a0578bf628eb16109bbaf5a2b564ee83aa670b48d5ba03ed384bc01788df"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeStore+Embeddings.swift",
+      "sha256": "d2c0c1473d20d4e20d8080256f8743e9e0a54b91200ab853f1282d4d598ca0f2"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeStore.swift",
+      "sha256": "9398c8653ae555dd423ecfac0a86ef0791c76a199de1570b673c3b624e3f29df"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/KnowledgeTools.swift",
+      "sha256": "d5a544bc72f903a28f45d4c9f6ea319ecff5bec842e1eeae65f938ba1d8839d0"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/LifeExtractor.swift",
+      "sha256": "97dbbe61a1d16168747d98dc78f6ab8ad0b54a9a8b97843b759aa2af4603dbb8"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/MeetingRecall.swift",
+      "sha256": "2e7e67fd750eee152fa0042cc01267ece2fe4e0ae4509dcb5c8ca84234fac1a3"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/MeetingRecallSelfTest.swift",
+      "sha256": "558c560352decce63ad2750172a0bb5b6c6b414d370d334f6d9ea84479f362e8"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/MemoryGraphOverlay.swift",
+      "sha256": "2a70536677a5de8e52431ac6c5d80e45af9c1c795d86bff107cb8f87607cf37a"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Ontology.swift",
+      "sha256": "c3324d73702d0ce5f429b8d55b3d4bfeff358f5850a8bda3659edc8c99fcaf2f"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/PersonResolutionService.swift",
+      "sha256": "a45b0135413c412f014b0165329bd9f2ec85b9d46403a64239b4408840e33476"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/PersonResolutionStore.swift",
+      "sha256": "51c86ba98ee7c16fc0eeea8626d02c85653494513ca5069b4033d8ab6b285ca0"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/Portrait.swift",
+      "sha256": "130810ac4be9d7dc1356a0b12f9ddc6b5faa11ebcc763274c22bc04227644a70"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/PortraitSelfTest.swift",
+      "sha256": "6b6139bfb8d7bac1900924ba2d3d731c4617b6637a97be172e0da70caf963f7e"
+    },
+    {
+      "path": "Sources/NextNotes/Knowledge/StaticEmbedder.swift",
+      "sha256": "7e89393f61c346ce714377861e51fbbc7b1468c91c011b384bd3b63ec3f569d4"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/AudioProcessOwner.swift",
+      "sha256": "a23a020caf652401248d9acaed5ddbd39f4c7ddce642e391ba6f8e6f93aaf3aa"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/AudioRetentionSelfTest.swift",
+      "sha256": "be8f347fe10fd19b1cfe1bf6dfabe5ef2131de694bad637c290e19a0f5382d9a"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/CallDetector.swift",
+      "sha256": "94049975573776009fcacb383a1ac90b9672793a3f3b35ca6a1038911f9730f2"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/CallPolicy.swift",
+      "sha256": "17bb085955a29168e13d360203b7b78ec2e408f43272e5394358892915bb7c03"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+      "sha256": "c6cc319917605b1ce3eb3c9b0f63a32ca054aa4fdd388896dfa05f228698a445"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizationOffer.swift",
+      "sha256": "ae22fcc218c7ed02dd7ecb3beed96c31572ea3a41027333fda4a07285c0e2a82"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "sha256": "ccc4a1776105eaf28216ba8e27c5aa782c90afd73e9eacfe7913d02e840ffbed"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizeAssignSelfTest.swift",
+      "sha256": "a052455464fc4760cfa49452ddda5e8ab2698189248b8f2c8bbb27fcd2e9e43d"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizeHintsSelfTest.swift",
+      "sha256": "b3f6cdc0ff33340c89d4071f83568b95df8cf930674af914fde13c3fd7f96d05"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "sha256": "065b17f0bac5d21f15cd0c78834db1416e6ae711bfdfa14c1a11ecd34310bbe3"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingActionReconciler.swift",
+      "sha256": "4e2fd957f554865fd297204172bdeb362b1b6175e4c403f44843154a4291f1a2"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingAudioWriter.swift",
+      "sha256": "11050b5382afeadbefab0d248ddeb1d7840bf036f09792bf3e211a97362c8065"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingBacklogSelfTest.swift",
+      "sha256": "98ffdc053702a9a45ea80b0d39f76b0b59a979d0b6d80f0748568bd767c0c5eb"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContext.swift",
+      "sha256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextBusBridge.swift",
+      "sha256": "e96883f34413cfb82d528fe3b11578e02dd97f49f253c356919f0cfb87f04d5f"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextExtractor.swift",
+      "sha256": "f46f24bcbfe217a2211d5f660f1ddd67b617b717bba68d06111929774a4280dc"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "sha256": "458cc8ebf9b05512b3f70fcb709d918fe60ad947ee34a9751cf228633a2ce367"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "sha256": "4f3b2ab86f9acae27fd2e3d39128b3b361559bc5421b2ed0fa77f39d3e25e6d4"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingController.swift",
+      "sha256": "8b3fb7801d7c6414df3ad749bf3a007a08fa3c25b16a02e0eea10ec1d78141a3"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "sha256": "0714f0cbd3470af2dac5730afbf5132bb428193457f819ca733224aa456de9d7"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+      "sha256": "f4acc499df59cbaf3d706ee8714553d773b9edf5ae015549246f7d0a1fda1070"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingFinalsSelfTest.swift",
+      "sha256": "07ed2d4090fe51ccb9cff6193d28a032fd8b01c22eb2cea54717db21fbdfacbd"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingHealthSelfTest.swift",
+      "sha256": "acb84d4f3d88bc5baa873c45f58290ead55253346a55172b53a5ab1e07efd7e9"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingIntegritySelfTest.swift",
+      "sha256": "66ca16efc6c633a41e0c3ea2b12cc56f28ca4a78effd4b6fe96efe40d461863e"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingModels.swift",
+      "sha256": "39cacae98ac6fc6ce427d52f99ee88867bb24f73546354a3217116467dd2cbc6"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingNotesContext.swift",
+      "sha256": "d1c016f6e9b837ece919d067ad345a15326b43392d778eabfc08913fa44812a1"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift",
+      "sha256": "0d8ead00ca70330f5ed018346753690d218a188916f02dad78c14bb387b308da"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingPipeline.swift",
+      "sha256": "5952643d3b531627ce685c68f93d0c060e4f903d18e6fd4f89febd020f5082a1"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingQualityProbe.swift",
+      "sha256": "4f917a3eaa0946057207edc68f58d224a1fba13e5f2cb7e88f59bc72c743f048"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingResourceHealth.swift",
+      "sha256": "d246de218e13612467805cb45d3a5816faf3872d75507af121b2c18cdd13cbf3"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingResourceLiveProbe.swift",
+      "sha256": "a3b6ecf8d0956ac07205a697db1808c6807b3bd36f661eaef3a0e7292920e659"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingResourceNormalComparison.swift",
+      "sha256": "0b64ba0ab33da955fa755c1a74578e39215e855dc3193eeda77ec5aecc88e0d1"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingResourceSelfTest.swift",
+      "sha256": "26f3288c3c63e385c15b722e6cd0346fa9c5d2fcafa0b9dbce4cf11ef87e2579"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingResumeSelfTest.swift",
+      "sha256": "10d4caa3654808762633c674618537c99e646572dfc02ea427d61039aa8f7186"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingResumer.swift",
+      "sha256": "dc9dee680641481b9a828ba7c1c51587e9d2020fdc0f0527e29623928f29d843"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingRetentionChoiceSelfTest.swift",
+      "sha256": "0276a1d13f7d40d9a83ccbd907b143a8cb71cea23e6b1de81b6b5db55ddc7b01"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingScheduler.swift",
+      "sha256": "a38b6735b0b04a1cf75bfb767814400e8199b9ef0f1abbecfddc65958ae2d298"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingScratchpad.swift",
+      "sha256": "bccc54d380e0eb8e66723acd8cebd38c3cd5299679cd2f8e352ba9d1910dce41"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingScratchpadSelfTest.swift",
+      "sha256": "9f0e09aa9650c569d70c092bff7333f2763c3cb8480520893fca65d0c22e97b3"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingScratchpadTidier.swift",
+      "sha256": "0c0722e004dfc7d3ae5027370727bf769b172acfaab9ad32c3f1a34e04f584df"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingScratchpadTidierSelfTest.swift",
+      "sha256": "f812cb7e83f8c1c48294b3dc7b8f2298bafe36c02c30d7d959fe990e18d3a83c"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingSession.swift",
+      "sha256": "71f057224fdf6f5ed0aa6a42bcb558b6dfd10b821b7ab7c2b6dd7cb9a262ffd3"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingStore.swift",
+      "sha256": "e8c532a411512b5a26db91b647c45c7a0bc7100ff521f5689b63f8a6ee9c5a63"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingTapRetrySelfTest.swift",
+      "sha256": "be8605841315948ee0530ebff8330628aaf5bbd8f78a035b78e5affca73faa4d"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingTranscribeTally.swift",
+      "sha256": "eab6cb2bc194ce3a21a6ffb549c3a1f6e27f9ae74d4756cbcfce673bce017c8b"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesGenerator.swift",
+      "sha256": "549067134fa9d78f4b0619bba568813987be74f9784fe110dd8dce69ba3fd1b3"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesLongformSelfTest.swift",
+      "sha256": "53671345c934002397c54d77ad6c7c2e0a7f61583ebecedf8edffd3f8021f1e3"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesPrompts.swift",
+      "sha256": "ab54d9c55ce2521c01f59125fec79d965577a876e1369a8f7fdf032e0007d2e6"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesService.swift",
+      "sha256": "e55b594d969f562df6980b62d2a395b8ee2bf5ed0c929815461f9b756639cf3d"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift",
+      "sha256": "77bd596712281889dbd0577a6745d0db061624f7eee035bc54b57b7d563e9489"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/SpeakerCountHint.swift",
+      "sha256": "731e217d1f4a4b68bb302ce74b440e22a88665243b95fccc021500f83d2a2938"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/SpeakerVoicePrints.swift",
+      "sha256": "7f91f6055520045953e26f0c73a375ab0afc5c4924f2dbfe95746eda27e8a07f"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/StageWatchdog.swift",
+      "sha256": "78509344de0275748f17c7fd660ff639c9c44293245eafe9064c57d0a0bcd816"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/Consolidation/MemoryLineage.swift",
+      "sha256": "041379d0aaae85641d7d90e1079eed972f238993009192ea8bbdc42f4528f788"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemoryBackfill.swift",
+      "sha256": "70e6f247e5d6eea1f77fc2f4db87ff0b609a5b5febec3017fe188caf1cc64607"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemoryCloudGate.swift",
+      "sha256": "fec1514903672c8b5a24b67a3dbf3117b920ddd2aeec5fc79b29e51c890af452"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemoryGuard.swift",
+      "sha256": "b15887498d5943c4c847b0eb56577fa9516979483bfd03b38f1e0962cc812c71"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemoryReviewAppleModel.swift",
+      "sha256": "b2e6b3ec8b82a5a3aef98a3be3543eb1f430b7541b378063fa25a28516e1cc4d"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemoryReviewLedger.swift",
+      "sha256": "9661af5b3340162d0548b0639822eefa99355dff8407af2ce0bd230ba060db9f"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemoryReviewSelfTest.swift",
+      "sha256": "658f9d47e0e5303916ffd5256c764b034a0370a5c157168057be88b0dd4bf789"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemoryReviewer.swift",
+      "sha256": "7656f3fef766fc5bae47d38b85ebd87de7fccbab033cfba2a9328a02f59188c9"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemorySelfTest.swift",
+      "sha256": "9a7aefc644b6d6d2663eacea92ce926b8d81e8cf61af25be2de5b7d78a2a227e"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemorySources.swift",
+      "sha256": "a3285e048adfdbfc2284dfc7c26a71f0ebe4da648cd17c251a30063d5f1b0134"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/MemoryTools.swift",
+      "sha256": "a1533ec02c46d1c5ed3b57b998d0e817c639005fee1b87c2aad1ca8f6be4e510"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/NextMemory.swift",
+      "sha256": "0c991423c81c69b28cd17cda7373642a84b0eef7a52000bfed7a2d767710089a"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/Portability/MemoryExporter.swift",
+      "sha256": "baa2fed0794045941ab8f6cc34d4bf9ea87ceca09d4ab985aa848069400f0548"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/Portability/MemoryImportDistiller.swift",
+      "sha256": "cc5b2ee0cb5dfe45a41c67da72082c64441f3d5701942b8709a9787c5ea0b68d"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/Portability/MemoryImportPlan.swift",
+      "sha256": "d988064ea80b0ec9828bd84e18df0f9226fe4adb450606da0e9b5fcd62fc0ee3"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/Portability/MemoryImportReader.swift",
+      "sha256": "7964e7416a4e55646a532ebcc8b4f3d8343b95ef65cf1a07f1299c5735559eae"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/Portability/MemoryPackage.swift",
+      "sha256": "b98fa210cb7da3de49edc78dadd3d9d65ce7fb3265244985d9a2778fcd033a0a"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/Portability/MemoryPortabilityController.swift",
+      "sha256": "ba49db09eced9e6990eb64d07181a02397a90e030e1488beeebb6ee2921b0dfc"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/Portability/MemoryPortabilitySelfTest.swift",
+      "sha256": "7c0fb752020430036956966e7b7d9749d767c22c7ecd8da93fd05c00d4ab7412"
+    },
+    {
+      "path": "Sources/NextNotes/Memory/RoutineSuggestions.swift",
+      "sha256": "276ed9a3362fe3530feaa17be3d2356f7d44e1870a8b3849b725fa8ee03e41c8"
+    },
+    {
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "sha256": "4410a9754580c9807563719a2901479165601f457a86fa36599e29dd6103bf06"
+    },
+    {
+      "path": "Sources/NextNotes/Persona/AgentGrounding.swift",
+      "sha256": "66e2f9a693d1d70cb4e7740d87799832ecfc1744841d7dae92cecf144c9f6f63"
+    },
+    {
+      "path": "Sources/NextNotes/Persona/AgentIdentityProse.swift",
+      "sha256": "25ff1e6658eff740c8e9ddbc3cdde44e8a8c134cc50eea1bb81efda4140de843"
+    },
+    {
+      "path": "Sources/NextNotes/Persona/AgentNow.swift",
+      "sha256": "33982c09db58533095557158726387e0e4355475e1287191eee73009728cdd0c"
+    },
+    {
+      "path": "Sources/NextNotes/Persona/AgentNowSelfTest.swift",
+      "sha256": "d557294f40db8edd340bf17594f8127240ed46af0f66535ad3ad58623ac21719"
+    },
+    {
+      "path": "Sources/NextNotes/Persona/AgentPromptContext.swift",
+      "sha256": "e618009d139c1d797891d0b9c88278e38df9503252bc2a3c0f726187eb5942df"
+    },
+    {
+      "path": "Sources/NextNotes/Persona/PersonaCareEval.swift",
+      "sha256": "a173eaf77c9eafaa8332f74a7d52b6c9a49871fe6afd9f745978ad128540921e"
+    },
+    {
+      "path": "Sources/NextNotes/Persona/PersonaSelfTest.swift",
+      "sha256": "46449a52cd385bb39acaeddb35db917cc8749bca9ed123815f91e75606a162ca"
+    },
+    {
+      "path": "Sources/NextNotes/Persona/PersonaStore.swift",
+      "sha256": "06e6f0633062d1fb9c01559513e5b89b1eb581b4252d9980846ff4e70f31d98e"
+    },
+    {
+      "path": "Sources/NextNotes/Shell/FilesystemExecutor.swift",
+      "sha256": "ebc37c2812aae9ec0a8480c46bd1adf776a9e837dfdeb66df826f0555db56564"
+    },
+    {
+      "path": "Sources/NextNotes/Shell/ShellExecutor.swift",
+      "sha256": "ea629f9367886597ba028168628d22e8966102ba8126280a98f165f11d0d02e7"
+    },
+    {
+      "path": "Sources/NextNotes/Support/AppIdentity.swift",
+      "sha256": "34eba0540aa9f22afbea76697912553b2d45e501d1baf8ab227fdef3d5db50c3"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ContentionSelfTests.swift",
+      "sha256": "18632b2d7ad01412a16a39dfb4cb25da2d9488b0a6305de7ae90b7667ecddce1"
+    },
+    {
+      "path": "Sources/NextNotes/Support/DictationHygieneSelfTest.swift",
+      "sha256": "ded14cfa6b76c521ad6388b5c2eb5e4302c1b0e15f22843bed99b73c065558f5"
+    },
+    {
+      "path": "Sources/NextNotes/Support/LatencyTrace.swift",
+      "sha256": "b330ec2bf75f1f3af44246a8b3da0eb1d2913b25668b5b03ba9c33f2f510bcb0"
+    },
+    {
+      "path": "Sources/NextNotes/Support/LaunchAtLogin.swift",
+      "sha256": "0ead5533a734d06ce26b5e5c7b853956ecf1c77153a1c6fcaca89961198367e4"
+    },
+    {
+      "path": "Sources/NextNotes/Support/LocalModelStore.swift",
+      "sha256": "e321c5b9df47963255914a17f48f4c28940f2f5987af9c519c4465890e5b5fb4"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Log.swift",
+      "sha256": "14b46d63e71cff95b8c3df9ea4c0acd9dcc529774409633db9e0191cd8a4ba4c"
+    },
+    {
+      "path": "Sources/NextNotes/Support/MetricsStore.swift",
+      "sha256": "a189130ef97c11b5f1fd37d4da7484548553ec556a8132799e15c6dafbd16ffc"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelDownloader.swift",
+      "sha256": "dd3ff581ae28606a62ea2ea5f424282fb07325eef99fd829164f677c4d665e07"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/HardwareProfile.swift",
+      "sha256": "38661938d041560a7678d79865afbea6251c7f3122915cbecca03120605d55d5"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/HuggingFaceAccessStore.swift",
+      "sha256": "8e4a8a57f14412520d70e087a64b2b603ab7c2001bb75533be69643d003170c0"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/HuggingFaceClient.swift",
+      "sha256": "16f5c87d586175e231195bc0b3587bdd450c3b809be1d3efc99c3ce38e1d0151"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/InstalledModelLibrary.swift",
+      "sha256": "9db5973ad673ba1d2204f07944064064ae1d1741117d67604e6f8a546e1778d7"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/ModelArtifactIdentitySelfTest.swift",
+      "sha256": "ae1634a83583692a2ec5625153de602aaa2cfafe5334dc8d7d2bddc4fb18aa3c"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/ModelFitEstimator.swift",
+      "sha256": "2188a9ead334689958774b2493537e0b91b980db34ef0e0c7a9ff7c12213a763"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/ModelLibrarySelfTests.swift",
+      "sha256": "070c341fa110867062938a87b7ed02147f8198a01000d700b98434f822759266"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/ModelLibraryStore.swift",
+      "sha256": "ce558c7fa7aa1a65ba564802299f7562bf7dc7ef7069e1cee0e9fcf960c5d4cc"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/ModelLoadNotice.swift",
+      "sha256": "790c9481e6da298bdf664ec97ad11311cbdffed05014f6e3b1370a418eaf153e"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/ModelOpenFailureStore.swift",
+      "sha256": "8defae23b52bd185e992ca35d9d0cb021e8bcf9b91e61858afe5385c17da3708"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/ModelSupportSelfTest.swift",
+      "sha256": "5975c5c0d051cc1b7feef7c6ce3b5fda67b65d0ee26ca76c1dd0905b667aa059"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelLibrary/VerifiedModelArtifact.swift",
+      "sha256": "f0931840f2b46a2ddfc3e7ea8453be74dd3e2a7e1b9e235f43584a27bc20c173"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelRoles/LocalRuntimeDiscovery.swift",
+      "sha256": "8b0cb27e4d8bda0780035cedfa8d5746c28837f233a23958c4461b868f5940ee"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelRoles/ModelRoleSelfTest.swift",
+      "sha256": "611073104816d0c8ef750d6c335f7e9868a46f795218197a6214ed1b4ad87304"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModelRoles/ModelRoleStore.swift",
+      "sha256": "ce25ef8ed46936c144d77ce42f7b4595b777beb1e537c92ce5bb6fbd7248c108"
+    },
+    {
+      "path": "Sources/NextNotes/Support/ModulePolicy.swift",
+      "sha256": "58eaac8fce32f51cf97bd9c570ddd3eac13c5961eafef3e4fc83e057bb3f642e"
+    },
+    {
+      "path": "Sources/NextNotes/Support/NavigationState.swift",
+      "sha256": "9a9c583ae8c6b4e229f3d3d99dc009c5149e28ce5f28fa774f0c6eef457118b6"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Notifications.swift",
+      "sha256": "106cdb42d2b268e4305ba2450848db396b526c08bd0fa3fdfd5f46a52e8821d4"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Permissions.swift",
+      "sha256": "2a517fd8ac86f40b722b614d8ec12870ad852aa038b123189769537500118ec3"
+    },
+    {
+      "path": "Sources/NextNotes/Support/PrivateNetworking.swift",
+      "sha256": "10b4ac7688750dc75ae3c90ac2148075627cbe90bb5b544f83b6be80988cf6b4"
+    },
+    {
+      "path": "Sources/NextNotes/Support/PrivateNetworkingSelfTest.swift",
+      "sha256": "404c2b13d17c48866725dad84f5a1e249c72d40c1229b0693971471ea67cec9b"
+    },
+    {
+      "path": "Sources/NextNotes/Support/RunLog.swift",
+      "sha256": "665a69178df5d26af0d472a47e334c47e5663f8e02a3b3501e9ce9acb304f2df"
+    },
+    {
+      "path": "Sources/NextNotes/Support/RunStore.swift",
+      "sha256": "7bc7ddb28c9ffc94d3224709f7fe8b904f1cebc707495d41f292064929526dfb"
+    },
+    {
+      "path": "Sources/NextNotes/Support/SelfTestStoreGuard.swift",
+      "sha256": "355c6e6fcf0a5e7cae02735532b5ceaf5a845c700146752295ac43257701db87"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Settings.swift",
+      "sha256": "884f7a297f68d588a7ae2de962432049682c478d4f53464dba6c92e0a01ee3c4"
+    },
+    {
+      "path": "Sources/NextNotes/Support/SourceScan.swift",
+      "sha256": "4cecd92f149a39d77369149307acc2021c95972e3530245bb878af8df82746ee"
+    },
+    {
+      "path": "Sources/NextNotes/Support/StoreIsolationSelfTest.swift",
+      "sha256": "c250852308694648c0382577f6bcf9b917d99d22477962c36b903d0b84717d92"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Usage/ModelPassRecorder.swift",
+      "sha256": "a87a1292b0c82a5b817b9c91cef3a467165d4a46853c44d16b7adbe9c94afdfc"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Usage/UsageLog.swift",
+      "sha256": "9f67266e50f9cf29a8b64795ba76d1f6d95edc2e975515ea663e3f9c3baaf2a6"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Usage/UsageLogSelfTest.swift",
+      "sha256": "01382e7752f04fa68300b877b30e04c1bde236a81bb4e37988be64ec6f832541"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Usage/UsageRecord+Dictation.swift",
+      "sha256": "eb3e50c10d547dee18f4a24b3794bef932caef94dbe558fdf1babf48438519c7"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Usage/UsageRecord.swift",
+      "sha256": "c5f85686e9af6a28859c76a9d2c651f4b833c6de538df2f6c6dddf3b760f9d3a"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Usage/UsageReport.swift",
+      "sha256": "c19cee26255495b13e303a997f38e9d9340972224cb57be7f3caccab7d665a94"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Usage/UsageSummary.swift",
+      "sha256": "5d5c686bd12ad7b04bdcb1f15c18c08b28e9234f2fab1313d1764863d11f8069"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/AppleSpeechEngine.swift",
+      "sha256": "db2737c2aa067ba6b43de21ca74db324602324e201b7829f0483574fc0227c79"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/ParakeetEngine.swift",
+      "sha256": "ce070274e1b7c287e0d13983b7ca250151c3f1f27f502906dbc3e936850518ac"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/ParakeetInput.swift",
+      "sha256": "9bf9a41e99d92a0b496d955d0d464d004136884c62509fb2373ec74068995e7c"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/StreamingASR.swift",
+      "sha256": "52c21fa123dd38ca21bc1811ada67da65cff0ec8d2c3c095bb12198683482333"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/TranscriptBus.swift",
+      "sha256": "22e061958f3b7c9d2bb7e9f9c443ca67b0c50a125e3b3bfd9845d7877b26b387"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/TranscriptionEngine.swift",
+      "sha256": "8460b9a816900ff112e8e83e63295334ac87a5de4a0e4a096361f981d0977251"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/WisprReader.swift",
+      "sha256": "1db98158bd4f798704b8491fcf27a271ec4e10135b527d3f6a7e28bb395514a6"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/ActivityView.swift",
+      "sha256": "ad96426ac59b786c1373a3c5e2157517f015ded13bd5009b420086ccf0587b24"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentAboutView.swift",
+      "sha256": "36b544a9df99a368f793445413a45723d03cbb27a2f5b7241171d55e5794ed81"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentAvatarView.swift",
+      "sha256": "59ec5cdba4fdd73ac3d8edb68393f1547dc09c18675093ba923b08c927432c2c"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentInspector.swift",
+      "sha256": "688b7dd5be0a4e6af3973deda70152c222a92ed4936101251d6feb4bfefe44a8"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentPaneLayout.swift",
+      "sha256": "e1a682ae6dd87ae8f3cd35756f528e47bdc373d0429fa941f420cffed0a6e702"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentPaneSelfTest.swift",
+      "sha256": "100900d1c8f1d8b11c3ae4f1f244f675ff98be24a719c97e27a4d38a114a2df9"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentPaneSwitcher.swift",
+      "sha256": "273a3d0289a806115cfbbd3750636ce3e4e1d7f03b12c16983323f2f7678b7e7"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentPresentationSelfTest.swift",
+      "sha256": "0f2fbf1f628121ad05e3f59156d1ba659ad0502a43547ae0cd387527b7f123ed"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentView.swift",
+      "sha256": "19de1f74ce7c67daaad20c8b91f87d3c6c77cf1bed4d56b04530b290a779c9ad"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "sha256": "755f1c4cf11225c50c6cb4b41cdeaf1cd9c6598339b27207a40733c786a2fed5"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/ComposerControl.swift",
+      "sha256": "033ed2fdfae1259bf7e408a8fe6a9c9d713a4b6d975840e478beca4f54e0f74f"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/FailureCard.swift",
+      "sha256": "034d35bf42a5d061ce58fadf7de13670db97918ed02d72ab44192944c78353d4"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/GoalsView.swift",
+      "sha256": "164399a044ef5cd446e189169b1dac1780e73658f8cfd199d360dcaffffc75eb"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/IMessageStatusRow.swift",
+      "sha256": "cb8f125048b51e367b2549fe791c5a551a0164a894688dc672d26d27332fb79d"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/IdeasView.swift",
+      "sha256": "79649f94e5607f5882c11f47a9c78d7ab08899cbfd2603dce505e7ebda66cc90"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/NotionAvatarEditor.swift",
+      "sha256": "1d76670e37e570d4a766ab27d886a1e69595b190e001a20252e096a55bf0d44f"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/NotionAvatarView.swift",
+      "sha256": "6da6e8d067a58867c78120270a9449f117c4f4a94c57784fd1481b4b96378600"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/PortraitView.swift",
+      "sha256": "e182d2044688fa9a1df8076be16c1fd340e5075d940b04e4a840cd8e0da29722"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/RoutinesView.swift",
+      "sha256": "4d911a436c66c1a01c868289054690c7af6f200c112381330e72425253a47abd"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/SkillsView.swift",
+      "sha256": "9c67cf032b78a5f1bf3b95c83cd62397dde9edbf2d5da263a77d7c4095ad3b7d"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/ToolReviewCard.swift",
+      "sha256": "74ac2aeb68d41c8c1ed277d7da32d274135963d813288d47e5e371bd856659c1"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/VisionConsentSheet.swift",
+      "sha256": "9644482712fbed54e2df1293b2fcad1f1cb08b49be2260bae3c3cd700cbc96cb"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Comparison/ComparisonView.swift",
+      "sha256": "c76857f3bb90289929958ea2669f16c56efc63e30b50e58ba8f8e9fe1fb1e6f2"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/CopyButton.swift",
+      "sha256": "221b389bccb2e6113b1e81d011ecaf1996f08007e5c95087a66c0a638ce03af3"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/DottedField.swift",
+      "sha256": "9ec89112f519058b9f3d05580751ec6cac0ba7bb327db3531e054a0816c67654"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/FlowLayout.swift",
+      "sha256": "350d2869aaab773b0c1212656b8e4adafe4d111121ec9b6562485ab629006877"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/GlassSurface.swift",
+      "sha256": "3b4c6293c72ba9979847eacd900019539ab849f4e6e7088095bfb58d40366434"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/InstalledAppPickerSheet.swift",
+      "sha256": "3656c3854d0b1b3e07a5797af8624a1ccc818b7257568b48d3c1f1df6925976a"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/LabeledOrb.swift",
+      "sha256": "80155cc5ee5240fb06e486c6a5bb88e2009b5da9989d1a1169c31df52fa60de4"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/LevelMeter.swift",
+      "sha256": "764ef11397a5bdc9b743db66ef2b3e2b9b4f83214a56371769e434ecf6275c81"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/MarkdownView.swift",
+      "sha256": "0bb6346ce464eaf421864eefeb4319b06b72a0a8a5774df3639c3e5df525e795"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/ModelStatusRow.swift",
+      "sha256": "cf449bc13400c687de9867a1c2c08f80f03454f1b59a12099f5ac31abff7a46f"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/OrbBackdrop.swift",
+      "sha256": "88af863c7da5108a2809463fbed422230985068cf4c7879ab85742978a293efa"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/OrbUnavailableView.swift",
+      "sha256": "b6f4cb6737f12cd5ec70b10c9b177f3992676126c29f5cf13959ea67c87a3144"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/ProblemBanner.swift",
+      "sha256": "9091a7a3b52fb8d9e4a512f890c6539b8a989d4568b6394e62ac5bc39b13730c"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/RecordingIndicator.swift",
+      "sha256": "4309c76fa4ad9f5315444cfebe5e1019485fdd652d35f253ef8e177dab75923e"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/SectionHeading.swift",
+      "sha256": "a9d976649beff1c4daa3ed053e5f2364a4d8cf27e2c20dcb6a41b5fdea50fe55"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/StatusChip.swift",
+      "sha256": "fb50208f73d21a3593e83fdd0f9ec3bcf6b7152093bd048224a5ca9dfcee8ba4"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeBorderBeam.swift",
+      "sha256": "07abde63ff092072216a55a6bfbdc269d5d739eb92dc0153b6ba1ab83c05db3d"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeGlass.swift",
+      "sha256": "cb00046db30cc907d07a6806fae776a001f54f28aec3d2c3018894ca2c8ea57f"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeHeadline.swift",
+      "sha256": "4099d7b3a9246b6890f81e6c1c14c262061d7a1347d2923a14c668f4ad51e48d"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/Theme/ThemeVoiceGlow.swift",
+      "sha256": "4d628c5596a5562d483ccc7aecdb739b51f2260e50e68a68f89be79ba4ee186a"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/ThinkingOrbs/OrbGeometry.swift",
+      "sha256": "5f68917dbeb7934407d3ae5fce9788c4051e609988a32478fa38e912f1175f51"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Components/ThinkingOrbs/ThinkingOrb.swift",
+      "sha256": "041cf46816a23b49e50c4528b98831b576eac302e9decea272d0b1778044a475"
+    },
+    {
+      "path": "Sources/NextNotes/UI/DesignSystem.swift",
+      "sha256": "abba0f75ebddfc7244cf19399fbdba31135f5e3491fcacad43c355cb7c1f78f0"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictation/CommandModeStatus.swift",
+      "sha256": "15c81b40f1ec2f08223117bca48bbcf6f6b118f5d3138949301427d9e03a8580"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictation/DictationStatusBand.swift",
+      "sha256": "d5792393d589f6a9138f6cc73910be7de437e993a1f921549c0467b9b7f3d689"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictation/DictationView.swift",
+      "sha256": "1a7d15ff0cb5ac8c38845a00cf620757079cfb457bc29fddbb76dee13c18d938"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictation/TranscriptEditorSheet.swift",
+      "sha256": "5bb23c26c7cd8220d2129e0bf97f102cdd1ec0c83b31dc50afb16c38214d89e4"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictation/TranscriptionRow.swift",
+      "sha256": "26821bb4c137d2203b7ce3385b3ad385c81cd9eb901ee153e94fad12ff6720d2"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictionary/DictionaryPanel.swift",
+      "sha256": "b9d46182591fc7c0c659a5413bb6e0198bb108e0cd475492db7c9ec3d9fb993e"
+    },
+    {
+      "path": "Sources/NextNotes/UI/ExperiencePreview.swift",
+      "sha256": "d26511c7dce0887c130ad11858c52794e98a0e5001f672eab6ac1c63c55549c5"
+    },
+    {
+      "path": "Sources/NextNotes/UI/ExperienceSheet.swift",
+      "sha256": "2c17b0732be5f3098364e10dc88bd74cc27716e61659eecdaa1cf4e7289f81ab"
+    },
+    {
+      "path": "Sources/NextNotes/UI/HUDPanel.swift",
+      "sha256": "32eb66d02fb37f8a235bd49624a2dc18d08870de56fcd9e025e3d23441327b66"
+    },
+    {
+      "path": "Sources/NextNotes/UI/HUDView.swift",
+      "sha256": "4021b5fe8333c653501a07e2f0fc86c75d02ffc3abd8a4fd73f6615bbffc0058"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Island/IslandGeometry.swift",
+      "sha256": "9c60dbca6b5993df5c81b82fcdd2405a2ae42ec378e39ada5da5e6c46dd6873e"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Island/IslandPanel.swift",
+      "sha256": "5b6f2f5daf29f9bef2d325aeaed8bb2065af3abfdecc6e97d1b45065bc631a02"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Island/IslandState.swift",
+      "sha256": "c336aac3c8c2de5015c457fdfbe96bd34fda78de4633171591db668fd3f351b8"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "sha256": "ded6d438101bde82132a68e5dbab9e99ba5292c5d4c83b0d9c8bce2b754a50d0"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/AskView.swift",
+      "sha256": "137f24e8f62c394f1997ee5deec5069914f45e35886bdf8f2dc88648e51de322"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/DecisionThreadView.swift",
+      "sha256": "0f2f59955f646421eeb2240f29754cc778cef8a0623c295a423fab4ec4296f34"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/ForceLayout.swift",
+      "sha256": "39a64eca6df1c522f510572b3d843a532822cb97bcd7ff260e1b869e1d634f14"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/GlobalGraphView.swift",
+      "sha256": "37357804c045550b02ae05af3807fef7697483ebcd3f7e5f9a17d59315db0dfa"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/GraphCanvas.swift",
+      "sha256": "afd241431387a7d973e3a3ee5529a3013b9704205d3ba512a79f5bbf8fdb01f6"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/GraphChrome.swift",
+      "sha256": "a7d1dac4a3548c3d515a0bd594a4f014c4c04a906ab7a76deb3b0df55606fbf8"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/GraphScene.swift",
+      "sha256": "deb6ef071f61244fd3a799fee63bd6e6fa4994eb2e4b0ca20a41ad06ffed6721"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/KnowledgeGraphPane.swift",
+      "sha256": "1c9a68b95e2a6ca6d118c42e40800e93793bcd1037c3108aba40264d59f011c1"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/KnowledgeSearchView.swift",
+      "sha256": "79c9b4ea85e66ec78cc90542419ca4c554c012db1e6cab023766316365f286e8"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/LocalGraphView.swift",
+      "sha256": "ee6dffa91fa406b075ab9584710af39bcf2137d39e113f942cc7a4a10d0adb9a"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/MergePeopleSheet.swift",
+      "sha256": "6f60536f76f2d205f22ebebe93abfdc9ed7a8797e8b6c8bb07834c21071e0096"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Knowledge/PersonTimelineView.swift",
+      "sha256": "e0be5674a847a81d58b4d8ff460e9abef61d297e246f9a40018c022e03668978"
+    },
+    {
+      "path": "Sources/NextNotes/UI/MainWindow.swift",
+      "sha256": "19fe38311d9a86d59439eef095f088bf2049a9d4bc2ee0ae4a1bf9acdcf7214d"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingActionsView.swift",
+      "sha256": "84726f4d9837cb0d71b6304db640bcb544043cd60db5dadd95953f509fa56762"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingConsoleActionsSection.swift",
+      "sha256": "ed5227531fcfbbd004296ec27d159c8e7fb4ddcb497307fa47d938292a4e8497"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingConsoleAskSection.swift",
+      "sha256": "f1a5923748fbb6870c2fb9a5c4fda81adf7049c2ddfc60f01b7f4be1609d3b00"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingConsoleHistorySection.swift",
+      "sha256": "db4f2db5a3b31c33dde853ff8532ca01df40223ad81b00684a9d14793235bd5d"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingConsoleNotesSection.swift",
+      "sha256": "e1e8c9b7f8f3aaf9e28efd37ca24d8e0171f1b18b0ff35d7c08555f05e089037"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingConsolePreview.swift",
+      "sha256": "1c5dc48f29f0a3635f40f126ea44454883a3b0ec2b6b5c490b724af2a7bc8af4"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingConsoleSelfTest.swift",
+      "sha256": "36aed4f03a6ad922db9e81a3f962eea7df457b35fba5dc8088d06604d39433b5"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingConsoleSheet.swift",
+      "sha256": "c37410b0391ed81d93bc3ea2914fb0b3ce0e96d3446c16b3ed80adda1d00cbb7"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift",
+      "sha256": "22eb213b0a5c2a714b0cd8bf2a2381e89cc1c3bca99afc4a595489c76062dc9a"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingLiveView.swift",
+      "sha256": "b0b7d9f3c4c09ba7852b6728e5f78f236db3bff6a8cd04e40dd81f9c12bf51a7"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingRichEditor.swift",
+      "sha256": "392eb4cfdc8237c785cf063177a9de4537f26e4c1eedded7dc921dd9efc6049e"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/MeetingsView.swift",
+      "sha256": "5b47d7374b6ab1ee4cdc185e6819306c317153450711408a7f30ed277d84ab23"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/ProposalArgumentsSheet.swift",
+      "sha256": "f003c0f50550433affd803ca6269a21b04d00cac4d2b4dff360946974109daf7"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/RenameMeetingSheet.swift",
+      "sha256": "1eadb95b822462d14d4a1cb3ce962a3ec265319cb2a7a9069355e6ffff328c1e"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift",
+      "sha256": "fb7eabefa11280ab747606d5b8cda47043757628be9bfd00d9e19a6588971512"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/TranscriptView.swift",
+      "sha256": "8e3b4859e781d737e5125cf16ef0f12245713a63a0d5c959c8efac32c3669568"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/meetingsStatusOrb.swift",
+      "sha256": "b1553707b95edbb06fdc57bdd9d0aad021aeb687387afa572583112544444554"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/IMessageSetupSheet.swift",
+      "sha256": "ffb177eac1a901f017868cfb0f58955e675bd920342ca2d8e9180f0e645a9da2"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingChrome.swift",
+      "sha256": "006d0c7fa65cc586f2b350d0c6d04b8d7c8be8d887786e0c9587af2b2699bb25"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingExampleCard.swift",
+      "sha256": "3574f304aebdb0081a04f6c3408a3e3c83565b4d4dc190bf5489e41ed4ad5711"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingFlow.swift",
+      "sha256": "0db2db83996ecf3db22e087d2351a75b12705dd2db58853b9daa2fabf450de9b"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingModelResume.swift",
+      "sha256": "249c3590df939bee70ba680c6cc39358fbbf33f6bc9835a0fda6a1408ac13b3a"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingOutcome.swift",
+      "sha256": "d5ff162ceb174aeb8e375fb59a0f0ad55e045cbf960c8342bfc7c5f00df9e147"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingSelfTest.swift",
+      "sha256": "ab72da9f2e892679dd46d7cc316ffa56b012c36f2607c115051f3b5a4f85b675"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingSteps.swift",
+      "sha256": "30ce3175609e5290e239748486029723168a25a8826e17293642095e98e132ee"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/OnboardingWindow.swift",
+      "sha256": "5a610676a9b70c99353fb8f3f172cb29d500f62c611abe7a71ba7355f909c659"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Onboarding/PermissionsChecklist.swift",
+      "sha256": "b8a9a1c0b099221d3a0c0f8bb0d8b036e387650784cf916ca95c15d605b68924"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/AgentSettingsTab.swift",
+      "sha256": "b31f0440dd9f45ccd8112f4aebb1c0ce8b2d1094fde8ba302d64c1d1db2ecf02"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/CalendarSettingsTab.swift",
+      "sha256": "f290d0141318556d086c039c5c82cdefdfb8554a3c06e063596aa742639c591d"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/ComputerBrowserReadiness.swift",
+      "sha256": "5d49ce2ef6d0f34e8fa6508e236d91203d6357f0ebeba9f4dc49d964de73a23a"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/DictationSettingsTab.swift",
+      "sha256": "2c294b73c598bf5fc705e60717c04963e33fa087a7c801390a917f50970d2897"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/FastListeningSection.swift",
+      "sha256": "9f7c71a534e759912c65030a89aa3457d84be455c80c0b4aaa9249b2497bfce5"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/FormattingSettingsTab.swift",
+      "sha256": "c750e16bd51c4f8f40875d2122b3a89d57dfe3a02f40cd2a08ec7f0c4eb64d69"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/GeneralSettingsTab.swift",
+      "sha256": "0365e491b236a63e071871cdd2551bb91fd2d6beaf10769d9f79c567c0ddb628"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/IMessageSettingsSection.swift",
+      "sha256": "1a9d0f469d54a2fc321e74ee58b7577e7c1f216e72d4d685c797c3a397f2ae75"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/IntegrationsSettingsTab.swift",
+      "sha256": "7fdef50ca1c34b050b97db525c8ed500f24277a1cb3d11fea382e7db0bb176eb"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/KnowledgeSection.swift",
+      "sha256": "6850a019aa1d4b8d387c1bf262865b76e1b6a8f553a821fc299a34191f87116f"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/MeetingsSettingsTab.swift",
+      "sha256": "f5d381a858941551e3b6bbde723885d9298c528875c89f1657037a00d0ebe5ae"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/MemoriesSection.swift",
+      "sha256": "b40a88fee134d78f5c7671a8240b98629adc40d9dc30c1e032f9b1be2e73c7db"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/MemoryDataControls.swift",
+      "sha256": "6ebdf7d3581032b22b4c316e75b4b371464236953e951f011cc569e1f97218a5"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/MemoryImportSheet.swift",
+      "sha256": "5d0b8ad387de20662ee6297f803a4eeae79012835eb208a14048f1ff0b94e102"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/MessagesAccessSection.swift",
+      "sha256": "ba215a9d62d1b7e79f0339b150a0eca4526b6b2e31d3efb47dad00a35f1aaa73"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/ModelLibrary/ModelLibraryViews.swift",
+      "sha256": "628dfad7d26bb4b6acff06283b8c2e5731ce86340b6c2aee8d91e28d2c4700ad"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/ModelRoleSection.swift",
+      "sha256": "89ad3ce1b014b1a16a3f9f944d19445554c846546e43152b9b0d2f39cb2d5126"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/ModelSpaceManagerSheet.swift",
+      "sha256": "7ffdcb1a5ac9d53c5b743a6b2bb100ae57355d3f2235380beb4d7a2cda31a564"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift",
+      "sha256": "989e62bdefaef4342e76255ceae63db62d143f9eb8ab80e22351761ced725c51"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/OpenRouterModelSelection.swift",
+      "sha256": "31a609a09e9f8132a119cc0c22f12118f2906e48274359698154017086438525"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/PermissionsSettingsTab.swift",
+      "sha256": "70f4ac9deff94ff435bfcdcbe12d54eb35fdfcdc7e66087a54ad3273b990f711"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/PersonaSection.swift",
+      "sha256": "fb7e2d2216a99d07097564c718c03f37b0502c25bfcc67cb5c413ae939087428"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/RemindersSection.swift",
+      "sha256": "ef482d045bb3e85b50543804a02e7cb87091136807db422d2862d71b107a30a5"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/SettingsChrome.swift",
+      "sha256": "b89503d92cc98647ef22fee929cab1e43fd6115ef08b4ad8822aab0d7fc1f42a"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/SettingsSheet.swift",
+      "sha256": "7a2e17175410f14ffa15fdcad9d16aac99688864f9c29b1c587474848771afba"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/SettingsWindow.swift",
+      "sha256": "59b5a13b898cac4389066264766109d44ae52cf5aab4c3b4c565424ae0178f8d"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/UsageSection.swift",
+      "sha256": "d80f06623f66cf5f9c7cc489434dc0d1aac67d1780b3ad85b67b541c9652b163"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Settings/WorkspaceSettingsTab.swift",
+      "sha256": "9f131192804df08021d4725061c9917a3029a5182119239d7e8e1933d174c406"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Sidebar.swift",
+      "sha256": "fadac33ae9da4f608345ab40a1ad2ce68d11c57c244eba4f5773f5e43961d1aa"
+    },
+    {
+      "path": "Sources/NextNotes/UI/ThemeFixed.swift",
+      "sha256": "3c961a25ac554cf07865fd0fc5895c817d4e6c0a2b32a6b968ae92b9887df2c9"
+    },
+    {
+      "path": "Sources/NextNotes/UI/UIStringsLint.swift",
+      "sha256": "7d4262daefc88922328deda349fb4c84833c16aef9347b2417ab6711869ce1a1"
+    }
+  ]
+}

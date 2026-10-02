@@ -1,0 +1,6 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-authority --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-targeted-8/selftest-task-authority.out
+2026-10-01 21:49:30.109 NextNotes[60509:750826] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+TASK_AUTHORITY_FAILED: 1 assertions
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_AUTHORITY_WRONG: callback-rejected-waitingForInput: assertion("failed callback changed pending state or retained token")

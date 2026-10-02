@@ -1,0 +1,19 @@
+acceptance: logs in /tmp/nextnotes-agent-closure-voice-related
+== CORE ==
+  --selftest-voice-conversation            PASS  4s
+CORE           1/1 PASS
+== INTEGRATION ==
+  --selftest-store-isolation               PASS  32s
+  --selftest-usage-log                     PASS  2s
+INTEGRATION    2/2 PASS
+== EXPERIMENTAL ==
+  --selftest-concurrent-voice              PASS  3s
+  --selftest-voice-duplex-work             PASS  2s
+  --selftest-voice-session-reducer         PASS  1s
+  --selftest-playback-ledger               PASS  1s
+  --selftest-voice-frontend                FAIL  44s
+  --selftest-voice-local                   PASS  35s
+  --selftest-voice-speculation             PASS  2s
+EXPERIMENTAL   6/7 PASS
+
+FAIL  experimental --selftest-voice-frontend            VOICE_FRONTEND_FAILED
