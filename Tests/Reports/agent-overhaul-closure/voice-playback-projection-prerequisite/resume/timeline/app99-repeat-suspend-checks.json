@@ -1,0 +1,20 @@
+[
+  {
+    "run": 1,
+    "flag": "voice-suspend-live",
+    "exit": 0,
+    "marker": "VOICE_SUSPEND_OK: paused PCM retained token and queue; resumed and drained; next clause restarted",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "run": 2,
+    "flag": "voice-suspend-live",
+    "exit": 0,
+    "marker": "VOICE_SUSPEND_OK: paused PCM retained token and queue; resumed and drained; next clause restarted",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

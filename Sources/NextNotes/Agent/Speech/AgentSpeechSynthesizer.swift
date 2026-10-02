@@ -1,5 +1,38 @@
 import AVFoundation
 import Foundation
+import Synchronization
+
+/// Diagnostic-only actual Apple player observations; never playback/UI authority.
+struct ApplePlaybackBufferObservation: Sendable, Equatable {
+    let token: UInt64
+    let ordinal: Int
+    let lowerFrame: Int64
+    let upperFrame: Int64
+    let sampleRate: Double
+}
+struct ApplePlaybackNativeObservation: Sendable, Equatable {
+    let buffer: ApplePlaybackBufferObservation
+    let originPhase: UInt64
+    let callbackKind: Int
+    let originHostTime: UInt64
+    let originWasMainThread: Bool
+}
+struct ApplePlaybackCursorObservation: Sendable, Equatable {
+    let frame: Int64
+    let sampleRate: Double
+    let nodeHostTime: UInt64
+    let observedHostTime: UInt64
+}
+enum ApplePlaybackTimelineObservation: Sendable, Equatable {
+    case scheduled(ApplePlaybackBufferObservation)
+    case paused(token: UInt64, phase: UInt64)
+    case resumed(token: UInt64, phase: UInt64, requestedHostTime: UInt64,
+                 cursor: ApplePlaybackCursorObservation?, checkpoint: Int64?)
+    case handled(ApplePlaybackNativeObservation, currentPhase: UInt64,
+                 cursor: ApplePlaybackCursorObservation?, checkpointBefore: Int64?,
+                 checkpointAfter: Int64?, currentOwner: Bool, candidate: Bool)
+    case stopped(token: UInt64?, phaseBefore: UInt64)
+}
 
 /// Playback backend. Production talks to `AVSpeechSynthesizer`; the self-test
 /// swaps in a recorder so interrupt can be asserted without a speaker.
@@ -31,6 +64,16 @@ final class AgentSpeechSynthesizer {
 
     private var backing: any AgentSpeechBacking
     private let systemBacking = AVSpeechBacking()
+    /// Exact existing Apple backing only; nil/default, SelfTest-only diagnostic.
+    var appleTimelineObserverForTesting: (@MainActor (ApplePlaybackTimelineObservation) -> Void)? {
+        get { systemBacking.timelineObserverForTesting }
+        set { if SelfTest.isRunning { systemBacking.timelineObserverForTesting = newValue } }
+    }
+    var appleNativeCompletionInterceptorForTesting:
+        (@Sendable (ApplePlaybackNativeObservation, @escaping @Sendable () -> Void) -> Void)? {
+        get { systemBacking.nativeCompletionInterceptorForTesting }
+        set { if SelfTest.isRunning { systemBacking.nativeCompletionInterceptorForTesting = newValue } }
+    }
     private let pocketBacking = PocketSpeechBacking()
     private let pocketSourceBacking = PocketSourceSpeechBacking()
     private let kokoroBacking = KokoroSpeechBacking()
@@ -722,6 +765,19 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
     private var speaking = false
     private var pausedForListening = false
     private var activeToken: UInt64?
+    /// One atomic stamp crosses the real callback thread; no PCM queue is added.
+    private final class TimelinePhase: @unchecked Sendable {
+        let value = Atomic<UInt64>(0)
+    }
+    private let timelinePhase = TimelinePhase()
+    private var timelineEnd: Int64 = 0
+    private var timelineOrdinal = 0
+    private var timelineRate: Double?
+    private var timelineResumeHost: UInt64?
+    private var timelineCheckpoint: Int64?
+    var timelineObserverForTesting: (@MainActor (ApplePlaybackTimelineObservation) -> Void)?
+    var nativeCompletionInterceptorForTesting:
+        (@Sendable (ApplePlaybackNativeObservation, @escaping @Sendable () -> Void) -> Void)?
     /// Wired by `AgentSpeechSynthesizer` to pump the next clause (or finish).
     var onUtteranceFinished: ((UInt64) -> Void)?
     /// Wired by `AgentSpeechSynthesizer` for truthful first-audio timing.
@@ -746,6 +802,14 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
         speaking = true
         pausedForListening = false
         activeToken = token
+        if SelfTest.isRunning, timelineObserverForTesting != nil {
+            timelinePhase.value.store(2, ordering: .releasing)
+            timelineEnd = 0
+            timelineOrdinal = 0
+            timelineRate = nil
+            timelineResumeHost = nil
+            timelineCheckpoint = nil
+        }
         pendingBuffers = 0
         synthesisFinished = false
         didBegin = false
@@ -822,9 +886,30 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
                 try playbackEngine.start()
             }
             pendingBuffers += 1
-            player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) {
-                [weak self] _ in
-                Task { @MainActor in self?.bufferPlayed(token: token) }
+            if SelfTest.isRunning, timelineObserverForTesting != nil {
+                let lower = timelineEnd
+                let addition = lower.addingReportingOverflow(Int64(buffer.frameLength))
+                guard !addition.overflow, buffer.frameLength > 0,
+                      buffer.format.sampleRate.isFinite, buffer.format.sampleRate > 0,
+                      timelineRate == nil || timelineRate == buffer.format.sampleRate else {
+                    throw NSError(domain: "ApplePlaybackTimelineDiagnostic", code: 1)
+                }
+                timelineRate = buffer.format.sampleRate
+                timelineEnd = addition.partialValue
+                timelineOrdinal += 1
+                let observation = ApplePlaybackBufferObservation(token: token,
+                    ordinal: timelineOrdinal, lowerFrame: lower, upperFrame: timelineEnd,
+                    sampleRate: buffer.format.sampleRate)
+                timelineObserverForTesting?(.scheduled(observation))
+                player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack,
+                    completionHandler: Self.makeTimelineCompletion(for: self,
+                        buffer: observation, phase: timelinePhase,
+                        interceptor: nativeCompletionInterceptorForTesting))
+            } else {
+                player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) {
+                    [weak self] _ in
+                    Task { @MainActor in self?.bufferPlayed(token: token) }
+                }
             }
             if !pausedForListening && !player.isPlaying { player.play() }
         } catch {
@@ -832,6 +917,71 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
             stop()
             onUtteranceFinished?(token)
         }
+    }
+
+    /// Captures immutable provenance BEFORE either the hook or MainActor hop.
+    nonisolated private static func makeTimelineCompletion(
+        for backing: AVSpeechBacking, buffer: ApplePlaybackBufferObservation,
+        phase: TimelinePhase,
+        interceptor: (@Sendable (ApplePlaybackNativeObservation,
+            @escaping @Sendable () -> Void) -> Void)?
+    ) -> @Sendable (AVAudioPlayerNodeCompletionCallbackType) -> Void {
+        { [weak backing] kind in
+            let packet = ApplePlaybackNativeObservation(buffer: buffer,
+                originPhase: phase.value.load(ordering: .acquiring),
+                callbackKind: Int(kind.rawValue), originHostTime: mach_absolute_time(),
+                originWasMainThread: Thread.isMainThread)
+            let forward: @Sendable () -> Void = { [weak backing] in
+                Task { @MainActor in backing?.receiveTimelineCompletion(packet) }
+            }
+            if let interceptor { interceptor(packet, forward) }
+            else { forward() }
+        }
+    }
+
+    private func timelineCursor() -> ApplePlaybackCursorObservation? {
+        guard player.isPlaying, let node = player.lastRenderTime,
+              node.isHostTimeValid, let position = player.playerTime(forNodeTime: node),
+              position.isSampleTimeValid, position.sampleTime >= 0, position.sampleTime <= timelineEnd,
+              let rate = timelineRate, rate == position.sampleRate,
+              rate.isFinite, rate > 0 else { return nil }
+        return .init(frame: position.sampleTime, sampleRate: rate,
+            nodeHostTime: node.hostTime, observedHostTime: mach_absolute_time())
+    }
+
+    private func diagnosticCheckpoint(cursor: ApplePlaybackCursorObservation?,
+        completedEnd: Int64?) -> Int64? {
+        guard let host = timelineResumeHost, let cursor,
+              cursor.nodeHostTime >= host else { return nil }
+        // This is a POST-resume cursor, never a purported pre-pause cut.
+        // First callback checkpoint excludes that entire completed buffer too.
+        return max(cursor.frame, completedEnd ?? cursor.frame)
+    }
+
+    private func receiveTimelineCompletion(_ packet: ApplePlaybackNativeObservation) {
+        let phase = timelinePhase.value.load(ordering: .acquiring)
+        let current = activeToken == packet.buffer.token && speaking && !pausedForListening
+            && phase != 0 && phase % 2 == 0 && packet.originPhase == phase
+            && packet.callbackKind == Int(AVAudioPlayerNodeCompletionCallbackType.dataPlayedBack.rawValue)
+            && (timelineResumeHost.map { packet.originHostTime >= $0 } ?? true)
+        let cursor = timelineCursor()
+        let before = timelineCheckpoint
+        if current, timelineResumeHost != nil, before == nil {
+            timelineCheckpoint = diagnosticCheckpoint(cursor: cursor,
+                completedEnd: packet.buffer.upperFrame)
+        }
+        // Observation candidate only; does not restore any status or publish UI.
+        let candidate: Bool
+        if let before {
+            candidate = current && timelineResumeHost != nil
+                && packet.buffer.upperFrame > before
+                && packet.buffer.upperFrame > packet.buffer.lowerFrame
+        } else { candidate = false }
+        timelineObserverForTesting?(.handled(packet, currentPhase: phase,
+            cursor: cursor, checkpointBefore: before, checkpointAfter: timelineCheckpoint,
+            currentOwner: current, candidate: candidate))
+        // Never suppress the existing drain bookkeeping for an unusable packet.
+        bufferPlayed(token: packet.buffer.token)
     }
 
     private func synthesisEnded(token: UInt64) {
@@ -854,6 +1004,11 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
         guard activeToken == token, synthesisFinished, pendingBuffers == 0 else { return }
         speaking = false
         pausedForListening = false
+        if SelfTest.isRunning, timelineObserverForTesting != nil {
+            let phase = timelinePhase.value.load(ordering: .acquiring)
+            timelinePhase.value.store(0, ordering: .releasing)
+            timelineObserverForTesting?(.stopped(token: activeToken, phaseBefore: phase))
+        }
         activeToken = nil
         delivery = nil
         player.stop()
@@ -865,6 +1020,11 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
     func stop() {
         speaking = false
         pausedForListening = false
+        if SelfTest.isRunning, timelineObserverForTesting != nil {
+            let phase = timelinePhase.value.load(ordering: .acquiring)
+            timelinePhase.value.store(0, ordering: .releasing)
+            timelineObserverForTesting?(.stopped(token: activeToken, phaseBefore: phase))
+        }
         activeToken = nil
         synthesizer.stopSpeaking(at: .immediate)
         player.stop()
@@ -876,13 +1036,32 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
     func pauseForListening() {
         guard speaking, !pausedForListening else { return }
         pausedForListening = true
+        if SelfTest.isRunning, timelineObserverForTesting != nil, let token = activeToken {
+            let phase = timelinePhase.value.wrappingAdd(1, ordering: .acquiringAndReleasing).newValue
+            timelineResumeHost = nil
+            timelineCheckpoint = nil
+            timelineObserverForTesting?(.paused(token: token, phase: phase))
+        }
         if player.isPlaying { player.pause() }
     }
 
     func resumeAfterListening() {
         guard speaking, pausedForListening else { return }
         pausedForListening = false
+        if SelfTest.isRunning, timelineObserverForTesting != nil {
+            _ = timelinePhase.value.wrappingAdd(1, ordering: .acquiringAndReleasing)
+            timelineResumeHost = mach_absolute_time()
+            timelineCheckpoint = nil
+        }
         if pendingBuffers > 0 && !player.isPlaying { player.play() }
+        if SelfTest.isRunning, timelineObserverForTesting != nil, let token = activeToken {
+            let cursor = timelineCursor()
+            timelineCheckpoint = diagnosticCheckpoint(cursor: cursor, completedEnd: nil)
+            timelineObserverForTesting?(.resumed(token: token,
+                phase: timelinePhase.value.load(ordering: .acquiring),
+                requestedHostTime: timelineResumeHost ?? 0, cursor: cursor,
+                checkpoint: timelineCheckpoint))
+        }
     }
 
     nonisolated func speechSynthesizer(

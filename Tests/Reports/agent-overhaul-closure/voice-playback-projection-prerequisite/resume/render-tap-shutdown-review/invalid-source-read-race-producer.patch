@@ -1,0 +1,13 @@
+--- a/Sources/NextNotes/Agent/Speech/VoicePlaybackReference.swift
++++ b/Sources/NextNotes/Agent/Speech/VoicePlaybackReference.swift
+@@ -18,7 +18,10 @@
+             lane.async {
+                 guard generation == currentEpoch() else { return }
+                 // Engine graph getters can wait for shutdown; never call them from its tap.
++                    guard generation == currentEpoch() else { return }
++                // AV engine getters can lock the graph; never query from its tap service.
+                 let presentationLatency = engine.outputNode.outputPresentationLatency
++                // The query may have waited for shutdown; skip that stale reference.
+                 guard generation == currentEpoch() else { return }
+                 AcousticEchoProcessor.shared.feedRendered(owned.buffer,
+                     renderHostTime: hostTime, tapArrivalHostTime: tapArrivalHostTime,

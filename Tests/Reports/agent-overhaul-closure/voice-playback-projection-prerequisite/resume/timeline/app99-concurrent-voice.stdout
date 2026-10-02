@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-concurrent-voice --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-99-lfe0vz6n/concurrent-voice.log
+CONCURRENT_VOICE_OK
+VOICE_SESSION_SHADOW: events=106 divergences=0 coverage=["effectsHeld": 37, "output": 37, "floor": 33, "turnPending": 37] output_present=17 unavailable=["floor": 4]
+CONCURRENT_VOICE_OK

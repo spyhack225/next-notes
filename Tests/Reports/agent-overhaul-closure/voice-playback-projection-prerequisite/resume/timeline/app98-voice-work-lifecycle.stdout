@@ -1,0 +1,5 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-work-lifecycle --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-98-35vl6mep/voice-work-lifecycle.log
+VOICE_WORK_LIFECYCLE_OK
+VOICE_WORK_LIFECYCLE_C1: round2_ms=0 status=finished
+VOICE_SESSION_SHADOW: events=59 divergences=0 coverage=["effectsHeld": 19, "output": 19, "floor": 19, "turnPending": 19] output_present=9 unavailable=[:]
+VOICE_WORK_LIFECYCLE_OK

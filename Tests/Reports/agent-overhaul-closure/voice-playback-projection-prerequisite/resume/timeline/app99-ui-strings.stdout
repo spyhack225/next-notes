@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-ui-strings --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-99-lfe0vz6n/ui-strings.log
+2026-10-02 17:09:34.789 NextNotes[86569:2087437] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+UI_STRINGS_OK

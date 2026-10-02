@@ -199,6 +199,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-voice-session-reducer
 --selftest-voice-playback-projection
 --selftest-voice-playback-resume-receipt
+--selftest-apple-playback-timeline
 --selftest-playback-ledger --selftest-voice-scheduling
 --selftest-concurrent-voice --selftest-voice-frontend --selftest-voice-eou <wav>
 --selftest-acoustic-replay --selftest-acoustic-speech <far-wav> <near-wav>
@@ -690,6 +691,20 @@ actual resume, before the existing producer yields. It proves historical heard
 and a delayed pre-pause onset cannot authorize new speaking; current code still
 accepts them. Native fresh-frame/provenance proof and producer repair remain open.
 See the [original resume report](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/original94-verification.md).
+
+`--selftest-apple-playback-timeline` is a bounded native diagnostic: corrected
+original97 RED3 → fixed98 same22 PASS, repeated99. It observes the same Apple
+player’s actual callbacks and post-resume cursor, rejects held old/stopped packets
+and joins every buffer. Invalid96 recorder overflow is retained; corrected common
+recording is identical before both. Future native clock stamps, partial-frame
+candidates and untested repeated/backend phases prevent any acoustic/live-speaking
+authority claim. The separate resume-receipt flag still fails4 on99.
+The actual98 native suspend hang also exposed an engine graph/tap lock cycle;
+VoicePlaybackReference99 moves its lookup to the existing processing lane and
+rechecks epoch before feed. The same suspend flow passes four times, with no new
+queue/wait/cache. Fresh latency is sampled at feed time, not an atomic tap-route
+snapshot. See [timeline proof](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/timeline/verification.md)
+and [shutdown proof](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/timeline/tap-shutdown/verification.md).
 
 `--selftest-ask` now verifies bounded P4-08a advertised-window fitting through
 actual temporary SQLite retrieval, provider wrapper and streamed/citation consumer:

@@ -1,0 +1,10 @@
+{
+  "entries": 1045,
+  "changed": {
+    "Sources/NextNotes/Agent/Speech/VoicePlaybackReference.swift": {
+      "original": "5ccf67b7f4edbb52939a0e41a8920f63fed6720800b54daa8e5d838afef563fa",
+      "fixed": "7bde6a354fc6b80784d03c4198b99b83567b4f216d2e43735f18ae9c5aa67868"
+    }
+  },
+  "sameNativeFlagImplementation": true
+}

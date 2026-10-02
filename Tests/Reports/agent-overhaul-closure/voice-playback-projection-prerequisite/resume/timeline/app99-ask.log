@@ -1,0 +1,6 @@
+KNOWLEDGE_WINDOW_TRACE: window=4096 modelCalls=2 maxEstimatedWithOutputAndHeadroom=3057 retrieved=10 refused=false
+KNOWLEDGE_WINDOW_TRACE: window=32768 modelCalls=3 maxEstimatedWithOutputAndHeadroom=4974 retrieved=20 refused=false
+KNOWLEDGE_WINDOW_TRACE: window=512 modelCalls=0 maxEstimatedWithOutputAndHeadroom=0 retrieved=0 refused=true
+KNOWLEDGE_BOUNDARY_TRACE: mode=feasible-floor3 window=1900 modelCalls=1 maxEstimatedWithOutputAndHeadroom=1712 retrieved=3 refused=false
+KNOWLEDGE_BOUNDARY_TRACE: mode=small-below-floor3 window=1500 modelCalls=1 maxEstimatedWithOutputAndHeadroom=1329 retrieved=1 refused=false
+KNOWLEDGE_BOUNDARY_TRACE: mode=oversized-title window=4096 modelCalls=1 maxEstimatedWithOutputAndHeadroom=3916 retrieved=6 refused=false

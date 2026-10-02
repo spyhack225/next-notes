@@ -1,0 +1,10 @@
+[
+  {
+    "flag": "voice-playback-resume-receipt",
+    "exit": 1,
+    "marker": "VOICE_PLAYBACK_RESUME_RECEIPT_FAILED: 4 assertions",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

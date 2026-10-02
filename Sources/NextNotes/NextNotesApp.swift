@@ -1184,7 +1184,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-apple-playback-timeline") {
+            Task { @MainActor in
+                let result = await ApplePlaybackTimelineSelfTest.run()
+                if !result.hasPrefix("APPLE_PLAYBACK_TIMELINE_OK:") { SelfTest.failed = true }
+                writeSelfTest(result)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
+
 // Proposed additive NextNotesApp dispatcher branch; root owns registration.
+
 if arguments.contains("--selftest-voice-playback-resume-receipt") {
     Task { @MainActor in
         let result = await VoicePlaybackResumeReceiptSelfTest.run()

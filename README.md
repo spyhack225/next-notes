@@ -564,6 +564,8 @@ Sources/NextNotes/
 │   │                               and the podcast routine (reads-only, silence token,
 │   │                               long-form audio rendered to a file, never the live voice)
 │   ├── Speech/                     streaming TTS, barge-in, clause queue; LongFormRenderer
+│   │                               VoicePlaybackReference keeps engine queries off the audio tap
+│   ├── Duplex/ApplePlaybackTimelineSelfTest.swift  actual same-player resume diagnostic
 │   │                               is the file-sink path — it never touches the live graph
 │   ├── Backend/                    AgentBackend, Local, ACP, harness router;
 │   │                               VisionHandoff — the parked screenshot → consented

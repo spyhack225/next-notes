@@ -1,0 +1,33 @@
+{
+  "status": "independent-static-review-no-blocker-after-corrections",
+  "actual_native_verdict": "pending-root",
+  "fixture_checks": 22,
+  "common_fixture_sha256": "b6f9b1bc014e7cba8f355bf0bd2fe4b3547e3aa2f35487fceb46f48793b7eb87",
+  "hashes": {
+    "common-ApplePlaybackTimelineSelfTest.swift.txt": "b6f9b1bc014e7cba8f355bf0bd2fe4b3547e3aa2f35487fceb46f48793b7eb87",
+    "original-diagnostic-AgentSpeechSynthesizer.swift.txt": "f94781f9ce609b4d05042233b59886f72a56001772a317d9e55cb60e1d26d4e9",
+    "proposed-diagnostic-AgentSpeechSynthesizer.swift.txt": "4513d4358e1d10acb76a8fedce90f91f6b08d60a83412c5ae240391e578899c2",
+    "checkpoint-only-producer.patch.txt": "9056e7e325ab1cd5ebfb313812054f538f65a429916196fd6c3f827992cc7a6a"
+  },
+  "original_fixed_diff": "--- \n+++ \n@@ -951,8 +951,11 @@\n \n     private func diagnosticCheckpoint(cursor: ApplePlaybackCursorObservation?,\n         completedEnd: Int64?) -> Int64? {\n-        // Original missing-observation scaffold; same real callback/owner inputs.\n-        return nil\n+        guard let host = timelineResumeHost, let cursor,\n+              cursor.nodeHostTime >= host else { return nil }\n+        // This is a POST-resume cursor, never a purported pre-pause cut.\n+        // First callback checkpoint excludes that entire completed buffer too.\n+        return max(cursor.frame, completedEnd ?? cursor.frame)\n     }\n \n     private func receiveTimelineCompletion(_ packet: ApplePlaybackNativeObservation) {\n",
+  "arbitrary_three_callback_exit_absent": true,
+  "cursor_coordinate_guard_both": true,
+  "pending_clauses_zero_control": true,
+  "sdk_primary_header": "/Library/Developer/CommandLineTools/SDKs/MacOSX26.2.sdk/System/Library/Frameworks/AVFAudio.framework/Versions/A/Headers/AVAudioPlayerNode.h",
+  "sdk_header_sha256": "d47ecd191ea3ceab6f02d1c0fef07daaa9d7f8b60285155453a296f25e4b2413",
+  "sdk_pins": {
+    "buffer_rate_and_player_origin": "99-122",
+    "data_played_back_latency": "45-49",
+    "callback_stop_and_thread": "71-76,174-185",
+    "stop_resets_sample_zero": "286-292",
+    "pause_and_player_time": "342-379"
+  },
+  "limitations": [
+    "only post-resume diagnostic checkpoint, no exact pause cut",
+    "volume0 native frames not audible/non-silence proof",
+    "repeat pause/resume, replacement overlap and late native prior-data callbacks untested",
+    "other backends and liveUIauthority remain open",
+    "compile and actual real-player origin/rate/join controls must be green"
+  ],
+  "no_source_native_index_actions": true
+}

@@ -1,0 +1,16 @@
+--- original-diagnostic
++++ proposed-diagnostic
+@@ -951,8 +951,11 @@
+ 
+     private func diagnosticCheckpoint(cursor: ApplePlaybackCursorObservation?,
+         completedEnd: Int64?) -> Int64? {
+-        // Original missing-observation scaffold; same real callback/owner inputs.
+-        return nil
++        guard let host = timelineResumeHost, let cursor,
++              cursor.nodeHostTime >= host else { return nil }
++        // This is a POST-resume cursor, never a purported pre-pause cut.
++        // First callback checkpoint excludes that entire completed buffer too.
++        return max(cursor.frame, completedEnd ?? cursor.frame)
+     }
+ 
+     private func receiveTimelineCompletion(_ packet: ApplePlaybackNativeObservation) {

@@ -1,0 +1,42 @@
+Call graph:
+    826 Thread_2055462   DispatchQueue_1: com.apple.main-thread  (serial)
+    + 826 completeTaskWithClosure(swift::AsyncContext*, swift::SwiftError*)  (in libswift_Concurrency.dylib) + 1  [0x1865aed41]
+    +   826 partial apply for thunk for @escaping @isolated(any) @callee_guaranteed @async () -> (@out A)  (in NextNotes) + 1  [0x104962825]  /<compiler-generated>:0
+    +     826 thunk for @escaping @isolated(any) @callee_guaranteed @async () -> (@out A)  (in NextNotes) + 1  [0x1049626d5]  /<compiler-generated>:0
+    +       826 partial apply for closure #1 in closure #1 in AVSpeechBacking.play(_:token:)  (in NextNotes) + 1  [0x1057715d1]  /<compiler-generated>:0
+    +         826 closure #1 in closure #1 in AVSpeechBacking.play(_:token:)  (in NextNotes) + 252  [0x105768354]  AgentSpeechSynthesizer.swift:911
+    +           826 AVSpeechBacking.bufferPlayed(token:)  (in NextNotes) + 716  [0x105768670]  AgentSpeechSynthesizer.swift:1000
+    +             826 AVSpeechBacking.finishIfDrained(token:)  (in NextNotes) + 1484  [0x10576aa9c]  AgentSpeechSynthesizer.swift:1015
+    +               826 -[AVAudioEngine stop]  (in AVFAudio) + 44  [0x1b6d8e468]
+    +                 826 AVAudioEngineImpl::Stop(NSError**)  (in AVFAudio) + 420  [0x1b6d8e640]
+    +                   826 AVAudioEngineGraph::_Uninitialize(NSError**)  (in AVFAudio) + 128  [0x1b6d63718]
+    +                     826 AVAudioEngineGraph::PerformCommand(AUGraphNodeBaseV3&, AVAudioEngineGraph::ENodeCommand, void*, unsigned int) const  (in AVFAudio) + 180  [0x1b6d5dbc0]
+    +                       826 AUGraphNodeBase::Uninitialize()  (in AVFAudio) + 32  [0x1b6cd13b8]
+    +                         826 AVAudioNodeTap::Uninitialize()  (in AVFAudio) + 124  [0x1b6cedfb8]
+    +                           826 CADeprecated::RealtimeMessenger::_PerformPendingMessages()  (in AVFAudio) + 28  [0x1b6ce25c8]
+    +                             826 std::recursive_mutex::lock()  (in libc++.1.dylib) + 16  [0x1874a92d8]
+    +                               826 _pthread_mutex_firstfit_lock_slow  (in libsystem_pthread.dylib) + 216  [0x1824f69b8]
+    +                                 826 _pthread_mutex_firstfit_lock_wait  (in libsystem_pthread.dylib) + 84  [0x1824f8f7c]
+    +                                   826 __psynch_mutexwait  (in libsystem_kernel.dylib) + 8  [0x1824b99dc]
+    826 Thread_2055472   DispatchQueue_193: RealtimeMessenger.mServiceQueue  (serial)
+    + 826 start_wqthread  (in libsystem_pthread.dylib) + 8  [0x1824f6ce0]
+    +   826 _pthread_wqthread  (in libsystem_pthread.dylib) + 292  [0x1824f7f9c]
+    +     826 _dispatch_workloop_worker_thread  (in libdispatch.dylib) + 720  [0x18746285c]
+    +       826 _dispatch_root_queue_drain_deferred_wlh  (in libdispatch.dylib) + 284  [0x187462f58]
+    +         826 _dispatch_workloop_invoke  (in libdispatch.dylib) + 1604  [0x187459e74]
+    +           826 _dispatch_lane_invoke  (in libdispatch.dylib) + 448  [0x187458af4]
+    +             826 _dispatch_lane_serial_drain  (in libdispatch.dylib) + 332  [0x187457e24]
+    +               826 _dispatch_source_invoke  (in libdispatch.dylib) + 848  [0x187465f7c]
+    +                 826 _dispatch_source_latch_and_call  (in libdispatch.dylib) + 392  [0x1874672a8]
+    +                   826 _dispatch_continuation_pop  (in libdispatch.dylib) + 596  [0x1874541b4]
+    +                     826 _dispatch_client_callout  (in libdispatch.dylib) + 16  [0x1874695a0]
+    +                       826 invocation function for block in CADeprecated::RealtimeMessenger::RealtimeMessenger(applesauce::dispatch::v1::queue)  (in AVFAudio) + 108  [0x1b6ce24bc]
+    +                         826 CADeprecated::RealtimeMessenger::_PerformPendingMessages()  (in AVFAudio) + 76  [0x1b6ce25f8]
+    +                           826 AVAudioNodeTap::TapMessage::RealtimeMessenger_Perform()  (in AVFAudio) + 1248  [0x1b6cee954]
+    +                             826 thunk for @escaping @callee_guaranteed (@guaranteed AVAudioPCMBuffer, @guaranteed AVAudioTime) -> ()  (in NextNotes) + 96  [0x104ac0c38]  /<compiler-generated>:0
+    +                               826 closure #1 in static VoicePlaybackReference.install(on:)  (in NextNotes) + 512  [0x1057cddb8]  VoicePlaybackReference.swift:17
+    +                                 826 -[AVAudioEngine outputNode]  (in AVFAudio) + 32  [0x1b6d89384]
+    +                                   826 std::recursive_mutex::lock()  (in libc++.1.dylib) + 16  [0x1874a92d8]
+    +                                     826 _pthread_mutex_firstfit_lock_slow  (in libsystem_pthread.dylib) + 216  [0x1824f69b8]
+    +                                       826 _pthread_mutex_firstfit_lock_wait  (in libsystem_pthread.dylib) + 84  [0x1824f8f7c]
+    +                                         826 __psynch_mutexwait  (in libsystem_kernel.dylib) + 8  [0x1824b99dc]

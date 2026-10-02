@@ -1,0 +1,18 @@
+[
+  {
+    "flag": "apple-playback-timeline",
+    "exit": 1,
+    "marker": "APPLE_PLAYBACK_TIMELINE_FAILED: 3 assertions",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "ask",
+    "exit": 1,
+    "marker": "ASK_FAILED",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "status": "exact-root-mounted-fixed99-source-review-native-pending",
+  "source_owner": "root",
+  "source_file": "Sources/NextNotes/Agent/Speech/VoicePlaybackReference.swift",
+  "changed_by_reviewer": false,
+  "actual_original": "root98 voice-suspend-live owned PID72714 deadlock; root captured stack and terminated",
+  "confirmed_cycle": "main AVAudioEngine.stop graph->_Uninitialize->RealtimeMessenger; tap RealtimeMessenger->engine.outputNode graph mutex",
+  "smallest_fix": "move exact owned-engine presentation latency query to existing serial lane after epoch check; recheck epoch after query before existing feed",
+  "new_queue_store_wait": false,
+  "timing_limit": "latency read is fresh at utility feed, not atomically the callback route snapshot; original render and arrival times preserved",
+  "hashes": {
+    "original-VoicePlaybackReference.swift.txt": "5ccf67b7f4edbb52939a0e41a8920f63fed6720800b54daa8e5d838afef563fa",
+    "proposed-VoicePlaybackReference.swift.txt": "7bde6a354fc6b80784d03c4198b99b83567b4f216d2e43735f18ae9c5aa67868",
+    "producer.patch": "d14482c2933254f96db8f839798af3232f8b5206fb561633ef7dbd2a5d2b37a1",
+    "original98-deadlock-sample.txt": "42446cb7a5c02bd2f744f4263acb8ddc665b9d24f85c0af12375b7dd996440fd"
+  },
+  "source_baseline_confirmation": "reconstructed exact old query placement; hash equals retained build98 manifest",
+  "invalid_preparation": "initial offsource Source read raced root mount and produced duplicated guards; archived invalid-source-read-race-* must not be applied"
+}

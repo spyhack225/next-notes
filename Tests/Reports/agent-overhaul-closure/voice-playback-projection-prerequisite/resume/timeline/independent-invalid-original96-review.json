@@ -1,0 +1,67 @@
+{
+  "status": "invalid-original96-controls-failed-not-authoritative-red3",
+  "target_failures": 3,
+  "control_failures": 2,
+  "all_failures": [
+    "APPLE_PLAYBACK_TIMELINE_WRONG: TARGET: valid same-player POST-resume checkpoint absent",
+    "APPLE_PLAYBACK_TIMELINE_WRONG: TARGET: later positive current packet did not strictly exceed previous checkpoint",
+    "APPLE_PLAYBACK_TIMELINE_WRONG: TARGET: checkpoint lacked valid POST-resume player clock/rate",
+    "APPLE_PLAYBACK_TIMELINE_WRONG: CONTROL: every actual stop-token native callback did not join",
+    "APPLE_PLAYBACK_TIMELINE_WRONG: CONTROL: bounded fixture overflowed or retained callbacks"
+  ],
+  "raw_handled_counts": {
+    "1": {
+      "logged_handled": 1099,
+      "min_ordinal": 1,
+      "max_ordinal": 1099,
+      "missing_until_logged_max": [],
+      "duplicates": 0,
+      "phase_pairs": {
+        "(0, 0)": 234,
+        "(2, 2)": 1,
+        "(2, 4)": 1,
+        "(4, 4)": 863
+      }
+    },
+    "2": {
+      "logged_handled": 804,
+      "min_ordinal": 1,
+      "max_ordinal": 806,
+      "missing_until_logged_max": [
+        4,
+        5
+      ],
+      "duplicates": 0,
+      "phase_pairs": {
+        "(0, 0)": 801,
+        "(2, 0)": 2,
+        "(2, 2)": 1
+      }
+    }
+  },
+  "raw_handled_total": 1903,
+  "observer_source_limit": 4096,
+  "barrier_seen_source_limit": 2048,
+  "barrier_held_source_limit": 2048,
+  "source_cause": "observer returns before recording when scheduled+handled reaches4096; global seen recording above2048 flags overflow while forwarding continues",
+  "native_callback_loss_claim": false,
+  "capacity_only_common_rerun_required": true,
+  "model_clause_events_checks_must_remain_identical": true,
+  "resume_raw": [
+    "APPLE_TIMELINE_RESUME: token=1 phase=4 requestedHost=1304518578475 cursor=Optional(NextNotes.ApplePlaybackCursorObservation(frame: 472, sampleRate: 22050.0, nodeHostTime: 1304519188433, observedHostTime: 1304518623429)) checkpoint=nil"
+  ],
+  "source_pins": {
+    "Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift": "b6f9b1bc014e7cba8f355bf0bd2fe4b3547e3aa2f35487fceb46f48793b7eb87",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "f94781f9ce609b4d05042233b59886f72a56001772a317d9e55cb60e1d26d4e9"
+  },
+  "evidence_hashes": {
+    "app96-apple-playback-timeline.log": "7edae1950cefbfca190859bb5cacd39817e0e47c0f1dd87f1a1e9c9e57a927da",
+    "app96-apple-playback-timeline.stdout": "dd4ec962bafa2c592e3402cb6e9c5a10316d97d3dee0bb76ba8d5ea93ee74405",
+    "app96-checks.json": "971eabfe980972c24e2b765ea53c772a93d22ef07e9e0a7bf387edeb6b5a4dd4",
+    "build96-source-manifest.json": "2af0a57d069e83a5d5e3a18cf8a32c16d4ba950b6f5c87c0234ea01feccc45b8",
+    "app96-bundle-before.json": "6b348813cabe32fa5abbbf737eddd431c9537d3dd76c922b1d93667ef62dfa14",
+    "app96-bundle-after.json": "6b348813cabe32fa5abbbf737eddd431c9537d3dd76c922b1d93667ef62dfa14",
+    "app96-binary.json": "67ef5fe013b7b6541b82800ce8be343728cadf84dda34cd66dab582901e809d6"
+  },
+  "no_source_native_index_actions": true
+}

@@ -1,0 +1,4 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acoustic-replay --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-99-u8r31iof/acoustic-replay.log
+2026-10-02 17:13:19.780 NextNotes[91988:2103541] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+warning: discarded first playback frame
+ECHO_OK: echo residual 0.00, double-talk output 0.56

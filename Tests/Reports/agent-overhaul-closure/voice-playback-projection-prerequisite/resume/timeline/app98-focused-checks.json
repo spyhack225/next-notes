@@ -1,0 +1,106 @@
+[
+  {
+    "flag": "voice-playback-projection",
+    "exit": 0,
+    "marker": "VOICE_PLAYBACK_PROJECTION_OK: 33 checks",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-session-reducer",
+    "exit": 0,
+    "marker": "VOICE_SESSION_REDUCER_OK: 10 traces and actual capture/output producers",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-duplex-work",
+    "exit": 0,
+    "marker": "VOICE_DUPLEX_WORK_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "concurrent-voice",
+    "exit": 0,
+    "marker": "CONCURRENT_VOICE_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-work-lifecycle",
+    "exit": 0,
+    "marker": "VOICE_WORK_LIFECYCLE_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-conversation",
+    "exit": 0,
+    "marker": "VOICE_CONVERSATION_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-turns",
+    "exit": 0,
+    "marker": "VOICE_TURNS_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-turn-routing",
+    "exit": 0,
+    "marker": "VOICE_TURN_ROUTING_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-delivery",
+    "exit": 0,
+    "marker": "VOICE_DELIVERY_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "realtime",
+    "exit": 0,
+    "marker": "REALTIME_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "duplex",
+    "exit": 0,
+    "marker": "DUPLEX_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-suspend",
+    "exit": 0,
+    "marker": "VOICE_SUSPEND_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-suspend-live",
+    "exit": 241,
+    "marker": "ABSENT",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

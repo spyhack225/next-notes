@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-delivery --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-98-35vl6mep/voice-delivery.log
+VOICE_DELIVERY_OK
+VOICE_DELIVERY_OK

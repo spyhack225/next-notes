@@ -1,0 +1,17 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-search --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-99-u8r31iof/search.log
+2026-10-02 17:12:38.991 NextNotes[90930:2100416] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+SEARCH_LATENCY 1.31ms hits=1
+SEARCH_UNIFIED 0.82ms hits=12 files=4
+SEARCH_HYBRID_LATENCY 3.12ms
+SEARCH_GOLD questions=56 chunks=61 embedder=fake-hash@256 (fake: pipeline, not model quality)
+SEARCH_GOLD bm25   recall@10=0.875 MRR=0.720 (49/56)
+SEARCH_GOLD cosine recall@10=0.982 MRR=0.800 (55/56)
+SEARCH_GOLD fused  recall@10=0.982 MRR=0.766 (55/56)
+SEARCH_GOLD conversation: bm25 recall@10=1.000 MRR=0.750 (2/2) | cosine recall@10=1.000 MRR=0.625 (2/2) | fused recall@10=1.000 MRR=0.667 (2/2)
+SEARCH_GOLD lexical: bm25 recall@10=1.000 MRR=1.000 (20/20) | cosine recall@10=1.000 MRR=1.000 (20/20) | fused recall@10=1.000 MRR=1.000 (20/20)
+SEARCH_GOLD paraphrase: bm25 recall@10=0.964 MRR=0.671 (27/28) | cosine recall@10=0.964 MRR=0.742 (27/28) | fused recall@10=1.000 MRR=0.724 (28/28)
+SEARCH_GOLD vocabulary: bm25 recall@10=0.000 MRR=0.000 (0/6) | cosine recall@10=1.000 MRR=0.465 (6/6) | fused recall@10=0.833 MRR=0.213 (5/6)
+SEARCH_GOLD missed: How much holiday do new mothers and fathers get?
+SEARCH_GOLD real models: pending — no embedding model downloaded, and no gold set on a real library yet
+SEARCH_GOLD beats Phase A: pending — the fake's synonym table was written for these questions, so its margin shows the fusion works, not that a model beats BM25
+SEARCH_OK

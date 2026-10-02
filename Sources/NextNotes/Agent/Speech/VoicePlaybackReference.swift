@@ -14,9 +14,11 @@ enum VoicePlaybackReference {
             let owned = OwnedReference(buffer: copy)
             let hostTime = time.isHostTimeValid ? time.hostTime : nil
             let tapArrivalHostTime = mach_absolute_time()
-            let presentationLatency = engine.outputNode.outputPresentationLatency
             let generation = currentEpoch()
             lane.async {
+                guard generation == currentEpoch() else { return }
+                // Engine graph getters can wait for shutdown; never call them from its tap.
+                let presentationLatency = engine.outputNode.outputPresentationLatency
                 guard generation == currentEpoch() else { return }
                 AcousticEchoProcessor.shared.feedRendered(owned.buffer,
                     renderHostTime: hostTime, tapArrivalHostTime: tapArrivalHostTime,
