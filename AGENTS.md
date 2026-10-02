@@ -158,6 +158,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-task-recovery
 --selftest-task-authority
 --selftest-task-worker-attempt
+--selftest-task-harness-read
 --selftest-task-restoration
 --selftest-task-history-repair
 --selftest-receipt-persistence
@@ -427,6 +428,19 @@ pass with owner isolation21files32defaults unchanged. No new query/save/store/aw
 timer or task-state/retry change. Complete stale questions, process/session health,
 receipt/journal coverage, recovery/retry and IM-16 remain open.
 See the [primary-observation report](Tests/Reports/agent-overhaul-closure/authoritative-observation/README.md).
+
+P6-05e adds LAST exact backing-boundary metadata to the same bound worker
+(installed app51 worker629). Original50 nil-observer scaffold fails15 missing-feature
+assertions; unchanged actual fixture adds98 checks, retaining prior531. Executor's
+existing defer passes the same prepared UUID; Manager stamps entry after real SQL
+admission and return/throw before its existing completion save, even on rejection.
+Actual held temporary reads, native store checkpoints and announcement/debug
+consumers verify exact binding/receipt, failed completion/delivery, cancellation,
+successor/stale/mismatched metadata and zero-query getters. All19 flags pass:14
+related, worker, dedicated privacy40 and ACP/MCP/confirmation. No new store/query/
+save/await/timer/schema or task-state change. LAST return/nil is not complete active
+coverage, effect/health/cessation/retry proof; parent Phase6 and IM-16 remain open.
+See the [tool-boundary report](Tests/Reports/agent-overhaul-closure/tool-backing-observation/README.md).
 
 The shared stdio JSON-RPC transport now settles pending requests at stdout EOF
 (installed app49). Original48 actual ACP RED1 kept a consumed prompt pending until

@@ -61,10 +61,11 @@ enum TaskEventJournal {
     }
 
     @MainActor
-    static func toolCompleted(_ context: TaskJournalContext?, tool: String, succeeded: Bool) -> Bool {
+    static func toolCompleted(_ context: TaskJournalContext?, tool: String, succeeded: Bool,
+                              receiptID: UUID? = nil) -> Bool {
         guard let context else { return true }
         let admitted = context.record(TaskJournalEventDraft(taskID: context.taskID, kind: .toolCompleted,
-            detail: "\(tool):\(succeeded ? "returned" : "threw")", attempt: context.attempt))
+            detail: "\(tool):\(succeeded ? "returned" : "threw")", attempt: context.attempt, receiptID: receiptID))
         return context.isStillValid == nil || admitted
     }
 

@@ -1,0 +1,18 @@
+--- a/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift
++++ b/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift
+@@ -124,7 +124,8 @@
+-            try await TaskWorkerBindingSelfTest.originalCases(root: root, input: input, text: text, check: check)
+-            try await TaskReceiptSourceSelfTest.originalCases(root: root, input: input, text: text, check: check)
+-            try TaskReceiptSourceBoundarySelfTest.run(root: root, check: check)
+-            try await TaskWorkerPrimaryObservationSelfTest.originalCases(root: root, input: input, text: text, check: check)
+-            try TaskHarnessReadIsolationSelfTest.originalCases(root: root, check: check)
+-        } catch { failures.append("actual worker fixture: \(error)") }
+-        failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
++            try await TaskWorkerBindingSelfTest.originalCases(root: root, input: input, text: text, check: check)
++            try await TaskReceiptSourceSelfTest.originalCases(root: root, input: input, text: text, check: check)
++            try TaskReceiptSourceBoundarySelfTest.run(root: root, check: check)
++            try await TaskWorkerPrimaryObservationSelfTest.originalCases(root: root, input: input, text: text, check: check)
++            try await TaskWorkerToolBackingSelfTest.originalCases(root: root, input: input, text: text, check: check)
++            try TaskHarnessReadIsolationSelfTest.originalCases(root: root, check: check)
++        } catch { failures.append("actual worker fixture: \(error)") }
++        failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
