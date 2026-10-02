@@ -1,0 +1,27 @@
+[
+  {
+    "arguments": [
+      "--selftest-task-worker-attempt",
+      "--selftest-task-harness-read"
+    ],
+    "exit": 1,
+    "noDiagnosticOutputCreated": true
+  },
+  {
+    "arguments": [
+      "--selftest-task-harness-read",
+      "--selftest-task-worker-attempt"
+    ],
+    "exit": 1,
+    "noDiagnosticOutputCreated": true
+  },
+  {
+    "arguments": [
+      "--selftest-task-harness-read",
+      "--selftest-out",
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/task-harness-read-isolation/invalid-output-canary.txt"
+    ],
+    "exit": 1,
+    "noDiagnosticOutputCreated": true
+  }
+]

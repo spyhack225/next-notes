@@ -428,6 +428,21 @@ timer or task-state/retry change. Complete stale questions, process/session heal
 receipt/journal coverage, recovery/retry and IM-16 remain open.
 See the [primary-observation report](Tests/Reports/agent-overhaul-closure/authoritative-observation/README.md).
 
+The task harness reader now returns empty history before any denied JSON read or
+SQL open (installed app47 worker531). Original46 fails10 of40 actual temporary-canary
+Store/Manager checks; the unchanged fixture passes40 after the source correction.
+Admitted temporary JSON/SQL/export controls still work. The dedicated
+`--selftest-task-harness-read` entry runs synchronously before SwiftUI App.main, so
+original reproduction cannot construct owner-backed app scenes; both mixed-flag
+orders and unsafe output refuse before that startup. Default nil injection rejects
+before owner path/lazy mirror resolution. Existing mutation guards establish unchanged
+bytes, not absence of reads. All14 related flags pass; no owner payload was read/seeded
+for the original proof. Production/admitted reader remainder is unchanged; no new
+store/query/await/timer or schema. This bounded privacy repair does not authorize a
+shareable full Agent pane: model-role/library/defaults/prewarm isolation remains open,
+as do liveness/recovery/retry, IM-16 and aggregate quality gates. See the
+[task reader report](Tests/Reports/agent-overhaul-closure/task-harness-read-isolation/README.md).
+
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
 playback with scripted models and a recording backing. `VoiceSession` remains a

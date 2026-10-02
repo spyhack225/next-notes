@@ -1,0 +1,14 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-harness-read
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HARNESS_READ_WRONG: task read isolation: denied source read or exposed synthetic JSON (legacy canary)
+TASK_HARNESS_READ_WRONG: task read isolation: actual fresh Manager exposed synthetic private task (legacy canary)
+TASK_HARNESS_READ_WRONG: task read isolation: actual consumer retained synthetic private fields (legacy canary)
+TASK_HARNESS_READ_WRONG: task read isolation: denied source read or exposed synthetic JSON (corrupt safe payload)
+TASK_HARNESS_READ_WRONG: task read isolation: denied harness attempted payload decoding (corrupt safe payload)
+TASK_HARNESS_READ_WRONG: task read isolation: denied source read or exposed synthetic JSON (safe directory instead of file)
+TASK_HARNESS_READ_WRONG: task read isolation: denied harness attempted payload decoding (safe directory instead of file)
+TASK_HARNESS_READ_WRONG: task read isolation: denied source read or exposed synthetic JSON (actual tagged export canary)
+TASK_HARNESS_READ_WRONG: task read isolation: actual fresh Manager exposed synthetic private task (actual tagged export canary)
+TASK_HARNESS_READ_WRONG: task read isolation: actual consumer retained synthetic private fields (actual tagged export canary)
+TASK_HARNESS_READ_FAILED: 10 assertions across 40 cases

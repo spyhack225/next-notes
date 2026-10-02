@@ -1,0 +1,23 @@
+{
+  "kind": "in-process static reconstruction/hash review ONLY; no subprocess/git apply/compiler/native/model",
+  "producer": [
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift",
+      "hunks": 1,
+      "result": "exact in-process reconstruction"
+    }
+  ],
+  "registration": [
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+      "hunks": 1,
+      "result": "exact in-process reconstruction"
+    }
+  ],
+  "sourcePinDrift": [],
+  "trailingWhitespace": [],
+  "deniedBranchReturnBeforeDataAndSQL": true,
+  "fixtureHasNoSharedOrOwnerSnapshot": true,
+  "originalFixtureScaffold": "none; original-compatible actual consumer regression",
+  "executableVerdict": "not run; no ordinary original-app/default UI run authorized here"
+}

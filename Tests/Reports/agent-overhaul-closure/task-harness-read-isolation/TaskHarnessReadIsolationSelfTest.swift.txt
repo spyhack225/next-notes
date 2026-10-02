@@ -1,0 +1,131 @@
+import Foundation
+
+/// Original-compatible actual Store -> fresh Manager privacy regression.
+/// Every JSON payload here is synthetic and under an explicitly safe temp root.
+/// No default/shared manager, owner path, replacement I/O layer or model is used.
+@MainActor
+enum TaskHarnessReadIsolationSelfTest {
+    private enum FixtureError: Error { case unsafeRoot, invalidBinding }
+
+    static func originalCases(root: URL, check: (Bool, String) -> Void) throws {
+        let safeRoot = root.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning, root.isFileURL, safeRoot.path.hasPrefix(temporary.path + "/"),
+              !safeRoot.pathComponents.contains("Application Support") else { throw FixtureError.unsafeRoot }
+        let directory = safeRoot.appendingPathComponent("task-read-isolation-" + UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let marker = UUID().uuidString
+        let canary = AgentTask(id: "private-canary-" + marker,
+            objective: "Synthetic confidential objective " + marker, source: "selftest",
+            createdAt: Date(timeIntervalSince1970: 1_700_000_000), status: .completed,
+            progress: "Synthetic private progress", result: "Synthetic confidential result " + marker,
+            arguments: ["syntheticPrivateField": "Synthetic confidential argument " + marker])
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let canaryData = try encoder.encode([canary])
+
+        func deniedStore(_ file: URL) throws -> AgentTaskStore {
+            let resolved = file.resolvingSymlinksInPath().standardizedFileURL
+            guard file.isFileURL, resolved.path.hasPrefix(directory.path + "/"),
+                  let nonFileRoot = URL(string: "nextnotes-denied-fixture://" + UUID().uuidString + "/mirror") else {
+                throw FixtureError.invalidBinding
+            }
+            // Inspected TaskStore.init assigns fileURL only; it opens/creates NOTHING.
+            // The non-file URL cannot pass the temporary file-path eligibility gate.
+            // Never call any method which opens this mirror.
+            let mirror = TaskStore(root: nonFileRoot)
+            guard !mirror.fileURL.isFileURL,
+                  !mirror.fileURL.resolvingSymlinksInPath().path.hasPrefix(temporary.path + "/") else {
+                throw FixtureError.invalidBinding
+            }
+            let store = AgentTaskStore(fileURL: file, mirror: mirror)
+            guard store.storageURL == file, !store.allowsHarnessPersistence else {
+                throw FixtureError.invalidBinding
+            }
+            return store
+        }
+
+        func deniedCase(_ file: URL, label: String, forbidden: AgentTask) throws {
+            let store = try deniedStore(file)
+            let loaded = try? store.load()
+            check(loaded != nil && loaded?.isEmpty == true,
+                "task read isolation: denied source read or exposed synthetic JSON (" + label + ")")
+            let manager = AgentTaskManager(store: try deniedStore(file))
+            check(manager.tasks.isEmpty && manager.task(id: forbidden.id) == nil,
+                "task read isolation: actual fresh Manager exposed synthetic private task (" + label + ")")
+            check(!manager.tasks.contains { $0.objective == forbidden.objective || $0.result == forbidden.result
+                || $0.arguments == forbidden.arguments },
+                "task read isolation: actual consumer retained synthetic private fields (" + label + ")")
+            check(manager.historyReadFailure == nil,
+                "task read isolation: denied harness attempted payload decoding (" + label + ")")
+            check(!store.canRepairPreparedHistory,
+                "task read isolation: denied harness supplied repair eligibility (" + label + ")")
+            check(store.save([forbidden]) == .loadFailed,
+                "task read isolation: denied harness admitted its existing writer (" + label + ")")
+        }
+
+        let canaryFile = directory.appendingPathComponent("synthetic-private-tasks.json")
+        try canaryData.write(to: canaryFile, options: .atomic)
+        try deniedCase(canaryFile, label: "legacy canary", forbidden: canary)
+        check(try Data(contentsOf: canaryFile) == canaryData,
+            "task read isolation: denied reader/writer changed the original safe canary bytes")
+
+        let corruptFile = directory.appendingPathComponent("corrupt.json")
+        let corruptData = Data("{synthetic-invalid-history".utf8)
+        try corruptData.write(to: corruptFile, options: .atomic)
+        try deniedCase(corruptFile, label: "corrupt safe payload", forbidden: canary)
+        check(try Data(contentsOf: corruptFile) == corruptData,
+            "task read isolation: denied reader changed the original malformed safe bytes")
+
+        let missingFile = directory.appendingPathComponent("never-created.json")
+        try deniedCase(missingFile, label: "missing safe payload", forbidden: canary)
+        check(!FileManager.default.fileExists(atPath: missingFile.path),
+            "task read isolation: denied harness created a compatibility file")
+
+        let directoryFile = directory.appendingPathComponent("directory-not-json", isDirectory: true)
+        try FileManager.default.createDirectory(at: directoryFile, withIntermediateDirectories: false)
+        try deniedCase(directoryFile, label: "safe directory instead of file", forbidden: canary)
+        check(try FileManager.default.contentsOfDirectory(atPath: directoryFile.path).isEmpty,
+            "task read isolation: denied harness wrote into a non-JSON safe path")
+
+        // Positive control uses the actual admitted import/SQL/export writer.
+        // Terminal canaries do not start workers or generate restart transitions.
+        let admittedRoot = directory.appendingPathComponent("admitted", isDirectory: true)
+        try FileManager.default.createDirectory(at: admittedRoot, withIntermediateDirectories: false)
+        let admittedFile = admittedRoot.appendingPathComponent("agent-tasks.json")
+        var control = canary
+        control.id = "admitted-control-" + marker
+        control.objective = "Synthetic permitted temporary objective " + marker
+        control.result = "Synthetic permitted temporary result " + marker
+        let controlData = try encoder.encode([control])
+        try controlData.write(to: admittedFile, options: .atomic)
+        let sql = TaskStore(root: admittedRoot)
+        defer { sql.close() }
+        let admitted = AgentTaskStore(fileURL: admittedFile, mirror: sql)
+        guard admitted.allowsHarnessPersistence else { throw FixtureError.invalidBinding }
+        check(try admitted.load() == [control],
+            "task read isolation: admitted safe JSON import was hidden")
+        check(try sql.load() == [control] && sql.probeAuthority()?.authority != nil,
+            "task read isolation: admitted same-ledger authority was not preserved")
+        control.progress = "Synthetic updated permitted progress"
+        check(admitted.save([control]) == .saved,
+            "task read isolation: admitted SQL/export write was blocked")
+        let fresh = AgentTaskManager(store: AgentTaskStore(fileURL: admittedFile, mirror: sql))
+        check(fresh.tasks == [control] && fresh.task(id: control.id)?.result == control.result
+            && fresh.historyReadFailure == nil,
+            "task read isolation: actual admitted fresh Manager lost permitted temporary history")
+        let actualExport = try Data(contentsOf: admittedFile)
+        let exportObject = try JSONSerialization.jsonObject(with: actualExport) as? [String: Any]
+        check((exportObject?["formatVersion"] as? Int) == 1 && exportObject?["tasks"] != nil,
+            "task read isolation: positive control was not the actual versioned export")
+
+        // Reuse the real producer's tagged export, not a duplicated envelope schema.
+        let deniedExport = directory.appendingPathComponent("denied-tagged-export.json")
+        try actualExport.write(to: deniedExport, options: .atomic)
+        try deniedCase(deniedExport, label: "actual tagged export canary", forbidden: control)
+        check(try Data(contentsOf: deniedExport) == actualExport && sql.load() == [control],
+            "task read isolation: denied tagged reader altered the allowed source or copy")
+    }
+}

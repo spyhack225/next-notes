@@ -1,0 +1,8 @@
+{
+  "README.md": "07ed104a65bd43752b620fd79fe671c902b3beb166217964da050f36823d8060",
+  "TaskHarnessReadIsolationSelfTest.swift.txt": "6175100e49db2d1497e83b0b30b4dffc95e2a2f575681c889d5ee4e58282894b",
+  "denied-harness-producer.patch": "0b7cf224aae34c40894be08967d533bd471db7bec47b0e9e0f7537a4b8f45af6",
+  "fixture-registration.patch": "e6b12ec4f399fe6be2c6dbe993ec374b1e88788e65d1b778d259354a4b7773d2",
+  "source-inputs.json": "fff691ceb26520a005f7c5e3962d822309cd211e131be0ca1300773c0e244a95",
+  "static-validation.json": "b9f88aeca22563d17d73290bc98606e7b0ae083a7bf14bb3d1dc1615c7b0837d"
+}

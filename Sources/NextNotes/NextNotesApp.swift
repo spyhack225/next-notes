@@ -7,6 +7,18 @@ import os
 import SwiftUI
 
 @main
+@MainActor
+enum NextNotesEntryPoint {
+    static func main() {
+        // The original reader regression must run before any owner-backed UI is built.
+        // Every other launch retains SwiftUI App's existing entry and scene lifecycle.
+        if CommandLine.arguments.dropFirst().contains("--selftest-task-harness-read") {
+            exit(TaskHarnessReadIsolationSelfTest.runStandalone())
+        }
+        NextNotesApp.main()
+    }
+}
+
 struct NextNotesApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
