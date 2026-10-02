@@ -369,6 +369,7 @@ final class ActionReceiptStore {
     /// An unreadable source is evidence, never an empty replacement store.
     private var loadedSafely: Bool
     private var sourceFingerprint: SourceFingerprint?
+    private var sourceObservationValue: ActionReceiptSourceObservation?
     static var defaultFileURL: URL {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("action-receipts.json")
     }
@@ -380,11 +381,14 @@ final class ActionReceiptStore {
         if SelfTest.isRunning {
             receipts = []
             loadedSafely = true
+            sourceObservationValue = ActionReceiptSourceObservation(loadQuality: .harnessMemoryOnly,
+                loadedRowCount: 0, unreadableRowCount: 0)
         } else {
             let loaded = Self.load(from: fileURL)
             receipts = loaded.receipts
             loadedSafely = loaded.writable
             sourceFingerprint = loaded.fingerprint
+            sourceObservationValue = loaded.observation
         }
     }
 
@@ -396,12 +400,15 @@ final class ActionReceiptStore {
         guard !SelfTest.isRunning || Self.permitsHarnessFile(fileURL) else {
             receipts = []
             loadedSafely = false
+            sourceObservationValue = ActionReceiptSourceObservation(loadQuality: .harnessRefused,
+                loadedRowCount: 0, unreadableRowCount: nil)
             return
         }
         let loaded = Self.load(from: fileURL)
         receipts = loaded.receipts
         loadedSafely = loaded.writable
         sourceFingerprint = loaded.fingerprint
+        sourceObservationValue = loaded.observation
     }
 
     /// How many receipts this store holds. For a self-test that has just written a file.
@@ -427,6 +434,10 @@ final class ActionReceiptStore {
         return true
     }
 
+    /// Cached load quality and LAST existing write admission comparison. No I/O.
+    /// Neither this snapshot nor an absent receipt proves current/full effect history.
+    var sourceObservation: ActionReceiptSourceObservation? { sourceObservationValue }
+
     func receipt(for id: UUID) -> ActionReceipt? { receipts.first { $0.actionID == id } }
 
     func receipt(forIntent id: UUID) -> ActionReceipt? { receipts.first { $0.intentID == id } }
@@ -447,8 +458,11 @@ final class ActionReceiptStore {
         guard let data = try? encoder.encode(receipts) else { return false }
         // The decoded snapshot authorizes only its unchanged source. Never overwrite
         // a replaced, deleted or edited history using the stale in-memory array.
-        guard let sourceFingerprint,
-              Self.fingerprint(of: fileURL) == sourceFingerprint else { return false }
+        guard let sourceFingerprint else { return false }
+        let observed = Self.fingerprint(of: fileURL)
+        sourceObservationValue?.lastWriteSourceCheck = observed == nil ? .unavailable
+            : (observed == sourceFingerprint ? .matched : .mismatch)
+        guard observed == sourceFingerprint else { return false }
         do {
             try data.write(to: fileURL, options: .atomic)
             guard let written = Self.fingerprint(of: fileURL),
@@ -476,16 +490,21 @@ final class ActionReceiptStore {
     ///
     /// Readable rows remain available, but an undecodable row or source blocks writes
     /// so the next record cannot erase the retained evidence. Only a missing file is fresh.
-    private static func load(from fileURL: URL) -> (receipts: [ActionReceipt], writable: Bool, fingerprint: SourceFingerprint?) {
-        guard let before = fingerprint(of: fileURL) else { return ([], false, nil) }
-        if before == .missing { return ([], true, before) }
+    private static func load(from fileURL: URL) -> (receipts: [ActionReceipt], writable: Bool, fingerprint: SourceFingerprint?, observation: ActionReceiptSourceObservation) {
+        guard let before = fingerprint(of: fileURL) else { return ([], false, nil, ActionReceiptSourceObservation(loadQuality: .unreadable,
+            loadedRowCount: 0, unreadableRowCount: nil)) }
+        if before == .missing { return ([], true, before, ActionReceiptSourceObservation(loadQuality: .missing,
+            loadedRowCount: 0, unreadableRowCount: 0)) }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let data: Data
         do { data = try Data(contentsOf: fileURL) }
-        catch { return ([], false, nil) }
-        guard fingerprint(of: fileURL) == before else { return ([], false, nil) }
-        guard let rows = try? decoder.decode([AnyReceiptRow].self, from: data) else { return ([], false, nil) }
+        catch { return ([], false, nil, ActionReceiptSourceObservation(loadQuality: .unreadable,
+            loadedRowCount: 0, unreadableRowCount: nil)) }
+        guard fingerprint(of: fileURL) == before else { return ([], false, nil, ActionReceiptSourceObservation(loadQuality: .unreadable,
+            loadedRowCount: 0, unreadableRowCount: nil)) }
+        guard let rows = try? decoder.decode([AnyReceiptRow].self, from: data) else { return ([], false, nil, ActionReceiptSourceObservation(loadQuality: .unreadable,
+            loadedRowCount: 0, unreadableRowCount: nil)) }
         var kept: [ActionReceipt] = []
         var unreadable = 0
         for row in rows {
@@ -503,7 +522,9 @@ final class ActionReceiptStore {
                 (\(unreadable) unreadable by this build, left on disk)
                 """)
         }
-        return (kept, unreadable == 0, before)
+        return (kept, unreadable == 0, before, ActionReceiptSourceObservation(
+            loadQuality: unreadable == 0 ? .readable : .partial,
+            loadedRowCount: kept.count, unreadableRowCount: unreadable))
     }
 
     /// A metadata check, not a cross-process compare-and-swap. Concurrent replacement
@@ -614,7 +635,14 @@ final class ActionOrchestrator {
             }
             receipt.status = stage
             receipt.events.append(ActionReceiptEvent(stage: stage, detail: detail))
-            return receiptStore.record(receipt)
+            let admitted = receiptStore.record(receipt)
+            if !admitted, let observed = receiptStore.sourceObservation {
+                if SelfTest.isRunning {
+                    SelfTest.diagnostic("RECEIPT_SOURCE_DIAGNOSTIC: load=\(observed.loadQuality.rawValue) writeCheck=\(observed.lastWriteSourceCheck.rawValue)")
+                }
+                Log.agent.debug("Receipt save refused: load \(observed.loadQuality.rawValue, privacy: .public), last source check \(observed.lastWriteSourceCheck.rawValue, privacy: .public)")
+            }
+            return admitted
         }
         add(.judged, "\(intent.source.rawValue) intent for \(tool.id)")
 

@@ -1,0 +1,30 @@
+{
+  "originalFeatureFailures": 13,
+  "fixedWorkerChecks": 794,
+  "newFixtureChecks": 30,
+  "fixedFocusedFlags": 20,
+  "installedSHA256": "0b2a90810288f36a5ac5469d5fb3488ba3c437c4301429e91afb6adf8b1011ca",
+  "originalConsumerDiagnosticLines": 0,
+  "fixedConsumerDiagnosticLines": [
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable",
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable",
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable",
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable",
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable",
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable",
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=mismatch",
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable",
+    "RECEIPT_SOURCE_DIAGNOSTIC: load=readable writeCheck=mismatch"
+  ],
+  "originalQualityTraces": [
+    "TASK_RECEIPT_QUALITY_TRACE: mode=accepted effects=1 terminal=completed load=unobserved writeCheck=unobserved freshLoad=unobserved",
+    "TASK_RECEIPT_QUALITY_TRACE: mode=source-changed effects=1 terminal=failed load=unobserved writeCheck=unobserved freshLoad=unobserved"
+  ],
+  "fixedQualityTraces": [
+    "TASK_RECEIPT_QUALITY_TRACE: mode=accepted effects=1 terminal=completed load=readable writeCheck=matched freshLoad=readable",
+    "TASK_RECEIPT_QUALITY_TRACE: mode=source-changed effects=1 terminal=failed load=readable writeCheck=mismatch freshLoad=partial"
+  ],
+  "sourceManifestCount": 1029,
+  "bundleInvariant": true,
+  "cleanCheckoutProof": false
+}

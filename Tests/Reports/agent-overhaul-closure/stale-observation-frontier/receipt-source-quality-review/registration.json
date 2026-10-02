@@ -1,0 +1,17 @@
+{
+  "file": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+  "anchor": "            try await TaskACPReceiptCompletionSelfTest.originalCases(root: root, check: check)",
+  "append": "            try await TaskReceiptQualitySelfTest.originalCases(root: root, input: input, text: text, check: check)",
+  "count": 30,
+  "breakdown": {
+    "accepted": 13,
+    "sourceChanged": 16,
+    "ownerIsolation": 1
+  },
+  "requires": [
+    "Common ActionReceiptSourceObservation types for original and fixed",
+    "Original ActionRuntime nil getter scaffold only; existing writer unchanged",
+    "Same fixture frozen original/fixed",
+    "No previous case/predicate/input change"
+  ]
+}

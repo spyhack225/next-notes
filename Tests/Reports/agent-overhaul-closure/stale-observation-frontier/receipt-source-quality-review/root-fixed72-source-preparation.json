@@ -1,0 +1,9 @@
+{
+  "taskID": "P6-05h",
+  "childFixedSHA256": "4d42340bd0fdcff84306f7809cebefcaa404b85915d3b83fe44c0a2488e8dd86",
+  "rootFixedSHA256": "6c240a7726432e858fcdb085abcd40285f65747674f3fc6b2f8d153b0e277acb",
+  "diagnosticAmendment": "Existing SelfTest.diagnostic in the same actual failed-record branch; only cached enum metadata",
+  "fixtureSHA256": "8695a14cca885b587c33f02610673d159070dc2e0e85d6d5649e724f1fce67e4",
+  "sourceManifestCount": 1029,
+  "onlyOriginalFixedSourceDifference": "Sources/NextNotes/Agent/ActionRuntime.swift"
+}
