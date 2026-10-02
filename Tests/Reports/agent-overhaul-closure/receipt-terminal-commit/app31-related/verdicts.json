@@ -1,0 +1,115 @@
+[
+  {
+    "flag": "task-durability",
+    "exit": 0,
+    "seconds": 0.735,
+    "markers": [
+      "TASK_DURABILITY_OK: 37 cases"
+    ]
+  },
+  {
+    "flag": "task-recovery",
+    "exit": 0,
+    "seconds": 0.434,
+    "markers": [
+      "TASK_RECOVERY_OK: 56 cases"
+    ]
+  },
+  {
+    "flag": "task-authority",
+    "exit": 0,
+    "seconds": 0.657,
+    "markers": [
+      "TASK_AUTHORITY_OK: 58 cases"
+    ]
+  },
+  {
+    "flag": "task-restoration",
+    "exit": 0,
+    "seconds": 0.657,
+    "markers": [
+      "TASK_RESTORATION_OK: 82 cases"
+    ]
+  },
+  {
+    "flag": "task-history-repair",
+    "exit": 0,
+    "seconds": 0.334,
+    "markers": [
+      "TASK_HISTORY_REPAIR_OK: 58 cases"
+    ]
+  },
+  {
+    "flag": "receipt-persistence",
+    "exit": 0,
+    "seconds": 0.252,
+    "markers": [
+      "RECEIPT_RUNTIME_OK: 5 cases"
+    ]
+  },
+  {
+    "flag": "tool-review",
+    "exit": 0,
+    "seconds": 0.338,
+    "markers": [
+      "TOOL_REVIEW_OK"
+    ]
+  },
+  {
+    "flag": "toolloop-production",
+    "exit": 0,
+    "seconds": 34.168,
+    "markers": [
+      "TOOLLOOP_PRODUCTION_OK"
+    ]
+  },
+  {
+    "flag": "routine-authority",
+    "exit": 0,
+    "seconds": 1.375,
+    "markers": [
+      "ROUTINE_AUTHORITY_OK"
+    ]
+  },
+  {
+    "flag": "schedule",
+    "exit": 0,
+    "seconds": 0.452,
+    "markers": [
+      "SCHEDULE_OK"
+    ]
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "seconds": 0.88,
+    "markers": [
+      "USAGE_LOG_OK: 26 cases"
+    ]
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "seconds": 35.212,
+    "markers": [
+      "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_OK"
+    ]
+  },
+  {
+    "flag": "toolloop-live-grader",
+    "exit": 0,
+    "seconds": 0.433,
+    "markers": [
+      "TOOLLOOP_LIVE_GRADER_OK"
+    ]
+  },
+  {
+    "flag": "voice-scheduling",
+    "exit": 0,
+    "seconds": 2.749,
+    "markers": [
+      "VOICE_SCHEDULING_OK"
+    ]
+  }
+]

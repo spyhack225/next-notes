@@ -1,0 +1,5 @@
+{
+  "Sources/NextNotes/Agent/ActionRuntime.swift": "8fe345331214816e2ea364439bae70e1b7c939d2ab2faa54e181cae5be3cc6cf",
+  "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift": "3b238ea4f65e18e37e6aecfb807c0bf10e4ed3a65765da8c7ab4d246de21d025",
+  "Sources/NextNotes/Agent/Tasks/Durable/TaskReceiptCompletionSelfTest.swift": "9aa0839309a63352c9ca40498b58ba197b6cfc4af44efd3ffe085212e2e8988e"
+}

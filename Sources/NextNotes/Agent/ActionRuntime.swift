@@ -714,7 +714,13 @@ final class ActionOrchestrator {
             if let link = result.link?.absoluteString { receipt.artifacts.append(link) }
             receipt.verification = verification
             receipt.completedAt = Date()
-            add(.completed, receipt.verification ?? "Verified")
+            guard add(.completed, receipt.verification ?? "Verified") else {
+                // The backing already ran. Preserve the store's committed .fired
+                // evidence, and prevent the catch below from labelling it .failed.
+                receipt.status = .couldNotVerify
+                throw AgentError.backendUnavailable(
+                    "The action ran, but its result could not be saved. Check it before trying again.")
+            }
             return result
         } catch let error as AgentError {
             switch error {

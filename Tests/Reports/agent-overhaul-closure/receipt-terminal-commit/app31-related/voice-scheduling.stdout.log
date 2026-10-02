@@ -1,0 +1,2 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-scheduling --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/receipt-terminal-commit/app31-related/voice-scheduling.log
+VOICE_SCHEDULING_OK

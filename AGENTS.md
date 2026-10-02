@@ -361,6 +361,16 @@ automatic retry, remote/voice/scheduled/ACP authority or IM-16 host is establish
 Parent Phase6 contracts and the historical quick3/10 gate remain open. See the
 [receipt-attempt report](Tests/Reports/agent-overhaul-closure/receipt-attempt-join/README.md).
 
+P6-06d adds 13 actual terminal-receipt cases (installed app31 worker169).
+Original app30 failed three assertions: after the real temporary read, a rejected
+completed-receipt write still produced task success and delivered its result.
+Orchestrator now checks that existing terminal commit and reports that the action
+ran but its result could not be saved. Committed fired bytes/state and the exact
+task link stay intact; no extra save or automatic repeat is added. Identical original
+cases and all 14 related flags pass. This proves the isolated read/persistence flow,
+not crash durability, consequential-write reconciliation, recovery or retry.
+See the [terminal-commit report](Tests/Reports/agent-overhaul-closure/receipt-terminal-commit/README.md).
+
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
 playback with scripted models and a recording backing. `VoiceSession` remains a
