@@ -1,0 +1,72 @@
+[
+  {
+    "run": 1,
+    "exit": 0,
+    "markers": [
+      "ACP_OK: initialize, session, subscribe and permission relay hold",
+      "ACP_OK: initialize, session, subscribe and permission relay hold"
+    ],
+    "originChecks": [
+      "68"
+    ],
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameInstalledBundle": true
+  },
+  {
+    "run": 2,
+    "exit": 0,
+    "markers": [
+      "ACP_OK: initialize, session, subscribe and permission relay hold",
+      "ACP_OK: initialize, session, subscribe and permission relay hold"
+    ],
+    "originChecks": [
+      "68"
+    ],
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameInstalledBundle": true
+  },
+  {
+    "run": 3,
+    "exit": 0,
+    "markers": [
+      "ACP_OK: initialize, session, subscribe and permission relay hold",
+      "ACP_OK: initialize, session, subscribe and permission relay hold"
+    ],
+    "originChecks": [
+      "68"
+    ],
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameInstalledBundle": true
+  },
+  {
+    "run": 4,
+    "exit": 0,
+    "markers": [
+      "ACP_OK: initialize, session, subscribe and permission relay hold",
+      "ACP_OK: initialize, session, subscribe and permission relay hold"
+    ],
+    "originChecks": [
+      "68"
+    ],
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameInstalledBundle": true
+  },
+  {
+    "run": 5,
+    "exit": 0,
+    "markers": [
+      "ACP_OK: initialize, session, subscribe and permission relay hold",
+      "ACP_OK: initialize, session, subscribe and permission relay hold"
+    ],
+    "originChecks": [
+      "68"
+    ],
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameInstalledBundle": true
+  }
+]

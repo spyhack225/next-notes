@@ -453,6 +453,20 @@ EOF means transport loss, not process death, health, effect outcome or retry aut
 ACP durable attempt binding and IM-16 remain open. See the
 [protocol evidence](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/protocol-verification.md).
 
+ACP now checks the exact established session ID before accumulating reply text,
+publishing activity or relaying a permission (installed app53). Actual original52
+fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five
+additional serial ACP runs, preserving immediate-new and outside/after-prompt updates.
+MCP, ACP confirmation, worker629, task reader40, production tool loop and owner
+isolation pass with unchanged Sources/binary/bundle. Wrong/missing/blank/nonstring
+IDs never reach the permission gate; matched fixture requests are declined through
+that actual gate. No prompt-active filter, sleep, queue, retry or new store is added.
+Repeated scheduling controls are bounded observations, not proof of every actor
+schedule. The malformed external sender remains upstream; nested permission outcome
+conformance, exact durable ACP attempt/client binding, post-await validity, recovery
+and IM-16 remain open. See the
+[session origin evidence](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-invocation-review/origin-admission/verification.md).
+
 The task harness reader now returns empty history before any denied JSON read or
 SQL open (installed app47 worker531). Original46 fails10 of40 actual temporary-canary
 Store/Manager checks; the unchanged fixture passes40 after the source correction.

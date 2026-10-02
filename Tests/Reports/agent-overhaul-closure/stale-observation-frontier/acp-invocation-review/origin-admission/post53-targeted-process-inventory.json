@@ -1,0 +1,4 @@
+{
+  "recognizedOwnedProcesses": [],
+  "scope": "Post-all-runs names of this owned fixture/app invocation only; not global process liveness."
+}

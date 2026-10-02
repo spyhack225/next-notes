@@ -8297,6 +8297,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 try await ACPStdioTerminationSelfTest.originalCases(root: terminalRoot) { condition, name in
                     check(name, condition)
                 }
+                var originChecks = 0
+                try await ACPSessionOriginSelfTest.originalCases(root: terminalRoot) { condition, name in
+                    originChecks += 1
+                    check(name, condition)
+                }
+                print("ACP_ORIGIN_CHECKS: \(originChecks)")
                 let script = try AgentStdioFixtures.writeACP()
                 let session = ACPSession()
                 let flags = ACPSelfTestFlags()

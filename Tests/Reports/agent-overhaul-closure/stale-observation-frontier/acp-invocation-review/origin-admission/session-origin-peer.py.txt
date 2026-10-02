@@ -1,0 +1,65 @@
+import json, pathlib, sys
+mode, acknowledgement = sys.argv[1:]
+session = 'fixture-session-identity'
+valid = mode in ('valid', 'immediate-new')
+waiting = None
+cancellations = 0
+def send(value):
+    sys.stdout.write(json.dumps(value) + '\n')
+    sys.stdout.flush()
+def scope(params):
+    if mode != 'missing':
+        params['sessionId'] = session if valid else {
+            'wrong':'fixture-other-session', 'blank':'', 'nonstring':42}[mode]
+    return params
+def update(title, matched=False):
+    params = {'update':{'sessionUpdate':'tool_call_update',
+        'toolCallId':'fixture-origin-tool', 'title':title, 'status':'completed'}}
+    if matched:
+        params['sessionId'] = session
+    else:
+        params = scope(params)
+    return {'jsonrpc':'2.0','method':'session/update','params':params}
+def chunk(text, matched=False):
+    params = {'update':{'sessionUpdate':'agent_message_chunk',
+        'content':{'type':'text','text':text}}}
+    if matched:
+        params['sessionId'] = session
+    else:
+        params = scope(params)
+    send({'jsonrpc':'2.0','method':'session/update','params':params})
+for line in sys.stdin:
+    message = json.loads(line)
+    mid, method = message.get('id'), message.get('method')
+    if method == 'initialize':
+        send({'jsonrpc':'2.0','id':mid,'result':{'protocolVersion':1,'agentCapabilities':{}}})
+    elif method == 'session/new':
+        response = {'jsonrpc':'2.0','id':mid,'result':{'sessionId':session}}
+        if mode == 'immediate-new':
+            # One OS write: legitimate update directly follows new result.
+            sys.stdout.write(json.dumps(response) + '\n' +
+                json.dumps(update('Valid immediate new', matched=True)) + '\n')
+            sys.stdout.flush()
+        else:
+            send(response)
+    elif method == 'session/cancel':
+        assert message['params']['sessionId'] == session
+        cancellations += 1
+        phase = 'outside prompt' if cancellations == 1 else 'after prompt'
+        send(update(('Valid ' if valid else 'Wrong ') + phase))
+        send(update('Valid ' + phase, matched=True))
+        send({'jsonrpc':'2.0','id':mid,'result':{}})
+    elif method == 'session/prompt':
+        assert message['params']['sessionId'] == session
+        waiting = mid
+        send(update('Valid fixture activity' if valid else 'Wrong fixture activity'))
+        chunk('Valid prefix. ' if valid else 'Foreign reply marker. ')
+        send({'jsonrpc':'2.0','id':900,'method':'session/request_permission','params':scope({
+            'toolCall':{'toolCallId':'fixture-origin-tool','title':'Owned fixture permission','kind':'other'},
+            'options':[{'optionId':'allow-once','name':'Allow once','kind':'allow_once'},
+                {'optionId':'reject-once','name':'Reject','kind':'reject_once'}]})})
+    elif method is None and mid == 900:
+        pathlib.Path(acknowledgement).write_text(json.dumps(message.get('result', {}), sort_keys=True))
+        chunk('Valid answer.', matched=True)
+        send({'jsonrpc':'2.0','id':waiting,'result':{'stopReason':'end_turn'}})
+        waiting = None

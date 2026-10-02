@@ -1,0 +1,7 @@
+{
+  "onlyChangedProducer": [
+    "Sources/NextNotes/Agent/Backend/ACPSession.swift"
+  ],
+  "unchangedFixtureSHA256": "18b7069f924db55278217a25e9c4fbd86506e4dd402a6db345c825968b0a533d",
+  "sameRegistration": true
+}
