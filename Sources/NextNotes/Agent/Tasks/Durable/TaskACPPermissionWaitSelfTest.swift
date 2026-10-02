@@ -166,6 +166,10 @@ enum TaskACPPermissionWaitSelfTest {
                 && rowA?.durability?.receiptIDs == [firedA.actionID.uuidString]
                 && rowB?.durability?.receiptIDs == [firedB.actionID.uuidString],
                 "Permission wait: actual startup receipts and exact primary joins were replaced")
+            await TaskHeartbeatIntegrationSelfTest.sample(manager: a.manager, binding: bindingA,
+                expectedPrimary: .accepted, expectedWait: false, expectedAge: "ageCandidate", check: check)
+            await TaskHeartbeatIntegrationSelfTest.sample(manager: b.manager, binding: bindingB,
+                expectedPrimary: .accepted, expectedWait: false, expectedAge: "ageCandidate", check: check)
             try release(a.root.appendingPathComponent("release-permission.json"))
             guard await reached({ gate.pending?.taskID == taskA.id && gate.queuedCount == 0 }) else { throw FixtureError.timeout }
             guard let visibleA = gate.pending else { throw FixtureError.invalidPeer }
@@ -221,6 +225,10 @@ enum TaskACPPermissionWaitSelfTest {
             let beforeExportB = try Data(contentsOf: b.export)
             let beforeReceiptA = try Data(contentsOf: a.receiptFile)
             let beforeReceiptB = try Data(contentsOf: b.receiptFile)
+            await TaskHeartbeatIntegrationSelfTest.sample(manager: a.manager, binding: bindingA,
+                expectedPrimary: .accepted, expectedWait: true, expectedAge: "waitingOnPerson", check: check)
+            await TaskHeartbeatIntegrationSelfTest.sample(manager: b.manager, binding: bindingB,
+                expectedPrimary: .accepted, expectedWait: true, expectedAge: "waitingOnPerson", check: check)
             var repeatedWaiting = true
             for _ in 0..<24 {
                 let sampleA = a.manager.workerPermissionWait(taskID: taskA.id)

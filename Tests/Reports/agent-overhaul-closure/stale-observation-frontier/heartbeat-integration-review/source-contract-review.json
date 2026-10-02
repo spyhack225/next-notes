@@ -1,0 +1,78 @@
+{
+  "reviewer": "/root/agent_closure_audit",
+  "status": "Source/proposal review; native comparison pending",
+  "scope": "Coherent bounded P6-05 nonmutating diagnostic through existing Manager; no monitor/recovery ownership switch",
+  "seam": {
+    "capture": "Exact current workerBinding and same optional retained Session",
+    "actorHop": "Only explicit off-path Session.currentRuntimeObservation sample; recheck exact binding+Session identity afterwards",
+    "freshPrimary": "Direct existing AgentTaskStore.workerPrimaryObservation(expected running/task/attempt/app owner) AFTER actor await, never LAST getter or Bool validity/cache",
+    "sameSegment": "Current Gate approval projection, current same-store receipt fingerprint and LAST backing read synchronously on MainActor after binding recheck",
+    "release": "Released/replaced handle returns nil; no old sample stamped into successor",
+    "age": "Accepted fresh primary only; mismatch/unavailable nil age, current wait conservatively excludes agewindow",
+    "fourFacts": "Process observed yes/no from same actualProcess; backend session and tool coverage unknown always; retained receipt positive only matching current metadata and exactbound rows, empty/unavailable/changed unknown",
+    "log": "Only enum labels; no result/argument/path/private content",
+    "cost": "Explicit actorhop+existing authoritative SQL/file probe+current lstat fingerprint/cached-row traversal; existing tasklookup+Gatequeue traversal; no foreground integration or constanttime/largehistory latency claim"
+  },
+  "confirmedRisks": [
+    "Existing primary accepted predicate checks state/attempt/owner, not immutable canonical start; exact in-memory binding start is separate",
+    "OS process/transport/receipt metadata and SQL are sampled sequentially, not atomic lease or cross-file CAS",
+    "Current source fingerprint match is metadata match, not full content/hash completeness; retained readable positive metadata remains historical content tied to that sample",
+    "LAST receipt-bound backing is not complete active set; outgoing pending map does not include incoming nested handlers/effects",
+    "Gate taskID approval match is conservative, not exact attempt/start or every human wait",
+    "No existing normal monitor calls snapshot; explicit diagnostic and production method fixture only until separately integrated"
+  ],
+  "requiredActualCases": [
+    {
+      "case": "Live silent exact typed ACP",
+      "proof": "Actual existing Manager→Backend→Session/owned child with prepared/fired receipt and primary join; fresh accepted+same child pending1/open+unknown session/tools+retainedpositive receipt"
+    },
+    {
+      "case": "Held primary while child live",
+      "proof": "Fresh actual Manager commits recovering; old uncancelled binding/process persists; snapshot freshmismatch/ageunknown retains separate currentprocess and receipt facts"
+    },
+    {
+      "case": "Release and replacement exclusion",
+      "proof": "Actual backendrelease→nil; unchanged captured old context cannot revive. Binding+Session posthop replacement source-reviewed; independent adversarial actorhop mutation test remains unproven"
+    },
+    {
+      "case": "Forty-day visible and queued approval",
+      "proof": "Existing real A/B peers and Gate wait, admitted originalprogress timestamp; same snapshot waitingOnPerson; read causes no SQL/journal/export/receipt/card/review/grant changes"
+    },
+    {
+      "case": "Current changed receipt source",
+      "proof": "Same actual injected receipt store after historical matched/fired source, own temporary bytes changed externally before terminal; currentchanged=>no retainedcurrent positive; runtime writer refusal truthful; no retry/stateful diagnostic"
+    },
+    {
+      "case": "Unavailable authoritative source",
+      "proof": "Failfast existing primary probe must return unavailable, snapshot age nil never accept LAST; source failure/replacement temporaryfixture if bounded existing seam allows"
+    },
+    {
+      "case": "Aged nonwaiting actual worker",
+      "proof": "Suggested same existing A/B40day rows BEFORE nestedrequest release, expected ageCandidate, no new process/store/hook"
+    },
+    {
+      "case": "Repeated diagnostic nonmutation",
+      "proof": "Compare exact actual temporary SQL/journal/export/receipt bytes/Gate/grants before/after current probe, while peer held independently"
+    }
+  ],
+  "proposalReview": {
+    "managerProposedSHA256": "44c84fdc4a14ab4fdc50e50729e12d90f9d844c6e5bc29a2b07e5db40c39a2d1",
+    "snapshotTypePath": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerHeartbeatObservation.swift",
+    "blockingIssue": false,
+    "smallPrePinStrengthenings": [
+      "Same existing40day A/B BEFORE request sample ageCandidate actualconsumer (+12helper checks)",
+      "Same existing receipt assertion pin returned UUIDstrings exactly to fresh primary.durability.receiptIDs; no newcheck needed"
+    ]
+  },
+  "limits": [
+    "No model-token/ACP-event heartbeat or quarter-window periodic sampling added",
+    "No stale verdict/repair/state/retry/reattach/tool effect/IM16 hosting",
+    "Parent P6-05/P6-06 and unchanged aggregate quick/full/owner/privacy/permission/latency gates remain open"
+  ],
+  "actions": {
+    "sourceWrites": false,
+    "nativeBuildModel": false,
+    "indexOrStaging": false,
+    "reportOnlyWrite": true
+  }
+}

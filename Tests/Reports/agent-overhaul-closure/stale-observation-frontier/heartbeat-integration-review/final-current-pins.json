@@ -1,0 +1,14 @@
+{
+  "sourceEntries": 1040,
+  "sourceDrift": [],
+  "entireBundleUnchanged": true,
+  "binary": "3aa351e0f7915e697304f2bfefbec924b704f54969c782edf376123c4bebe79b",
+  "remainingExactFixturePeers": [],
+  "noKillPerformed": true,
+  "noGeneralDescendantOrEffectClaim": true,
+  "checkedExecutable": "Python processes only; shell command text excluded",
+  "checkedSuffixes": [
+    "/owned-runtime-peer.py",
+    "/owned-permission-wait-peer.py"
+  ]
+}

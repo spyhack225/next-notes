@@ -1,0 +1,389 @@
+{
+  "scope": "Independent READ-ONLY producer/fixture/raw-artifact review. Reviewer wrote report-only files; root executed all native checks.",
+  "verdict": "PASS bounded current heartbeat/receipt diagnostic foundation; Phase6/P6-05 parent remains OPEN",
+  "historicalInvalidComparison": {
+    "builds": [
+      88,
+      89
+    ],
+    "original88Failures": 150,
+    "fixed89Failures": 5,
+    "reason": "Initial fixture mixed live cached fractional timestamps with disk-decoded ISO8601 seconds (three predicates), plus two held primary/receipt expectations assumed row mismatch after generation changed. Original/fixed artifacts retained; neither promoted as authoritative success."
+  },
+  "authoritativeComparison": {
+    "originalBuild": 90,
+    "fixedBuild": 91,
+    "originalExit": 1,
+    "originalMarker": "TASK_WORKER_ATTEMPT_FAILED: 149 assertions",
+    "originalFailureCategories": {
+      "policy": 79,
+      "managerSnapshot": 35,
+      "currentReceipt": 35,
+      "total": 149,
+      "other": 0
+    },
+    "fixedExit": 0,
+    "fixedMarker": "TASK_WORKER_ATTEMPT_OK: 1352 cases",
+    "checkAccounting": {
+      "prior": 1161,
+      "purePolicy": 97,
+      "currentReceipt": 50,
+      "actualManagerIntegration": 44,
+      "total": 1352
+    },
+    "functionalRegressionsObserved": 0,
+    "focusedFlagCount": 20,
+    "rawChecks": [
+      {
+        "flag": "task-worker-attempt",
+        "exit": 0,
+        "marker": "TASK_WORKER_ATTEMPT_OK: 1352 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-harness-read",
+        "exit": 0,
+        "marker": "TASK_HARNESS_READ_OK: 40 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-durability",
+        "exit": 0,
+        "marker": "TASK_DURABILITY_OK: 37 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-recovery",
+        "exit": 0,
+        "marker": "TASK_RECOVERY_OK: 56 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-authority",
+        "exit": 0,
+        "marker": "TASK_AUTHORITY_OK: 58 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-restoration",
+        "exit": 0,
+        "marker": "TASK_RESTORATION_OK: 82 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "task-history-repair",
+        "exit": 0,
+        "marker": "TASK_HISTORY_REPAIR_OK: 58 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "receipt-persistence",
+        "exit": 0,
+        "marker": "RECEIPT_RUNTIME_OK: 5 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "tool-review",
+        "exit": 0,
+        "marker": "TOOL_REVIEW_OK",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "toolloop-production",
+        "exit": 0,
+        "marker": "TOOLLOOP_PRODUCTION_OK",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "routine-authority",
+        "exit": 0,
+        "marker": "ROUTINE_AUTHORITY_OK",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "schedule",
+        "exit": 0,
+        "marker": "SCHEDULE_OK",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "usage-log",
+        "exit": 0,
+        "marker": "USAGE_LOG_OK: 26 cases",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "store-isolation",
+        "exit": 0,
+        "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "toolloop-live-grader",
+        "exit": 0,
+        "marker": "TOOLLOOP_LIVE_GRADER_OK",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "voice-scheduling",
+        "exit": 0,
+        "marker": "VOICE_SCHEDULING_OK",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "acp",
+        "exit": 0,
+        "marker": "ACP_OK: initialize, session, subscribe and permission relay hold",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "mcp",
+        "exit": 0,
+        "marker": "MCP_OK: initialize, session, list and call hold",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "acp-confirm",
+        "exit": 0,
+        "marker": "ACP_CONFIRM_OK",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      },
+      {
+        "flag": "tasks",
+        "exit": 0,
+        "marker": "TASKS_OK: submit, run and cancel hold",
+        "rawMarkerPresent": true,
+        "wrongLines": [],
+        "sourceDrift": [],
+        "sameInstalledBinary": true
+      }
+    ]
+  },
+  "sourceProof": {
+    "entriesOriginal": 1040,
+    "entriesFixed": 1040,
+    "onlyProducerDelta": [
+      {
+        "path": "Sources/NextNotes/Agent/ActionRuntime.swift",
+        "original": "5a5fa7d7950884d8319df2520aad449cb98ac3857dcb94fe4511dcbfdfda23b2",
+        "fixed": "759d84650b1cadd0d873c56ee7357f2db9d892a42a102000c5ef5e041cdb3546"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+        "original": "c4c1ce35df4975ba2bba4f32b17d7131238980838eba7567c7a72bddc23d97d2",
+        "fixed": "44c84fdc4a14ab4fdc50e50729e12d90f9d844c6e5bc29a2b07e5db40c39a2d1"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskHeartbeat.swift",
+        "original": "62ef3c5988253bcce25b43823a810ae70cef1e5de065cb665057157f94f842fc",
+        "fixed": "ae69620533cc8ee15c89bf9b2cd0d5dc733ed23e5394bcf4e954b1ec8c794d35"
+      }
+    ],
+    "allSevenCommonFilesIdentical": true,
+    "commonFiles": [
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskHeartbeatIntegrationSelfTest.swift",
+        "expected": "31ba7ef05e8a6fb3d5636a82aa4bd89657e12afcc9f96f8802534dfba6eea9ad",
+        "original": "31ba7ef05e8a6fb3d5636a82aa4bd89657e12afcc9f96f8802534dfba6eea9ad",
+        "fixed": "31ba7ef05e8a6fb3d5636a82aa4bd89657e12afcc9f96f8802534dfba6eea9ad",
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerHeartbeatObservation.swift",
+        "expected": "97c13514f628fbe443bcfb6c68f80461bbe6f7fd8e266b434b58eb9c01561c91",
+        "original": "97c13514f628fbe443bcfb6c68f80461bbe6f7fd8e266b434b58eb9c01561c91",
+        "fixed": "97c13514f628fbe443bcfb6c68f80461bbe6f7fd8e266b434b58eb9c01561c91",
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+        "expected": "f93ceb58d7e18f54b4802c3916a1c897e9251502c39dc11263e33d5091cd2555",
+        "original": "f93ceb58d7e18f54b4802c3916a1c897e9251502c39dc11263e33d5091cd2555",
+        "fixed": "f93ceb58d7e18f54b4802c3916a1c897e9251502c39dc11263e33d5091cd2555",
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskACPRuntimeObservationSelfTest.swift",
+        "expected": "427cea487dc952a030201bd5633669e5160b363dbcc411101dc8fc254005e9bf",
+        "original": "427cea487dc952a030201bd5633669e5160b363dbcc411101dc8fc254005e9bf",
+        "fixed": "427cea487dc952a030201bd5633669e5160b363dbcc411101dc8fc254005e9bf",
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPermissionWaitSelfTest.swift",
+        "expected": "385964d32ced9902f81d945f714a4427e426d245c4a7213efb95d0515b691453",
+        "original": "385964d32ced9902f81d945f714a4427e426d245c4a7213efb95d0515b691453",
+        "fixed": "385964d32ced9902f81d945f714a4427e426d245c4a7213efb95d0515b691453",
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskHeartbeatSelfTest.swift",
+        "expected": "869d0fcad51dd7439b525990c874f0b363e49248482f76fc868cb6f36ef15645",
+        "original": "869d0fcad51dd7439b525990c874f0b363e49248482f76fc868cb6f36ef15645",
+        "fixed": "869d0fcad51dd7439b525990c874f0b363e49248482f76fc868cb6f36ef15645",
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskReceiptObservationSelfTest.swift",
+        "expected": "eea50f769637d7aa841aa508f9f38d47262f6e5b67d16b11da052681e4dbdae1",
+        "original": "eea50f769637d7aa841aa508f9f38d47262f6e5b67d16b11da052681e4dbdae1",
+        "fixed": "eea50f769637d7aa841aa508f9f38d47262f6e5b67d16b11da052681e4dbdae1",
+        "same": true
+      }
+    ],
+    "currentCheckedSourcePins": [
+      {
+        "path": "Sources/NextNotes/Agent/ActionRuntime.swift",
+        "expected": "759d84650b1cadd0d873c56ee7357f2db9d892a42a102000c5ef5e041cdb3546",
+        "actual": "759d84650b1cadd0d873c56ee7357f2db9d892a42a102000c5ef5e041cdb3546"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+        "expected": "44c84fdc4a14ab4fdc50e50729e12d90f9d844c6e5bc29a2b07e5db40c39a2d1",
+        "actual": "44c84fdc4a14ab4fdc50e50729e12d90f9d844c6e5bc29a2b07e5db40c39a2d1"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskHeartbeat.swift",
+        "expected": "ae69620533cc8ee15c89bf9b2cd0d5dc733ed23e5394bcf4e954b1ec8c794d35",
+        "actual": "ae69620533cc8ee15c89bf9b2cd0d5dc733ed23e5394bcf4e954b1ec8c794d35"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskHeartbeatIntegrationSelfTest.swift",
+        "expected": "31ba7ef05e8a6fb3d5636a82aa4bd89657e12afcc9f96f8802534dfba6eea9ad",
+        "actual": "31ba7ef05e8a6fb3d5636a82aa4bd89657e12afcc9f96f8802534dfba6eea9ad"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerHeartbeatObservation.swift",
+        "expected": "97c13514f628fbe443bcfb6c68f80461bbe6f7fd8e266b434b58eb9c01561c91",
+        "actual": "97c13514f628fbe443bcfb6c68f80461bbe6f7fd8e266b434b58eb9c01561c91"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+        "expected": "f93ceb58d7e18f54b4802c3916a1c897e9251502c39dc11263e33d5091cd2555",
+        "actual": "f93ceb58d7e18f54b4802c3916a1c897e9251502c39dc11263e33d5091cd2555"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskACPRuntimeObservationSelfTest.swift",
+        "expected": "427cea487dc952a030201bd5633669e5160b363dbcc411101dc8fc254005e9bf",
+        "actual": "427cea487dc952a030201bd5633669e5160b363dbcc411101dc8fc254005e9bf"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPermissionWaitSelfTest.swift",
+        "expected": "385964d32ced9902f81d945f714a4427e426d245c4a7213efb95d0515b691453",
+        "actual": "385964d32ced9902f81d945f714a4427e426d245c4a7213efb95d0515b691453"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskHeartbeatSelfTest.swift",
+        "expected": "869d0fcad51dd7439b525990c874f0b363e49248482f76fc868cb6f36ef15645",
+        "actual": "869d0fcad51dd7439b525990c874f0b363e49248482f76fc868cb6f36ef15645"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskReceiptObservationSelfTest.swift",
+        "expected": "eea50f769637d7aa841aa508f9f38d47262f6e5b67d16b11da052681e4dbdae1",
+        "actual": "eea50f769637d7aa841aa508f9f38d47262f6e5b67d16b11da052681e4dbdae1"
+      }
+    ],
+    "binarySHA256": "3aa351e0f7915e697304f2bfefbec924b704f54969c782edf376123c4bebe79b",
+    "originalAndFixedBundleInvariance": true,
+    "allNativeChecksNoDriftAndSameInstalledBinary": true
+  },
+  "actualConsumerProof": {
+    "samples": [
+      "TASK_HEARTBEAT_CURRENT_TRACE: primary=accepted state=running age=withinWindow wait=false source=matchingSource rows=1 receipt=yes",
+      "TASK_HEARTBEAT_CURRENT_TRACE: primary=accepted state=running age=withinWindow wait=false source=matchingSource rows=1 receipt=yes",
+      "TASK_HEARTBEAT_CURRENT_TRACE: primary=unavailable state=unavailable age=unavailable wait=false source=matchingSource rows=0 receipt=unknown",
+      "TASK_HEARTBEAT_CURRENT_TRACE: primary=accepted state=running age=ageCandidate wait=false source=matchingSource rows=1 receipt=yes",
+      "TASK_HEARTBEAT_CURRENT_TRACE: primary=accepted state=running age=ageCandidate wait=false source=matchingSource rows=1 receipt=yes",
+      "TASK_HEARTBEAT_CURRENT_TRACE: primary=accepted state=running age=waitingOnPerson wait=true source=matchingSource rows=1 receipt=yes",
+      "TASK_HEARTBEAT_CURRENT_TRACE: primary=accepted state=running age=waitingOnPerson wait=true source=matchingSource rows=1 receipt=yes"
+    ],
+    "receiptBoundaryTraces": [
+      "TASK_RECEIPT_TIME_DOMAIN_TRACE: mode=accepted memoryStartedAt=1790969571.703024 decodedStartedAt=1790969571.0 eventTimeMismatches=5 memoryEqualsDecoded=false canonicalRoundTripEqualsDecoded=true",
+      "TASK_RECEIPT_CURRENT_TRACE: mode=accepted effects=1 terminal=completed current=matchingSource freshQuality=readable",
+      "TASK_RECEIPT_TIME_DOMAIN_TRACE: mode=source-changed memoryStartedAt=1790969571.760343 decodedStartedAt=1790969571.0 eventTimeMismatches=5 memoryEqualsDecoded=false canonicalRoundTripEqualsDecoded=true",
+      "TASK_RECEIPT_RETENTION_TRACE: mode=source-changed exactBytesPreserved=true cacheEqualsCapturedMemory=true persistedEqualsCapturedDecoded=true",
+      "TASK_RECEIPT_CURRENT_TRACE: mode=source-changed effects=1 terminal=failed current=changed freshQuality=partial"
+    ],
+    "checks": [
+      "Real typed ACP silent prompt exposes SAME live owned child and exact primary IDs; no fake worker/context",
+      "Actual fresh Manager recovery hold changes ledger generation: old manager sample unavailable with no state/durability/age, while child remains live; no cancellation substitution",
+      "Two actual40-day workers are age candidates before permission; real visible/queued approvals exclude age while same clock/history remain",
+      "Repeated diagnostic reads preserve actual SQL journal/export/receipt bytes and queued review absence",
+      "Actual release returns nil rather than stale Session observation",
+      "Actual local temporary-file read retains exact prepared/fired UUID and one backing invocation; external source mutation refuses write, leaves exact source/cache/persisted evidence intact, task fails truthfully"
+    ]
+  },
+  "sourceContract": {
+    "binding": "Capture exact running binding and Session, await same Session metadata off-path, then recheck both binding and reference before fresh primary/Gate/receipt composition",
+    "authority": "Existing primary fail-fast authority/file/generation check preserved. unavailable does not fall back to memory or cached LAST; accepted row predicate is state/attempt/leaseOwner, separate exact memory binding includes startedAt.",
+    "receipt": "One existing current fingerprint comparison plus exact cached UUID/task/attempt/owner filter; metadata-only. Positive matched retained row supports receiptCreated yes, never empty-history absence or effect claim.",
+    "unknowns": "backendSessionAlive and toolInFlight stay unknown. Process alive/open is not responsiveness; LAST tool boundary is incomplete coverage.",
+    "privacyAndCost": "No prompt/tool argument/result/path payload in snapshot diagnostics. No new store/queue/timer/save/state/retry/model pass or foreground await. Existing task/Gate/receipt traversals and explicit off-path actor/SQL/stat cost remain."
+  },
+  "limitations": [
+    "No automatic detector or periodic observer loop; production callable diagnostic seam and pure age policy only",
+    "Age candidate is not stale verdict; no failure/recovery/retry/IM-16 host authority",
+    "Process/transport metadata does not prove backend-session responsiveness, nested-handler/tool coverage or external effects",
+    "Fingerprint metadata is not complete receipt content/history proof or atomic cross-source snapshot; unknown/empty does not mean never ran",
+    "No actual replacement-during-actor-hop mutation fixture; guard checked source only",
+    "Changed-source receipt fixture exercises actual Manager/runtime flow plus direct same-store getter; composed Manager changed-source unknown evidence branch is source-reviewed, not separately invoked at that checkpoint",
+    "No large-history latency, constant-time, crash/power-loss or model quick/full/owner quality claim; existing thresholds unchanged"
+  ]
+}

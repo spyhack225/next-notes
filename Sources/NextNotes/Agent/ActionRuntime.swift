@@ -355,6 +355,33 @@ struct ActionReceipt: Codable, Equatable, Sendable, Identifiable {
     }
 }
 
+enum ActionReceiptCurrentSourceState: String, Sendable {
+    case unavailable, changed, matchingSource
+}
+
+/// Exact cached receipt metadata only; no intent, arguments, result or artifact payload.
+struct ActionReceiptBoundObservation: Equatable, Sendable {
+    let actionID: UUID
+    let preparedActionID: UUID?
+    let taskID: String
+    let taskAttempt: Int
+    let taskLeaseOwner: String
+    let status: ActionReceiptStatus
+    let startedAt: Date
+    let completedAt: Date?
+    let eventStages: [ActionReceiptStatus]
+}
+
+/// CURRENT metadata comparison, with the separate historical load/write snapshot.
+/// Matching metadata and empty/partial cached rows never prove that no effect occurred.
+struct ActionReceiptCurrentSourceObservation: Equatable, Sendable {
+    let state: ActionReceiptCurrentSourceState
+    let retainedFingerprint: ActionReceiptStore.SourceFingerprint?
+    let observedFingerprint: ActionReceiptStore.SourceFingerprint?
+    let sourceObservation: ActionReceiptSourceObservation?
+    let receipts: [ActionReceiptBoundObservation]
+}
+
 @MainActor
 final class ActionReceiptStore {
     static let shared = ActionReceiptStore()
@@ -437,6 +464,36 @@ final class ActionReceiptStore {
     /// Cached load quality and LAST existing write admission comparison. No I/O.
     /// Neither this snapshot nor an absent receipt proves current/full effect history.
     var sourceObservation: ActionReceiptSourceObservation? { sourceObservationValue }
+
+    /// One CURRENT lstat comparison against the retained admitted source; no content read.
+    /// This does not refresh the cache or provide cross-process CAS/effect completeness.
+    func currentSourceObservation(taskID: String, attempt: Int, leaseOwner: String,
+                                  receiptIDs: [String]) -> ActionReceiptCurrentSourceObservation? {
+        func observation(_ state: ActionReceiptCurrentSourceState,
+                         observed: SourceFingerprint? = nil,
+                         rows: [ActionReceiptBoundObservation] = []) -> ActionReceiptCurrentSourceObservation {
+            ActionReceiptCurrentSourceObservation(state: state,
+                retainedFingerprint: sourceFingerprint, observedFingerprint: observed,
+                sourceObservation: sourceObservationValue, receipts: rows)
+        }
+        guard !taskID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              attempt > 0, !leaseOwner.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              !SelfTest.isRunning || (injectedFile && Self.permitsHarnessFile(fileURL)),
+              let retained = sourceFingerprint else { return observation(.unavailable) }
+        guard let observed = Self.fingerprint(of: fileURL) else { return observation(.unavailable) }
+        guard observed == retained else { return observation(.changed, observed: observed) }
+        let requested = Set(receiptIDs)
+        let rows = receipts.compactMap { receipt -> ActionReceiptBoundObservation? in
+            guard requested.contains(receipt.actionID.uuidString), receipt.taskID == taskID,
+                  receipt.taskAttempt == attempt, receipt.taskLeaseOwner == leaseOwner else { return nil }
+            return ActionReceiptBoundObservation(actionID: receipt.actionID,
+                preparedActionID: receipt.preparedAction?.id, taskID: taskID,
+                taskAttempt: attempt, taskLeaseOwner: leaseOwner, status: receipt.status,
+                startedAt: receipt.startedAt, completedAt: receipt.completedAt,
+                eventStages: receipt.events.map(\.stage))
+        }
+        return observation(.matchingSource, observed: observed, rows: rows)
+    }
 
     func receipt(for id: UUID) -> ActionReceipt? { receipts.first { $0.actionID == id } }
 
@@ -529,7 +586,7 @@ final class ActionReceiptStore {
 
     /// A metadata check, not a cross-process compare-and-swap. Concurrent replacement
     /// between checking and atomic writing remains outside this store's admission proof.
-    private enum SourceFingerprint: Equatable {
+    enum SourceFingerprint: Equatable, Sendable {
         case missing
         case regular(Int64, UInt64, Int64, Int64, Int64, Int64, Int64)
     }

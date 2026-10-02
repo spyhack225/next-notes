@@ -142,6 +142,8 @@ enum TaskACPRuntimeObservationSelfTest {
                     let sample = await manager.workerACPRuntimeObservation(taskID: submitted.id)
                     repeatedMatches = repeatedMatches && sample == live
                 }
+                await TaskHeartbeatIntegrationSelfTest.sample(manager: manager, binding: binding,
+                    expectedPrimary: .accepted, expectedWait: false, expectedAge: "withinWindow", check: check)
                 // C06
                 check(repeatedMatches && live != nil,
                     "ACP runtime: repeated current owned samples are missing or changed silently (\(mode))")
@@ -170,6 +172,9 @@ enum TaskACPRuntimeObservationSelfTest {
                         && context.isStillValid?() == false && ended == 0,
                         "ACP runtime: primary hold was substituted with Task cancellation/release")
                     let heldLive = await manager.workerACPRuntimeObservation(taskID: submitted.id)
+                    await TaskHeartbeatIntegrationSelfTest.sample(manager: manager, binding: binding,
+                        expectedPrimary: .unavailable, expectedWait: false, expectedAge: nil,
+                        expectedReceipt: false, check: check)
                     // H03
                     check(heldLive == live && heldLive?.processID == peerPID && heldLive?.isRunning == true
                         && heldLive?.transportClosed == false && heldLive?.pendingRequestCount == 1,
@@ -195,6 +200,8 @@ enum TaskACPRuntimeObservationSelfTest {
                 // C09
                 let afterCleanup = await manager.workerACPRuntimeObservation(taskID: submitted.id)
                 check(afterCleanup == nil, "ACP runtime: released worker exposed an old current Session (\(mode))")
+                check(await manager.workerHeartbeatObservation(taskID: submitted.id) == nil,
+                    "Heartbeat integration: released actual worker exposed an old sample")
                 context.observeACPSession?(ACPSession())
                 let afterLateAttach = await manager.workerACPRuntimeObservation(taskID: submitted.id)
                 // C10

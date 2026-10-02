@@ -1,0 +1,40 @@
+--- a/Sources/NextNotes/Agent/ActionRuntime.swift
++++ b/Sources/NextNotes/Agent/ActionRuntime.swift
+@@ -465,9 +465,35 @@
+     /// Neither this snapshot nor an absent receipt proves current/full effect history.
+     var sourceObservation: ActionReceiptSourceObservation? { sourceObservationValue }
+ 
+-    /// Optional until the CURRENT source producer is implemented. Nil is unknown.
++    /// One CURRENT lstat comparison against the retained admitted source; no content read.
++    /// This does not refresh the cache or provide cross-process CAS/effect completeness.
+     func currentSourceObservation(taskID: String, attempt: Int, leaseOwner: String,
+-                                  receiptIDs: [String]) -> ActionReceiptCurrentSourceObservation? { nil }
++                                  receiptIDs: [String]) -> ActionReceiptCurrentSourceObservation? {
++        func observation(_ state: ActionReceiptCurrentSourceState,
++                         observed: SourceFingerprint? = nil,
++                         rows: [ActionReceiptBoundObservation] = []) -> ActionReceiptCurrentSourceObservation {
++            ActionReceiptCurrentSourceObservation(state: state,
++                retainedFingerprint: sourceFingerprint, observedFingerprint: observed,
++                sourceObservation: sourceObservationValue, receipts: rows)
++        }
++        guard !taskID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
++              attempt > 0, !leaseOwner.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
++              !SelfTest.isRunning || (injectedFile && Self.permitsHarnessFile(fileURL)),
++              let retained = sourceFingerprint else { return observation(.unavailable) }
++        guard let observed = Self.fingerprint(of: fileURL) else { return observation(.unavailable) }
++        guard observed == retained else { return observation(.changed, observed: observed) }
++        let requested = Set(receiptIDs)
++        let rows = receipts.compactMap { receipt -> ActionReceiptBoundObservation? in
++            guard requested.contains(receipt.actionID.uuidString), receipt.taskID == taskID,
++                  receipt.taskAttempt == attempt, receipt.taskLeaseOwner == leaseOwner else { return nil }
++            return ActionReceiptBoundObservation(actionID: receipt.actionID,
++                preparedActionID: receipt.preparedAction?.id, taskID: taskID,
++                taskAttempt: attempt, taskLeaseOwner: leaseOwner, status: receipt.status,
++                startedAt: receipt.startedAt, completedAt: receipt.completedAt,
++                eventStages: receipt.events.map(\.stage))
++        }
++        return observation(.matchingSource, observed: observed, rows: rows)
++    }
+ 
+     func receipt(for id: UUID) -> ActionReceipt? { receipts.first { $0.actionID == id } }
+ 

@@ -106,6 +106,52 @@ final class AgentTaskManager {
         return PermissionGate.shared.hasWaitingRequest(taskID: taskID)
     }
 
+    /// Explicit off-path diagnostic: an actor sample followed by current primary/source
+    /// metadata, not an atomic lease. No execution path waits on this observation.
+    /// Unknown health/effect coverage never becomes a stale verdict or retry authority.
+    func workerHeartbeatObservation(taskID: String, now: Date = Date()) async -> TaskWorkerHeartbeatObservation? {
+        guard !SelfTest.isRunning || store.allowsHarnessPersistence,
+              let binding = workerBinding(taskID: taskID) else { return nil }
+        let session = running[taskID]?.acpSession
+        let runtime: JSONRPCStdioObservation?
+        if let session { runtime = await session.currentRuntimeObservation() }
+        else { runtime = nil }
+        guard workerBinding(taskID: taskID) == binding,
+              running[taskID]?.acpSession === session else { return nil }
+        // Reuse the existing fail-fast authority/file binding probe; LAST metadata
+        // and this manager's in-memory running row are not current SQL authority.
+        let expected = TaskWorkerWriteCondition(taskID: taskID, attempt: binding.attempt,
+            leaseOwner: binding.leaseOwner, status: .running)
+        let primary = store.workerPrimaryObservation(expected)
+        let waiting = PermissionGate.shared.hasWaitingRequest(taskID: taskID)
+        let receipts: ActionReceiptCurrentSourceObservation?
+        if let receiptStore {
+            receipts = receiptStore.currentSourceObservation(taskID: taskID, attempt: binding.attempt,
+                leaseOwner: binding.leaseOwner, receiptIDs: primary.durability?.receiptIDs ?? [])
+        } else if !SelfTest.isRunning {
+            receipts = ActionReceiptStore.shared.currentSourceObservation(taskID: taskID, attempt: binding.attempt,
+                leaseOwner: binding.leaseOwner, receiptIDs: primary.durability?.receiptIDs ?? [])
+        } else { receipts = nil }
+        let age: TaskHeartbeatAge?
+        if primary.outcome == .accepted, let state = primary.state {
+            age = TaskHeartbeat.classify(status: state, runtimeClass: primary.durability?.runtimeClass,
+                heartbeatAt: primary.durability?.heartbeatAt, permissionWait: waiting, now: now)
+        } else { age = nil }
+        var evidence = TaskHeartbeatEvidence()
+        if let runtime { evidence.processAlive = runtime.isRunning ? .yes : .no }
+        // Open transport and pending outgoing requests do not prove session health,
+        // and LAST entry/return does not cover every active tool or external effect.
+        if receipts?.state == .matchingSource, receipts?.receipts.isEmpty == false {
+            evidence.receiptCreated = .yes
+        }
+        let snapshot = TaskWorkerHeartbeatObservation(binding: binding, observedAt: Date(),
+            primary: primary, runtime: runtime, permissionWait: waiting,
+            lastToolBoundary: workerToolBackingObservation(taskID: taskID), receiptSource: receipts,
+            age: age, evidence: evidence)
+        Log.app.debug("Task heartbeat observation: primary \(primary.outcome.rawValue, privacy: .public), age \(age?.diagnosticName ?? "unknown", privacy: .public), process \(evidence.processAlive.rawValue, privacy: .public), receipt \(evidence.receiptCreated.rawValue, privacy: .public)")
+        return snapshot
+    }
+
     /// Record the LAST actual admitted entry/return under its captured handle.
     /// Completion is observed before its existing save, so rollback cannot invent an
     /// active backing after it returned. This grants no health/effect/retry authority.

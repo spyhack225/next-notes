@@ -1,0 +1,33 @@
+{
+  "reviewer": "/root/agent_closure_audit",
+  "scope": "Initial heartbeat integration original88 evidence quality audit",
+  "verdict": "INVALID full feature comparison: unexpected receipt preservation control failed",
+  "build": 88,
+  "actualMarker": "TASK_WORKER_ATTEMPT_FAILED: 150 assertions",
+  "actualExit": 1,
+  "actualFailures": 150,
+  "families": {
+    "managerSnapshot": 35,
+    "purePolicy": 79,
+    "currentReceipt": 36
+  },
+  "predictedFailuresBeforeRun": 149,
+  "predictionCorrection": "Actual150 includes one additional receipt whole-value preservation control, so all150 cannot be treated as missing-feature failures",
+  "unexpectedFunctionalLabel": "TASK_WORKER_ATTEMPT_WRONG: current receipt: source refusal/probes erased exact changed bytes or real fired evidence",
+  "confirmedActualControls": "Actual process/live/held/EOF and40daywait traces complete; actual target read once, sourcechanged path fails resultdelivery truthfully. Other functional labels absent.",
+  "sourceHypothesis": "The fixture obtains fired from fresh JSON-decoded receipt but compares it with live cached receipt; ISO8601 persisted timestamps have different precision. Fixed atFire metadata startedAt comparison uses same mixed domain. Root is investigating and will capture actual live/decoded scalar timing before same-input corrected rerun.",
+  "sourceHypothesisIsActualRuntimeCause": false,
+  "manifestCount": 1040,
+  "binarySHA256": "4a6d5479eb341c49bf7f1e34287654682d2af1c8327b18b02a2beaaaa4a9ccb5",
+  "sourceDrift": [],
+  "sameInstalledBinary": true,
+  "bundleInvariant": true,
+  "rawStdoutMarkerVerified": true,
+  "preservation": "All original88 raw artifacts and initial frozenfixture remain unchanged. No producer or scenario claim promoted.",
+  "actions": {
+    "sourceOrFixtureChanges": false,
+    "nativeRuns": false,
+    "indexChanges": false,
+    "reportOnlyWrite": true
+  }
+}

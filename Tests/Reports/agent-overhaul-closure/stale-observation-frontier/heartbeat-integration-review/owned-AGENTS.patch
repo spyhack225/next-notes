@@ -1,0 +1,25 @@
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -570,6 +570,22 @@
+ physical latency, recovery/retry/IM-16 and parent/aggregate gates remain open.
+ See [post-Gate proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-post-gate-review/verification.md).
+ 
++Bounded P6-05k integrates current primary/receipt-bound heartbeat age diagnostics.
++Corrected original90 RED149 → identical fixed91 worker1352/all20 focused flags PASS;
++Source1040/fullbundle invariant. Parallel pure policy/current receipt producer work
++reaches actual Manager/SAME ACP Session/current Gate consumers. Five starting windows
++produce age evidence only; actual forty-day visible/queued approvals are excluded.
++A fresh-manager held generation returns unavailable while the actual child stays live:
++no memory/LAST fallback or receipt absence inference. Same-store current fingerprint
++returns exact bound metadata only on match; changed/partial/missing sources remain
++explicit, never no-effect/retry. This explicit off-path diagnostic adds existing
++primary/source reads and actor sampling, no foreground await/save/timer/store/state
++change/model pass. Initial88/89 fixture precision/generation assumptions and raw failures
++are retained; authoritative90/91 use identical corrected cases. No automatic monitor,
++heartbeat generation, complete session/tool/effect coverage, recovery/retry/IM-16 or
++parent/model/latency gate is promoted. See
++[actual diagnostic proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/heartbeat-integration-review/verification.md).
++
+ Bounded P6-05j supplies CURRENT task-owned Gate approval waits, both visible and
+ queued, through existing live Manager binding. Actual original86 false-scaffold RED6
+ → identical fixed87 worker1161/all20 focused flags PASS; Source1035/fullbundle invariant.

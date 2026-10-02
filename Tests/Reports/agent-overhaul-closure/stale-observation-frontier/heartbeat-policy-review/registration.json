@@ -1,0 +1,12 @@
+{
+  "source": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+  "owner": "root",
+  "call": "TaskHeartbeatSelfTest.cases(check: check)",
+  "pureCheckCount": 97,
+  "currentWorkerBaseline": 1161,
+  "pureOnlyPredictedTotal": 1258,
+  "extraRootIntegrationChecks": "not counted or implemented by this worker",
+  "originalPolicyMount": "original-TaskHeartbeat.swift.txt",
+  "fixedPolicyMount": "fixed-TaskHeartbeat.swift.txt",
+  "commonFixture": "common-TaskHeartbeatSelfTest.swift.txt"
+}

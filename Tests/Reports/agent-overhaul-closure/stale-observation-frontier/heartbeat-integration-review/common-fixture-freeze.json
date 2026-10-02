@@ -1,0 +1,17 @@
+{
+  "commonSources": {
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskHeartbeatIntegrationSelfTest.swift": "31ba7ef05e8a6fb3d5636a82aa4bd89657e12afcc9f96f8802534dfba6eea9ad",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerHeartbeatObservation.swift": "97c13514f628fbe443bcfb6c68f80461bbe6f7fd8e266b434b58eb9c01561c91",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift": "f93ceb58d7e18f54b4802c3916a1c897e9251502c39dc11263e33d5091cd2555",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskACPRuntimeObservationSelfTest.swift": "427cea487dc952a030201bd5633669e5160b363dbcc411101dc8fc254005e9bf",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskACPPermissionWaitSelfTest.swift": "385964d32ced9902f81d945f714a4427e426d245c4a7213efb95d0515b691453",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskHeartbeatSelfTest.swift": "869d0fcad51dd7439b525990c874f0b363e49248482f76fc868cb6f36ef15645",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskReceiptObservationSelfTest.swift": "eea50f769637d7aa841aa508f9f38d47262f6e5b67d16b11da052681e4dbdae1"
+  },
+  "originalBuild": 90,
+  "fixedBuild": 91,
+  "expectedFixedWorkerChecks": 1352,
+  "predictedOriginalMissingFeatureFailures": 149,
+  "notExecuted": true,
+  "initialInvalidRuns": "88/89 preserved separately"
+}
