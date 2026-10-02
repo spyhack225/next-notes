@@ -4,9 +4,149 @@ import Foundation
 
 /// Parakeet's locally decoded EOU token is independent of Apple SpeechAnalyzer's
 /// volatile text. Audio never leaves the machine. One instance owns one mic session.
+
+/// Harness-only metadata and suspension points. Stores no PCM and produces no
+/// decoder words/endpoints. Every observed callback still comes from FluidAudio.
+final class VoiceInputProducerProbe: @unchecked Sendable {
+    struct Input: Sendable {
+        let sequence: Int
+        let frames: Range<Int>
+        let second: Bool
+    }
+    struct Event: Sendable {
+        let kind: String
+        let input: Input?
+        let epoch: Int?
+        let capturedEnd: Int
+    }
+    private let lock = NSLock()
+    private var nextFrame = 0
+    private var inputs: [Int: Input] = [:]
+    private var history: [Event] = []
+    private var activeInput: Input?
+    private var secondInput = false
+    private var prepareReleased: Bool
+    private var commitReleased: Bool
+    private var firstCommitSelected = false
+    private var prepareWaiter: CheckedContinuation<Void, Never>?
+    private var commitWaiter: CheckedContinuation<Void, Never>?
+
+    init(holdPrepare: Bool, holdFirstCommit: Bool) {
+        prepareReleased = !holdPrepare
+        commitReleased = !holdFirstCommit
+    }
+    func beginSecondInput() {
+        lock.lock()
+        secondInput = true
+        lock.unlock()
+    }
+    func captured(sequence: Int, frames: Int) {
+        lock.lock()
+        let input = Input(sequence: sequence,
+            frames: nextFrame..<(nextFrame + frames), second: secondInput)
+        nextFrame += frames
+        inputs[sequence] = input
+        history.append(Event(kind: "captured", input: input,
+            epoch: nil, capturedEnd: nextFrame))
+        lock.unlock()
+    }
+    func input(sequence: Int) -> Input? {
+        lock.lock()
+        defer { lock.unlock() }
+        return inputs[sequence]
+    }
+    func processBegan(_ input: Input?) {
+        lock.lock()
+        activeInput = input
+        history.append(Event(kind: "process.begin", input: input,
+            epoch: nil, capturedEnd: nextFrame))
+        lock.unlock()
+    }
+    func processEnded(success: Bool) {
+        lock.lock()
+        history.append(Event(kind: success ? "process.end" : "process.failed", input: activeInput,
+            epoch: nil, capturedEnd: nextFrame))
+        activeInput = nil
+        lock.unlock()
+    }
+    func record(_ kind: String, epoch: Int? = nil) {
+        lock.lock()
+        history.append(Event(kind: kind, input: activeInput,
+            epoch: epoch, capturedEnd: nextFrame))
+        lock.unlock()
+    }
+    func snapshot() -> [Event] {
+        lock.lock()
+        defer { lock.unlock() }
+        return history
+    }
+    func holdPreparedDecoder() async {
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            history.append(Event(kind: "prepare.checkpoint", input: nil,
+                epoch: nil, capturedEnd: nextFrame))
+            if prepareReleased {
+                lock.unlock()
+                continuation.resume()
+            } else {
+                history.append(Event(kind: "prepare.held", input: nil,
+                    epoch: nil, capturedEnd: nextFrame))
+                prepareWaiter = continuation
+                lock.unlock()
+            }
+        }
+    }
+    func holdFirstCommit(epoch: Int) async {
+        await withCheckedContinuation { continuation in
+            lock.lock()
+            if firstCommitSelected {
+                lock.unlock()
+                continuation.resume()
+                return
+            }
+            firstCommitSelected = true
+            history.append(Event(kind: "commit.selected", input: nil,
+                epoch: epoch, capturedEnd: nextFrame))
+            if commitReleased {
+                lock.unlock()
+                continuation.resume()
+            } else {
+                commitWaiter = continuation
+                lock.unlock()
+            }
+        }
+    }
+    func releasePrepare() {
+        lock.lock()
+        prepareReleased = true
+        let waiter = prepareWaiter
+        prepareWaiter = nil
+        lock.unlock()
+        waiter?.resume()
+    }
+    func releaseCommit() {
+        lock.lock()
+        commitReleased = true
+        let waiter = commitWaiter
+        commitWaiter = nil
+        lock.unlock()
+        waiter?.resume()
+    }
+    func releaseAll() {
+        releasePrepare()
+        releaseCommit()
+    }
+}
+
 actor LocalVoiceTurnDetector {
     private let manager = StreamingEouAsrManager(chunkSize: .ms160, eouDebounceMs: 320)
     private var ready = false
+    private let producerProbeForTesting: VoiceInputProducerProbe?
+
+    init(producerProbeForTesting: VoiceInputProducerProbe? = nil) {
+        // An ordinary app invocation cannot suspend production operations.
+        self.producerProbeForTesting = SelfTest.isRunning ? producerProbeForTesting : nil
+    }
     // FluidAudio's actor awaits Core ML during process and can reenter reset
     // while its encoder cache is live. Serialize whole operations, not just
     // their actor-isolated sections.
@@ -102,15 +242,26 @@ actor LocalVoiceTurnDetector {
         for index in 0..<2_560 { samples[index] = 0 }
         _ = try await manager.process(audioBuffer: silence)
         await manager.reset()
+        if let producerProbeForTesting {
+            // Keep the real preparation operation held after native load/prime.
+            // This is the cold-backlog/reset ordering, without variable load time.
+            await producerProbeForTesting.holdPreparedDecoder()
+        }
         await setCallbacks(onEndOfUtterance, onPartial: onPartial)
         ready = true
+        producerProbeForTesting?.record("prepare.ready")
     }
 
-    func process(_ chunk: AudioChunk) async throws {
+    func process(_ chunk: AudioChunk,
+        producerInputForTesting: VoiceInputProducerProbe.Input? = nil) async throws {
         guard await acquireOperation() else { throw CancellationError() }
         defer { releaseOperation() }
         guard ready else { return }
+        producerProbeForTesting?.processBegan(producerInputForTesting)
+        var completed = false
+        defer { producerProbeForTesting?.processEnded(success: completed) }
         _ = try await manager.process(audioBuffer: chunk.buffer)
+        completed = true
     }
 
     func close() async {
@@ -124,11 +275,14 @@ actor LocalVoiceTurnDetector {
         onEndOfUtterance: @escaping @Sendable (String) -> Void,
         onPartial: @escaping @Sendable (String) -> Void
     ) async {
+        producerProbeForTesting?.record("reset.requested")
         guard await acquireOperation() else { return }
         defer { releaseOperation() }
         guard ready else { return }
+        producerProbeForTesting?.record("reset.granted")
         await manager.reset()
         await setCallbacks(onEndOfUtterance, onPartial: onPartial)
+        producerProbeForTesting?.record("reset.completed")
     }
 
     func resetForDiscontinuity() async {
@@ -140,13 +294,16 @@ actor LocalVoiceTurnDetector {
 
     private func setCallbacks(_ callback: @escaping @Sendable (String) -> Void,
         onPartial: @escaping @Sendable (String) -> Void) async {
+        let producerProbeForTesting = self.producerProbeForTesting
         await manager.setEouCallback { transcript in
+            producerProbeForTesting?.record("native.eou")
             // This is a confirmed endpoint, not a text update. A decoder can
             // confirm EOU without lexical tokens; capture decides whether it
             // settles an existing provisional input or is idle silence.
             callback(transcript)
         }
         await manager.setPartialCallback { transcript in
+            producerProbeForTesting?.record("native.partial")
             onPartial(transcript)
         }
     }

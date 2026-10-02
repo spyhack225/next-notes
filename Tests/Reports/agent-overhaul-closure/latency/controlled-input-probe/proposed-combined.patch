@@ -1,0 +1,687 @@
+--- a/Sources/NextNotes/Activation/LocalVoiceTurnDetector.swift
++++ b/Sources/NextNotes/Activation/LocalVoiceTurnDetector.swift
+@@ -4,9 +4,149 @@
+ 
+ /// Parakeet's locally decoded EOU token is independent of Apple SpeechAnalyzer's
+ /// volatile text. Audio never leaves the machine. One instance owns one mic session.
++
++/// Harness-only metadata and suspension points. Stores no PCM and produces no
++/// decoder words/endpoints. Every observed callback still comes from FluidAudio.
++final class VoiceInputProducerProbe: @unchecked Sendable {
++    struct Input: Sendable {
++        let sequence: Int
++        let frames: Range<Int>
++        let second: Bool
++    }
++    struct Event: Sendable {
++        let kind: String
++        let input: Input?
++        let epoch: Int?
++        let capturedEnd: Int
++    }
++    private let lock = NSLock()
++    private var nextFrame = 0
++    private var inputs: [Int: Input] = [:]
++    private var history: [Event] = []
++    private var activeInput: Input?
++    private var secondInput = false
++    private var prepareReleased: Bool
++    private var commitReleased: Bool
++    private var firstCommitSelected = false
++    private var prepareWaiter: CheckedContinuation<Void, Never>?
++    private var commitWaiter: CheckedContinuation<Void, Never>?
++
++    init(holdPrepare: Bool, holdFirstCommit: Bool) {
++        prepareReleased = !holdPrepare
++        commitReleased = !holdFirstCommit
++    }
++    func beginSecondInput() {
++        lock.lock()
++        secondInput = true
++        lock.unlock()
++    }
++    func captured(sequence: Int, frames: Int) {
++        lock.lock()
++        let input = Input(sequence: sequence,
++            frames: nextFrame..<(nextFrame + frames), second: secondInput)
++        nextFrame += frames
++        inputs[sequence] = input
++        history.append(Event(kind: "captured", input: input,
++            epoch: nil, capturedEnd: nextFrame))
++        lock.unlock()
++    }
++    func input(sequence: Int) -> Input? {
++        lock.lock()
++        defer { lock.unlock() }
++        return inputs[sequence]
++    }
++    func processBegan(_ input: Input?) {
++        lock.lock()
++        activeInput = input
++        history.append(Event(kind: "process.begin", input: input,
++            epoch: nil, capturedEnd: nextFrame))
++        lock.unlock()
++    }
++    func processEnded(success: Bool) {
++        lock.lock()
++        history.append(Event(kind: success ? "process.end" : "process.failed", input: activeInput,
++            epoch: nil, capturedEnd: nextFrame))
++        activeInput = nil
++        lock.unlock()
++    }
++    func record(_ kind: String, epoch: Int? = nil) {
++        lock.lock()
++        history.append(Event(kind: kind, input: activeInput,
++            epoch: epoch, capturedEnd: nextFrame))
++        lock.unlock()
++    }
++    func snapshot() -> [Event] {
++        lock.lock()
++        defer { lock.unlock() }
++        return history
++    }
++    func holdPreparedDecoder() async {
++        await withCheckedContinuation { continuation in
++            lock.lock()
++            history.append(Event(kind: "prepare.checkpoint", input: nil,
++                epoch: nil, capturedEnd: nextFrame))
++            if prepareReleased {
++                lock.unlock()
++                continuation.resume()
++            } else {
++                history.append(Event(kind: "prepare.held", input: nil,
++                    epoch: nil, capturedEnd: nextFrame))
++                prepareWaiter = continuation
++                lock.unlock()
++            }
++        }
++    }
++    func holdFirstCommit(epoch: Int) async {
++        await withCheckedContinuation { continuation in
++            lock.lock()
++            if firstCommitSelected {
++                lock.unlock()
++                continuation.resume()
++                return
++            }
++            firstCommitSelected = true
++            history.append(Event(kind: "commit.selected", input: nil,
++                epoch: epoch, capturedEnd: nextFrame))
++            if commitReleased {
++                lock.unlock()
++                continuation.resume()
++            } else {
++                commitWaiter = continuation
++                lock.unlock()
++            }
++        }
++    }
++    func releasePrepare() {
++        lock.lock()
++        prepareReleased = true
++        let waiter = prepareWaiter
++        prepareWaiter = nil
++        lock.unlock()
++        waiter?.resume()
++    }
++    func releaseCommit() {
++        lock.lock()
++        commitReleased = true
++        let waiter = commitWaiter
++        commitWaiter = nil
++        lock.unlock()
++        waiter?.resume()
++    }
++    func releaseAll() {
++        releasePrepare()
++        releaseCommit()
++    }
++}
++
+ actor LocalVoiceTurnDetector {
+     private let manager = StreamingEouAsrManager(chunkSize: .ms160, eouDebounceMs: 320)
+     private var ready = false
++    private let producerProbeForTesting: VoiceInputProducerProbe?
++
++    init(producerProbeForTesting: VoiceInputProducerProbe? = nil) {
++        // An ordinary app invocation cannot suspend production operations.
++        self.producerProbeForTesting = SelfTest.isRunning ? producerProbeForTesting : nil
++    }
+     // FluidAudio's actor awaits Core ML during process and can reenter reset
+     // while its encoder cache is live. Serialize whole operations, not just
+     // their actor-isolated sections.
+@@ -102,15 +242,26 @@
+         for index in 0..<2_560 { samples[index] = 0 }
+         _ = try await manager.process(audioBuffer: silence)
+         await manager.reset()
++        if let producerProbeForTesting {
++            // Keep the real preparation operation held after native load/prime.
++            // This is the cold-backlog/reset ordering, without variable load time.
++            await producerProbeForTesting.holdPreparedDecoder()
++        }
+         await setCallbacks(onEndOfUtterance, onPartial: onPartial)
+         ready = true
+-    }
+-
+-    func process(_ chunk: AudioChunk) async throws {
++        producerProbeForTesting?.record("prepare.ready")
++    }
++
++    func process(_ chunk: AudioChunk,
++        producerInputForTesting: VoiceInputProducerProbe.Input? = nil) async throws {
+         guard await acquireOperation() else { throw CancellationError() }
+         defer { releaseOperation() }
+         guard ready else { return }
++        producerProbeForTesting?.processBegan(producerInputForTesting)
++        var completed = false
++        defer { producerProbeForTesting?.processEnded(success: completed) }
+         _ = try await manager.process(audioBuffer: chunk.buffer)
++        completed = true
+     }
+ 
+     func close() async {
+@@ -124,29 +275,35 @@
+         onEndOfUtterance: @escaping @Sendable (String) -> Void,
+         onPartial: @escaping @Sendable (String) -> Void
+     ) async {
++        producerProbeForTesting?.record("reset.requested")
++        guard await acquireOperation() else { return }
++        defer { releaseOperation() }
++        guard ready else { return }
++        producerProbeForTesting?.record("reset.granted")
++        await manager.reset()
++        await setCallbacks(onEndOfUtterance, onPartial: onPartial)
++        producerProbeForTesting?.record("reset.completed")
++    }
++
++    func resetForDiscontinuity() async {
+         guard await acquireOperation() else { return }
+         defer { releaseOperation() }
+         guard ready else { return }
+         await manager.reset()
+-        await setCallbacks(onEndOfUtterance, onPartial: onPartial)
+-    }
+-
+-    func resetForDiscontinuity() async {
+-        guard await acquireOperation() else { return }
+-        defer { releaseOperation() }
+-        guard ready else { return }
+-        await manager.reset()
+     }
+ 
+     private func setCallbacks(_ callback: @escaping @Sendable (String) -> Void,
+         onPartial: @escaping @Sendable (String) -> Void) async {
++        let producerProbeForTesting = self.producerProbeForTesting
+         await manager.setEouCallback { transcript in
++            producerProbeForTesting?.record("native.eou")
+             // This is a confirmed endpoint, not a text update. A decoder can
+             // confirm EOU without lexical tokens; capture decides whether it
+             // settles an existing provisional input or is idle silence.
+             callback(transcript)
+         }
+         await manager.setPartialCallback { transcript in
++            producerProbeForTesting?.record("native.partial")
+             onPartial(transcript)
+         }
+     }
+--- a/Sources/NextNotes/Activation/AgentCaptureController.swift
++++ b/Sources/NextNotes/Activation/AgentCaptureController.swift
+@@ -165,6 +165,7 @@
+     private var fileEOUResets = 0
+     private var audioContinuation: AsyncStream<AudioChunk>.Continuation?
+     private var turnDetector: LocalVoiceTurnDetector?
++    @ObservationIgnored private var inputProducerProbeForTesting: VoiceInputProducerProbe?
+     private var turnDetectorTask: Task<Void, Never>?
+     private var turnAudioBacklog: TurnAudioBacklog?
+     private var turnDetectorReady = false
+@@ -604,7 +605,8 @@
+         )
+         let turnAudioBacklog = TurnAudioBacklog()
+         let turnAudioSequence = TurnAudioSequence()
+-        let detector = LocalVoiceTurnDetector()
++        let producerProbeForTesting = SelfTest.isRunning ? inputProducerProbeForTesting : nil
++        let detector = LocalVoiceTurnDetector(producerProbeForTesting: producerProbeForTesting)
+         turnDetector = detector
+         self.turnAudioBacklog = turnAudioBacklog
+         let eouCallback = makeEOUCallback(captureID: captureID, epoch: turnEpoch)
+@@ -715,7 +717,12 @@
+                         }
+                     }
+                     let started = Date()
+-                    try await detector.process(chunk)
++                    if let producerProbeForTesting {
++                        try await detector.process(chunk,
++                            producerInputForTesting: producerProbeForTesting.input(sequence: sequence))
++                    } else {
++                        try await detector.process(chunk)
++                    }
+                     if !measuredFirstProcess {
+                         measuredFirstProcess = true
+                         let duration = Date().timeIntervalSince(started)
+@@ -787,7 +794,17 @@
+             let cleaned = AcousticEchoProcessor.shared.process(chunk)
+             let acoustic = AcousticEchoProcessor.shared.evidenceSnapshot()
+             continuation.yield(cleaned)
+-            let dropped = turnAudioBacklog.enqueue((cleaned, Date(), turnAudioSequence.next()))
++            let sequence = turnAudioSequence.next()
++            if let producerProbeForTesting {
++                let format = cleaned.buffer.format
++                if format.commonFormat != .pcmFormatFloat32 || format.sampleRate != 16_000
++                    || format.channelCount != 1 || format.isInterleaved {
++                    producerProbeForTesting.record("capture.format.invalid")
++                }
++            }
++            producerProbeForTesting?.captured(sequence: sequence,
++                frames: Int(cleaned.buffer.frameLength))
++            let dropped = turnAudioBacklog.enqueue((cleaned, Date(), sequence))
+             if dropped > 0 {
+                 Task { @MainActor in
+                     let capture = AgentCaptureController.shared
+@@ -1204,12 +1221,15 @@
+     }
+ 
+     private func makeEOUCallback(captureID: UUID, epoch: Int) -> @Sendable (String) -> Void {
+-        { modelText in
++        let producerProbeForTesting = inputProducerProbeForTesting
++        return { modelText in
++            producerProbeForTesting?.record("callback.eou", epoch: epoch)
+             // P2-01: stamped on FluidAudio's own thread, before the hop to the main actor,
+             // because that hop is `voice.eou_hop` — the part nobody could see before.
+             VoiceLatencyTimeline.shared.mark(.eouRaw)
+             VoiceLatencyTimeline.shared.mark(.eouCallback)
+             Task { @MainActor in
++                defer { producerProbeForTesting?.record("callback.eou.handled", epoch: epoch) }
+                 let capture = AgentCaptureController.shared
+                 guard capture.captureSessionID == captureID,
+                       capture.turnEpoch == epoch else { return }
+@@ -1456,6 +1476,12 @@
+         source: EndpointSource,
+         continueSession: Bool
+     ) async {
++        if let inputProducerProbeForTesting {
++            // Harness-only: text/endpoint eligibility was selected by the real
++            // tick; permit the next file's input to arrive before this commit.
++            await inputProducerProbeForTesting.holdFirstCommit(epoch: turnEpoch)
++        }
++        inputProducerProbeForTesting?.record("commit.emitted", epoch: turnEpoch)
+         let shadowTurn = shadowTurnIfNeeded()
+         // P2-01: the turn's endpoint. The source is part of the measurement, because a VAD
+         // fallback and a confirmed model EOU are two different latencies wearing one name.
+@@ -1557,6 +1583,58 @@
+ 
+     func noteAssistantReply(_ text: String) {
+         lastReply = text
++    }
++
++    /// Support for the controlled producer regression. This emits no pass marker.
++    /// The flag's conductor must apply the recipe in the retained report and
++    /// require actual native callbacks, frame coverage and expected commit counts.
++    func beginInputProducerFixtureForTesting(wav: URL,
++        holdPrepare: Bool, holdFirstCommit: Bool,
++        committed: @escaping @MainActor (String) async -> Void) async throws
++        -> VoiceInputProducerProbe {
++        guard SelfTest.isRunning else { throw TranscriptionError.notRunning }
++        await endSession(source: .done)
++        let probe = VoiceInputProducerProbe(holdPrepare: holdPrepare,
++            holdFirstCommit: holdFirstCommit)
++        inputProducerProbeForTesting = probe
++        turnHandlerForTesting = committed
++        do {
++            try await beginFileSession(wav: wav, deferFeed: true,
++                prepareResources: false)
++            return probe
++        } catch {
++            probe.releaseAll()
++            inputProducerProbeForTesting = nil
++            turnHandlerForTesting = nil
++            await endSession(source: .done)
++            throw error
++        }
++    }
++
++    func startInputProducerFixtureFeedForTesting() {
++        guard SelfTest.isRunning, inputProducerProbeForTesting != nil else { return }
++        startDeferredFileFeed()
++    }
++
++    func feedInputProducerFixtureSecondForTesting(wav: URL) async throws {
++        guard SelfTest.isRunning, let probe = inputProducerProbeForTesting,
++            let format = fileCaptureFormat, let deliver = fileDeliveryForTesting else {
++            throw TranscriptionError.notRunning
++        }
++        fileFeedTask?.cancel()
++        await fileFeedTask?.value
++        probe.beginSecondInput()
++        try await feedFile(wav, outputFormat: format,
++            deliver: deliver, markSecondInput: true)
++    }
++
++    func endInputProducerFixtureForTesting() async {
++        guard SelfTest.isRunning else { return }
++        // Release continuations before endSession waits for the real decoder.
++        inputProducerProbeForTesting?.releaseAll()
++        await endSession(source: .done)
++        inputProducerProbeForTesting = nil
++        turnHandlerForTesting = nil
+     }
+ 
+     /// Two paced requests share one decoder and one microphone-session epoch.
+@@ -1818,6 +1896,7 @@
+     }
+ 
+     private func resetTurn() {
++        inputProducerProbeForTesting?.record("capture.reset", epoch: turnEpoch)
+         voiceShadowTurn = nil
+         appleEchoRecognition = .init()
+         localEchoRecognition = .init()
+@@ -2590,3 +2669,310 @@
+         VoiceTurnPolicy.isClosingTurn(text)
+     }
+ }
++
++// UNAPPLIED AND UNCOMPILED. Append to AgentCaptureController.swift AFTER the
++// reviewed support patch, so this extension uses that file's real private seams.
++// Root owns registration and the one final OK/FAILED marker. No fake/native fallback.
++extension AgentCaptureController {
++    private enum NativeInputFixtureMode: String, CaseIterable {
++        case cold
++        case precommit
++        case overlap
++    }
++
++    /// Start with coldOnly=true to retain the original one-WAV native red first.
++    /// ColdOnly=false additionally requires the two genuine B-preservation cases.
++    static func runNativeInputProducerFixtureSelfTest(first: URL, second: URL,
++        coldOnly: Bool = true) async -> [String] {
++        guard SelfTest.isRunning else { return ["input producer fixture requires isolated self-test mode"] }
++        var failures: [String] = []
++        let modes = coldOnly ? [NativeInputFixtureMode.cold] : NativeInputFixtureMode.allCases
++        for mode in modes {
++            if Task.isCancelled {
++                failures.append("input producer conductor cancelled before \(mode.rawValue)")
++                break
++            }
++            failures += await runNativeInputProducerCase(mode, first: first, second: second)
++        }
++        return failures
++    }
++
++    private static func runNativeInputProducerCase(_ mode: NativeInputFixtureMode,
++        first: URL, second: URL) async -> [String] {
++        let capture = AgentCaptureController.shared
++        let previousHandler = capture.turnHandlerForTesting
++        var failures: [String] = []
++        var probe: VoiceInputProducerProbe?
++        var secondFeed: Task<Void, Error>?
++        var turns: [(text: String, source: EndpointSource)] = []
++        let label = "input.\(mode.rawValue)"
++
++        @MainActor func require(_ value: Bool, _ message: String) {
++            if !value { failures.append("\(label): \(message)") }
++        }
++        @MainActor func wait(_ name: String, seconds: TimeInterval,
++            until condition: @escaping @MainActor () -> Bool) async -> Bool {
++            let deadline = ContinuousClock.now.advanced(by: .seconds(seconds))
++            while !condition() {
++                if Task.isCancelled {
++                    failures.append("\(label): cancelled waiting for \(name)")
++                    return false
++                }
++                if ContinuousClock.now >= deadline {
++                    failures.append("\(label): bounded wait expired for \(name)")
++                    return false
++                }
++                // Test conductor polling only; no production wait or endpoint change.
++                do { try await Task.sleep(for: .milliseconds(5)) }
++                catch {
++                    failures.append("\(label): cancelled polling \(name)")
++                    return false
++                }
++            }
++            return true
++        }
++        @MainActor func events(_ kind: String) -> [VoiceInputProducerProbe.Event] {
++            probe?.snapshot().filter { $0.kind == kind } ?? []
++        }
++        @MainActor func haveCompleteProcessCoverage() -> Bool {
++            let captured = events("captured").compactMap(\.input)
++            let processed = events("process.end").compactMap(\.input)
++            let coveredSequences = Set(processed.map(\.sequence))
++            return !captured.isEmpty && captured.allSatisfy { coveredSequences.contains($0.sequence) }
++        }
++        @MainActor func settled() -> Bool {
++            haveCompleteProcessCoverage()
++                && events("callback.eou").count == events("callback.eou.handled").count
++                && capture.modelEOUAt == nil && capture.activeTurnTask == nil
++        }
++
++        // No async defer: release holders synchronously, then await all cleanup
++        // below the do/catch, before restoring the previous handler.
++        do {
++            let newProbe = try await capture.beginInputProducerFixtureForTesting(
++                wav: first, holdPrepare: mode != .overlap,
++                holdFirstCommit: mode != .cold) { text in
++                    turns.append((text, capture.lastEndpoint))
++                }
++            probe = newProbe
++            guard let format = capture.fileCaptureFormat,
++                format.commonFormat == .pcmFormatFloat32, format.sampleRate == 16_000,
++                format.channelCount == 1, !format.isInterleaved else {
++                throw NativeInputFixtureError.stage("actual capture format was not Float32/16000/mono")
++            }
++            let preparationEvent = mode == .overlap ? "prepare.ready" : "prepare.held"
++            guard await wait(preparationEvent, seconds: 90,
++                until: { !events(preparationEvent).isEmpty }) else {
++                throw NativeInputFixtureError.stage("native preparation checkpoint unavailable")
++            }
++            capture.startInputProducerFixtureFeedForTesting()
++
++            if mode == .cold {
++                guard await wait("first actual VAD commit", seconds: 12,
++                    until: { !turns.isEmpty }) else {
++                    throw NativeInputFixtureError.stage("actual Apple/VAD initial commit absent")
++                }
++                require(turns.count == 1, "first input committed \(turns.count) times before decoder release")
++                require(turns.first?.source == .vad, "initial endpoint was not actual VAD fallback")
++                guard await wait("unchanged first WAV/tail completion", seconds: 8,
++                    until: { capture.fileFeedCompletedAt != nil }) else {
++                    throw NativeInputFixtureError.stage("first WAV did not finish")
++                }
++                if let feed = capture.fileSessionProgress.feed { await feed.value }
++                require(!events("reset.requested").isEmpty,
++                    "first commit did not queue an actual detector reset behind preparation")
++                newProbe.releasePrepare()
++            } else {
++                guard await wait("first selected commit held", seconds: 12,
++                    until: { !events("commit.selected").isEmpty }) else {
++                    throw NativeInputFixtureError.stage("real endpoint did not select first commit")
++                }
++                require(events("commit.emitted").isEmpty, "first commit was not held")
++                secondFeed = Task { @MainActor in
++                    defer { newProbe.record("second.feed.completed") }
++                    try await capture.feedInputProducerFixtureSecondForTesting(wav: second)
++                }
++                guard await wait("B captured before A commit", seconds: 5,
++                    until: { events("captured").contains { $0.input?.second == true } }) else {
++                    throw NativeInputFixtureError.stage("precommit B buffer absent")
++                }
++                if mode == .overlap {
++                    guard await wait("first B frame inside actual decoder suffix", seconds: 8,
++                        until: { nativeInputSuffixContainsFirstB(newProbe.snapshot()) }) else {
++                        throw NativeInputFixtureError.stage("retained 80 ms overlap was not exercised")
++                    }
++                }
++                newProbe.releaseCommit()
++                newProbe.releasePrepare()
++                guard await wait("unchanged second WAV/tail completion", seconds: 15,
++                    until: { !events("second.feed.completed").isEmpty }) else {
++                    throw NativeInputFixtureError.stage("second WAV did not finish")
++                }
++                if let secondFeed { try await secondFeed.value }
++            }
++
++            guard await wait("actual native EOU", seconds: 30,
++                until: { !events("native.eou").isEmpty }) else {
++                throw NativeInputFixtureError.stage("native EOU absent; no scripted substitute")
++            }
++            guard await wait("actual decoder/EOU/handler drain", seconds: 30,
++                until: { settled() }) else {
++                throw NativeInputFixtureError.stage("native input/callback delivery did not settle")
++            }
++            await capture.waitForActiveTurnForTesting()
++            require(capture.fileFeedFailure == nil, "first file feed failed")
++            require(capture.eouDroppedChunks == 0, "actual backlog dropped \(capture.eouDroppedChunks) chunks")
++            require(events("capture.format.invalid").isEmpty, "delivered PCM broke canonical format")
++            require(events("process.failed").isEmpty, "native processing failed; failed input cannot count as completed coverage")
++            let trace = newProbe.snapshot()
++            failures += validateNativeInputFrameTrace(trace, label: label)
++            require(turns.first?.text.lowercased().contains("haiku") == true,
++                "actual first transcript lost the fixture's haiku request")
++
++            if mode == .cold {
++                require(turns.count == 1, "original single WAV committed \(turns.count) turns")
++                require(events("commit.emitted").count == 1,
++                    "old decoded input reached the actual emit/reset producer again")
++                if let firstCommit = events("commit.emitted").first {
++                    require(events("native.eou").contains {
++                        guard let input = $0.input else { return false }
++                        return !input.second && input.frames.upperBound <= firstCommit.capturedEnd
++                    }, "native endpoint did not cover an actual precommit input process interval")
++                } else {
++                    require(false, "first commit's captured boundary missing")
++                }
++            } else {
++                require(turns.count == 2, "two input files committed \(turns.count) turns")
++                let secondText = turns.dropFirst().first?.text.lowercased() ?? ""
++                require(secondText.contains("wait") && secondText.contains("stop speaking"),
++                    "native B did not retain its initial Wait and stop-speaking request")
++                let firstB = events("captured").compactMap(\.input).first { $0.second }
++                let selected = events("commit.selected").first
++                let emitted = events("commit.emitted").first
++                if let firstB, let selected, let emitted {
++                    require(selected.capturedEnd <= firstB.frames.lowerBound
++                        && firstB.frames.lowerBound < firstB.frames.upperBound
++                        && firstB.frames.upperBound <= emitted.capturedEnd,
++                        "frame trace did not prove B arrived after A selection but before A commit")
++                } else {
++                    require(false, "actual precommit B/selection/emission frame evidence missing")
++                }
++                if mode == .overlap {
++                    failures += validateNativeInputResetSuffix(trace, label: label)
++                }
++            }
++            SelfTest.diagnostic("NATIVE_INPUT_CASE=\(mode.rawValue) commits=\(turns.count) "
++                + "nativeEOU=\(events("native.eou").count) captures=\(events("captured").count) "
++                + "processed=\(events("process.end").count) resetGrants=\(events("reset.granted").count)")
++            for event in trace where event.kind != "captured" && event.kind != "process.begin" {
++                let interval = event.input.map { "\($0.frames.lowerBound)..<\($0.frames.upperBound)" } ?? "none"
++                SelfTest.diagnostic("NATIVE_INPUT_EVENT=\(mode.rawValue):\(event.kind) "
++                    + "processInput=\(interval) epoch=\(event.epoch.map(String.init) ?? "none") "
++                    + "capturedEnd=\(event.capturedEnd)")
++            }
++        } catch {
++            failures.append("\(label): \(error.localizedDescription)")
++        }
++
++        // Every exit, including cancellation/failed preparation, releases both
++        // continuations before awaiting feed/decoder cleanup. No fire-and-forget defer.
++        probe?.releaseAll()
++        secondFeed?.cancel()
++        if let secondFeed { _ = await secondFeed.result }
++        await capture.endInputProducerFixtureForTesting()
++        capture.turnHandlerForTesting = previousHandler
++        return failures
++    }
++
++    private enum NativeInputFixtureError: Error, LocalizedError {
++        case stage(String)
++        var errorDescription: String? {
++            switch self { case .stage(let message): return message }
++        }
++    }
++
++    private static func validateNativeInputFrameTrace(_ trace: [VoiceInputProducerProbe.Event],
++        label: String) -> [String] {
++        let captured = trace.filter { $0.kind == "captured" }.compactMap(\.input)
++        let processed = trace.filter { $0.kind == "process.end" }.compactMap(\.input)
++        guard !captured.isEmpty else { return ["\(label): no canonical captured intervals"] }
++        var failures: [String] = []
++        var nextFrame = 0
++        var previousSequence: Int?
++        for input in captured {
++            if input.frames.lowerBound != nextFrame || input.frames.isEmpty {
++                failures.append("\(label): noncontiguous/empty actual capture interval \(input.sequence)")
++            }
++            if let previousSequence, input.sequence != previousSequence + 1 {
++                failures.append("\(label): actual capture sequence discontinuity")
++            }
++            nextFrame = input.frames.upperBound
++            previousSequence = input.sequence
++            if !processed.contains(where: { $0.sequence == input.sequence && $0.frames == input.frames }) {
++                failures.append("\(label): captured interval \(input.sequence) never completed actual processing")
++            }
++        }
++        if processed.contains(where: { item in !captured.contains { $0.sequence == item.sequence && $0.frames == item.frames } }) {
++            failures.append("\(label): processing claimed an interval not captured by the real delivery closure")
++        }
++        return failures
++    }
++
++    /// Computes only the inspected manager's retained PCM suffix, never a
++    /// spoken utterance end or token timestamp. Reset/format/discontinuity invalidate origin.
++    private static func nativeInputSuffix(_ trace: ArraySlice<VoiceInputProducerProbe.Event>) -> Range<Int>? {
++        let lastReset = trace.lastIndex { $0.kind == "reset.completed" }
++        let afterReset = lastReset.map { trace.index(after: $0) } ?? trace.startIndex
++        let inputs = trace[afterReset...].filter { $0.kind == "process.end" }.compactMap(\.input)
++        guard let first = inputs.first, let last = inputs.last else { return nil }
++        var next = first.frames.lowerBound
++        for input in inputs {
++            guard input.frames.lowerBound == next else { return nil }
++            next = input.frames.upperBound
++        }
++        let count = last.frames.upperBound - first.frames.lowerBound
++        let shifts = count < 2_560 ? 0 : 1_280 * (1 + (count - 2_560) / 1_280)
++        return (first.frames.lowerBound + shifts)..<last.frames.upperBound
++    }
++
++    private static func nativeInputSuffixContainsFirstB(_ trace: [VoiceInputProducerProbe.Event]) -> Bool {
++        guard let firstB = trace.first(where: { $0.kind == "captured" && $0.input?.second == true })?.input,
++            let suffix = nativeInputSuffix(trace[...]) else { return false }
++        return suffix.contains(firstB.frames.lowerBound)
++            && trace.contains { $0.kind == "process.end" && $0.input?.sequence == firstB.sequence }
++    }
++
++    private static func validateNativeInputResetSuffix(_ trace: [VoiceInputProducerProbe.Event],
++        label: String) -> [String] {
++        let secondInputs = trace.filter { $0.kind == "captured" }.compactMap(\.input).filter(\.second)
++        var exercised = false
++        var failures: [String] = []
++        for index in trace.indices where trace[index].kind == "reset.granted" {
++            guard let suffix = nativeInputSuffix(trace[..<index]) else { continue }
++            for input in secondInputs {
++                let low = max(input.frames.lowerBound, suffix.lowerBound)
++                let high = min(input.frames.upperBound, suffix.upperBound)
++                guard low < high else { continue }
++                exercised = true
++                // The original reset clears this real buffered PCM. A correct
++                // implementation must avoid clearing it or truthfully replay it.
++                // Future reset-preserves-buffer implementations need their real
++                // producer observation here; no unverified preservation marker passes.
++                let later = trace[(index + 1)...].filter { $0.kind == "process.end" }.compactMap(\.input)
++                var cursor = low
++                for replay in later.sorted(by: { $0.frames.lowerBound < $1.frames.lowerBound }) {
++                    if replay.frames.lowerBound <= cursor && replay.frames.upperBound > cursor {
++                        cursor = min(high, replay.frames.upperBound)
++                    }
++                }
++                if cursor < high {
++                    failures.append("\(label): actual reset cleared B suffix \(low)..<\(high) without input resubmission")
++                }
++            }
++        }
++        if !exercised {
++            failures.append("\(label): no reset of B's actual 80 ms suffix observed; preservation mechanism remains unverified")
++        }
++        return failures
++    }
++}

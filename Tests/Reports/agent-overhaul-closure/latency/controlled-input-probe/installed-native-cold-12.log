@@ -1,0 +1,137 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-input-producer /tmp/nextnotes-agent-closure-voice-fixtures/haiku16k.wav /tmp/nextnotes-agent-closure-voice-fixtures/stop16k.wav --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-native-input-12.out
+2026-10-01 22:27:54.993 NextNotes[70488:841967] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[22:27:55.727] [INFO] [FluidAudio.StreamingEOU] Initialized with chunk size: 160ms, EOU debounce: 320ms
+[22:27:55.729] [INFO] [FluidAudio.DownloadUtils] Host environment: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[22:27:55.733] [INFO] [FluidAudio.DownloadUtils] Found parakeet-eou-streaming/160ms locally, no download needed
+[22:27:55.733] [INFO] [FluidAudio.StreamingEOU] Loading CoreML models from /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-eou-streaming/parakeet-eou-streaming/160ms...
+[22:27:58.287] [INFO] [FluidAudio.StreamingEOU] Models loaded successfully.
+[22:28:04.240] [INFO] [FluidAudio.StreamingEOU] EOU confirmed at chunk 48 (3920ms)
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_APPLE_FIRST_RESULT=voice+0.982s text=Hello
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_FILE_MAX_PACING_LAG=0.153784667 seconds
+VOICE_EOU_PREPARE=7.664530992507935s
+VOICE_EOU_STARTUP_BUFFERED=60 chunks / 76095 frames
+VOICE_EOU_FIRST_PROCESS=9.703636169433594e-05s lag=4.757658004760742s
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_MODEL_PARTIAL=voice+4.947s text=hello apple=false
+VOICE_MODEL_PARTIAL=voice+4.964s text=hello there apple=false
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_MODEL_PARTIAL=voice+5.033s text=hello there please apple=false
+VOICE_MODEL_PARTIAL=voice+5.075s text=hello there please tell apple=false
+VOICE_MODEL_PARTIAL=voice+5.100s text=hello there please tell me apple=false
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_MODEL_PARTIAL=voice+5.162s text=hello there please tell me brie apple=false
+VOICE_MODEL_PARTIAL=voice+5.176s text=hello there please tell me brief apple=false
+VOICE_MODEL_PARTIAL=voice+5.195s text=hello there please tell me briefly apple=false
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_MODEL_PARTIAL=voice+5.229s text=hello there please tell me briefly what apple=false
+VOICE_MODEL_PARTIAL=voice+5.317s text=hello there please tell me briefly what a apple=false
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_MODEL_PARTIAL=voice+5.332s text=hello there please tell me briefly what a haik apple=false
+VOICE_MODEL_PARTIAL=voice+5.368s text=hello there please tell me briefly what a haiku apple=false
+VOICE_MODEL_PARTIAL=voice+5.406s text=hello there please tell me briefly what a haiku is apple=false
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_MODEL_EOU=sinceVoiceEnd 2.645s appleRevisionAge nones text=hello there please tell me briefly what a haiku is
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#1) legacy=nil
+NATIVE_INPUT_CASE=cold commits=1 nativeEOU=1 captures=60 processed=60 resetGrants=2
+NATIVE_INPUT_EVENT=cold:capture.reset processInput=none epoch=0 capturedEnd=0
+NATIVE_INPUT_EVENT=cold:prepare.checkpoint processInput=none epoch=none capturedEnd=0
+NATIVE_INPUT_EVENT=cold:prepare.held processInput=none epoch=none capturedEnd=0
+NATIVE_INPUT_EVENT=cold:commit.selected processInput=none epoch=1 capturedEnd=69695
+NATIVE_INPUT_EVENT=cold:commit.emitted processInput=none epoch=1 capturedEnd=69695
+NATIVE_INPUT_EVENT=cold:capture.reset processInput=none epoch=1 capturedEnd=69695
+NATIVE_INPUT_EVENT=cold:reset.requested processInput=none epoch=none capturedEnd=70975
+NATIVE_INPUT_EVENT=cold:prepare.ready processInput=none epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:reset.granted processInput=none epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:reset.completed processInput=none epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=0..<1280 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=1280..<2560 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=2560..<3840 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=3840..<5120 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=5120..<6400 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=6400..<7680 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=7680..<8960 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=8960..<10240 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=10240..<11520 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=10240..<11520 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=11520..<12800 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=11520..<12800 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=12800..<14080 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=14080..<15360 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=15360..<16640 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=16640..<17920 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=17920..<19200 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=17920..<19200 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=19200..<20480 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=20480..<21760 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=21760..<23040 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=21760..<23040 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=23040..<24320 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=24320..<25600 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=24320..<25600 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=25600..<26880 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=26880..<28160 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=28160..<29440 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=29440..<30720 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=29440..<30720 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=30720..<32000 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=30720..<32000 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=32000..<33280 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=32000..<33280 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=33280..<34560 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=34560..<35840 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=34560..<35840 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=35840..<37120 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=37120..<38400 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=38400..<39680 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=39680..<40960 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=40960..<42240 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=40960..<42240 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=42240..<43520 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=42240..<43520 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=43520..<44800 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=44800..<46080 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=44800..<46080 epoch=none capturedEnd=76095
+NATIVE_I[22:28:04.352] [INFO] [FluidAudio.StreamingEOU] StreamingEouAsrManager resources cleaned up
+NATIVE_INPUT_OK
+NPUT_EVENT=cold:process.end processInput=46080..<47360 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.partial processInput=47360..<48640 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=47360..<48640 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=48640..<49920 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=49920..<51200 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=51200..<51775 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=51775..<53055 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=53055..<54335 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=54335..<55615 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=55615..<56895 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=56895..<58175 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=58175..<59455 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=59455..<60735 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=60735..<62015 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=62015..<63295 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:native.eou processInput=63295..<64575 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:callback.eou processInput=63295..<64575 epoch=2 capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=63295..<64575 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:callback.eou.handled processInput=64575..<65855 epoch=2 capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:capture.reset processInput=64575..<65855 epoch=2 capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:reset.requested processInput=64575..<65855 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=64575..<65855 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:reset.granted processInput=none epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:reset.completed processInput=none epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=65855..<67135 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=67135..<68415 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=68415..<69695 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=69695..<70975 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=70975..<72255 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=72255..<73535 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=73535..<74815 epoch=none capturedEnd=76095
+NATIVE_INPUT_EVENT=cold:process.end processInput=74815..<76095 epoch=none capturedEnd=76095
+VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#1) legacy=nil

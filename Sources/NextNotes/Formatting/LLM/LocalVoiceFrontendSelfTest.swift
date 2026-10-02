@@ -6,8 +6,8 @@ enum LocalVoiceFrontendSelfTest {
     static func run() async -> Bool {
         let frontend = LocalVoiceFrontend.shared
         guard NotesModels.isDownloaded else {
-            print("VOICE_FRONTEND_MISSING_WORKER_MODEL")
-            print("VOICE_FRONTEND_FAILED")
+            await SelfTest.diagnostic("VOICE_FRONTEND_MISSING_WORKER_MODEL")
+            await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
             return false
         }
         do {
@@ -18,7 +18,7 @@ enum LocalVoiceFrontendSelfTest {
                 : NotesModelRuntime.shared
             let prewarmStart = ContinuousClock.now
             try await frontend.prepare()
-            print("voice frontend prewarm \(prewarmStart.duration(to: .now))")
+            await SelfTest.diagnostic("voice frontend prewarm \(prewarmStart.duration(to: .now))")
 
             if CommandLine.arguments.contains("--voice-frontend-greeting") {
                 let start = ContinuousClock.now
@@ -38,9 +38,9 @@ enum LocalVoiceFrontendSelfTest {
                         first = seconds(start.duration(to: .now))
                     }
                 }
-                print("voice frontend greeting first_text=\(first.map { String(format: "%.3f", $0) } ?? "none")s output=\(output)")
+                await SelfTest.diagnostic("voice frontend greeting first_text=\(first.map { String(format: "%.3f", $0) } ?? "none")s output=\(output)")
                 let okay = first != nil
-                print(okay ? "VOICE_FRONTEND_OK" : "VOICE_FRONTEND_FAILED")
+                await SelfTest.diagnostic(okay ? "VOICE_FRONTEND_OK" : "VOICE_FRONTEND_FAILED")
                 return okay
             }
 
@@ -74,12 +74,12 @@ enum LocalVoiceFrontendSelfTest {
                     }
                 }
                 guard let first else {
-                    print("voice frontend idle invalid staged=\(staged) first_raw=\(firstRaw.map { String(format: "%.3f", $0) } ?? "none")s output=\(output)")
-                    print("VOICE_FRONTEND_FAILED")
+                    await SelfTest.diagnostic("voice frontend idle invalid staged=\(staged) first_raw=\(firstRaw.map { String(format: "%.3f", $0) } ?? "none")s output=\(output)")
+                    await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                     return false
                 }
-                print("voice frontend idle20 first_text=\(String(format: "%.3f", first))s staged_1s=\(staged)")
-                print("VOICE_FRONTEND_OK")
+                await SelfTest.diagnostic("voice frontend idle20 first_text=\(String(format: "%.3f", first))s staged_1s=\(staged)")
+                await SelfTest.diagnostic("VOICE_FRONTEND_OK")
                 return true
             }
 
@@ -168,7 +168,7 @@ enum LocalVoiceFrontendSelfTest {
                     clauseText = AgentSpeechPolicy.spokenForm(answer)
                 }
                 guard let first, !output.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-                    print("voice frontend invalid: speech=\(fixture.speech) output=\(output)")
+                    await SelfTest.diagnostic("voice frontend invalid: speech=\(fixture.speech) output=\(output)")
                     routingFailures += 1
                     continue
                 }
@@ -179,7 +179,7 @@ enum LocalVoiceFrontendSelfTest {
                 case (.answer, .answer): classified = true
                 default: classified = fixture.expected == parsed
                 }
-                print("voice frontend first_text=\(String(format: "%.3f", first))s first_clause=\(firstClause.map { String(format: "%.3f", $0) } ?? "none")s clause=\(clauseText ?? "none") speech=\(fixture.speech) output=\(output) classified=\(classified)")
+                await SelfTest.diagnostic("voice frontend first_text=\(String(format: "%.3f", first))s first_clause=\(firstClause.map { String(format: "%.3f", $0) } ?? "none")s clause=\(clauseText ?? "none") speech=\(fixture.speech) output=\(output) classified=\(classified)")
                 if !classified { routingFailures += 1 }
                 if substantiveLead, case .answer(let answer) = parsed {
                     let lower = answer.lowercased()
@@ -202,24 +202,24 @@ enum LocalVoiceFrontendSelfTest {
                         hasSubstance = true
                     }
                     guard hasSubstance, !hasGenericTail else {
-                        print("voice frontend substantive failure: speech=\(fixture.speech) answer=\(answer)")
-                        print("VOICE_FRONTEND_FAILED")
+                        await SelfTest.diagnostic("voice frontend substantive failure: speech=\(fixture.speech) answer=\(answer)")
+                        await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                         return false
                     }
                 }
                 } catch {
                     routingFailures += 1
-                    print("voice frontend fixture error: speech=\(fixture.speech) error=\(error)")
+                    await SelfTest.diagnostic("voice frontend fixture error: speech=\(fixture.speech) error=\(error)")
                 }
             }
 
             guard routingFailures == 0 else {
-                print("VOICE_FRONTEND_FAILED: \(routingFailures) routing cases")
+                await SelfTest.diagnostic("VOICE_FRONTEND_FAILED: \(routingFailures) routing cases")
                 return false
             }
             if CommandLine.arguments.contains("--voice-frontend-clause")
                 || CommandLine.arguments.contains("--voice-frontend-routing-only") {
-                print("VOICE_FRONTEND_OK")
+                await SelfTest.diagnostic("VOICE_FRONTEND_OK")
                 return true
             }
 
@@ -252,21 +252,21 @@ enum LocalVoiceFrontendSelfTest {
                 if seconds(workerWaitStart.duration(to: .now)) > 90 {
                     worker.cancel()
                     _ = await worker.value
-                    print("voice frontend worker generated no token within 90 s")
-                    print("VOICE_FRONTEND_FAILED")
+                    await SelfTest.diagnostic("voice frontend worker generated no token within 90 s")
+                    await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                     return false
                 }
                 try await Task.sleep(for: .milliseconds(25))
             }
             let workerInitialState = await workerState.snapshot()
             guard workerInitialState.firstToken, !workerInitialState.completed else {
-                print("voice frontend worker finished before overlap probe")
-                print("VOICE_FRONTEND_FAILED")
+                await SelfTest.diagnostic("voice frontend worker finished before overlap probe")
+                await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                 return false
             }
             let stageStart = ContinuousClock.now
             try await frontend.stageNextTurn(system: system)
-            print("voice frontend active-worker stage=\(String(format: "%.3f", seconds(stageStart.duration(to: .now))))s")
+            await SelfTest.diagnostic("voice frontend active-worker stage=\(String(format: "%.3f", seconds(stageStart.duration(to: .now))))s")
             try await Task.sleep(for: .seconds(stageLeadSeconds))
             let overlapStart = ContinuousClock.now
             let overlapTiming = ProbeTiming()
@@ -289,11 +289,11 @@ enum LocalVoiceFrontendSelfTest {
                     let completed = await workerState.completed
                     let acquired = await overlapTiming.acquiredAt
                     let queue = acquired.map { seconds(overlapStart.duration(to: $0)) } ?? -1
-                    print("voice frontend overlap first_text=\(String(format: "%.3f", overlapFirst!))s scheduler_acquire=\(String(format: "%.3f", queue))s worker_completed=\(completed)")
+                    await SelfTest.diagnostic("voice frontend overlap first_text=\(String(format: "%.3f", overlapFirst!))s scheduler_acquire=\(String(format: "%.3f", queue))s worker_completed=\(completed)")
                     if completed {
                         worker.cancel()
                         _ = await worker.value
-                        print("VOICE_FRONTEND_FAILED")
+                        await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                         return false
                     }
                 }
@@ -313,7 +313,7 @@ enum LocalVoiceFrontendSelfTest {
                    !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     secondFirst = seconds(secondStart.duration(to: .now))
                     let completed = await workerState.completed
-                    print("voice frontend second overlap first_text=\(String(format: "%.3f", secondFirst!))s worker_completed=\(completed)")
+                    await SelfTest.diagnostic("voice frontend second overlap first_text=\(String(format: "%.3f", secondFirst!))s worker_completed=\(completed)")
                 }
             }
             await frontend.setSchedulerAcquiredObserverForTesting(nil)
@@ -323,7 +323,7 @@ enum LocalVoiceFrontendSelfTest {
             worker.cancel()
             _ = await worker.value
             guard overlapFirst != nil, secondFirst != nil else {
-                print("VOICE_FRONTEND_FAILED")
+                await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                 return false
             }
 
@@ -331,8 +331,8 @@ enum LocalVoiceFrontendSelfTest {
             // prefill is deliberately omitted; the native GPU probe below covers it.
             if cpuWorker {
                 let sorted = firstTextSeconds.sorted()
-                print("voice frontend CPU-worker first_text n=\(sorted.count) p50=\(String(format: "%.3f", sorted[sorted.count / 2]))s")
-                print("VOICE_FRONTEND_OK")
+                await SelfTest.diagnostic("voice frontend CPU-worker first_text n=\(sorted.count) p50=\(String(format: "%.3f", sorted[sorted.count / 2]))s")
+                await SelfTest.diagnostic("VOICE_FRONTEND_OK")
                 return true
             }
 
@@ -368,15 +368,15 @@ enum LocalVoiceFrontendSelfTest {
                     prefillWorker.cancel()
                     _ = await prefillWorker.value
                     await workerRuntime.setPrefillChunkObserverForTesting(nil)
-                    print("voice frontend long prefill never began")
-                    print("VOICE_FRONTEND_FAILED")
+                    await SelfTest.diagnostic("voice frontend long prefill never began")
+                    await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                     return false
                 }
                 try await Task.sleep(for: .milliseconds(25))
             }
             let prefillStageStart = ContinuousClock.now
             try await frontend.stageNextTurn(system: system)
-            print("voice frontend long-prefill stage=\(String(format: "%.3f", seconds(prefillStageStart.duration(to: .now))))s")
+            await SelfTest.diagnostic("voice frontend long-prefill stage=\(String(format: "%.3f", seconds(prefillStageStart.duration(to: .now))))s")
             try await Task.sleep(for: .seconds(stageLeadSeconds))
             let prefillStart = ContinuousClock.now
             let prefillTiming = ProbeTiming()
@@ -399,13 +399,13 @@ enum LocalVoiceFrontendSelfTest {
                     let completed = await prefillWorkerState.completed
                     let acquired = await prefillTiming.acquiredAt
                     let queue = acquired.map { seconds(prefillStart.duration(to: $0)) } ?? -1
-                    print("voice frontend long-prefill first_text=\(String(format: "%.3f", prefillFirst!))s scheduler_acquire=\(String(format: "%.3f", queue))s worker_completed=\(completed)")
+                    await SelfTest.diagnostic("voice frontend long-prefill first_text=\(String(format: "%.3f", prefillFirst!))s scheduler_acquire=\(String(format: "%.3f", queue))s worker_completed=\(completed)")
                     if completed {
                         prefillWorker.cancel()
                         _ = await prefillWorker.value
                         await frontend.setSchedulerAcquiredObserverForTesting(nil)
                         await workerRuntime.setPrefillChunkObserverForTesting(nil)
-                        print("VOICE_FRONTEND_FAILED")
+                        await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                         return false
                     }
                 }
@@ -416,18 +416,18 @@ enum LocalVoiceFrontendSelfTest {
             await frontend.setSchedulerAcquiredObserverForTesting(nil)
             await workerRuntime.setPrefillChunkObserverForTesting(nil)
             guard prefillFirst != nil else {
-                print("VOICE_FRONTEND_FAILED")
+                await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                 return false
             }
             let sorted = firstTextSeconds.sorted()
             let p50 = sorted[sorted.count / 2]
             let p95 = sorted[sorted.count - 1]
-            print("voice frontend warm first_text n=\(sorted.count) p50=\(String(format: "%.3f", p50))s p95_sample_max=\(String(format: "%.3f", p95))s")
-            print("VOICE_FRONTEND_OK")
+            await SelfTest.diagnostic("voice frontend warm first_text n=\(sorted.count) p50=\(String(format: "%.3f", p50))s p95_sample_max=\(String(format: "%.3f", p95))s")
+            await SelfTest.diagnostic("VOICE_FRONTEND_OK")
             return true
         } catch {
-            print("voice frontend error: \(error)")
-            print("VOICE_FRONTEND_FAILED")
+            await SelfTest.diagnostic("voice frontend error: \(error)")
+            await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
             return false
         }
     }

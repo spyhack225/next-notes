@@ -165,6 +165,7 @@ final class AgentCaptureController {
     private var fileEOUResets = 0
     private var audioContinuation: AsyncStream<AudioChunk>.Continuation?
     private var turnDetector: LocalVoiceTurnDetector?
+    @ObservationIgnored private var inputProducerProbeForTesting: VoiceInputProducerProbe?
     private var turnDetectorTask: Task<Void, Never>?
     private var turnAudioBacklog: TurnAudioBacklog?
     private var turnDetectorReady = false
@@ -604,7 +605,8 @@ final class AgentCaptureController {
         )
         let turnAudioBacklog = TurnAudioBacklog()
         let turnAudioSequence = TurnAudioSequence()
-        let detector = LocalVoiceTurnDetector()
+        let producerProbeForTesting = SelfTest.isRunning ? inputProducerProbeForTesting : nil
+        let detector = LocalVoiceTurnDetector(producerProbeForTesting: producerProbeForTesting)
         turnDetector = detector
         self.turnAudioBacklog = turnAudioBacklog
         let eouCallback = makeEOUCallback(captureID: captureID, epoch: turnEpoch)
@@ -715,7 +717,12 @@ final class AgentCaptureController {
                         }
                     }
                     let started = Date()
-                    try await detector.process(chunk)
+                    if let producerProbeForTesting {
+                        try await detector.process(chunk,
+                            producerInputForTesting: producerProbeForTesting.input(sequence: sequence))
+                    } else {
+                        try await detector.process(chunk)
+                    }
                     if !measuredFirstProcess {
                         measuredFirstProcess = true
                         let duration = Date().timeIntervalSince(started)
@@ -787,7 +794,17 @@ final class AgentCaptureController {
             let cleaned = AcousticEchoProcessor.shared.process(chunk)
             let acoustic = AcousticEchoProcessor.shared.evidenceSnapshot()
             continuation.yield(cleaned)
-            let dropped = turnAudioBacklog.enqueue((cleaned, Date(), turnAudioSequence.next()))
+            let sequence = turnAudioSequence.next()
+            if let producerProbeForTesting {
+                let format = cleaned.buffer.format
+                if format.commonFormat != .pcmFormatFloat32 || format.sampleRate != 16_000
+                    || format.channelCount != 1 || format.isInterleaved {
+                    producerProbeForTesting.record("capture.format.invalid")
+                }
+            }
+            producerProbeForTesting?.captured(sequence: sequence,
+                frames: Int(cleaned.buffer.frameLength))
+            let dropped = turnAudioBacklog.enqueue((cleaned, Date(), sequence))
             if dropped > 0 {
                 Task { @MainActor in
                     let capture = AgentCaptureController.shared
@@ -1204,12 +1221,15 @@ final class AgentCaptureController {
     }
 
     private func makeEOUCallback(captureID: UUID, epoch: Int) -> @Sendable (String) -> Void {
-        { modelText in
+        let producerProbeForTesting = inputProducerProbeForTesting
+        return { modelText in
+            producerProbeForTesting?.record("callback.eou", epoch: epoch)
             // P2-01: stamped on FluidAudio's own thread, before the hop to the main actor,
             // because that hop is `voice.eou_hop` — the part nobody could see before.
             VoiceLatencyTimeline.shared.mark(.eouRaw)
             VoiceLatencyTimeline.shared.mark(.eouCallback)
             Task { @MainActor in
+                defer { producerProbeForTesting?.record("callback.eou.handled", epoch: epoch) }
                 let capture = AgentCaptureController.shared
                 guard capture.captureSessionID == captureID,
                       capture.turnEpoch == epoch else { return }
@@ -1456,6 +1476,18 @@ final class AgentCaptureController {
         source: EndpointSource,
         continueSession: Bool
     ) async {
+        if let inputProducerProbeForTesting {
+            // Harness-only: text/endpoint eligibility was selected by the real
+            // tick; permit the next file's input to arrive before this commit.
+            let selectedCaptureID = captureSessionID
+            await inputProducerProbeForTesting.holdFirstCommit(epoch: turnEpoch)
+            guard isSessionActive, captureSessionID == selectedCaptureID,
+                !Task.isCancelled else {
+                inputProducerProbeForTesting.record("commit.aborted")
+                return
+            }
+        }
+        inputProducerProbeForTesting?.record("commit.emitted", epoch: turnEpoch)
         let shadowTurn = shadowTurnIfNeeded()
         // P2-01: the turn's endpoint. The source is part of the measurement, because a VAD
         // fallback and a confirmed model EOU are two different latencies wearing one name.
@@ -1557,6 +1589,84 @@ final class AgentCaptureController {
 
     func noteAssistantReply(_ text: String) {
         lastReply = text
+    }
+
+    /// Support for the controlled producer regression. This emits no pass marker.
+    /// The flag's conductor must apply the recipe in the retained report and
+    /// require actual native callbacks, frame coverage and expected commit counts.
+    func beginInputProducerFixtureForTesting(wav: URL,
+        holdPrepare: Bool, holdFirstCommit: Bool,
+        committed: @escaping @MainActor (String) async -> Void) async throws
+        -> VoiceInputProducerProbe {
+        guard SelfTest.isRunning else { throw TranscriptionError.notRunning }
+        await endSession(source: .done)
+        let probe = VoiceInputProducerProbe(holdPrepare: holdPrepare,
+            holdFirstCommit: holdFirstCommit)
+        inputProducerProbeForTesting = probe
+        turnHandlerForTesting = committed
+        do {
+            try await beginFileSession(wav: wav, deferFeed: true,
+                prepareResources: false)
+            return probe
+        } catch {
+            probe.releaseAll()
+            inputProducerProbeForTesting = nil
+            turnHandlerForTesting = nil
+            await endSession(source: .done)
+            throw error
+        }
+    }
+
+    func startInputProducerFixtureFeedForTesting() {
+        guard SelfTest.isRunning, inputProducerProbeForTesting != nil else { return }
+        startDeferredFileFeed()
+    }
+
+    func feedInputProducerFixtureSecondForTesting(wav: URL) async throws {
+        guard SelfTest.isRunning, let probe = inputProducerProbeForTesting,
+            let format = fileCaptureFormat, let deliver = fileDeliveryForTesting else {
+            throw TranscriptionError.notRunning
+        }
+        fileFeedTask?.cancel()
+        await fileFeedTask?.value
+        probe.beginSecondInput()
+        try await feedFile(wav, outputFormat: format,
+            deliver: deliver, markSecondInput: true)
+    }
+
+    func endInputProducerFixtureForTesting(secondFeed: Task<Void, Error>? = nil) async -> [String] {
+        guard SelfTest.isRunning else { return ["input fixture cleanup requires self-test mode"] }
+        // Existing stopEngine drops these handles after cancellation. Retain
+        // them before releasing held operations so the next fixture cannot
+        // mistake returned session cleanup for completed native cleanup.
+        let tasks: [(String, Task<Void, Never>?)] = [
+            ("first feed", fileFeedTask), ("native decoder", turnDetectorTask),
+            ("VAD", vadTask), ("turn handler", activeTurnTask),
+            ("Apple feed", feedTask), ("Apple results", consumeTask)
+        ]
+        // Release continuations before endSession waits for the real decoder.
+        inputProducerProbeForTesting?.releaseAll()
+        secondFeed?.cancel()
+        await endSession(source: .done)
+        var failures: [String] = []
+        for (name, task) in tasks {
+            guard let task else { continue }
+            task.cancel()
+            let joined: Void? = await withBoundedWait(RealtimeAgent.Limits.captureFinish) {
+                await task.value
+            }
+            if joined == nil { failures.append("cleanup did not join \(name)") }
+        }
+        if let secondFeed {
+            let joined: Bool? = await withBoundedWait(RealtimeAgent.Limits.captureFinish) {
+                _ = await secondFeed.result
+                return true
+            }
+            if joined == nil { failures.append("cleanup did not join second feed") }
+        }
+        inputProducerProbeForTesting = nil
+        turnHandlerForTesting = nil
+        return failures
     }
 
     /// Two paced requests share one decoder and one microphone-session epoch.
@@ -1818,6 +1928,7 @@ final class AgentCaptureController {
     }
 
     private func resetTurn() {
+        inputProducerProbeForTesting?.record("capture.reset", epoch: turnEpoch)
         voiceShadowTurn = nil
         appleEchoRecognition = .init()
         localEchoRecognition = .init()
@@ -2588,5 +2699,324 @@ final class AgentCaptureController {
     /// there against a positive corpus of ordinary speech.
     private static func isGoodbye(_ text: String) -> Bool {
         VoiceTurnPolicy.isClosingTurn(text)
+    }
+}
+
+// Applied native diagnostic. Compilation and actual native verdict are pending.
+// Root owns registration and the one final OK/FAILED marker. No fake/native fallback.
+extension AgentCaptureController {
+    private enum NativeInputFixtureMode: String, CaseIterable {
+        case cold
+        case precommit
+        case overlap
+    }
+
+    /// Start with coldOnly=true to retain the original one-WAV native red first.
+    /// ColdOnly=false additionally requires the two genuine B-preservation cases.
+    static func runNativeInputProducerFixtureSelfTest(first: URL, second: URL,
+        coldOnly: Bool = true) async -> [String] {
+        guard SelfTest.isRunning else { return ["input producer fixture requires isolated self-test mode"] }
+        var failures: [String] = []
+        let modes = coldOnly ? [NativeInputFixtureMode.cold] : NativeInputFixtureMode.allCases
+        for mode in modes {
+            if Task.isCancelled {
+                failures.append("input producer conductor cancelled before \(mode.rawValue)")
+                break
+            }
+            let result = await runNativeInputProducerCase(mode, first: first, second: second)
+            failures += result.failures
+            if !result.cleanupComplete { break }
+        }
+        return failures
+    }
+
+    private static func runNativeInputProducerCase(_ mode: NativeInputFixtureMode,
+        first: URL, second: URL) async -> (failures: [String], cleanupComplete: Bool) {
+        let capture = AgentCaptureController.shared
+        let previousHandler = capture.turnHandlerForTesting
+        var failures: [String] = []
+        var probe: VoiceInputProducerProbe?
+        var secondFeed: Task<Void, Error>?
+        var turns: [(text: String, source: EndpointSource)] = []
+        let label = "input.\(mode.rawValue)"
+
+        @MainActor func require(_ value: Bool, _ message: String) {
+            if !value { failures.append("\(label): \(message)") }
+        }
+        @MainActor func wait(_ name: String, seconds: TimeInterval,
+            until condition: @escaping @MainActor () -> Bool) async -> Bool {
+            let deadline = ContinuousClock.now.advanced(by: .seconds(seconds))
+            while !condition() {
+                if Task.isCancelled {
+                    failures.append("\(label): cancelled waiting for \(name)")
+                    return false
+                }
+                if ContinuousClock.now >= deadline {
+                    failures.append("\(label): bounded wait expired for \(name)")
+                    return false
+                }
+                // Test conductor polling only; no production wait or endpoint change.
+                do { try await Task.sleep(for: .milliseconds(5)) }
+                catch {
+                    failures.append("\(label): cancelled polling \(name)")
+                    return false
+                }
+            }
+            return true
+        }
+        @MainActor func events(_ kind: String) -> [VoiceInputProducerProbe.Event] {
+            probe?.snapshot().filter { $0.kind == kind } ?? []
+        }
+        @MainActor func haveCompleteProcessCoverage() -> Bool {
+            let captured = events("captured").compactMap(\.input)
+            let processed = events("process.end").compactMap(\.input)
+            let coveredSequences = Set(processed.map(\.sequence))
+            return !captured.isEmpty && captured.allSatisfy { coveredSequences.contains($0.sequence) }
+        }
+        @MainActor func settled() -> Bool {
+            haveCompleteProcessCoverage()
+                && events("callback.eou").count == events("callback.eou.handled").count
+                && capture.modelEOUAt == nil && capture.activeTurnTask == nil
+        }
+
+        // No async defer: release holders synchronously, then await all cleanup
+        // below the do/catch, before restoring the previous handler.
+        do {
+            let newProbe = try await capture.beginInputProducerFixtureForTesting(
+                wav: first, holdPrepare: mode != .overlap,
+                holdFirstCommit: mode != .cold) { text in
+                    turns.append((text, capture.lastEndpoint))
+                }
+            probe = newProbe
+            guard let format = capture.fileCaptureFormat,
+                format.commonFormat == .pcmFormatFloat32, format.sampleRate == 16_000,
+                format.channelCount == 1, !format.isInterleaved else {
+                throw NativeInputFixtureError.stage("actual capture format was not Float32/16000/mono")
+            }
+            let preparationEvent = mode == .overlap ? "prepare.ready" : "prepare.held"
+            guard await wait(preparationEvent, seconds: 90,
+                until: { !events(preparationEvent).isEmpty }) else {
+                throw NativeInputFixtureError.stage("native preparation checkpoint unavailable")
+            }
+            capture.startInputProducerFixtureFeedForTesting()
+
+            if mode == .cold {
+                guard await wait("first actual VAD commit", seconds: 12,
+                    until: { !turns.isEmpty }) else {
+                    throw NativeInputFixtureError.stage("actual Apple/VAD initial commit absent")
+                }
+                require(turns.count == 1, "first input committed \(turns.count) times before decoder release")
+                require(turns.first?.source == .vad, "initial endpoint was not actual VAD fallback")
+                guard await wait("unchanged first WAV/tail completion", seconds: 8,
+                    until: { capture.fileFeedCompletedAt != nil }) else {
+                    throw NativeInputFixtureError.stage("first WAV did not finish")
+                }
+                if let feed = capture.fileSessionProgress.feed { await feed.value }
+                require(!events("reset.requested").isEmpty,
+                    "first commit did not queue an actual detector reset behind preparation")
+                newProbe.releasePrepare()
+            } else {
+                guard await wait("first selected commit held", seconds: 12,
+                    until: { !events("commit.selected").isEmpty }) else {
+                    throw NativeInputFixtureError.stage("real endpoint did not select first commit")
+                }
+                require(events("commit.emitted").isEmpty, "first commit was not held")
+                secondFeed = Task { @MainActor in
+                    defer { newProbe.record("second.feed.completed") }
+                    try await capture.feedInputProducerFixtureSecondForTesting(wav: second)
+                }
+                guard await wait("B captured before A commit", seconds: 5,
+                    until: { events("captured").contains { $0.input?.second == true } }) else {
+                    throw NativeInputFixtureError.stage("precommit B buffer absent")
+                }
+                if mode == .overlap {
+                    guard await wait("first B frame inside actual decoder suffix", seconds: 8,
+                        until: { nativeInputSuffixContainsFirstB(newProbe.snapshot()) }) else {
+                        throw NativeInputFixtureError.stage("retained 80 ms overlap was not exercised")
+                    }
+                }
+                newProbe.releaseCommit()
+                newProbe.releasePrepare()
+                guard await wait("unchanged second WAV/tail completion", seconds: 15,
+                    until: { !events("second.feed.completed").isEmpty }) else {
+                    throw NativeInputFixtureError.stage("second WAV did not finish")
+                }
+                if let secondFeed { try await secondFeed.value }
+            }
+
+            guard await wait("actual native EOU", seconds: 30,
+                until: { !events("native.eou").isEmpty }) else {
+                throw NativeInputFixtureError.stage("native EOU absent; no scripted substitute")
+            }
+            guard await wait("actual decoder/EOU/handler drain", seconds: 30,
+                until: { settled() }) else {
+                throw NativeInputFixtureError.stage("native input/callback delivery did not settle")
+            }
+            await capture.waitForActiveTurnForTesting()
+            require(capture.fileFeedFailure == nil, "first file feed failed")
+            require(capture.eouDroppedChunks == 0, "actual backlog dropped \(capture.eouDroppedChunks) chunks")
+            require(events("capture.format.invalid").isEmpty, "delivered PCM broke canonical format")
+            require(events("process.failed").isEmpty, "native processing failed; failed input cannot count as completed coverage")
+            let trace = newProbe.snapshot()
+            failures += validateNativeInputFrameTrace(trace, label: label)
+            require(turns.first?.text.lowercased().contains("haiku") == true,
+                "actual first transcript lost the fixture's haiku request")
+
+            if mode == .cold {
+                require(turns.count == 1, "original single WAV committed \(turns.count) turns")
+                require(events("commit.emitted").count == 1,
+                    "old decoded input reached the actual emit/reset producer again")
+                if let firstCommit = events("commit.emitted").first {
+                    require(events("native.eou").contains {
+                        guard let input = $0.input else { return false }
+                        return !input.second && input.frames.upperBound <= firstCommit.capturedEnd
+                    }, "native endpoint did not cover an actual precommit input process interval")
+                } else {
+                    require(false, "first commit's captured boundary missing")
+                }
+            } else {
+                require(turns.count == 2, "two input files committed \(turns.count) turns")
+                let secondText = turns.dropFirst().first?.text.lowercased() ?? ""
+                require(secondText.contains("wait") && secondText.contains("stop speaking"),
+                    "native B did not retain its initial Wait and stop-speaking request")
+                require(turns.dropFirst().first?.source == .localEOU,
+                    "B endpoint was not native local EOU; Apple/VAD wording is not native preservation")
+                let commitIndices = trace.indices.filter { trace[$0].kind == "commit.emitted" }
+                if commitIndices.count >= 2 {
+                    let secondCommit = commitIndices[1]
+                    require(trace[..<secondCommit].contains {
+                        $0.kind == "native.eou" && $0.input?.second == true
+                    }, "no actual B-associated native endpoint preceded B commit")
+                } else {
+                    require(false, "second emitted commit missing for native B causality")
+                }
+                let firstB = events("captured").compactMap(\.input).first { $0.second }
+                let selected = events("commit.selected").first
+                let emitted = events("commit.emitted").first
+                if let firstB, let selected, let emitted {
+                    require(selected.capturedEnd <= firstB.frames.lowerBound
+                        && firstB.frames.lowerBound < firstB.frames.upperBound
+                        && firstB.frames.upperBound <= emitted.capturedEnd,
+                        "frame trace did not prove B arrived after A selection but before A commit")
+                } else {
+                    require(false, "actual precommit B/selection/emission frame evidence missing")
+                }
+                if mode == .overlap {
+                    failures += validateNativeInputResetSuffix(trace, label: label)
+                }
+            }
+            SelfTest.diagnostic("NATIVE_INPUT_CASE=\(mode.rawValue) commits=\(turns.count) "
+                + "nativeEOU=\(events("native.eou").count) captures=\(events("captured").count) "
+                + "processed=\(events("process.end").count) resetGrants=\(events("reset.granted").count)")
+            for event in trace where event.kind != "captured" && event.kind != "process.begin" {
+                let interval = event.input.map { "\($0.frames.lowerBound)..<\($0.frames.upperBound)" } ?? "none"
+                SelfTest.diagnostic("NATIVE_INPUT_EVENT=\(mode.rawValue):\(event.kind) "
+                    + "processInput=\(interval) epoch=\(event.epoch.map(String.init) ?? "none") "
+                    + "capturedEnd=\(event.capturedEnd)")
+            }
+        } catch {
+            failures.append("\(label): \(error.localizedDescription)")
+        }
+
+        // Every exit, including cancellation/failed preparation, releases both
+        // continuations before awaiting feed/decoder cleanup. No fire-and-forget defer.
+        // The cleanup method snapshots task handles before releasing either
+        // holder, ends the session, then bounds their actual completion joins.
+        let cleanupFailures = await capture.endInputProducerFixtureForTesting(secondFeed: secondFeed)
+        failures += cleanupFailures.map { "\(label): \($0)" }
+        capture.turnHandlerForTesting = previousHandler
+        return (failures, cleanupFailures.isEmpty)
+    }
+
+    private enum NativeInputFixtureError: Error, LocalizedError {
+        case stage(String)
+        var errorDescription: String? {
+            switch self { case .stage(let message): return message }
+        }
+    }
+
+    private static func validateNativeInputFrameTrace(_ trace: [VoiceInputProducerProbe.Event],
+        label: String) -> [String] {
+        let captured = trace.filter { $0.kind == "captured" }.compactMap(\.input)
+        let processed = trace.filter { $0.kind == "process.end" }.compactMap(\.input)
+        guard !captured.isEmpty else { return ["\(label): no canonical captured intervals"] }
+        var failures: [String] = []
+        var nextFrame = 0
+        var previousSequence: Int?
+        for input in captured {
+            if input.frames.lowerBound != nextFrame || input.frames.isEmpty {
+                failures.append("\(label): noncontiguous/empty actual capture interval \(input.sequence)")
+            }
+            if let previousSequence, input.sequence != previousSequence + 1 {
+                failures.append("\(label): actual capture sequence discontinuity")
+            }
+            nextFrame = input.frames.upperBound
+            previousSequence = input.sequence
+            if !processed.contains(where: { $0.sequence == input.sequence && $0.frames == input.frames }) {
+                failures.append("\(label): captured interval \(input.sequence) never completed actual processing")
+            }
+        }
+        if processed.contains(where: { item in !captured.contains { $0.sequence == item.sequence && $0.frames == item.frames } }) {
+            failures.append("\(label): processing claimed an interval not captured by the real delivery closure")
+        }
+        return failures
+    }
+
+    /// Computes only the inspected manager's retained PCM suffix, never a
+    /// spoken utterance end or token timestamp. Reset/format/discontinuity invalidate origin.
+    private static func nativeInputSuffix(_ trace: ArraySlice<VoiceInputProducerProbe.Event>) -> Range<Int>? {
+        let lastReset = trace.lastIndex { $0.kind == "reset.completed" }
+        let afterReset = lastReset.map { trace.index(after: $0) } ?? trace.startIndex
+        let inputs = trace[afterReset...].filter { $0.kind == "process.end" }.compactMap(\.input)
+        guard let first = inputs.first, let last = inputs.last else { return nil }
+        var next = first.frames.lowerBound
+        for input in inputs {
+            guard input.frames.lowerBound == next else { return nil }
+            next = input.frames.upperBound
+        }
+        let count = last.frames.upperBound - first.frames.lowerBound
+        let shifts = count < 2_560 ? 0 : 1_280 * (1 + (count - 2_560) / 1_280)
+        return (first.frames.lowerBound + shifts)..<last.frames.upperBound
+    }
+
+    private static func nativeInputSuffixContainsFirstB(_ trace: [VoiceInputProducerProbe.Event]) -> Bool {
+        guard let firstB = trace.first(where: { $0.kind == "captured" && $0.input?.second == true })?.input,
+            let suffix = nativeInputSuffix(trace[...]) else { return false }
+        return suffix.contains(firstB.frames.lowerBound)
+            && trace.contains { $0.kind == "process.end" && $0.input?.sequence == firstB.sequence }
+    }
+
+    private static func validateNativeInputResetSuffix(_ trace: [VoiceInputProducerProbe.Event],
+        label: String) -> [String] {
+        let secondInputs = trace.filter { $0.kind == "captured" }.compactMap(\.input).filter(\.second)
+        var exercised = false
+        var failures: [String] = []
+        for index in trace.indices where trace[index].kind == "reset.granted" {
+            guard let suffix = nativeInputSuffix(trace[..<index]) else { continue }
+            for input in secondInputs {
+                let low = max(input.frames.lowerBound, suffix.lowerBound)
+                let high = min(input.frames.upperBound, suffix.upperBound)
+                guard low < high else { continue }
+                exercised = true
+                // The original reset clears this real buffered PCM. A correct
+                // implementation must avoid clearing it or truthfully replay it.
+                // Future reset-preserves-buffer implementations need their real
+                // producer observation here; no unverified preservation marker passes.
+                let later = trace[(index + 1)...].filter { $0.kind == "process.end" }.compactMap(\.input)
+                var cursor = low
+                for replay in later.sorted(by: { $0.frames.lowerBound < $1.frames.lowerBound }) {
+                    if replay.frames.lowerBound <= cursor && replay.frames.upperBound > cursor {
+                        cursor = min(high, replay.frames.upperBound)
+                    }
+                }
+                if cursor < high {
+                    failures.append("\(label): actual reset cleared B suffix \(low)..<\(high) without input resubmission")
+                }
+            }
+        }
+        if !exercised {
+            failures.append("\(label): no reset of B's actual 80 ms suffix observed; preservation mechanism remains unverified")
+        }
+        return failures
     }
 }

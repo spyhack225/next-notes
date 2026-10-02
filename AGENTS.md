@@ -202,6 +202,8 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-acoustic-live [apple|selected]
 --selftest-acoustic-aec3-speech <far-wav> <near-wav> --acoustic-aec3
 --selftest-voice-pipeline <wav> --selftest-voice-barge <wav>
+--selftest-voice-latency [--voice-latency-fixture <wav>]
+--selftest-voice-input-producer <first-wav> <second-wav> [--voice-input-all]
 --selftest-voice-echo-live --selftest-pcm-reconfiguration
 --selftest-voice-rapid <first-wav> <second-wav>
 --selftest-voice-suspend --selftest-voice-suspend-live
@@ -2227,6 +2229,15 @@ would have caught it — a positive corpus of ordinary questions — lives in
 `--selftest-voice-turn-routing` beside the junk corpus; the junk list without the positive
 corpus is how a green suite coexisted with an unusable app. `--selftest-voice-turns` grades
 the list itself.
+
+The Agent latency flag also accepts `--voice-latency-instrumentation` for its bounded
+store/probe checks. That modifier measures no speech or model latency. A real baseline
+runs a warm-up plus five file-fed native turns and requires joined usage IDs, exactly
+one commit per measured turn and actual playback acknowledgement. The first October 1
+baseline failed; its median first audio was 4.776 s, worst main-thread stall 156 ms, and
+run 5 committed twice. Keep those failures open until their original flows are verified.
+The speculative usage-ID producer fix has separate scripted recorder checks; those
+checks do not prove input recovery, latency targets or broad Agent readiness.
 
 `MemoryEntry.lineage` stores historical `MemoryProvenanceRecord` descriptors: source,
 trusted channel, label, time, session, confidence and correction identity. The live

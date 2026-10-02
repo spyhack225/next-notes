@@ -1973,6 +1973,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-voice-input-producer") {
+            Task { @MainActor in
+                let orderedArguments = CommandLine.arguments
+                guard let index = orderedArguments.firstIndex(of: "--selftest-voice-input-producer"),
+                      index + 2 < orderedArguments.count,
+                      !orderedArguments[index + 1].hasPrefix("--"),
+                      !orderedArguments[index + 2].hasPrefix("--") else {
+                    SelfTest.failed = true
+                    writeSelfTest("NATIVE_INPUT_FAILED: two fixture WAV paths are required")
+                    NSApp.terminate(nil)
+                    return
+                }
+                let before = SelfTestStoreGuard.take()
+                var failures = await AgentCaptureController.runNativeInputProducerFixtureSelfTest(
+                    first: URL(fileURLWithPath: orderedArguments[index + 1]),
+                    second: URL(fileURLWithPath: orderedArguments[index + 2]),
+                    coldOnly: !arguments.contains("--voice-input-all"))
+                failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take())
+                    .map { "owner store changed: \($0)" }
+                for failure in failures { writeSelfTest("NATIVE_INPUT_WRONG: \(failure)") }
+                SelfTest.failed = SelfTest.failed || !failures.isEmpty
+                writeSelfTest(SelfTest.failed ? "NATIVE_INPUT_FAILED" : "NATIVE_INPUT_OK")
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-voice-latency") {
             Task { @MainActor in
                 // P2-01. The marker is the run's own verdict, including the ABSENT form, so

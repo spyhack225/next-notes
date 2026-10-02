@@ -152,13 +152,7 @@ enum VoiceLatencySelfTest {
     private static func oneRun(index: Int, fixture: URL) async -> RunOutcome {
         let capture = AgentCaptureController.shared
         let speech = AgentSpeechSynthesizer.shared
-        let priorPlaybackEvent = speech.onPlaybackEvent
         var firstAudioAcknowledged = false
-        speech.onPlaybackEvent = { event in
-            priorPlaybackEvent?(event)
-            if case .startAcknowledged = event { firstAudioAcknowledged = true }
-        }
-        defer { speech.onPlaybackEvent = priorPlaybackEvent }
         MainActorStallProbe.shared.clearSamples()
         let turnsBefore = VoiceLatencyTimeline.shared.closedTurnsForTesting().count
         let prepareBefore = MetricsStore.shared.spans(named: .voiceEOUPrepare).count
@@ -169,12 +163,22 @@ enum VoiceLatencySelfTest {
         do {
             try await capture.beginFileSession(wav: fixture)
         } catch {
+            await capture.endSession(source: .done)
             return RunOutcome(turn: nil, wrong: ["run \(index): could not open the file-fed "
                 + "voice session: \(error.localizedDescription)"])
         }
+        // Session startup installs the production playback consumer. Observe after it
+        // is ready, preserving that consumer rather than having our observer replaced.
+        let priorPlaybackEvent = speech.onPlaybackEvent
+        speech.onPlaybackEvent = { event in
+            priorPlaybackEvent?(event)
+            if case .startAcknowledged = event { firstAudioAcknowledged = true }
+        }
+        defer { speech.onPlaybackEvent = priorPlaybackEvent }
         let progress = capture.fileSessionProgress
         await progress.feed?.value
-        if let failure = progress.feedFailure {
+        if let failure = capture.fileSessionProgress.feedFailure {
+            await capture.endSession(source: .done)
             return RunOutcome(turn: nil, wrong: ["run \(index): file feed: \(failure)"])
         }
         let deadline = Date().addingTimeInterval(55)
@@ -189,6 +193,8 @@ enum VoiceLatencySelfTest {
             try? await Task.sleep(for: .milliseconds(100))
         }
         let reply = capture.lastReply
+        let completedProgress = capture.fileSessionProgress
+        let endpoint = capture.lastEndpoint.rawValue
         await capture.endSession(source: .done)
         MetricsStore.shared.flushForTesting()
         UsageLog.shared.flush()
@@ -198,15 +204,14 @@ enum VoiceLatencySelfTest {
         let openNumber = books.open.map(String.init) ?? "none"
         let openTurn = books.openTurnID.map { String($0.uuidString.prefix(8)) } ?? "none"
         let reasons = books.reasons.joined(separator: ",")
-        let committed = capture.fileSessionProgress.committedTurns
-        let endpoint = capture.lastEndpoint.rawValue
+        let committed = completedProgress.committedTurns
         let didHear = reply.isEmpty ? "no" : "yes"
-        let heard = progress.heardWords ? "yes" : "no"
+        let heard = completedProgress.heardWords ? "yes" : "no"
         SelfTest.diagnostic("VOICE_LATENCY_RUN=\(index) bookkeeping closed=\(closed.count)"
             + " open=\(openNumber) openTurn=\(openTurn)"
             + " discarded=\(books.discarded) (\(reasons))"
             + " endpoint=\(endpoint) committed=\(committed)"
-            + " heard=\(heard) reply=\(didHear)")
+            + " heard=\(heard) reply=\(didHear) firstAudioAcknowledged=\(firstAudioAcknowledged)")
         let orphans = VoiceLatencyTimeline.shared.orphanMarks()
         if !orphans.isEmpty {
             SelfTest.diagnostic("VOICE_LATENCY_ORPHANS run=\(index) "
@@ -228,6 +233,9 @@ enum VoiceLatencySelfTest {
         SelfTest.diagnostic("VOICE_LATENCY_STORES run=\(index) "
             + "spans=\(MetricsStore.shared.spans(named: nil).count) "
             + "turnRows=\(UsageLog.shared.load().filter { $0.pass == "turn" }.count)")
+        guard firstAudioAcknowledged else {
+            return RunOutcome(turn: turn, wrong: ["run \(index): the playback acknowledgement did not reach the observer"])
+        }
         guard index > 0 else { return RunOutcome(turn: turn, wrong: []) }
         var wrong = validate(turn: turn, index: index, reply: reply,
             committedCount: committed, separateRoute: separateRoute)
