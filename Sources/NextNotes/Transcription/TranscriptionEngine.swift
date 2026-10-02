@@ -39,6 +39,9 @@ protocol TranscriptionEngine: Actor {
     /// Feed one buffer of captured microphone audio, already in `preferredInputFormat()`.
     func feed(_ chunk: AudioChunk) async
 
+    /// Seconds the last start waited on the shared compute lane; default 0.
+    var startLaneWait: TimeInterval { get }
+
     /// Close the session and flush any pending final results.
     func finish() async
 }

@@ -5347,6 +5347,162 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 failures.append("Next Notes was omitted from dictation origin capture")
             }
 
+            // UX-08: cancel and successor capture across the existing metric actor hop.
+            let metricGate = SelfTestMetricReadGate()
+            defer { metricGate.release() }
+            let metricUsage = UsageLog(directory: FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesMetricTail-\(UUID().uuidString)", isDirectory: true))
+            let oldMetricEngine = SelfTestMetricBlockedEngine(gate: metricGate)
+            var metricEngineCount = 0
+            var metricHoldIDs: [UUID] = []
+            var metricOutputCount = 0
+            var metricFirstOutput = ""
+            let metricBefore = sink.count
+            let metricController = DictationController(
+                formatter: RuleBasedFormatter(),
+                makeEngine: {
+                    metricEngineCount += 1
+                    if metricEngineCount == 1 { return oldMetricEngine }
+                    return SelfTestEngine(shape: .prompt(delay: .zero))
+                },
+                limits: limits,
+                insert: { text, _ in
+                    metricOutputCount += 1
+                    if metricOutputCount == 1 {
+                        metricFirstOutput = text
+                        Task { await oldMetricEngine.parkForMetricRead() }
+                        // Harness synchronization only. No timeout/wait added to production.
+                        let by = Date().addingTimeInterval(3)
+                        while !metricGate.isParked, Date() < by {
+                            try? await Task.sleep(for: .milliseconds(10))
+                        }
+                    }
+                    return .inserted
+                },
+                record: { _ in },
+                log: .selfTest,
+                outcome: {
+                    sink.append($0)
+                    metricUsage.record($0.usageRecord())
+                },
+                usage: metricUsage
+            )
+            let metricObserver = UUID()
+            metricController.observeHoldBeginnings(owner: metricObserver) { metricHoldIDs.append($0) }
+            defer { metricController.stopObservingHoldBeginnings(owner: metricObserver) }
+
+            @MainActor
+            func awaitMetricProbe(_ predicate: () -> Bool, seconds: TimeInterval) async -> Bool {
+                let by = Date().addingTimeInterval(seconds)
+                while Date() < by {
+                    if predicate() { return true }
+                    try? await Task.sleep(for: .milliseconds(10))
+                }
+                return predicate()
+            }
+
+            metricController.startButtonRecording()
+            if metricController.state.isActive { holdsStarted += 1 }
+            if !(await awaitMetricProbe({ metricController.state == .listening }, seconds: 5)) {
+                failures.append("metric-tail original flow never reached actual first listening")
+                metricController.cancelDictation()
+                metricGate.release()
+            } else {
+                // Actual captured frames, not a seed or fake capture. Warm hold comparable to
+                // the existing ordinary controller fixtures; microphone grant is required.
+                try? await Task.sleep(for: .seconds(1))
+                metricController.stopButtonRecording()
+                let reached = await awaitMetricProbe({
+                    metricGate.isParked && metricController.latestDelivery != nil
+                        && metricController.state == .finishing
+                }, seconds: 5)
+                if !reached {
+                    failures.append("actual metric-read suspension was not reached; regression UNVERIFIED")
+                    metricController.cancelDictation()
+                    metricGate.release()
+                } else {
+                    let oldReceipt = metricController.latestDelivery
+                    if metricHoldIDs.count != 1 || oldReceipt?.id != metricHoldIDs.first
+                        || oldReceipt?.text != metricFirstOutput || metricFirstOutput.isEmpty {
+                        failures.append("metric suspension lacked the exact first insertion identity/output")
+                    }
+                    // Original failing sequence: effect returned; its metrics actor read is
+                    // suspended; the user cancels and starts a new accepted live hold.
+                    metricController.cancelDictation()
+                    metricController.startButtonRecording()
+                    if metricController.state.isActive { holdsStarted += 1 }
+                    if !(await awaitMetricProbe({
+                        metricController.state == .listening && metricController.isCapturingAudio
+                    }, seconds: 5)) {
+                        failures.append("metric-tail successor never reached actual live capture")
+                    } else {
+                        let successorStart = metricController.holdStarted
+                        if metricHoldIDs.count != 2 || metricHoldIDs[0] == metricHoldIDs[1]
+                            || metricController.latestDelivery != nil {
+                            failures.append("metric-tail successor did not own a fresh cleared hold")
+                        }
+                        metricGate.release()
+                        // Observe the actual old producer crossing its usage stage, rather
+                        // than guessing that a fixed sleep was long enough for it to resume.
+                        let oldTailPassedUsage = await awaitMetricProbe({
+                            guard let oldID = metricHoldIDs.first else { return false }
+                            return metricUsage.load().contains {
+                                $0.feature == UsageFeature.dictationASR.rawValue
+                                    && $0.dictationRunID == oldID
+                            }
+                        }, seconds: 3)
+                        if !oldTailPassedUsage {
+                            failures.append("metric-tail resumption/old usage was not observed; regression UNVERIFIED")
+                        }
+                        if metricController.state != .listening || !metricController.isCapturingAudio
+                            || metricController.holdStarted != successorStart {
+                            failures.append("STALE_METRIC_TAIL: old inserted tail cleared successor capture/state")
+                        }
+                        if sink.outcomes(from: metricBefore).count != 1 {
+                            failures.append("STALE_METRIC_TAIL: old tail prematurely filed successor outcome")
+                        }
+                        let releasedRows = metricUsage.load()
+                        if metricHoldIDs.count == 2 {
+                            let oldASR = releasedRows.filter {
+                                $0.feature == UsageFeature.dictationASR.rawValue
+                                    && $0.dictationRunID == metricHoldIDs[0]
+                            }
+                            let newHolds = releasedRows.filter {
+                                $0.feature == UsageFeature.dictationHold.rawValue
+                                    && $0.dictationRunID == metricHoldIDs[1]
+                            }
+                            if oldASR.first?.stages?["laneWait"] != 1.25 {
+                                failures.append("LANE_WAIT_DISPATCH: actual dictation usage lost the engine's 1.25 second measurement")
+                            }
+                            if oldASR.count != 1 || !newHolds.isEmpty {
+                                failures.append("STALE_METRIC_TAIL: original usage was lost or successor outcome was misattributed")
+                            }
+                        }
+                        // Keep the successor's original finish path in the test. A producer
+                        // guard must preserve its microphone, exact receipt and one outcome.
+                        try? await Task.sleep(for: .milliseconds(500))
+                        metricController.stopButtonRecording()
+                        if !(await awaitMetricProbe({ metricController.state == .idle }, seconds: 5)) {
+                            failures.append("metric-tail successor never finished after barrier release")
+                        }
+                        let held = sink.outcomes(from: metricBefore)
+                        if held.count != 2 || metricHoldIDs.count != 2
+                            || held.first?.holdID != metricHoldIDs[0]
+                            || held.first?.result != .cancelled
+                            || held.last?.holdID != metricHoldIDs[1]
+                            || held.last?.result != .inserted
+                            || metricController.latestDelivery?.id != metricHoldIDs[1]
+                            || metricOutputCount != 2 {
+                            failures.append("metric-tail held identities, outcomes or final delivery were incorrect")
+                        }
+                    }
+                    // Unconditional unwind if the successor's start itself failed.
+                    metricGate.release()
+                    if metricController.state.isActive { metricController.cancelDictation() }
+                }
+            }
+
+
             // D-01b g. Every hold started filed exactly one outcome: no path reports
             // twice, and no path loses a hold without a row.
             if sink.count != holdsStarted {
@@ -9370,4 +9526,48 @@ func parakeetShortFixtureSamples(count: Int) -> [Float]? {
           let channel = buffer.floatChannelData?.pointee
     else { return nil }
     return (0..<frames).map { channel[$0] }
+}
+
+final class SelfTestMetricReadGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private let semaphore = DispatchSemaphore(value: 0)
+    private var parked = false
+    private var released = false
+
+    var isParked: Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        return parked
+    }
+    func park() {
+        lock.lock()
+        parked = true
+        lock.unlock()
+        // Bounded even if the harness aborts: no infinite blocked actor thread.
+        _ = semaphore.wait(timeout: .now() + 15)
+    }
+    func release() {
+        lock.lock()
+        let shouldSignal = !released
+        released = true
+        lock.unlock()
+        if shouldSignal { semaphore.signal() }
+    }
+}
+
+actor SelfTestMetricBlockedEngine: TranscriptionEngine {
+    // Positive producer value must reach actual existential consumer and disk usage.
+    var startLaneWait: TimeInterval { 1.25 }
+    private let base = SelfTestEngine(shape: .prompt(delay: .zero))
+    private let gate: SelfTestMetricReadGate
+    init(gate: SelfTestMetricReadGate) { self.gate = gate }
+    func preferredInputFormat() async -> AVAudioFormat? { await base.preferredInputFormat() }
+    func start() async throws -> AsyncThrowingStream<TranscriptionChunk, Error> {
+        try await base.start()
+    }
+    func feed(_ chunk: AudioChunk) async { await base.feed(chunk) }
+    func finish() async { await base.finish() }
+    // Intentionally synchronous inside the actor. An async continuation wait
+    // would permit actor reentrancy and would not hold the extension getter.
+    func parkForMetricRead() { gate.park() }
 }

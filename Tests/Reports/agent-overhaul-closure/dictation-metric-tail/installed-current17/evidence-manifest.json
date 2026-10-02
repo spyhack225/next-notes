@@ -1,0 +1,49 @@
+{
+  "state": "INSTALLED CURRENT17 GREEN for Dictation/usage/store isolation; original14 seven failures retained",
+  "installedBinarySHA256": "0ee52308a47c409b115d0a0050719a5476c08a9132cf336fe053b185b83cb85c",
+  "gitHead": "5f0c36965588a5c733720e488653a23c4aeed303",
+  "executedRegistryMatchesFrozenBuild17": true,
+  "entireDictationSelfTestUnchangedFromOriginal14": true,
+  "fixtureHelpersUnchangedFromOriginal14": {
+    "final class SelfTestMetricReadGate: @unchecked Sendable {": true,
+    "actor SelfTestMetricBlockedEngine: TranscriptionEngine {": true
+  },
+  "focusedCases": [
+    {
+      "name": "dictation-current",
+      "exit": 0,
+      "seconds": 53.091
+    },
+    {
+      "name": "usage-log",
+      "exit": 0,
+      "seconds": 1.275
+    },
+    {
+      "name": "store-isolation",
+      "exit": 0,
+      "seconds": 33.993
+    }
+  ],
+  "artifacts": {
+    "dictation-current.out": "16a639c6183496934c7ceb2b92c30d2c80f0951be1928eefd76c8ef0d321954e",
+    "dictation-current.log": "5adae930e5cd23f82eeee6c6d947ec4583b01b85fb27cc8c04d1d826e5eeb041",
+    "usage-log.log": "4c9a0df3e2a2203bdc9489c79a740637d8ed1b33de62ceaec5a8486e300c7562",
+    "store-isolation.out": "dcb5879fec650d82a2f69a398b1ebbe3536bdfc3814a1ec5035a5e450ad3e4b5",
+    "store-isolation.log": "552f79a6269472e0dd9f7ef67305adbbc90be9ff775c4f2bc8f44f372c16ce28",
+    "summary.json": "a6037823395ba5bea374053257b96bf546a31f13f4ab7368dfa411524d90209c",
+    "build17-source-manifest.json": "da4f722c6e60bd8bfcb4bd5ecb9b1f12fb84ee5f3390a09d4d49477b241cc7d7",
+    "install.log": "a2030165a60168fb94fff8cbee31be420db2f1e71971d2f255107459353e0b2e",
+    "executed-NextNotesApp.swift.txt": "1ad68ecf18a9c441edcdd153d57df7f5e9fc491ca8b00920a0c3623616aa1ee9",
+    "current-controller.swift.txt": "881bff421bc879a2d96b6f8051a0410d1a5eb32b0863648df6166349d8e76a4b",
+    "current-protocol.swift.txt": "4f3b88c5ff2319436f8bcbaf9ebf105f0028386555073c2529d4eecda1e70f24",
+    "verified-controller-diff.patch": "58f6c0efd5bfd1294e37692c2b03079afd40a8068a4372414b9360a1a6ff82e3"
+  },
+  "limits": [
+    "whole exact summary also retains worker-attempt-original and onboarding-trace RED; neither reclassified",
+    "usage-log.out absent in supplied directory; exact usage-log launcher log has USAGE_LOG_OK26",
+    "scripted transcription/injected insertion; actual capture/controller/metric disk usage",
+    "original keydown282.947ms and silenttap error not reproduced this run; no causal repair claim for either",
+    "no real Parakeet scheduling, physical target readback or P2 completion"
+  ]
+}

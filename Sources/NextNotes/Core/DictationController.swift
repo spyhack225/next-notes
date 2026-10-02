@@ -1974,6 +1974,9 @@ final class DictationController {
             }
         }
 
+        // The metrics read is an actor hop. A canceled tail keeps its own usage,
+        // but cannot finish or fail the next hold.
+        guard self.session == session else { return }
         switch outcome {
         case .superseded:
             return

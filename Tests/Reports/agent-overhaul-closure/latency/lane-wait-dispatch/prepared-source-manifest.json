@@ -1,0 +1,53 @@
+{
+  "state": "COPIED CONTRACT ORIGINALRED/CURRENTGREEN; exact requirement applied; actual installed17 Dictation diskusage/usage-log/store-isolation GREEN",
+  "actualSources": {
+    "Sources/NextNotes/Transcription/TranscriptionEngine.swift": "8460b9a816900ff112e8e83e63295334ac87a5de4a0e4a096361f981d0977251",
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": "ce070274e1b7c287e0d13983b7ca250151c3f1f27f502906dbc3e936850518ac",
+    "Sources/NextNotes/Core/DictationController.swift": "5a4796949255c8a61d2313147a0bf1399a9d35f10edaab3643a9367a9695376a",
+    "Sources/NextNotes/Support/Usage/UsageRecord+Dictation.swift": "eb3e50c10d547dee18f4a24b3794bef932caef94dbe558fdf1babf48438519c7"
+  },
+  "reviewSnapshots": {
+    "original-TranscriptionEngine.swift.txt": "8460b9a816900ff112e8e83e63295334ac87a5de4a0e4a096361f981d0977251",
+    "proposed-TranscriptionEngine.swift.txt": "4f3b88c5ff2319436f8bcbaf9ebf105f0028386555073c2529d4eecda1e70f24",
+    "LaneWaitDriver.swift": "f18e6505b1c90793abfe98f8053ed3790cec3c0fc357a5f734c53c4a1af519f2",
+    "run-driver.py": "a165b57513bc0fcec38c5ed3b434efa31581c5a05e1ab3c6dd8d466bd73ea5f9"
+  },
+  "proposedChange": "Add startLaneWait protocol getter requirement; retain existing extension default and every original type/method",
+  "driverResults": {
+    "original": {
+      "compileExit": 0,
+      "runExit": 1
+    },
+    "current": {
+      "compileExit": 0,
+      "runExit": 0
+    }
+  },
+  "evidenceArtifacts": {
+    "original-red.log": "daadb9ae1e93b87eaa03b6bdcadc14b92c3d3d4e94ce2bc2f293606a0a00f1b5",
+    "current-green.log": "6e7dfa5bf2f20bc78744b0c1d3efbb811ccc066fd98aa8c6643c1ee0e51a304a",
+    "prepared-original/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "prepared-original/run.log": "daadb9ae1e93b87eaa03b6bdcadc14b92c3d3d4e94ce2bc2f293606a0a00f1b5",
+    "prepared-original/input-manifest.json": "4aa69ac6baa0097d26e21622827be628277a4b7cb746942327411ca5bbf138a8",
+    "prepared-current/compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "prepared-current/run.log": "6e7dfa5bf2f20bc78744b0c1d3efbb811ccc066fd98aa8c6643c1ee0e51a304a",
+    "prepared-current/input-manifest.json": "ce17e03a49c47a18a1d4e6b5364fc4c9c75d89a5db81eb942e7cb34292360b93"
+  },
+  "limits": [
+    "actual Parakeet acquire not executed",
+    "original installed Dictation metric assertion RED and current installed same assertion GREEN",
+    "actual microphone/controller/injected-insertion/scripted-engine/disk-usage fixture; no physical target readback",
+    "original two timing/capture errors passed17 without causal repair claim",
+    "no Phase2 latency exit or broader readiness claim"
+  ],
+  "historicalPreApplicationSnapshotCheck": {
+    "proposedIsOriginalPlusOnlyRequirementAndComment": true,
+    "preparedOriginalMatchesFrozenOriginal": true,
+    "preparedCurrentMatchesFrozenProposal": true,
+    "productionProtocolStillOriginal": true
+  },
+  "currentProtocolAppliedMatchesVerifiedProposal": true,
+  "installedOriginalEvidence": "../../dictation-metric-tail/installed-original14/evidence-manifest.json",
+  "installedCurrentEvidence": "../../dictation-metric-tail/installed-current17/evidence-manifest.json",
+  "installedCurrentBinarySHA256": "0ee52308a47c409b115d0a0050719a5476c08a9132cf336fe053b185b83cb85c"
+}

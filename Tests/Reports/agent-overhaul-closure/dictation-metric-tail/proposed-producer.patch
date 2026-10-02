@@ -1,0 +1,12 @@
+*** Begin Patch
+*** Update File: /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Core/DictationController.swift
+@@
+                 usage.record(row)
+             }
+         }
+ 
++        // The existing metrics read above is an actor hop. A canceled tail may
++        // retain its own usage rows, but cannot finish or fail a successor hold.
++        guard self.session == session else { return }
+         switch outcome {
+*** End Patch
