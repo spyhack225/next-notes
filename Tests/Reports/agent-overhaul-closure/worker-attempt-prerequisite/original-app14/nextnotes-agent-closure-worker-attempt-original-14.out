@@ -1,0 +1,6 @@
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_WORKER_ATTEMPT_ORIGINAL_TRACE: sqlFailed observed at actual backing boundary
+TASK_WORKER_ATTEMPT_WRONG: actual backend entered without positive committed attempt and process ownership
+TASK_WORKER_ATTEMPT_WRONG: retained execution context committed a tool fact after its task was terminal
+TASK_WORKER_ATTEMPT_WRONG: actual local backing ran after primary tool-start commit rejection
+TASK_WORKER_ATTEMPT_FAILED: 3 assertions

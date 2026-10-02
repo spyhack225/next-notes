@@ -157,6 +157,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-task-durability
 --selftest-task-recovery
 --selftest-task-authority
+--selftest-task-worker-attempt
 --selftest-task-restoration
 --selftest-task-history-repair
 --selftest-receipt-persistence
@@ -305,6 +306,24 @@ restricted temporary-file read. Directory/text/remote questions remain open.
 Native picker/card interaction is unverified: Computer Use did not allow access
 to Next Notes. These checks establish neither broader recovery nor leases,
 receipt reconciliation, retry, owner migration or IM-16 hosting.
+
+`--selftest-task-worker-attempt` verifies bounded P6-06b through the actual
+Manager, LocalBackend, Executor and temporary file backing. Original installed
+app17 failed 10 assertions across 27 checks; installed app19 passes those unchanged
+checks plus ownership and held-cancellation negatives (61 total). Typed local
+queued dispatch commits its positive attempt/process owner before backend entry.
+Captured callbacks and tool facts check the same primary row in the existing SQL
+transaction; rejected tool-start admission runs no backing. Completion admission
+failure is reported after the runtime retains its own receipt, without successful
+task delivery or automatic retry. Old/missing ownership stays bound and refused;
+held cancellation commits before cleanup, and a rejected save keeps the held row.
+Related durability37, recovery56, authority58, restoration70, history-repair58,
+production tool loop, routine authority, scheduling and owner isolation pass.
+This supplies no heartbeat/process liveness, separate crash/power-loss proof,
+replacement-worker or continuation attempt-increment proof, task receipt-ID join,
+live PermissionGate standing-grant repair, ACP/voice/scheduled/remote authority,
+automatic retry or IM-16 host. Parent Phase 6 tasks remain open. See the
+[worker report](Tests/Reports/agent-overhaul-closure/worker-attempt-prerequisite/README.md).
 
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed

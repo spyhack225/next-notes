@@ -1,0 +1,140 @@
+// Off-source proposal for root. Append to its root-owned worker fixture and call
+// try await ownerRecognitionCases(root: root, input: input, text: text, check: check)
+// after the unchanged original27 checks. Run first on the pre-owner-split producer.
+extension TaskWorkerAttemptSelfTest {
+    @MainActor
+    private static func ownerRecognitionCases(root: URL, input: URL, text: String,
+                                              check: (Bool, String) -> Void) async throws {
+        struct OwnerFixtureError: Error {}
+        func reached(_ predicate: () -> Bool) async -> Bool {
+            let clock = ContinuousClock()
+            let deadline = clock.now.advanced(by: .seconds(5))
+            while clock.now < deadline {
+                if predicate() { return true }
+                await Task.yield()
+            }
+            return false
+        }
+        func fixture(_ name: String) throws -> (TaskStore, AgentTaskStore) {
+            let directory = root.appendingPathComponent(name, isDirectory: true)
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+            let sql = TaskStore(root: directory)
+            let store = AgentTaskStore(fileURL: directory.appendingPathComponent("agent-tasks.json"), mirror: sql)
+            guard store.allowsHarnessPersistence else { throw OwnerFixtureError() }
+            return (sql, store)
+        }
+        let (sourceSQL, sourceStore) = try fixture("owner-source")
+        defer { sourceSQL.close() }
+        let producer = AgentTaskManager(store: sourceStore)
+        var actualRunning: AgentTask?
+        var ended = false
+        producer.backendExitForTesting = { ended = true }
+        producer.backendEntryForTesting = {
+            guard let context = TaskEventJournal.current else { throw OwnerFixtureError() }
+            actualRunning = try TaskStore(root: sourceSQL.fileURL.deletingLastPathComponent()).load()
+                .first { $0.id == context.taskID }
+        }
+        AgentToolExecutor.fireOverrideForTesting = nil
+        let produced = producer.submit(objective: "Derive owner fixture from actual admitted local execution",
+            tool: "filesystem.read", arguments: ["path": input.path], source: "selftest")
+        guard await reached({ ended }), let running = actualRunning,
+              (running.durability?.attempt ?? 0) > 0,
+              running.durability?.runtimeClass == .localDeterministic,
+              running.durability?.attemptStartedAt != nil else { throw OwnerFixtureError() }
+        check(producer.task(id: produced.id)?.status == .completed
+            && producer.task(id: produced.id)?.result?.contains(text) == true,
+            "owner substitution fixture did not derive fields from real producer/disk/original read")
+        var absentContextEffects = 0
+        AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+            guard tool.id == "filesystem.read", arguments == ["path": input.path] else { throw OwnerFixtureError() }
+            absentContextEffects += 1
+            return try FilesystemExecutor.run(tool, arguments: arguments)
+        }
+        var missingContextRefused = false
+        do {
+            _ = try await TaskEventJournal.$current.withValue(nil) {
+                try await LocalAgentBackend().submit(running)
+            }
+        } catch { missingContextRefused = true }
+        check(missingContextRefused && absentContextEffects == 0,
+            "genuine current-owner LocalBackend ran without its bound TaskLocal")
+
+        let ownerVariants: [(String, String?, Bool)] = [
+            ("old-pid", String(ProcessInfo.processInfo.processIdentifier + 100_000), true),
+            ("missing-owner", nil, true),
+            ("wrong-owner", "not-a-process", true),
+            ("missing-start", String(ProcessInfo.processInfo.processIdentifier), false)
+        ]
+        for (name, owner, hasStart) in ownerVariants {
+            let (sql, store) = try fixture("owner-\(name)")
+            defer { sql.close() }
+            var saved = running
+            saved.id = "isolated-owner-\(name)"
+            saved.durability?.leaseOwner = owner
+            if !hasStart { saved.durability?.attemptStartedAt = nil }
+            guard store.save([saved]).primaryCommitted else { throw OwnerFixtureError() }
+            let fresh = AgentTaskManager(store: store)
+            check(fresh.task(id: saved.id)?.status == .recovering && fresh.backendStartsForTesting == 0,
+                "owner variant fresh manager did not hold actual saved work")
+            guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+            let valid = await context.isStillValid?() ?? true
+            check(context.isStillValid != nil && !valid,
+                "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+            let before = try sql.load()
+            let events = try sql.journal(taskID: saved.id)
+            let accepted = context.record(TaskJournalEventDraft(taskID: saved.id, kind: .toolStarted,
+                detail: "filesystem.read", attempt: context.attempt))
+            let request = PermissionRequest(id: "isolated-owner-request-\(name)", toolID: "filesystem.read",
+                title: "Read the isolated fixture", detail: "Isolated owner guard", risk: .read,
+                arguments: ["path": input.path], taskID: saved.id, createdAt: saved.createdAt)
+            let captured = context.capturePermission?(request, nil, nil) ?? false
+            check(!accepted && !captured && context.consumePermissionApproval?() != true,
+                "invalid owner context accepted a fact/permission/token (\(name))")
+            var effects = 0
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                guard tool.id == "filesystem.read", arguments == ["path": input.path] else { throw OwnerFixtureError() }
+                effects += 1
+                return try FilesystemExecutor.run(tool, arguments: arguments)
+            }
+            var refused = 0
+            for attached in [false, true] {
+                do {
+                    _ = try await TaskEventJournal.$current.withValue(attached ? context : nil) {
+                        try await LocalAgentBackend().submit(saved)
+                    }
+                } catch { refused += 1 }
+            }
+            check(refused == 2 && effects == 0,
+                "actual LocalBackend accepted wrong/missing owner or absent/old context (\(name))")
+            check(try sql.load() == before && sql.journal(taskID: saved.id) == events,
+                "invalid owner context/backend changed held primary history (\(name))")
+
+            let held = fresh.task(id: saved.id)
+            try sql.withConnection { try TaskStore.exec($0,
+                "CREATE TRIGGER reject_owner_cancel BEFORE UPDATE ON task WHEN NEW.state='cancelled' BEGIN SELECT RAISE(ABORT,'fixture held cancel rejection'); END") }
+            fresh.cancel(saved.id)
+            check(try fresh.lastPersistenceResult == .sqlFailed
+                && fresh.task(id: saved.id) == held && held?.status == .recovering
+                && sql.load() == before && sql.journal(taskID: saved.id) == events
+                && fresh.backendStartsForTesting == 0 && effects == 0
+                && context.consumePermissionApproval?() != true,
+                "rejected held cancel lost recovering state/history or dispatched work (\(name))")
+            try sql.withConnection { try TaskStore.exec($0, "DROP TRIGGER reject_owner_cancel") }
+            fresh.cancel(saved.id)
+            let cancelled = try sql.load().first { $0.id == saved.id }
+            let cancelledEvents = try sql.journal(taskID: saved.id)
+            check(fresh.lastPersistenceResult?.primaryCommitted == true
+                && cancelled?.status == .cancelled
+                && cancelled?.durability?.attempt == saved.durability?.attempt
+                && cancelled?.durability?.leaseOwner == saved.durability?.leaseOwner
+                && cancelledEvents.last?.draft.kind == .jobCancelled
+                && cancelledEvents.last?.draft.attempt == saved.durability?.attempt
+                && fresh.backendStartsForTesting == 0 && effects == 0,
+                "held cancel did not commit same-attempt cancellation without dispatch (\(name))")
+            let reopened = AgentTaskManager(store: store)
+            check(reopened.task(id: saved.id)?.status == .cancelled
+                && reopened.backendStartsForTesting == 0 && effects == 0,
+                "cancelled held attempt was not retained on fresh manager load (\(name))")
+        }
+    }
+}

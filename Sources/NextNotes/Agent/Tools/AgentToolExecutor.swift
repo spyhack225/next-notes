@@ -190,89 +190,110 @@ enum AgentToolExecutor {
             risk: tool.risk,
             confidence: 1
         )
-        return try await ActionOrchestrator.shared.execute(
-            intent: intent,
-            tool: tool,
-            title: publicTitle,
-            preparedContent: PreparedContent(title: publicTitle, visiblePlan: tool.preview(for: authorizedArguments)),
-            routing: ActionRouting(
-                resource: scope.value.isEmpty ? nil : scope.value,
-                taskID: taskID,
-                meetingID: meetingID
-            ),
-            steps: [tool.id],
-            policy: effective,
-            // Nobody is there to answer a card for a scheduled run.
-            promptIfNeeded: promptIfNeeded && !actionAuthority.isScheduled,
-            permissionAlreadyGranted: permissionAlreadyGranted && !actionAuthority.isScheduled,
-            allowUnverifiedResult: (tool.namespace == .browser
-                                    || tool.namespace == .computer
-                                    || tool.namespace == .workspace)
-                && tool.risk > .read,
-            isStillValid: isStillValid,
-            origin: TaskEventJournal.current?.taskID == taskID ? TaskEventJournal.current?.restoredOrigin : nil,
-            fire: { prepared in
-                // The last word on a fabricated or absent argument. Everything above may
-                // have been a question; this is the set that would actually run — the
-                // user's edits merged over the model's draft — and it is checked again
-                // because a card raised *for* a gap must not be able to fire while the gap
-                // is still open, whatever a view drew.
-                if let problem = ToolCallValidation.problem(
-                    tool: tool, arguments: prepared.executionPlan.arguments
-                ) {
-                    throw AgentError.permissionDenied(problem)
-                }
-                let journal = TaskEventJournal.toolStarted(taskID: taskID, tool: tool.id)
-                var backingReturned = false
-                defer { TaskEventJournal.toolCompleted(journal, tool: tool.id, succeeded: backingReturned) }
-                if SelfTest.isRunning, let fire = fireOverrideForTesting {
-                    let result = try await fire(tool, prepared.executionPlan.arguments)
-                    backingReturned = true
-                    return result
-                }
-                // A denied or waiting action must not appear as executed activity. These
-                // projections happen only after the orchestrator has received permission.
-                AgentActivityStore.shared.update(
-                    taskID: taskID ?? "",
-                    kind: AgentActivityProjector.kind(for: tool),
-                    title: publicTitle,
-                    // The avatar's state is decided here, where the tool is, rather than
-                    // anywhere downstream that would have to read `publicTitle` back.
-                    avatar: AgentAvatarState.forTool(
-                        namespace: tool.namespace, name: tool.name, risk: tool.risk
-                    )
-                )
-                if taskID == nil {
-                    IslandState.shared.showAgentWork(title: publicTitle)
-                } else {
-                    IslandState.shared.showBackgroundAgentWork(title: publicTitle)
-                }
-                AgentAuditLog.shared.record(
-                    kind: .tool,
-                    title: publicTitle,
-                    detail: tool.id,
-                    toolID: tool.id,
+        var completedJournalAccepted = true
+        let executedResult: AgentToolResult
+        do {
+            executedResult = try await ActionOrchestrator.shared.execute(
+                intent: intent,
+                tool: tool,
+                title: publicTitle,
+                preparedContent: PreparedContent(title: publicTitle, visiblePlan: tool.preview(for: authorizedArguments)),
+                routing: ActionRouting(
+                    resource: scope.value.isEmpty ? nil : scope.value,
                     taskID: taskID,
                     meetingID: meetingID
-                )
-                // P0-20a timing seam: `fire` runs only after a card, a grant or an
-                // auto-allow has been resolved, so the clock `ToolExecutionTimer` starts
-                // here is execution time and never the wait for a person.
-                ToolExecutionTimer.current?.begin()
-                defer { ToolExecutionTimer.current?.end() }
-                let presentation = AgentActivityStore.shared.presentationBinding(taskID: taskID)
-                let result = try await AgentWorkPresentationScope.$binding.withValue(presentation) {
-                    try await perform(tool, arguments: prepared.executionPlan.arguments,
-                                      taskID: taskID, authority: actionAuthority)
+                ),
+                steps: [tool.id],
+                policy: effective,
+                // Nobody is there to answer a card for a scheduled run.
+                promptIfNeeded: promptIfNeeded && !actionAuthority.isScheduled,
+                permissionAlreadyGranted: permissionAlreadyGranted && !actionAuthority.isScheduled,
+                allowUnverifiedResult: (tool.namespace == .browser
+                                        || tool.namespace == .computer
+                                        || tool.namespace == .workspace)
+                    && tool.risk > .read,
+                isStillValid: isStillValid,
+                origin: TaskEventJournal.current?.taskID == taskID ? TaskEventJournal.current?.restoredOrigin : nil,
+                fire: { prepared in
+                    // The last word on a fabricated or absent argument. Everything above may
+                    // have been a question; this is the set that would actually run — the
+                    // user's edits merged over the model's draft — and it is checked again
+                    // because a card raised *for* a gap must not be able to fire while the gap
+                    // is still open, whatever a view drew.
+                    if let problem = ToolCallValidation.problem(
+                        tool: tool, arguments: prepared.executionPlan.arguments
+                    ) {
+                        throw AgentError.permissionDenied(problem)
+                    }
+                    let journal = try TaskEventJournal.toolStarted(taskID: taskID, tool: tool.id)
+                    var backingReturned = false
+                    defer {
+                        completedJournalAccepted = TaskEventJournal.toolCompleted(journal, tool: tool.id,
+                            succeeded: backingReturned)
+                    }
+                    if SelfTest.isRunning, let fire = fireOverrideForTesting {
+                        let result = try await fire(tool, prepared.executionPlan.arguments)
+                        backingReturned = true
+                        return result
+                    }
+                    // A denied or waiting action must not appear as executed activity. These
+                    // projections happen only after the orchestrator has received permission.
+                    AgentActivityStore.shared.update(
+                        taskID: taskID ?? "",
+                        kind: AgentActivityProjector.kind(for: tool),
+                        title: publicTitle,
+                        // The avatar's state is decided here, where the tool is, rather than
+                        // anywhere downstream that would have to read `publicTitle` back.
+                        avatar: AgentAvatarState.forTool(
+                            namespace: tool.namespace, name: tool.name, risk: tool.risk
+                        )
+                    )
+                    if taskID == nil {
+                        IslandState.shared.showAgentWork(title: publicTitle)
+                    } else {
+                        IslandState.shared.showBackgroundAgentWork(title: publicTitle)
+                    }
+                    AgentAuditLog.shared.record(
+                        kind: .tool,
+                        title: publicTitle,
+                        detail: tool.id,
+                        toolID: tool.id,
+                        taskID: taskID,
+                        meetingID: meetingID
+                    )
+                    // P0-20a timing seam: `fire` runs only after a card, a grant or an
+                    // auto-allow has been resolved, so the clock `ToolExecutionTimer` starts
+                    // here is execution time and never the wait for a person.
+                    ToolExecutionTimer.current?.begin()
+                    defer { ToolExecutionTimer.current?.end() }
+                    let presentation = AgentActivityStore.shared.presentationBinding(taskID: taskID)
+                    let result = try await AgentWorkPresentationScope.$binding.withValue(presentation) {
+                        try await perform(tool, arguments: prepared.executionPlan.arguments,
+                                          taskID: taskID, authority: actionAuthority)
+                    }
+                    backingReturned = true
+                    // P1-5: a run's artifacts — the reference and the link — ride with the
+                    // task id so `AgentTaskManager.execute` can fold them into the result
+                    // card. Same fold `LocalAgentBackend` applies to a single-tool task.
+                    AgentArtifactLedger.capture(taskID: taskID, result: result)
+                    return result
                 }
-                backingReturned = true
-                // P1-5: a run's artifacts — the reference and the link — ride with the
-                // task id so `AgentTaskManager.execute` can fold them into the result
-                // card. Same fold `LocalAgentBackend` applies to a single-tool task.
-                AgentArtifactLedger.capture(taskID: taskID, result: result)
-                return result
+            )
+        } catch {
+            // The runtime has already retained its own receipt. A throwing backing
+            // can still have caused an effect; do not turn this storage gap into a
+            // claim that nothing happened.
+            if !completedJournalAccepted {
+                throw AgentError.backendUnavailable((AgentTaskPersistenceResult.sqlFailed.diagnostic ?? "The task history could not be saved.") + " Check the result before trying again.")
             }
-        )
+            throw error
+        }
+        // Preserve the runtime's verified receipt before reporting the missing primary
+        // task fact. A completed effect is never converted into a retryable task success.
+        guard completedJournalAccepted else {
+            throw AgentError.backendUnavailable((AgentTaskPersistenceResult.sqlFailed.diagnostic ?? "The task history could not be saved.") + " Check the result before trying again.")
+        }
+        return executedResult
     }
 
     /// The Workspace runner, kept as the implementation for the eleven existing tools.

@@ -22,6 +22,18 @@ struct LocalAgentBackend: AgentBackend {
                     + "or ask me to check mail, the calendar, this window, or a file."
             )
         }
+        let boundAttempt = task.scheduleID == nil && ["user", "text", "selftest"].contains(task.source)
+            && task.backend == AgentBackendKind.local.rawValue
+            && (task.durability?.attempt ?? 0) > 0
+            && task.durability?.runtimeClass == .localDeterministic
+        if boundAttempt {
+            guard task.durability?.attemptStartedAt != nil,
+                  task.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+                  let context = TaskEventJournal.current, context.taskID == task.id,
+                  context.attempt == task.durability?.attempt, context.isStillValid != nil else {
+                throw AgentError.backendUnavailable("This task can’t safely continue. Nothing was run.")
+            }
+        }
         let permissionAlreadyGranted = await MainActor.run {
             if let context = TaskEventJournal.current, context.taskID == task.id {
                 return context.consumePermissionApproval?() ?? false
@@ -34,7 +46,8 @@ struct LocalAgentBackend: AgentBackend {
             policy: await MainActor.run { PermissionPolicy.fromSettings() },
             meetingID: task.meetingID,
             taskID: task.id,
-            permissionAlreadyGranted: permissionAlreadyGranted
+            permissionAlreadyGranted: permissionAlreadyGranted,
+            isStillValid: TaskEventJournal.current?.taskID == task.id ? TaskEventJournal.current?.isStillValid : nil
         )
         var artifacts: [String] = []
         if let reference = result.reference { artifacts.append(reference) }

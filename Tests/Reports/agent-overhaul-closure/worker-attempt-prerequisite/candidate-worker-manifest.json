@@ -1,0 +1,60 @@
+{
+  "status": "P6-06b applied; installed app19 actual worker61 and all12 related safety flags PASS; source pin verified; broader proof limits retained",
+  "files": {
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift": {
+      "original_sha256": "f06b561e3b63d05902fb97cd55e53cf2c8fc0fd8186980e2acb02f0298f77b23",
+      "candidate": "candidate-TaskStore.swift.txt",
+      "candidate_sha256": "961644e8a7689a1f4d8004e64d0b3d12a567136653dff32bd7192786b26d18da",
+      "applied_from_sha256": "f06b561e3b63d05902fb97cd55e53cf2c8fc0fd8186980e2acb02f0298f77b23"
+    },
+    "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": {
+      "original_sha256": "4a6bb75f8e263721e74ec15f126f872b553a62d8b5856443ab6c40b9167fe245",
+      "candidate": "candidate-AgentTaskStore.swift.txt",
+      "candidate_sha256": "8e7c619ae5de83bb3add8ec41726550b83f90d9890f2dd254205cb1302562e09",
+      "applied_from_sha256": "4a6bb75f8e263721e74ec15f126f872b553a62d8b5856443ab6c40b9167fe245"
+    },
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift": {
+      "original_sha256": "4f4199112443423a0424ef916b96d01f421765102938cde5b8dc29977ffddbd3",
+      "candidate": "candidate-TaskEventJournal.swift.txt",
+      "candidate_sha256": "86dbfb747c7557506b794de6a23bed4fad79c7deadf872ee3a76ef0c91466188",
+      "applied_from_sha256": "4f4199112443423a0424ef916b96d01f421765102938cde5b8dc29977ffddbd3"
+    },
+    "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift": {
+      "original_sha256": "46d05129644780e2a9d09080c47b1699d3f8440d786df2624273f74e7a21a678",
+      "candidate": "candidate-AgentToolExecutor.swift.txt",
+      "candidate_sha256": "badf0fde28b5346daee7f1d25a585181fbd2afb525acdfe9871ca59f2c4b5ceb",
+      "applied_from_sha256": "46d05129644780e2a9d09080c47b1699d3f8440d786df2624273f74e7a21a678"
+    },
+    "Sources/NextNotes/Agent/Backend/LocalAgentBackend.swift": {
+      "original_sha256": "03ab569742752c8caaaf4fbe52068c8acae9f4d8983f7891868c099ce4295103",
+      "candidate": "candidate-LocalAgentBackend.swift.txt",
+      "candidate_sha256": "83f6ac4da8967bd3181069415e756b537cc7e75cac97d06c3dcdeb9854e08296",
+      "applied_from_sha256": "03ab569742752c8caaaf4fbe52068c8acae9f4d8983f7891868c099ce4295103"
+    },
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": {
+      "original_sha256": "e1e7566fb603b0d2c398d0646b46fcd73aafcdb1219a30c326a1e05e85e7186f",
+      "candidate": "candidate-AgentTaskManager.swift.txt",
+      "candidate_sha256": "ccbb36ecdd6a2c3ec847ff9d6253836ff21af06d13d0a2ee0951cc9d2d267d45",
+      "applied_from_sha256": "6e6331bc939bbe8fbf19a165f66b7e68f49462a1aa80d9657851c060965071e1"
+    },
+    "Sources/NextNotes/Agent/Permissions/PermissionGate.swift": {
+      "original_sha256": "54b4c5120cafcf2a7cde5ab7b9ad87b57b8322558d2488652a2b1c4ea868ec67",
+      "candidate": "candidate-PermissionGate.swift.txt",
+      "candidate_sha256": "b8dba3c78bbb697d9fab2ccc3f8334f7e765e1f7fdc5116c3a4969b740c31cf6",
+      "applied_from_sha256": "54b4c5120cafcf2a7cde5ab7b9ad87b57b8322558d2488652a2b1c4ea868ec67"
+    },
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskRestorationProductionSelfTest.swift": {
+      "original_sha256": "ff1e64326ed21b410802c3a1eb6ef227f48bd516707bc704ad1b5680e71f44f4",
+      "candidate": "candidate-TaskRestorationProductionSelfTest.swift.txt",
+      "candidate_sha256": "fea3378c696da54e66db0193045edd2ff9de0455f039b50288f19407da298527",
+      "applied_from_sha256": "ff1e64326ed21b410802c3a1eb6ef227f48bd516707bc704ad1b5680e71f44f4"
+    },
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskStoreSelfTest.swift": {
+      "original_sha256": "b51790378dcac017d60523e834d14a6392fa99ec17ce07110edfe1c946bb6a42",
+      "candidate": "candidate-TaskStoreSelfTest.swift.txt",
+      "candidate_sha256": "3d230c59d8bcd734be338b5de0384a706b52afd3b1b43238a9fa967adb13ee2c",
+      "applied_from_sha256": "b51790378dcac017d60523e834d14a6392fa99ec17ce07110edfe1c946bb6a42"
+    }
+  },
+  "installed_evidence": "current-app19-evidence-manifest.json"
+}

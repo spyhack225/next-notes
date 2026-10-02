@@ -1,0 +1,317 @@
+{
+  "status": "actual completed installed evidence supplied by root",
+  "build": 19,
+  "binary_sha256": "43d80d8ce964b491f0462c47c257b870d19b180a529962761a64bc1c7fd38366",
+  "worker": {
+    "flag": "task-worker-attempt",
+    "exit": 0,
+    "verdict": "PASS",
+    "marker": "TASK_WORKER_ATTEMPT_OK: 61 cases"
+  },
+  "actual_worker_cases": 61,
+  "checks": [
+    {
+      "flag": "task-worker-attempt",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_WORKER_ATTEMPT_OK: 61 cases"
+    },
+    {
+      "flag": "task-durability",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_DURABILITY_OK: 37 cases"
+    },
+    {
+      "flag": "task-recovery",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_RECOVERY_OK: 56 cases"
+    },
+    {
+      "flag": "task-authority",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_AUTHORITY_OK: 58 cases"
+    },
+    {
+      "flag": "task-restoration",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_RESTORATION_OK: 70 cases"
+    },
+    {
+      "flag": "task-history-repair",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TASK_HISTORY_REPAIR_OK: 58 cases"
+    },
+    {
+      "flag": "tool-review",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TOOL_REVIEW_OK"
+    },
+    {
+      "flag": "toolloop-production",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TOOLLOOP_PRODUCTION_OK"
+    },
+    {
+      "flag": "routine-authority",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "ROUTINE_AUTHORITY_OK"
+    },
+    {
+      "flag": "schedule",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "SCHEDULE_OK"
+    },
+    {
+      "flag": "usage-log",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "USAGE_LOG_OK: 26 cases"
+    },
+    {
+      "flag": "store-isolation",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "STORE_ISOLATION_OK: 21 files and 31 defaults unchanged"
+    },
+    {
+      "flag": "toolloop-live-grader",
+      "exit": 0,
+      "verdict": "PASS",
+      "marker": "TOOLLOOP_LIVE_GRADER_OK"
+    }
+  ],
+  "files": [
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-build19-source-manifest.json",
+      "archive": "current-app19/nextnotes-agent-closure-build19-source-manifest.json",
+      "sha256": "1b1b14bd4967875a2bbb468ca11a7a7bea7c69646672024effe74358ccecaaf5",
+      "bytes": 88781
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-install-19.log",
+      "archive": "current-app19/nextnotes-agent-closure-install-19.log",
+      "sha256": "d894cf807f14723c1620a976ec2a3cbe15d4b1ec7f4030df7f0dc23e0749ce9f",
+      "bytes": 15857
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/summary.json",
+      "archive": "current-app19/summary.json",
+      "sha256": "b213c5e3a0d0aae93b9e04e89690321d276637c7b63d9530d761a1c0063f47a3",
+      "bytes": 1578
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-worker-attempt.out",
+      "archive": "current-app19/selftest-task-worker-attempt.out",
+      "sha256": "1989aaa86eb4050231e73cf9dfb42aa34adc4048e9aee61b21ea5af971d70bf3",
+      "bytes": 943
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-worker-attempt.log",
+      "archive": "current-app19/selftest-task-worker-attempt.log",
+      "sha256": "1122c0d4e4ad0cc899634de851620ce04fa2577ccd3f4f9bf730994d18c5cc57",
+      "bytes": 1159
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-durability.out",
+      "archive": "current-app19/selftest-task-durability.out",
+      "sha256": "d6a2597070bcc29d5cc1025bad6aca29ccd5db109a021cf831486e5b86f942c0",
+      "bytes": 653
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-durability.log",
+      "archive": "current-app19/selftest-task-durability.log",
+      "sha256": "48d1d4bd96ea22b5db1e4c5451795f34504c6325ef154e18b54547c0abe4d649",
+      "bytes": 861
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-recovery.out",
+      "archive": "current-app19/selftest-task-recovery.out",
+      "sha256": "4c5825f3e5b688c57c88e95545baf6890175e09247d91eb163876d358943a4bd",
+      "bytes": 803
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-recovery.log",
+      "archive": "current-app19/selftest-task-recovery.log",
+      "sha256": "5f6a365ad576bab2fe8d8942f976c3d7f3e7b45a3936d15fbf5848a6a1ea8e86",
+      "bytes": 1007
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-authority.out",
+      "archive": "current-app19/selftest-task-authority.out",
+      "sha256": "1704f6977f4776a6cbec7f6b68570e8d0db135b36344b521eec662cba6c271e4",
+      "bytes": 1314
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-authority.log",
+      "archive": "current-app19/selftest-task-authority.log",
+      "sha256": "7d093be897b86b87732bcc29b39695b42d3aefa33953dbfdcc16fd88d90a852b",
+      "bytes": 1520
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-restoration.out",
+      "archive": "current-app19/selftest-task-restoration.out",
+      "sha256": "614a39af5b333b48733ba8ab7eeb06aeb14babbd0a494ef7451c0dd6e74c21f1",
+      "bytes": 1545
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-restoration.log",
+      "archive": "current-app19/selftest-task-restoration.log",
+      "sha256": "d9e4007a5a3b58dd257b90c9cf8cedb9f49301a8e155ec410b8e1c5b4453b8f3",
+      "bytes": 1755
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-history-repair.out",
+      "archive": "current-app19/selftest-task-history-repair.out",
+      "sha256": "938483e9539b55a323808ba7cb76c464d9879535737c1b3e72f1818c33c8087e",
+      "bytes": 381
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-task-history-repair.log",
+      "archive": "current-app19/selftest-task-history-repair.log",
+      "sha256": "c7b5db545ca57f876bf76feeaaaa6778b98a335fc05aa28c481d61eb16850732",
+      "bytes": 597
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-tool-review.log",
+      "archive": "current-app19/selftest-tool-review.log",
+      "sha256": "4163efd7e3c437cf0bec6e62effdda440b5e71bef9fa005838fc046f6b4a603b",
+      "bytes": 215
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-toolloop-production.out",
+      "archive": "current-app19/selftest-toolloop-production.out",
+      "sha256": "f7405a5292ebb2c7d7c975176de0c15f9f4cf07b174107c4866a26c2c0a73433",
+      "bytes": 867
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-toolloop-production.log",
+      "archive": "current-app19/selftest-toolloop-production.log",
+      "sha256": "cf248925f1cf77ce0c58e804eb815ae965bbca583a636dc56232af1714376f6c",
+      "bytes": 2000
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-routine-authority.log",
+      "archive": "current-app19/selftest-routine-authority.log",
+      "sha256": "78312834692155132c573570c60ec6442b84c3b7fcddc53cf8cd625dda257f4e",
+      "bytes": 1293
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-schedule.log",
+      "archive": "current-app19/selftest-schedule.log",
+      "sha256": "3863d4509dcb5aac889fb6c1307d9efad4661d9c29aed4678b4382bd511a872a",
+      "bytes": 2507
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-usage-log.log",
+      "archive": "current-app19/selftest-usage-log.log",
+      "sha256": "92a79f6c1713b59b65f5198ebbe510bab3aac4d0419a277e474558777c9eda99",
+      "bytes": 219
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-store-isolation.out",
+      "archive": "current-app19/selftest-store-isolation.out",
+      "sha256": "dcb5879fec650d82a2f69a398b1ebbe3536bdfc3814a1ec5035a5e450ad3e4b5",
+      "bytes": 1345
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-store-isolation.log",
+      "archive": "current-app19/selftest-store-isolation.log",
+      "sha256": "d3ee4dd365372aaa72fd9a0b10c84f51e14118d37bb7532e568c9672d2074070",
+      "bytes": 2470
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-toolloop-live-grader.out",
+      "archive": "current-app19/selftest-toolloop-live-grader.out",
+      "sha256": "158ea2d072de62a6db5e7acaaa3e66d32d0515ea3e81079b60475570c9ea9ae3",
+      "bytes": 233
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-19/selftest-toolloop-live-grader.log",
+      "archive": "current-app19/selftest-toolloop-live-grader.log",
+      "sha256": "53c1ec4df1fa1841ce8a86255ef0354eeafb0b1efc668283cfe23c30a567cb7d",
+      "bytes": 451
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift",
+      "archive": "current-app19/installed-TaskStore.swift.txt",
+      "sha256": "961644e8a7689a1f4d8004e64d0b3d12a567136653dff32bd7192786b26d18da",
+      "bytes": 40646
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift",
+      "archive": "current-app19/installed-AgentTaskStore.swift.txt",
+      "sha256": "8e7c619ae5de83bb3add8ec41726550b83f90d9890f2dd254205cb1302562e09",
+      "bytes": 12104
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift",
+      "archive": "current-app19/installed-TaskEventJournal.swift.txt",
+      "sha256": "86dbfb747c7557506b794de6a23bed4fad79c7deadf872ee3a76ef0c91466188",
+      "bytes": 6249
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift",
+      "archive": "current-app19/installed-AgentToolExecutor.swift.txt",
+      "sha256": "badf0fde28b5346daee7f1d25a585181fbd2afb525acdfe9871ca59f2c4b5ceb",
+      "bytes": 27731
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Backend/LocalAgentBackend.swift",
+      "archive": "current-app19/installed-LocalAgentBackend.swift.txt",
+      "sha256": "83f6ac4da8967bd3181069415e756b537cc7e75cac97d06c3dcdeb9854e08296",
+      "bytes": 3386
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "archive": "current-app19/installed-AgentTaskManager.swift.txt",
+      "sha256": "ccbb36ecdd6a2c3ec847ff9d6253836ff21af06d13d0a2ee0951cc9d2d267d45",
+      "bytes": 47856
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Permissions/PermissionGate.swift",
+      "archive": "current-app19/installed-PermissionGate.swift.txt",
+      "sha256": "b8dba3c78bbb697d9fab2ccc3f8334f7e765e1f7fdc5116c3a4969b740c31cf6",
+      "bytes": 14969
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskRestorationProductionSelfTest.swift",
+      "archive": "current-app19/installed-TaskRestorationProductionSelfTest.swift.txt",
+      "sha256": "fea3378c696da54e66db0193045edd2ff9de0455f039b50288f19407da298527",
+      "bytes": 41809
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskStoreSelfTest.swift",
+      "archive": "current-app19/installed-TaskStoreSelfTest.swift.txt",
+      "sha256": "3d230c59d8bcd734be338b5de0384a706b52afd3b1b43238a9fa967adb13ee2c",
+      "bytes": 40940
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+      "archive": "current-app19/installed-TaskWorkerAttemptSelfTest.swift.txt",
+      "sha256": "18ff459ef0a90b0aabbd26f6f9277c5d13539dedcb982daeb19e6252eb8c6305",
+      "bytes": 27676
+    },
+    {
+      "source": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/NextNotesApp.swift",
+      "archive": "current-app19/installed-NextNotesApp.swift.txt",
+      "sha256": "1ad68ecf18a9c441edcdd153d57df7f5e9fc491ca8b00920a0c3623616aa1ee9",
+      "bytes": 488846
+    }
+  ],
+  "absent_companions": [
+    "/private/tmp/nextnotes-agent-closure-checks-19/selftest-tool-review.out",
+    "/private/tmp/nextnotes-agent-closure-checks-19/selftest-routine-authority.out",
+    "/private/tmp/nextnotes-agent-closure-checks-19/selftest-schedule.out",
+    "/private/tmp/nextnotes-agent-closure-checks-19/selftest-usage-log.out"
+  ],
+  "limits": "No process-crash/power-loss/heartbeat/retry/receipt join/IM16 or rendered UI proof. Quick aggregate separately pending unless supplied."
+}

@@ -18,6 +18,15 @@ struct TaskStoreAuthorityProbe: Sendable {
     let tasks: [AgentTask]
 }
 
+/// A predicate on an existing primary task row, checked inside the same commit.
+/// It supplies no recovery, liveness or retry authority.
+struct TaskWorkerWriteCondition: Sendable {
+    let taskID: String
+    let attempt: Int
+    let leaseOwner: String?
+    let status: AgentTaskStatus
+}
+
 enum TaskStoreError: LocalizedError {
     case sqlite(Int32)
     case unsupportedVersion(Int64)
@@ -395,7 +404,7 @@ final class TaskStore: @unchecked Sendable {
     }
 
     func commitAuthoritative(_ tasks: [AgentTask], probe: TaskStoreAuthorityProbe,
-                             events: [TaskJournalEventDraft]) throws -> TaskStoreAuthority {
+                             events: [TaskJournalEventDraft], worker: TaskWorkerWriteCondition? = nil) throws -> TaskStoreAuthority {
         try Self.validate(tasks)
         guard let before = probe.authority, before.generation < Int64.max,
               events.allSatisfy({ event in tasks.contains { $0.id == event.taskID } }) else {
@@ -411,6 +420,19 @@ final class TaskStore: @unchecked Sendable {
                 try Self.validateOpenedFile(db)
                 guard try fileIdentity() == probe.identity,
                       try Self.authority(in: db) == before else { throw TaskStoreError.authorityConflict }
+                if let worker {
+                    guard try Self.matchesWorker(worker, in: db),
+                          let next = tasks.first(where: { $0.id == worker.taskID }) else {
+                        throw TaskStoreError.authorityConflict
+                    }
+                    let starting = worker.status == .queued && next.status == .running
+                    guard worker.attempt >= 0, !starting || worker.attempt < Int.max,
+                          next.durability?.attempt == worker.attempt + (starting ? 1 : 0),
+                          starting || next.durability?.leaseOwner == worker.leaseOwner,
+                          events.filter({ $0.taskID == worker.taskID }).allSatisfy({ $0.attempt == next.durability?.attempt }) else {
+                        throw TaskStoreError.authorityConflict
+                    }
+                }
                 try TaskStoreSchema.installPendingInteractions(on: db)
                 try Self.writeRows(tasks, to: db, preservingChildren: false)
                 try TaskEventJournal.append(events, to: db)
@@ -422,6 +444,37 @@ final class TaskStore: @unchecked Sendable {
             }
         }
         return after
+    }
+
+    /// Fail-fast existing-only primary read for the final worker validity hook.
+    func matchesWorker(_ worker: TaskWorkerWriteCondition, probe: TaskStoreAuthorityProbe) throws -> Bool {
+        guard let authority = probe.authority else { return false }
+        guard lock.try() else { throw TaskStoreError.sqlite(SQLITE_BUSY) }
+        defer { lock.unlock() }
+        return try existing(identity: probe.identity, writable: false) { db in
+            try Self.exec(db, "BEGIN")
+            defer { try? Self.exec(db, "ROLLBACK") }
+            guard try Self.authority(in: db) == authority else { return false }
+            return try Self.matchesWorker(worker, in: db)
+        }
+    }
+
+    private static func matchesWorker(_ worker: TaskWorkerWriteCondition, in db: OpaquePointer) throws -> Bool {
+        let statement = try prepare(db, "SELECT state,durability FROM task WHERE id=?")
+        defer { sqlite3_finalize(statement) }
+        try bind(statement, [.text(worker.taskID)])
+        let code = sqlite3_step(statement)
+        guard code == SQLITE_ROW else {
+            if code == SQLITE_DONE { return false }
+            throw TaskStoreError.sqlite(code)
+        }
+        guard let state = try text(statement, 0), let status = AgentTaskStatus(rawValue: state) else {
+            throw TaskStoreError.invalidRecord
+        }
+        let durability = try text(statement, 1).map { try decode(TaskDurability.self, $0) }
+        guard (durability?.attempt ?? 0) >= 0 else { throw TaskStoreError.invalidRecord }
+        return status == worker.status && (durability?.attempt ?? 0) == worker.attempt
+            && durability?.leaseOwner == worker.leaseOwner
     }
 
     /// One transaction replaces the canonical JSON snapshot's current rows. UPSERT updates

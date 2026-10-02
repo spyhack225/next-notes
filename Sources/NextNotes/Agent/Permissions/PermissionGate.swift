@@ -45,7 +45,7 @@ final class PermissionGate {
                 }
                 admitted = true
                 if let context {
-                    context.record(TaskJournalEventDraft(taskID: context.taskID,
+                    _ = context.record(TaskJournalEventDraft(taskID: context.taskID,
                         kind: .permissionRequested, attempt: context.attempt))
                 }
                 let entry = WaitingApproval(request: request, continuation: continuation)
@@ -59,7 +59,7 @@ final class PermissionGate {
         }
         if admitted, let context {
             // False includes cancellation/withdrawal. It does not assert a human denial.
-            context.record(TaskJournalEventDraft(taskID: context.taskID,
+            _ = context.record(TaskJournalEventDraft(taskID: context.taskID,
                 kind: approved ? .permissionApproved : .permissionDenied,
                 detail: approved ? nil : "notApproved", attempt: context.attempt))
         }

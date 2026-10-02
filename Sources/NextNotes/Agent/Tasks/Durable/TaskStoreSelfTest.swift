@@ -136,8 +136,10 @@ enum TaskStoreSelfTest {
             let events = try second.journal(taskID: task.id)
             check(events.map(\.draft.kind) == [.jobCreated, .workerStarted, .toolStarted, .toolCompleted, .jobCompleted, .artifactCaptured],
                 "actual manager execution context did not journal its real tool and terminal transitions")
-            check(events.allSatisfy { $0.draft.attempt == 0 && !($0.draft.detail ?? "").contains("Private") },
-                "tool facts fabricated a bound attempt or copied private results")
+            check(events.first?.draft.attempt == 0
+                && events.dropFirst().allSatisfy { $0.draft.attempt == 1 && !($0.draft.detail ?? "").contains("Private") }
+                && manager.task(id: task.id)?.durability?.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+                "actual typed local tool facts lost the admitted attempt or copied private results")
             check(try second.load().first?.artifacts.count == 2
                 && events.last?.draft.detail == "count:2", "actual local-backend artifact capture did not reach task/journal")
 
@@ -163,15 +165,21 @@ enum TaskStoreSelfTest {
                 backingCalls += 1
                 throw FixtureError.backingFailure
             }
-            await TaskEventJournal.$current.withValue(context) {
-                do {
-                    _ = try await AgentToolExecutor.run("filesystem.read", arguments: ["path": "/fixture/path"], policy: .selfTest, taskID: task.id)
-                    check(false, "throwing backing unexpectedly returned")
-                } catch {}
+            // A failed backing belongs to genuinely admitted live work, rather than
+            // reusing the terminal context above as new execution authority.
+            let throwing = manager.submit(objective: "Private throwing backing", tool: "filesystem.read",
+                arguments: ["path": "/fixture/path"], source: "selftest")
+            let failureDeadline = clock.now.advanced(by: .seconds(5))
+            while clock.now < failureDeadline,
+                  manager.task(id: throwing.id)?.status == .queued || manager.task(id: throwing.id)?.status == .running {
+                await Task.yield()
             }
+            let throwingEvents = try second.journal(taskID: throwing.id)
+            let toolEvents = throwingEvents.filter { $0.draft.kind == .toolStarted || $0.draft.kind == .toolCompleted }
             let failed = try second.journal(taskID: task.id)
-            check(failed.suffix(2).map(\.draft.kind) == [.toolStarted, .toolCompleted]
-                && failed.last?.draft.detail == "filesystem.read:threw" && backingCalls == 2,
+            check(manager.task(id: throwing.id)?.status == .failed && failed.count == count
+                && toolEvents.map(\.draft.kind) == [.toolStarted, .toolCompleted]
+                && toolEvents.last?.draft.detail == "filesystem.read:threw" && backingCalls == 2,
                 "actual failed backing did not journal its bounded factual outcome")
             AgentToolExecutor.fakeForTesting = { _, _ in AgentToolResult(summary: "Private early fake") }
             try await TaskEventJournal.$current.withValue(context) {

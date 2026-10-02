@@ -203,8 +203,20 @@ final class AgentTaskStore {
         try repairPreparedHistory()
     }
 
+    /// No creator/fallback path: the worker's final hook verifies its bound primary row.
+    func matchesWorker(_ worker: TaskWorkerWriteCondition) -> Bool {
+        guard !failedLoad else { return false }
+        guard !SelfTest.isRunning || allowsHarnessPersistence else { return false }
+        do {
+            guard let probe = try mirror.probeAuthority(includeTasks: false) else { return false }
+            try check(probe, witness: try? compatibilityData())
+            return try mirror.matchesWorker(worker, probe: probe)
+        } catch { return false }
+    }
+
     @discardableResult
-    func save(_ tasks: [AgentTask], events: [TaskJournalEventDraft] = []) -> AgentTaskPersistenceResult {
+    func save(_ tasks: [AgentTask], events: [TaskJournalEventDraft] = [],
+              worker: TaskWorkerWriteCondition? = nil) -> AgentTaskPersistenceResult {
         guard !failedLoad else { return .loadFailed }
         guard !SelfTest.isRunning || allowsHarnessPersistence else { return .loadFailed }
         let canonical: [AgentTask]
@@ -221,7 +233,7 @@ final class AgentTaskStore {
             }
             try check(probe, witness: try? compatibilityData())
             try boundary("beforePrimaryCommit")
-            let authority = try mirror.commitAuthoritative(canonical, probe: probe, events: events)
+            let authority = try mirror.commitAuthoritative(canonical, probe: probe, events: events, worker: worker)
             expectedAuthority = authority
             expectedIdentity = probe.identity
             do {

@@ -21,6 +21,8 @@ final class AgentTaskManager {
     @ObservationIgnored private var approvedCompatibilityTaskIDs: Set<String> = []
     @ObservationIgnored private(set) var backendStartsForTesting = 0
     @ObservationIgnored var backendEntryForTesting: (@MainActor () throws -> Void)?
+    @ObservationIgnored var backendExitForTesting: (@MainActor () -> Void)?
+    @ObservationIgnored var announcementForTesting: (@MainActor (String) -> Void)?
     private var preparedRepairAvailable = false
     @ObservationIgnored private let store: AgentTaskStore
     private var projectsActivity: Bool { !SelfTest.isRunning || !store.allowsHarnessPersistence }
@@ -227,7 +229,17 @@ final class AgentTaskManager {
             VoiceConversationCoordinator.shared.cancel(uuid)
             return
         }
-        let admitted = update(id) { task in
+        let current = task(id: id)
+        let cancelCondition: TaskWorkerWriteCondition?
+        if let current, hasLocalAttemptRecord(current) {
+            guard [.queued, .running, .recovering, .waitingForPermission, .waitingForInput].contains(current.status),
+                  let durability = current.durability else { return }
+            // A user can stop an old-owner saved task. This stored-row predicate
+            // authorizes only the cancelled transition, never a live effect.
+            cancelCondition = TaskWorkerWriteCondition(taskID: id, attempt: durability.attempt,
+                leaseOwner: durability.leaseOwner, status: current.status)
+        } else { cancelCondition = nil }
+        let admitted = update(id, worker: cancelCondition) { task in
             task.status = .cancelled
             task.progress = "Cancelled"
             task.pendingInteraction = nil
@@ -493,14 +505,69 @@ final class AgentTaskManager {
         return true
     }
 
+    private func ownsLocalAttempt(_ task: AgentTask) -> Bool {
+        isTypedOwner(task) && task.backend == AgentBackendKind.local.rawValue
+    }
+
+    private func hasLocalAttemptRecord(_ task: AgentTask) -> Bool {
+        guard ownsLocalAttempt(task), let durability = task.durability else { return false }
+        return durability.attempt > 0 && durability.runtimeClass == .localDeterministic
+    }
+
+    private func workerCondition(_ captured: AgentTask, states: [AgentTaskStatus]) -> TaskWorkerWriteCondition? {
+        guard hasLocalAttemptRecord(captured), let durability = captured.durability,
+              durability.attemptStartedAt != nil,
+              durability.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+              let current = task(id: captured.id), states.contains(current.status),
+              current.durability?.attempt == durability.attempt,
+              current.durability?.leaseOwner == durability.leaseOwner else { return nil }
+        return TaskWorkerWriteCondition(taskID: captured.id, attempt: durability.attempt,
+            leaseOwner: durability.leaseOwner, status: current.status)
+    }
+
+    @discardableResult
+    private func updateWorker(_ captured: AgentTask, states: [AgentTaskStatus] = [.running],
+                              mutate: (inout AgentTask) -> Void) -> AgentTaskPersistenceResult {
+        if !ownsLocalAttempt(captured) { return update(captured.id, mutate: mutate) }
+        guard let expected = workerCondition(captured, states: states) else { return .loadFailed }
+        return update(captured.id, worker: expected, mutate: mutate)
+    }
+
+    private func releaseWorker(_ captured: AgentTask) {
+        if !ownsLocalAttempt(captured) { running[captured.id] = nil; return }
+        // A queued explicit continuation may already own the next handle before its
+        // asynchronous execute allocates the next attempt. Do not remove that handle.
+        guard let current = task(id: captured.id), current.status != .queued,
+              current.durability?.attempt == captured.durability?.attempt,
+              current.durability?.leaseOwner == captured.durability?.leaseOwner else { return }
+        running[captured.id] = nil
+    }
+
     private func execute(_ id: String) async {
         guard historyReadFailure == nil else { return }
         guard var task = task(id: id) else { return }
         guard !Task.isCancelled, task.status == .queued else { return }
+        let startCondition: TaskWorkerWriteCondition?
+        if ownsLocalAttempt(task) {
+            var durability = task.durability ?? TaskDurability()
+            guard durability.attempt < Int.max else { rejectStart(id, result: .sqlFailed); return }
+            startCondition = TaskWorkerWriteCondition(taskID: id, attempt: durability.attempt,
+                leaseOwner: durability.leaseOwner, status: .queued)
+            durability.attempt += 1
+            durability.leaseOwner = String(ProcessInfo.processInfo.processIdentifier)
+            durability.attemptStartedAt = Date()
+            durability.runtimeClass = .localDeterministic
+            durability.resumePolicy = .neverAuto
+            task.durability = durability
+        } else { startCondition = nil }
         task.status = .running
         task.progress = "Starting…"
-        let started = updateRecord(task)
+        let started = updateRecord(task, worker: startCondition)
         guard started.primaryCommitted else { rejectStart(id, result: started); return }
+        defer {
+            releaseWorker(task)
+            if SelfTest.isRunning && store.allowsHarnessPersistence { backendExitForTesting?() }
+        }
 
         do {
             let outcome: AgentTaskOutcome
@@ -521,14 +588,19 @@ final class AgentTaskManager {
             // P1-5: nested tool calls park their reference and link on the ledger; fold
             // them in beside whatever the backend itself returned, and keep them on the
             // task so the terminal card can link them after a relaunch.
+            if ownsLocalAttempt(task), workerCondition(task, states: [.running]) == nil { return }
             let captured = AgentArtifactLedger.take(taskID: id)
-            update(id) { item in
+            let finished = updateWorker(task) { item in
                 item.status = outcome.status
                 item.progress = outcome.progress
                 item.result = outcome.result
                 item.artifacts = outcome.artifacts + captured.filter { !outcome.artifacts.contains($0) }
                 item.failure = outcome.failure
                 item.pendingInteraction = nil
+            }
+            guard finished.primaryCommitted else {
+                if let diagnostic = finished.diagnostic { announce(diagnostic) }
+                return
             }
             if projectsActivity { AgentActivityStore.shared.finish(
                 taskID: id,
@@ -541,33 +613,42 @@ final class AgentTaskManager {
             }
             announceArtifacts(taskID: id)
         } catch is CancellationError {
-            update(id) { $0.status = .cancelled }
-            announce("Cancelled.")
+            let cancelled = updateWorker(task) { $0.status = .cancelled }
+            if cancelled.primaryCommitted { announce("Cancelled.") }
         } catch let error as AgentError {
+            if ownsLocalAttempt(task), workerCondition(task, states: [.running, .waitingForPermission]) == nil { return }
             if case .missingArgument(let parameter, let toolID) = error,
                let request = missingInputRequest(taskID: id, parameter: parameter, toolID: toolID) {
-                let admitted = parkInput(request)
+                let admitted = updateWorker(task) { item in
+                    item.pendingInteraction = .input(request)
+                    item.status = .waitingForInput
+                    item.progress = request.question
+                }
                 if admitted.primaryCommitted {
                     if projectsActivity { AgentActivityStore.shared.update(
                         taskID: id, kind: .waiting, title: "Waiting for your answer", detail: request.question
                     ) }
                 } else {
                     let failure = admitted.diagnostic ?? "Your question couldn’t be saved. Nothing was run."
-                    update(id) { item in item.status = .failed; item.failure = failure }
+                    let failed = updateWorker(task) { item in item.status = .failed; item.failure = failure }
+                    guard failed.primaryCommitted else { announce(failure); return }
                     if projectsActivity { AgentActivityStore.shared.finish(taskID: id, title: failure) }
                     announce(failure)
                 }
-                running[id] = nil
                 return
             }
             if case .acpHandshakeUnavailable(let request) = error {
-                update(id) { item in
+                let parked = updateWorker(task) { item in
                     item.status = .waitingForCompatibilityCLI
                     item.progress = "ACP unavailable · compatibility CLI is optional"
                     item.failure = nil
                     item.compatibilityCommand = request.command
                     item.compatibilityCLI = request.cli
                     item.compatibilityDirectory = request.directory
+                }
+                guard parked.primaryCommitted else {
+                    if let diagnostic = parked.diagnostic { announce(diagnostic) }
+                    return
                 }
                 approvedCompatibilityTaskIDs.remove(id)
                 if projectsActivity { AgentActivityStore.shared.update(
@@ -576,48 +657,67 @@ final class AgentTaskManager {
                     title: "ACP unavailable",
                     detail: "Compatibility mode requires a one-shot approval and has weaker progress and permissions."
                 ) }
-                running[id] = nil
                 return
             }
             if case .needsPermission(let title) = error {
-                update(id) { item in
+                if ownsLocalAttempt(task), workerCondition(task, states: [.waitingForPermission]) != nil {
+                    restorePendingInteractions()
+                    return // The exact capture producer already committed this parked row.
+                }
+                let parked = updateWorker(task) { item in
                     item.status = .waitingForPermission
                     item.progress = title
                 }
+                guard parked.primaryCommitted else {
+                    if let diagnostic = parked.diagnostic { announce(diagnostic) }
+                    return
+                }
                 restorePendingInteractions()
-                running[id] = nil
                 return
             }
-            update(id) { item in
+            let failed = updateWorker(task, states: [.running, .waitingForPermission]) { item in
                 item.status = .failed
                 item.failure = error.localizedDescription
+            }
+            guard failed.primaryCommitted else {
+                if let diagnostic = failed.diagnostic { announce(diagnostic) }
+                return
             }
             if projectsActivity { AgentActivityStore.shared.finish(taskID: id, title: error.localizedDescription) }
             announce(error.localizedDescription)
         } catch {
-            update(id) { item in
+            if ownsLocalAttempt(task), workerCondition(task, states: [.running]) == nil { return }
+            let failed = updateWorker(task) { item in
                 item.status = .failed
                 item.failure = error.localizedDescription
             }
+            guard failed.primaryCommitted else {
+                if let diagnostic = failed.diagnostic { announce(diagnostic) }
+                return
+            }
             announce(error.localizedDescription)
         }
-        running[id] = nil
     }
 
     @discardableResult
-    private func update(_ id: String, kinds: [TaskEventKind] = [], mutate: (inout AgentTask) -> Void) -> AgentTaskPersistenceResult {
+    private func update(_ id: String, kinds: [TaskEventKind] = [],
+                        worker: TaskWorkerWriteCondition? = nil, mutate: (inout AgentTask) -> Void) -> AgentTaskPersistenceResult {
         guard historyReadFailure == nil else { return .loadFailed }
         guard let index = tasks.firstIndex(where: { $0.id == id }) else { return .loadFailed }
         let before = tasks[index]
+        let expected = worker ?? (hasLocalAttemptRecord(before)
+            ? TaskWorkerWriteCondition(taskID: before.id, attempt: before.durability!.attempt,
+                leaseOwner: before.durability!.leaseOwner, status: before.status) : nil)
         mutate(&tasks[index])
-        let result = persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds))
+        let result = persist(events: transitionEvents(from: before, to: tasks[index], kinds: kinds), worker: expected)
         if !result.primaryCommitted { tasks[index] = before }
         return result
     }
 
     @discardableResult
-    private func updateRecord(_ task: AgentTask, kinds: [TaskEventKind] = []) -> AgentTaskPersistenceResult {
-        update(task.id, kinds: kinds) { $0 = task }
+    private func updateRecord(_ task: AgentTask, kinds: [TaskEventKind] = [],
+                              worker: TaskWorkerWriteCondition? = nil) -> AgentTaskPersistenceResult {
+        update(task.id, kinds: kinds, worker: worker) { $0 = task }
     }
 
     private func rejectStart(_ id: String, result: AgentTaskPersistenceResult) {
@@ -685,27 +785,57 @@ final class AgentTaskManager {
         if isTypedOwner(task), task.backend == AgentBackendKind.local.rawValue, task.tool != nil {
             capture = { [weak self] request, origin, review in
                 guard request.taskID == taskID, let self, let current = self.task(id: taskID) else { return false }
+                if self.hasLocalAttemptRecord(task), self.workerCondition(task, states: [.running]) == nil { return false }
                 // A nested or independently owned request keeps its existing caller;
                 // this hook supplies no storage/recovery proof for that operation.
                 guard request.toolID == current.tool, origin?.isRemote != true else { return true }
-                return self.parkPermission(request, origin: origin, review: review)
+                if !self.hasLocalAttemptRecord(task) { return self.parkPermission(request, origin: origin, review: review) }
+                guard request.toolID == current.tool, request.taskID == taskID,
+                      review == nil || (review?.id == request.id && review?.toolID == request.toolID) else { return false }
+                return self.updateWorker(task) { item in
+                    item.pendingInteraction = .permission(request: request, origin: origin, review: review)
+                    item.status = .waitingForPermission
+                    item.progress = request.title
+                }.primaryCommitted
             }
         } else { capture = nil }
+        let validity: (@MainActor @Sendable () async -> Bool)?
+        if hasLocalAttemptRecord(task) {
+            validity = { [weak self] in
+                guard let self, let expected = self.workerCondition(task, states: [.running]) else { return false }
+                if SelfTest.isRunning && !self.store.allowsHarnessPersistence { return true }
+                return self.store.matchesWorker(expected)
+            }
+        } else { validity = nil }
         return TaskJournalContext(taskID: taskID, attempt: task.durability?.attempt ?? 0, record: { [weak self] event in
-            guard event.taskID == taskID, self?.task(id: taskID) != nil else { return }
-            self?.persist(events: [event])
-        }, capturePermission: capture, consumePermissionApproval: { [weak self] in
-            self?.consumePermissionApproval(taskID: taskID) ?? false
+            guard event.taskID == taskID, let self, self.task(id: taskID) != nil else { return false }
+            if self.hasLocalAttemptRecord(task) {
+                let states: [AgentTaskStatus]
+                switch event.kind {
+                case .permissionRequested, .permissionApproved, .permissionDenied:
+                    states = [.running, .waitingForPermission]
+                default: states = [.running]
+                }
+                guard event.attempt == task.durability?.attempt,
+                      let expected = self.workerCondition(task, states: states) else { return false }
+                return self.persist(events: [event], worker: expected).primaryCommitted
+            }
+            return self.persist(events: [event]).primaryCommitted
+        }, isStillValid: validity, capturePermission: capture, consumePermissionApproval: { [weak self] in
+            guard let self else { return false }
+            if self.hasLocalAttemptRecord(task),
+               self.workerCondition(task, states: [.running]) == nil { return false }
+            return self.consumePermissionApproval(taskID: taskID)
         }, restoredOrigin: origin, restoredPermission: restoredPermission, restoredArguments: restoredArguments)
     }
 
     @discardableResult
-    private func persist(events: [TaskJournalEventDraft] = []) -> AgentTaskPersistenceResult {
+    private func persist(events: [TaskJournalEventDraft] = [], worker: TaskWorkerWriteCondition? = nil) -> AgentTaskPersistenceResult {
         guard historyReadFailure == nil else { return .loadFailed }
         // Existing uninjected harness simulations never write the owner store. This
         // accepted simulation result is not evidence of a durable production commit.
         guard !SelfTest.isRunning || store.allowsHarnessPersistence else { return .saved }
-        let result = store.save(tasks, events: events)
+        let result = store.save(tasks, events: events, worker: worker)
         lastPersistenceResult = result
         if let diagnostic = result.diagnostic {
             if SelfTest.isRunning { SelfTest.diagnostic("TASK_PERSISTENCE_DIAGNOSTIC: \(diagnostic)") }
@@ -731,6 +861,7 @@ final class AgentTaskManager {
     /// Background work used to finish only in the task list. A failure the conversation
     /// never hears is the same shape as a turn that never replied.
     private func announce(_ text: String) {
+        if SelfTest.isRunning && store.allowsHarnessPersistence { announcementForTesting?(text) }
         guard projectsActivity else { return }
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
@@ -745,6 +876,10 @@ final class AgentTaskManager {
     /// The artifact half of a finished run, persisted in the conversation (P1-5).
     /// Never spoken: a URL read out loud is noise, and the links are for the result card.
     private func announceArtifacts(taskID: String) {
+        if SelfTest.isRunning && store.allowsHarnessPersistence,
+           let task = task(id: taskID), !task.artifacts.isEmpty {
+            announcementForTesting?("fixture artifact announcement: \(task.artifacts.count)")
+        }
         guard projectsActivity else { return }
         guard let task = task(id: taskID), !task.artifacts.isEmpty else { return }
         let lines = "What I made for you:\n"

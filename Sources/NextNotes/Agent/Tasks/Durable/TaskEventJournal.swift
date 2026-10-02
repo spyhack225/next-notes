@@ -30,7 +30,8 @@ struct TaskJournalEvent: Sendable, Equatable {
 struct TaskJournalContext: Sendable {
     let taskID: String
     let attempt: Int
-    let record: @MainActor @Sendable (TaskJournalEventDraft) -> Void
+    let record: @MainActor @Sendable (TaskJournalEventDraft) -> Bool
+    var isStillValid: (@MainActor @Sendable () async -> Bool)? = nil
     var capturePermission: (@MainActor @Sendable (PermissionRequest, ActionOriginContext?, ToolCallReview?) -> Bool)? = nil
     var consumePermissionApproval: (@MainActor @Sendable () -> Bool)? = nil
     var restoredOrigin: ActionOriginContext? = nil
@@ -43,18 +44,22 @@ enum TaskEventJournal {
     @TaskLocal static var current: TaskJournalContext?
 
     @MainActor
-    static func toolStarted(taskID: String?, tool: String) -> TaskJournalContext? {
+    static func toolStarted(taskID: String?, tool: String) throws -> TaskJournalContext? {
         guard let context = current, taskID == context.taskID else { return nil }
-        context.record(TaskJournalEventDraft(taskID: context.taskID, kind: .toolStarted,
+        let admitted = context.record(TaskJournalEventDraft(taskID: context.taskID, kind: .toolStarted,
             detail: tool, attempt: context.attempt))
+        if context.isStillValid != nil, !admitted {
+            throw AgentError.backendUnavailable("The action could not be saved. It was not run.")
+        }
         return context
     }
 
     @MainActor
-    static func toolCompleted(_ context: TaskJournalContext?, tool: String, succeeded: Bool) {
-        guard let context else { return }
-        context.record(TaskJournalEventDraft(taskID: context.taskID, kind: .toolCompleted,
+    static func toolCompleted(_ context: TaskJournalContext?, tool: String, succeeded: Bool) -> Bool {
+        guard let context else { return true }
+        let admitted = context.record(TaskJournalEventDraft(taskID: context.taskID, kind: .toolCompleted,
             detail: "\(tool):\(succeeded ? "returned" : "threw")", attempt: context.attempt))
+        return context.isStillValid == nil || admitted
     }
 
     static func append(_ events: [TaskJournalEventDraft], to db: OpaquePointer) throws {

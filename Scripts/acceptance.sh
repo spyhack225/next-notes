@@ -156,6 +156,7 @@ INTEGRATION_ENTRIES=(
   "selftest-task-authority|300"
   "selftest-task-restoration|300"
   "selftest-task-history-repair|300"
+  "selftest-task-worker-attempt|300"
   "selftest-receipt-persistence|300"
   "selftest-agent-presentation|300"
   "selftest-digest|300"

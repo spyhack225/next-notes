@@ -1,0 +1,40 @@
+{
+  "status": "Actual app17 original extended flag compile+install0, run exit1,10 failed assertions in2.252s",
+  "actual_original_checks": 27,
+  "scope": "Original worker producers plus two harness-only observers; actual native Manager/LocalBackend/Executor/SQL paths",
+  "fixed_verdict": "pending; authorized producer candidate applied afterward",
+  "files": [
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-17/worker-attempt-original.out",
+      "archive": "original-app17/worker-attempt-original.out",
+      "sha256": "2c4dc56d7311c32daaab6258fbbe1ac09f1b3d493f369970e8161c62812ce248",
+      "bytes": 1549
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-checks-17/worker-attempt-original.log",
+      "archive": "original-app17/worker-attempt-original.log",
+      "sha256": "fc484ce4cb1efbf2b80586ca736cc72f0e8931f24dcc07ab2417ac55255001a6",
+      "bytes": 1760
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-build17-source-manifest.json",
+      "archive": "original-app17/nextnotes-agent-closure-build17-source-manifest.json",
+      "sha256": "da4f722c6e60bd8bfcb4bd5ecb9b1f12fb84ee5f3390a09d4d49477b241cc7d7",
+      "bytes": 88869
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-build17-AgentTaskManager.swift.txt",
+      "archive": "original-app17/nextnotes-agent-closure-build17-AgentTaskManager.swift.txt",
+      "sha256": "6e6331bc939bbe8fbf19a165f66b7e68f49462a1aa80d9657851c060965071e1",
+      "bytes": 39780
+    },
+    {
+      "source": "/private/tmp/nextnotes-agent-closure-build17-TaskWorkerAttemptSelfTest.swift.txt",
+      "archive": "original-app17/nextnotes-agent-closure-build17-TaskWorkerAttemptSelfTest.swift.txt",
+      "sha256": "9d18f4a44e970507ff90260911dbb77de031f9fce7d1b9613624e70db30285f2",
+      "bytes": 18901
+    }
+  ],
+  "binary_sha256": "0ee52308a47c409b115d0a0050719a5476c08a9132cf336fe053b185b83cb85c",
+  "binary_hash_source": "root captured installed app17"
+}

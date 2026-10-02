@@ -159,7 +159,7 @@ enum TaskRestorationProductionSelfTest {
             // reaches the broker's narrower budget, even beside an approval Boolean.
             // The effect override refuses every shell command before any backing runs.
             let remoteContext = TaskJournalContext(taskID: "origin-budget-fixture", attempt: 0,
-                record: { _ in }, restoredOrigin: ActionOriginContext(transport: .iMessage))
+                record: { _ in true }, restoredOrigin: ActionOriginContext(transport: .iMessage))
             var remoteDenied = false
             do {
                 _ = try await TaskEventJournal.$current.withValue(remoteContext) {
