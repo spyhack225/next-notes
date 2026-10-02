@@ -1,0 +1,90 @@
+[
+  {
+    "flag": "ask",
+    "exit": 0,
+    "marker": "ASK_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "search",
+    "exit": 0,
+    "marker": "SEARCH_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "assemble",
+    "exit": 0,
+    "marker": "ASSEMBLE_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "persona",
+    "exit": 0,
+    "marker": "PERSONA_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "memory",
+    "exit": 0,
+    "marker": "MEMORY_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "toolloop-production",
+    "exit": 0,
+    "marker": "TOOLLOOP_PRODUCTION_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "toolloop",
+    "exit": 0,
+    "marker": "TOOLLOOP_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "marker": "USAGE_LOG_OK: 26 cases",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-playback-projection",
+    "exit": 0,
+    "marker": "VOICE_PLAYBACK_PROJECTION_OK: 33 checks",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-session-reducer",
+    "exit": 0,
+    "marker": "VOICE_SESSION_REDUCER_OK: 10 traces and actual capture/output producers",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

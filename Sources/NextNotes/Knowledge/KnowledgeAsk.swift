@@ -130,11 +130,19 @@ enum KnowledgeAskEvent: Sendable {
 
 /// The model that writes the answer. Production wraps an `LLMProvider`; the self-test scripts it.
 protocol KnowledgeAnswerModel: Sendable {
+    /// The window advertised by this exact answering model.
+    var contextTokens: Int { get }
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error>
+}
+
+enum KnowledgeAskError: LocalizedError {
+    case contextTooSmall
+    var errorDescription: String? { "I couldn't fit the library passages into this answer." }
 }
 
 struct ProviderKnowledgeAnswerModel: KnowledgeAnswerModel {
     let provider: any LLMProvider
+    var contextTokens: Int { provider.contextTokens }
 
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
         // P0-20a: one `knowledge.ask` row per pass. The provider's own task is created
@@ -184,6 +192,8 @@ struct KnowledgeAsker {
     static let contextPassages = 20
     static let passageCharacters = 700
     static let maxTokens = 512
+    /// P4-08's existing prescribed estimate; not a measured provider tokenizer guarantee.
+    static let contextHeadroomTokens = 300
     /// How many of the user's files one answer may be told about. Small: this says a file
     /// with that name exists, and `filesystem.find` is how the agent goes looking properly.
     static let fileLimit = 5
@@ -219,6 +229,16 @@ struct KnowledgeAsker {
     /// (the task's) stops it between tokens and throws `CancellationError`.
     func run(_ question: String, emit: (KnowledgeAskEvent) -> Void = { _ in }) async throws -> KnowledgeAnswer {
         let question = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        let window = model.contextTokens
+        // Fit before retrieval/generation, through the same model contract and advertised provider window.
+        // Capacity may be below3 when that reader cannot afford3; never force an overflowing floor.
+        guard window > Self.maxTokens + Self.contextHeadroomTokens else { throw KnowledgeAskError.contextTooSmall }
+        let budget = window - Self.maxTokens - Self.contextHeadroomTokens - system.count / 4 - question.count / 4
+        guard budget > 0 else { throw KnowledgeAskError.contextTooSmall }
+        // Bound arithmetic by the existing maximum; large windows still cap at20 passages.
+        let passageBudgetChars = min(budget, Self.contextPassages * Self.passageCharacters) * 4 * 6 / 10
+        let contextPassages = min(Self.contextPassages, passageBudgetChars / Self.passageCharacters)
+        guard contextPassages > 0 else { throw KnowledgeAskError.contextTooSmall }
         let totalTrace = LatencyTrace.start(.askTotal)
         var shown: [KnowledgeHit] = []
         var queries: [String] = []
@@ -243,7 +263,7 @@ struct KnowledgeAsker {
                 let retrieveTrace = LatencyTrace.start(.askRetrieve)
                 let retrieveBegan = Date()
                 added = try await retrieve(query, excluding: Set(shown.map(\.chunkID)),
-                                           room: Self.contextPassages - shown.count)
+                                           room: contextPassages - shown.count)
                 let retrieveSeconds = Date().timeIntervalSince(retrieveBegan)
                 retrieveTotal += retrieveSeconds
                 retrieveTrace.end(note: "round=\(round) hits=\(added.count)")
@@ -256,9 +276,13 @@ struct KnowledgeAsker {
             }
             // A search that found nothing new ends the searching.
             if round > 1, added.isEmpty { forceFinal = true }
-            let final = forceFinal || round == Self.maxRounds || shown.count >= Self.contextPassages
+            let final = forceFinal || round == Self.maxRounds || shown.count >= contextPassages
             let user = Self.userMessage(question: question, passages: shown.map(citation), files: files,
                                         queries: queries, final: final)
+            // Headers, searches and shared-file names also belong to the actual prompt.
+            // Refuse an unusually large envelope before sending it, without truncating output.
+            guard system.count / 4 + user.count / 4 + Self.maxTokens + Self.contextHeadroomTokens <= window
+            else { throw KnowledgeAskError.contextTooSmall }
             emit(.generating(round: round))
             let generateTrace = LatencyTrace.start(.askGenerate)
             let generateBegan = Date()

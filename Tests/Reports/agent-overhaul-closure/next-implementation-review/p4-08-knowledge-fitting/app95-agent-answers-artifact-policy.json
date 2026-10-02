@@ -1,0 +1,14 @@
+[
+  {
+    "file": "app95-agent-answers.stdout",
+    "rawSHA256": "b78d317f8f039bcbd1ff433a75dd25863b3d7f78970c666cf5340305d84a202e",
+    "retention": "private system temp, excluded from repository",
+    "shareable": "outcome and token counts only"
+  },
+  {
+    "file": "app95-agent-answers.log",
+    "rawSHA256": "4472677cc9957069232b881fa0ad827ca5404e09b47f56d459006b18b596a622",
+    "retention": "private system temp, excluded from repository",
+    "shareable": "outcome and token counts only"
+  }
+]

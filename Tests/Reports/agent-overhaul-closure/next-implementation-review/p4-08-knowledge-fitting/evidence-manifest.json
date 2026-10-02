@@ -1,0 +1,6 @@
+{
+  "original-KnowledgeAsk.swift.txt": "03e4955d85e2554933a01633ffb2f295a5c1bad718fc704a3b5816240912ebc7",
+  "proposed-KnowledgeAsk.swift.txt": "50fc3c1bc9dface82e0b0001b1f0df4134e9779e56c123c92926ba454c29900e",
+  "KnowledgeAskWindowSelfTest.swift.txt": "f759b630533af52568684ba542b609cdcddb465e11efd6ca0c0885a671595dfb",
+  "producer.patch": "b52d890834d4e47e67cde06db749a3e191a6416060544f634f10f9271266961e"
+}

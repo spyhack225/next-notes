@@ -691,6 +691,18 @@ and a delayed pre-pause onset cannot authorize new speaking; current code still
 accepts them. Native fresh-frame/provenance proof and producer repair remain open.
 See the [original resume report](Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/original94-verification.md).
 
+`--selftest-ask` now verifies bounded P4-08a advertised-window fitting through
+actual temporary SQLite retrieval, provider wrapper and streamed/citation consumer:
+original94 has2 failures; fixed95 passes the same15 checks and11 focused flags.
+A4096-token provider's captured estimated envelope4974→3057, a32768 provider
+retains20 passages, and512 refuses before streaming. Model window forwarding is
+synchronous and exact to the wrapped provider; no shared runtime probe/new await.
+This is advertised capacity/characters-per-token estimation only, not loaded
+Llama/tokenizer proof. Floor3/metadata subsets, typed routing, memory/page budgets
+and parent P4-08 remain open. Quick quality FAILED4/10; CORE21/22 with unchanged
+wake failure. Existing granted-calendar answer diagnostic archives metadata only.
+See the [fitting proof](Tests/Reports/agent-overhaul-closure/next-implementation-review/p4-08-knowledge-fitting/verification.md).
+
 `usage.jsonl` is the one local record of which model or engine ran each pass — Agent,
 Meetings and Dictation — with its provider, model, locality, timing, counts, tools and
 outcome (P0-20a–e). It never leaves this Mac: nothing uploads it, no network call touches

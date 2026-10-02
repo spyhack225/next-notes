@@ -1,0 +1,57 @@
+{
+  "status": "original-reproduced-fixed-pending",
+  "common_cases": 15,
+  "actual_original_failures": [
+    "knowledge window: actual assembled provider prompt exceeds reader window4096",
+    "knowledge window: unusable reader must refuse before any model stream"
+  ],
+  "actual_failure_count": 2,
+  "exact_two_expected_failures": true,
+  "traces": [
+    {
+      "window": 4096,
+      "model_calls": 3,
+      "max_estimated_input_output_headroom": 4974,
+      "retrieved": 20,
+      "refused": false
+    },
+    {
+      "window": 32768,
+      "model_calls": 3,
+      "max_estimated_input_output_headroom": 4974,
+      "retrieved": 20,
+      "refused": false
+    },
+    {
+      "window": 512,
+      "model_calls": 3,
+      "max_estimated_input_output_headroom": 4974,
+      "retrieved": 20,
+      "refused": false
+    }
+  ],
+  "original_manifest_pins": {
+    "Sources/NextNotes/Knowledge/KnowledgeAsk.swift": "03e4955d85e2554933a01633ffb2f295a5c1bad718fc704a3b5816240912ebc7",
+    "Sources/NextNotes/Knowledge/KnowledgeAskWindowSelfTest.swift": "f759b630533af52568684ba542b609cdcddb465e11efd6ca0c0885a671595dfb",
+    "Sources/NextNotes/Knowledge/KnowledgeAskSelfTest.swift": "b552248d2fbf7153e315da35ec314aa12f8a8c23082639992dd7e42a1dd211f4"
+  },
+  "root_check": {
+    "flag": "ask",
+    "exit": 1,
+    "marker": "ASK_FAILED",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  "evidence_hashes": {
+    "app94-ask.stdout": "6993d370bbd8201781810af93812b33d970a2b940531c3405d0f21902df32e99",
+    "app94-ask.log": "41fceb6c1e66780c2d9c1dba22eb01e39aa472f423a893baec968c203b326100",
+    "app94-checks.json": "7f661986531a20418cfa06d889e499dc90688d2f7a9c0dff769213c730e61787",
+    "build94-source-manifest.json": "b2077302f658494ba0fa7a3eeb5886d15b4f8ad55b1f3f40cfc7cce458bc0329",
+    "app94-bundle-before.json": "f4f7501bbea0acf1eaa5792cc3e5bbb2dd0a9c6d07f43c45112a6f4b868ca6cf",
+    "app94-bundle-after.json": "f4f7501bbea0acf1eaa5792cc3e5bbb2dd0a9c6d07f43c45112a6f4b868ca6cf",
+    "app94-binary.json": "90df7d5daa3233f484305b893794415ecc4d887df9c77e981896cdd1581f9533"
+  },
+  "fixed_pass_claim": false,
+  "root_native_only": true
+}

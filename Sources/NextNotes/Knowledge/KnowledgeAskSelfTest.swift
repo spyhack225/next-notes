@@ -42,6 +42,11 @@ enum KnowledgeAskSelfTest {
             print("ASK_FAILED: the indexer offered no tool context with the index on")
             return false
         }
+        do {
+            try await KnowledgeAskWindowSelfTest.originalCases(root: root, check: check)
+        } catch {
+            failures.append("knowledge window fixture failed: \(error)")
+        }
         let pricing = KnowledgeFixtures.pricingID
 
         failures += catalogueFailures()
@@ -521,6 +526,8 @@ private final class AskProgress {
 
 /// Answers from a script, streamed word by word, recording every prompt it was given.
 private final class ScriptedAnswerModel: KnowledgeAnswerModel, @unchecked Sendable {
+    // This scripted reader explicitly declares its own window.
+    let contextTokens = 4_096
     private let lock = NSLock()
     private var recorded: [String] = []
     private var pieces = 0

@@ -1,0 +1,20 @@
+{
+  "status": "prepared-not-run",
+  "actual_reproduction": false,
+  "common_cases": 15,
+  "predicted_original_failures": 2,
+  "production_original_preserved": true,
+  "window_contract": "exact answering provider advertised contextTokens; loaded owned local runtime capacity open",
+  "common_source": "Sources/NextNotes/Knowledge/KnowledgeAskWindowSelfTest.swift",
+  "hashes": {
+    "KnowledgeAskWindowSelfTest.swift.txt": "f759b630533af52568684ba542b609cdcddb465e11efd6ca0c0885a671595dfb",
+    "original-KnowledgeAsk.swift.txt": "03e4955d85e2554933a01633ffb2f295a5c1bad718fc704a3b5816240912ebc7",
+    "proposed-sync-advertised-KnowledgeAsk.swift.txt": "f548ff18ae9a9b6e510d71743a81056c547527f71d6d6fc055071a620a6c0003",
+    "sync-advertised-producer.patch": "de36368f346edeed55cc33ddb11d0bac33a00979a0cff3e1cfcc4d3672bee6b6",
+    "common-registration.patch": "270bbc23c8f3fcbf738a605883a8ca932194e09fad72b07c25d31b086a49cd0b",
+    "fixed-scripted-conformer.patch": "7debc6e68972622d58fd480c623a0f3f20d9f9f36bd505ad9fe707339d58024d",
+    "README.md": "1f4df882e90295044598af4d932c343d234f4b5a57494d14686626124da87864"
+  },
+  "mounted_common_sha256": "f759b630533af52568684ba542b609cdcddb465e11efd6ca0c0885a671595dfb",
+  "production_original_sha256": "03e4955d85e2554933a01633ffb2f295a5c1bad718fc704a3b5816240912ebc7"
+}

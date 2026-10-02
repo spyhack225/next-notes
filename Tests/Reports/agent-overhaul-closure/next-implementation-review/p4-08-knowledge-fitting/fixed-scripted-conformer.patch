@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/Knowledge/KnowledgeAskSelfTest.swift
++++ b/Sources/NextNotes/Knowledge/KnowledgeAskSelfTest.swift
+@@ -521,6 +521,8 @@
+ 
+ /// Answers from a script, streamed word by word, recording every prompt it was given.
+ private final class ScriptedAnswerModel: KnowledgeAnswerModel, @unchecked Sendable {
++    // This scripted reader explicitly declares its own window.
++    let contextTokens = 4_096
+     private let lock = NSLock()
+     private var recorded: [String] = []
+     private var pieces = 0

@@ -1,0 +1,14 @@
+--- a/Sources/NextNotes/Knowledge/KnowledgeAskSelfTest.swift
++++ b/Sources/NextNotes/Knowledge/KnowledgeAskSelfTest.swift
+@@ -41,6 +41,11 @@
+         guard let context = indexer.toolContext else {
+             print("ASK_FAILED: the indexer offered no tool context with the index on")
+             return false
++        }
++        do {
++            try await KnowledgeAskWindowSelfTest.originalCases(root: root, check: check)
++        } catch {
++            failures.append("knowledge window fixture failed: \(error)")
+         }
+         let pricing = KnowledgeFixtures.pricingID
+ 
