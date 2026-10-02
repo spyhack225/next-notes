@@ -25,6 +25,14 @@ struct BrowserCDPTarget: Sendable, Equatable {
 enum BrowserCDPClient {
     static let defaultHost = "127.0.0.1"
     static let defaultPort = 9222
+    /// A peer that explicitly lacks a CDP method may offer a compatible read instead.
+    /// Transport failures and deadlines are not capability answers and must propagate.
+    private enum CommandError: Error, LocalizedError {
+        case unsupportedMethod
+
+        var errorDescription: String? { "The browser cannot provide that view." }
+    }
+
     private static let snapshotSelector = "a,button,input,textarea,select,[role=button],[role=link],[role=textbox]"
     private static let snapshotExpression = """
         JSON.stringify((() => {
@@ -170,10 +178,15 @@ enum BrowserCDPClient {
         case "snapshot":
             // Native backend identities survive a new debugger socket and bind the
             // exact observed DOM object. No properties or handles are injected into the site.
-            let native = try? await command(
-                "DOMSnapshot.captureSnapshot", params: ["computedStyles": []],
-                webSocketURL: target.webSocketDebuggerURL
-            )
+            let native: String?
+            do {
+                native = try await command(
+                    "DOMSnapshot.captureSnapshot", params: ["computedStyles": []],
+                    webSocketURL: target.webSocketDebuggerURL
+                )
+            } catch CommandError.unsupportedMethod {
+                native = nil
+            }
             let nodes: [BrowserSnapshotNode]
             let raw: String
             if let native, let bound = boundSnapshotNodes(in: native) {
@@ -945,6 +958,9 @@ enum BrowserCDPClient {
                 continue
             }
             if let error = object["error"] as? [String: Any] {
+                if error["code"] as? Int == -32601 {
+                    throw CommandError.unsupportedMethod
+                }
                 throw AgentError.backendUnavailable(String(describing: error))
             }
             if let result = object["result"] as? [String: Any] {

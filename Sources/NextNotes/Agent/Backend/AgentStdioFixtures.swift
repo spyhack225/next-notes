@@ -289,6 +289,23 @@ enum AgentStdioFixtures {
                             {"id": "1", "tag": "button", "text": "OK"},
                             {"id": "2", "tag": "input", "text": "Name"},
                         ])
+                    elif method == "DOMSnapshot.captureSnapshot" and mode in ("unsupported-native", "native-refused"):
+                        response = json.dumps({
+                            "id": request.get("id"),
+                            "error": {
+                                "code": -32601 if mode == "unsupported-native" else -32000,
+                                "message": "Native snapshot unavailable",
+                            },
+                        }).encode()
+                        if len(response) < 126:
+                            frame = bytes([0x81, len(response)]) + response
+                        elif len(response) <= 65535:
+                            frame = b"\\x81\\x7e" + struct.pack("!H", len(response)) + response
+                        else:
+                            frame = b"\\x81\\x7f" + struct.pack("!Q", len(response)) + response
+                        self.wfile.write(frame)
+                        self.wfile.flush()
+                        continue
                     elif method == "Page.navigate":
                         value = "navigated"
                     elif method == "Accessibility.getFullAXTree":

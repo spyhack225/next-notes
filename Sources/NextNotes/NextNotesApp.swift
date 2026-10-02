@@ -8556,6 +8556,32 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     }
                 }
 
+                // An explicit missing native method permits a compatible read; a
+                // refused command or unanswered socket is not a capability answer.
+                for mode in ["unsupported-native", "native-refused"] {
+                    guard let nativePeer = await launchCDPFixture(mode) else {
+                        throw NSError(domain: "BrowserSelfTest", code: 6,
+                                      userInfo: [NSLocalizedDescriptionKey: "CDP native-capability fixture never printed a port"])
+                    }
+                    defer { nativePeer.process.terminate() }
+                    do {
+                        let snapshot = try await BrowserCDPClient.run(
+                            AgentToolRegistry.shared.tool(named: "browser.snapshot")!,
+                            arguments: [:], host: "127.0.0.1", port: nativePeer.port)
+                        if mode == "unsupported-native" {
+                            check("an explicitly unsupported native method lost its compatible snapshot",
+                                  snapshot.summary.contains("\"tag\": \"button\"")
+                                    && snapshot.summary.contains("button: OK"))
+                        } else {
+                            failures.append("a refused native snapshot was hidden by a fallback read")
+                        }
+                    } catch {
+                        check("native snapshot capability failed for the wrong reason",
+                              mode == "native-refused"
+                                && error.localizedDescription.contains("Native snapshot unavailable"))
+                    }
+                }
+
                 guard let ambiguous = await launchCDPFixture("ambiguous") else {
                     throw NSError(domain: "BrowserSelfTest", code: 2,
                                   userInfo: [NSLocalizedDescriptionKey: "CDP ambiguous fixture never printed a port"])
