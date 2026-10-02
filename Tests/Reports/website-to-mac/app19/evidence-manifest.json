@@ -1,0 +1,11 @@
+{
+  "binary_sha256": "43d80d8ce964b491f0462c47c257b870d19b180a529962761a64bc1c7fd38366",
+  "scope": "onboarding verifier repair; no live interaction sign-off",
+  "files": {
+    "README.md": "1f49938bae72615417b4e0a8b471bb14f24b7c0e54fa36f5f1bf538152f07ff0",
+    "executed-OnboardingSheet.swift.txt": "5010b47a5eafa5e17f07e8578890b33a56fea56c34d1684a2c5413d74c44dbdd",
+    "onboarding-sheet-current.log": "01b080fbf8e2dcfae94dd4491aaca0840dcc469efad041b5d1185d561d130e3e",
+    "onboarding-sheet-current.out": "c70dfa31d1e2c3d4470afcdbaee7c96b01c79172c82340fac51832c90b70b67c",
+    "source-manifest.json": "1b1b14bd4967875a2bbb468ca11a7a7bea7c69646672024effe74358ccecaaf5"
+  }
+}
