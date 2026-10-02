@@ -1,5 +1,6 @@
 import Foundation
 import AppKit
+import Darwin
 
 /// The source of an action. Dictation deliberately has no case here: it is a one-way text
 /// pipeline and must never enter the action runtime.
@@ -366,7 +367,8 @@ final class ActionReceiptStore {
     private let fileURL: URL
     private let injectedFile: Bool
     /// An unreadable source is evidence, never an empty replacement store.
-    private let loadedSafely: Bool
+    private var loadedSafely: Bool
+    private var sourceFingerprint: SourceFingerprint?
     static var defaultFileURL: URL {
         AppIdentity.applicationSupportDirectory.appendingPathComponent("action-receipts.json")
     }
@@ -382,6 +384,7 @@ final class ActionReceiptStore {
             let loaded = Self.load(from: fileURL)
             receipts = loaded.receipts
             loadedSafely = loaded.writable
+            sourceFingerprint = loaded.fingerprint
         }
     }
 
@@ -398,6 +401,7 @@ final class ActionReceiptStore {
         let loaded = Self.load(from: fileURL)
         receipts = loaded.receipts
         loadedSafely = loaded.writable
+        sourceFingerprint = loaded.fingerprint
     }
 
     /// How many receipts this store holds. For a self-test that has just written a file.
@@ -441,8 +445,20 @@ final class ActionReceiptStore {
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
         guard let data = try? encoder.encode(receipts) else { return false }
+        // The decoded snapshot authorizes only its unchanged source. Never overwrite
+        // a replaced, deleted or edited history using the stale in-memory array.
+        guard let sourceFingerprint,
+              Self.fingerprint(of: fileURL) == sourceFingerprint else { return false }
         do {
             try data.write(to: fileURL, options: .atomic)
+            guard let written = Self.fingerprint(of: fileURL),
+                  case .regular(_, _, let size, _, _, _, _) = written,
+                  size == data.count else {
+                loadedSafely = false
+                self.sourceFingerprint = nil
+                return false
+            }
+            self.sourceFingerprint = written
             return true
         } catch {
             Log.agent.error("Could not persist action receipt: \(error.localizedDescription, privacy: .public)")
@@ -460,14 +476,16 @@ final class ActionReceiptStore {
     ///
     /// Readable rows remain available, but an undecodable row or source blocks writes
     /// so the next record cannot erase the retained evidence. Only a missing file is fresh.
-    private static func load(from fileURL: URL) -> (receipts: [ActionReceipt], writable: Bool) {
+    private static func load(from fileURL: URL) -> (receipts: [ActionReceipt], writable: Bool, fingerprint: SourceFingerprint?) {
+        guard let before = fingerprint(of: fileURL) else { return ([], false, nil) }
+        if before == .missing { return ([], true, before) }
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         let data: Data
         do { data = try Data(contentsOf: fileURL) }
-        catch CocoaError.fileReadNoSuchFile { return ([], true) }
-        catch { return ([], false) }
-        guard let rows = try? decoder.decode([AnyReceiptRow].self, from: data) else { return ([], false) }
+        catch { return ([], false, nil) }
+        guard fingerprint(of: fileURL) == before else { return ([], false, nil) }
+        guard let rows = try? decoder.decode([AnyReceiptRow].self, from: data) else { return ([], false, nil) }
         var kept: [ActionReceipt] = []
         var unreadable = 0
         for row in rows {
@@ -485,7 +503,29 @@ final class ActionReceiptStore {
                 (\(unreadable) unreadable by this build, left on disk)
                 """)
         }
-        return (kept, unreadable == 0)
+        return (kept, unreadable == 0, before)
+    }
+
+    /// A metadata check, not a cross-process compare-and-swap. Concurrent replacement
+    /// between checking and atomic writing remains outside this store's admission proof.
+    private enum SourceFingerprint: Equatable {
+        case missing
+        case regular(Int64, UInt64, Int64, Int64, Int64, Int64, Int64)
+    }
+
+    private static func fingerprint(of url: URL) -> SourceFingerprint? {
+        guard url.isFileURL else { return nil }
+        var info = stat()
+        return url.withUnsafeFileSystemRepresentation { path in
+            guard let path else { return nil }
+            guard lstat(path, &info) == 0 else {
+                return errno == ENOENT ? .missing : nil
+            }
+            guard (info.st_mode & S_IFMT) == S_IFREG else { return nil }
+            return .regular(Int64(info.st_dev), UInt64(info.st_ino), Int64(info.st_size),
+                Int64(info.st_mtimespec.tv_sec), Int64(info.st_mtimespec.tv_nsec),
+                Int64(info.st_ctimespec.tv_sec), Int64(info.st_ctimespec.tv_nsec))
+        }
     }
 
     /// One element of the stored array, decoded on its own so a failure is a nil rather than a

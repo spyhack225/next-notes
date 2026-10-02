@@ -1,0 +1,21 @@
+{
+  "original": {
+    "build": 40,
+    "exit": 1,
+    "failedAssertions": 5,
+    "priorCases": 399
+  },
+  "fixed": {
+    "build": 41,
+    "exit": 0,
+    "workerCases": 430,
+    "originalRuntimeCases": 13,
+    "additionalBoundaryCases": 18
+  },
+  "originalRuntimeFixtureSHA256": "bf5c9e1997040f8b1834cd78091a64ff3bf3623eb07337ea15a3eb1c79818735",
+  "relatedFlags": 14,
+  "sourceStability": [],
+  "sameInstalledBinary": true,
+  "crossProcessCAS": false,
+  "modelEvaluation": "not run; historical app13 quick FAILED3/10"
+}

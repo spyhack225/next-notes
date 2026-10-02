@@ -399,6 +399,20 @@ This snapshot reads no SQL and proves no health, process death, complete stale
 observations, recovery/retry or IM-16 authority. No new store/save/await/timer is added.
 See the [worker-binding report](Tests/Reports/agent-overhaul-closure/worker-binding/README.md).
 
+P6-06e repairs stale action-receipt writer admission (installed app41 worker430).
+Original app40 fails five assertions after one real read: a genuinely unreadable row
+added after initialization is erased by the stale writer, which reports success.
+The same store now brackets its existing load and admits existing atomic saves only
+against the retained file identity/metadata; own writes refresh it. Changed/deleted/
+nonregular sources preserve exact bytes and committed fired memory. The unchanged
+original13 plus additive18 writer boundaries pass alongside prior399 and all14 related
+flags, including restoration82, receipt-runtime5 and isolation21files32defaults.
+Actual task/announcement reports the action-ran/result-not-saved failure, retains its
+exact receipt link and starts no fresh-manager replay. No additional Data read,
+save/store/await/timer/model pass. This sequential admission is not cross-process CAS;
+concurrent replacement, reconciliation/liveness/recovery/retry and IM-16 stay open.
+See the [receipt-source report](Tests/Reports/agent-overhaul-closure/receipt-source-admission/README.md).
+
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
 playback with scripted models and a recording backing. `VoiceSession` remains a
