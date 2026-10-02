@@ -1,0 +1,116 @@
+[
+  {
+    "flag": "task-harness-read",
+    "exit": 0,
+    "marker": "TASK_HARNESS_READ_OK: 40 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "task-worker-attempt",
+    "exit": 0,
+    "marker": "TASK_WORKER_ATTEMPT_OK: 629 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "task-durability",
+    "exit": 0,
+    "marker": "TASK_DURABILITY_OK: 37 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "task-recovery",
+    "exit": 0,
+    "marker": "TASK_RECOVERY_OK: 56 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "task-authority",
+    "exit": 0,
+    "marker": "TASK_AUTHORITY_OK: 58 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "task-restoration",
+    "exit": 0,
+    "marker": "TASK_RESTORATION_OK: 82 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "task-history-repair",
+    "exit": 0,
+    "marker": "TASK_HISTORY_REPAIR_OK: 58 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "receipt-persistence",
+    "exit": 0,
+    "marker": "RECEIPT_RUNTIME_OK: 5 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "tool-review",
+    "exit": 0,
+    "marker": "TOOL_REVIEW_OK",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "toolloop-production",
+    "exit": 0,
+    "marker": "TOOLLOOP_PRODUCTION_OK",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "routine-authority",
+    "exit": 0,
+    "marker": "ROUTINE_AUTHORITY_OK",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "schedule",
+    "exit": 0,
+    "marker": "SCHEDULE_OK",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "marker": "USAGE_LOG_OK: 26 cases",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "toolloop-live-grader",
+    "exit": 0,
+    "marker": "TOOLLOOP_LIVE_GRADER_OK",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "voice-scheduling",
+    "exit": 0,
+    "marker": "VOICE_SCHEDULING_OK",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "acp",
+    "exit": 0,
+    "marker": "ACP_OK: initialize, session, subscribe and permission relay hold",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "mcp",
+    "exit": 0,
+    "marker": "MCP_OK: initialize, session, list and call hold",
+    "verdict": "PASS"
+  },
+  {
+    "flag": "acp-confirm",
+    "exit": 0,
+    "marker": "ACP_CONFIRM_OK",
+    "verdict": "PASS"
+  }
+]

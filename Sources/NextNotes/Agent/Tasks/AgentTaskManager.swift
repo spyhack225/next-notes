@@ -16,6 +16,7 @@ final class AgentTaskManager {
         let handle: Task<Void, Never>
         var binding: TaskWorkerBinding? = nil
         var primaryObservation: TaskWorkerPrimaryObservation? = nil
+        var toolBackingObservation: TaskWorkerToolBackingObservation? = nil
     }
     @ObservationIgnored private var running: [String: RunningWorker] = [:]
     /// A one-shot approval is intentionally not persisted as a standing grant. Keep the
@@ -74,6 +75,53 @@ final class AgentTaskManager {
               observed.expected.leaseOwner == binding.leaseOwner,
               observed.expected.status == .running else { return nil }
         return observed
+    }
+
+    /// LAST same-handle tool boundary metadata, not complete active-call coverage.
+    /// Nil or returned never proves no effect, no active backing, or safe retry.
+    /// No SQL/receipt read, save or validity check is performed by this getter.
+    func workerToolBackingObservation(taskID: String) -> TaskWorkerToolBackingObservation? {
+        guard let binding = workerBinding(taskID: taskID),
+              let observed = running[taskID]?.toolBackingObservation,
+              observed.binding == binding else { return nil }
+        return observed
+    }
+
+    /// Record the LAST actual admitted entry/return under its captured handle.
+    /// Completion is observed before its existing save, so rollback cannot invent an
+    /// active backing after it returned. This grants no health/effect/retry authority.
+    private func observeToolBacking(_ event: TaskJournalEventDraft, captured: AgentTask) {
+        guard let worker = running[captured.id], !worker.handle.isCancelled,
+              let binding = worker.binding,
+              binding.attempt == captured.durability?.attempt,
+              binding.leaseOwner == captured.durability?.leaseOwner,
+              binding.startedAt == captured.durability?.attemptStartedAt,
+              event.taskID == binding.taskID, event.attempt == binding.attempt,
+              let receiptID = event.receiptID else { return }
+        let toolID: String
+        let state: TaskWorkerToolBackingState
+        switch event.kind {
+        case .toolStarted:
+            guard let detail = event.detail else { return }
+            toolID = detail
+            state = .entryAdmitted
+        case .toolCompleted:
+            guard let prior = running[captured.id]?.toolBackingObservation,
+                  prior.binding == binding, prior.receiptID == receiptID,
+                  prior.state == .entryAdmitted else { return }
+            toolID = prior.toolID
+            if event.detail == toolID + ":returned" { state = .backingReturned }
+            else if event.detail == toolID + ":threw" { state = .backingThrew }
+            else { return }
+        default: return
+        }
+        guard let currentWorker = running[captured.id], !currentWorker.handle.isCancelled,
+              currentWorker.binding == binding else { return }
+        running[captured.id]?.toolBackingObservation = TaskWorkerToolBackingObservation(
+            binding: binding, receiptID: receiptID, toolID: toolID, state: state)
+        if let observed = running[captured.id]?.toolBackingObservation {
+            Log.app.debug("Task backing observation: attempt \(observed.binding.attempt), state \(observed.state.rawValue, privacy: .public)")
+        }
     }
 
     /// Repair reuses the same startup hold transition; no backend or dispatch occurs.
@@ -912,13 +960,17 @@ final class AgentTaskManager {
                                                           prior?.lastProgressAt ?? .distantPast))
                     var stamped = event
                     stamped.at = now
-                    return self.update(taskID, events: [stamped], worker: expected) { item in
+                    // Return/throw is a live boundary fact even when its save rejects.
+                    if event.kind == .toolCompleted { self.observeToolBacking(event, captured: task) }
+                    let admitted = self.update(taskID, events: [stamped], worker: expected) { item in
                         item.durability?.heartbeatAt = now
                         item.durability?.lastProgressAt = now
                         if event.kind == .toolStarted, let id = event.receiptID {
                             item.durability?.receiptIDs.append(id.uuidString)
                         }
                     }.primaryCommitted
+                    if admitted, event.kind == .toolStarted { self.observeToolBacking(event, captured: task) }
+                    return admitted
                 }
                 return self.persist(events: [event], worker: expected).primaryCommitted
             }

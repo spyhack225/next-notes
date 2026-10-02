@@ -29,6 +29,19 @@ struct TaskWorkerPrimaryObservation: Equatable, Sendable {
     let durability: TaskDurability?
 }
 
+/// LAST exact tool boundary, not complete per-worker active-call coverage.
+/// Absence/return supplies no effect, health, cessation or retry authority.
+enum TaskWorkerToolBackingState: String, Sendable {
+    case entryAdmitted, backingReturned, backingThrew
+}
+
+struct TaskWorkerToolBackingObservation: Equatable, Sendable {
+    let binding: TaskWorkerBinding
+    let receiptID: UUID
+    let toolID: String
+    let state: TaskWorkerToolBackingState
+}
+
 /// Persisted optional execution metadata. Typed-local producers bind positive attempts
 /// and admitted worker/tool progress; other owners remain explicitly unbound.
 /// These fields alone authorize no recovery, retry or remote worker.

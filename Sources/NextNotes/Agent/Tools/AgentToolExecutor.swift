@@ -232,7 +232,7 @@ enum AgentToolExecutor {
                     var backingReturned = false
                     defer {
                         completedJournalAccepted = TaskEventJournal.toolCompleted(journal, tool: tool.id,
-                            succeeded: backingReturned)
+                            succeeded: backingReturned, receiptID: prepared.id)
                     }
                     if SelfTest.isRunning, let fire = fireOverrideForTesting {
                         let result = try await fire(tool, prepared.executionPlan.arguments)

@@ -1,0 +1,85 @@
+--- a/Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift
++++ b/Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift
+@@ -29,7 +29,20 @@
+-    let durability: TaskDurability?
+-}
+-
+-/// Persisted optional execution metadata. Typed-local producers bind positive attempts
+-/// and admitted worker/tool progress; other owners remain explicitly unbound.
+-/// These fields alone authorize no recovery, retry or remote worker.
+-struct TaskDurability: Codable, Sendable, Equatable {
++    let durability: TaskDurability?
++}
++
++/// LAST exact tool boundary, not complete per-worker active-call coverage.
++/// Absence/return supplies no effect, health, cessation or retry authority.
++enum TaskWorkerToolBackingState: String, Sendable {
++    case entryAdmitted, backingReturned, backingThrew
++}
++
++struct TaskWorkerToolBackingObservation: Equatable, Sendable {
++    let binding: TaskWorkerBinding
++    let receiptID: UUID
++    let toolID: String
++    let state: TaskWorkerToolBackingState
++}
++
++/// Persisted optional execution metadata. Typed-local producers bind positive attempts
++/// and admitted worker/tool progress; other owners remain explicitly unbound.
++/// These fields alone authorize no recovery, retry or remote worker.
++struct TaskDurability: Codable, Sendable, Equatable {
+--- a/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
++++ b/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift
+@@ -76,7 +76,10 @@
+-        return observed
+-    }
+-
+-    /// Repair reuses the same startup hold transition; no backend or dispatch occurs.
+-    var canRepairTaskHistory: Bool {
+-        historyReadFailure != nil && running.isEmpty && preparedRepairAvailable
+-    }
++        return observed
++    }
++
++    /// Missing-feature original scaffold; performs no source observation.
++    func workerToolBackingObservation(taskID: String) -> TaskWorkerToolBackingObservation? { nil }
++
++    /// Repair reuses the same startup hold transition; no backend or dispatch occurs.
++    var canRepairTaskHistory: Bool {
++        historyReadFailure != nil && running.isEmpty && preparedRepairAvailable
++    }
+--- a/Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift
++++ b/Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift
+@@ -61,7 +61,8 @@
+-    }
+-
+-    @MainActor
+-    static func toolCompleted(_ context: TaskJournalContext?, tool: String, succeeded: Bool) -> Bool {
+-        guard let context else { return true }
+-        let admitted = context.record(TaskJournalEventDraft(taskID: context.taskID, kind: .toolCompleted,
+-            detail: "\(tool):\(succeeded ? "returned" : "threw")", attempt: context.attempt))
++    }
++
++    @MainActor
++    static func toolCompleted(_ context: TaskJournalContext?, tool: String, succeeded: Bool,
++                              receiptID: UUID? = nil) -> Bool {
++        guard let context else { return true }
++        let admitted = context.record(TaskJournalEventDraft(taskID: context.taskID, kind: .toolCompleted,
++            detail: "\(tool):\(succeeded ? "returned" : "threw")", attempt: context.attempt))
+--- a/Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift
++++ b/Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift
+@@ -232,7 +232,7 @@
+-                    var backingReturned = false
+-                    defer {
+-                        completedJournalAccepted = TaskEventJournal.toolCompleted(journal, tool: tool.id,
+-                            succeeded: backingReturned)
+-                    }
+-                    if SelfTest.isRunning, let fire = fireOverrideForTesting {
+-                        let result = try await fire(tool, prepared.executionPlan.arguments)
++                    var backingReturned = false
++                    defer {
++                        completedJournalAccepted = TaskEventJournal.toolCompleted(journal, tool: tool.id,
++                            succeeded: backingReturned, receiptID: prepared.id)
++                    }
++                    if SelfTest.isRunning, let fire = fireOverrideForTesting {
++                        let result = try await fire(tool, prepared.executionPlan.arguments)

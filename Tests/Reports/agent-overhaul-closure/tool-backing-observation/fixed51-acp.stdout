@@ -1,0 +1,2 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-task-read-checks51-m6xnc_20/acp.log
+ACP_OK: initialize, session, subscribe and permission relay hold
