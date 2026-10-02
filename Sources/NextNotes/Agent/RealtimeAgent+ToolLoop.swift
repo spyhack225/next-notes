@@ -1431,6 +1431,9 @@ extension RealtimeAgent {
         // The self-test override raises the *call* cap only, so a case can make rounds run
         // out before calls do. It is nil in production, where the cap is the setting's.
         let maxCalls = maxCallsForTesting ?? callCap
+        if SelfTest.isRunning, SelfTest.requested == "--selftest-c04-result-context" {
+            beforeMemoryGroundingForTesting?()
+        }
         let memoryGrounding = NextMemory.shared.grounding(for: prompt)
         // P1-18, and the second of the two literals this replaced. `provider.contextTokens`
         // is the 32,768 ceiling for a llama reader, not the loaded model's window, so it was
@@ -1920,7 +1923,7 @@ extension RealtimeAgent {
             func fittedPrompt() async -> (user: String, tokens: Int) {
                 let message = AgentToolLoop.userMessage(
                     original: fitSections.joined(separator: "\n\n"), results: fitResults,
-                    readerContextTokens: window)
+                    readerContextTokens: window, foldOlderResults: false)
                 let counted = (try? await currentProvider.countTokens(system + "\n" + message))
                     ?? (system.count + message.count) / 4
                 return (message, counted)

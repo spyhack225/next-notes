@@ -1,0 +1,11 @@
+{
+  "original": 105,
+  "fixed": 106,
+  "entries": 1048,
+  "changes": {
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": {
+      "original": "5a34de66f460346f291e1a6b39fb25a883ecfb59006c062cefcb24813164b130",
+      "fixed": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4"
+    }
+  }
+}

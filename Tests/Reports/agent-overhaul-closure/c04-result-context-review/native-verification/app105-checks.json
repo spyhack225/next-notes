@@ -1,0 +1,10 @@
+[
+  {
+    "flag": "c04-result-context",
+    "exit": 1,
+    "marker": "C04_RESULT_CONTEXT_FAILED 4/84",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

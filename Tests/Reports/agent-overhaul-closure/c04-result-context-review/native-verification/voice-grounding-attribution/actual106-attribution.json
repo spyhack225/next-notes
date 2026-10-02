@@ -1,0 +1,155 @@
+{
+  "scope": "Read-only safe-marker/source attribution of actual106 voice-grounding failure. Raw owner grounding/identity text remains private; no rerun/model/native/Source/index or ownerstore action.",
+  "verdict": "Actual voice-grounding failure remains OPEN. Direct prompt/model producer and grading source unchanged across103/105/106; changed ordinary result-body producer/hook not invoked by this direct test. Runtime cause not established.",
+  "actual": {
+    "native": {
+      "flag": "voice-grounding",
+      "exit": 1,
+      "marker": "VOICE_GROUNDING_FAILED",
+      "originChecks": [],
+      "sourceDrift": [],
+      "sameInstalledBinary": true
+    },
+    "groundingPromptDomain": "GROUNDING_OK",
+    "safeFailure": "VOICE_GROUNDING_WRONG: the speaking path still does not know the user",
+    "promptLengths": {
+      "plannerCharacters": 5415,
+      "liveTools": 63,
+      "firstPassCharacters": 4245,
+      "spokenAnswerCharacters": 1920,
+      "firstPassParts": {
+        "persona": 882,
+        "grounding": 639,
+        "rules": 2587,
+        "memory": 0,
+        "capabilities": 0,
+        "skills": 0
+      },
+      "voiceCapabilityCharacters": 1583
+    },
+    "rawRetention": "Parent private system-temp archive; this report retains no assembled system/user identity or response payload."
+  },
+  "directCallGraph": [
+    "NextNotesApp dedicated --selftest-voice-grounding → RealtimeAgentToolLoopSelfTest.runVoiceGrounding.",
+    "runGroundingChecks exercises fixture and live prompt/domain/schema/roster/refusal helpers; prints GROUNDING_OK. It does not call typedhandle, runPlannedToolLoop, fittedPrompt or AgentToolLoop.userMessage.",
+    "runVoiceGrounding constructs actual LlamaLLMProvider(defaultsharedruntime), checks unavailableReason, then makes four direct streamConversation calls with modelTurnSystem(voice:true) and max96 under90-second bounded waits.",
+    "modelTurnSystem calls AgentPromptContext.assemble(.toolLoop,rules:modelTurnRules(voice:true)); actual provider delegates to NotesModelRuntime.streamConversation. No toolresults/ordinaryfitter/fold transport in these requests.",
+    "Identity response predicate requires nonempty/notERROR, actual current shortname unless empty, and no denial of identity/files. Generic answer missing requiredshortname can fail even though grounding prompt contains correct facts.",
+    "No actual speaker/microphone/backend/onset/resume receipt is exercised by this direct prompt/model test; its historical speaking-path failure label is not live playback evidence.",
+    "The C04 clear hook is declared defaultnil; its only invocation is ordinary planner beforegrounding with SelfTest.requested exactly --selftest-c04-result-context. Dedicated voice-grounding flag does not satisfy that guard or invoke the C04 fixture."
+  ],
+  "source": {
+    "entries105": 1048,
+    "entries106": 1048,
+    "exactDelta105106": {
+      "Sources/NextNotes/Agent/AgentToolLoop.swift": {
+        "original105": "5a34de66f460346f291e1a6b39fb25a883ecfb59006c062cefcb24813164b130",
+        "fixed106": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4"
+      }
+    },
+    "directVoiceSourcePins103105106": {
+      "Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift": {
+        "app103": "eac01f98fd0042dbbef6d35a81f27519532d0c4e3685334d0f1880c9c848af23",
+        "app105": "eac01f98fd0042dbbef6d35a81f27519532d0c4e3685334d0f1880c9c848af23",
+        "app106": "eac01f98fd0042dbbef6d35a81f27519532d0c4e3685334d0f1880c9c848af23",
+        "presentAll": true,
+        "allEqual": true
+      },
+      "Sources/NextNotes/Formatting/LLM/LlamaLLMProvider.swift": {
+        "app103": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+        "app105": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+        "app106": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+        "presentAll": true,
+        "allEqual": true
+      },
+      "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+        "app103": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+        "app105": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+        "app106": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+        "presentAll": true,
+        "allEqual": true
+      },
+      "Sources/NextNotes/Formatting/LLM/NotesModels.swift": {
+        "app103": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+        "app105": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+        "app106": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+        "presentAll": true,
+        "allEqual": true
+      },
+      "Sources/NextNotes/Formatting/LLM/LocalVoiceDecision.swift": {
+        "app103": "93035309d23a5abea1182823b5bfadb4d0f575f1ac99f5c1dde89a0018942fe2",
+        "app105": "93035309d23a5abea1182823b5bfadb4d0f575f1ac99f5c1dde89a0018942fe2",
+        "app106": "93035309d23a5abea1182823b5bfadb4d0f575f1ac99f5c1dde89a0018942fe2",
+        "presentAll": true,
+        "allEqual": true
+      },
+      "Sources/NextNotes/Persona/AgentPromptContext.swift": {
+        "app103": "e618009d139c1d797891d0b9c88278e38df9503252bc2a3c0f726187eb5942df",
+        "app105": "e618009d139c1d797891d0b9c88278e38df9503252bc2a3c0f726187eb5942df",
+        "app106": "e618009d139c1d797891d0b9c88278e38df9503252bc2a3c0f726187eb5942df",
+        "presentAll": true,
+        "allEqual": true
+      },
+      "Sources/NextNotes/Persona/AgentGrounding.swift": {
+        "app103": "66e2f9a693d1d70cb4e7740d87799832ecfc1744841d7dae92cecf144c9f6f63",
+        "app105": "66e2f9a693d1d70cb4e7740d87799832ecfc1744841d7dae92cecf144c9f6f63",
+        "app106": "66e2f9a693d1d70cb4e7740d87799832ecfc1744841d7dae92cecf144c9f6f63",
+        "presentAll": true,
+        "allEqual": true
+      },
+      "Sources/NextNotes/Persona/AgentIdentityProse.swift": {
+        "app103": "25ff1e6658eff740c8e9ddbc3cdde44e8a8c134cc50eea1bb81efda4140de843",
+        "app105": "25ff1e6658eff740c8e9ddbc3cdde44e8a8c134cc50eea1bb81efda4140de843",
+        "app106": "25ff1e6658eff740c8e9ddbc3cdde44e8a8c134cc50eea1bb81efda4140de843",
+        "presentAll": true,
+        "allEqual": true
+      },
+      "Sources/NextNotes/Persona/PersonaStore.swift": {
+        "app103": "06e6f0633062d1fb9c01559513e5b89b1eb581b4252d9980846ff4e70f31d98e",
+        "app105": "06e6f0633062d1fb9c01559513e5b89b1eb581b4252d9980846ff4e70f31d98e",
+        "app106": "06e6f0633062d1fb9c01559513e5b89b1eb581b4252d9980846ff4e70f31d98e",
+        "presentAll": true,
+        "allEqual": true
+      }
+    },
+    "toolLoopArchiveAndCurrentBinding": {
+      "oldArchiveHash": "1c0cf45391ef495a05f1aa28315f6cce7d7c973408fcfc99471c750dd1503103",
+      "manifest103": "1c0cf45391ef495a05f1aa28315f6cce7d7c973408fcfc99471c750dd1503103",
+      "currentSourceHash": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471",
+      "manifest105": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471",
+      "manifest106": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471"
+    },
+    "modelTurnSystemAndRulesRegionHashes": {
+      "app103": "fd41293d7fa1874f3061fba5a88aa3ad2814c10f91235b4264becdf5efd32d3c",
+      "app106": "fd41293d7fa1874f3061fba5a88aa3ad2814c10f91235b4264becdf5efd32d3c"
+    },
+    "regionIdentical": true
+  },
+  "historical": {
+    "sept30P131b": [
+      {
+        "flag": "voice-grounding",
+        "exit_code": 1,
+        "seconds": 78.352,
+        "markers": [
+          "GROUNDING_OK",
+          "VOICE_GROUNDING_FAILED"
+        ]
+      }
+    ],
+    "beforeAndAfterSafeLogMarkers": "Both before-voice-grounding.log and after-voice-grounding.log contain same identity WRONG and VOICE_GROUNDING_FAILED.",
+    "adjacentBuilds": {
+      "app103VoiceGroundingCheckPresent": false,
+      "app105VoiceGroundingCheckPresent": false
+    },
+    "meaning": "Prior occurrence and absent adjacent coverage, not a causal explanation or proof inherited-only behavior/currentsameinputs."
+  },
+  "limits": [
+    "Identical source and systemmethod bytes do not establish identical assembled prompt bytes, live persona/grounding/identity/date/memory snapshot, model weights, sampling/cache/load or scheduling. No owner payload was read to force equivalence.",
+    "Safe policy identifies identity failure but does not distinguish missing name versus every possible denial predicate without private response inspection; parent supplied generic reply description. No producer tuning is justified here.",
+    "The other three response predicates have no individual wrong-marker emission; sole emitted identity label does not independently prove every other model response predicate passed. GROUNDING_OK does establish prompt/domain checks.",
+    "Directtest does not exercise changed result-context path, but source independence does not prove all startup/shared work unexecuted or every possible global runtime influence absent.",
+    "No variance, inherited-only or introduced-regression causal classification is established. Preserve new measured failure and modelquality gates; no prompttuning, downstream scrub, grader relaxation, retries or rerun.",
+    "Root core/quick still scheduled/running at assignment; this report makes no final aggregate/full/owner or phase promotion verdict."
+  ]
+}

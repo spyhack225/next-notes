@@ -33,14 +33,14 @@ enum AgentToolLoop {
     /// Builds the next user message. Empty results is the original utterance; later
     /// rounds are that utterance plus what the tools already returned.
     ///
-    /// `readerContextTokens` exists for one reason: by round four the prompt is carrying
-    /// four answers, and the two that matter are the last two. Everything older is reduced
-    /// to its first line — which is a tool answer's own summary — so the newest result
-    /// reaches the model whole instead of being crowded out by three earlier ones
-    /// (P1-10a). The default is 8,192 because `ScheduledRunner`'s caller keeps compiling
-    /// without it, and 8,192 is the window that number was measured against.
+    /// The generic/scheduled caller keeps default eager folding and the reader-sized cap.
+    /// The ordinary planner passes `foldOlderResults: false` because its existing token
+    /// counter and overflow loop own admission there. Already-capped tool results should
+    /// reach that measurement before older bodies are reduced to their wrapper's title.
+    /// The answer-only caller still uses the default; it has no equivalent fitting loop.
     static func userMessage(
-        original: String, results: [String], readerContextTokens: Int = 8_192
+        original: String, results: [String], readerContextTokens: Int = 8_192,
+        foldOlderResults: Bool = true
     ) -> String {
         guard !results.isEmpty else { return original }
         // A result arrives here as `"<name> returned:\n<text>"`, so this function cannot
@@ -49,8 +49,8 @@ enum AgentToolLoop {
         // per-tool cap where it knew the id. What this buys is the scheduled-routine loop,
         // which appends uncapped results and has no other place to bound them.
         let ceiling = ToolResultBudget.characterCap(readerContextTokens: readerContextTokens) * 2
-        let carried = ToolResultBudget.fold(results)
-            .map { ToolResultBudget.cap($0, to: ceiling) }
+        let admitted = foldOlderResults ? ToolResultBudget.fold(results) : results
+        let carried = admitted.map { ToolResultBudget.cap($0, to: ceiling) }
         return """
             \(original)
 

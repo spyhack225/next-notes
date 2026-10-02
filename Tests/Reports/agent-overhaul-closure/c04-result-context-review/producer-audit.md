@@ -1,0 +1,13 @@
+# Read-only producer trace
+
+`RealtimeAgent.runModelTurn` routes typed input directly to `runPlannedTurn`. With a test provider, no Codex handoff/model resolution is performed. The manifest still builds from actual request and allowed tools. `runPlannedToolLoop` creates context sections once from earlier completed conversation, current memory and the current request; intermediate assistant replies are not appended to those sections.
+
+Successful real tool steps append `carried(step.tool,step.output)` to the local results. `carried` applies the current reader/per-tool cap and `AgentPrompts.toolResult` prefixes the body with the tool name and newline. The same code also records unwrapped raw output in session grounding. The refusal branch appends the real application correction. The unsupported-claim branch appends `ToolClaimGuard.replanNote`. Both continue to an ordinary measured prompt round. `AgentToolLoop.userMessage` eagerly folds the oldest wrapped output before `currentProvider.countTokens`; a title cannot stand in for its mail evidence.
+
+The actual app103 C04 log has four regular planner round traces and two read calls; usage round2 proposed/executed no tool. A correction/repair occupies a result slot along the applicable continuation paths, but its raw text was not archived. Malformed-call repair is another possible path. We do not assert that the native run selected either scripted guard branch. The final fourth pass is an ordinary measured round (`finalAnswerRound` emits no `.round`), placing the current source seam on its relevant path without proving native prompt contents.
+
+The report writer retains only final raw prefix400 and final prompt lengths. The retained final generated response names Jane Doe/Support Team/Marketing Dept instead of fixture Cyril/Ana/Marcus. Those wrong names do not occur in production fixture source; they originate in model generation. Whether prior evidence loss caused that particular hallucination is still open. App101 C04 previously passed; this is variable native behavior, not a deterministic new source regression attributed to the unrelated playback fix.
+
+Existing prefix-cache source compares exact token prefixes, removes the unmatched KV tail and clears on failure; prompt rendering still consumes passed system/messages. No replacement of current tool data by a stale cache or assistant prose was found in the inspected source. This is a source audit, not native KV/sampler validation.
+
+Proposed scope is ordinary prompt result admission before its existing actual-fit check. The packet intentionally leaves genuine overflow folding and the unmeasured answer-only path unchanged; no first-line cosmetic change hides the lost body.

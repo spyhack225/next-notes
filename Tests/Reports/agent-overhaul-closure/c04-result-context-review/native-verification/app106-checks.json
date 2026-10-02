@@ -1,0 +1,122 @@
+[
+  {
+    "flag": "c04-result-context",
+    "exit": 0,
+    "marker": "C04_RESULT_CONTEXT_OK 84",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "toolloop-production",
+    "exit": 0,
+    "marker": "TOOLLOOP_PRODUCTION_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "toolloop-live-grader",
+    "exit": 0,
+    "marker": "TOOLLOOP_LIVE_GRADER_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "toolloop",
+    "exit": 0,
+    "marker": "TOOLLOOP_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "tool-review",
+    "exit": 0,
+    "marker": "TOOL_REVIEW_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "tools",
+    "exit": 0,
+    "marker": "TOOLS_OK: registry, router and broker hold",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "persona",
+    "exit": 0,
+    "marker": "PERSONA_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "task-worker-attempt",
+    "exit": 0,
+    "marker": "TASK_WORKER_ATTEMPT_OK: 1352 cases",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-grounding",
+    "exit": 1,
+    "marker": "VOICE_GROUNDING_FAILED",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-conversation",
+    "exit": 0,
+    "marker": "VOICE_CONVERSATION_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "concurrent-voice",
+    "exit": 0,
+    "marker": "CONCURRENT_VOICE_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-duplex-work",
+    "exit": 0,
+    "marker": "VOICE_DUPLEX_WORK_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "voice-scheduling",
+    "exit": 0,
+    "marker": "VOICE_SCHEDULING_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  },
+  {
+    "flag": "tool-awareness",
+    "exit": 0,
+    "marker": "TOOL_AWARENESS_OK",
+    "originChecks": [],
+    "sourceDrift": [],
+    "sameInstalledBinary": true
+  }
+]

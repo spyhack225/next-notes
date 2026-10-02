@@ -209,6 +209,9 @@ final class RealtimeAgent {
     var fileRetrievalForTesting: (any FileRetrieving)?
     /// Receives one event per planner round and per rejected call. Nil in production.
     var plannerTraceForTesting: (@MainActor (PlannerTraceEvent) -> Void)?
+    /// Synchronous test hook at the existing local grounding boundary. Nil normally and
+    /// invoked only by the dedicated C04 result-context diagnostic; no refresh is skipped.
+    var beforeMemoryGroundingForTesting: (@MainActor () -> Void)?
     /// Replaces the pending action a typed turn would otherwise have to earn. Nil in
     /// production; a self-test that drives `handle` reaches the same block without one.
     func setTypedPendingForTesting(_ action: PendingAction?) { typedPending = action }

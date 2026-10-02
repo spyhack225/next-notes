@@ -1,0 +1,77 @@
+{
+  "reports": {
+    "actual106-attribution.json": "620fe17e9f24ba753c25f67a899a081ea3aae14c362c885f7ed2f60af614dd26",
+    "actual106-attribution.md": "294cc96e9e63977f3b2f2ff94a395b3f4453a0b39132e106d397c674a9246cfa"
+  },
+  "inputs": {
+    "build105-source-manifest.json": "6d0b9e2bd0e2193a5b15fbd4cee02f99c119c78e5c42c43a2cc15bcfd401135b",
+    "build106-source-manifest.json": "c46bedcb3d9debb1b0e6fc47cbff46d0487356c194616a812fe13aa2d7f15896",
+    "app106-voice-grounding-artifact-policy.json": "9f748d2c2613eda6153c90c28592e1d67f58ce690ab35b266c6d95a4625c0aa1"
+  },
+  "sourcePins": {
+    "Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift": {
+      "app103": "eac01f98fd0042dbbef6d35a81f27519532d0c4e3685334d0f1880c9c848af23",
+      "app105": "eac01f98fd0042dbbef6d35a81f27519532d0c4e3685334d0f1880c9c848af23",
+      "app106": "eac01f98fd0042dbbef6d35a81f27519532d0c4e3685334d0f1880c9c848af23",
+      "presentAll": true,
+      "allEqual": true
+    },
+    "Sources/NextNotes/Formatting/LLM/LlamaLLMProvider.swift": {
+      "app103": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+      "app105": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+      "app106": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+      "presentAll": true,
+      "allEqual": true
+    },
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+      "app103": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+      "app105": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+      "app106": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+      "presentAll": true,
+      "allEqual": true
+    },
+    "Sources/NextNotes/Formatting/LLM/NotesModels.swift": {
+      "app103": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+      "app105": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+      "app106": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+      "presentAll": true,
+      "allEqual": true
+    },
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceDecision.swift": {
+      "app103": "93035309d23a5abea1182823b5bfadb4d0f575f1ac99f5c1dde89a0018942fe2",
+      "app105": "93035309d23a5abea1182823b5bfadb4d0f575f1ac99f5c1dde89a0018942fe2",
+      "app106": "93035309d23a5abea1182823b5bfadb4d0f575f1ac99f5c1dde89a0018942fe2",
+      "presentAll": true,
+      "allEqual": true
+    },
+    "Sources/NextNotes/Persona/AgentPromptContext.swift": {
+      "app103": "e618009d139c1d797891d0b9c88278e38df9503252bc2a3c0f726187eb5942df",
+      "app105": "e618009d139c1d797891d0b9c88278e38df9503252bc2a3c0f726187eb5942df",
+      "app106": "e618009d139c1d797891d0b9c88278e38df9503252bc2a3c0f726187eb5942df",
+      "presentAll": true,
+      "allEqual": true
+    },
+    "Sources/NextNotes/Persona/AgentGrounding.swift": {
+      "app103": "66e2f9a693d1d70cb4e7740d87799832ecfc1744841d7dae92cecf144c9f6f63",
+      "app105": "66e2f9a693d1d70cb4e7740d87799832ecfc1744841d7dae92cecf144c9f6f63",
+      "app106": "66e2f9a693d1d70cb4e7740d87799832ecfc1744841d7dae92cecf144c9f6f63",
+      "presentAll": true,
+      "allEqual": true
+    },
+    "Sources/NextNotes/Persona/AgentIdentityProse.swift": {
+      "app103": "25ff1e6658eff740c8e9ddbc3cdde44e8a8c134cc50eea1bb81efda4140de843",
+      "app105": "25ff1e6658eff740c8e9ddbc3cdde44e8a8c134cc50eea1bb81efda4140de843",
+      "app106": "25ff1e6658eff740c8e9ddbc3cdde44e8a8c134cc50eea1bb81efda4140de843",
+      "presentAll": true,
+      "allEqual": true
+    },
+    "Sources/NextNotes/Persona/PersonaStore.swift": {
+      "app103": "06e6f0633062d1fb9c01559513e5b89b1eb581b4252d9980846ff4e70f31d98e",
+      "app105": "06e6f0633062d1fb9c01559513e5b89b1eb581b4252d9980846ff4e70f31d98e",
+      "app106": "06e6f0633062d1fb9c01559513e5b89b1eb581b4252d9980846ff4e70f31d98e",
+      "presentAll": true,
+      "allEqual": true
+    }
+  },
+  "privateRawSHAFromParentPolicy": "10fb9bcd619ad358c1adf6cb307b3c131c081339e05a4f03dc4ea19d8c768715"
+}

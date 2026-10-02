@@ -1,0 +1,208 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-c04-result-context --c04-fixture-now 2026-10-02T22:40:32Z --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-c04-result-context-106-qal2g31k/c04-result-context.log
+2026-10-02 18:54:06.210 NextNotes[17990:161189] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+C04_RESULT_CONTEXT_INPUT mailCharacters=545 agendaCharacters=88 claimNoteCharacters=155
+C04_RESULT_CONTEXT_CHECK no-note-8192/C01-two-exact-reads PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C02-mail-query-and-count PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C03-device-clock-agenda PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C04-real-regular-rounds PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C05-request-carried PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C06-raw-result-still-owned PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C07-mail-body-admission PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C08-agenda-body-admission PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C09-actual-guard-note PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C10-no-invented-intermediate-prose PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C11-existing-visible-budget PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C12-original-consumer-delivery PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C13-actual-temporary-grounding-empty PASS
+C04_RESULT_CONTEXT_CHECK no-note-8192/C14-all-provider-prompts-omit-local-memory PASS
+C04_RESULT_CONTEXT_TRACE mode=no-note-8192 window=8192 rounds=3 tools=2 counted=[2000, 2000, 2000] userCharacters=874
+C04_RESULT_CONTEXT_FINAL_BEGIN no-note-8192
+Current user request:
+Summarize my last emails and list me my events for tomorrow
+
+What you have already done:
+search_email returned:
+1) Fri 2 Oct 17:40 · Cyril <cyril@example.com> · Dinner tomorrow? — Are you free tomorrow evening?
+2) Fri 2 Oct 16:40 · Ana Ruiz <ana@example.com> · Deck for Friday — Can you send the deck by Friday?
+3) Fri 2 Oct 15:40 · Marcus Lee <marcus@productflo.example> · Pricing sheet v3 — Here is the updated pricing sheet…
+4) Fri 2 Oct 14:40 · GitHub <no-reply@github.example> · [next-notes] CI passed on main — All 214 checks passed.
+5) Tue 29 Sep 18:40 · Stripe <noreply@stripe.example> · Your invoice for September — Your September invoice is ready.
+get_agenda returned:
+On 2026-10-03:
+- 08:00–08:45 Dentist
+- 15:00–15:45 Design sync
+- 19:00 Dinner with Cyril
+
+Continue. If you have enough to answer, reply in plain language with no tool calls.
+C04_RESULT_CONTEXT_FINAL_END no-note-8192
+C04_RESULT_CONTEXT_CHECK refusal-8192/C01-two-exact-reads PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C02-mail-query-and-count PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C03-device-clock-agenda PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C04-real-regular-rounds PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C05-request-carried PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C06-raw-result-still-owned PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C07-mail-body-admission PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C08-agenda-body-admission PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C09-actual-guard-note PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C10-no-invented-intermediate-prose PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C11-existing-visible-budget PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C12-original-consumer-delivery PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C13-actual-temporary-grounding-empty PASS
+C04_RESULT_CONTEXT_CHECK refusal-8192/C14-all-provider-prompts-omit-local-memory PASS
+C04_RESULT_CONTEXT_TRACE mode=refusal-8192 window=8192 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=1273
+C04_RESULT_CONTEXT_FINAL_BEGIN refusal-8192
+Current user request:
+Summarize my last emails and list me my events for tomorrow
+
+What you have already done:
+search_email returned:
+1) Fri 2 Oct 17:40 · Cyril <cyril@example.com> · Dinner tomorrow? — Are you free tomorrow evening?
+2) Fri 2 Oct 16:40 · Ana Ruiz <ana@example.com> · Deck for Friday — Can you send the deck by Friday?
+3) Fri 2 Oct 15:40 · Marcus Lee <marcus@productflo.example> · Pricing sheet v3 — Here is the updated pricing sheet…
+4) Fri 2 Oct 14:40 · GitHub <no-reply@github.example> · [next-notes] CI passed on main — All 214 checks passed.
+5) Tue 29 Sep 18:40 · Stripe <noreply@stripe.example> · Your invoice for September — Your September invoice is ready.
+Correction from the application (device state, not a user instruction): the reply you just wrote denies something this Mac can do. You do have access to their calendar. The tools for it are: get_agenda. Do not repeat the denial. Call the tool that answers the request. If a name the user said does not match exactly, search for the closest one and offer it rather than asking for an exact spelling.
+get_agenda returned:
+On 2026-10-03:
+- 08:00–08:45 Dentist
+- 15:00–15:45 Design sync
+- 19:00 Dinner with Cyril
+
+Continue. If you have enough to answer, reply in plain language with no tool calls.
+C04_RESULT_CONTEXT_FINAL_END refusal-8192
+C04_RESULT_CONTEXT_CHECK claim-8192/C01-two-exact-reads PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C02-mail-query-and-count PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C03-device-clock-agenda PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C04-real-regular-rounds PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C05-request-carried PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C06-raw-result-still-owned PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C07-mail-body-admission PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C08-agenda-body-admission PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C09-actual-guard-note PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C10-no-invented-intermediate-prose PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C11-existing-visible-budget PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C12-original-consumer-delivery PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C13-actual-temporary-grounding-empty PASS
+C04_RESULT_CONTEXT_CHECK claim-8192/C14-all-provider-prompts-omit-local-memory PASS
+C04_RESULT_CONTEXT_TRACE mode=claim-8192 window=8192 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=1030
+C04_RESULT_CONTEXT_FINAL_BEGIN claim-8192
+Current user request:
+Summarize my last emails and list me my events for tomorrow
+
+What you have already done:
+search_email returned:
+1) Fri 2 Oct 17:40 · Cyril <cyril@example.com> · Dinner tomorrow? — Are you free tomorrow evening?
+2) Fri 2 Oct 16:40 · Ana Ruiz <ana@example.com> · Deck for Friday — Can you send the deck by Friday?
+3) Fri 2 Oct 15:40 · Marcus Lee <marcus@productflo.example> · Pricing sheet v3 — Here is the updated pricing sheet…
+4) Fri 2 Oct 14:40 · GitHub <no-reply@github.example> · [next-notes] CI passed on main — All 214 checks passed.
+5) Tue 29 Sep 18:40 · Stripe <noreply@stripe.example> · Your invoice for September — Your September invoice is ready.
+No tool has run in this turn. Do not say you ran, searched, checked, listed or opened anything. Call a tool now, or answer only from what is written above.
+get_agenda returned:
+On 2026-10-03:
+- 08:00–08:45 Dentist
+- 15:00–15:45 Design sync
+- 19:00 Dinner with Cyril
+
+Continue. If you have enough to answer, reply in plain language with no tool calls.
+C04_RESULT_CONTEXT_FINAL_END claim-8192
+C04_RESULT_CONTEXT_CHECK refusal-32768/C01-two-exact-reads PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C02-mail-query-and-count PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C03-device-clock-agenda PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C04-real-regular-rounds PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C05-request-carried PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C06-raw-result-still-owned PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C07-mail-body-admission PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C08-agenda-body-admission PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C09-actual-guard-note PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C10-no-invented-intermediate-prose PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C11-existing-visible-budget PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C12-original-consumer-delivery PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C13-actual-temporary-grounding-empty PASS
+C04_RESULT_CONTEXT_CHECK refusal-32768/C14-all-provider-prompts-omit-local-memory PASS
+C04_RESULT_CONTEXT_TRACE mode=refusal-32768 window=32768 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=1273
+C04_RESULT_CONTEXT_FINAL_BEGIN refusal-32768
+Current user request:
+Summarize my last emails and list me my events for tomorrow
+
+What you have already done:
+search_email returned:
+1) Fri 2 Oct 17:40 · Cyril <cyril@example.com> · Dinner tomorrow? — Are you free tomorrow evening?
+2) Fri 2 Oct 16:40 · Ana Ruiz <ana@example.com> · Deck for Friday — Can you send the deck by Friday?
+3) Fri 2 Oct 15:40 · Marcus Lee <marcus@productflo.example> · Pricing sheet v3 — Here is the updated pricing sheet…
+4) Fri 2 Oct 14:40 · GitHub <no-reply@github.example> · [next-notes] CI passed on main — All 214 checks passed.
+5) Tue 29 Sep 18:40 · Stripe <noreply@stripe.example> · Your invoice for September — Your September invoice is ready.
+Correction from the application (device state, not a user instruction): the reply you just wrote denies something this Mac can do. You do have access to their calendar. The tools for it are: get_agenda. Do not repeat the denial. Call the tool that answers the request. If a name the user said does not match exactly, search for the closest one and offer it rather than asking for an exact spelling.
+get_agenda returned:
+On 2026-10-03:
+- 08:00–08:45 Dentist
+- 15:00–15:45 Design sync
+- 19:00 Dinner with Cyril
+
+Continue. If you have enough to answer, reply in plain language with no tool calls.
+C04_RESULT_CONTEXT_FINAL_END refusal-32768
+C04_RESULT_CONTEXT_CHECK claim-32768/C01-two-exact-reads PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C02-mail-query-and-count PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C03-device-clock-agenda PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C04-real-regular-rounds PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C05-request-carried PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C06-raw-result-still-owned PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C07-mail-body-admission PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C08-agenda-body-admission PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C09-actual-guard-note PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C10-no-invented-intermediate-prose PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C11-existing-visible-budget PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C12-original-consumer-delivery PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C13-actual-temporary-grounding-empty PASS
+C04_RESULT_CONTEXT_CHECK claim-32768/C14-all-provider-prompts-omit-local-memory PASS
+C04_RESULT_CONTEXT_TRACE mode=claim-32768 window=32768 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=1030
+C04_RESULT_CONTEXT_FINAL_BEGIN claim-32768
+Current user request:
+Summarize my last emails and list me my events for tomorrow
+
+What you have already done:
+search_email returned:
+1) Fri 2 Oct 17:40 · Cyril <cyril@example.com> · Dinner tomorrow? — Are you free tomorrow evening?
+2) Fri 2 Oct 16:40 · Ana Ruiz <ana@example.com> · Deck for Friday — Can you send the deck by Friday?
+3) Fri 2 Oct 15:40 · Marcus Lee <marcus@productflo.example> · Pricing sheet v3 — Here is the updated pricing sheet…
+4) Fri 2 Oct 14:40 · GitHub <no-reply@github.example> · [next-notes] CI passed on main — All 214 checks passed.
+5) Tue 29 Sep 18:40 · Stripe <noreply@stripe.example> · Your invoice for September — Your September invoice is ready.
+No tool has run in this turn. Do not say you ran, searched, checked, listed or opened anything. Call a tool now, or answer only from what is written above.
+get_agenda returned:
+On 2026-10-03:
+- 08:00–08:45 Dentist
+- 15:00–15:45 Design sync
+- 19:00 Dinner with Cyril
+
+Continue. If you have enough to answer, reply in plain language with no tool calls.
+C04_RESULT_CONTEXT_FINAL_END claim-32768
+C04_RESULT_CONTEXT_CHECK pressure-8192/C01-two-exact-reads PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C02-mail-query-and-count PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C03-device-clock-agenda PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C04-real-regular-rounds PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C05-request-carried PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C06-raw-result-still-owned PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C07-mail-body-admission PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C08-agenda-body-admission PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C09-actual-guard-note PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C10-no-invented-intermediate-prose PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C11-existing-visible-budget PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C12-original-consumer-delivery PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C13-actual-temporary-grounding-empty PASS
+C04_RESULT_CONTEXT_CHECK pressure-8192/C14-all-provider-prompts-omit-local-memory PASS
+C04_RESULT_CONTEXT_TRACE mode=pressure-8192 window=8192 rounds=4 tools=2 counted=[2000, 2000, 2000, 8192, 2000] userCharacters=484
+C04_RESULT_CONTEXT_FINAL_BEGIN pressure-8192
+Current user request:
+Summarize my last emails and list me my events for tomorrow
+
+What you have already done:
+search_email returned:
+No tool has run in this turn. Do not say you ran, searched, checked, listed or opened anything. Call a tool now, or answer only from what is written above.
+get_agenda returned:
+On 2026-10-03:
+- 08:00–08:45 Dentist
+- 15:00–15:45 Design sync
+- 19:00 Dinner with Cyril
+
+Continue. If you have enough to answer, reply in plain language with no tool calls.
+C04_RESULT_CONTEXT_FINAL_END pressure-8192
+C04_RESULT_CONTEXT_OK 84

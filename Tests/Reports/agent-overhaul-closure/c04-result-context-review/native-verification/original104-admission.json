@@ -1,0 +1,14 @@
+{
+  "build": 104,
+  "verdict": "REPRODUCED_4_TARGETS_BUT_COMMON_FIXTURE_AMENDMENT_REQUIRED",
+  "nativeMarker": "C04_RESULT_CONTEXT_FAILED 4/72",
+  "rawSHA256": "8d08a84711f280ee570e5f4d326591c96f08c8b9c9463a125c9b48dd8e39c693",
+  "rawRetention": "private system temp, excluded from repository",
+  "archiveSHA256": "fa9632f72fda849a8576b1b345a4f71939453fb365864ad48aa1f0763f7d63ad",
+  "controls": [
+    "startup-derived local-memory prompt labels not synthetic-only; next common conductor clears only SelfTest temp memory",
+    "stdio final marker interleaved one C09 label; flush before paired run",
+    "root verification parser incorrectly searched marker-only app log for detailed checks; use stdout"
+  ],
+  "sourceFixNotApplied": true
+}

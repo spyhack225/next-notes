@@ -2175,6 +2175,15 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             }
             return true
         }
+        if arguments.contains("--selftest-c04-result-context") {
+            Task { @MainActor in
+                let marker = await C04ResultContextSelfTest.run()
+                if !marker.hasPrefix("C04_RESULT_CONTEXT_OK ") { SelfTest.failed = true }
+                writeSelfTest(marker)
+                NSApp.terminate(nil)
+            }
+            return true
+        }
         if arguments.contains("--selftest-toolloop-production") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.run())

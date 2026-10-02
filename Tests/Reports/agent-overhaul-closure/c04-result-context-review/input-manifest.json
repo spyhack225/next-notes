@@ -1,0 +1,26 @@
+{
+  "status": "corrected-common-prepared-not-run",
+  "request": "Summarize my last emails and list me my events for tomorrow",
+  "dataProducer": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift",
+  "dataProducerSha256": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+  "clock": "Reuse root-retained fixture-now.txt unchanged for both original105/fixed106; existing device-day grounding unchanged",
+  "mailArguments": {
+    "query": "",
+    "maxResults": "5"
+  },
+  "calendarArguments": {
+    "date": "same-current-clock tomorrow yyyy-MM-dd"
+  },
+  "corrections": [
+    "I can't access your calendar.",
+    "I ran the get_agenda tool. Your main calendar for tomorrow shows no booked events."
+  ],
+  "cases": 6,
+  "checksPerCase": 14,
+  "checks": 84,
+  "expectedOriginalTargetFailures": 4,
+  "nativeOriginal103Round2Raw": "unretained",
+  "actualRegressionRun": false,
+  "initial104": "root native original4/72; nonpaired admission because activity memory labels appeared; raw output private",
+  "isolation": "exact perprocess NextMemory temp fileURL guard; existing clearForTesting immediately before unchanged actual grounding via exact-flag/defaultnil synchronous hook; no persist; no blanket owner-read claim"
+}

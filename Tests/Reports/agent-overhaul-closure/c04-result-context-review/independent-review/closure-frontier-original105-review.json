@@ -1,0 +1,50 @@
+{
+  "status": "original105-admitted-structural-red-fixed106-pending",
+  "checks": 84,
+  "failures": [
+    "claim-32768/C07-mail-body-admission",
+    "claim-8192/C07-mail-body-admission",
+    "refusal-32768/C07-mail-body-admission",
+    "refusal-8192/C07-mail-body-admission"
+  ],
+  "exactTargetOnlyFailures": true,
+  "controlsPass": true,
+  "groundingDomainControlsPass": true,
+  "sourceMatchesFrozenCommon": {
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": true,
+    "Sources/NextNotes/Agent/RealtimeAgent.swift": true,
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": true,
+    "Sources/NextNotes/Agent/C04ResultContextSelfTest.swift": true,
+    "Sources/NextNotes/NextNotesApp.swift": true
+  },
+  "binary": "3a0a02cf4c2add99687952bca7127823634308900b1b0675b3f0194b17fa6c47",
+  "retainedCacheBytesMatch": true,
+  "bundleUnchanged": true,
+  "fixedTimestamp": "2026-10-02T22:40:32Z",
+  "rootRunnerReusesTimestampFile": "run-native-checks.py line29 reads same fixture-now.txt for c04-result-context",
+  "actualTraces": [
+    "C04_RESULT_CONTEXT_TRACE mode=no-note-8192 window=8192 rounds=3 tools=2 counted=[2000, 2000, 2000] userCharacters=874",
+    "C04_RESULT_CONTEXT_TRACE mode=refusal-8192 window=8192 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=727",
+    "C04_RESULT_CONTEXT_TRACE mode=claim-8192 window=8192 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=484",
+    "C04_RESULT_CONTEXT_TRACE mode=refusal-32768 window=32768 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=727",
+    "C04_RESULT_CONTEXT_TRACE mode=claim-32768 window=32768 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=484",
+    "C04_RESULT_CONTEXT_TRACE mode=pressure-8192 window=8192 rounds=4 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=484"
+  ],
+  "evidencePins": {
+    "app105-c04-result-context.stdout": "2c0fe2bca3d1fc8fce48aad3e035206f7f26e0508d5ee00daee8d1b02b7b8eee",
+    "app105-c04-result-context.log": "e84b6a630b10fef7b2e20c26acc07372a334a2e85d0f5ca0c4cb785292fc034a",
+    "app105-checks.json": "3a2c52234a91e90aaabbb6cd2ed4d2401e8cb629ae582b497a7f72c515fdedd9",
+    "app105-binary.json": "dfe469ed60096a04430062f4a40662bf5ef80623c98b2644a3009800c375459c",
+    "build105-source-manifest.json": "6d0b9e2bd0e2193a5b15fbd4cee02f99c119c78e5c42c43a2cc15bcfd401135b",
+    "fixture-now.txt": "ce0b02c5031e95cd22e710e2e283e1197f30dac4e2115977f3dd3e2070e75b97"
+  },
+  "limits": [
+    "initial104 nonpaired because original local memory domain unproved; private raw output not read or copied",
+    "native103 round2 attribution unretained",
+    "scriptedprovider and tokenizer structural proof only",
+    "default/scheduled/finalAnswer eagerfold unchanged",
+    "genuine context-pressure loss unchanged",
+    "startup and activity owner reads not isolated globally",
+    "parent quick/full/owner/latency/model-default gates unchanged"
+  ]
+}

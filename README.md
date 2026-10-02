@@ -528,6 +528,7 @@ Sources/NextNotes/
 │   ├── VoiceConversationSelfTest.swift  production interruption tests + local model benchmark
 │   ├── RealtimeAgentLocalModelSelfTest.swift  streamed answer and interruption probe
 │   ├── RealtimeAgentToolLoopSelfTest.swift  model-selected tools and streamed speech probe
+│   ├── C04ResultContextSelfTest.swift  actual planner result admission and overflow proof
 │   ├── Planner/                   four constrained-decoding backends chosen from the
 │   │                               provider the turn already resolved — a GBNF grammar, an
 │   │                               Apple `Tool`, an OpenAI `tools` array, or today's prose

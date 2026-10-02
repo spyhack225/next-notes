@@ -1,0 +1,13 @@
+--- a/Sources/NextNotes/Agent/AgentToolLoop.swift
++++ b/Sources/NextNotes/Agent/AgentToolLoop.swift
+@@ -49,8 +49,8 @@
+         // per-tool cap where it knew the id. What this buys is the scheduled-routine loop,
+         // which appends uncapped results and has no other place to bound them.
+         let ceiling = ToolResultBudget.characterCap(readerContextTokens: readerContextTokens) * 2
+-        let carried = ToolResultBudget.fold(results)
+-            .map { ToolResultBudget.cap($0, to: ceiling) }
++        let admitted = foldOlderResults ? ToolResultBudget.fold(results) : results
++        let carried = admitted.map { ToolResultBudget.cap($0, to: ceiling) }
+         return """
+             \(original)
+ 

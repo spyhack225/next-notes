@@ -1,0 +1,101 @@
+{
+  "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/app103-quick.md.jsonl": {
+    "sha256": "3c9982a094875aed3f1eeb3c244fc7ba914ca141139deeb557cb41755a46f016",
+    "C04": {
+      "evidence": "09-22 00:58Z",
+      "expectedFix": "P1-02, P1-06",
+      "id": "C04",
+      "lastMaxTokens": 1024,
+      "lastRaw": "I see you want a summary of your recent emails and tomorrow's events. Here is what I found for you.\n\nYour last emails are:\n*   From: Jane Doe, Subject: Project Update, Date: Friday, October 2nd\n*   From: Support Team, Subject: Account Question, Date: Thursday, October 1st\n*   From: Marketing Dept, Subject: Q4 Planning, Date: Wednesday, October 7th\n\nFor tomorrow, October 3rd, you have these events:",
+      "lastSystemCharacters": 6738,
+      "lastUserCharacters": 1067,
+      "needle": [],
+      "process": {
+        "activeProcessorCount": 8,
+        "hostUptime": 3184.225458916667,
+        "interruptWakeups": 537,
+        "isLowPowerModeEnabled": false,
+        "peakResidentMemoryBytes": 4919328768,
+        "physicalFootprintBytes": 473699248,
+        "physicalMemoryBytes": 17179869184,
+        "platformIdleWakeups": 14,
+        "processorCount": 8,
+        "residentMemoryBytes": 2825322496,
+        "systemCPUSeconds": 1.774329,
+        "thermalState": "nominal",
+        "userCPUSeconds": 5.914116
+      },
+      "reply": "This takes a few steps on this Mac.\n\nI see you want a summary of your recent emails and tomorrow's events. Here is what I found for you.\n\nYour last emails are:\n* From: Jane Doe, Subject: Project Update, Date: Friday, October 2nd\n* From: Support Team, Subject: Account Question, Date: Thursday, Octobe",
+      "rounds": 4,
+      "seconds": 35.8,
+      "timing": [
+        {
+          "answerSeconds": 35.820600333,
+          "firstVerifiedResultSeconds": 5.701937542,
+          "turn": 0
+        }
+      ],
+      "tools": [
+        "search_email(maxResults=5)",
+        "get_agenda(date=2026-10-03)"
+      ],
+      "turns": 1,
+      "usagePasses": [
+        "agent.typed/planner llama Gemma 4 E4B prompt=1741 completion=62 reasoning=0 ttft=2193ms total=5676ms finish=stop proposed=search_email executed=search_email",
+        "agent.typed/planner llama Gemma 4 E4B prompt=1960 completion=246 reasoning=0 ttft=8306ms total=19401ms finish=stop proposed=- executed=-",
+        "agent.typed/planner llama Gemma 4 E4B prompt=2092 completion=45 reasoning=0 ttft=711ms total=2744ms finish=stop proposed=get_agenda executed=get_agenda",
+        "agent.typed/planner llama Gemma 4 E4B prompt=1967 completion=150 reasoning=0 ttft=971ms total=7849ms finish=stop proposed=- executed=-"
+      ],
+      "verdict": "UNGROUNDED"
+    }
+  },
+  "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/negative-contract-verification/app101-quick.md.jsonl": {
+    "sha256": "20a4eed47a7984fd0c1dcd1eabc6c988271b4e19bcec9dc62e298c99c9ee0f79",
+    "C04": {
+      "evidence": "09-22 00:58Z",
+      "expectedFix": "P1-02, P1-06",
+      "id": "C04",
+      "lastMaxTokens": 1024,
+      "lastRaw": "I see you want a summary of your recent emails and what's on your calendar for tomorrow.\n\nYour last emails mention a dinner tomorrow with Cyril, a deck for Friday from Ana Ruiz, and an updated pricing sheet from Marcus Lee.\n\nFor tomorrow, October 3rd, you have appointments with the Dentist from 8:00 to 8:45 AM, a Design sync at 3:00 PM to 3:45 PM, and dinner with Cyril at 7:00 PM.",
+      "lastSystemCharacters": 6738,
+      "lastUserCharacters": 1025,
+      "needle": [],
+      "process": {
+        "activeProcessorCount": 8,
+        "hostUptime": 1901.0867617083334,
+        "interruptWakeups": 415,
+        "isLowPowerModeEnabled": false,
+        "peakResidentMemoryBytes": 4087398400,
+        "physicalFootprintBytes": 475534256,
+        "physicalMemoryBytes": 17179869184,
+        "platformIdleWakeups": 2,
+        "processorCount": 8,
+        "residentMemoryBytes": 1264173056,
+        "systemCPUSeconds": 1.546955,
+        "thermalState": "fair",
+        "userCPUSeconds": 3.459706
+      },
+      "reply": "This takes a few steps on this Mac.\n\nI see you want a summary of your recent emails and what's on your calendar for tomorrow.\n\nYour last emails mention a dinner tomorrow with Cyril, a deck for Friday from Ana Ruiz, and an updated pricing sheet from Marcus Lee.\n\nFor tomorrow, October 3rd, you have ap",
+      "rounds": 3,
+      "seconds": 21.4,
+      "timing": [
+        {
+          "answerSeconds": 21.424184834,
+          "firstVerifiedResultSeconds": 5.157101,
+          "turn": 0
+        }
+      ],
+      "tools": [
+        "search_email(maxResults=5)",
+        "get_agenda(date=2026-10-03)"
+      ],
+      "turns": 1,
+      "usagePasses": [
+        "agent.typed/planner llama Gemma 4 E4B prompt=1741 completion=62 reasoning=0 ttft=2116ms total=5118ms finish=stop proposed=search_email executed=search_email",
+        "agent.typed/planner llama Gemma 4 E4B prompt=1960 completion=42 reasoning=0 ttft=8644ms total=10651ms finish=stop proposed=get_agenda executed=get_agenda",
+        "agent.typed/planner llama Gemma 4 E4B prompt=2022 completion=107 reasoning=0 ttft=447ms total=5564ms finish=stop proposed=- executed=-"
+      ],
+      "verdict": "PASS"
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "inputs": [
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/build103-source-manifest.json",
+      "sha256": "e8cd981395ef8609da44835f8dba002badb442881a806aaedcfc53743377f3cb"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/build105-source-manifest.json",
+      "sha256": "6d0b9e2bd0e2193a5b15fbd4cee02f99c119c78e5c42c43a2cc15bcfd401135b"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/build106-source-manifest.json",
+      "sha256": "c46bedcb3d9debb1b0e6fc47cbff46d0487356c194616a812fe13aa2d7f15896"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/app103-quick.md",
+      "sha256": "5c39bcfa4e80d0c7db77e050087c26b4048014f548b120f161d1ecb61a0a093f"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/app103-quick.md.jsonl",
+      "sha256": "3c9982a094875aed3f1eeb3c244fc7ba914ca141139deeb557cb41755a46f016"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/app103-model-gates.json",
+      "sha256": "e3e95d9d5e77a3ef0320285fc5549afd92e1cdcadd11efb4f48a4c1d3bac8b48"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/run-model-gates.py",
+      "sha256": "1a3e904c7070e0c99bb1c3f6acfae6509e5684cf090d4ee6602882cc3a291dcf"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/app106-quick.md",
+      "sha256": "71e322abf61cc7b8af5f8c9dddf2cc590be1791da305cf85aa7b4e33df8638db"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/app106-quick.md.jsonl",
+      "sha256": "6e048a1ba02036074aae9717f11ec176d558808aec660266d80e90fb4047b1b7"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/app106-model-gates.json",
+      "sha256": "4db15f365026029697a88e81272237b74a2bf3225e45e2f70ff5a4a0975f3d17"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/run-model-gates.py",
+      "sha256": "5e88243fa933f421b162067c9cc06c237b68b686cb84e14443185cea2ed0a3d9"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/app103-bundle-before.json",
+      "sha256": "fcb9935ab0522689bf621063d1cb290cca08c339b8d00dea49daa3188e708c0a"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/voice-playback-projection-prerequisite/resume/positive-owner-verification/app103-bundle-after.json",
+      "sha256": "fcb9935ab0522689bf621063d1cb290cca08c339b8d00dea49daa3188e708c0a"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/app106-bundle-before.json",
+      "sha256": "0118ccd98a424aab311eb2dda1383ee4e3f7fbcb9b0cb9d7af55ede53481a842"
+    },
+    {
+      "path": "Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/app106-bundle-after.json",
+      "sha256": "0118ccd98a424aab311eb2dda1383ee4e3f7fbcb9b0cb9d7af55ede53481a842"
+    }
+  ],
+  "limits": "Hashes bind recorded repository test evidence only; no owner-store/model-weight content read.",
+  "producerSourceDelta": {
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": {
+      "original105": "5a34de66f460346f291e1a6b39fb25a883ecfb59006c062cefcb24813164b130",
+      "fixed106": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4"
+    }
+  }
+}

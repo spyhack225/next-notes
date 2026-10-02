@@ -1,0 +1,486 @@
+{
+  "kind": "Independent recorded quick103-to106 acceptance audit",
+  "scope": "Read-only source/repository artifacts; additive report only. No Source/native/model/index/rerun or owner-store reads.",
+  "verdict": "Aggregate quick remains OPEN; bounded structural mail-admission regression proven separately. Native latest C04/A02 PASS does not establish historical103 causal attribution.",
+  "runs": {
+    "previous103": {
+      "score": "2/10",
+      "elapsedSeconds": 87.5,
+      "bar": "9/10",
+      "result": {
+        "name": "quick",
+        "exit": 1,
+        "marker": "TOOLLOOP_LIVE_FAILED: 2/10 (quick) on Gemma 4 E4B — below the pass bar 9",
+        "score": [
+          "TOOLLOOP_LIVE_SCORE 2/10 (quick)",
+          "TOOLLOOP_LIVE_SCORE 2/10 (quick)"
+        ],
+        "sourceDrift": [],
+        "sameBundle": true,
+        "verdict": "OPEN"
+      }
+    },
+    "current106": {
+      "score": "4/10",
+      "elapsedSeconds": 84.7,
+      "bar": "9/10",
+      "result": {
+        "name": "quick",
+        "exit": 1,
+        "marker": "TOOLLOOP_LIVE_FAILED: 4/10 (quick) on Gemma 4 E4B — below the pass bar 9",
+        "score": [
+          "TOOLLOOP_LIVE_SCORE 4/10 (quick)",
+          "TOOLLOOP_LIVE_SCORE 4/10 (quick)"
+        ],
+        "sourceDrift": [],
+        "sameBundle": true,
+        "verdict": "OPEN"
+      }
+    }
+  },
+  "cases": {
+    "C01": {
+      "previous103": {
+        "verdict": "PASS",
+        "seconds": 10.9,
+        "rounds": 2,
+        "tools": [
+          "get_agenda(date=2026-10-02)"
+        ]
+      },
+      "current106": {
+        "verdict": "PASS",
+        "seconds": 10.5,
+        "rounds": 2,
+        "tools": [
+          "get_agenda(date=2026-10-02)"
+        ]
+      },
+      "changed": false
+    },
+    "C04": {
+      "previous103": {
+        "verdict": "UNGROUNDED",
+        "seconds": 35.8,
+        "rounds": 4,
+        "tools": [
+          "search_email(maxResults=5)",
+          "get_agenda(date=2026-10-03)"
+        ]
+      },
+      "current106": {
+        "verdict": "PASS",
+        "seconds": 27.5,
+        "rounds": 3,
+        "tools": [
+          "search_email(maxResults=5)",
+          "get_agenda(date=2026-10-03)"
+        ]
+      },
+      "changed": true
+    },
+    "M03": {
+      "previous103": {
+        "verdict": "REFUSAL",
+        "seconds": 3.2,
+        "rounds": 1,
+        "tools": []
+      },
+      "current106": {
+        "verdict": "REFUSAL",
+        "seconds": 3.6,
+        "rounds": 1,
+        "tools": []
+      },
+      "changed": false
+    },
+    "M04": {
+      "previous103": {
+        "verdict": "MISSED_TOOL",
+        "seconds": 3.7,
+        "rounds": 1,
+        "tools": []
+      },
+      "current106": {
+        "verdict": "MISSED_TOOL",
+        "seconds": 3.8,
+        "rounds": 1,
+        "tools": []
+      },
+      "changed": false
+    },
+    "M05": {
+      "previous103": {
+        "verdict": "UNGROUNDED",
+        "seconds": 13.4,
+        "rounds": 4,
+        "tools": [
+          "search_email(maxResults=3)"
+        ]
+      },
+      "current106": {
+        "verdict": "UNGROUNDED",
+        "seconds": 9.2,
+        "rounds": 3,
+        "tools": [
+          "search_email"
+        ]
+      },
+      "changed": false
+    },
+    "K01": {
+      "previous103": {
+        "verdict": "REFUSAL",
+        "seconds": 2.8,
+        "rounds": 1,
+        "tools": []
+      },
+      "current106": {
+        "verdict": "REFUSAL",
+        "seconds": 2.7,
+        "rounds": 1,
+        "tools": []
+      },
+      "changed": false
+    },
+    "R02": {
+      "previous103": {
+        "verdict": "MISSED_TOOL",
+        "seconds": 4.8,
+        "rounds": 2,
+        "tools": []
+      },
+      "current106": {
+        "verdict": "MISSED_TOOL",
+        "seconds": 4.6,
+        "rounds": 2,
+        "tools": []
+      },
+      "changed": false
+    },
+    "F03": {
+      "previous103": {
+        "verdict": "MISSED_TOOL",
+        "seconds": 3.5,
+        "rounds": 1,
+        "tools": []
+      },
+      "current106": {
+        "verdict": "MISSED_TOOL",
+        "seconds": 3.4,
+        "rounds": 1,
+        "tools": []
+      },
+      "changed": false
+    },
+    "A02": {
+      "previous103": {
+        "verdict": "UNGROUNDED",
+        "seconds": 6.8,
+        "rounds": 2,
+        "tools": [
+          "browser.navigate(url=https://www.youtube.com)"
+        ]
+      },
+      "current106": {
+        "verdict": "PASS",
+        "seconds": 16.8,
+        "rounds": 5,
+        "tools": [
+          "browser.navigate(url=https://www.youtube.com)",
+          "browser.snapshot",
+          "browser.click(expectedText=Cortech — newest upload (2 days ago))",
+          "browser.click(expectedText=Cortech — newest upload (2 days ago),id=2)"
+        ]
+      },
+      "changed": true
+    },
+    "N04": {
+      "previous103": {
+        "verdict": "PASS",
+        "seconds": 2.1,
+        "rounds": 1,
+        "tools": []
+      },
+      "current106": {
+        "verdict": "PASS",
+        "seconds": 2.4,
+        "rounds": 1,
+        "tools": []
+      },
+      "changed": false
+    }
+  },
+  "remainingFailures": {
+    "REFUSAL": [
+      "M03",
+      "K01"
+    ],
+    "MISSED_TOOL": [
+      "M04",
+      "R02",
+      "F03"
+    ],
+    "UNGROUNDED": [
+      "M05"
+    ]
+  },
+  "controls": {
+    "reportedProvider": {
+      "modelRoleID": "appLLM",
+      "label": "Gemma 4 E4B",
+      "contextTokens": 32768,
+      "role": "cloud",
+      "fallback": true,
+      "needleFirst": false,
+      "samePublicMetadata": true,
+      "limits": "Public metadata/source pins do not prove runtime weights, sampling, caches, full prompt bytes or identical machine state."
+    },
+    "quickArguments": [
+      "--selftest-toolloop-live",
+      "--quick",
+      "--report <per-build report>",
+      "--selftest-timeout",
+      "3350"
+    ],
+    "outerTimeoutSeconds": 3450,
+    "runnerDifference": "Report/root-depth/build paths differ as expected; old103 runner additionally runs tool-awareness, current106 runner quick-only. Both verify full source/bundle before and after quick; no retry or grader override.",
+    "compiledSourceCounts": {
+      "app103": 1047,
+      "app105": 1048,
+      "app106": 1048
+    },
+    "compiledSource103To106": [
+      {
+        "path": "Sources/NextNotes/Agent/AgentToolLoop.swift",
+        "previous": "cd7f1767866b385507f1c75227a38cd75579562af24f63d1d7c5e8bbbae7d7d6",
+        "current": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+        "previous": "1c0cf45391ef495a05f1aa28315f6cce7d7c973408fcfc99471c750dd1503103",
+        "current": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/RealtimeAgent.swift",
+        "previous": "b0e88e04ccf8d680e61bdf43604fab24999a1bb4c559c73c04d31d3029aac470",
+        "current": "6f4b5c8b54adf8fdedffbdf61317d76f4b9e907a3e68568b35e08aa7d627e424"
+      },
+      {
+        "path": "Sources/NextNotes/NextNotesApp.swift",
+        "previous": "efc05bd59dd290a5ce26a06249099fd10c342c1352d7dce4902e1fba16ea2a01",
+        "current": "6670649bb378b35df5260f0d63b310c64a82860734e9d4bfa98469bb57a4edb0"
+      },
+      {
+        "path": "Sources/NextNotes/Agent/C04ResultContextSelfTest.swift",
+        "previous": null,
+        "current": "832363a87bd4f01f396a3042fbe61f9cb08f7ded1d98398925939f693f6593c2"
+      }
+    ],
+    "compiledSource105To106": {
+      "Sources/NextNotes/Agent/AgentToolLoop.swift": {
+        "original105": "5a34de66f460346f291e1a6b39fb25a883ecfb59006c062cefcb24813164b130",
+        "fixed106": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4"
+      }
+    },
+    "unchangedControlPins": [
+      {
+        "path": "Sources/NextNotes/Agent/Planner/AgentPlannerBackend.swift",
+        "hash103": "a2064304b79b8de289f731bb7615226444903bc6579affce32eecb29be5ae4c8",
+        "hash105": "a2064304b79b8de289f731bb7615226444903bc6579affce32eecb29be5ae4c8",
+        "hash106": "a2064304b79b8de289f731bb7615226444903bc6579affce32eecb29be5ae4c8",
+        "allPresent": true,
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift",
+        "hash103": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+        "hash105": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+        "hash106": "22251d95f178bcd5c359fad56f7f991751d742bd6e9a7c98a5d635f21984d538",
+        "allPresent": true,
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift",
+        "hash103": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+        "hash105": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+        "hash106": "c96b507e5577117c00c29656ac056c5595750b251f765e334a1809a8d4ed8f7a",
+        "allPresent": true,
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift",
+        "hash103": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+        "hash105": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+        "hash106": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+        "allPresent": true,
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift",
+        "hash103": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb",
+        "hash105": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb",
+        "hash106": "fe99b9e29434cc765f87a8425e0dba9493551fb8fcfa367feb140c405e6530bb",
+        "allPresent": true,
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Agent/AgentAnswerBudget.swift",
+        "hash103": "223af3c6df4109c4ab97c439191f502ae7d2b80bcc754807014b290f1df354bf",
+        "hash105": "223af3c6df4109c4ab97c439191f502ae7d2b80bcc754807014b290f1df354bf",
+        "hash106": "223af3c6df4109c4ab97c439191f502ae7d2b80bcc754807014b290f1df354bf",
+        "allPresent": true,
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+        "hash103": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+        "hash105": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+        "hash106": "c357b8bc43b2c46a1b08ea64f89068be2bd6b1f3379297d8864d7463728fa9c7",
+        "allPresent": true,
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Formatting/LLM/NotesModels.swift",
+        "hash103": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+        "hash105": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+        "hash106": "b3fc49cfe8886189d25c3f24c86235288d86bfec66e5095b1005db94819a17cc",
+        "allPresent": true,
+        "same": true
+      },
+      {
+        "path": "Sources/NextNotes/Formatting/LLM/LlamaLLMProvider.swift",
+        "hash103": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+        "hash105": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+        "hash106": "cc5dd316734875abfec74fbd842ab88dced96d8f1efc8defe28ef17bb5b9366a",
+        "allPresent": true,
+        "same": true
+      }
+    ]
+  },
+  "C04": {
+    "oldFirstDifferentRecordedDecision": {
+      "round": 2,
+      "promptTokens": 1960,
+      "completionTokens": 246,
+      "proposed": "-",
+      "executed": "-"
+    },
+    "currentFirstDifferentRecordedDecision": {
+      "round": 2,
+      "promptTokens": 1960,
+      "completionTokens": 198,
+      "proposed": "get_agenda",
+      "executed": "get_agenda"
+    },
+    "currentUsage": [
+      "agent.typed/planner llama Gemma 4 E4B prompt=1741 completion=62 reasoning=0 ttft=2118ms total=4987ms finish=stop proposed=search_email executed=search_email",
+      "agent.typed/planner llama Gemma 4 E4B prompt=1960 completion=198 reasoning=0 ttft=8703ms total=18070ms finish=stop proposed=get_agenda executed=get_agenda",
+      "agent.typed/planner llama Gemma 4 E4B prompt=2022 completion=80 reasoning=0 ttft=462ms total=4339ms finish=stop proposed=- executed=-"
+    ],
+    "oldUsage": [
+      "agent.typed/planner llama Gemma 4 E4B prompt=1741 completion=62 reasoning=0 ttft=2193ms total=5676ms finish=stop proposed=search_email executed=search_email",
+      "agent.typed/planner llama Gemma 4 E4B prompt=1960 completion=246 reasoning=0 ttft=8306ms total=19401ms finish=stop proposed=- executed=-",
+      "agent.typed/planner llama Gemma 4 E4B prompt=2092 completion=45 reasoning=0 ttft=711ms total=2744ms finish=stop proposed=get_agenda executed=get_agenda",
+      "agent.typed/planner llama Gemma 4 E4B prompt=1967 completion=150 reasoning=0 ttft=971ms total=7849ms finish=stop proposed=- executed=-"
+    ],
+    "currentFinalMetadata": {
+      "systemCharacters": 6738,
+      "userCharacters": 1025,
+      "maxTokens": 1024,
+      "rounds": 3
+    },
+    "oldFinalMetadata": {
+      "systemCharacters": 6738,
+      "userCharacters": 1067,
+      "maxTokens": 1024,
+      "rounds": 4
+    },
+    "grounding": "Current final raw fixture-only prefix contains actual mail pricing/deck information and Dentist/Design sync calendar items; unchanged grader operates on full replies before reportRows truncates reply to300 and raw to400.",
+    "route": "Recorded three planner usage passes: mail, agenda, no-call final. Same catalogue-bearing system character count and ordinary max1024 are consistent with ordinary final no-call path. No recorded extra answer-only pass; raw per-round prompts/internal corrections are not instrumented by this report.",
+    "limits": [
+      "Historical103 intermediate round2 raw response is absent; cannot identify whether it added refusal/unsupported-claim note.",
+      "Latest106 mail→agenda→final has two tools and no recorded intervening no-call correction; it does not demonstrate the three-entry mail+guard-note+agenda repaired branch.",
+      "First recorded model decision difference is observed, not its causal explanation."
+    ]
+  },
+  "A02": {
+    "oldTools": [
+      "browser.navigate(url=https://www.youtube.com)"
+    ],
+    "currentTools": [
+      "browser.navigate(url=https://www.youtube.com)",
+      "browser.snapshot",
+      "browser.click(expectedText=Cortech — newest upload (2 days ago))",
+      "browser.click(expectedText=Cortech — newest upload (2 days ago),id=2)"
+    ],
+    "currentUsage": [
+      "agent.typed/planner llama Gemma 4 E4B prompt=1424 completion=58 reasoning=0 ttft=1297ms total=3872ms finish=stop proposed=browser.navigate executed=browser.navigate",
+      "agent.typed/planner llama Gemma 4 E4B prompt=1466 completion=45 reasoning=0 ttft=299ms total=2399ms finish=stop proposed=browser.snapshot executed=browser.snapshot",
+      "agent.typed/planner llama Gemma 4 E4B prompt=1504 completion=96 reasoning=0 ttft=317ms total=4884ms finish=stop proposed=browser.click executed=browser.click",
+      "agent.typed/planner llama Gemma 4 E4B prompt=1513 completion=75 reasoning=0 ttft=308ms total=3988ms finish=stop proposed=browser.click executed=browser.click",
+      "agent.typed/planner llama Gemma 4 E4B prompt=1522 completion=24 reasoning=0 ttft=337ms total=1597ms finish=stop proposed=- executed=-"
+    ],
+    "meaning": "Owned fixture records navigation, snapshot, and two Cortech expectedText clicks satisfying unchanged browserFollowThrough. This is not a live YouTube/video/acoustic or UI acceptance claim."
+  },
+  "separateProducerProof": {
+    "original105": "C04_RESULT_CONTEXT_FAILED 4/84",
+    "fixed106": "C04_RESULT_CONTEXT_OK 84",
+    "producerDelta": "Only AgentToolLoop.userMessage conditional selection differs between105/106. Common ordinary fitter passes foldOlderResults:false before both. Fixed defers old-result folding until real fitter counts and applies pressure steps.",
+    "scope": "Actual isolated scripted typed planner with safe fixture memory seam, immutable inputs and real guard-note paths; preserves pressure folding/capping, default generic/finalAnswerRound eager folding, budgets, permissions and no new pass.",
+    "limits": "Structural original failure is established independently of historical native103 output. Scripted regression is not model-quality or latency evidence; invalid initial104 owner-label comparison is retained separately."
+  },
+  "timing": {
+    "current": {
+      "firstVerifiedFixtureResult": {
+        "n": 4,
+        "p50": 3.885,
+        "p95": 8.175
+      },
+      "completedReply": {
+        "n": 11,
+        "p50": 3.785,
+        "p95": 27.472
+      },
+      "wholeCase": {
+        "n": 10,
+        "p50": 3.785,
+        "p95": 27.472
+      },
+      "peakRSS": 4400627712
+    },
+    "previous": {
+      "firstVerifiedFixtureResult": {
+        "n": 4,
+        "p50": 5.702,
+        "p95": 9.925
+      },
+      "completedReply": {
+        "n": 11,
+        "p50": 3.737,
+        "p95": 35.821
+      },
+      "wholeCase": {
+        "n": 10,
+        "p50": 3.737,
+        "p95": 35.821
+      },
+      "peakRSS": 4919328768
+    },
+    "limits": "Fixture timing excludes one-time base-model warm-up; not first-token/audio latency. C04 is shorter while A02 is longer. No causal performance/default promotion."
+  },
+  "otherGates": {
+    "voiceGrounding": "Actual106 VOICE_GROUNDING_FAILED retained OPEN; separate unchanged direct speaking path review exists.",
+    "taskWorker": "Actual106 TASK_WORKER_ATTEMPT_OK:1352 and store-isolation21files/32defaults verified in focused checks.",
+    "core": "Parent serial core job active at audit request; not assessed or treated as PASS here."
+  },
+  "notEstablished": [
+    "9/10 quick acceptance",
+    "Exact historical103 C04 causal repair",
+    "Model/default promotion",
+    "Latency or model-readiness promotion",
+    "Live browser/video/UI/owner acceptance",
+    "Underlying runtime cause of native decision difference",
+    "Voice grounding resolution"
+  ]
+}

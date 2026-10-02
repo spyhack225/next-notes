@@ -1,0 +1,10 @@
+{
+  "Sources/NextNotes/Agent/RealtimeAgent.swift": {
+    "actual104MountedBeforeIsolationSHA256": "b0e88e04ccf8d680e61bdf43604fab24999a1bb4c559c73c04d31d3029aac470",
+    "commonSHA256": "6f4b5c8b54adf8fdedffbdf61317d76f4b9e907a3e68568b35e08aa7d627e424"
+  },
+  "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": {
+    "actual104MountedBeforeIsolationSHA256": "8c29b6d86919a6c25b95b46a0948e645c20b8a9cb625ae75d2ac925df42e3f8b",
+    "commonSHA256": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471"
+  }
+}
