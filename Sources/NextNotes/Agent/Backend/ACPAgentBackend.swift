@@ -370,6 +370,12 @@ struct ACPAgentBackend: AgentBackend {
         approvePermissions: Bool,
         actionID: UUID? = nil
     ) async throws -> AgentTaskOutcome {
+        // Readability callbacks do not inherit this task-local scope. Carry the
+        // exact normal typed attempt to the Session's nested permission boundary.
+        let boundAttempt = task.scheduleID == nil && ["user", "text", "selftest"].contains(task.source)
+            && task.backend == AgentBackendKind.acp.rawValue && (task.durability?.attempt ?? 0) > 0
+            && task.compatibilityCLI == nil && task.compatibilityCommand == nil
+        let taskContext = boundAttempt ? TaskEventJournal.current : nil
         let session = ACPSession()
         let token = await session.subscribe { event in
             Task { @MainActor in
@@ -400,7 +406,8 @@ struct ACPAgentBackend: AgentBackend {
                 arguments: arguments,
                 directory: directory,
                 taskID: task.id,
-                approvePermissions: approvePermissions
+                approvePermissions: approvePermissions,
+                taskContext: taskContext
             )
             try Task.checkCancellation()
             let reply = try await withTaskCancellationHandler(operation: {

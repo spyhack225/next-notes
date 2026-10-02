@@ -1,0 +1,37 @@
+{
+  "status": "off-source, uncompiled, unexecuted",
+  "tentativeTask": "P6-06m",
+  "normalCount": 55,
+  "staticReview": {
+    "peerPythonAST": "valid (not executed)",
+    "embeddedPeerBytes": "exact equality",
+    "predicateLabels": "22 common,4 accepted,6 held,1 owner"
+  },
+  "files": [
+    {
+      "path": "TaskACPNestedAttemptSelfTest.swift.txt",
+      "sha256": "f9d64dae23d85779e97c7f8e7bfd54ebd081cbb792c2b47e1abe9042b92a3ee5",
+      "bytes": 30099
+    },
+    {
+      "path": "owned-nested-peer.py.txt",
+      "sha256": "04a79331a2ef40c768cca3b3baeb6de62a16892cf4220c43969538d893b79998",
+      "bytes": 6050
+    },
+    {
+      "path": "registration.json",
+      "sha256": "c3afaf053dc87f6a3e2b9212077da22ec97d6d3cacd193b1399218bee90af955",
+      "bytes": 1135
+    },
+    {
+      "path": "registration-hunk.txt",
+      "sha256": "a7b8f4389639315492ecae7cf1d2c593906d821ac0a65fd45e3dd81bafa12ca2",
+      "bytes": 91
+    },
+    {
+      "path": "preparation-source-pins.json",
+      "sha256": "a41881dc90d3ce136789ea4b7c3497f2a9b263dfbbad5d83ff43d5b76b8848fd",
+      "bytes": 1435
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "baselinePins": {
+    "Sources/NextNotes/Agent/Backend/ACPSession.swift": "6987fda392a40547e5dd2dceb5b3a5cf40d2a1230e2c086a529cc36eee0e5e2a",
+    "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift": "eb2644d35139d6ad1ebeb1f79ddca0a40c9547e7c494465599a158aefc5a3baf"
+  },
+  "originalScaffold": "Unused nil-default Session.start parameter; caller captures exact normal typed task context in original/fixed",
+  "commonBackendSHA256": "848d14dcfbf8b94f2cde584a481c19e833d0b7aa28a9b3d9ec34f4ee3c2de6c1",
+  "gateJournalAdmission": "OPEN; not propagated as TaskLocal to Gate",
+  "postAwaitClientAuthority": "OPEN"
+}

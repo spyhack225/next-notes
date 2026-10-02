@@ -1,0 +1,7 @@
+{
+  "fixtureSHA256": "9a479b76bc4e860e48323a194b3b57dbafa5cd1415f92e54bffb045943fcc111",
+  "onlyChangedSource": "Sources/NextNotes/Agent/Backend/ACPSession.swift",
+  "sourceManifestCount": 1030,
+  "gateAdmission": "OPEN",
+  "sameOriginalFixedFixture": true
+}

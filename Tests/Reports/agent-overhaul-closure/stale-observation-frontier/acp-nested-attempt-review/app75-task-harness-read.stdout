@@ -1,0 +1,2 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-harness-read --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-acp-origin-75-kbw2imt9/task-harness-read.log
+TASK_HARNESS_READ_OK: 40 cases

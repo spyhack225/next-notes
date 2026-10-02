@@ -1,0 +1,40 @@
+{
+  "kind": "read-only preparation pins, not executed build manifest",
+  "sources": [
+    {
+      "path": "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift",
+      "sha256": "848d14dcfbf8b94f2cde584a481c19e833d0b7aa28a9b3d9ec34f4ee3c2de6c1",
+      "bytes": 32256
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/ACPSession.swift",
+      "sha256": "231b996a64967e6f018a92ca6611e7f53d796d30efc1acd48a33fb8f36393436",
+      "bytes": 9935
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift",
+      "sha256": "8a7f33f6be9e76c782304b02291a72d421bdc0dcd50a536c42ebf7510daaa670",
+      "bytes": 13144
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "sha256": "28308b60a263b06f65a5fb1ee1ad6a6fa61cd59f3e6ab34af29955e6229c4871",
+      "bytes": 58138
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+      "sha256": "de8cd7aa59f93f03fb0662665efb2f070f54cbff3929dabca78e111f9555d0a1",
+      "bytes": 41369
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift",
+      "sha256": "fda5c495b865ed1017c7ab1fea9911f61e318490b7ae7bc766f41729cf54ec50",
+      "bytes": 6718
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/PermissionGate.swift",
+      "sha256": "b8dba3c78bbb697d9fab2ccc3f8334f7e765e1f7fdc5116c3a4969b740c31cf6",
+      "bytes": 14969
+    }
+  ]
+}

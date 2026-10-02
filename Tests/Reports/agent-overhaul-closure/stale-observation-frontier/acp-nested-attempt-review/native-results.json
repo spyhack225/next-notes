@@ -1,0 +1,25 @@
+{
+  "invalid73Failures": 3,
+  "authoritativeOriginal74Failures": 1,
+  "fixed75WorkerChecks": 849,
+  "newFixtureChecks": 55,
+  "allFocusedFlags": 20,
+  "sourceManifestCount": 1030,
+  "installedSHA256": "ea3fe476ba3c24990933884ee59f5725ed09d0a9232b8e881de69146bc1305b4",
+  "originalTraces": [
+    "TASK_ACP_NESTED_ENTRY_TRACE: mode=accepted entryValid=true receiptOwner=true memoryStart=1790951691.138408 diskStart=1790951691.0 canonicalStart=1790951691.0",
+    "TASK_ACP_NESTED_ATTEMPT_TRACE: mode=accepted wireOutcome=selected wireOption=fixture-allow-once primary=completed originalMemory=completed heldStarts=0 starts=1 ended=1 joined=1 receiptStage=couldNotVerify",
+    "TASK_ACP_NESTED_ENTRY_TRACE: mode=fresh-primary-held entryValid=true receiptOwner=true memoryStart=1790951691.213192 diskStart=1790951691.0 canonicalStart=1790951691.0",
+    "TASK_ACP_NESTED_ATTEMPT_TRACE: mode=fresh-primary-held wireOutcome=selected wireOption=fixture-allow-once primary=recovering originalMemory=running heldStarts=0 starts=1 ended=1 joined=1 receiptStage=couldNotVerify"
+  ],
+  "fixedTraces": [
+    "TASK_ACP_NESTED_ENTRY_TRACE: mode=accepted entryValid=true receiptOwner=true memoryStart=1790951831.580956 diskStart=1790951831.0 canonicalStart=1790951831.0",
+    "TASK_ACP_NESTED_ATTEMPT_TRACE: mode=accepted wireOutcome=selected wireOption=fixture-allow-once primary=completed originalMemory=completed heldStarts=0 starts=1 ended=1 joined=1 receiptStage=couldNotVerify",
+    "TASK_ACP_NESTED_ENTRY_TRACE: mode=fresh-primary-held entryValid=true receiptOwner=true memoryStart=1790951831.652781 diskStart=1790951831.0 canonicalStart=1790951831.0",
+    "TASK_ACP_NESTED_ATTEMPT_TRACE: mode=fresh-primary-held wireOutcome=selected wireOption=fixture-reject-once primary=recovering originalMemory=running heldStarts=0 starts=1 ended=1 joined=1 receiptStage=couldNotVerify"
+  ],
+  "onlyChangedOriginalFixedSource": "Sources/NextNotes/Agent/Backend/ACPSession.swift",
+  "sameFixtureAndPeer": true,
+  "bundleInvariant": true,
+  "cleanCheckoutProof": false
+}

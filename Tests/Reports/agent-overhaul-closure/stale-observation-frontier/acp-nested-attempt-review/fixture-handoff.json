@@ -1,0 +1,40 @@
+{
+  "status": "fixture/peer frozen, root native verdict pending",
+  "task": "tentative P6-06m bounded normal typed ACP nested entry authority",
+  "fixture": "TaskACPNestedAttemptSelfTest.swift.txt",
+  "peer": "owned-nested-peer.py.txt",
+  "normalPredictedCount": 55,
+  "nativeVerdict": null,
+  "compiledByWorker": false,
+  "sourceChangesByWorker": false,
+  "ownerPayloadDecodedOrSeededByWorker": false,
+  "onlyWorkerWrites": "New report fixture/peer/registration/pins/README/handoff artifacts",
+  "rootOwns": [
+    "Original73 unused Session.start context + identical Backend captured argument",
+    "Fixed74 only Session preflight consumption",
+    "Native original red/fixed green/all20 focused flags/owner guards",
+    "Actual backend/owned-peer cleanup and frozen source/binary/bundle evidence",
+    "Roadmap/index/staging/commit"
+  ],
+  "open": [
+    "Gate journal Bool/decision admission",
+    "standing grants",
+    "post-Gate/client/close epochs",
+    "complete in-flight coverage",
+    "process/session liveness",
+    "remote/voice/scheduled authority",
+    "effect reconciliation",
+    "crash/recovery/retry",
+    "IM-16",
+    "parent Phase6 and fixed aggregate gates"
+  ],
+  "sha256": {
+    "TaskACPNestedAttemptSelfTest.swift.txt": "f9d64dae23d85779e97c7f8e7bfd54ebd081cbb792c2b47e1abe9042b92a3ee5",
+    "owned-nested-peer.py.txt": "04a79331a2ef40c768cca3b3baeb6de62a16892cf4220c43969538d893b79998",
+    "fixture-preparation.json": "10c23a53594e215a00848f6bc092aba60f48cf7290f3b2de55fe56656dfeb164",
+    "registration.json": "c3afaf053dc87f6a3e2b9212077da22ec97d6d3cacd193b1399218bee90af955",
+    "registration-hunk.txt": "a7b8f4389639315492ecae7cf1d2c593906d821ac0a65fd45e3dd81bafa12ca2",
+    "preparation-source-pins.json": "a41881dc90d3ce136789ea4b7c3497f2a9b263dfbbad5d83ff43d5b76b8848fd",
+    "README.md": "b180b9da38c939e2e8b2cb0681d160741c035cc87a8707e687db1ae0ade108a7"
+  }
+}

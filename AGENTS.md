@@ -529,6 +529,20 @@ source/binary evidence are in the [provenance report](Tests/Reports/agent-overha
 These facts do not prove current/full receipt history, tool cessation, health,
 stale detection, recovery/retry or IM-16 authority; parent P6-05 remains open.
 
+Installed app75 verifies bounded P6-06m nested ACP permission entry admission.
+Original74 returns offered allow after a fresh isolated manager commits recovery
+hold while the original handle stays alive; unchanged fixed fixture rejects that
+wire result and preserves accepted controls. Normal typed ACP now captures its exact
+TaskJournalContext into the existing Session, whose permission entry checks actual
+live-handle/current-primary authority before relay or fast allow. The normal policy
+hop is reused; one fail-fast primary probe is added at this permission boundary.
+The auto-allow harness branch now uses that admission hop. No new store/queue/timer,
+model pass or retry. See [actual proof](Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-nested-attempt-review/verification.md).
+The initial73 fixture's timestamp-control defect is archived; both authoritative
+runs use the same corrected store-codec comparison. Gate journal admission,
+post-Gate/client epochs, edited payloads, broader authority/recovery/retry and IM-16
+remain open; this does not promote Phase6 or model/latency gates.
+
 ACP now checks the exact established session ID before accumulating reply text,
 publishing activity or relaying a permission (installed app53). Actual original52
 fails20 of68 origin checks; the unchanged fixture passes68 in fixed53 and five

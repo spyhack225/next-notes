@@ -1,0 +1,8 @@
+{
+  "build73": "Actual held wire allow observed, but full55 controls INVALID due to both C03 direct memory-vs-canonical-store timestamp equality failures",
+  "actualFailures": 3,
+  "defectiveFixtureSHA256": "f9d64dae23d85779e97c7f8e7bfd54ebd081cbb792c2b47e1abe9042b92a3ee5",
+  "correctedFixtureSHA256": "9a479b76bc4e860e48323a194b3b57dbafa5cd1415f92e54bffb045943fcc111",
+  "correction": "Exact memory identity plus existing store ISO8601 roundtrip and scalar trace, before BOTH original74/fixed75; no tolerance/replacement clock/input weakening",
+  "sameOtherInputsAndPeer": true
+}
