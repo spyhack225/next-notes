@@ -1,0 +1,9 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-durability --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/authoritative-observation/app43-related/task-durability.log
+TASK_DURABILITY_OK: 37 cases
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_DURABILITY_CONTENTION: cold=false elapsed=0.000954666 seconds
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_DURABILITY_CONTENTION: cold=true elapsed=0.000753667 seconds
+TASK_PERSISTENCE_DIAGNOSTIC: Task history was saved, but its additional local copy could not be updated.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.

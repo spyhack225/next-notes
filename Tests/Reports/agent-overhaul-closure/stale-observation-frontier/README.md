@@ -65,3 +65,22 @@ Only a complete, measured observational contract can support P6-05 stale logging
 ## Implemented bounded handoff
 
 P6-05c final installed app38 passes399 with the unchanged original feature regression; original37 nil snapshot/unbound producer failed7, prior362 green. All14 related flags pass. See [worker-binding report](../worker-binding/README.md). The audit source identities remain the historical reviewed snapshots; fresh current call sites and four observation gaps must be rechecked before the next collector step.
+
+
+## Current bounded frontier after primary observation
+
+P6-06e receipt-source admission is committed904af46: original40 RED5 → actual app41
+worker430/all14. Sequential changed receipt bytes are retained rather than overwritten;
+concurrent CAS and complete receipt-quality coverage remain open.
+
+P6-05d installed app43 passes491/all14 with byte-identical61-case extension; original42
+nil getter reproduces15 missing-feature assertions. The existing read now retains its
+last decoded primary metadata in the same bound worker; actual diagnostic consumes it.
+Same state/attempt/owner predicate and generation/file checks, no extra SQL/query/save/
+await/timer or task-state change. The historical source-review hashes/table above remain
+the pre-P6-05c snapshot, not live identities. See [the exact report](../authoritative-observation/README.md).
+
+A last cache is not current primary authority, live backing/session/process health or
+receipt/journal completeness. Task metadata observation is bounded complete; an actual
+fail-closed journal/receipt-quality read and real process/session invocation observations
+remain prerequisites to parent stale logging/recovery/retry. No planner promotion follows.

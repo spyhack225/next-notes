@@ -15,6 +15,7 @@ final class AgentTaskManager {
     private struct RunningWorker {
         let handle: Task<Void, Never>
         var binding: TaskWorkerBinding? = nil
+        var primaryObservation: TaskWorkerPrimaryObservation? = nil
     }
     @ObservationIgnored private var running: [String: RunningWorker] = [:]
     /// A one-shot approval is intentionally not persisted as a standing grant. Keep the
@@ -61,6 +62,18 @@ final class AgentTaskManager {
               current.durability?.leaseOwner == binding.leaseOwner,
               current.durability?.attemptStartedAt == binding.startedAt else { return nil }
         return binding
+    }
+
+    /// Last primary check attached to this exact live handle; performs no read.
+    /// Unknown/mismatch metadata grants no health, effect or retry authority.
+    func workerPrimaryObservation(taskID: String) -> TaskWorkerPrimaryObservation? {
+        guard let binding = workerBinding(taskID: taskID),
+              let observed = running[taskID]?.primaryObservation,
+              observed.expected.taskID == binding.taskID,
+              observed.expected.attempt == binding.attempt,
+              observed.expected.leaseOwner == binding.leaseOwner,
+              observed.expected.status == .running else { return nil }
+        return observed
     }
 
     /// Repair reuses the same startup hold transition; no backend or dispatch occurs.
@@ -852,7 +865,21 @@ final class AgentTaskManager {
             validity = { [weak self] in
                 guard let self, let expected = self.workerCondition(task, states: [.running]) else { return false }
                 if SelfTest.isRunning && !self.store.allowsHarnessPersistence { return true }
-                return self.store.matchesWorker(expected)
+                let worker = self.running[taskID]
+                let observed = self.store.workerPrimaryObservation(expected)
+                // An obsolete callback may refuse work, but cannot stamp a successor.
+                if let worker, !worker.handle.isCancelled, let binding = worker.binding,
+                   binding.attempt == task.durability?.attempt,
+                   binding.leaseOwner == task.durability?.leaseOwner,
+                   binding.startedAt == task.durability?.attemptStartedAt,
+                   let currentWorker = self.running[taskID], !currentWorker.handle.isCancelled,
+                   currentWorker.binding == binding {
+                    self.running[taskID]?.primaryObservation = observed
+                    if let cached = self.running[taskID]?.primaryObservation {
+                        Log.app.debug("Task primary check: attempt \(binding.attempt), outcome \(cached.outcome.rawValue, privacy: .public)")
+                    }
+                }
+                return observed.outcome == .accepted
             }
         } else { validity = nil }
         return TaskJournalContext(taskID: taskID, attempt: task.durability?.attempt ?? 0, record: { [weak self] event in

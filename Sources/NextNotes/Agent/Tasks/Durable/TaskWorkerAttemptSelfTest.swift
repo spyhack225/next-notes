@@ -124,6 +124,7 @@ enum TaskWorkerAttemptSelfTest {
             try await TaskWorkerBindingSelfTest.originalCases(root: root, input: input, text: text, check: check)
             try await TaskReceiptSourceSelfTest.originalCases(root: root, input: input, text: text, check: check)
             try TaskReceiptSourceBoundarySelfTest.run(root: root, check: check)
+            try await TaskWorkerPrimaryObservationSelfTest.originalCases(root: root, input: input, text: text, check: check)
         } catch { failures.append("actual worker fixture: \(error)") }
         failures += SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).map { "owner changed: \($0)" }
         for failure in failures { SelfTest.diagnostic("TASK_WORKER_ATTEMPT_WRONG: \(failure)") }

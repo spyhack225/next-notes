@@ -17,6 +17,18 @@ struct TaskWorkerBinding: Equatable, Sendable {
     let startedAt: Date
 }
 
+/// A point-in-time result of the existing authority-bound primary row check.
+/// Missing evidence is unknown; no health, effect or retry inference follows.
+enum TaskWorkerPrimaryOutcome: String, Sendable { case accepted, mismatch, unavailable }
+
+struct TaskWorkerPrimaryObservation: Equatable, Sendable {
+    let expected: TaskWorkerWriteCondition
+    let outcome: TaskWorkerPrimaryOutcome
+    let observedAt: Date
+    let state: AgentTaskStatus?
+    let durability: TaskDurability?
+}
+
 /// Persisted optional execution metadata. Typed-local producers bind positive attempts
 /// and admitted worker/tool progress; other owners remain explicitly unbound.
 /// These fields alone authorize no recovery, retry or remote worker.

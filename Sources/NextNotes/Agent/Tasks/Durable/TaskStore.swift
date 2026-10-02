@@ -20,7 +20,7 @@ struct TaskStoreAuthorityProbe: Sendable {
 
 /// A predicate on an existing primary task row, checked inside the same commit.
 /// It supplies no recovery, liveness or retry authority.
-struct TaskWorkerWriteCondition: Sendable {
+struct TaskWorkerWriteCondition: Equatable, Sendable {
     let taskID: String
     let attempt: Int
     let leaseOwner: String?
@@ -421,7 +421,7 @@ final class TaskStore: @unchecked Sendable {
                 guard try fileIdentity() == probe.identity,
                       try Self.authority(in: db) == before else { throw TaskStoreError.authorityConflict }
                 if let worker {
-                    guard try Self.matchesWorker(worker, in: db),
+                    guard try Self.workerPrimaryObservation(worker, in: db).outcome == .accepted,
                           let next = tasks.first(where: { $0.id == worker.taskID }) else {
                         throw TaskStoreError.authorityConflict
                     }
@@ -446,26 +446,42 @@ final class TaskStore: @unchecked Sendable {
         return after
     }
 
-    /// Fail-fast existing-only primary read for the final worker validity hook.
+    /// The Bool execution contract consumes the same single authoritative row read.
     func matchesWorker(_ worker: TaskWorkerWriteCondition, probe: TaskStoreAuthorityProbe) throws -> Bool {
-        guard let authority = probe.authority else { return false }
+        try workerPrimaryObservation(worker, probe: probe).outcome == .accepted
+    }
+
+    /// Return metadata only after existing(...) finishes its native file-binding check.
+    func workerPrimaryObservation(_ worker: TaskWorkerWriteCondition,
+                                  probe: TaskStoreAuthorityProbe) throws -> TaskWorkerPrimaryObservation {
+        guard let authority = probe.authority else {
+            return TaskWorkerPrimaryObservation(expected: worker, outcome: .unavailable,
+                observedAt: Date(), state: nil, durability: nil)
+        }
         guard lock.try() else { throw TaskStoreError.sqlite(SQLITE_BUSY) }
         defer { lock.unlock() }
         return try existing(identity: probe.identity, writable: false) { db in
             try Self.exec(db, "BEGIN")
             defer { try? Self.exec(db, "ROLLBACK") }
-            guard try Self.authority(in: db) == authority else { return false }
-            return try Self.matchesWorker(worker, in: db)
+            guard try Self.authority(in: db) == authority else {
+                return TaskWorkerPrimaryObservation(expected: worker, outcome: .unavailable,
+                    observedAt: Date(), state: nil, durability: nil)
+            }
+            return try Self.workerPrimaryObservation(worker, in: db)
         }
     }
 
-    private static func matchesWorker(_ worker: TaskWorkerWriteCondition, in db: OpaquePointer) throws -> Bool {
+    private static func workerPrimaryObservation(_ worker: TaskWorkerWriteCondition,
+                                                 in db: OpaquePointer) throws -> TaskWorkerPrimaryObservation {
         let statement = try prepare(db, "SELECT state,durability FROM task WHERE id=?")
         defer { sqlite3_finalize(statement) }
         try bind(statement, [.text(worker.taskID)])
         let code = sqlite3_step(statement)
         guard code == SQLITE_ROW else {
-            if code == SQLITE_DONE { return false }
+            if code == SQLITE_DONE {
+                return TaskWorkerPrimaryObservation(expected: worker, outcome: .mismatch,
+                    observedAt: Date(), state: nil, durability: nil)
+            }
             throw TaskStoreError.sqlite(code)
         }
         guard let state = try text(statement, 0), let status = AgentTaskStatus(rawValue: state) else {
@@ -473,8 +489,10 @@ final class TaskStore: @unchecked Sendable {
         }
         let durability = try text(statement, 1).map { try decode(TaskDurability.self, $0) }
         guard (durability?.attempt ?? 0) >= 0 else { throw TaskStoreError.invalidRecord }
-        return status == worker.status && (durability?.attempt ?? 0) == worker.attempt
+        let matches = status == worker.status && (durability?.attempt ?? 0) == worker.attempt
             && durability?.leaseOwner == worker.leaseOwner
+        return TaskWorkerPrimaryObservation(expected: worker, outcome: matches ? .accepted : .mismatch,
+            observedAt: Date(), state: status, durability: durability)
     }
 
     /// One transaction replaces the canonical JSON snapshot's current rows. UPSERT updates

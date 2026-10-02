@@ -203,15 +203,22 @@ final class AgentTaskStore {
         try repairPreparedHistory()
     }
 
-    /// No creator/fallback path: the worker's final hook verifies its bound primary row.
+    /// Preserve the Bool execution contract and the same authority-bound row read.
     func matchesWorker(_ worker: TaskWorkerWriteCondition) -> Bool {
-        guard !failedLoad else { return false }
-        guard !SelfTest.isRunning || allowsHarnessPersistence else { return false }
+        workerPrimaryObservation(worker).outcome == .accepted
+    }
+
+    /// Any failed source/binding/read boundary returns unknown metadata, never absence.
+    func workerPrimaryObservation(_ worker: TaskWorkerWriteCondition) -> TaskWorkerPrimaryObservation {
+        let unavailable = TaskWorkerPrimaryObservation(expected: worker, outcome: .unavailable,
+            observedAt: Date(), state: nil, durability: nil)
+        guard !failedLoad else { return unavailable }
+        guard !SelfTest.isRunning || allowsHarnessPersistence else { return unavailable }
         do {
-            guard let probe = try mirror.probeAuthority(includeTasks: false) else { return false }
+            guard let probe = try mirror.probeAuthority(includeTasks: false) else { return unavailable }
             try check(probe, witness: try? compatibilityData())
-            return try mirror.matchesWorker(worker, probe: probe)
-        } catch { return false }
+            return try mirror.workerPrimaryObservation(worker, probe: probe)
+        } catch { return unavailable }
     }
 
     @discardableResult

@@ -413,6 +413,21 @@ save/store/await/timer/model pass. This sequential admission is not cross-proces
 concurrent replacement, reconciliation/liveness/recovery/retry and IM-16 stay open.
 See the [receipt-source report](Tests/Reports/agent-overhaul-closure/receipt-source-admission/README.md).
 
+P6-05d retains the last existing worker primary check (installed app43 worker491).
+Original42 nil-getter scaffolding fails15 missing-feature assertions; prior430 stay
+green. The byte-identical actual fixture adds61 checks through real Manager/backend/
+executor/runtime/read, including native mirror contention, isolated row damage,
+real fresh-Manager held generation and exact input successor. Same authority opens/
+SELECT state,durability/file post-checks and state/attempt/owner Bool predicate; no
+start-time predicate or current receipt coverage was added. The existing bound-handle
+value caches accepted/mismatch/unavailable metadata, consumed by its actual debug
+seam; LAST getter does no SQL and cannot stamp successor history. Backend entry has
+no cache and backing cache predates later progress/link commits. All14 related flags
+pass with owner isolation21files32defaults unchanged. No new query/save/store/await/
+timer or task-state/retry change. Complete stale questions, process/session health,
+receipt/journal coverage, recovery/retry and IM-16 remain open.
+See the [primary-observation report](Tests/Reports/agent-overhaul-closure/authoritative-observation/README.md).
+
 `--selftest-voice-session-reducer` verifies ten pure traces (the original nine
 plus speech-ended identity/hold guards), then actual capture, approval and streamed
 playback with scripted models and a recording backing. `VoiceSession` remains a

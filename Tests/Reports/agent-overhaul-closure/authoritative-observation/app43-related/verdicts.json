@@ -1,0 +1,116 @@
+[
+  {
+    "flag": "task-durability",
+    "exit": 0,
+    "seconds": 0.869,
+    "markers": [
+      "TASK_DURABILITY_OK: 37 cases"
+    ]
+  },
+  {
+    "flag": "task-recovery",
+    "exit": 0,
+    "seconds": 0.58,
+    "markers": [
+      "TASK_RECOVERY_OK: 56 cases"
+    ]
+  },
+  {
+    "flag": "task-authority",
+    "exit": 0,
+    "seconds": 0.81,
+    "markers": [
+      "TASK_AUTHORITY_OK: 58 cases"
+    ]
+  },
+  {
+    "flag": "task-restoration",
+    "exit": 0,
+    "seconds": 0.863,
+    "markers": [
+      "TASK_RESTORATION_OK: 82 cases"
+    ]
+  },
+  {
+    "flag": "task-history-repair",
+    "exit": 0,
+    "seconds": 0.479,
+    "markers": [
+      "TASK_HISTORY_REPAIR_OK: 58 cases"
+    ]
+  },
+  {
+    "flag": "receipt-persistence",
+    "exit": 0,
+    "seconds": 0.417,
+    "markers": [
+      "RECEIPT_RUNTIME_OK: 5 cases"
+    ]
+  },
+  {
+    "flag": "tool-review",
+    "exit": 0,
+    "seconds": 0.493,
+    "markers": [
+      "TOOL_REVIEW_OK"
+    ]
+  },
+  {
+    "flag": "toolloop-production",
+    "exit": 0,
+    "seconds": 32.205,
+    "markers": [
+      "TOOLLOOP_PRODUCTION_OK"
+    ]
+  },
+  {
+    "flag": "routine-authority",
+    "exit": 0,
+    "seconds": 1.733,
+    "markers": [
+      "ROUTINE_AUTHORITY_OK"
+    ]
+  },
+  {
+    "flag": "schedule",
+    "exit": 0,
+    "seconds": 0.631,
+    "markers": [
+      "GOALS_OK",
+      "SCHEDULE_OK"
+    ]
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "seconds": 1.122,
+    "markers": [
+      "USAGE_LOG_OK: 26 cases"
+    ]
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "seconds": 34.057,
+    "markers": [
+      "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_OK"
+    ]
+  },
+  {
+    "flag": "toolloop-live-grader",
+    "exit": 0,
+    "seconds": 0.588,
+    "markers": [
+      "TOOLLOOP_LIVE_GRADER_OK"
+    ]
+  },
+  {
+    "flag": "voice-scheduling",
+    "exit": 0,
+    "seconds": 2.856,
+    "markers": [
+      "VOICE_SCHEDULING_OK"
+    ]
+  }
+]
