@@ -75,6 +75,7 @@ final class ToolStepRunner: ToolStepExecuting {
     private let agent: RealtimeAgent
     private let owner: Int
     private let workID: String?
+    private let harnessBindingAccepted: Bool
     private let maxCalls: Int
     private let maxRepairs: Int
     private let window: Int
@@ -90,6 +91,8 @@ final class ToolStepRunner: ToolStepExecuting {
     private(set) var lastVerifiedResult: String?
     private(set) var memoryConfirmations: [String] = []
     private(set) var currentToolID: String?
+    /// Successful source metadata owned by this existing turn, never model evidence text.
+    private(set) var verifiedContextReferences: [ActionContextReference] = []
     /// Whole-turn frameworks execute their own tool loop; preserve those verified
     /// outputs in the same prompt context the ordinary round loop owns.
     var verifiedResultObserver: (@MainActor (String, String) -> Void)?
@@ -134,11 +137,25 @@ final class ToolStepRunner: ToolStepExecuting {
     init(
         agent: RealtimeAgent, owner: Int, work: VoiceConversationWork?, provider: any LLMProvider,
         manifest: AgentCapabilityManifest, budget: ToolLoopBudget, ceilingRemaining: Duration,
-        request: String, maxCalls: Int, readerContextTokens: Int, untrustedOutputs: [String]
+        request: String, maxCalls: Int, readerContextTokens: Int, untrustedOutputs: [String],
+        taskIDForTesting: String? = nil
     ) {
         self.agent = agent
         self.owner = owner
-        self.workID = work?.id.uuidString
+        if SelfTest.isRunning, let taskIDForTesting {
+            self.workID = taskIDForTesting
+            if let context = TaskEventJournal.current, context.taskID == taskIDForTesting,
+               context.attempt > 0, context.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+               context.isStillValid?() == true, let receipts = context.receiptStore,
+               let quality = receipts.sourceObservation?.loadQuality,
+               quality == .missing || quality == .readable {
+                // Harness only: an explicitly isolated Manager already owns this context.
+                self.harnessBindingAccepted = true
+            } else { self.harnessBindingAccepted = false }
+        } else {
+            self.workID = work?.id.uuidString
+            self.harnessBindingAccepted = true
+        }
         self.provider = provider
         self.manifest = manifest
         self.budget = budget
@@ -199,6 +216,10 @@ final class ToolStepRunner: ToolStepExecuting {
 
     /// Resolve, check, run, classify. Never speaks to a person and never returns one.
     func execute(_ call: AgentToolCall) async -> ToolStepResult {
+        guard harnessBindingAccepted else {
+            return ToolStepResult(canonicalID: call.name, disposition: .endTurn(
+                .infrastructure("The isolated test task binding was refused. Nothing was run.")))
+        }
         beginExecutionMeasurement()
         defer { endExecutionMeasurement() }
         // One case is not a repair: a tool this build has and this turn may not run. The
@@ -315,6 +336,7 @@ final class ToolStepRunner: ToolStepExecuting {
         // Captured by value: this closure is `@Sendable` and the request can be revised
         // mid-turn, so the call has to be anchored to what the user said when it was planned.
         let request = self.request
+        let contextReferences = verifiedContextReferences
         // P1-04: the closure returns the classified outcome rather than a string, so the
         // decision about what a failure *means* is made in one table (`ToolErrorClassifier`)
         // instead of in whichever `catch` leg the error happened to be thrown from.
@@ -331,6 +353,7 @@ final class ToolStepRunner: ToolStepExecuting {
                             try await AgentToolExecutor.run(
                                 canonicalID, arguments: arguments, policy: policy,
                                 taskID: workID,
+                                contextReferences: contextReferences,
                                 // P1-17: the person's setting. The planner's path is the one
                                 // the switch describes, so it is the one that reads it.
                                 autoApproveReads: agent.readsRunWithoutAsking,
@@ -368,7 +391,8 @@ final class ToolStepRunner: ToolStepExecuting {
                     )
                     return ToolExecution(outcome: .success(described))
                 }
-                return ToolExecution(outcome: .success(result.summary))
+                return ToolExecution(outcome: .success(result.summary),
+                    contextReferences: result.contextReferences)
             } catch {
                 let errorClass: UsageErrorClass = error.isModelUnavailable
                     ? .modelUnavailable : .other
@@ -406,6 +430,19 @@ final class ToolStepRunner: ToolStepExecuting {
         }
         switch execution.outcome {
         case .success(let output):
+            for reference in execution.contextReferences {
+                if let index = verifiedContextReferences.firstIndex(where: {
+                    $0.kind == reference.kind && $0.source == reference.source && $0.value == reference.value
+                }) {
+                    // Reading the same message in full does not erase a known metadata date.
+                    if verifiedContextReferences[index].title == nil {
+                        verifiedContextReferences[index].title = reference.title
+                    }
+                    if verifiedContextReferences[index].at == nil {
+                        verifiedContextReferences[index].at = reference.at
+                    }
+                } else { verifiedContextReferences.append(reference) }
+            }
             callsUsed += 1
             completedToolIDs.append(canonicalID)
             currentToolID = nil

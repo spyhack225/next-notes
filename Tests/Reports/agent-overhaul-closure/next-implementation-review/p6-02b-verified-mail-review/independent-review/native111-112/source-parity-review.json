@@ -1,0 +1,31 @@
+{
+  "status": "Exact immutable original/fixed build-input delta verified; fixed native pending",
+  "originalInputCount": 1051,
+  "fixedInputCount": 1051,
+  "changedSourceEntries": [
+    {
+      "path": "Sources/NextNotes/Agent/Planner/ToolStepRunner.swift",
+      "original": "f6447a1c933c4091d7799ffd80f5762ac03d7be9d4b370dbd659227c6cfc2b30",
+      "fixed": "dd3396ef1523ee01afd4104145b8108075ab47f32bd0a286b2a477d95bef8990",
+      "matchesFrozenFixed": true
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift",
+      "original": "431e25a3146c43527adf6c09aac0949b596330c84154fb9afb568683d32b4c52",
+      "fixed": "c584c9be17450aec30a3efd67e14362c5c00425900eb39097d3a074dff69214c",
+      "matchesFrozenFixed": true
+    },
+    {
+      "path": "Sources/NextNotes/Agent/WorkspaceToolRunner.swift",
+      "original": "58f990c41043f3c9cfb04c4d3b38b4e28bfd663bf6e8697d447e7756586bfc24",
+      "fixed": "879693c72dd1e5427758580a57e115034c3134a164e4faa33d9069a5360f7fa8",
+      "matchesFrozenFixed": true
+    }
+  ],
+  "allChangedFilesMatchFrozenFixed": true,
+  "fixtureIdentical": true,
+  "registryIdentical": true,
+  "finalAnswerFitterIdentical": true,
+  "allOther1048EntriesIdentical": true,
+  "rootOwnedBuildAndNativeOnly": true
+}

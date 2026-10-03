@@ -1,0 +1,281 @@
+--- a/Sources/NextNotes/Agent/ActionRuntime.swift
++++ b/Sources/NextNotes/Agent/ActionRuntime.swift
+@@ -85,11 +85,24 @@
+     var id: String
+     var kind: String
+     var value: String
+-
+-    init(id: String = UUID().uuidString, kind: String, value: String) {
+-        self.id = id
+-        self.kind = kind
+-        self.value = value
++    var title: String?
++    var at: Date?
++    var source: String?
++
++    init(id: String = UUID().uuidString, kind: String, value: String,
++         title: String? = nil, at: Date? = nil, source: String? = nil) {
++        self.id = id; self.kind = kind; self.value = value
++        self.title = title; self.at = at; self.source = source
++    }
++    enum CodingKeys: String, CodingKey { case id, kind, value, title, at, source }
++    init(from decoder: Decoder) throws {
++        let container = try decoder.container(keyedBy: CodingKeys.self)
++        id = try container.decode(String.self, forKey: .id)
++        kind = try container.decode(String.self, forKey: .kind)
++        value = try container.decode(String.self, forKey: .value)
++        title = try container.decodeIfPresent(String.self, forKey: .title)
++        at = try container.decodeIfPresent(Date.self, forKey: .at)
++        source = try container.decodeIfPresent(String.self, forKey: .source)
+     }
+ }
+ 
+@@ -740,6 +753,12 @@
+                 meetingID: routing.meetingID, taskID: routing.taskID,
+                 authority: intent.authority,
+                 trigger: restoredRequest?.trigger ?? Self.trigger(for: intent),
++                // This prerequisite projects source-generated mail descriptors only.
++                // Legacy transcript/schedule values remain in their original receipt/trigger,
++                // never copied into the new permission metadata collection.
++                evidence: intent.evidence.filter {
++                    $0.kind == "mail" && $0.source == "mail" && $0.id == "mail:" + $0.value
++                },
+                 origin: origin
+             )
+             switch decision {
+--- a/Sources/NextNotes/Agent/AgentModels.swift
++++ b/Sources/NextNotes/Agent/AgentModels.swift
+@@ -273,15 +273,19 @@
+     /// duplicate-send bug comes back with nobody testing it.
+     var outcomeUnknown: Bool = false
+     let artifactRecords: [AgentArtifact]
++    /// Verified source descriptors, separate from created artifacts and untrusted prose.
++    let contextReferences: [ActionContextReference]
+ 
+     init(summary: String, reference: String? = nil, link: URL? = nil,
+          verification: String? = nil, outcomeUnknown: Bool = false,
+-         artifactRecords: [AgentArtifact]? = nil) {
++         artifactRecords: [AgentArtifact]? = nil,
++         contextReferences: [ActionContextReference] = []) {
+         self.summary = summary
+         self.reference = reference
+         self.link = link
+         self.verification = verification
+         self.outcomeUnknown = outcomeUnknown
++        self.contextReferences = contextReferences
+         self.artifactRecords = artifactRecords ?? [reference, link?.absoluteString]
+             .compactMap { $0 }.map { AgentArtifact($0) }
+     }
+--- a/Sources/NextNotes/Agent/Permissions/PermissionBroker.swift
++++ b/Sources/NextNotes/Agent/Permissions/PermissionBroker.swift
+@@ -19,6 +19,7 @@
+         taskID: String? = nil,
+         authority: ActionAuthority? = nil,
+         trigger: ToolCallTrigger = .unattributed,
++        evidence: [ActionContextReference] = [],
+         origin: ActionOriginContext? = nil,
+         remoteAccessSuspended: Bool = false
+     ) -> PermissionDecision {
+@@ -28,7 +29,7 @@
+         if let origin = origin, origin.isRemote {
+             return authorizeRemote(tool, arguments: arguments, policy: policy, scope: scope,
+                                    meetingID: meetingID, taskID: taskID, authority: authority,
+-                                   trigger: trigger, suspended: remoteAccessSuspended)
++                                   trigger: trigger, evidence: evidence, suspended: remoteAccessSuspended)
+         }
+ 
+         if let grant = policy.existingGrant(
+@@ -47,7 +48,7 @@
+ 
+         if !tool.risk.mayAutoRun {
+             return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
+-                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
++                                    meetingID: meetingID, taskID: taskID, trigger: trigger, evidence: evidence))
+         }
+ 
+         return .deny("\(tool.id) is not allowed to run by itself.")
+@@ -69,6 +70,7 @@
+         taskID: String?,
+         authority: ActionAuthority?,
+         trigger: ToolCallTrigger,
++        evidence: [ActionContextReference],
+         suspended: Bool
+     ) -> PermissionDecision {
+         if suspended {
+@@ -87,16 +89,16 @@
+             return .deny(RemoteAccessPolicy.privilegedDenied)
+         case .requireLocalMac:
+             return .askLocal(makeRequest(tool: tool, arguments: arguments, scope: scope,
+-                                         meetingID: meetingID, taskID: taskID, trigger: trigger))
++                                         meetingID: meetingID, taskID: taskID, trigger: trigger, evidence: evidence))
+         case .confirmInChannel:
+             return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
+-                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
++                                    meetingID: meetingID, taskID: taskID, trigger: trigger, evidence: evidence))
+         case .autoAllow:
+             if policy.allowsAutomatically(tool, authority: authority) {
+                 return .allow
+             }
+             return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
+-                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
++                                    meetingID: meetingID, taskID: taskID, trigger: trigger, evidence: evidence))
+         }
+     }
+ 
+@@ -106,7 +108,8 @@
+         scope: PermissionScope,
+         meetingID: UUID?,
+         taskID: String?,
+-        trigger: ToolCallTrigger
++        trigger: ToolCallTrigger,
++        evidence: [ActionContextReference]
+     ) -> PermissionRequest {
+         PermissionRequest(
+             toolID: tool.id,
+@@ -117,7 +120,8 @@
+             scope: scope,
+             meetingID: meetingID,
+             taskID: taskID,
+-            trigger: trigger
++            trigger: trigger,
++            evidence: evidence
+         )
+     }
+ }
+--- a/Sources/NextNotes/Agent/Permissions/PermissionRequest.swift
++++ b/Sources/NextNotes/Agent/Permissions/PermissionRequest.swift
+@@ -17,6 +17,8 @@
+     /// The card's "why" line is built from it, and an unattributed call says so rather
+     /// than borrowing the confident "You said this." every card used to print.
+     var trigger: ToolCallTrigger
++    /// Frozen source metadata; it supplies neither instructions nor permission.
++    var evidence: [ActionContextReference]
+ 
+     init(
+         id: String = UUID().uuidString,
+@@ -29,7 +31,8 @@
+         meetingID: UUID? = nil,
+         taskID: String? = nil,
+         createdAt: Date = Date(),
+-        trigger: ToolCallTrigger = .unattributed
++        trigger: ToolCallTrigger = .unattributed,
++        evidence: [ActionContextReference] = []
+     ) {
+         self.id = id
+         self.toolID = toolID
+@@ -42,11 +45,12 @@
+         self.taskID = taskID
+         self.createdAt = createdAt
+         self.trigger = trigger
++        self.evidence = evidence
+     }
+ 
+     enum CodingKeys: String, CodingKey {
+         case id, toolID, title, detail, risk, arguments, scope, meetingID, taskID, createdAt
+-        case trigger
++        case trigger, evidence
+     }
+ 
+     init(from decoder: Decoder) throws {
+@@ -64,6 +68,7 @@
+         // `decodeIfPresent`, like every other added field in this app: a request written
+         // by an older build must still decode rather than vanish.
+         trigger = try container.decodeIfPresent(ToolCallTrigger.self, forKey: .trigger) ?? .unattributed
++        evidence = try container.decodeIfPresent([ActionContextReference].self, forKey: .evidence) ?? []
+     }
+ 
+     func encode(to encoder: Encoder) throws {
+@@ -79,6 +84,7 @@
+         try container.encodeIfPresent(taskID, forKey: .taskID)
+         try container.encode(createdAt, forKey: .createdAt)
+         try container.encode(trigger, forKey: .trigger)
++        try container.encode(evidence, forKey: .evidence)
+     }
+ }
+ 
+--- a/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift
++++ b/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift
+@@ -75,6 +75,7 @@
+     private let agent: RealtimeAgent
+     private let owner: Int
+     private let workID: String?
++    private let harnessBindingAccepted: Bool
+     private let maxCalls: Int
+     private let maxRepairs: Int
+     private let window: Int
+@@ -90,6 +91,8 @@
+     private(set) var lastVerifiedResult: String?
+     private(set) var memoryConfirmations: [String] = []
+     private(set) var currentToolID: String?
++    /// Successful source metadata owned by this existing turn, never model evidence text.
++    private(set) var verifiedContextReferences: [ActionContextReference] = []
+     /// Whole-turn frameworks execute their own tool loop; preserve those verified
+     /// outputs in the same prompt context the ordinary round loop owns.
+     var verifiedResultObserver: (@MainActor (String, String) -> Void)?
+@@ -134,11 +137,25 @@
+     init(
+         agent: RealtimeAgent, owner: Int, work: VoiceConversationWork?, provider: any LLMProvider,
+         manifest: AgentCapabilityManifest, budget: ToolLoopBudget, ceilingRemaining: Duration,
+-        request: String, maxCalls: Int, readerContextTokens: Int, untrustedOutputs: [String]
++        request: String, maxCalls: Int, readerContextTokens: Int, untrustedOutputs: [String],
++        taskIDForTesting: String? = nil
+     ) {
+         self.agent = agent
+         self.owner = owner
+-        self.workID = work?.id.uuidString
++        if SelfTest.isRunning, let taskIDForTesting {
++            self.workID = taskIDForTesting
++            if let context = TaskEventJournal.current, context.taskID == taskIDForTesting,
++               context.attempt > 0, context.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
++               context.isStillValid?() == true, let receipts = context.receiptStore,
++               let quality = receipts.sourceObservation?.loadQuality,
++               quality == .missing || quality == .readable {
++                // Harness only: an explicitly isolated Manager already owns this context.
++                self.harnessBindingAccepted = true
++            } else { self.harnessBindingAccepted = false }
++        } else {
++            self.workID = work?.id.uuidString
++            self.harnessBindingAccepted = true
++        }
+         self.provider = provider
+         self.manifest = manifest
+         self.budget = budget
+@@ -199,6 +216,10 @@
+ 
+     /// Resolve, check, run, classify. Never speaks to a person and never returns one.
+     func execute(_ call: AgentToolCall) async -> ToolStepResult {
++        guard harnessBindingAccepted else {
++            return ToolStepResult(canonicalID: call.name, disposition: .endTurn(
++                .infrastructure("The isolated test task binding was refused. Nothing was run.")))
++        }
+         beginExecutionMeasurement()
+         defer { endExecutionMeasurement() }
+         // One case is not a repair: a tool this build has and this turn may not run. The
+--- a/Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift
++++ b/Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift
+@@ -51,10 +51,13 @@
+ struct ToolExecution: Sendable {
+     let outcome: ToolStepOutcome
+     var errorClass: UsageErrorClass?
+-
+-    init(outcome: ToolStepOutcome, errorClass: UsageErrorClass? = nil) {
++    var contextReferences: [ActionContextReference]
++
++    init(outcome: ToolStepOutcome, errorClass: UsageErrorClass? = nil,
++         contextReferences: [ActionContextReference] = []) {
+         self.outcome = outcome
+         self.errorClass = errorClass
++        self.contextReferences = contextReferences
+     }
+ }
+ 
+--- a/Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift
++++ b/Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift
+@@ -25,6 +25,7 @@
+         policy: PermissionPolicy,
+         meetingID: UUID? = nil,
+         taskID: String? = nil,
++        contextReferences: [ActionContextReference] = [],
+         autoApproveReads: Bool = false,
+         promptIfNeeded: Bool = false,
+         authority: ActionAuthority? = nil,

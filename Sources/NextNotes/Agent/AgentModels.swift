@@ -273,15 +273,19 @@ struct WorkspaceToolResult: Sendable {
     /// duplicate-send bug comes back with nobody testing it.
     var outcomeUnknown: Bool = false
     let artifactRecords: [AgentArtifact]
+    /// Verified source descriptors, separate from created artifacts and untrusted prose.
+    let contextReferences: [ActionContextReference]
 
     init(summary: String, reference: String? = nil, link: URL? = nil,
          verification: String? = nil, outcomeUnknown: Bool = false,
-         artifactRecords: [AgentArtifact]? = nil) {
+         artifactRecords: [AgentArtifact]? = nil,
+         contextReferences: [ActionContextReference] = []) {
         self.summary = summary
         self.reference = reference
         self.link = link
         self.verification = verification
         self.outcomeUnknown = outcomeUnknown
+        self.contextReferences = contextReferences
         self.artifactRecords = artifactRecords ?? [reference, link?.absoluteString]
             .compactMap { $0 }.map { AgentArtifact($0) }
     }

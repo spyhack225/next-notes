@@ -1,0 +1,44 @@
+{
+  "status": "Related native failure retained; source-confirmed overflow premise invalid",
+  "actualBuild": 112,
+  "actualMarker": "MEMORY_PORTABILITY_FAILED",
+  "actualExit": 1,
+  "soleFailureLabel": "a replace did not say which memories did not fit",
+  "sourceProof": {
+    "fixture": "Sources/NextNotes/Memory/Portability/MemoryPortabilitySelfTest.swift:338",
+    "rows": 12,
+    "rowCharacterLengths": [
+      167,
+      167,
+      167,
+      167,
+      167,
+      167,
+      167,
+      167,
+      167,
+      168,
+      168,
+      168
+    ],
+    "sumCharacters": 2007,
+    "allASCII": true,
+    "profileBudgetProducer": "Sources/NextNotes/Memory/NextMemory.swift:61",
+    "profileBudget": 2400,
+    "restoreProducer": "Sources/NextNotes/Memory/NextMemory.swift:1040",
+    "restoreUsesActualKindBudget": true
+  },
+  "interpretation": "Fixture asserts overflow but all actual input rows fit the current2400-character profile budget. Empty notSaved does not violate this producer contract. This does not establish an original111 native portability verdict, which was not run.",
+  "attributionBoundary": {
+    "NextMemoryAndPortabilityFixtureIdentical111112": true,
+    "mailProducerDeltaOnly3OtherFiles": true,
+    "noOwnerDataRead": true
+  },
+  "requiredNext": "Retain raw failing gate. If authorized by root, repair the overflow input producer to exceed actual current budget while preserving refused-row assertion; run actual appropriate test under coordinated Source/native slot. No grader weakening or memory budget change warranted by this evidence.",
+  "mutations": {
+    "Source": false,
+    "native": false,
+    "index": false,
+    "reportOnly": true
+  }
+}

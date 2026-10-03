@@ -25,6 +25,7 @@ enum AgentToolExecutor {
         policy: PermissionPolicy,
         meetingID: UUID? = nil,
         taskID: String? = nil,
+        contextReferences: [ActionContextReference] = [],
         autoApproveReads: Bool = false,
         promptIfNeeded: Bool = false,
         authority: ActionAuthority? = nil,
@@ -187,7 +188,7 @@ enum AgentToolExecutor {
             verb: tool.id,
             target: scope.value.isEmpty ? nil : scope.value,
             arguments: authorizedArguments,
-            evidence: [],
+            evidence: contextReferences,
             risk: tool.risk,
             confidence: 1
         )

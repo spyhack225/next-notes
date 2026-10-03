@@ -1,0 +1,68 @@
+{
+  "status": "READY for root-brokered original/fixed compilation and native comparison; static review only",
+  "reviewer": "/root/agent_closure_audit",
+  "rootCommit": "a3d45243a7c106d01ea1b5e9d6a06d1ee717d889",
+  "finalManifestSHA256": "62fdc7e93e222842e3e66373ff5fd8ce6047a94945d65707ccdf9fac33e4a9cf",
+  "rebaseProofSHA256": "9563203bfa2be31b9dea0d8b099558f5751fd169312d5b9e30c26c4ac673308e",
+  "historicalManifestSHA256": "633670be9bc2ea1b95128e37e84bf3819589eb1cb500e8fe9018d4298b2c01fe",
+  "verifiedCounts": {
+    "finalArtifacts": 34,
+    "historicalArtifacts": 33,
+    "currentSourcePins": 8,
+    "unchangedOtherSevenSnapshots": 21
+  },
+  "mismatches": {
+    "finalArtifacts": [],
+    "historicalArtifacts": [],
+    "currentSourcePins": [],
+    "otherSnapshots": []
+  },
+  "reconstruction": {
+    "exactSingleTopToolExecutionReplacement": true,
+    "commonEqualsFixed": true,
+    "committedOriginalSHA256": "0d226be31846871d21f6e8eeca3f56307d4693eaa4857b2da697c200f175d01f",
+    "commonFixedSHA256": "89df271a3d718e92fbe188b257d92b9b26aa8a22da9d111e2a301d7c06712187",
+    "finalAnswerFitterBodyPreserved": true
+  },
+  "fixture": {
+    "sha256": "023d4fe97b5b363d2e51c25cbd1465d1d00de1d0a5b74fdcb799b8573d37a8b5",
+    "unchanged": true,
+    "staticChecks": 227,
+    "predictedOriginalFeatureFailures": 36,
+    "actualCompilationOrNativeResult": null
+  },
+  "priorIndependentReviews": [
+    "../draft-source-review/review.json",
+    "../complete-draft-static/review.json"
+  ],
+  "sourceContractReview": {
+    "result": "No remaining static blocker identified within bounded metadata prerequisite",
+    "trustedProducer": "Successful existing Workspace mail response -> ToolExecution -> turn-local Runner snapshot -> frozen Executor intent -> narrowly projected new permission evidence",
+    "modelEvidenceIgnored": true,
+    "permissionsCurrentAttemptAndEditedPayloadRetained": true,
+    "legacyCodecAndLegacyTriggerPreserved": true,
+    "newMetadataExcludesBodySubjectSnippet": true,
+    "mailIDsRemainNonArtifacts": true,
+    "invalidHarnessBindingFailsClosed": true,
+    "heldAndReleasedActualContextControlsPrepared": true,
+    "ownerStoreReadOrSeed": false
+  },
+  "proofLimits": [
+    "227 checks and 36 original feature failures are static predictions until actual root native runs.",
+    "COMMON injected Runner binding proves the producer/intent/primary/receipt prerequisite; it does not prove normal typed Manager nested dispatch or durable nested parking.",
+    "Public Based on UI/result rendering, recovery/retry, remote/scheduled/current-client authority, native model quality, and latency remain open.",
+    "Marker namespace shape alone is not authority for arbitrary caller strings.",
+    "Existing authorized legacy read result and receipt content are separate from new metadata privacy; no whole-receipt body-absence claim.",
+    "The COMMON constructor checks SelfTest, captured positive current context and receipt quality; it does not itself validate every safe persistence URL. The actual fixture supplies explicit temporary stores, receipt backing and injected Manager."
+  ],
+  "documentationNote": "producer-contract.md retains a historical pending-commit sentence; actual commit, rebase-proof, README and final manifest supersede it. No source or fixture blocker; frozen prose was not modified.",
+  "mutations": {
+    "Sources": false,
+    "index": false,
+    "build": false,
+    "native": false,
+    "model": false,
+    "frozenPacket": false,
+    "newAdditiveReviewOnly": true
+  }
+}

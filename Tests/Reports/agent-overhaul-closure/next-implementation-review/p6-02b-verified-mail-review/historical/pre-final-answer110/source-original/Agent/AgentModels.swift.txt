@@ -1,0 +1,384 @@
+import Foundation
+
+/// How much a tool can cost if the model is wrong about wanting it.
+///
+/// Graded by what can't be taken back. The original three classes — read, write, send —
+/// stay as they were so proposals already on disk keep decoding, and the v2 broker sits
+/// the newer ones around them rather than renaming anything a meeting file already stored.
+/// Nothing about the model's confidence changes which class a tool is in — the class is a
+/// property of the tool.
+enum AgentRisk: String, Codable, Sendable, CaseIterable, Comparable {
+    /// Looks at what is already on screen or in a meeting. Automatic.
+    case observe
+    /// Looks something up. Runs without asking when `Settings.agentAutoRunReadTools` is on.
+    case read
+    /// Changes a local file or UI the user already owns. Confirmation depends on scope.
+    case modify
+    /// Creates or changes something the user owns. One click.
+    case write
+    /// Says something as the user. One click, and the full message is shown first.
+    ///
+    /// This is the "communicate" class in the v2 roadmap. The raw value stays `send` so a
+    /// proposal written before the rename still decodes as the same thing.
+    case send
+    /// Spends the user's money. One click, and the card shows the exact amount, the
+    /// payment method and the cap it was checked against.
+    ///
+    /// Ranked between `send` and `destructive`: money out is harder to take back than a
+    /// sent message and easier to replace than deleted data. Never auto-runs.
+    ///
+    /// Documented choice (roadmap AGENT-COMPETITOR-GAP P1/D5): a distinct risk class
+    /// rather than a `requiresCapCheck` flag on the tool, so `max` over a plan, the
+    /// permission broker and the approval card all see it without special-casing one
+    /// tool id. The cap itself stays per-call (`capCents`), checked in
+    /// `BrowserToolExecutor.purchase`, not in the class.
+    case purchase
+    /// Deletes or irreversibly destroys something. Strong confirmation.
+    case destructive
+    /// Installs software, runs as root, or otherwise leaves the user's machine. Strong
+    /// confirmation, and never an "always allow everything" escape.
+    case privileged
+
+    var displayName: String {
+        switch self {
+        case .observe: "Observes"
+        case .read: "Reads"
+        case .modify: "Edits"
+        case .write: "Creates"
+        case .send: "Sends"
+        case .purchase: "Purchases"
+        case .destructive: "Deletes"
+        case .privileged: "Privileged"
+        }
+    }
+
+    /// Whether running this changes something outside the app.
+    ///
+    /// Not the same question as `mayAutoRun`, and deliberately named apart from it: that one
+    /// is a permission policy, this one is a fact about the world, and a policy change must not
+    /// silently move which replies count as claims of an action. The two agree today, and
+    /// `ToolClaimGuard` wants the fact — a reply that says it *sent* something is claiming an
+    /// effect, and a `filesystem.search` does not have one.
+    var changesSomething: Bool {
+        switch self {
+        case .observe, .read: false
+        case .modify, .write, .send, .purchase, .destructive, .privileged: true
+        }
+    }
+
+    /// Whether this class may ever run without a person pressing a button.
+    var mayAutoRun: Bool {
+        switch self {
+        case .observe, .read: true
+        case .modify, .write, .send, .purchase, .destructive, .privileged: false
+        }
+    }
+
+    /// Whether executing this leaves something another person can see.
+    var speaksForTheUser: Bool { self == .send }
+
+    /// Ordered by consequence, so `max` over a set of tools answers "what is the worst this
+    /// could do".
+    private var rank: Int {
+        switch self {
+        case .observe: 0
+        case .read: 1
+        case .modify: 2
+        case .write: 3
+        case .send: 4
+        case .purchase: 5
+        case .destructive: 6
+        case .privileged: 7
+        }
+    }
+
+    static func < (lhs: AgentRisk, rhs: AgentRisk) -> Bool { lhs.rank < rhs.rank }
+
+    /// A proposal written by a newer build may name a class this build has never heard
+    /// of. A decoding surprise must never auto-run and must never take the file with
+    /// it, so an unknown raw value reads as `.send`: the most cautious class that still
+    /// renders a card a person can approve or refuse.
+    init(from decoder: Decoder) throws {
+        let raw = try decoder.singleValueContainer().decode(String.self)
+        self = AgentRisk(rawValue: raw) ?? .send
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
+}
+
+/// Which pass offered a proposal.
+///
+/// The distinction is what stops one unanswered mid-meeting card from standing in for the
+/// review that runs when the meeting ends: "has this meeting been reviewed" is a question
+/// about a pass, not about whether anything happens to be on the list.
+enum AgentProposalSource: String, Codable, Sendable {
+    /// The pass that runs once, after the meeting has finished.
+    case review
+    /// One of the passes that run every couple of minutes while it is still going.
+    case live
+}
+
+/// One thing the agent has offered to do, waiting for a person to say yes.
+///
+/// Codable because a proposal outlives the process that made it: the app can be quit
+/// between "notes are ready" and the user getting round to reading them, and a proposal
+/// that evaporates on relaunch is a feature that only works if you were watching.
+struct AgentProposal: Identifiable, Sendable, Equatable, Codable {
+    let id: String
+    let meetingID: UUID
+    /// The tool's name, as it appears in the catalogue. Kept as a string rather than an enum
+    /// so a proposal written by an older build decodes instead of taking the file with it.
+    let tool: String
+    /// Flat and stringly-typed on purpose: these are the values shown in the Actions tab and
+    /// edited there before approval, and every one of them ends up as a command-line
+    /// argument. A list-valued argument is comma-separated, which is also what `gws` takes.
+    var arguments: [String: String]
+    /// The model's own sentence about why. Shown under the title; never acted on.
+    let rationale: String
+    /// Exact words in the transcript that led to this proposal. Older saved proposals
+    /// decode with nil and remain visible for review.
+    let evidence: String?
+    var createdAt: Date = Date()
+    /// Which pass offered it. Optional because a proposal written by an older build has no
+    /// such field, and one that failed to decode would take the whole file with it — nil
+    /// reads as `.review`, which is what every proposal from before this existed was.
+    let source: AgentProposalSource?
+    /// P1-19: the Google account this was prepared for, as a tag — the first 16 hex characters
+    /// of SHA-256 over the lowercased address. **The address itself is never stored, here or
+    /// anywhere else**: a proposal file is copied into meeting folders, and the tag is enough to
+    /// notice that the account changed.
+    ///
+    /// Optional, and so is every use of it: nil means the profile read could not be made when
+    /// this proposal was written, and `ApprovalFreshness` then skips the account check rather
+    /// than refusing. A proposal written by an older build has no such field and must still
+    /// decode — AGENTS.md's "adding a property without `decodeIfPresent` orphans every record
+    /// on disk" is the same trap in a different file.
+    var accountTag: String? = nil
+    /// P1-19: the moment the card names, parsed once from the tool's own time argument when
+    /// there is one, so approving "Thursday at 3" on Friday does not create an event in the
+    /// past. `WorkspaceToolRunner.rfc3339` is the only parser; this is not a second one.
+    /// Nil for a proposal with no time in it, and for an argument that did not parse — an
+    /// unparseable time is not a reason to refuse an action over.
+    var startsAt: Date? = nil
+
+    /// Whether this came from the post-meeting pass, an undecided old file included.
+    var isFromReview: Bool { (source ?? .review) == .review }
+
+    /// The catalogue entry, when this build still has one. A proposal naming a tool that has
+    /// since been removed is shown and refused rather than silently run as something else.
+    var definition: WorkspaceTool? { WorkspaceTools.tool(named: tool) }
+
+    /// Unknown tools are treated as the most dangerous class, so a decoding surprise can
+    /// never auto-run.
+    var risk: AgentRisk { definition?.risk ?? .send }
+
+    /// "Email the action items to Ana" — the one line on the card.
+    var title: String { definition?.title(for: arguments) ?? tool }
+
+    /// The full text of anything being sent, shown before approval. Nil for tools that don't
+    /// put words in the user's name.
+    var messagePreview: String? { definition?.preview(for: arguments) }
+
+    /// Every write needs a concrete preview, including Calendar times and Drive paths.
+    /// Message-producing tools keep their tailored full-text preview; the remaining tools
+    /// show every argument so an approval never rests on the model's rationale alone.
+    var reviewPreview: String? {
+        if let messagePreview, !messagePreview.isEmpty { return messagePreview }
+        guard risk != .read, !arguments.isEmpty else { return nil }
+        return arguments.keys.sorted().map { key in
+            "\(key.replacingOccurrences(of: "_", with: " ")): \(arguments[key] ?? "")"
+        }.joined(separator: "\n")
+    }
+
+    init(
+        id: String = UUID().uuidString,
+        meetingID: UUID,
+        tool: String,
+        arguments: [String: String],
+        rationale: String,
+        createdAt: Date = Date(),
+        source: AgentProposalSource? = nil,
+        evidence: String? = nil,
+        accountTag: String? = nil,
+        startsAt: Date? = nil
+    ) {
+        self.id = id
+        self.meetingID = meetingID
+        self.tool = tool
+        self.arguments = arguments
+        self.rationale = rationale
+        self.evidence = evidence
+        self.createdAt = createdAt
+        self.source = source
+        self.accountTag = accountTag
+        self.startsAt = startsAt
+    }
+}
+
+/// One ordered result descriptor. The value is the existing path/ID/link payload.
+/// Kind/title come from a producer; unknown strings never gain inferred authority.
+struct AgentArtifact: Codable, Equatable, Sendable {
+    var value: String
+    var kind: String
+    var title: String?
+    init(_ value: String, kind: String = "link", title: String? = nil) {
+        self.value = value; self.kind = kind; self.title = title
+    }
+    var isLegacy: Bool { kind == "link" && title == nil }
+
+    /// Preserve the existing ordered paths, including duplicates, on legacy mutations.
+    static func replacingValues(_ values: [String], in old: [Self]) -> [Self] {
+        var used = Set<Int>()
+        return values.enumerated().map { ordinal, value in
+            let index: Int?
+            if old.indices.contains(ordinal), old[ordinal].value == value, !used.contains(ordinal) {
+                index = ordinal
+            } else { index = old.indices.first { !used.contains($0) && old[$0].value == value } }
+            if let index { used.insert(index); return old[index] }
+            return Self(value)
+        }
+    }
+    /// The backend's old ordered list stays first; captured duplicates enrich in place.
+    static func merging(_ captured: [Self], into initial: [Self]) -> [Self] {
+        var records = initial
+        for record in captured {
+            if let index = records.firstIndex(where: { $0.value == record.value }) {
+                if records[index].isLegacy && !record.isLegacy { records[index] = record }
+            } else { records.append(record) }
+        }
+        return records
+    }
+}
+
+/// What a tool produced, once it ran.
+struct WorkspaceToolResult: Sendable {
+    /// What the model — or the log — should be told. Trimmed to something readable.
+    let summary: String
+    /// The identifier Google gave back: a document id, an event id, a message id.
+    let reference: String?
+    /// Where the user can go and look at it.
+    let link: URL?
+    /// A concrete postcondition checked by the native executor, separate from its
+    /// human-readable success sentence and provider-created identifier.
+    let verification: String?
+    /// P1-21: the write left and nothing came back, so what is here is a **read's** answer
+    /// about it — or the absence of one. Not a failure, and never a retry.
+    ///
+    /// A field rather than a sentence a caller matches on. The first version of the wiring keyed
+    /// on `summary.hasPrefix("I\u{2019}m not sure")`, which is the text-rule `AgentReplyRenderer`
+    /// and P0-17 exist to remove: a reworded sentence silently stops being recognised and the
+    /// duplicate-send bug comes back with nobody testing it.
+    var outcomeUnknown: Bool = false
+    let artifactRecords: [AgentArtifact]
+
+    init(summary: String, reference: String? = nil, link: URL? = nil,
+         verification: String? = nil, outcomeUnknown: Bool = false,
+         artifactRecords: [AgentArtifact]? = nil) {
+        self.summary = summary
+        self.reference = reference
+        self.link = link
+        self.verification = verification
+        self.outcomeUnknown = outcomeUnknown
+        self.artifactRecords = artifactRecords ?? [reference, link?.absoluteString]
+            .compactMap { $0 }.map { AgentArtifact($0) }
+    }
+}
+
+/// The generic shape every executor returns. Workspace results are this type already;
+/// keeping one struct is what lets the island, the audit log and the model see the same
+/// answer whether the work was native, MCP or a local computer tool.
+typealias AgentToolResult = WorkspaceToolResult
+
+/// A tool that actually ran, recorded on the meeting.
+///
+/// Written into `meeting.json` rather than kept in memory because the answer to "did I
+/// already email these notes to the room?" has to survive a quit — and because the link is
+/// the only way back to the document afterwards.
+struct AgentActionRecord: Identifiable, Sendable, Equatable, Codable {
+    /// The proposal's id, so an action can't be recorded twice for one approval.
+    var id: String
+    var tool: String
+    /// The proposal's title, frozen at the moment it ran: the arguments are not kept, since
+    /// they contain the body of whatever was sent.
+    var title: String
+    var performedAt: Date
+    var reference: String?
+    var link: URL?
+    /// What the tool said, for the ones that answer rather than create — an approved
+    /// `search_email` has no link to open, and a row that only said "Search email" would
+    /// have thrown the answer away.
+    var detail: String?
+    /// Set when the run failed, so a failed attempt is visible rather than merely absent.
+    var failure: String?
+    /// Carried over from the proposal, so a meeting whose only agent action came from a
+    /// mid-meeting pass still gets its post-meeting review. Nil in files written before this
+    /// existed, and read as `.review` there.
+    var source: AgentProposalSource?
+
+    var succeeded: Bool { failure == nil }
+
+    /// Whether this came out of the post-meeting pass, an old file included.
+    var isFromReview: Bool { (source ?? .review) == .review }
+}
+
+enum AgentError: LocalizedError, Equatable {
+    case disabled
+    case notSignedIn
+    case noProvider
+    case emptyTranscript
+    case contextTooSmall
+    case unknownTool(String)
+    case missingArgument(name: String, tool: String)
+    case noProposals
+    case permissionDenied(String)
+    case needsPermission(String)
+    case noIntegration(String)
+    /// Something named in the request is not on this Mac. Distinct from `noIntegration`
+    /// because it is a fact about the world the model can be told, and told it will pick a
+    /// different name — the near names travel in the string.
+    case notFound(String)
+    case cancelled
+    case backendUnavailable(String)
+    /// ACP failed before initializing. This is the only failure that may expose the
+    /// explicit compatibility CLI action in the task UI.
+    case acpHandshakeUnavailable(ACPCompatibilityRequest)
+
+    var errorDescription: String? {
+        switch self {
+        case .disabled:
+            "The meeting agent is turned off."
+        case .notSignedIn:
+            "The Google Workspace CLI isn\u{2019}t signed in."
+        case .noProvider:
+            "No local model is available to plan follow-up actions."
+        case .emptyTranscript:
+            "There is nothing in this meeting to act on."
+        case .contextTooSmall:
+            "This model has too little room left to read the meeting once the tools are "
+                + "described to it."
+        case .unknownTool(let name):
+            "This build has no tool called \u{201c}\(name)\u{201d}."
+        case .missingArgument(let name, let tool):
+            "\(tool) needs \u{201c}\(name)\u{201d}, and it is empty."
+        case .noProposals:
+            "Nothing in this meeting needed following up."
+        case .permissionDenied(let reason):
+            reason
+        case .needsPermission(let reason):
+            reason
+        case .noIntegration(let name):
+            "Nothing is connected that can do \u{201c}\(name)\u{201d}."
+        case .notFound(let reason):
+            reason
+        case .cancelled:
+            "The task was cancelled."
+        case .backendUnavailable(let reason):
+            reason
+        case .acpHandshakeUnavailable(let request):
+            request.failureMessage
+        }
+    }
+}

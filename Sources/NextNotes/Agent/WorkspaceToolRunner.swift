@@ -154,7 +154,8 @@ enum WorkspaceToolRunner {
         }
         lines.append("To read one in full, call read_email with its number.")
         return WorkspaceToolResult(summary: truncated(lines.joined(separator: "\n"),
-                                                    toolID: "search_email"))
+                                                    toolID: "search_email"),
+            contextReferences: ordered.compactMap(\.contextReference))
     }
 
     /// Metadata for each id, at most `metadataConcurrency` at a time, in whatever order they
@@ -200,7 +201,8 @@ enum WorkspaceToolRunner {
             // Gmail returns a snippet only for `format: full`, and that answer carries the
             // whole base64 body — 71,698 bytes against metadata's 601 for the same message.
             // Read when one is there, never at that price.
-            snippet: snippet(from: string(fields, "snippet")))
+            snippet: snippet(from: string(fields, "snippet")),
+            contextReference: mailContextReference(id: id, fields: fields))
     }
 
     /// One message in full, by the number the last search printed.
@@ -234,10 +236,36 @@ enum WorkspaceToolRunner {
             lines.append("")
             lines.append("The message has no text body.")
         }
-        // No `reference:` — nothing consumes one for a read, and an id carried further is an
-        // id that can reach a surface somebody reads.
+        // A verified read is evidence, not a created artifact. Keep reference/link nil so
+        // the mail identifier can never acquire an Open action or enter artifact capture.
         return WorkspaceToolResult(summary: truncated(lines.joined(separator: "\n"),
-                                                    toolID: "read_email"))
+                                                    toolID: "read_email"),
+            contextReferences: mailContextReference(id: id, fields: fields).map { [$0] } ?? [])
+    }
+
+    /// Descriptor facts from the response already fetched by this read. No subject,
+    /// snippet, body, displayed number or model prose becomes evidence metadata.
+    private static func mailContextReference(id: String, fields: [String: Any]) -> ActionContextReference? {
+        guard !id.isEmpty else { return nil }
+        if let responseID = fields["id"] {
+            guard let responseID = responseID as? String, responseID == id else { return nil }
+        }
+        let sender = header(fields, "from").map {
+            String($0.split(whereSeparator: \.isWhitespace).joined(separator: " ").prefix(80))
+        }.flatMap { $0.isEmpty ? nil : $0 }
+        // Gmail metadata defines internalDate as an integer string. Keep missing,
+        // Boolean and fractional external values unknown in NEW reference metadata;
+        // the existing tolerant display/sort parser remains unchanged.
+        let stamp = (fields["internalDate"] as? String).flatMap(Int.init) ?? 0
+        let at = stamp > 0 ? Date(timeIntervalSince1970: Double(stamp) / 1_000) : nil
+        guard sender != nil || at != nil else { return nil }
+        let title = sender.map { sender in
+            let metadata = WorkspaceMailSummary(id: id, stamp: stamp, from: sender,
+                subject: "", snippet: "")
+            return "Mail from " + sender + (mailLabel(metadata).map { " · " + $0 } ?? "")
+        }
+        return ActionContextReference(id: "mail:" + id, kind: "mail", value: id,
+            title: title, at: at, source: "mail")
     }
 
     /// `+read` prefers plain text; an HTML-only message comes back with `body_text` empty and
@@ -1078,6 +1106,7 @@ struct WorkspaceMailSummary: Sendable {
     let from: String
     let subject: String
     let snippet: String
+    var contextReference: ActionContextReference? = nil
 }
 
 // MARK: - The fixture half of `--selftest-gws`

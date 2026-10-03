@@ -1,0 +1,11 @@
+[
+  {
+    "flag": "task-worker-attempt",
+    "exit": 1,
+    "marker": "TASK_WORKER_ATTEMPT_FAILED: 36 assertions",
+    "seconds": 7.441103375000239,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  }
+]

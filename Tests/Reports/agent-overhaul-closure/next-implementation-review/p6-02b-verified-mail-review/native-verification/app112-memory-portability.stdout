@@ -1,0 +1,10 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-memory-portability --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-verified-mail-112-jlvhrxlm/memory-portability.log
+2026-10-02 20:32:31.534 NextNotes[32739:298462] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+PORTABILITY_ROUNDTRIP memories=3 labels=2 routines=1
+PORTABILITY_PLAN proposed=3 dropped=2 duplicates=1
+PORTABILITY_REPLACE_SCREEN kept=2 flagged=1 refused=3
+CONTROLLER_RESPONSIVE turns=61704 worst-stall=0.005s proposals=1
+CONTROLLER_CANCEL stage=start
+CONTROLLER_BACKUP memories=1 at=Memory before restore 2026-10-02 20-32-32
+PORTABILITY_WRONG: a replace did not say which memories did not fit
+MEMORY_PORTABILITY_FAILED

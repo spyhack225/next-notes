@@ -1,0 +1,29 @@
+[
+  {
+    "flag": "memory-portability",
+    "exit": 0,
+    "marker": "MEMORY_PORTABILITY_OK",
+    "seconds": 2.6547244579996914,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "task-worker-attempt",
+    "exit": 0,
+    "marker": "TASK_WORKER_ATTEMPT_OK: 1714 cases",
+    "seconds": 6.310912875000213,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+    "seconds": 32.404731041999185,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  }
+]

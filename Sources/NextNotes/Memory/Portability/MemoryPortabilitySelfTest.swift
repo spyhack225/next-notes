@@ -335,12 +335,30 @@ enum MemoryPortabilitySelfTest {
             print("PORTABILITY_REPLACE_SCREEN kept=\(store.entries.count) "
                   + "flagged=\(store.flagged.count) refused=\(receipt.notSaved.count)")
 
-            // And the kind's budget holds, so a package cannot grow the prompt without limit.
-            let filler = (1...12).map {
-                row("profile", "The user has a habit number \($0) that is described at some "
-                    + "length so that it takes up a hundred and forty characters or so of the "
-                    + "profile budget, which is twelve hundred.")
+            // Build one real overflow row from the current store budget. Each row remains
+            // individually valid, distinct and below the current entry cap.
+            let profileBudget = MemoryEntry.Kind.profile.budget
+            var filler: [MemoryPackage.Memory] = []
+            var fixtureCharacters = 0
+            while fixtureCharacters <= profileBudget {
+                let text = "The user has a fixture habit number \(filler.count + 1) "
+                    + "and describes it as a calm daily routine."
+                guard text.count <= NextMemory.maxEntryLength,
+                      MemoryGuard.scan(text) == nil, MemoryGuard.isDeclarative(text) else {
+                    throw SelfTestFailure("the overflow fixture row is not a valid memory")
+                }
+                filler.append(row("profile", text))
+                fixtureCharacters += text.count
             }
+            let retainedFixtureCharacters = filler.dropLast().reduce(0) { $0 + $1.text.count }
+            check("the overflow fixture did not exceed the actual profile budget",
+                  fixtureCharacters > profileBudget
+                    && retainedFixtureCharacters <= profileBudget
+                    && Set(filler.map(\.text)).count == filler.count)
+            guard let refusedFixture = filler.last else {
+                throw SelfTestFailure("the overflow fixture has no rows")
+            }
+            let retainedIDs = filler.dropLast().map(\.id)
             let fat = MemoryPackage(exportedAt: date,
                                     assistant: MemoryPackage.Assistant(name: "Ada"),
                                     memories: filler, activity: [])
@@ -349,6 +367,15 @@ enum MemoryPortabilitySelfTest {
             check("a replace ignored the profile budget",
                   fatStore.used(.profile) <= MemoryEntry.Kind.profile.budget)
             check("a replace did not say which memories did not fit", !fatReceipt.notSaved.isEmpty)
+            check("a replace lost the exact retained or refused overflow rows",
+                  fatStore.entries.map(\.id) == retainedIDs
+                    && fatReceipt.saved.map(\.id) == retainedIDs
+                    && fatReceipt.notSaved.count == 1
+                    && fatReceipt.notSaved.first?.text == MemoryImportPlanner.preview(refusedFixture.text)
+                    && fatReceipt.notSaved.first?.reason.contains("full") == true)
+            print("PORTABILITY_OVERFLOW_FIXTURE rows=\(filler.count) chars=\(fixtureCharacters) "
+                  + "budget=\(profileBudget) maxEntry=\(NextMemory.maxEntryLength) "
+                  + "retained=\(fatReceipt.saved.count) refused=\(fatReceipt.notSaved.count)")
         } catch {
             failures.append("replace screening threw: \(error.localizedDescription)")
         }

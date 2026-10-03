@@ -51,10 +51,13 @@ extension Duration {
 struct ToolExecution: Sendable {
     let outcome: ToolStepOutcome
     var errorClass: UsageErrorClass?
+    var contextReferences: [ActionContextReference]
 
-    init(outcome: ToolStepOutcome, errorClass: UsageErrorClass? = nil) {
+    init(outcome: ToolStepOutcome, errorClass: UsageErrorClass? = nil,
+         contextReferences: [ActionContextReference] = []) {
         self.outcome = outcome
         self.errorClass = errorClass
+        self.contextReferences = contextReferences
     }
 }
 

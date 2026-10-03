@@ -738,6 +738,30 @@ mail evidence/Based on, migration latency, owner migration, full effects/recover
 retry/IM16 and parent phases remain unproven. See the
 [artifact proof](Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-artifact-production/full-pipeline/native-verification/verification.md).
 
+`--selftest-task-worker-attempt` now verifies bounded P6-02b-2 through actual
+Workspace mail reads, Runner, Executor, runtime/Gate, edited approval and the
+existing primary/receipt joins. Original111 fails36 metadata assertions only;
+identical fixed112 passes1714. Already-fetched sender/positive integer-string date
+facts become ordered source references; the runner freezes its successful refs
+before the next step, and the executor retains them in the existing intent.
+Mail IDs never become created artifacts or Open actions. Body/subject/model prose
+and legacy transcript values stay out of new request descriptors; old codecs
+remain compatible. All12 actual modes preserve counts/permissions/effects.
+The paired1051 compiler pins differ only in three producer bodies; COMMON fixture,
+request projection, registration and final-answer fitter are unchanged. Fixed112
+passes32 functional invocations including ordinary84/final122, usage26 and owner
+isolation21files32defaults. The remaining portability failure is an invalid test
+premise: its2,007-character package fits the current2,400-character budget. Its
+separate test-input repair passes114 (31 valid rows/2,471 characters,30 retained/one
+refused), with worker1714/isolation unchanged. Product memory behavior and raw112
+failure are retained. Build113 proof was refused after a foreign illustration edit;
+fresh114 compiler/bundle invariance passes. Quick4/10 and CORE21/22 (wake17/24hits,3/32false) remain OPEN.
+No new store/fetch/query/model pass/queue/timer/production await. The explicitly
+injected nested diagnostic path does not prove normal durable nested dispatch,
+restored nested cards or public Based on rendering. Physical UI, unloaded restart,
+broader authority/effects/recovery/retry/IM16 and parent phases remain open. See the
+[mail producer proof](Tests/Reports/agent-overhaul-closure/next-implementation-review/p6-02b-verified-mail-review/native-verification/verification.md).
+
 `--selftest-c04-result-context --c04-fixture-now <ISO8601>` verifies bounded
 P1-10a-1 through the actual typed planner/read/result/provider path. Original105
 fails four mail-body assertions among84; identical fixed106 passes84. Eager

@@ -1,0 +1,90 @@
+{
+  "kind": "Independent verified-mail preparation boundary audit",
+  "status": "Concrete candidate not yet published/reviewed; this is a source-grounded checklist, not approval/native verdict.",
+  "scope": "Root owns all Source/native/build/model/index. Additive report only; no owner-store content read.",
+  "observedContract": {
+    "workspaceSource": "searchEmail already has ordered successful id/stamp/from/subject metadata; readEmail resolves the actual MailReferenceCache ID. Both structured outputs currently lack mail references.",
+    "resultPath": "WorkspaceToolResult is the AgentToolResult alias. reference/link already feed artifactRecords/capture; mail references need a distinct typed metadata field in this existing value.",
+    "runnerPath": "ToolStepRunner receives the structured read result inside execute but returns ToolExecution success(summary); next AgentToolExecutor builds evidence:[]. Trusted producer metadata must traverse this actual route; model call.evidence is untrusted and cannot substitute.",
+    "approvalPath": "ActionIntent/PreparedAction already contain typed reference arrays. Runtime authorizes through broker/request/review; current request/review/card have no structured evidence. Actual ToolReviewCard reads title/why/fields, not detail.",
+    "nestedContext": "Current Manager capturePermission checks local worker/primary, then explicitly permits independently owned different tool without parking. Same actual held filesystem.read context can support a nested create_doc fixture while row remains running; hook explicitly grants no nested storage/recovery proof."
+  },
+  "parentApprovedCommonSeam": {
+    "offSourceOnly": true,
+    "name": "ToolStepRunner taskIDForTesting defaultnil constructor argument",
+    "requirements": [
+      "SelfTest guard + actual current TaskJournalContext exact taskID + positive attempt + live captured validity + explicit safe injected Manager.",
+      "No arbitrary ID, normal production override, new owner or claim that typed Manager production dispatch already owns Runner.",
+      "No extra constructor SQL/await when optional override absent.",
+      "Explicit invalid requested injection must fail clearly, not silently fall back to nil/unbound.",
+      "Construct only initially valid context; held-generation refusal then uses existing captured validity/primary admission."
+    ]
+  },
+  "fireBoundary": {
+    "readHold": "Existing post-admission fireOverride may hold one actual temporary filesystem.read only.",
+    "workspace": "Clear global override once owned read is entered; captured held closure can remain. Actual Runner Workspace calls must cross real perform/argument/approval path and existing workspaceCLIForTesting before accountTag, not forward directly to WorkspaceToolRunner from fireOverride.",
+    "fixtureProofLimit": "COMMON fixture binding proves producer/intent/primary/receipt prerequisite only. It does not prove normal task-owned nested planner dispatch, recovery, hierarchy, live UI or broader action authority."
+  },
+  "requiredMetadataControls": [
+    "Actual producer constants choose mail kind/source; body or headers cannot choose transcript/schedule kinds which trigger authority-shaped display behavior.",
+    "No message ID in reference/link/artifactRecords, Open action or model-visible raw id. Exact ID comes from actual source/resolution, not printed number or final prose.",
+    "Missing/failed/partial metadata and stamp0 supply no invented title/date; no extra CLI fetch to manufacture absent facts. Present mismatched response identity must not attribute descriptor to another message.",
+    "Public title from bounded sender/date metadata; no body/snippet copy. AgentActivityProjector public-title rule on actual consumer, not unrelated helper.",
+    "Live timestamp vs canonical ISO8601 decoded timestamp are distinct domains; exact persisted-byte checks must use canonical serialization, not falsely equate full precision.",
+    "Actual next frozen intent preserves refs through approval edits and receipts, while caller source/authority/trigger/risk/standing grants stay unchanged.",
+    "Old receipts/references/requests decode exact id/kind/value and authority; optional metadata defaults unknown/absent, no old-data sanitization.",
+    "Canary body reaches existing authorized read flow but never new metadata/next-action reference persistence/usage/SQL/WAL. Existing old read receipt.result may legitimately retain body under compatibility amendment; whole-file absence would be an invalid claim.",
+    "Actual original/fixed immutable input/CLI/conductor/scaffolding; accepted and fresh-Manager held refusal, SQL/receipt identity and zero forbidden effect controls.",
+    "No model/fake broad executor boundary, no new store/queue/timer/read fetch/retry, no UI lease or aggregate/default promotion."
+  ],
+  "sourcePins": [
+    {
+      "path": "Sources/NextNotes/Agent/WorkspaceToolRunner.swift",
+      "sha256": "58f990c41043f3c9cfb04c4d3b38b4e28bfd663bf6e8697d447e7756586bfc24"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentModels.swift",
+      "sha256": "f4bd19df21c790797086cc5c357cd9090167fe8a4fcd1facdfeb39470c7946de"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Planner/ToolStepRunner.swift",
+      "sha256": "121d289b5fa4cdfe8f1749fe04ea8690f369a834cc05ad8ab47ef3c92e5d008b"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tools/AgentToolExecutor.swift",
+      "sha256": "033abc7aba02b6ab18acd626e14570347cda38f3e8da90a5c21725be4ca55cc6"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/ActionRuntime.swift",
+      "sha256": "759d84650b1cadd0d873c56ee7357f2db9d892a42a102000c5ef5e041cdb3546"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+      "sha256": "d511f3706cd917913b2276b074aa98c6e74048b8ccc968cea92e68d012407687"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/PermissionRequest.swift",
+      "sha256": "9da20d0367fa774ad23e57170ec979d75a77be9882b36b7942757f6558476408"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallReviewStore.swift",
+      "sha256": "5bde038c10c0ae0a26e251520ca068ba702afc8cc575e693705d3aacec9a5f89"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Permissions/ToolCallReview.swift",
+      "sha256": "20ea9939b3c3c6d4942e5cab17446b34636840386c41073892824d142b416689"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Activity/AgentActivityProjector.swift",
+      "sha256": "df03c11401e3d7688a6ea1b9342720ebf20dc38824f49a17f49b456fb43d8ec5"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/ToolReviewCard.swift",
+      "sha256": "74ac2aeb68d41c8c1ed277d7da32d274135963d813288d47e5e371bd856659c1"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+      "sha256": "b3702609bc26a48bd2aa68fe73c9cd98026cfcb94a29d0b5a9b6c8d97c3d7f39"
+    }
+  ]
+}

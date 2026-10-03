@@ -85,11 +85,24 @@ struct ActionContextReference: Codable, Equatable, Sendable, Identifiable {
     var id: String
     var kind: String
     var value: String
+    var title: String?
+    var at: Date?
+    var source: String?
 
-    init(id: String = UUID().uuidString, kind: String, value: String) {
-        self.id = id
-        self.kind = kind
-        self.value = value
+    init(id: String = UUID().uuidString, kind: String, value: String,
+         title: String? = nil, at: Date? = nil, source: String? = nil) {
+        self.id = id; self.kind = kind; self.value = value
+        self.title = title; self.at = at; self.source = source
+    }
+    enum CodingKeys: String, CodingKey { case id, kind, value, title, at, source }
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        kind = try container.decode(String.self, forKey: .kind)
+        value = try container.decode(String.self, forKey: .value)
+        title = try container.decodeIfPresent(String.self, forKey: .title)
+        at = try container.decodeIfPresent(Date.self, forKey: .at)
+        source = try container.decodeIfPresent(String.self, forKey: .source)
     }
 }
 
@@ -740,6 +753,12 @@ final class ActionOrchestrator {
                 meetingID: routing.meetingID, taskID: routing.taskID,
                 authority: intent.authority,
                 trigger: restoredRequest?.trigger ?? Self.trigger(for: intent),
+                // This prerequisite projects source-generated mail descriptors only.
+                // Legacy transcript/schedule values remain in their original receipt/trigger,
+                // never copied into the new permission metadata collection.
+                evidence: intent.evidence.filter {
+                    $0.kind == "mail" && $0.source == "mail" && $0.id == "mail:" + $0.value
+                },
                 origin: origin
             )
             switch decision {

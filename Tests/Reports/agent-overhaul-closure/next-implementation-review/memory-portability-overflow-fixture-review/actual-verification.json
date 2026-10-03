@@ -1,0 +1,67 @@
+{
+  "originalTestBaseline": 112,
+  "originalTest": "MEMORY_PORTABILITY_FAILED",
+  "confirmedCause": "Invalid test overflow premise: 2007 characters fit actual2400 budget",
+  "fixedTestBuild": 114,
+  "actualTrace": "PORTABILITY_OVERFLOW_FIXTURE rows=31 chars=2471 budget=2400 maxEntry=300 retained=30 refused=1",
+  "functionalChecks": [
+    {
+      "flag": "memory-portability",
+      "exit": 0,
+      "marker": "MEMORY_PORTABILITY_OK",
+      "seconds": 2.6547244579996914,
+      "sourceDrift": [],
+      "sameInstalledBinary": true,
+      "sameBundle": true
+    },
+    {
+      "flag": "task-worker-attempt",
+      "exit": 0,
+      "marker": "TASK_WORKER_ATTEMPT_OK: 1714 cases",
+      "seconds": 6.310912875000213,
+      "sourceDrift": [],
+      "sameInstalledBinary": true,
+      "sameBundle": true
+    },
+    {
+      "flag": "store-isolation",
+      "exit": 0,
+      "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+      "seconds": 32.404731041999185,
+      "sourceDrift": [],
+      "sameInstalledBinary": true,
+      "sameBundle": true
+    }
+  ],
+  "compilerDelta112To114": {
+    "Sources/NextNotes/Agent/Identity/PeepFigure.swift": {
+      "before": "16e8d77daae16a2b3d85feb06709bab06d80dd8d82e8b233ec01a5d6ea997d9f",
+      "after": "5043b25456134dccf1a9b13861eecf894d85d6484b1e8eba3d37b14c7d872bf1"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingFigure.swift": {
+      "before": "fbfd004cacd7ef5dbbe4b19a911d7d32e52dd58cf81bbc8e69b2916f55aab815",
+      "after": "722f049ae0fa66e2fbd107b3e4d61972903eab67ad3a4343fe1874cfbeeaeb21"
+    },
+    "Sources/NextNotes/Memory/Portability/MemoryPortabilitySelfTest.swift": {
+      "before": "7c0fb752020430036956966e7b7d9749d767c22c7ecd8da93fd05c00d4ab7412",
+      "after": "a7d0c423a4c05139367c634c270171018da0d6f01cf6891cec88a950a02d7f75"
+    },
+    "Sources/NextNotes/UI/Onboarding/OnboardingSteps.swift": {
+      "before": "125dcacf5485293784be0dbe6fc710ee34e02bb3e6b0d9040cc0c348cf4f9274",
+      "after": "9af4b3b8d399e7fba0d8095bef49748f4bc7bfc2cc29b76a9f0bdff6b1e829ae"
+    }
+  },
+  "foreignSourceEdits": {
+    "paths": [
+      "Sources/NextNotes/Agent/Identity/PeepFigure.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingFigure.swift",
+      "Sources/NextNotes/UI/Onboarding/OnboardingSteps.swift"
+    ],
+    "staging": "Preserved, excluded from owned staged Source scope;113proof admission refused;114all1051inputs stable"
+  },
+  "unchangedProductMemory": {
+    "NextMemory": "0c991423c81c69b28cd17cda7373642a84b0eef7a52000bfed7a2d767710089a",
+    "MemoryGuard": "b15887498d5943c4c847b0eb56577fa9516979483bfd03b38f1e0962cc812c71"
+  },
+  "limits": "Test-input repair only, no product bug/model/phase gate claim; no original111 portability verdict; quick/core recorded on112, not rerun114"
+}

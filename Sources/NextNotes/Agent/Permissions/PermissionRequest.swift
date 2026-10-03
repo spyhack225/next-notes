@@ -17,6 +17,8 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
     /// The card's "why" line is built from it, and an unattributed call says so rather
     /// than borrowing the confident "You said this." every card used to print.
     var trigger: ToolCallTrigger
+    /// Frozen source metadata; it supplies neither instructions nor permission.
+    var evidence: [ActionContextReference]
 
     init(
         id: String = UUID().uuidString,
@@ -29,7 +31,8 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
         meetingID: UUID? = nil,
         taskID: String? = nil,
         createdAt: Date = Date(),
-        trigger: ToolCallTrigger = .unattributed
+        trigger: ToolCallTrigger = .unattributed,
+        evidence: [ActionContextReference] = []
     ) {
         self.id = id
         self.toolID = toolID
@@ -42,11 +45,12 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
         self.taskID = taskID
         self.createdAt = createdAt
         self.trigger = trigger
+        self.evidence = evidence
     }
 
     enum CodingKeys: String, CodingKey {
         case id, toolID, title, detail, risk, arguments, scope, meetingID, taskID, createdAt
-        case trigger
+        case trigger, evidence
     }
 
     init(from decoder: Decoder) throws {
@@ -64,6 +68,7 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
         // `decodeIfPresent`, like every other added field in this app: a request written
         // by an older build must still decode rather than vanish.
         trigger = try container.decodeIfPresent(ToolCallTrigger.self, forKey: .trigger) ?? .unattributed
+        evidence = try container.decodeIfPresent([ActionContextReference].self, forKey: .evidence) ?? []
     }
 
     func encode(to encoder: Encoder) throws {
@@ -79,6 +84,7 @@ struct PermissionRequest: Identifiable, Sendable, Equatable, Codable {
         try container.encodeIfPresent(taskID, forKey: .taskID)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(trigger, forKey: .trigger)
+        try container.encode(evidence, forKey: .evidence)
     }
 }
 

@@ -1,0 +1,5 @@
+// ROOT-only narrow addition in TaskWorkerAttemptSelfTest, after actual artifact cases.
+// Same existing --selftest-task-worker-attempt startup/isolation/failed-marker lifecycle.
+try await VerifiedMailEvidenceSelfTest.originalCases(root: root, input: input, text: text, check: check)
+// Predicted worker total: current1487 +227 =1714, subject to intervening root additions.
+// This is NOT a new flag or completion of P6-02b/UI/recovery.

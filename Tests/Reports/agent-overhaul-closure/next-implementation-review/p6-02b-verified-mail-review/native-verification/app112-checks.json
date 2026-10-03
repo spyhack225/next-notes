@@ -1,0 +1,299 @@
+[
+  {
+    "flag": "task-worker-attempt",
+    "exit": 0,
+    "marker": "TASK_WORKER_ATTEMPT_OK: 1714 cases",
+    "seconds": 7.240997750001043,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "task-durability",
+    "exit": 0,
+    "marker": "TASK_DURABILITY_OK: 37 cases",
+    "seconds": 0.9562052500004938,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "task-authority",
+    "exit": 0,
+    "marker": "TASK_AUTHORITY_OK: 58 cases",
+    "seconds": 1.1146770420000394,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "task-recovery",
+    "exit": 0,
+    "marker": "TASK_RECOVERY_OK: 56 cases",
+    "seconds": 0.7813127909994364,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "task-restoration",
+    "exit": 0,
+    "marker": "TASK_RESTORATION_OK: 82 cases",
+    "seconds": 1.0839630000009493,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "task-history-repair",
+    "exit": 0,
+    "marker": "TASK_HISTORY_REPAIR_OK: 58 cases",
+    "seconds": 0.6676315000004251,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "task-harness-read",
+    "exit": 0,
+    "marker": "TASK_HARNESS_READ_OK: 40 cases",
+    "seconds": 0.19823866600017936,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "receipt-persistence",
+    "exit": 0,
+    "marker": "RECEIPT_RUNTIME_OK: 5 cases",
+    "seconds": 0.6107897500005492,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "tasks",
+    "exit": 0,
+    "marker": "TASKS_OK: submit, run and cancel hold",
+    "seconds": 0.668010334000428,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "toolloop-production",
+    "exit": 0,
+    "marker": "TOOLLOOP_PRODUCTION_OK",
+    "seconds": 33.961993417000485,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "toolloop",
+    "exit": 0,
+    "marker": "TOOLLOOP_OK",
+    "seconds": 0.6723566670007131,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "tool-review",
+    "exit": 0,
+    "marker": "TOOL_REVIEW_OK",
+    "seconds": 0.6786540410012094,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "tools",
+    "exit": 0,
+    "marker": "TOOLS_OK: registry, router and broker hold",
+    "seconds": 0.6152846659988427,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "ui-strings",
+    "exit": 0,
+    "marker": "UI_STRINGS_OK",
+    "seconds": 2.1054609999991953,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 32 defaults unchanged",
+    "seconds": 33.72659974999988,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "agent-presentation",
+    "exit": 0,
+    "marker": "AGENT_PRESENTATION_OK: actual typed stream, stable commit, Stop, isolation",
+    "seconds": 0.7782912920010858,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "routine-authority",
+    "exit": 0,
+    "marker": "ROUTINE_AUTHORITY_OK",
+    "seconds": 1.679709209000066,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "scheduler",
+    "exit": 0,
+    "marker": "SCHEDULER_OK",
+    "seconds": 0.7243599590001395,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "schedule",
+    "exit": 0,
+    "marker": "SCHEDULE_OK",
+    "seconds": 0.7959499999997206,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "acp",
+    "exit": 0,
+    "marker": "ACP_OK: initialize, session, subscribe and permission relay hold",
+    "seconds": 1.4843501249997644,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "mcp",
+    "exit": 0,
+    "marker": "MCP_OK: initialize, session, list and call hold",
+    "seconds": 0.6833914580001874,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "acp-confirm",
+    "exit": 0,
+    "marker": "ACP_CONFIRM_OK",
+    "seconds": 0.5554312920012308,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "voice-duplex-work",
+    "exit": 0,
+    "marker": "VOICE_DUPLEX_WORK_OK",
+    "seconds": 1.45259575000091,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "voice-conversation",
+    "exit": 0,
+    "marker": "VOICE_CONVERSATION_OK",
+    "seconds": 1.0401542500003416,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "voice-work-lifecycle",
+    "exit": 0,
+    "marker": "VOICE_WORK_LIFECYCLE_OK",
+    "seconds": 7.383932624999943,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "voice-delivery",
+    "exit": 0,
+    "marker": "VOICE_DELIVERY_OK",
+    "seconds": 0.8962259170002653,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "voice-turns",
+    "exit": 0,
+    "marker": "VOICE_TURNS_OK",
+    "seconds": 0.7113114160001714,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "concurrent-voice",
+    "exit": 0,
+    "marker": "CONCURRENT_VOICE_OK",
+    "seconds": 1.6727941669996653,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "memory-portability",
+    "exit": 1,
+    "marker": "MEMORY_PORTABILITY_FAILED",
+    "seconds": 1.5546251249998022,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "marker": "USAGE_LOG_OK: 26 cases",
+    "seconds": 1.2833857079986046,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "persona",
+    "exit": 0,
+    "marker": "PERSONA_OK",
+    "seconds": 0.6634287090000726,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "c04-result-context",
+    "exit": 0,
+    "marker": "C04_RESULT_CONTEXT_OK 84",
+    "seconds": 1.1050365409992082,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  },
+  {
+    "flag": "c04-final-result-context",
+    "exit": 0,
+    "marker": "C04_FINAL_RESULT_CONTEXT_OK 122",
+    "seconds": 0.9375306669990096,
+    "sourceDrift": [],
+    "sameInstalledBinary": true,
+    "sameBundle": true
+  }
+]

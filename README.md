@@ -560,6 +560,8 @@ Sources/NextNotes/
 │   │                               verified titles/kinds survive SQL/export into named Open/Copy rows
 │   │   └── Durable/                SQLite authority, event journal, strict migration and held restart tests;
 │   │                               JSON export retained; worker recovery is upcoming.
+│   │                               VerifiedMailEvidenceSelfTest checks mail metadata -> approval/receipt;
+│   │                               public Based on and normal nested recovery remain upcoming.
 │   ├── Goals/                      AgentGoal + GoalStore — an outcome with a state, not a
 │   │                               job on a clock; its nudges are ordinary reminders
 │   ├── Schedules/                  reminders, routines and triggers; the morning digest

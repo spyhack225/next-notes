@@ -142,6 +142,7 @@ enum TaskWorkerAttemptSelfTest {
             TaskHeartbeatSelfTest.cases(check: check)
             try await TaskReceiptObservationSelfTest.originalCases(root: root, input: input, text: text, check: check)
             try await TaskArtifactMetadataSelfTest.originalCases(root: root, input: input, text: text, check: check)
+            try await VerifiedMailEvidenceSelfTest.originalCases(root: root, input: input, text: text, check: check)
         } catch { failures.append("actual worker fixture: \(error)") }
         let after = SelfTestStoreGuard.take()
         SelfTest.diagnostic(SelfTestStoreGuard.cachedMetricsChangeDiagnostic(

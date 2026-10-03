@@ -1,0 +1,10 @@
+{
+  "status": "Frozen OFF-SOURCE fixture-only proposal; native unrun",
+  "artifacts": {
+    "original-MemoryPortabilitySelfTest.swift.txt": "7c0fb752020430036956966e7b7d9749d767c22c7ecd8da93fd05c00d4ab7412",
+    "proposed-MemoryPortabilitySelfTest.swift.txt": "a7d0c423a4c05139367c634c270171018da0d6f01cf6891cec88a950a02d7f75",
+    "fixture-input.patch.txt": "71f8cbe8089eb068dc4736d5118d27614ec2f36adcfe539cf65eb3a882b5a9ae",
+    "input-and-scope.json": "14faa042aa63f73da64085e7bd8807bcc70612ea81eb380311e2a49114f538eb",
+    "README.md": "89039561104d331032d4ab5e19bd9eddbfd79de747dc4e829d2e6d90889df654"
+  }
+}

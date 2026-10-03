@@ -19,6 +19,7 @@ actor PermissionBroker {
         taskID: String? = nil,
         authority: ActionAuthority? = nil,
         trigger: ToolCallTrigger = .unattributed,
+        evidence: [ActionContextReference] = [],
         origin: ActionOriginContext? = nil,
         remoteAccessSuspended: Bool = false
     ) -> PermissionDecision {
@@ -28,7 +29,7 @@ actor PermissionBroker {
         if let origin = origin, origin.isRemote {
             return authorizeRemote(tool, arguments: arguments, policy: policy, scope: scope,
                                    meetingID: meetingID, taskID: taskID, authority: authority,
-                                   trigger: trigger, suspended: remoteAccessSuspended)
+                                   trigger: trigger, evidence: evidence, suspended: remoteAccessSuspended)
         }
 
         if let grant = policy.existingGrant(
@@ -47,7 +48,7 @@ actor PermissionBroker {
 
         if !tool.risk.mayAutoRun {
             return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
-                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
+                                    meetingID: meetingID, taskID: taskID, trigger: trigger, evidence: evidence))
         }
 
         return .deny("\(tool.id) is not allowed to run by itself.")
@@ -69,6 +70,7 @@ actor PermissionBroker {
         taskID: String?,
         authority: ActionAuthority?,
         trigger: ToolCallTrigger,
+        evidence: [ActionContextReference],
         suspended: Bool
     ) -> PermissionDecision {
         if suspended {
@@ -87,16 +89,16 @@ actor PermissionBroker {
             return .deny(RemoteAccessPolicy.privilegedDenied)
         case .requireLocalMac:
             return .askLocal(makeRequest(tool: tool, arguments: arguments, scope: scope,
-                                         meetingID: meetingID, taskID: taskID, trigger: trigger))
+                                         meetingID: meetingID, taskID: taskID, trigger: trigger, evidence: evidence))
         case .confirmInChannel:
             return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
-                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
+                                    meetingID: meetingID, taskID: taskID, trigger: trigger, evidence: evidence))
         case .autoAllow:
             if policy.allowsAutomatically(tool, authority: authority) {
                 return .allow
             }
             return .ask(makeRequest(tool: tool, arguments: arguments, scope: scope,
-                                    meetingID: meetingID, taskID: taskID, trigger: trigger))
+                                    meetingID: meetingID, taskID: taskID, trigger: trigger, evidence: evidence))
         }
     }
 
@@ -106,7 +108,8 @@ actor PermissionBroker {
         scope: PermissionScope,
         meetingID: UUID?,
         taskID: String?,
-        trigger: ToolCallTrigger
+        trigger: ToolCallTrigger,
+        evidence: [ActionContextReference]
     ) -> PermissionRequest {
         PermissionRequest(
             toolID: tool.id,
@@ -117,7 +120,8 @@ actor PermissionBroker {
             scope: scope,
             meetingID: meetingID,
             taskID: taskID,
-            trigger: trigger
+            trigger: trigger,
+            evidence: evidence
         )
     }
 }

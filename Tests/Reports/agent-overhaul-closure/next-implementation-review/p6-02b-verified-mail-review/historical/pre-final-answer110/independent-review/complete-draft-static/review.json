@@ -1,0 +1,74 @@
+{
+  "status": "Complete mutable OFF-SOURCE draft static review only. Uncompiled/unrun; final frozen candidate/manifest and post-final-answer rebase pending.",
+  "fixtureSHA256": "023d4fe97b5b363d2e51c25cbd1465d1d00de1d0a5b74fdcb799b8573d37a8b5",
+  "normalStaticCount": 227,
+  "countByMode": {
+    "accepted": 26,
+    "denied": 18,
+    "held": 18,
+    "released": 12,
+    "zero-date": 19,
+    "missing-date": 19,
+    "boolean-date": 19,
+    "fractional-date": 19,
+    "partial-metadata": 19,
+    "empty-metadata": 19,
+    "mismatched-response": 19,
+    "failed-read": 19,
+    "finalOldReference": 1
+  },
+  "predictedOriginalMissingFeatureFailures": 36,
+  "predictionBreakdown": {
+    "orderedReferencesAndFields": 20,
+    "pendingExactIDMetadata": 9,
+    "completedExactIDMetadata": 7
+  },
+  "sourceReviewVerdict": "No further blocking defect found in complete mutable conductor; proceed to freeze/rebase review, not native or completion claim.",
+  "correctedBeforeExecution": [
+    "Equal-date ordering assumption removed: boundary metadata cases use one genuine result, while valid unique-date two-ID control remains.",
+    "NEW metadata timestamp parses actual API integer string only; missing/Boolean/fractional/zero stays unknown; existing display/sort untouched.",
+    "Invalid explicit harness binding refuses with zero additional CLI/receipt/Gate execution.",
+    "New approval evidence excludes legacy transcript/schedule values. Actual legacy transcript Runtime->Gate denial preserves original trigger/intent and new field empty.",
+    "Old request removes only new evidence field before decode; fresh actual owned old receipt removes only new reference keys, preserving original id/kind/value/source/authority.",
+    "Recoverable read failure uses actual404 classifier; no illegal continuation after infrastructure endTurn."
+  ],
+  "controls": [
+    "Real isolated Manager temp filesystem.read captures positive current context/attempt before held backing.",
+    "Global held-read fire override cleared before actual Workspace Executor.perform and CLI injection.",
+    "Actual search/read outputs retain authorized body; model evidence strings cannot set structured refs or action authority.",
+    "Real Gate review edits approved arguments; actual CLI create boundary checks exact fired receipt/prepared UUID/attempt/owner and primary receipt link.",
+    "Fresh Manager holds primary before late approval; response refuses and retains card without task cancellation as intervention. Released context cannot ask or fire.",
+    "Mail IDs remain out of artifact records/Open. New metadata body/subject absence tested separately from preserved authorized old result payload.",
+    "Owned continuations/worker joined; no standing grants added."
+  ],
+  "pendingBeforeMount": [
+    "Freeze final source/fixture/manifest and verify strict original/fixed input/parity.",
+    "Rebase ToolExecution top-of-file additions atop root final-answer committed RealtimeAgent+ToolLoop producer; current draft baseline1cbda must not overwrite later0d226be3.",
+    "Root owns compiler/native original/fixed, required related checks and all Source/index integration."
+  ],
+  "limits": [
+    "227 and36 are static predictions, not observed native counts.",
+    "Fixture TaskJournalContext binding is an explicit COMMON harness seam; no normal typed Manager-to-Runner/nested dispatch, durable nested parking, recovery or restore claim.",
+    "Actual Based on rendering/public-title/result surface unimplemented in this package, parent P6-02b remains open.",
+    "Permission namespace filter is not validation of arbitrary manually constructed descriptors; actual trusted response->Runner metadata path is proof.",
+    "No owner store/model data read or Source/native/build/index mutation."
+  ],
+  "snapshotPins": {
+    "common-original/Agent/ActionRuntime.swift.txt": "c801cf7083db9df6099f0d6f94d1def6a3ba7ef375893af06807d413b8657234",
+    "fixed-proposal/Agent/ActionRuntime.swift.txt": "c801cf7083db9df6099f0d6f94d1def6a3ba7ef375893af06807d413b8657234",
+    "common-original/Agent/AgentModels.swift.txt": "3988a5ffface6ce46197523c7fc53f8deae8d4076df270680e3448e1c53133c7",
+    "fixed-proposal/Agent/AgentModels.swift.txt": "3988a5ffface6ce46197523c7fc53f8deae8d4076df270680e3448e1c53133c7",
+    "common-original/Agent/WorkspaceToolRunner.swift.txt": "58f990c41043f3c9cfb04c4d3b38b4e28bfd663bf6e8697d447e7756586bfc24",
+    "fixed-proposal/Agent/WorkspaceToolRunner.swift.txt": "879693c72dd1e5427758580a57e115034c3134a164e4faa33d9069a5360f7fa8",
+    "common-original/Agent/Tools/AgentToolExecutor.swift.txt": "431e25a3146c43527adf6c09aac0949b596330c84154fb9afb568683d32b4c52",
+    "fixed-proposal/Agent/Tools/AgentToolExecutor.swift.txt": "c584c9be17450aec30a3efd67e14362c5c00425900eb39097d3a074dff69214c",
+    "common-original/Agent/Planner/ToolStepRunner.swift.txt": "f6447a1c933c4091d7799ffd80f5762ac03d7be9d4b370dbd659227c6cfc2b30",
+    "fixed-proposal/Agent/Planner/ToolStepRunner.swift.txt": "dd3396ef1523ee01afd4104145b8108075ab47f32bd0a286b2a477d95bef8990",
+    "common-original/Agent/RealtimeAgent+ToolLoop.swift.txt": "2fc64348392c9d8fce7edd0b1eaf88526603bbc34d829a5a8e651de91e7e1219",
+    "fixed-proposal/Agent/RealtimeAgent+ToolLoop.swift.txt": "2fc64348392c9d8fce7edd0b1eaf88526603bbc34d829a5a8e651de91e7e1219",
+    "common-original/Agent/Permissions/PermissionRequest.swift.txt": "77ee0901ae81a9f6cfd2989d6ead51fcfb97dc5810bb3c7596050bd0283c77f0",
+    "fixed-proposal/Agent/Permissions/PermissionRequest.swift.txt": "77ee0901ae81a9f6cfd2989d6ead51fcfb97dc5810bb3c7596050bd0283c77f0",
+    "common-original/Agent/Permissions/PermissionBroker.swift.txt": "50409220c846043f875d870d08e615e9e8b20b1f6bb6643cd6740dc965a5e50a",
+    "fixed-proposal/Agent/Permissions/PermissionBroker.swift.txt": "50409220c846043f875d870d08e615e9e8b20b1f6bb6643cd6740dc965a5e50a"
+  }
+}

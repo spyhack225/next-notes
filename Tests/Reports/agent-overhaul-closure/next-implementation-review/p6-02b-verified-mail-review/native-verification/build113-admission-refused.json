@@ -1,0 +1,14 @@
+{
+  "build": 113,
+  "installExit": 0,
+  "proofAdmission": "REFUSED",
+  "compilerDrift": [
+    {
+      "path": "Sources/NextNotes/Agent/Identity/PeepFigure.swift",
+      "before": "16e8d77daae16a2b3d85feb06709bab06d80dd8d82e8b233ec01a5d6ea997d9f",
+      "after": "5043b25456134dccf1a9b13861eecf894d85d6484b1e8eba3d37b14c7d872bf1"
+    }
+  ],
+  "nativeRun": false,
+  "note": "Preserved foreign illustration change; fresh stable build required; actual compiler input at changed file is not established."
+}
