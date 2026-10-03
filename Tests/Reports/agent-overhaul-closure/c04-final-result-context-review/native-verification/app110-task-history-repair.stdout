@@ -1,0 +1,6 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-history-repair --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-c04-final-context-110-l7kmlbfl/task-history-repair.log
+2026-10-02 19:59:46.212 NextNotes[26591:247995] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+TASK_HISTORY_REPAIR_OK: 58 cases
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
+TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.

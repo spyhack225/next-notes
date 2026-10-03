@@ -52,9 +52,11 @@
 #
 # Flags that require an argument (`--selftest-transcribe <wav>`, `--selftest-notes`,
 # `--selftest-voice-pipeline`, the acoustic speech replays, …) are deliberately not in
-# any tier: without their file they are guaranteed `SELFTEST_FAILED`, which is noise
+# any tier: without their required input they are guaranteed `SELFTEST_FAILED`, which is noise
 # rather than signal. Value-taking flags whose argument is optional are tiered and run
 # without it.
+# The paired C04 result-context/final-result-context diagnostics likewise require
+# one retained `--c04-fixture-now <ISO8601>` input; run those explicitly outside tiers.
 #
 # TCC-gated entries
 # -----------------

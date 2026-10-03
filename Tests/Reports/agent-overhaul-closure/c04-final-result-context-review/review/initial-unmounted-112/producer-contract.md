@@ -1,0 +1,11 @@
+# Existing producer/caller contract
+
+Current Source: ordinary `fittedPrompt` honors `foldOlderResults:false` since the105/106 repair. `finalAnswerRound` still calls `userMessage(lastGroundedPrompt,results)` without that argument, then counts once. Its default fold keeps two entries; wrappers' first lines have no mail body. The actual account-read branch appends its verified calendar result and immediately calls the final function. A real correction note before that read therefore supplies the missing third slot, independently of native103's unretained round2.
+
+Common original changes only the dedicated hook's flag allowance. New conductor supplies real guard branches and actual missing-account read. No default provider, prompt rule, result cap, tool boundary or model selection is altered. Source-original +ToolLoop matches installed106 manifest1cbda284; common changes that exact diagnostic predicate only. The existing RealtimeAgent hook itself is retained unchanged.
+
+Fixed refactors the existing fitter because two current production callers need the same admission policy. Exact caller originals, system and suffix are separate parameters; this prevents restoring stale/current-context text from a convenience copy. Earlier conversation is removed only when its exact original section begins that caller's string. It is the existing optional conversation section, not a parsing heuristic or a new data source. Results remain separate and are appended once. Actual full system/request/output reserve count is retained, with one count on fits and existing bounded recounters only on overflow.
+
+Original final allowed an irreducibly too-large prompt after clamping visible tokens to the floor. Fixed returns the existing context-overflow outcome with the last verified result; it does not add a model pass, clear receipt history or retry a tool. This additional original target is explicit, rather than counted as a missing test or hidden under a context cap.
+
+This contract makes no claim about native103's unavailable intermediate raw, scheduled/default eager folding, model grounding/default promotion, current-client/task authority after arbitrary awaits, global owner-read isolation, or live Island ownership. Root serial installed evidence is required before any completion claim.

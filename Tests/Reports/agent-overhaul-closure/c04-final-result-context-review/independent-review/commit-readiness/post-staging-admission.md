@@ -1,0 +1,3 @@
+The owned seven-file index is verified and its producer/comment/fixture blobs match fixed110 exactly. Root corrected the evidence scope to distinguish the guarded proof executable3e7a6616 from a later installed executable75cf946f. My initial stale-metadata description was a hypothesis; the actual new evidence is a post-proof bundle replacement with unchanged Source inputs.
+
+Completed native/quick/core pre/post bundle guards remain intact, and no native use after detection is claimed. The changed bundle maps hash whole executable/framework files and do not establish a signature-only cause or writer identity. Current installed bytes are not verified110. The bounded commit is ready with this distinction retained, quick4/10/core21/22 open, and all foreign hunks excluded.

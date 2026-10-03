@@ -1,0 +1,181 @@
+{
+  "verdict": "Aggregate gates OPEN; bounded paired proof remains separately admitted",
+  "previousPairedReview": "paired109-110-review.md/json preserved verbatim with pending-at-save status",
+  "quick": {
+    "exit": 1,
+    "score": "4/10",
+    "passBar": "9/10 unchanged",
+    "elapsedSeconds": 79.8,
+    "model": "appLLM Gemma4E4B32768 cloud-role FALLBACK",
+    "classes": {
+      "error": 0,
+      "timeout": 0,
+      "leak": 0,
+      "refusal": 2,
+      "wrong_tool": 0,
+      "fabricated": 0,
+      "missed_tool": 3,
+      "ungrounded": 1,
+      "filler": 0,
+      "pass": 4
+    },
+    "caseVerdictParity106108110": true,
+    "C04": "PASS20.6s; no timing attribution/native answer or general improvement claim",
+    "comparison": [
+      {
+        "id": "C01",
+        "verdict": "PASS",
+        "seconds106": 10.5,
+        "seconds108": 10.5,
+        "seconds110": 10.5,
+        "rounds106": 2,
+        "rounds108": 2,
+        "rounds110": 2
+      },
+      {
+        "id": "C04",
+        "verdict": "PASS",
+        "seconds106": 27.5,
+        "seconds108": 36.8,
+        "seconds110": 20.6,
+        "rounds106": 3,
+        "rounds108": 4,
+        "rounds110": 3
+      },
+      {
+        "id": "M03",
+        "verdict": "REFUSAL",
+        "seconds106": 3.6,
+        "seconds108": 3.2,
+        "seconds110": 3,
+        "rounds106": 1,
+        "rounds108": 1,
+        "rounds110": 1
+      },
+      {
+        "id": "M04",
+        "verdict": "MISSED_TOOL",
+        "seconds106": 3.8,
+        "seconds108": 3.9,
+        "seconds110": 3.7,
+        "rounds106": 1,
+        "rounds108": 1,
+        "rounds110": 1
+      },
+      {
+        "id": "M05",
+        "verdict": "UNGROUNDED",
+        "seconds106": 9.2,
+        "seconds108": 11.1,
+        "seconds110": 9,
+        "rounds106": 3,
+        "rounds108": 4,
+        "rounds110": 3
+      },
+      {
+        "id": "K01",
+        "verdict": "REFUSAL",
+        "seconds106": 2.7,
+        "seconds108": 2.8,
+        "seconds110": 2.6,
+        "rounds106": 1,
+        "rounds108": 1,
+        "rounds110": 1
+      },
+      {
+        "id": "R02",
+        "verdict": "MISSED_TOOL",
+        "seconds106": 4.6,
+        "seconds108": 4.9,
+        "seconds110": 8,
+        "rounds106": 2,
+        "rounds108": 2,
+        "rounds110": 2
+      },
+      {
+        "id": "F03",
+        "verdict": "MISSED_TOOL",
+        "seconds106": 3.4,
+        "seconds108": 3.5,
+        "seconds110": 3.7,
+        "rounds106": 1,
+        "rounds108": 1,
+        "rounds110": 1
+      },
+      {
+        "id": "A02",
+        "verdict": "PASS",
+        "seconds106": 16.8,
+        "seconds108": 19.2,
+        "seconds110": 16.4,
+        "rounds106": 5,
+        "rounds108": 5,
+        "rounds110": 5
+      },
+      {
+        "id": "N04",
+        "verdict": "PASS",
+        "seconds106": 2.4,
+        "seconds108": 2,
+        "seconds110": 2.1,
+        "rounds106": 1,
+        "rounds108": 1,
+        "rounds110": 1
+      }
+    ],
+    "nativeRecord": {
+      "name": "quick",
+      "exit": 1,
+      "marker": "TOOLLOOP_LIVE_FAILED: 4/10 (quick) on Gemma 4 E4B \u2014 below the pass bar 9",
+      "score": [
+        "TOOLLOOP_LIVE_SCORE 4/10 (quick)",
+        "TOOLLOOP_LIVE_SCORE 4/10 (quick)"
+      ],
+      "sourceDrift": [],
+      "sameBundle": true,
+      "verdict": "OPEN"
+    }
+  },
+  "core": {
+    "score": "21/22",
+    "exit": 2,
+    "remainingFailure": [
+      "--selftest-wake-live",
+      "WAKE_LIVE_FAILED: 17/24 hits, 3/32 false at sens 0.6 \u2014 hit rate 0.71 under 0.8 at sensitivity 0.6; 3 false accepts over 2 at sensitivity 0.6"
+    ],
+    "computerActual": "Same owned harness currentrun readshello and markerPASS; does not supersede earlier108takeover refusal or109/110 broad interaction authority gaps.",
+    "nativeRecord": {
+      "exit": 2,
+      "sourceDrift": [],
+      "sameBundle": true,
+      "scripts": {
+        "Scripts/acceptance.sh": "eb22a5a07b6a5bc858269b4056713a5415254856c8b1271d4ca8fcffb1b8e419",
+        "Scripts/run-selftest.sh": "0ce751b4b167ff66b57d68164c58cfc37f18d9c7489156ef0aa952addada99df"
+      },
+      "verdict": "OPEN"
+    },
+    "acceptanceScript": "SHA changed af7b\u2192eb22 due comments-only diagnostic input documentation. Independently checked no script runtime/tiers/assertions change; no gate relaxation."
+  },
+  "preservedOpenContracts": [
+    "Prior108computer takeover refusal origin unmeasured despite standalone108andcurrent110PASS.",
+    "Prior native voice identity/resume failures and required physical/current-owner receipts stay open unless their own original flow verified.",
+    "Owner reads/loaded model capacity/default promotion/phase readiness/privacy/latency/full quality remain open.",
+    "Cancellation/work revision/current owner during tokenizer/final completion awaits not established.",
+    "Scripted paired122 andordinary84 proof does not mean a native model uses all evidence."
+  ],
+  "evidenceSHA256": {
+    "native-verification/app110-quick.md": "0792747849a0011f5ba035b2b048d8855d2affad289b1288203ac7f401bd372a",
+    "native-verification/app110-quick.md.jsonl": "06da5f21b710eba7f14cb2fe957be8119fe405e4e4c35f2398f6ec19d304eee8",
+    "native-verification/app110-quick.log": "66ad8d524a5738dc2049fb0394ed6276ea5e36d14053bedea1948213d6c07109",
+    "native-verification/app110-quick.stdout": "b922687225c1ad0512e568d1356ef982e4a65aabb31b07095ac161e6506d9e31",
+    "native-verification/app110-model-gates.json": "4db15f365026029697a88e81272237b74a2bf3225e45e2f70ff5a4a0975f3d17",
+    "native-verification/app110-core.stdout": "6dbfddb01a8936fb2ae6887164209a79b867e58826033d10ee6c52a70f9fee27",
+    "native-verification/app110-core-gate.json": "6953ddedf5e523758a354ac6d9f70fcad03eca1b9a4a4d7d92b6c8043f56f3ac",
+    "native-verification/app110-core-computer.out": "492d1cb88a297b3024d1594562ec4849cf2cfacff3e98e5983a5fa750414e217",
+    "native-verification/app110-core-computer.log": "604c32810b2fdafd2fd7f62623cb0d099449cddc6818cd9c216159411fd82236",
+    "native-verification/app110-core-wake-live.out": "e487642c5675fc783a10243b85251797a22a68fe170102bd8c8966511206abc2",
+    "native-verification/app110-core-wake-live.log": "d96473a64c4ec3c65674dabb565bb54965883f5eb5898a286e8294797b3ef407"
+  },
+  "currentAcceptanceScriptSHA256": "eb22a5a07b6a5bc858269b4056713a5415254856c8b1271d4ca8fcffb1b8e419",
+  "reviewerSourceNativeModelIndexActions": false
+}

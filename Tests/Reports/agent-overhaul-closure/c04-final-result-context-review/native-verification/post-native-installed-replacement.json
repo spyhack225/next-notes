@@ -1,0 +1,29 @@
+{
+  "detectedAfterAllGates": true,
+  "sourceDrift": [],
+  "replacementAtLocalTime": "2026-10-02 20:06:47",
+  "attribution": "unresolved; root and children performed no build/install since110",
+  "nativeUseAfterDetection": false,
+  "bundleDelta": {
+    "Contents/Frameworks/libNextNotesAEC.dylib": {
+      "verified110": "96516fc89b95615f4fc9ef8126676ee2fcd1ae6659c69cf3f11ab30e36b2142b",
+      "postNativeCurrent": "9b1244126586357c8f404c7f0dbcb21f7087b283a272b7979245a1a80b8df5a5"
+    },
+    "Contents/MacOS/NextNotes": {
+      "verified110": "3e7a66161025bc5c52c5a567485c519a7963367571c8348a1da05b7f853ea940",
+      "postNativeCurrent": "75cf946f4d29ddd142c455c0545cf82ddfdc949aa869226409badbca0e765042"
+    },
+    "Contents/Frameworks/llama.framework/Versions/A/llama": {
+      "verified110": "195332054d51d739ba519e84045927186bea84b56226c6e8f3cb6ea7cf4ec9f8",
+      "postNativeCurrent": "f583df8411ddad9362ac1d591ae263098eaa06f81e287979f90cfd2eac25b751"
+    },
+    "Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib": {
+      "verified110": "3c9c36ead74eec1c944a9e1a25442ad725f13e6c9ebf48077cb493fe51c8936d",
+      "postNativeCurrent": "25249b38b01e4d65f1bbd8d1cb8f7d4224a9314fe69d36c0e360d274ed9ec493"
+    },
+    "Contents/Frameworks/llama.framework/llama": {
+      "verified110": "195332054d51d739ba519e84045927186bea84b56226c6e8f3cb6ea7cf4ec9f8",
+      "postNativeCurrent": "f583df8411ddad9362ac1d591ae263098eaa06f81e287979f90cfd2eac25b751"
+    }
+  }
+}

@@ -1,0 +1,142 @@
+{
+  "kind": "Independent amended122 final-result fitter static review",
+  "status": "No remaining static blocker found; root-only original/fixed execution required.",
+  "historical": "Initial112 package/review retained unchanged; this additive review supersedes its nonempty-history source-only limitation for prepared fixtures, not runtime evidence.",
+  "manifestSHA": "b3095eb81e6449b2bf887a03f8fe38158969b32563a0b8d3c0b2bf729cf48f78",
+  "fixtureSHA": "603c1210187271e71c8148a6cf756cacfd341fe1b4ffa5c537c8a66b013e0031",
+  "fixedProducerSHA": "0d226be31846871d21f6e8eeca3f56307d4693eaa4857b2da697c200f175d01f",
+  "all17HashesMatch": true,
+  "checks": {
+    "main96": 96,
+    "history": 10,
+    "irreducible": 8,
+    "cancel": 8,
+    "total": 122
+  },
+  "predictedOriginalTargets": [
+    "refusal-8192/C07",
+    "claim-8192/C07",
+    "refusal-32768/C07",
+    "claim-32768/C07",
+    "history/H03",
+    "unfit/U05",
+    "unfit/U06"
+  ],
+  "prefixCorrection": "Candidate now removes (earlierConversation + separator).count. Measuring earlierConversation.count+2 separately can disagree at CR/LF extended-grapheme boundary and over-remove current request; initial candidate quality issue was caught before mount. This is not claimed as an old product failure.",
+  "realHistoryControl": "Same owned short bare-CR-ended earlier user is seeded via actual AgentSession.recordUser after startNewConversation. Existing untrimmed user modelContextText/context builder creates CRLF with separator. Main script/first112 inputs remain unchanged. History script has two real reads, two ordinary streamed rounds and one accountRead final completion.",
+  "historyPredicates": {
+    "H03": "Original final defaults leave known history + section label; fixed drops exact leading section under measured pressure. This is sole added original target.",
+    "H04": "Complete Current user request label/value remains intact, sensitive to CR-prefix over-removal.",
+    "H05": "Actual ordinary captured prompts contain exact history-origin CRLF and retained raw user haystack contains earlierUser+LF+request, avoiding substring termination inside a joined CRLF grapheme.",
+    "H06": "Both owned bodies remain despite history pressure; reductions may not replace request or fold bodies unnecessarily.",
+    "H08": "Output cap derives last actual count: old8192 floor64 and fixed2000 balanced256 both valid controls.",
+    "H10": "Exact old2000/2000/8192 or fixed2000/2000/8192/2000 counter traces admitted; no original control pins fixed behavior."
+  },
+  "pressureMarker": "Complete actual Earlier fixture note\\r\\n\\nCurrent user request: marker; final envelope suffix required. No bare-CR substring dependence or altered external input.",
+  "fixtureParity": "Identical final122 fixture/provider scripts/clock/owned data/common hook and registry before original/fixed. One actual history case added before either; source-original/common/registration unchanged from initial package. Both tested producers use same stronger original controls.",
+  "unchangedContracts": {
+    "responsibleSource": "RealtimeAgent+ToolLoop.swift",
+    "otherSource": "AgentToolLoop.swift documentation only; runtime/default unchanged.",
+    "originals": "Final passes exact lastGroundedPrompt; ordinary passes exact newly constructed groundedPrompt. Existing results are appended separately once.",
+    "envelope": "Current caller system + newline + complete user envelope including unchanged final answer-now suffix are counted.",
+    "budget": "Same window resolved once per plan; same floor64 + safety256 room; existing AgentAnswerBudget.tokens wanted and clamping unchanged (balanced final256 on fitting2000 cases).",
+    "reductions": "Only exact leading earlier-conversation section plus separator may be dropped; retain every other caller byte. Then explicit ToolResultBudget.fold(keepFull:1), then cap400. Irreducible final refuses model invocation and returns existing contextOverflow(lastVerified) renderer.",
+    "latency": "One existing count await on fitting paths. New final overflow fitting may require up to four bounded counts, rather than its previous one; no actual timing bound/foreground speed promotion established.",
+    "unchanged": "No extra model pass/store/queue/timer/retry, result-history clearing, policy approval, provider/default choice, read consent or tool-call owner. Generic/scheduled eager default and wholeTurn remain separate paths."
+  },
+  "remainingLimits": [
+    "All native counts/targets are predicted until root executes; extra control failure invalidates comparison.",
+    "Post-await owner/revision/cancellation during fit and complete remains inherited/open; cancellation8 is ordinary stream before final fitting.",
+    "Native model use/grounding and actual tokenizer costs are not proved by scripted provider.",
+    "Other final reasons, voice corrections/effect holds, standalone generic/scheduled/wholeTurn, real window/fallback contracts need related suites.",
+    "No9/10/model/default/latency/live UI/phase promotion, no exact native103 attribution."
+  ],
+  "artifacts": [
+    {
+      "path": "C04FinalResultContextSelfTest.swift.txt",
+      "expected": "603c1210187271e71c8148a6cf756cacfd341fe1b4ffa5c537c8a66b013e0031",
+      "actual": "603c1210187271e71c8148a6cf756cacfd341fe1b4ffa5c537c8a66b013e0031"
+    },
+    {
+      "path": "README.md",
+      "expected": "f82c2d12b2a965291aa3c6ccb2c47518f747ee5d7ddba7261e72cded86e7b4ea",
+      "actual": "f82c2d12b2a965291aa3c6ccb2c47518f747ee5d7ddba7261e72cded86e7b4ea"
+    },
+    {
+      "path": "common-original/AgentToolLoop.swift.txt",
+      "expected": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4",
+      "actual": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4"
+    },
+    {
+      "path": "common-original/NextNotesApp.swift.txt",
+      "expected": "2b13b17dc8d252e93f6d64e8d854d91711d1df3d8d6f56100edcda49342188ad",
+      "actual": "2b13b17dc8d252e93f6d64e8d854d91711d1df3d8d6f56100edcda49342188ad"
+    },
+    {
+      "path": "common-original/RealtimeAgent+ToolLoop.swift.txt",
+      "expected": "eeac556bec8ee3a87c95f4a5696cd3dbb097e598919ce1461fdcf101d306ad1e",
+      "actual": "eeac556bec8ee3a87c95f4a5696cd3dbb097e598919ce1461fdcf101d306ad1e"
+    },
+    {
+      "path": "common-scaffold.patch.txt",
+      "expected": "58616428841c3734d1016ed5f184386674726013f9f1b3191fa9449fa6ad6147",
+      "actual": "58616428841c3734d1016ed5f184386674726013f9f1b3191fa9449fa6ad6147"
+    },
+    {
+      "path": "fixed-proposal/AgentToolLoop.swift.txt",
+      "expected": "6a36da584110bfb1bcc357ae1d0821f531c0f55405380bae010f7a3217cebfae",
+      "actual": "6a36da584110bfb1bcc357ae1d0821f531c0f55405380bae010f7a3217cebfae"
+    },
+    {
+      "path": "fixed-proposal/RealtimeAgent+ToolLoop.swift.txt",
+      "expected": "0d226be31846871d21f6e8eeca3f56307d4693eaa4857b2da697c200f175d01f",
+      "actual": "0d226be31846871d21f6e8eeca3f56307d4693eaa4857b2da697c200f175d01f"
+    },
+    {
+      "path": "input-manifest.json",
+      "expected": "1971cbe7d30711c29ff47bff3108f0cd9c49779483a0a92cc4c7bdbb10686be7",
+      "actual": "1971cbe7d30711c29ff47bff3108f0cd9c49779483a0a92cc4c7bdbb10686be7"
+    },
+    {
+      "path": "producer-contract.md",
+      "expected": "1865acafaecd9574bb2db2df29d9bcfcadb6c01940ea3f384d4b3eaa9be1f36c",
+      "actual": "1865acafaecd9574bb2db2df29d9bcfcadb6c01940ea3f384d4b3eaa9be1f36c"
+    },
+    {
+      "path": "producer.patch.txt",
+      "expected": "869d1b053ce42b0e13fd7428be3ccb68fa93b1966baa8cc3bcaa239e8ec0843b",
+      "actual": "869d1b053ce42b0e13fd7428be3ccb68fa93b1966baa8cc3bcaa239e8ec0843b"
+    },
+    {
+      "path": "registration.swift.txt",
+      "expected": "5633b47a69c35bbb99d02b2f7f983ebc9070fe06716e20d59dd0f2aac6506d00",
+      "actual": "5633b47a69c35bbb99d02b2f7f983ebc9070fe06716e20d59dd0f2aac6506d00"
+    },
+    {
+      "path": "registry.patch.txt",
+      "expected": "fc9cc4ae968425a5cbd1b29ef2115cc2bfbf3eeec2bae720771f5927bc9aba03",
+      "actual": "fc9cc4ae968425a5cbd1b29ef2115cc2bfbf3eeec2bae720771f5927bc9aba03"
+    },
+    {
+      "path": "source-original/AgentToolLoop.swift.txt",
+      "expected": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4",
+      "actual": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4"
+    },
+    {
+      "path": "source-original/NextNotesApp.swift.txt",
+      "expected": "6670649bb378b35df5260f0d63b310c64a82860734e9d4bfa98469bb57a4edb0",
+      "actual": "6670649bb378b35df5260f0d63b310c64a82860734e9d4bfa98469bb57a4edb0"
+    },
+    {
+      "path": "source-original/RealtimeAgent+ToolLoop.swift.txt",
+      "expected": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471",
+      "actual": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471"
+    },
+    {
+      "path": "source-pins.json",
+      "expected": "6e1c78523f799c1acaa1b762db1ef1221b7b97654aa664554efae43264f8f98b",
+      "actual": "6e1c78523f799c1acaa1b762db1ef1221b7b97654aa664554efae43264f8f98b"
+    }
+  ],
+  "scope": "Additive report only; no Source/index/build/native/model/owner-store/rerun actions."
+}

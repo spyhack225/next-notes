@@ -1,0 +1,61 @@
+{
+  "reviewedAtUTC": "2026-10-03T00:10:21.709Z",
+  "verdict": "Actual staged seven-file code/doc scope is approved and matches bounded owned changes; correct one stale binary metadata field before committing evidence.",
+  "stagedNumstat": {
+    "AGENTS.md": [
+      25,
+      2
+    ],
+    "README.md": [
+      1,
+      0
+    ],
+    "Scripts/acceptance.sh": [
+      3,
+      1
+    ],
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": [
+      2,
+      1
+    ],
+    "Sources/NextNotes/Agent/C04FinalResultContextSelfTest.swift": [
+      378,
+      0
+    ],
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": [
+      62,
+      46
+    ],
+    "Sources/NextNotes/NextNotesApp.swift": [
+      9,
+      0
+    ]
+  },
+  "verifiedStagedSourceSHA256": {
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": "6a36da584110bfb1bcc357ae1d0821f531c0f55405380bae010f7a3217cebfae",
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": "0d226be31846871d21f6e8eeca3f56307d4693eaa4857b2da697c200f175d01f",
+    "Sources/NextNotes/Agent/C04FinalResultContextSelfTest.swift": "603c1210187271e71c8148a6cf756cacfd341fe1b4ffa5c537c8a66b013e0031"
+  },
+  "sharedHunks": "Read actual cached diff: NextApp registration only, AGENTS own bounded evidence/historical-note/flag only, README own map row only, acceptance comments only.",
+  "foreignExcluded": [
+    "AGENTS fixed-theme decision",
+    "README meeting-retention command",
+    "NextApp theme/settings/onboarding/meeting/dictation changes",
+    "RealtimeAgent.swift visible-draft timestamp hunks",
+    "All other dirty Source/site/Makefile files"
+  ],
+  "metadataCorrectionRequired": {
+    "path": "native-verification/owned-staging-scope.json",
+    "field": "installedBinarySHA256",
+    "observedStale": "75cf946f4d29ddd142c455c0545cf82ddfdc949aa869226409badbca0e765042",
+    "actualInstalled110": "3e7a66161025bc5c52c5a567485c519a7963367571c8348a1da05b7f853ea940",
+    "evidence": [
+      "app110-binary.json.sha256",
+      "app110-bundle-before.json.Contents/MacOS/NextNotes",
+      "run-native-checks.py directly samples installed binary before copying to cache"
+    ],
+    "interpretation": "Evidence label correction only, no product/native regression or source delta."
+  },
+  "actualGates": "review.json retains original109RED7/122→fixed110PASS122/old84/all30, quick4/10OPEN andcore21/22OPEN.",
+  "indexChangesPerformed": false
+}

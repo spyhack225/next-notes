@@ -1,0 +1,3 @@
+run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-receipt-runtime --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-c04-final-context-110-l7kmlbfl/receipt-runtime.log
+2026-10-02 19:59:47.285 NextNotes[26604:248091] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+SELFTEST_FAILED: --selftest-receipt-runtime needs an argument, or is not a self-test this build knows.

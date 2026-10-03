@@ -1,0 +1,237 @@
+{
+  "reviewedAtUTC": "2026-10-03T00:08:11.702Z",
+  "verdict": "READY for bounded P1-10a-2 commit with actual aggregate gates explicitly OPEN and staging restricted to owned hunks. No model/default/phase readiness promotion.",
+  "confirmedProducerCause": "Actual finalAnswerRound builds its user message with default eager folding before its existing token measurement. Three actual carried entries (verified mail, real guard note, verified agenda) lose the older mail body even within ample context. The final caller also lacks measured reduction/refusal for irreducible envelopes.",
+  "repair": "One existing-method shared measured fitter, preserving ordinary groundedPrompt and final lastGroundedPrompt plus unchanged system/final suffix. Count full already-capped bodies before reducing; drop exact leading conversation, then fold, then cap400 only under pressure. Refuse irreducible final completion through existing renderer and retained verified result. AgentToolLoop behavior unchanged here; its delta is comment only.",
+  "pairedNative": {
+    "original": {
+      "build": 109,
+      "checkCount": 122,
+      "passed": 115,
+      "failed": 7,
+      "failures": [
+        "C04_FINAL_RESULT_CONTEXT_FAILURE refusal-8192/C07-final-mail-body-admission",
+        "C04_FINAL_RESULT_CONTEXT_FAILURE claim-8192/C07-final-mail-body-admission",
+        "C04_FINAL_RESULT_CONTEXT_FAILURE refusal-32768/C07-final-mail-body-admission",
+        "C04_FINAL_RESULT_CONTEXT_FAILURE claim-32768/C07-final-mail-body-admission",
+        "C04_FINAL_RESULT_CONTEXT_FAILURE history/H03-measured-earlier-history-removal",
+        "C04_FINAL_RESULT_CONTEXT_FAILURE unfit/U05-refuse-final-model",
+        "C04_FINAL_RESULT_CONTEXT_FAILURE unfit/U06-render-existing-overflow-result"
+      ],
+      "traces": [
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=no-note-8192 regular=2 complete=1 tools=2 counted=[2000, 2000, 2000] userCharacters=921",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=refusal-8192 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=774",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=claim-8192 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=531",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=refusal-32768 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=774",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=claim-32768 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=531",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=pressure-8192 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=531",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=history regular=2 complete=1 tools=2 counted=[2000, 2000, 8192] userCharacters=1033",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=unfit regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 8192]",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=cancel streams=3 tools=1 counted=[2000, 2000, 2000]"
+      ],
+      "marker": [
+        "C04_FINAL_RESULT_CONTEXT_FAILED 7/122"
+      ]
+    },
+    "fixed": {
+      "build": 110,
+      "checkCount": 122,
+      "passed": 122,
+      "failed": 0,
+      "failures": [],
+      "traces": [
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=no-note-8192 regular=2 complete=1 tools=2 counted=[2000, 2000, 2000] userCharacters=921",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=refusal-8192 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=1320",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=claim-8192 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=1077",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=refusal-32768 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=1320",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=claim-32768 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 2000] userCharacters=1077",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=pressure-8192 regular=3 complete=1 tools=2 counted=[2000, 2000, 2000, 8192, 2000] userCharacters=531",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=history regular=2 complete=1 tools=2 counted=[2000, 2000, 8192, 2000] userCharacters=921",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=unfit regular=3 complete=0 tools=2 counted=[2000, 2000, 2000, 8192, 8192, 8192]",
+        "C04_FINAL_RESULT_CONTEXT_TRACE mode=cancel streams=3 tools=1 counted=[2000, 2000, 2000]"
+      ],
+      "marker": [
+        "C04_FINAL_RESULT_CONTEXT_OK 122"
+      ]
+    },
+    "same122LabelsAndOrder": true,
+    "sourceEntries": 1050,
+    "delta": [
+      "Sources/NextNotes/Agent/AgentToolLoop.swift",
+      "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift"
+    ],
+    "fixtureSHA256": "603c1210187271e71c8148a6cf756cacfd341fe1b4ffa5c537c8a66b013e0031",
+    "fixedProducerSHA256": "0d226be31846871d21f6e8eeca3f56307d4693eaa4857b2da697c200f175d01f",
+    "fixedBinarySHA256": "3e7a66161025bc5c52c5a567485c519a7963367571c8348a1da05b7f853ea940",
+    "beforeAfterBundleByteIdentical": [
+      {
+        "build": 109,
+        "byteIdentical": true,
+        "semanticIdentical": true
+      },
+      {
+        "build": 110,
+        "byteIdentical": true,
+        "semanticIdentical": true
+      }
+    ],
+    "commonClock": "2026-10-02T23:56:26Z"
+  },
+  "focused": {
+    "passed": 30,
+    "total": 30,
+    "allSourcesBinaryBundlesInvariant": true,
+    "priorOrdinary": 84,
+    "worker": 1487,
+    "isolation": "21 files and32 defaults unchanged",
+    "correctedReceiptPersistence": 5,
+    "invalidReceiptRuntimeInvocation": "Promptly refused unknown flag, retained raw and excluded from executed feature-test count. No Source/assertion change; valid receipt-persistence passed."
+  },
+  "aggregate": {
+    "quick": {
+      "score": "4/10",
+      "requiredBar": 9,
+      "verdict": "OPEN",
+      "seconds": 79.8,
+      "caseVerdictComparison108": [
+        {
+          "id": "C01",
+          "original108": "PASS",
+          "current110": "PASS",
+          "unchanged": true
+        },
+        {
+          "id": "C04",
+          "original108": "PASS",
+          "current110": "PASS",
+          "unchanged": true
+        },
+        {
+          "id": "M03",
+          "original108": "REFUSAL",
+          "current110": "REFUSAL",
+          "unchanged": true
+        },
+        {
+          "id": "M04",
+          "original108": "MISSED_TOOL",
+          "current110": "MISSED_TOOL",
+          "unchanged": true
+        },
+        {
+          "id": "M05",
+          "original108": "UNGROUNDED",
+          "current110": "UNGROUNDED",
+          "unchanged": true
+        },
+        {
+          "id": "K01",
+          "original108": "REFUSAL",
+          "current110": "REFUSAL",
+          "unchanged": true
+        },
+        {
+          "id": "R02",
+          "original108": "MISSED_TOOL",
+          "current110": "MISSED_TOOL",
+          "unchanged": true
+        },
+        {
+          "id": "F03",
+          "original108": "MISSED_TOOL",
+          "current110": "MISSED_TOOL",
+          "unchanged": true
+        },
+        {
+          "id": "A02",
+          "original108": "PASS",
+          "current110": "PASS",
+          "unchanged": true
+        },
+        {
+          "id": "N04",
+          "original108": "PASS",
+          "current110": "PASS",
+          "unchanged": true
+        }
+      ],
+      "all10Unchanged": true,
+      "C04": "PASS",
+      "A02": "PASS",
+      "causality": "Sampled native decisions/timing do not prove paired structural fix caused native quality/speed."
+    },
+    "core": {
+      "score": "21/22",
+      "exit": 2,
+      "verdict": "OPEN",
+      "wake": "17/24 hits,3/32 false at sensitivity0.6; unchanged0.8 hit bar and<=2 false bar unmet",
+      "computer": "PASS in110; prior108 takeover failure/origin remains unresolved and retained",
+      "sourceDrift": [],
+      "sameBundle": true
+    },
+    "fullOwner": "Not rerun by this bounded proof; existing requirements unchanged",
+    "nativeVoiceIdentity": "Prior actual direct voice identity failure remains OPEN, scripted voice checks do not relabel it"
+  },
+  "harnessAndAcceptance": {
+    "commonRegistry": "Exact same NextNotesApp registry beforeboth; sets SelfTest.failed on non-OK, writes marker, terminates.",
+    "commonMemory": "Existing nil-default beforeMemoryGroundingForTesting dispatch additionally admits exact final fixture flag beforeboth. Per-process temporary memory/actual producer empty grounding/no local-memory prompt-section controls pass. No global owner-read isolation claim.",
+    "requiredClock": "Both diagnostics require retained c04-fixture-now input; acceptance exclusion is existing required-input policy, comments only. No tier/timeout/verdict execution change.",
+    "actualCancellation": "Real cancel during third stream leaves only first read and no automatic calendar/final completion. Post-count/final-completion-await ownership remains separate inherited OPEN."
+  },
+  "privacyPermissionLatency": {
+    "newRawCollection": "None in production delta; existing authorized results only remain within existing fitted prompt. Owned fixture prompts distinguish clear temporary memory; no owner content inspected for this review.",
+    "permissions": "Same manifest/executor/read-only external fixture restrictions; no new approval/grant/dispatch. Actual same permission/cancellation controls and related flags green.",
+    "latency": "One existing count on fitting paths. Final pressure may add bounded existing token counts; actual model tokenizer/large-history/full-duplex latency unmeasured. No causal gain or zero overhead claim.",
+    "complexity": "No new model pass/store/queue/timer/owner/exported abstraction."
+  },
+  "stagingScope": {
+    "fullOwnedFiles": [
+      "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+      "Sources/NextNotes/Agent/AgentToolLoop.swift",
+      "Sources/NextNotes/Agent/C04FinalResultContextSelfTest.swift"
+    ],
+    "ownHunksOnly": {
+      "Sources/NextNotes/NextNotesApp.swift": "Only final-result diagnostic registration9-line addition; preserve foreign settings/theme/meeting/dictation hunks.",
+      "AGENTS.md": "Only final fixture flag and bounded actual verification paragraph; preserve foreign theme decision.",
+      "README.md": "Only final fixture map/owned documentation; preserve foreign meeting-retention row.",
+      "Scripts/acceptance.sh": "Only required-input explanatory comments; no tier execution change."
+    },
+    "evidence": "This P1-10a-2 report directory and own explicitly reviewed proof artifacts only.",
+    "exclude": [
+      "Sources/NextNotes/Agent/RealtimeAgent.swift foreign visible-draft timestamp change",
+      "All foreign UI/theme/model/provider/meeting/calendar/site/Makefile changes",
+      "Verified-mail off-source candidate and Source snapshot application until additive rebase"
+    ],
+    "indexVerdict": "Index was empty at last read. Parent owns staging/index manifest; this report approves bounded scope, not an uninspected future index."
+  },
+  "limits": [
+    "No final-await ownership/work-revision guarantee.",
+    "No scheduled/generic eager-fold policy repair.",
+    "No actual native final-answer comprehension causality or physical voice/UI/live-latency proof.",
+    "Parent phases/model/default/remote recovery/retry/IM16 remain OPEN."
+  ],
+  "artifactPins": {
+    "native-verification/focused-verification.json": "a6ccd8b4f788f1144f2d9def2a9b362228579b7277f2c6f169cfde77776e7a82",
+    "native-verification/paired-compiler-delta.json": "6d00cd2a3e277dd0826c5b36ef30e3195c1af557c2adbd44768d3a02e9597b2c",
+    "native-verification/batch-invocation-correction.json": "0868749c03f33214820bd684409ce590797df84d7fbb86eccbeb8d53f9f034cd",
+    "native-verification/app109-c04-final-result-context.stdout": "75b614fa12140604c6b8b031ecb2617c800ba74d4c7897a9262ee43afc208f06",
+    "native-verification/app110-c04-final-result-context.stdout": "5467e2497db7bb10d0f8c92011a27246aa682a7915c977d7b4d12482854e0498",
+    "native-verification/app109-checks.json": "db30d0f563cffbbe7b2761e5276c1bc774e72401707d5a7ad1a199a289487f26",
+    "native-verification/app110-checks.json": "4fb1b9df53b545aee2a142731d22ffec33e83c9259bb69bc79139a154bb4ee24",
+    "native-verification/build109-source-manifest.json": "25979730f99058c961a0a39d793c336ec56873376ff3d9a8b869409a2da95ae5",
+    "native-verification/build110-source-manifest.json": "d54e55cefd4f19bcf28ad0a28d998a5d0eeda670a6efc9bdfb2f8e071173ac70",
+    "native-verification/app109-bundle-before.json": "9731cd442cc520f8df797ee76fadd587a4985c5553c5023583e923d3b2dd342d",
+    "native-verification/app109-bundle-after.json": "9731cd442cc520f8df797ee76fadd587a4985c5553c5023583e923d3b2dd342d",
+    "native-verification/app110-bundle-before.json": "f3438e7ba32e4ffb11faa7b49ec159bd61d9dac43f7f66691c6bcf1dfac5db64",
+    "native-verification/app110-bundle-after.json": "f3438e7ba32e4ffb11faa7b49ec159bd61d9dac43f7f66691c6bcf1dfac5db64",
+    "native-verification/app110-binary.json": "2e3b32104c9e1fd9b1237d8156de68df7fa4bef8faf92b3a8c8e01cc7d4f0bf0",
+    "native-verification/source-application-original.json": "a8de32a0cb53e7b1846d44786f7e658d9be9727d5b129e86472ec0fce76a1809",
+    "native-verification/source-application-fixed.json": "843c3043616f08dafd7653788e5fb5a37b69f02e0b2e3644232b97ea82ef3b28",
+    "native-verification/fixture-now.txt": "60be7afb6e5813de5c172639faca27694ec0c3be76ddcc867ddec4796819721e",
+    "native-verification/app110-model-gates.json": "4db15f365026029697a88e81272237b74a2bf3225e45e2f70ff5a4a0975f3d17",
+    "native-verification/app110-core-gate.json": "6953ddedf5e523758a354ac6d9f70fcad03eca1b9a4a4d7d92b6c8043f56f3ac",
+    "native-verification/app110-core.stdout": "6dbfddb01a8936fb2ae6887164209a79b867e58826033d10ee6c52a70f9fee27",
+    "native-verification/app110-quick.md.jsonl": "06da5f21b710eba7f14cb2fe957be8119fe405e4e4c35f2398f6ec19d304eee8",
+    "native-verification/verification.md": "b25c39e6de49870cfd812798b11c28f39b2c48090ccdab876d3752dffcf80062"
+  }
+}

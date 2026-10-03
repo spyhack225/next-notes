@@ -1,0 +1,15 @@
+{
+  "sourceEntries": 1050,
+  "sourceDelta": {
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": {
+      "original": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4",
+      "fixed": "6a36da584110bfb1bcc357ae1d0821f531c0f55405380bae010f7a3217cebfae"
+    },
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": {
+      "original": "eeac556bec8ee3a87c95f4a5696cd3dbb097e598919ce1461fdcf101d306ad1e",
+      "fixed": "0d226be31846871d21f6e8eeca3f56307d4693eaa4857b2da697c200f175d01f"
+    }
+  },
+  "fixtureByteIdentical": true,
+  "registrationByteIdentical": true
+}

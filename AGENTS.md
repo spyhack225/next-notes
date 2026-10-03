@@ -193,6 +193,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-toolloop  --selftest-acp-confirm --selftest-scheduler
 --selftest-toolloop-production
 --selftest-c04-result-context --c04-fixture-now <ISO8601>
+--selftest-c04-final-result-context --c04-fixture-now <ISO8601>
 --selftest-voice-grounding
 --selftest-voice-conversation --selftest-voice-local
 --selftest-voice-turns --selftest-voice-work-lifecycle --selftest-voice-delivery
@@ -750,9 +751,31 @@ fit-path await/model pass/store/queue/timer. Fourteen of15 focused flags pass,
 including worker1352 and isolation21files32defaults; direct native voice identity
 fails on a separate unchanged stream path and stays open. Quick106 is4/10
 (bar9 unchanged), with C04/A02 PASS; historical103 causal attribution remains
-unresolved. CORE21/22 retains wake17/24hits3/32false. Default final-answer/scheduled
-folding, model quality, prefill overhead, live/latency and phase gates remain open.
+unresolved. CORE21/22 retains wake17/24hits3/32false. At106, default final-answer/scheduled
+folding remained open; the bounded final-caller follow-up below supersedes that
+final fitting limitation. Scheduled policy, model quality, prefill overhead,
+live/latency and phase gates remain open.
 See the [result admission proof](Tests/Reports/agent-overhaul-closure/c04-result-context-review/native-verification/verification.md).
+
+`--selftest-c04-final-result-context --c04-fixture-now <ISO8601>` verifies
+bounded P1-10a-2 through the actual typed planner, account-read guard and final
+provider call. Original109 fails7/122; identical fixed110 passes122 and prior84.
+The final caller folded mail before measuring room and admitted an irreducible
+prompt. Both ordinary/final callers now share the existing measured fitting
+policy, preserving the exact current request and counting the final suffix.
+Actual CRLF history reduction, overflow rendering, raw results, permissions and
+stream cancellation pass. Full1050 compiler pins differ only at the producer and
+its documentation; the COMMON fixture and registration are identical. All30
+focused flags pass, including worker1487, reader40 and isolation21files32defaults.
+One root unknown-flag invocation is retained separately; corrected receipt flag
+passes5. Quick110 stays4/10 (79.8s), CORE21/22 retains wake17/24hits3/32false;
+computer passes this run without resolving the prior takeover input origin.
+No model/default/phase promotion, native-model comprehension or causal speed gain
+is claimed. Fit paths retain one existing count await; pressured final paths add
+bounded counts with unmeasured latency. Generic/scheduled folding, ownership
+across final awaits, startup/activity owner reads, direct native voice identity,
+full/owner/live/latency and parent gates remain open. See the
+[final admission proof](Tests/Reports/agent-overhaul-closure/c04-final-result-context-review/native-verification/verification.md).
 
 `--selftest-apple-playback-timeline` is a bounded native diagnostic: corrected
 original97 RED3 → fixed98 same22 PASS, repeated99. It observes the same Apple

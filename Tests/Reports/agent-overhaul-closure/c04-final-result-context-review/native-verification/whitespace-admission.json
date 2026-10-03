@@ -1,0 +1,7 @@
+{
+  "sourceAndDocsScopedCheck": "PASS",
+  "preservedEvidenceExceptions": {
+    "app109-c04-final-result-context.stdout:225": "Actual earlier-user CR and resulting CRLF are the tested original input; retained verbatim, not normalized.",
+    "owned-shared-file-staging.patch:60": "Unified patch blank context line contains its required leading context space; retained as applied ownership evidence."
+  }
+}

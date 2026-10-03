@@ -37,7 +37,8 @@ enum AgentToolLoop {
     /// The ordinary planner passes `foldOlderResults: false` because its existing token
     /// counter and overflow loop own admission there. Already-capped tool results should
     /// reach that measurement before older bodies are reduced to their wrapper's title.
-    /// The answer-only caller still uses the default; it has no equivalent fitting loop.
+    /// Both planner callers use their shared measured fitter; generic/scheduled callers
+    /// retain the default eager folding policy.
     static func userMessage(
         original: String, results: [String], readerContextTokens: Int = 8_192,
         foldOlderResults: Bool = true

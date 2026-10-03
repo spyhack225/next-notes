@@ -1,0 +1,52 @@
+{
+  "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift": {
+    "sha256": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471",
+    "app106Sha256": "1cbda28447d6f44bc237be15e66d98430cdbd42d396dcd68e97ddf569b0a2471",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/Agent/RealtimeAgent.swift": {
+    "sha256": "6f4b5c8b54adf8fdedffbdf61317d76f4b9e907a3e68568b35e08aa7d627e424",
+    "app106Sha256": "6f4b5c8b54adf8fdedffbdf61317d76f4b9e907a3e68568b35e08aa7d627e424",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/Agent/AgentToolLoop.swift": {
+    "sha256": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4",
+    "app106Sha256": "268eacc3daa71377b3948e2759d7920a57b838603aa9d179a3a4b87402cfeda4",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/NextNotesApp.swift": {
+    "sha256": "6670649bb378b35df5260f0d63b310c64a82860734e9d4bfa98469bb57a4edb0",
+    "app106Sha256": "6670649bb378b35df5260f0d63b310c64a82860734e9d4bfa98469bb57a4edb0",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/Agent/AgentAccountRead.swift": {
+    "sha256": "1922998db8e16fe3ad4f4d03e765a5945cd21b74afe9178787084e34c5ec8853",
+    "app106Sha256": "1922998db8e16fe3ad4f4d03e765a5945cd21b74afe9178787084e34c5ec8853",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift": {
+    "sha256": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+    "app106Sha256": "37e246abc0767e034e1a0119300a4ed905176eb234982942fc045ac415b1ed58",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/Agent/AgentAnswerBudget.swift": {
+    "sha256": "223af3c6df4109c4ab97c439191f502ae7d2b80bcc754807014b290f1df354bf",
+    "app106Sha256": "223af3c6df4109c4ab97c439191f502ae7d2b80bcc754807014b290f1df354bf",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/Agent/AgentReplyRenderer.swift": {
+    "sha256": "34b962f264470c9352f485d9e8ac2b85953ee751db410735cd211fc6d04b8f1a",
+    "app106Sha256": "34b962f264470c9352f485d9e8ac2b85953ee751db410735cd211fc6d04b8f1a",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/Agent/ToolClaimGuard.swift": {
+    "sha256": "bc0d4a07ad02272cf1c472e7a24d752639d9f824f28ba89500adf8c9908ff2e8",
+    "app106Sha256": "bc0d4a07ad02272cf1c472e7a24d752639d9f824f28ba89500adf8c9908ff2e8",
+    "matchesApp106": true
+  },
+  "Sources/NextNotes/Agent/AgentRefusalGuard.swift": {
+    "sha256": "103a9cecca239c9cf0eb797cccffa54cbed4873d5b5d653018fce8bd728dd79c",
+    "app106Sha256": "103a9cecca239c9cf0eb797cccffa54cbed4873d5b5d653018fce8bd728dd79c",
+    "matchesApp106": true
+  }
+}

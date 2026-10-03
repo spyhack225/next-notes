@@ -1,0 +1,20 @@
+{
+  "sharedFilesOwnPatch": "owned-shared-file-staging.patch",
+  "ordinaryOwnSourceFiles": [
+    "Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift",
+    "Sources/NextNotes/Agent/AgentToolLoop.swift",
+    "Sources/NextNotes/Agent/C04FinalResultContextSelfTest.swift",
+    "Scripts/acceptance.sh"
+  ],
+  "foreignChangesExcluded": [
+    "NextNotesApp other theme/settings/dictation hunks",
+    "AGENTS theme decision",
+    "README foreign tree row",
+    "RealtimeAgent.swift timestamp",
+    "all other dirty files"
+  ],
+  "sourceInputs": 1050,
+  "verifiedApp110BinarySHA256": "3e7a66161025bc5c52c5a567485c519a7963367571c8348a1da05b7f853ea940",
+  "postNativeCurrentInstalledBinarySHA256": "75cf946f4d29ddd142c455c0545cf82ddfdc949aa869226409badbca0e765042",
+  "postNativeReplacement": "Detected after guarded native/quick/core proof completed; attribution pending, no subsequent native test run. Full1050Source inputs unchanged. Current binary is not labeled as verified app110."
+}
