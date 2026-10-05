@@ -782,7 +782,12 @@ final class VoiceConversationCoordinator {
         // The voice frontend *is* Apple's system model, and the planner's own
         // `noteModel` covers the worker path. Saying so here is what lets the per-turn
         // usage row name the answering model without a second field of its own.
-        tracker.noteModel(FoundationModelLLMProvider())
+        if SelfTest.isRunning, SelfTest.requested == "--selftest-voice-latency",
+           let provider = await FrontendResponder.shared.voiceLatencyAnswerProvider() {
+            tracker.noteModel(provider)
+        } else {
+            tracker.noteModel(FoundationModelLLMProvider())
+        }
         var assembled = ""
         do {
             let stream = await ModelPassRecorder.$correlation.withValue(

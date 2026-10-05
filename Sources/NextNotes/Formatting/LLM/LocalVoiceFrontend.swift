@@ -29,6 +29,19 @@ actor FrontendResponder {
         }
     }
 
+    /// Exact diagnostic subprocess only. Capture once before any voice generation;
+    /// the process ends after this flag, so no live model/role choice is changed.
+    private var latencyAnswerProvider: (any LLMProvider)?
+    func installVoiceLatencyAnswerProvider(_ provider: any LLMProvider) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-latency",
+              LocalVoiceSplitResponse.isEnabled, latencyAnswerProvider == nil,
+              nativeGeneration == nil, speculation == nil,
+              provider is LlamaLLMProvider || provider is FoundationModelLLMProvider else { return false }
+        latencyAnswerProvider = provider
+        return true
+    }
+    func voiceLatencyAnswerProvider() -> (any LLMProvider)? { latencyAnswerProvider }
+
     private var prepared = false
     private var prepareTask: Task<Void, Error>?
     /// Prepared when user speech begins, then consumed by the committed turn.
@@ -533,7 +546,7 @@ actor FrontendResponder {
                         if useSplitDecision {
                             produced = try await self.streamSplitDecision(
                                 system: system, messages: messages, maxTokens: maxTokens, continuation: continuation,
-                                timing: timing
+                                timing: timing, schedulerJob: jobID
                             )
                         } else if useTypedResponse {
                             guard let session else { throw FrontendError.typedDecisionIncomplete }
@@ -605,7 +618,7 @@ actor FrontendResponder {
         messages: [LLMChatMessage],
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
-        timing: GenerationTiming
+        timing: GenerationTiming, schedulerJob: UUID
     ) async throws -> Bool {
         let recorder = ModelPassRecorder(
             feature: .agentVoice, pass: "frontend-route",
@@ -615,7 +628,7 @@ actor FrontendResponder {
         do {
             let produced = try await streamSplitDecisionBody(
                 system: system, messages: messages, maxTokens: maxTokens,
-                continuation: continuation, timing: timing)
+                continuation: continuation, timing: timing, schedulerJob: schedulerJob)
             recorder.finish(reason: "stop")
             return produced
         } catch {
@@ -630,7 +643,7 @@ actor FrontendResponder {
         messages: [LLMChatMessage],
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
-        timing: GenerationTiming
+        timing: GenerationTiming, schedulerJob: UUID
     ) async throws -> Bool {
         guard let routePlan = LocalVoiceSplitResponse.routePlan(messages: messages) else {
             throw FrontendError.unavailable("split_route_missing_latest_user")
@@ -692,11 +705,16 @@ actor FrontendResponder {
             ) else {
                 throw FrontendError.unavailable("split_answer_missing_latest_user")
             }
-            let answerSession = LanguageModelSession(
-                transcript: LocalVoicePrompt.transcript(for: answerPlan)
-            )
+            if latencyAnswerProvider is LlamaLLMProvider {
+                // Apple routing is complete. Llama owns its existing reservation/lane;
+                // holding this job across its acquire would deadlock the same lane.
+                // The outer release is idempotent for this already-ended job.
+                await ComputeScheduler.shared.release(schedulerJob)
+            }
+            let answerSession = latencyAnswerProvider is LlamaLLMProvider ? nil
+                : LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: answerPlan))
             return try await streamSplitAnswer(
-                session: answerSession, prompt: answerPlan.latestUser,
+                session: answerSession, plan: answerPlan,
                 maxTokens: maxTokens,
                 continuation: continuation, timing: timing
             )
@@ -708,20 +726,20 @@ actor FrontendResponder {
     ///
     /// P0-20a: one `agent.voice`/`frontend-answer` row per answer pass.
     private func streamSplitAnswer(
-        session: LanguageModelSession,
-        prompt: String,
+        session: LanguageModelSession?, plan: LocalVoicePrompt.Plan,
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
         timing: GenerationTiming
     ) async throws -> Bool {
+        let provider = latencyAnswerProvider ?? FoundationModelLLMProvider()
         let recorder = ModelPassRecorder(
             feature: .agentVoice, pass: "frontend-answer",
-            provider: FoundationModelLLMProvider(),
+            provider: provider,
             ids: ModelPassRecorder.correlation ?? UsageCorrelation(),
             requestedRole: nil)
         do {
             let produced = try await streamSplitAnswerBody(
-                session: session, prompt: prompt, maxTokens: maxTokens,
+                session: session, plan: plan, provider: provider, maxTokens: maxTokens,
                 continuation: continuation, timing: timing, recorder: recorder)
             recorder.finish(reason: "stop")
             return produced
@@ -733,25 +751,17 @@ actor FrontendResponder {
     }
 
     private func streamSplitAnswerBody(
-        session: LanguageModelSession,
-        prompt: String,
+        session: LanguageModelSession?, plan: LocalVoicePrompt.Plan,
+        provider: any LLMProvider,
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
         timing: GenerationTiming,
         recorder: ModelPassRecorder
     ) async throws -> Bool {
-        let response = session.streamResponse(
-            to: prompt,
-            options: GenerationOptions(
-                temperature: 0.2,
-                maximumResponseTokens: maxTokens
-            )
-        )
         var previous = ""
         var started = false
-        for try await snapshot in response {
+        func consume(_ current: String) throws {
             try Task.checkCancellation()
-            let current = snapshot.content
             guard current.hasPrefix(previous) else {
                 throw FrontendError.revisedSnapshot
             }
@@ -772,14 +782,36 @@ actor FrontendResponder {
             }
             previous = current
         }
+        if let local = provider as? LlamaLLMProvider {
+            let messages = plan.history.map { LLMChatMessage(role: $0.role, content: $0.content) }
+                + [LLMChatMessage(role: .user, content: plan.latestUser)]
+            // The runtime's producer Task inherits this recorder at stream creation,
+            // as in the existing tool loop. Consume text on this same actor afterwards.
+            let response = await ModelPassRecorder.$current.withValue(recorder) {
+                await local.streamInteractiveConversation(
+                    system: plan.instructions, messages: messages, maxTokens: maxTokens)
+            }
+            var current = ""
+            for try await delta in response {
+                current += delta
+                try consume(current)
+            }
+        } else {
+            guard let session else { throw FrontendError.emptyResponse }
+            let response = session.streamResponse(
+                to: plan.latestUser,
+                options: GenerationOptions(temperature: 0.2, maximumResponseTokens: maxTokens))
+            for try await snapshot in response { try consume(snapshot.content) }
+            guard started else { throw FrontendError.emptyResponse }
+            recorder.report(
+                promptTokens: max(1, plan.latestUser.count / 4),
+                cachedTokens: nil,
+                completionTokens: max(1, previous.count / 4),
+                reasoningTokens: nil,
+                finishReason: nil,
+                estimated: true)
+        }
         guard started else { throw FrontendError.emptyResponse }
-        recorder.report(
-            promptTokens: max(1, prompt.count / 4),
-            cachedTokens: nil,
-            completionTokens: max(1, previous.count / 4),
-            reasoningTokens: nil,
-            finishReason: nil,
-            estimated: true)
         return true
     }
 

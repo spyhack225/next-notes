@@ -61,7 +61,19 @@ enum VoiceLatencySelfTest {
         return Double(to - from) / 1_000_000_000
     }
 
+    static func acceptsAnswerModelArgument(_ argument: String) -> Bool {
+        !argument.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            && !argument.hasPrefix("--") && argument != "agent"
+            && argument != "localServer" && !argument.hasPrefix("openrouter:")
+    }
+    static func acceptsAnswerModelResolution(_ model: ToolLoopLiveEval.ResolvedModel) -> Bool {
+        !model.isFallback && (model.provider is LlamaLLMProvider || model.provider is FoundationModelLLMProvider)
+    }
+
     static func run() async -> Result {
+        if CommandLine.arguments.contains("--voice-latency-model-guards") {
+            return finish(await selfTestAnswerModelGuards())
+        }
         if CommandLine.arguments.contains("--voice-latency-partials") {
             let problems = await VoicePreparationSelfTest.run()
             for problem in problems { SelfTest.diagnostic("VOICE_PREPARATION_WRONG: \(problem)") }
@@ -97,6 +109,30 @@ enum VoiceLatencySelfTest {
         }
         if let reason = FoundationModelFormatter.unavailableReason {
             return absent("the on-device voice model is unavailable: \(reason)")
+        }
+
+        let modelFlags = CommandLine.arguments.indices.filter {
+            CommandLine.arguments[$0] == "--voice-latency-model"
+        }
+        if !modelFlags.isEmpty {
+            guard !CommandLine.arguments.contains("--sampler-arm") else {
+                return absent("sampler comparison is not supported by this answer-stage diagnostic")
+            }
+            guard modelFlags.count == 1, let index = modelFlags.first,
+                  index + 1 < CommandLine.arguments.count,
+                  acceptsAnswerModelArgument(CommandLine.arguments[index + 1]),
+                  LocalVoiceSplitResponse.isEnabled,
+                  AgentSession.shared.fileURL == nil else {
+                return absent("--voice-latency-model requires one explicit local answering model and the isolated split route")
+            }
+            let pin = CommandLine.arguments[index + 1]
+            guard let model = await ToolLoopLiveEval.resolveModel(argument: pin, allowCloud: false),
+                  acceptsAnswerModelResolution(model),
+                  await FrontendResponder.shared.installVoiceLatencyAnswerProvider(model.provider) else {
+                return absent("the requested answering model is unavailable; no fallback was measured")
+            }
+            SelfTest.diagnostic("VOICE_LATENCY_ANSWER_MODEL requested=\(String(reflecting: pin)) "
+                + "resolved=\(String(reflecting: model.roleChoice)) model=\(String(reflecting: model.provider.displayModelName)) scope=answer-stage route=apple")
         }
 
         // --- The table, the absent case, the store and the probe, before any measurement
@@ -384,6 +420,23 @@ enum VoiceLatencySelfTest {
                 if let emitModelPass { emitModelPass(line) } else { SelfTest.diagnostic(line) }
             }
         }
+        // COMMON native original regression: the requested file must actually answer.
+        if emitModelPass == nil, let pin = SelfTest.value(after: "--voice-latency-model"), pin.hasPrefix("file:") {
+            let name = URL(fileURLWithPath: String(pin.dropFirst(5))).deletingPathExtension().lastPathComponent
+            let answers = passes.filter { $0.pass == "frontend-answer" }
+            // Provisional revisions share the prospective turn UUID; their real
+            // cancelled/completed passes remain legitimate joined history. Bind the
+            // actual committed consumer as well as completed native generation.
+            let nativeAnswer = answers.contains {
+                $0.errorClass == nil && $0.finishReason == "stop"
+                    && $0.countsEstimated == false && ($0.completionTokens ?? 0) > 0
+            }
+            if summary.provider != "llama" || summary.modelID != name
+                || answers.isEmpty || !nativeAnswer
+                || answers.contains(where: { $0.provider != "llama" || $0.modelID != name }) {
+                wrong.append("run \(index): explicit answering file pin did not reach the committed consumer and joined native answer pass")
+            }
+        }
         if turn.marks[.frontendFirstToken] != nil, passes.isEmpty {
             wrong.append("run \(index): the frontend answered but no agent.voice pass row "
                 + "shares the turn's id")
@@ -406,6 +459,44 @@ enum VoiceLatencySelfTest {
         return "VOICE_LATENCY_MODEL run=\(index) pass=\(row.pass) provider=\(row.provider) "
             + "model=\(String(reflecting: row.modelID)) model_ttft_ms=\(ttft) decode_tok_s=\(decode) "
             + "completion_tokens=\(completion) counts_estimated=\(estimated) warm=\(warm)"
+    }
+
+    /// Exact flag guard diagnostic; constructs providers only, never loads or generates.
+    private static func selfTestAnswerModelGuards() async -> [String] {
+        var wrong: [String] = []
+        for value in ["apple", "file:/tmp/candidate.gguf", "installed/candidate"] {
+            if !acceptsAnswerModelArgument(value) { wrong.append("answer pin rejected explicit selector \(value)") }
+        }
+        for value in ["", " ", "agent", "--voice-latency-runs", "openrouter:test", "localServer"] {
+            if acceptsAnswerModelArgument(value) { wrong.append("answer pin admitted role/cloud/invalid selector \(value)") }
+        }
+        let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+        let local = LlamaLLMProvider(modelName: "Pinned fixture", runtime: runtime)
+        let accepted = ToolLoopLiveEval.ResolvedModel(provider: local, label: "Pinned fixture", roleChoice: "file:fixture", isFallback: false)
+        let fallback = ToolLoopLiveEval.ResolvedModel(provider: local, label: "Pinned fixture", roleChoice: "file:fixture", isFallback: true)
+        if !acceptsAnswerModelResolution(accepted) { wrong.append("answer pin rejected exact local resolution") }
+        if acceptsAnswerModelResolution(fallback) { wrong.append("answer pin admitted fallback resolution") }
+        let cloud = OpenRouterLLMProvider(modelID: "Fixture cloud", contextTokens: 8_192)
+        let cloudResolution = ToolLoopLiveEval.ResolvedModel(provider: cloud, label: "Fixture cloud", roleChoice: "cloud:fixture", isFallback: false)
+        if acceptsAnswerModelResolution(cloudResolution) { wrong.append("answer pin admitted cloud resolution") }
+        if await ToolLoopLiveEval.resolveModel(argument: "openrouter:fixture", allowCloud: false) != nil {
+            wrong.append("answer pin resolver admitted cloud without permission")
+        }
+        if await ToolLoopLiveEval.resolveModel(argument: "file:/tmp/nextnotes-voice-pin-outside-models.gguf", allowCloud: false) != nil {
+            wrong.append("answer pin resolver admitted a file outside shared Models")
+        }
+        let refused = FrontendResponder()
+        if await refused.installVoiceLatencyAnswerProvider(cloud) { wrong.append("answer pin owner admitted cloud") }
+        if await refused.voiceLatencyAnswerProvider() != nil { wrong.append("refused cloud changed unpinned Apple owner") }
+        let frontend = FrontendResponder()
+        if await frontend.voiceLatencyAnswerProvider() != nil { wrong.append("unpinned frontend lost normal Apple default") }
+        if !(await frontend.installVoiceLatencyAnswerProvider(local)) { wrong.append("answer pin did not install on existing isolated owner") }
+        let installed = await frontend.voiceLatencyAnswerProvider()
+        if installed?.displayModelName != "Pinned fixture" { wrong.append("answer pin owner returned a different provider") }
+        if await frontend.installVoiceLatencyAnswerProvider(FoundationModelLLMProvider()) {
+            wrong.append("answer pin replaced already bound answering provider")
+        }
+        return wrong
     }
 
     // MARK: - The pure cases, before any pipeline run
