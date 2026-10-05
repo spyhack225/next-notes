@@ -677,7 +677,7 @@ final class ActionOrchestrator {
         /// one that owns the tool. It is also the only shape that cannot grow a second answer:
         /// either a caller supplies the read or the outcome stays unknown and the person is
         /// asked, and there is no default that guesses.
-        resolveUnknownOutcome: (@MainActor @Sendable () async -> AgentToolResult)? = nil,
+        resolveUnknownOutcome: (@MainActor @Sendable (PreparedAction) async -> AgentToolResult)? = nil,
         fire: @escaping @MainActor (PreparedAction) async throws -> AgentToolResult
     ) async throws -> AgentToolResult {
         // Nobody is present for a scheduled run, so nothing may wait on a person: a
@@ -892,9 +892,27 @@ final class ActionOrchestrator {
             // The write left and nothing came back. Ask whatever can answer, and return its
             // sentence rather than throwing: a thrown error is rendered as a failure, and that
             // is the claim this whole task exists to stop the app making.
-            if status == .outcomeUnknown, let resolve = resolveUnknownOutcome {
-                receipt.completedAt = Date()
-                return await resolve()
+            if status == .outcomeUnknown, let resolve = resolveUnknownOutcome,
+               let prepared = receipt.preparedAction {
+                try Task.checkCancellation()
+                let resolved = await resolve(prepared)
+                try Task.checkCancellation()
+                if let isStillValid, !(await isStillValid()) { throw CancellationError() }
+                // Only the exact calendar read introduced here supplies reconciled evidence.
+                // Other resolver contracts retain their existing unknown semantics.
+                if tool.namespace == .workspace, tool.name == "create_event",
+                   let verification = await Self.verifyResult(tool: tool,
+                       arguments: prepared.executionPlan.arguments, result: resolved) {
+                    receipt.result = resolved.summary
+                    receipt.verification = verification
+                    if let reference = resolved.reference { receipt.artifacts.append(reference) }
+                    receipt.completedAt = Date()
+                    guard add(.completed, verification) else {
+                        throw AgentError.backendUnavailable(
+                            "The action ran, but its result could not be saved. Check it before trying again.")
+                    }
+                }
+                return resolved
             }
             throw error
         }

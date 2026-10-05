@@ -781,8 +781,8 @@ enum WorkspaceToolRunner {
     ///
     /// **It arrives as exit 1**, which `WorkspaceCLIError.outcomeIsKnown` deliberately calls
     /// *unknown* — the right answer for a 500 or a silent timeout, and the wrong one here. So the
-    /// duplicate is recognised where it happens, and reported as `completed`: the event *is* on
-    /// the calendar, which is the only thing the caller asked for.
+    /// duplicate is recognised where it happens. That establishes an occupied resource ID;
+    /// createEvent still reads back the reviewed fields before supplying verification.
     static func isDuplicateEvent(_ error: WorkspaceCLIError) -> Bool {
         guard case .apiFailed(let detail) = error else { return false }
         let lower = detail.lowercased()
@@ -794,8 +794,8 @@ enum WorkspaceToolRunner {
         cli: any WorkspaceCLIRunning,
         proposalID: String
     ) async throws -> WorkspaceToolResult {
-        // P1-22: the raw insert, with the identifier the receipt already owns. Measured, not
-        // guessed: `--params` takes `calendarId` and `--json` takes the body, both verified with
+        // P1-22: the raw insert retains the existing proposal-derived calendar identifier.
+        // `--params` takes `calendarId` and `--json` takes the body, both verified with
         // `--dry-run` before the live call, and the duplicate refusal is the 409 above.
         let id = eventIdentifier(for: proposalID)
         var body: [String: Any] = [
@@ -814,36 +814,56 @@ enum WorkspaceToolRunner {
             "--params", json(["calendarId": "primary"]),
             "--json", json(body),
         ]
-        let output: WorkspaceCLIOutput
+        let fields: [String: Any]
+        let duplicate: Bool
         do {
-            output = try await cli.run(command)
+            let output = try await cli.run(command)
+            fields = dictionary(from: output) ?? [:]
+            duplicate = false
         } catch let error as WorkspaceCLIError where isDuplicateEvent(error) {
-            // It is already there. That is the outcome, not a problem, and the card says so
-            // rather than showing a failure for an event that exists.
-            return WorkspaceToolResult(
-                summary: "It was already on your calendar.",
-                reference: id,
-                verification: "Google refused a duplicate id, so the event was already there")
+            // A duplicate refusal establishes that this id is occupied, not that the
+            // reviewed event is there. Use the SAME existing readback before claiming it.
+            fields = [:]
+            duplicate = true
         }
-        let fields = dictionary(from: output) ?? [:]
         // Google echoes the id back, but the one it accepted is the one we sent.
-        guard string(fields, "id") != nil else { throw WorkspaceCLIError.badOutput }
+        if !duplicate, string(fields, "id") == nil { throw WorkspaceCLIError.badOutput }
         let readback = try? await cli.run([
             "calendar", "events", "get", "--params", json([
                 "calendarId": "primary", "eventId": id,
             ]),
         ])
         let saved = readback.flatMap(dictionary(from:)) ?? [:]
-        let verified = string(saved, "id") == id
+        let verified = reviewedEventMatches(saved, id: id, arguments: arguments)
+        return WorkspaceToolResult(
+            summary: duplicate
+                ? (verified ? "It was already on your calendar."
+                    : "I couldn't confirm the reviewed event. Check your calendar before trying again.")
+                : "Created the event \u{201c}\(arguments["title"] ?? "")\u{201d}.",
+            reference: id,
+            link: string(fields, "htmlLink").flatMap(URL.init(string:)),
+            verification: verified ? "Read back the reviewed event details" : nil
+        )
+    }
+
+    /// Exact sent resource and approved executable fields; a read supplies no replay authority.
+    static func reviewedEventMatches(_ saved: [String: Any], id: String,
+                                     arguments: [String: String]) -> Bool {
+        let attendees = WorkspaceTools.list(arguments["attendees"])
+        let savedAttendees = saved["attendees"] as? [[String: Any]]
+        let savedEmails = (savedAttendees ?? []).compactMap { $0["email"] as? String }
+        let attendeesVerified = (saved["attendees"] == nil || savedAttendees != nil)
+            && savedEmails.count == (savedAttendees?.count ?? 0)
+            && savedEmails.map { $0.lowercased() }.sorted() == attendees.map { $0.lowercased() }.sorted()
+        let savedDescription = saved["description"] as? String
+        let descriptionVerified = (saved["description"] == nil || savedDescription != nil)
+            && (savedDescription ?? "") == (arguments["description"] ?? "")
+        return string(saved, "id") == id
             && string(saved, "summary") == arguments["title"]
             && Self.sameInstant(saved["start"], rfc3339(arguments["start"] ?? ""))
             && Self.sameInstant(saved["end"], rfc3339(arguments["end"] ?? ""))
-        return WorkspaceToolResult(
-            summary: "Created the event \u{201c}\(arguments["title"] ?? "")\u{201d}.",
-            reference: id,
-            link: string(fields, "htmlLink").flatMap(URL.init(string:)),
-            verification: verified ? "Read back the event title and scheduled time" : nil
-        )
+            && descriptionVerified
+            && attendeesVerified
     }
 
     // MARK: - Send
@@ -1351,15 +1371,20 @@ extension WorkspaceToolRunner {
                 wrong("a timeout is read as a duplicate")
             }
 
-            // And the whole call, twice, against a fake that can only ever answer 409. It
-            // cannot write: every call it receives is turned into the same refusal, and the
-            // `events get` read-back it is asked for afterwards is answered as absent.
+            // The same authored matching event already exists. Insert always refuses;
+            // the existing readback returns that exact body when the caller asks for it.
             final class DuplicateEventCLI: WorkspaceCLIRunning, @unchecked Sendable {
                 var insertArguments: [[String]] = []
                 func run(_ arguments: [String], timeout: TimeInterval) async throws
                     -> WorkspaceCLIOutput {
-                    if arguments.contains("insert") { insertArguments.append(arguments) }
-                    throw WorkspaceCLIError.apiFailed("The requested identifier already exists.")
+                    if arguments.contains("insert") {
+                        insertArguments.append(arguments)
+                        throw WorkspaceCLIError.apiFailed("The requested identifier already exists.")
+                    }
+                    guard arguments.prefix(3) == ["calendar", "events", "get"],
+                          let body = insertArguments.last?.last,
+                          let data = body.data(using: .utf8) else { throw WorkspaceCLIError.badOutput }
+                    return WorkspaceCLIOutput(standardOutput: data, standardError: "", exitCode: 0)
                 }
             }
             let cli = DuplicateEventCLI()

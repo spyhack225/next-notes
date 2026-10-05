@@ -79,6 +79,7 @@ enum AgentToolExecutor {
             }
         }
 
+        let capturedWorkspaceCLI = SelfTest.isRunning ? workspaceCLIForTesting : nil
         var effective = SelfTest.isRunning ? (policyOverrideForTesting ?? policy) : policy
         if autoApproveReads, tool.risk <= .read {
             effective.autoRead = true
@@ -194,6 +195,18 @@ enum AgentToolExecutor {
         )
         var completedJournalAccepted = true
         let executedResult: AgentToolResult
+        let resolveUnknownOutcome: (@MainActor @Sendable (PreparedAction) async -> AgentToolResult)?
+        if tool.namespace == .workspace && tool.name == "create_event" {
+            resolveUnknownOutcome = { prepared in
+                let proposal = AgentProposal(id: prepared.id.uuidString, meetingID: meetingID ?? UUID(),
+                    tool: tool.name, arguments: prepared.executionPlan.arguments, rationale: publicTitle)
+                return await WorkspaceToolRunner.unknownOutcomeResult(proposal, preparedAction: prepared,
+                    calendarEventID: WorkspaceToolRunner.eventIdentifier(for: prepared.id.uuidString),
+                    cli: capturedWorkspaceCLI ?? GoogleWorkspaceCLI.shared)
+            }
+        } else {
+            resolveUnknownOutcome = nil
+        }
         do {
             executedResult = try await ActionOrchestrator.shared.execute(
                 intent: intent,
@@ -218,6 +231,7 @@ enum AgentToolExecutor {
                 receiptStore: (TaskEventJournal.current?.taskID == taskID
                     ? TaskEventJournal.current?.receiptStore : nil) ?? .shared,
                 origin: TaskEventJournal.current?.taskID == taskID ? TaskEventJournal.current?.restoredOrigin : nil,
+                resolveUnknownOutcome: resolveUnknownOutcome,
                 fire: { prepared in
                     // The last word on a fabricated or absent argument. Everything above may
                     // have been a question; this is the set that would actually run — the
@@ -274,7 +288,7 @@ enum AgentToolExecutor {
                     let presentation = AgentActivityStore.shared.presentationBinding(taskID: taskID)
                     let result = try await AgentWorkPresentationScope.$binding.withValue(presentation) {
                         try await perform(tool, arguments: prepared.executionPlan.arguments,
-                                          taskID: taskID, authority: actionAuthority)
+                                          preparedActionID: prepared.id, taskID: taskID, authority: actionAuthority)
                     }
                     backingReturned = true
                     // P1-5: a run's artifacts — the reference and the link — ride with the
@@ -307,7 +321,8 @@ enum AgentToolExecutor {
         _ proposal: AgentProposal,
         policy: PermissionPolicy? = nil,
         cli: GoogleWorkspaceCLI = .shared,
-        approvedByUser: Bool = false
+        approvedByUser: Bool = false,
+        receiptStore: ActionReceiptStore? = nil
     ) async throws -> AgentToolResult {
         // A persisted proposal is evidence of model intent, never approval. The only
         // caller allowed to set this bit is the UI approval path; read lookups continue
@@ -377,11 +392,14 @@ enum AgentToolExecutor {
             promptIfNeeded: false,
             permissionAlreadyGranted: approvedByUser,
             allowUnverifiedResult: workspaceTool.risk > .read,
+            receiptStore: receiptStore ?? .shared,
             // P1-21: this is the caller that can answer "did it go out", because it owns the
             // Workspace tools. Passing it is what turns a timed-out send into "I'm not sure"
             // with a read behind it, rather than into a failure the person retries.
-            resolveUnknownOutcome: {
-                await WorkspaceToolRunner.unknownOutcomeResult(proposal, cli: cli)
+            resolveUnknownOutcome: { prepared in
+                await WorkspaceToolRunner.unknownOutcomeResult(proposal, preparedAction: prepared,
+                    calendarEventID: proposal.tool == "create_event"
+                        ? WorkspaceToolRunner.eventIdentifier(for: proposal.id) : nil, cli: cli)
             },
             fire: { prepared in
                 var frozen = proposal
@@ -406,6 +424,7 @@ enum AgentToolExecutor {
     private static func perform(
         _ tool: AgentTool,
         arguments: [String: String],
+        preparedActionID: UUID,
         taskID: String? = nil,
         authority: ActionAuthority? = nil
     ) async throws -> AgentToolResult {
@@ -421,12 +440,13 @@ enum AgentToolExecutor {
         switch tool.namespace {
         case .workspace:
             if SelfTest.isRunning, let cli = workspaceCLIForTesting {
-                let proposal = AgentProposal(meetingID: UUID(), tool: tool.name,
+                let proposal = AgentProposal(id: preparedActionID.uuidString, meetingID: UUID(), tool: tool.name,
                     arguments: arguments, rationale: "", accountTag: nil,
                     startsAt: proposalStartsAt(toolName: tool.name, arguments: arguments))
                 return try await WorkspaceToolRunner.run(proposal, cli: cli)
             }
             let proposal = AgentProposal(
+                id: preparedActionID.uuidString,
                 meetingID: UUID(),
                 tool: tool.name,
                 arguments: arguments,

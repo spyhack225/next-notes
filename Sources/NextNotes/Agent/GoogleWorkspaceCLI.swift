@@ -189,11 +189,38 @@ actor GoogleWorkspaceCLI {
 
     private var cachedPath: URL?
 
+    /// The normal actor has no override. This admitted fixture still uses run/spawn and
+    /// their real pipe, exit-code and cancellation handling; it never locates owner gws.
+    private let testingExecutable: URL?
+
+    init() { testingExecutable = nil }
+
+    private init(testingExecutable: URL) { self.testingExecutable = testingExecutable }
+
+    static func isolatedForTesting(root: URL, executable: URL) -> GoogleWorkspaceCLI? {
+        let safe = root.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let admitted = executable.resolvingSymlinksInPath().standardizedFileURL
+        var directory: ObjCBool = false
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-task-worker-attempt",
+              safe.path.hasPrefix(temporary.path + "/"), !safe.pathComponents.contains("Application Support"),
+              FileManager.default.fileExists(atPath: safe.path, isDirectory: &directory), directory.boolValue,
+              admitted.path == executable.standardizedFileURL.path,
+              admitted.deletingLastPathComponent().path == safe.path,
+              FileManager.default.isExecutableFile(atPath: admitted.path) else { return nil }
+        return GoogleWorkspaceCLI(testingExecutable: admitted)
+    }
+
     // MARK: - Locating
 
     /// The binary, or nil when there isn't one. Cached; `forget()` drops the cache after an
     /// install so the Settings tab sees the new binary without a relaunch.
     func binaryURL() async -> URL? {
+        if let testingExecutable {
+            guard testingExecutable.resolvingSymlinksInPath().standardizedFileURL.path == testingExecutable.path,
+                  FileManager.default.isExecutableFile(atPath: testingExecutable.path) else { return nil }
+            return testingExecutable
+        }
         if let cachedPath, FileManager.default.isExecutableFile(atPath: cachedPath.path) {
             return cachedPath
         }

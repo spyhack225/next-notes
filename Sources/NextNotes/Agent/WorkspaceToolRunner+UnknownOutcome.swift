@@ -53,8 +53,10 @@ extension WorkspaceToolRunner {
         // the flag, and a case that caught it.
         case .found(let looksLike):
             return (looksLike ? "It looks like it went out." : "It went out.", false)
-        case .notFound, .noReliableRead:
+        case .notFound:
             return ("I\u{2019}m not sure \(target) went out. It isn\u{2019}t there yet.", true)
+        case .noReliableRead:
+            return ("I\u{2019}m not sure \(target) went out. Check it before trying again.", true)
         }
     }
 
@@ -63,18 +65,23 @@ extension WorkspaceToolRunner {
     /// One read, one sentence, no second write. The `verification` is set only on an exact match,
     /// so the receipt says what was actually established.
     static func unknownOutcomeResult(
-        _ proposal: AgentProposal, firedAt: Date = Date(),
+        _ proposal: AgentProposal, preparedAction: PreparedAction? = nil,
+        calendarEventID: String? = nil, firedAt: Date = Date(),
         cli: any WorkspaceCLIRunning = GoogleWorkspaceCLI.shared
     ) async -> AgentToolResult {
+        let arguments = preparedAction?.executionPlan.arguments ?? proposal.arguments
+        let exactCalendarID = preparedAction?.executionPlan.toolID == "create_event" ? calendarEventID : nil
         let outcome = await resolveUnknown(
-            tool: proposal.tool, arguments: proposal.arguments, firedAt: firedAt, cli: cli)
+            tool: proposal.tool, arguments: arguments, firedAt: firedAt,
+            calendarEventID: exactCalendarID, cli: cli)
         let said = unknownOutcomeSentence(
-            tool: proposal.tool, arguments: proposal.arguments, outcome: outcome)
+            tool: proposal.tool, arguments: arguments, outcome: outcome)
         return AgentToolResult(
             summary: said.sentence,
+            reference: proposal.tool == "create_event" ? exactCalendarID : nil,
             verification: outcome == .found(looksLike: false)
                 ? "Found by a read after the fact" : nil,
-            outcomeUnknown: true)
+            outcomeUnknown: proposal.tool != "create_event" || outcome != .found(looksLike: false))
     }
 
     /// One read per write tool, and only for the four that have a reliable one.
@@ -89,7 +96,7 @@ extension WorkspaceToolRunner {
     /// certain.
     static func resolveUnknown(
         tool: String, arguments: [String: String], firedAt: Date,
-        cli: any WorkspaceCLIRunning
+        calendarEventID: String? = nil, cli: any WorkspaceCLIRunning
     ) async -> UnknownOutcome {
         do {
             switch tool {
@@ -110,21 +117,17 @@ extension WorkspaceToolRunner {
                 // available without the sent message's own id.
                 return .found(looksLike: subject.isEmpty)
             case "create_event":
-                guard let start = arguments["start"].flatMap({ date(fromArgument: $0) }),
-                      let title = arguments["title"], !title.isEmpty
-                else { return .noReliableRead }
-                let listing = try await cli.run([
-                    "calendar", "events", "list",
-                    "--params", json([
-                        "calendarId": "primary",
-                        "timeMin": timestamp(start.addingTimeInterval(-3_600)),
-                        "timeMax": timestamp(start.addingTimeInterval(3_600)),
-                        "singleEvents": true, "orderBy": "startTime",
-                    ]),
+                guard let id = calendarEventID, !id.isEmpty,
+                      arguments["start"].flatMap({ date(fromArgument: $0) }) != nil,
+                      arguments["end"].flatMap({ date(fromArgument: $0) }) != nil,
+                      let title = arguments["title"], !title.isEmpty else { return .noReliableRead }
+                let readback = try await cli.run([
+                    "calendar", "events", "get", "--params",
+                    json(["calendarId": "primary", "eventId": id]),
                 ])
-                let events = (dictionary(from: listing)?["items"] as? [[String: Any]]) ?? []
-                let titled = events.contains { (($0["summary"] as? String) ?? "") == title }
-                return titled ? .found(looksLike: false) : .notFound
+                guard let saved = dictionary(from: readback),
+                      reviewedEventMatches(saved, id: id, arguments: arguments) else { return .noReliableRead }
+                return .found(looksLike: false)
             case "create_doc":
                 let name = arguments["name"] ?? arguments["title"] ?? ""
                 guard !name.isEmpty else { return .noReliableRead }
