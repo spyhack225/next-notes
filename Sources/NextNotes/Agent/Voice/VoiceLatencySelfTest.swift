@@ -92,7 +92,12 @@ enum VoiceLatencySelfTest {
             SelfTest.diagnostic("VOICE_LATENCY_INSTRUMENTATION_ONLY: no audio or model latency measured")
             return finish(await instrumentationProblems())
         }
-        let runs = max(1, Int(SelfTest.value(after: "--voice-latency-runs") ?? "") ?? 5)
+        let floor = CommandLine.arguments.contains("--voice-latency-floor")
+        let runs = max(1, Int(SelfTest.value(after: "--voice-latency-runs") ?? "") ?? (floor ? 10 : 5))
+        if floor, SelfTest.value(after: "--voice-latency-fixture") == nil
+            || SelfTest.value(after: "--voice-latency-model") == nil {
+            return absent("--voice-latency-floor requires an explicit answering candidate and authored audio fixture")
+        }
         let budget = Double(SelfTest.value(after: "--voice-latency-budget") ?? "")
         let maxStall = Double(SelfTest.value(after: "--voice-latency-max-stall") ?? "") ?? 0.100
         let startDelay = Double(SelfTest.value(after: "--voice-latency-start-delay") ?? "") ?? 0
@@ -135,6 +140,7 @@ enum VoiceLatencySelfTest {
             let pin = CommandLine.arguments[index + 1]
             guard let model = await ToolLoopLiveEval.resolveModel(argument: pin, allowCloud: false),
                   acceptsAnswerModelResolution(model),
+                  !floor || model.provider is LlamaLLMProvider,
                   await FrontendResponder.shared.installVoiceLatencyAnswerProvider(model.provider) else {
                 return absent("the requested answering model is unavailable; no fallback was measured")
             }
@@ -214,6 +220,7 @@ enum VoiceLatencySelfTest {
             wrong.append(String(format: "median speech_end_to_first_audio %.3fs > budget %.3fs",
                 headline, budget))
         }
+        if floor { wrong += reportFixedAnswerFloor(turns: counted, expectedRuns: runs) }
         return finish(wrong)
     }
 
@@ -761,7 +768,141 @@ enum VoiceLatencySelfTest {
         if lines.contains(where: { $0.contains("Ignore") || $0.contains("pass=turn ") }) {
             wrong.append("model pass output: another turn/feature or turn latency was reported as a model pass")
         }
+        // PL01_C2_FIXED256_COMMON_BEGIN
+        // Authored usage values verify selection only, never hardware performance.
+        var floorSummary = summary
+        floorSummary.provider = "llama"; floorSummary.modelID = measured.modelID
+        var floorPass = measured
+        floorPass.completionTokens = 256; floorPass.finishReason = "stop"
+        floorPass.errorClass = nil; floorPass.tokensPerSec = 128
+        if fixedAnswerFloorPass(summary: floorSummary, passes: [floorPass])?.id != floorPass.id {
+            wrong.append("C2 fixed answer: actual joined selector rejected one native 256-token answer")
+        }
+        func rejects(_ label: String, _ candidate: UsageRecord) {
+            if fixedAnswerFloorPass(summary: floorSummary, passes: [candidate]) != nil {
+                wrong.append("C2 fixed answer: admitted " + label)
+            }
+        }
+        var bad = floorPass; bad.turnID = UUID(); rejects("another turn", bad)
+        bad = floorPass; bad.feature = UsageFeature.agentTyped.rawValue; rejects("another feature", bad)
+        bad = floorPass; bad.pass = "frontend-route"; rejects("route instead of answer", bad)
+        bad = floorPass; bad.modelID = "Another model"; rejects("another model", bad)
+        bad = floorPass; bad.provider = "appleFM"; rejects("another provider", bad)
+        bad = floorPass; bad.countsEstimated = true; rejects("estimated counts", bad)
+        bad = floorPass; bad.completionTokens = 255; rejects("early ending", bad)
+        bad = floorPass; bad.completionTokens = 257; rejects("wrong token cap", bad)
+        bad = floorPass; bad.finishReason = "cancelled"; rejects("cancelled answer", bad)
+        bad = floorPass; bad.errorClass = "other"; rejects("failed answer", bad)
+        bad = floorPass; bad.ttftMs = nil; rejects("missing own TTFT", bad)
+        bad = floorPass; bad.totalMs = floorPass.ttftMs ?? 0; rejects("zero decode interval", bad)
+        bad = floorPass; bad.tokensPerSec = nil; rejects("missing own decode rate", bad)
+        bad = floorPass; bad.tokensPerSec = 0; rejects("zero own decode rate", bad)
+        var second = floorPass; second.id = UUID()
+        if fixedAnswerFloorPass(summary: floorSummary, passes: [floorPass, second]) != nil {
+            wrong.append("C2 fixed answer: admitted ambiguous completed answer passes")
+        }
+        second.finishReason = "cancelled"; second.errorClass = "cancelled"
+        if fixedAnswerFloorPass(summary: floorSummary, passes: [floorPass, second])?.id != floorPass.id {
+            wrong.append("C2 fixed answer: a cancelled provisional hid the one completed answer")
+        }
+        // Warm means resident; cached voice timing also needs a reused prefix
+        // and at most 300 new native prompt tokens, from THIS same answer row.
+        var cachedVoice = floorPass
+        cachedVoice.promptTokens = 400; cachedVoice.cachedTokens = 100
+        if let seconds = eligibleCachedVoiceTTFT(cachedVoice), abs(seconds - 0.037) < 0.000_001 {
+            // Exact inclusive 300-new-token boundary.
+        } else { wrong.append("C2 cached voice: rejected an eligible native warm timing") }
+        func rejectsTiming(_ label: String, _ candidate: UsageRecord) {
+            if eligibleCachedVoiceTTFT(candidate) != nil {
+                wrong.append("C2 cached voice: admitted " + label)
+            }
+        }
+        bad = cachedVoice; bad.promptTokens = 401; rejectsTiming("301 new tokens", bad)
+        bad = cachedVoice; bad.cachedTokens = 0; bad.promptTokens = 300; rejectsTiming("no reused prefix", bad)
+        bad = cachedVoice; bad.cachedTokens = nil; rejectsTiming("missing prefix count", bad)
+        bad = cachedVoice; bad.promptTokens = nil; rejectsTiming("missing prompt count", bad)
+        bad = cachedVoice; bad.cachedTokens = 401; rejectsTiming("cache exceeds prompt", bad)
+        bad = cachedVoice; bad.cachedTokens = -1; rejectsTiming("negative prefix count", bad)
+        bad = cachedVoice; bad.warm = false; rejectsTiming("cold answer", bad)
+        bad = cachedVoice; bad.warm = nil; rejectsTiming("unknown warmth", bad)
+        bad = cachedVoice; bad.countsEstimated = true; rejectsTiming("estimated counts", bad)
+        bad = cachedVoice; bad.ttftMs = nil; rejectsTiming("missing measured TTFT", bad)
+        bad = cachedVoice; bad.ttftMs = 0; rejectsTiming("zero measured TTFT", bad)
+        bad = cachedVoice; bad.provider = "appleFM"; rejectsTiming("different provider", bad)
+        bad = cachedVoice; bad.errorClass = "cancelled"; rejectsTiming("cancelled answer", bad)
+        // PL01_C2_FIXED256_COMMON_END
         return wrong
+    }
+
+    /// A fixed native generation must be the single completed answer for the actual
+    /// committed consumer. Cancelled provisional history remains legitimate history.
+    private static func fixedAnswerFloorPass(summary: UsageRecord, passes: [UsageRecord]) -> UsageRecord? {
+        guard summary.pass == "turn", summary.feature == UsageFeature.agentVoice.rawValue,
+              summary.turnID != nil, summary.provider == "llama" else { return nil }
+        let answers = passes.filter {
+            $0.feature == UsageFeature.agentVoice.rawValue && $0.turnID == summary.turnID
+                && $0.pass == "frontend-answer" && $0.errorClass == nil && $0.finishReason == "stop"
+        }
+        guard answers.count == 1, let answer = answers.first,
+              answer.provider == summary.provider, answer.modelID == summary.modelID,
+              answer.countsEstimated == false, answer.completionTokens == 256,
+              let ttft = answer.ttftMs, ttft > 0, answer.totalMs > ttft,
+              let rate = answer.tokensPerSec, rate.isFinite, rate > 0 else { return nil }
+        return answer
+    }
+
+    /// C2 decode/TTFT only; the original ASR, endpoint, actual playback and stage
+    /// validation already ran for these turns. This neither adds a pass nor gates speed.
+    private static func reportFixedAnswerFloor(turns: [VoiceClosedTurn], expectedRuns: Int) -> [String] {
+        let rows = UsageLog.shared.load()
+        var samples: [UsageRecord] = []
+        var wrong: [String] = []
+        for (index, turn) in turns.enumerated() {
+            let summaries = rows.filter {
+                $0.feature == UsageFeature.agentVoice.rawValue && $0.pass == "turn"
+                    && $0.turnID == turn.turnID
+            }
+            guard summaries.count == 1, let summary = summaries.first,
+                  let sample = fixedAnswerFloorPass(summary: summary, passes: rows) else {
+                wrong.append("C2 run \(index + 1): no unambiguous native 256-token answer joined to the committed audio turn")
+                continue
+            }
+            samples.append(sample)
+            let prompt = sample.promptTokens.map(String.init) ?? "unavailable"
+            let cached = sample.cachedTokens.map(String.init) ?? "unavailable"
+            let newTokens = if let prompt = sample.promptTokens, let cached = sample.cachedTokens,
+                cached >= 0, prompt >= cached { String(prompt - cached) } else { "unavailable" }
+            SelfTest.diagnostic("VOICE_LATENCY_FLOOR_SAMPLE condition=C2 run=\(index + 1) "
+                + "model=\(String(reflecting: sample.modelID)) completion_tokens=256 "
+                + "model_ttft_ms=\(sample.ttftMs ?? 0) decode_tok_s=\(format(sample.tokensPerSec)) "
+                + "warm=\(sample.warm.map { $0 ? "true" : "false" } ?? "unavailable") "
+                + "prompt_tokens=\(prompt) cached_tokens=\(cached) new_tokens=\(newTokens) "
+                + "cached_voice_eligible=\(eligibleCachedVoiceTTFT(sample) != nil)")
+        }
+        let rates = samples.compactMap(\.tokensPerSec).sorted()
+        let tail = rates.isEmpty ? nil : rates[max(0, Int(ceil(Double(rates.count) * 0.10)) - 1)]
+        let rawWarmTTFT = samples.filter { $0.warm == true }.compactMap { $0.ttftMs.map { Double($0) / 1_000 } }
+        let cachedVoiceTTFT = samples.compactMap { eligibleCachedVoiceTTFT($0) }
+        SelfTest.diagnostic("VOICE_LATENCY_FLOOR condition=C2 scope=decode-and-ttft playback_scope=onset-only "
+            + "fixed_tokens=256 n=\(samples.count) expected=\(expectedRuns) "
+            + "decode_median_tok_s=\(format(median(rates))) decode_p10_tok_s=\(format(tail)) "
+            + "raw_warm_ttft_median_s=\(format(median(rawWarmTTFT))) raw_warm_n=\(rawWarmTTFT.count) "
+            + "cached_voice_ttft_median_s=\(format(median(cachedVoiceTTFT))) cached_voice_n=\(cachedVoiceTTFT.count)")
+        if samples.count != expectedRuns {
+            wrong.append("C2 fixed answer: expected \(expectedRuns) complete samples, got \(samples.count)")
+        }
+        return wrong
+    }
+
+    /// Residency alone is raw warm timing. Prefix eligibility comes from the
+    /// SAME native answer row; no cached/TTFT numbers are borrowed from another pass.
+    private static func eligibleCachedVoiceTTFT(_ row: UsageRecord) -> Double? {
+        guard row.provider == "llama", row.pass == "frontend-answer", row.errorClass == nil,
+              row.finishReason == "stop", row.countsEstimated == false, row.warm == true,
+              let prompt = row.promptTokens, let cached = row.cachedTokens,
+              cached > 0, prompt >= cached, prompt - cached <= 300,
+              let ttft = row.ttftMs, ttft > 0 else { return nil }
+        return Double(ttft) / 1_000
     }
 
     /// A turn with every mark, on a timeline of its own so the shared one stays clean.
