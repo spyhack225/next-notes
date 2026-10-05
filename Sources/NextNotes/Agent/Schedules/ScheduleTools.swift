@@ -141,75 +141,8 @@ enum ScheduleToolExecutor {
             return AgentToolResult(summary: lines.joined(separator: "\n"))
 
         case "create":
-            try refuseInexpressible(arguments)
-            let kindWord = argument("kind").lowercased()
-            let kind: AgentSchedule.Kind
-            switch kindWord {
-            case "", "reminder": kind = .reminder
-            case "routine": kind = .routine
-            case "trigger": kind = .trigger
-            default:
-                throw ScheduleError.invalid("kind must be reminder, routine or trigger.")
-            }
-            let text = kind == .reminder
-                ? firstNonEmpty(argument("text"), argument("prompt"), argument("title"))
-                : firstNonEmpty(argument("prompt"), argument("text"))
-            guard !text.isEmpty else {
-                throw ScheduleError.invalid(kind == .reminder
-                    ? "A reminder needs text: what to remind the user."
-                    : "A routine needs text: standalone instructions for each run.")
-            }
-            let when: ScheduleWhen?
-            let trigger: ScheduleTrigger?
-            if kind == .trigger {
-                trigger = try parseTrigger(arguments, base: nil)
-                when = nil
-            } else {
-                when = try parseWhen(arguments, base: nil, now: now, timeZone: timeZone)
-                trigger = nil
-            }
-            var allowedTools: [String] = []
-            var model = AgentSchedule.ModelChoice.auto
-            if kind != .reminder {
-                // The ceiling, fixed now: what the sentence named, within what this conversation
-                // can use, never a schedule tool or a memory write.
-                let requested = argument("tools").split(whereSeparator: { $0 == "," || $0 == " " }).map(String.init)
-                let available = availableTools ?? Set(RealtimeAgent.plannableTools().map(\.id))
-                let ceiling = RoutineToolCeiling.fix(requested: requested, available: available)
-                if !ceiling.refused.isEmpty {
-                    let reasons = ceiling.refused.keys.sorted().map { ceiling.refused[$0]! }
-                    throw ScheduleError.invalid("I can't give that routine those tools: "
-                        + reasons.joined(separator: "; ") + ". Nothing was saved.")
-                }
-                allowedTools = ceiling.allowed
-                if !argument("model").isEmpty {
-                    guard let choice = AgentSchedule.ModelChoice(rawValue: argument("model").lowercased()) else {
-                        throw ScheduleError.invalid("model must be auto, local or cloud.")
-                    }
-                    model = choice
-                }
-            }
-            var schedule = AgentSchedule(
-                kind: kind,
-                title: firstNonEmpty(argument("title"), String(text.prefix(40))),
-                plainEnglish: "",
-                prompt: text,
-                when: when,
-                trigger: trigger,
-                endsAt: try parseEndsOn(argument("endsOn"), timeZone: timeZone) ?? nil,
-                allowedTools: allowedTools,
-                model: model,
-                delivery: isNo(argument("speak")) ? .notify : .notifyAndSpeak,
-                createdAt: now,
-                createdInSession: sessionID
-            )
-            schedule.budget.maxOutputTokens = schedule.effectiveMaxOutputTokens
-            if kind == .trigger {
-                schedule.plainEnglish = triggerSentence(for: schedule)
-            } else {
-                guard let when, let rule = RecurrenceRule(when) else { throw ScheduleError.invalid("Unknown time zone.") }
-                schedule.plainEnglish = sentence(for: schedule, rule: rule, currentZone: timeZone)
-            }
+            let schedule = try parseCreate(arguments, now: now, timeZone: timeZone,
+                sessionID: sessionID, availableTools: availableTools)
             if let existing = duplicate(of: schedule, in: store.schedules) {
                 throw ScheduleError.invalid(
                     "A matching \(existing.kind.rawValue) already exists [\(existing.shortID)]: \(existing.plainEnglish) "
@@ -375,6 +308,89 @@ enum ScheduleToolExecutor {
     }
 
     // MARK: - Arguments
+
+    /// Parse one create proposal through the same native contract before any approval
+    /// or save. The planner and live fixture reuse it; it performs no execution.
+    @MainActor
+    static func parseCreate(
+        _ arguments: [String: String], now: Date, timeZone: TimeZone,
+        sessionID: UUID? = nil, availableTools: Set<String>? = nil
+    ) throws -> AgentSchedule {
+        func argument(_ name: String) -> String {
+            arguments[name]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        }
+        try refuseInexpressible(arguments)
+        let kindWord = argument("kind").lowercased()
+        let kind: AgentSchedule.Kind
+        switch kindWord {
+        case "", "reminder": kind = .reminder
+        case "routine": kind = .routine
+        case "trigger": kind = .trigger
+        default:
+            throw ScheduleError.invalid("kind must be reminder, routine or trigger.")
+        }
+        let text = kind == .reminder
+            ? firstNonEmpty(argument("text"), argument("prompt"), argument("title"))
+            : firstNonEmpty(argument("prompt"), argument("text"))
+        guard !text.isEmpty else {
+            throw ScheduleError.invalid(kind == .reminder
+                ? "A reminder needs text: what to remind the user."
+                : "A routine needs text: standalone instructions for each run.")
+        }
+        let when: ScheduleWhen?
+        let trigger: ScheduleTrigger?
+        if kind == .trigger {
+            trigger = try parseTrigger(arguments, base: nil)
+            when = nil
+        } else {
+            when = try parseWhen(arguments, base: nil, now: now, timeZone: timeZone)
+            trigger = nil
+        }
+        var allowedTools: [String] = []
+        var model = AgentSchedule.ModelChoice.auto
+        if kind != .reminder {
+            // The ceiling, fixed now: what the sentence named, within what this conversation
+            // can use, never a schedule tool or a memory write.
+            let requested = argument("tools").split(whereSeparator: { $0 == "," || $0 == " " }).map(String.init)
+            let available = availableTools ?? Set(RealtimeAgent.plannableTools().map(\.id))
+            let ceiling = RoutineToolCeiling.fix(requested: requested, available: available)
+            if !ceiling.refused.isEmpty {
+                let reasons = ceiling.refused.keys.sorted().map { ceiling.refused[$0]! }
+                throw ScheduleError.invalid("I can't give that routine those tools: "
+                    + reasons.joined(separator: "; ") + ". Nothing was saved.")
+            }
+            allowedTools = ceiling.allowed
+            if !argument("model").isEmpty {
+                guard let choice = AgentSchedule.ModelChoice(rawValue: argument("model").lowercased()) else {
+                    throw ScheduleError.invalid("model must be auto, local or cloud.")
+                }
+                model = choice
+            }
+        }
+        var schedule = AgentSchedule(
+            kind: kind,
+            title: firstNonEmpty(argument("title"), String(text.prefix(40))),
+            plainEnglish: "",
+            prompt: text,
+            when: when,
+            trigger: trigger,
+            endsAt: try parseEndsOn(argument("endsOn"), timeZone: timeZone) ?? nil,
+            allowedTools: allowedTools,
+            model: model,
+            delivery: isNo(argument("speak")) ? .notify : .notifyAndSpeak,
+            createdAt: now,
+            createdInSession: sessionID
+        )
+        schedule.budget.maxOutputTokens = schedule.effectiveMaxOutputTokens
+        if kind == .trigger {
+            schedule.plainEnglish = triggerSentence(for: schedule)
+        } else {
+            guard let when, let rule = RecurrenceRule(when) else { throw ScheduleError.invalid("Unknown time zone.") }
+            schedule.plainEnglish = sentence(for: schedule, rule: rule, currentZone: timeZone)
+        }
+        return schedule
+    }
+
 
     private static func refuseInexpressible(_ arguments: [String: String]) throws {
         // Not the title: "Follow up on last Monday's call" names no rule.

@@ -2512,7 +2512,9 @@ enum RealtimeAgentToolLoopSelfTest {
         @MainActor
         func run(_ script: [String], cap: Int? = nil, deny: Bool = false,
                  requestOverride: String? = nil, unconfirmed: Bool = false, liveFixture: Bool = false,
-                 expectedOverride: [String: String]? = nil)
+                 expectedOverride: [String: String]? = nil,
+                 originalNativeArguments: [String: String]? = nil,
+                 expectApproval: Bool = true)
             async -> (reply: String, log: [PlannerScriptLog.Call], fired: [String], saved: [AgentSchedule]) {
             caseIndex += 1
             let requested = requestOverride ?? request
@@ -2538,7 +2540,8 @@ enum RealtimeAgentToolLoopSelfTest {
                 autoComputerControl: false, grants: [])
             AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
                 fired.record(tool.id)
-                guard tool.id == "schedule.create", arguments == accepted else {
+                guard tool.id == "schedule.create",
+                      arguments == accepted || arguments == originalNativeArguments else {
                     throw AgentError.permissionDenied("Unexpected payload in the reminder fixture.")
                 }
                 if deny { throw AgentError.permissionDenied("Fixture reminder denied.") }
@@ -2578,7 +2581,7 @@ enum RealtimeAgentToolLoopSelfTest {
             if let shown {
                 let card = ToolCallReviewStore.shared.review(for: shown)
                 check("R01 reminder entered backing before its existing approval", fired.toolIDs.isEmpty)
-                if card.isReadyToRun && shown.arguments == accepted {
+                if card.isReadyToRun && (shown.arguments == accepted || shown.arguments == originalNativeArguments) {
                     check("R01 unchanged complete reminder card lost readiness",
                           PermissionGate.shared.islandProposal(for: shown).canExecute)
                     let approved = PermissionGate.shared.respond(id: shown.id, approved: true)
@@ -2593,7 +2596,8 @@ enum RealtimeAgentToolLoopSelfTest {
                       log.calls.dropFirst().first?.user.contains(requested) == true
                         && log.calls.dropFirst().first?.user.contains("The user answered: yes") == true)
             } else {
-                check("R01 unconfirmed reminder did not retain its existing one approval", shown != nil)
+                check("R01 unconfirmed schedule approval count disagreed with the admitted call",
+                      (shown != nil) == expectApproval)
             }
             check("R01 retained an approval/card after entered work returned",
                   PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
@@ -2655,18 +2659,133 @@ enum RealtimeAgentToolLoopSelfTest {
         }
         var wrongKindArguments = expected; wrongKindArguments["kind"] = "banana"
         let wrongKind = complete.replacingOccurrences(of: #""kind":"reminder""#, with: #""kind":"banana""#)
-        let invalidKind = await run([offer, wrongKind, complete], expectedOverride: wrongKindArguments)
-        check("R01 native wrong kind was saved or widened into reminder repair", invalidKind.log.count == 2
-            && invalidKind.fired == ["schedule.create"] && invalidKind.saved.isEmpty
-            && invalidKind.reply.contains("kind must be reminder, routine or trigger"))
+        let invalidKind = await run([offer, wrongKind, "What should this schedule do?"], expectedOverride: wrongKindArguments)
+        check("R01 invalid kind bypassed native preflight or executed", invalidKind.log.count == 3
+            && invalidKind.log[2].user.contains("ERROR invalid_argument")
+            && invalidKind.log[2].user.contains("kind must be reminder, routine or trigger")
+            && invalidKind.fired.isEmpty && invalidKind.saved.isEmpty)
         let routine = recorded.replacingOccurrences(of: ">reminder</param>", with: ">routine</param>")
         let otherKind = await run([offer, routine, "What should this routine do?"], liveFixture: true)
-        check("R01 reminder preflight changed other-kind repair or executed it", otherKind.log.count == 2
-            && !otherKind.log.contains { $0.user.contains("Return the complete reminder call") }
+        check("R01 incomplete routine bypassed the same bounded repair", otherKind.log.count == 3
+            && otherKind.log[2].user.contains("ERROR missing_argument")
             && otherKind.fired.isEmpty && otherKind.saved.isEmpty)
         let unconfirmed = await run([complete, "Reminder set for tomorrow at 9 AM to call the bank."], unconfirmed: true)
         check("R01 unconfirmed reminder changed its single card/approval flow", unconfirmed.log.count == 2
             && unconfirmed.fired == ["schedule.create"] && unconfirmed.saved.count == 1)
+
+        // R02_COMMON: exact retained b11df78 first raw. It names a routine and
+        // an unsupported model. The SAME model must supply a corrected proposal;
+        // preflight never rewrites either field or invents daily recurrence.
+        let bookRequest = "Every night at 10, remind me to put the book out"
+        let bookRaw = #"""
+        Got it, Serge. I'll set a reminder to put the book out at 10pm every night.
+        <function name="schedule.create"><param name="id">put_book_out</param><param name="title">Put book out</param><param name="text">Remind to put the book out</param><param name="kind">routine</param><param name="model">gpt-4o-mini</param><param name="plainEnglish">True</param><param name="on">True</param><param name="time">22:00</param><param name="days">7</param></function>
+        """#
+        let originalBook = ["id": "put_book_out", "title": "Put book out",
+            "text": "Remind to put the book out", "kind": "routine", "model": "gpt-4o-mini",
+            "plainEnglish": "True", "on": "True", "time": "22:00", "days": "7"]
+        let repairedBook = ["title": "Put book out", "text": "Put the book out",
+                            "kind": "reminder", "repeat": "daily", "time": "22:00"]
+        func call(_ arguments: [String: String]) -> String {
+            let data = try! JSONSerialization.data(withJSONObject: ["name": "schedule.create", "arguments": arguments], options: [.sortedKeys])
+            return "<tool_call>" + String(data: data, encoding: .utf8)! + "</tool_call>"
+        }
+        let bookComplete = call(repairedBook)
+        let book = await run([bookRaw, bookComplete, "I'll remind you every night at 10 to put the book out."],
+            requestOverride: bookRequest, unconfirmed: true, expectedOverride: repairedBook,
+            originalNativeArguments: originalBook)
+        check("R02 exact unsupported model did not return through the SAME repair round", book.log.count == 3
+            && book.log[1].user.contains("ERROR invalid_argument")
+            && book.log[1].user.contains("model must be auto, local or cloud"))
+        check("R02 corrected call did not reach the actual native consumer exactly once",
+              book.fired == ["schedule.create"] && book.saved.count == 1
+                && book.saved.first?.kind == .reminder && book.saved.first?.model == .auto
+                && book.saved.first?.prompt == "Put the book out"
+                && book.saved.first?.when?.time == ScheduleLocalTime(hour: 22, minute: 0)
+                && book.saved.first?.when?.repeatRule == .daily
+                && book.log.last?.user.contains("Saved") == true)
+        let bookFixture = await run([bookRaw, bookComplete, "I'll remind you every night at 10 to put the book out."],
+            requestOverride: bookRequest, unconfirmed: true, liveFixture: true,
+            expectedOverride: repairedBook, expectApproval: false)
+        check("R02 original live fixture did not consume the repair once", bookFixture.log.count == 3
+            && bookFixture.log[1].user.contains("ERROR invalid_argument")
+            && bookFixture.fired == ["schedule.create"] && bookFixture.saved.isEmpty)
+        let exhausted = await run([bookRaw, bookComplete], cap: 1,
+            requestOverride: bookRequest, unconfirmed: true, expectedOverride: repairedBook,
+            expectApproval: false)
+        check("R02 schedule repair exceeded call cap 1", exhausted.log.count == 1
+            && exhausted.fired.isEmpty && exhausted.saved.isEmpty)
+        let twoCalls = await run([bookRaw, bookComplete,
+            "I'll remind you every night at 10 to put the book out."], cap: 2,
+            requestOverride: bookRequest, unconfirmed: true, expectedOverride: repairedBook)
+        check("R02 one repair and one native call did not fit the existing cap 2",
+              twoCalls.log.count == 3 && twoCalls.fired == ["schedule.create"]
+                && twoCalls.saved.count == 1
+                && twoCalls.log[1].user.contains("ERROR invalid_argument"))
+        let bookRepeated = await run([bookRaw, bookRaw, bookComplete], requestOverride: bookRequest,
+            unconfirmed: true, expectedOverride: repairedBook, expectApproval: false)
+        check("R02 repeated invalid routine received another repair", bookRepeated.log.count == 2
+            && bookRepeated.fired.isEmpty && bookRepeated.saved.isEmpty)
+        let validBook = await run([bookComplete, "I'll remind you every night at 10 to put the book out."],
+            requestOverride: bookRequest, unconfirmed: true, expectedOverride: repairedBook)
+        check("R02 complete reminder was unnecessarily repaired", validBook.log.count == 2
+            && validBook.fired == ["schedule.create"] && validBook.saved.count == 1
+            && !validBook.log.contains { $0.user.contains("ERROR invalid_argument") })
+        let bookDenied = await run([bookComplete, bookComplete], deny: true,
+            requestOverride: bookRequest, unconfirmed: true, expectedOverride: repairedBook)
+        check("R02 genuine native denial was repaired or saved", bookDenied.log.count == 1
+            && bookDenied.fired == ["schedule.create"] && bookDenied.saved.isEmpty)
+        var malformedSchedules: [(String, [String: String])] = []
+        for (field, value) in [("kind", "banana"), ("time", "25:99"), ("endsOn", "not-a-date")] {
+            var args = repairedBook; args[field] = value
+            malformedSchedules.append((field, args))
+        }
+        var trigger = repairedBook; trigger["kind"] = "trigger"; trigger["on"] = "banana"
+        malformedSchedules.append(("trigger", trigger))
+        var scope = repairedBook; scope["kind"] = "routine"; scope["model"] = "local"; scope["tools"] = "schedule.create"
+        malformedSchedules.append(("forbidden routine scope", scope))
+        scope["tools"] = "unavailable.fixture.tool"
+        malformedSchedules.append(("unavailable routine scope", scope))
+        for (name, arguments) in malformedSchedules {
+            let invalid = await run([call(arguments), "What should this schedule do?"],
+                requestOverride: bookRequest, unconfirmed: true, expectedOverride: repairedBook,
+                expectApproval: false)
+            check("R02 malformed \(name) escaped native preflight", invalid.log.count == 2
+                && invalid.log[1].user.contains("ERROR invalid_argument")
+                && invalid.fired.isEmpty && invalid.saved.isEmpty)
+        }
+        for kind in ["routine", "trigger"] {
+            var valid = repairedBook; valid["kind"] = kind; valid["model"] = "local"
+            if kind == "trigger" { valid["on"] = "notes_ready" }
+            let result = await run([call(valid), "That schedule is saved."], requestOverride: bookRequest,
+                unconfirmed: true, liveFixture: true, expectedOverride: valid, expectApproval: false)
+            check("R02 native-valid \(kind) was repaired or rewritten", result.log.count == 2
+                && result.fired == ["schedule.create"]
+                && !result.log.contains { $0.user.contains("ERROR invalid_argument") })
+        }
+        // Directly exercise the same runner's existing repair/compute ceilings.
+        // Its stand-in delegates to the actual native field contract through the
+        // same LiveEvalFixtures boundary. The private native consumer is above.
+        let boundedLog = PlannerScriptLog()
+        let boundedProvider = PlannerScriptProvider(id: .localServer, window: 4_096,
+            promptTokens: 2_000, script: [bookRaw], log: boundedLog)
+        let boundedManifest = AgentCapabilityManifestBuilder.build(allEnabledFixture(), request: bookRequest)
+        let boundedFixtures = LiveEvalFixtures(now: now)
+        AgentToolExecutor.fakeForTesting = { tool, arguments in
+            try await boundedFixtures.run(tool, arguments)
+        }
+        for (name, remaining, usedRepairs) in [("compute ceiling", Duration.zero, 0), ("existing repair", Duration.seconds(30), 1)] {
+            let runner = ToolStepRunner(agent: agent, owner: agent.currentGeneration,
+                work: nil, provider: boundedProvider, manifest: boundedManifest,
+                budget: .typedLocal, ceilingRemaining: remaining, request: bookRequest,
+                maxCalls: 8, readerContextTokens: 4_096, untrustedOutputs: [])
+            runner.chargeRepairs(usedRepairs)
+            let result = await runner.execute(AgentToolCall(name: "schedule.create", arguments: originalBook, rationale: "exact R02 proposal", evidence: nil))
+            if case .endTurn(.stopped(_)) = result.disposition {
+                check("R02 \(name) changed repair or call accounting", runner.repairs == usedRepairs && runner.callsUsed == 0)
+            } else { check("R02 \(name) admitted another schedule repair or executor", false) }
+        }
+        print("  TOOLLOOP_PRODUCTION_R02_PREFLIGHT: exact malformed routine/model, actual native private save, one repair/card, field/cap/scope negatives")
         // R01's next native failure: the original question was answered, but
         // the planner emits the exact same offer again rather than a call.
         let repeatedOffer = "I'll set a reminder to call the bank at 9 AM tomorrow. Is that okay?"

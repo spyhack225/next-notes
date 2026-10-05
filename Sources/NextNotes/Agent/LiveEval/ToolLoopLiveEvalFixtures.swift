@@ -385,21 +385,8 @@ final class LiveEvalFixtures: @unchecked Sendable {
             throw AgentError.permissionDenied(problem)
         }
         if tool.id == "schedule.create" {
-            let writtenKind = value(arguments, "kind").lowercased()
-            guard let kind = AgentSchedule.Kind(rawValue: writtenKind.isEmpty ? "reminder" : writtenKind) else {
-                throw ScheduleError.invalid("kind must be reminder, routine or trigger.")
-            }
-            if kind == .trigger {
-                _ = try ScheduleToolExecutor.parseTrigger(arguments, base: nil)
-            } else {
-                _ = try ScheduleToolExecutor.parseWhen(arguments, base: nil,
-                    now: mailbox.now, timeZone: .current)
-            }
-            if kind != .reminder, !value(arguments, "model").isEmpty,
-               AgentSchedule.ModelChoice(rawValue: value(arguments, "model").lowercased()) == nil {
-                throw ScheduleError.invalid("model must be auto, local or cloud.")
-            }
-            _ = try ScheduleToolExecutor.parseEndsOn(value(arguments, "endsOn"), timeZone: .current)
+            _ = try await ScheduleToolExecutor.parseCreate(arguments,
+                now: mailbox.now, timeZone: .current)
         }
         log.record(toolID: tool.id, arguments: arguments, risk: tool.risk)
         let result = AgentToolResult(summary: summary(for: tool.id, arguments: arguments))

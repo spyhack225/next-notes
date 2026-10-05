@@ -286,33 +286,33 @@ final class ToolStepRunner: ToolStepExecuting {
                         + " Send the complete draft call again. Leave unknown addresses or ids "
                         + "missing; never invent them.").modelText), requiresNextCall: true)
         }
-        // Incomplete reminder proposals must return through the existing bounded
-        // repair before executor or fixture admission. No title
-        // or timing is invented here; the SAME planner must supply the complete call.
-        if canonicalID == "schedule.create",
-           ["", "reminder"].contains(arguments["kind"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "") {
+        // Any malformed schedule proposal returns through the same bounded repair
+        // before execution or fixture admission. Native parsing owns kind, model,
+        // tools, timing, trigger and end date; nothing is corrected or invented here.
+        if canonicalID == "schedule.create" {
             let missing = entry.parameters.filter {
                 $0.isRequired && (arguments[$0.name]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             }
             var problem = missing.map { "\($0.name): \($0.description)" }.joined(separator: "; ")
             if problem.isEmpty {
                 do {
-                    _ = try ScheduleToolExecutor.parseWhen(arguments, base: nil,
-                        now: SelfTest.fixtureClock ?? Date(), timeZone: .current)
+                    _ = try ScheduleToolExecutor.parseCreate(arguments,
+                        now: SelfTest.fixtureClock ?? Date(), timeZone: .current,
+                        availableTools: manifest.allowedIDs)
                 } catch { problem = error.localizedDescription }
             }
             if !problem.isEmpty {
                 guard repairs == 0, callsUsed + repairs + 1 < maxCalls,
                       ceilingRemaining > .zero else {
                     return ToolStepResult(canonicalID: canonicalID, disposition: .endTurn(
-                        .stopped("I couldn't finish that reminder.")))
+                        .stopped("I couldn't finish that schedule.")))
                 }
                 repairs += 1
                 return ToolStepResult(canonicalID: canonicalID, disposition: .repaired(
                     toolID: canonicalID, note: ToolRepair(
                         kind: missing.isEmpty ? .invalidArgument : .missingArgument,
                         toolID: canonicalID, message: problem
-                            + " Return the complete reminder call with its title, text and structured timing "
+                            + " Return the complete schedule call with its title, text and structured timing or trigger "
                             + "from the user's confirmed request. If the timing is unknown, ask the user; "
                             + "never invent it.").modelText))
             }
