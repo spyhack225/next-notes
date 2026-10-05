@@ -286,6 +286,37 @@ final class ToolStepRunner: ToolStepExecuting {
                         + " Send the complete draft call again. Leave unknown addresses or ids "
                         + "missing; never invent them.").modelText), requiresNextCall: true)
         }
+        // Incomplete reminder proposals must return through the existing bounded
+        // repair before executor or fixture admission. No title
+        // or timing is invented here; the SAME planner must supply the complete call.
+        if canonicalID == "schedule.create",
+           ["", "reminder"].contains(arguments["kind"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? "") {
+            let missing = entry.parameters.filter {
+                $0.isRequired && (arguments[$0.name]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+            }
+            var problem = missing.map { "\($0.name): \($0.description)" }.joined(separator: "; ")
+            if problem.isEmpty {
+                do {
+                    _ = try ScheduleToolExecutor.parseWhen(arguments, base: nil,
+                        now: SelfTest.fixtureClock ?? Date(), timeZone: .current)
+                } catch { problem = error.localizedDescription }
+            }
+            if !problem.isEmpty {
+                guard repairs == 0, callsUsed + repairs + 1 < maxCalls,
+                      ceilingRemaining > .zero else {
+                    return ToolStepResult(canonicalID: canonicalID, disposition: .endTurn(
+                        .stopped("I couldn't finish that reminder.")))
+                }
+                repairs += 1
+                return ToolStepResult(canonicalID: canonicalID, disposition: .repaired(
+                    toolID: canonicalID, note: ToolRepair(
+                        kind: missing.isEmpty ? .invalidArgument : .missingArgument,
+                        toolID: canonicalID, message: problem
+                            + " Return the complete reminder call with its title, text and structured timing "
+                            + "from the user's confirmed request. If the timing is unknown, ask the user; "
+                            + "never invent it.").modelText))
+            }
+        }
         // P1-25: an id has to come from something the person was shown or something they said.
         // This sits **before** the repeated-call signature and before the executor, and that
         // position is the whole point: on 20 September an `append_doc` was approved with

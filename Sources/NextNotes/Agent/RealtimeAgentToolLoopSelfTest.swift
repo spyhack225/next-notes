@@ -1086,6 +1086,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
         failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
+        failures.append(contentsOf: await runReminderAdmissionCases(agent: agent, check: check))
         failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
         failures.append(contentsOf: await ExplicitMemorySaveSelfTest.run())
@@ -2075,6 +2076,219 @@ enum RealtimeAgentToolLoopSelfTest {
         let offerAfterRepair = await run([recorded, offered, complete])
         check("M04 offer spent a second draft repair", offerAfterRepair.model.count == 2 && offerAfterRepair.calls.isEmpty)
         print("  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT_REPAIR: actual omitted/blank subject, one repair, caps, exact card/approval/backing, missing recipient")
+        return []
+    }
+
+    /// Installed 334b3f8 R01: exact offer -> yes -> malformed function call. The
+    /// planner is scripted, but actual executor/confirmation/validation and native
+    /// ScheduleToolExecutor persist the corrected reminder in a private existing store.
+    @MainActor
+    static func runReminderAdmissionCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorCap = agent.maxCallsForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = allEnabledFixture()
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesR01-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            AgentToolExecutor.recordedReadApprovalsForTesting = priorApprovals
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.localModelProviderForTesting = priorProvider
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.answerDepthForTesting = priorDepth
+            agent.maxCallsForTesting = priorCap
+            agent.budgetForTesting = priorBudget
+            agent.setTypedPendingForTesting(nil)
+            try? FileManager.default.removeItem(at: root)
+        }
+        // This flag has no live-eval fixture-clock override. Reuse the actual clock,
+        // then author tomorrow's explicit date from that SAME clock, never a distant date.
+        let now = SelfTest.fixtureClock ?? Date()
+        let zone = TimeZone(identifier: "America/New_York")!
+        var calendar = Calendar(identifier: .gregorian); calendar.timeZone = zone
+        let tomorrow = calendar.date(byAdding: .day, value: 1, to: now)!
+        let expectedAt = calendar.date(bySettingHour: 9, minute: 0, second: 0, of: tomorrow)!
+        let parts = calendar.dateComponents([.year, .month, .day], from: tomorrow)
+        let dateText = String(format: "%04d-%02d-%02d", parts.year!, parts.month!, parts.day!)
+        let request = "Remind me at 9 tomorrow to call the bank"
+        let offer = "I'll set a reminder to call the bank at 9 AM tomorrow.\n\nIs that okay?"
+        let recorded = #"<function name="schedule.create"><param name="id">call bank tomorrow</param><param name="text">Remind me at 9 AM tomorrow to call the bank</param><param name="kind">reminder</param></function>"#
+        let complete = #"<tool_call>{"name":"schedule.create","arguments":{"title":"Call bank","text":"Remind me at 9 AM tomorrow to call the bank","kind":"reminder","date":"2026-10-06","time":"09:00"},"rationale":"confirmed reminder"}</tool_call>"#
+            .replacingOccurrences(of: "2026-10-06", with: dateText)
+        let expected = ["title": "Call bank", "text": "Remind me at 9 AM tomorrow to call the bank",
+                        "kind": "reminder", "date": dateText, "time": "09:00"]
+        var caseIndex = 0
+        @MainActor
+        func run(_ script: [String], cap: Int? = nil, deny: Bool = false,
+                 requestOverride: String? = nil, unconfirmed: Bool = false, liveFixture: Bool = false,
+                 expectedOverride: [String: String]? = nil)
+            async -> (reply: String, log: [PlannerScriptLog.Call], fired: [String], saved: [AgentSchedule]) {
+            caseIndex += 1
+            let requested = requestOverride ?? request
+            let accepted = expectedOverride ?? expected
+            let store = ScheduleStore(directory: root.appendingPathComponent("case-\(caseIndex)"))
+            let scheduler = AgentScheduler(
+                store: store, system: RoutineAuthoritySelfTest.NoSystem(),
+                deliverer: RoutineAuthoritySelfTest.QuietDeliverer(),
+                environment: RoutineAuthoritySelfTest.AbsentEnvironment(),
+                settings: { ScheduleSettingsSnapshot(enabled: true, quietStart: nil,
+                                                     quietEnd: nil, speech: .never) },
+                timeZone: { zone })
+            let log = PlannerScriptLog()
+            let fired = ScriptedToolLog()
+            let fixtures = LiveEvalFixtures(); fixtures.beginCase()
+            if liveFixture {
+                AgentToolExecutor.fakeForTesting = { tool, arguments in
+                    try await fixtures.run(tool, arguments)
+                }
+            } else { AgentToolExecutor.fakeForTesting = nil }
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                autoObserve: true, autoRead: true, autoSearchFiles: true,
+                autoComputerControl: false, grants: [])
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                fired.record(tool.id)
+                guard tool.id == "schedule.create", arguments == accepted else {
+                    throw AgentError.permissionDenied("Unexpected payload in the reminder fixture.")
+                }
+                if deny { throw AgentError.permissionDenied("Fixture reminder denied.") }
+                return try await ScheduleToolExecutor.run(tool, arguments: arguments,
+                    scheduler: scheduler, now: now, timeZone: zone)
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            agent.answerDepthForTesting = .balanced
+            agent.maxCallsForTesting = cap
+            agent.budgetForTesting = nil
+            agent.denyUnattendedApprovalsForTesting = liveFixture
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+            if !unconfirmed {
+                let first = await agent.handle(requested, source: .text)
+                check("R01 exact initial offer changed or did not retain pending", first.reply == script.first
+                    && agent.typedPending?.requestText == requested)
+                check("R01 initial offer executed before the user's yes", fired.toolIDs.isEmpty && fixtures.calls.isEmpty)
+            }
+            var finished = false
+            let operation = Task { @MainActor in
+                let result = await agent.handle(unconfirmed ? requested : "yes", source: .text)
+                finished = true
+                return result
+            }
+            var shown: PermissionRequest?
+            // SAME bounded review seam as the existing draft-subject cases. Completed
+            // negatives exit immediately; every actually entered operation is joined.
+            for _ in 0..<200 {
+                if let pending = PermissionGate.shared.pending, pending.toolID == "schedule.create" {
+                    shown = pending; break
+                }
+                if finished { break }
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            if let shown {
+                let card = ToolCallReviewStore.shared.review(for: shown)
+                check("R01 reminder entered backing before its existing approval", fired.toolIDs.isEmpty)
+                if card.isReadyToRun && shown.arguments == accepted {
+                    check("R01 unchanged complete reminder card lost readiness",
+                          PermissionGate.shared.islandProposal(for: shown).canExecute)
+                    let approved = PermissionGate.shared.respond(id: shown.id, approved: true)
+                    check("R01 complete reminder card could not be approved once", approved)
+                    if !approved { PermissionGate.shared.cancelPending(id: shown.id) }
+                } else { PermissionGate.shared.cancelPending(id: shown.id) }
+            } else if !finished { operation.cancel() }
+            let result = await operation.value
+            if let shown { ToolCallReviewStore.shared.remove(id: shown.id) }
+            if !unconfirmed {
+                check("R01 confirmed request lost original request/acknowledgment",
+                      log.calls.dropFirst().first?.user.contains(requested) == true
+                        && log.calls.dropFirst().first?.user.contains("The user answered: yes") == true)
+            } else {
+                check("R01 unconfirmed reminder did not retain its existing one approval", shown != nil)
+            }
+            check("R01 retained an approval/card after entered work returned",
+                  PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+            let saved = ScheduleStore(directory: store.directory).schedules
+            return (result.reply, log.calls, liveFixture ? fixtures.calls.map(\.toolID) : fired.toolIDs, saved)
+        }
+        let measured = await run([offer, recorded, complete, "Reminder set for tomorrow at 9 AM to call the bank."], liveFixture: true)
+        check("R01 exact retained live fixture ended at Title empty without its repair", measured.log.count == 4
+            && measured.log[1].user.contains("The user answered: yes")
+            && measured.log[2].user.contains("ERROR missing_argument")
+            && measured.fired == ["schedule.create"] && measured.reply.contains("bank"))
+        let repaired = await run([offer, recorded, complete, "Reminder set for tomorrow at 9 AM to call the bank."])
+        check("R01 measured malformed call did not receive its existing repair round", repaired.log.count == 4
+            && repaired.log[2].user.contains("ERROR missing_argument")
+            && repaired.log[2].user.contains(request))
+        check("R01 complete repair did not reach actual schedule execution exactly once",
+              repaired.fired == ["schedule.create"] && repaired.saved.count == 1)
+        check("R01 real saved reminder lost exact title/text/time/date", repaired.saved.first?.title == "Call bank"
+            && repaired.saved.first?.prompt == expected["text"]
+            && repaired.saved.first?.when?.time == ScheduleLocalTime(hour: 9, minute: 0)
+            && repaired.saved.first?.when?.timeZone == zone.identifier
+            && repaired.saved.first?.nextRunAt == expectedAt)
+        check("R01 actual schedule result did not return to the planner", repaired.log.last?.user.contains("Saved") == true
+            && repaired.reply.contains("bank"))
+        let repeated = await run([offer, recorded, recorded, complete])
+        check("R01 repeated malformed call received another repair or executed", repeated.log.count == 3
+            && repeated.fired.isEmpty && repeated.saved.isEmpty)
+        let capped = await run([offer, recorded, complete], cap: 1)
+        check("R01 repair exceeded the existing call cap", capped.log.count == 2
+            && capped.fired.isEmpty && capped.saved.isEmpty)
+        let valid = await run([offer, complete, "Reminder set for tomorrow at 9 AM to call the bank."])
+        check("R01 complete existing call was unnecessarily repaired", valid.log.count == 3
+            && !valid.log.contains { $0.user.contains("ERROR missing_argument") || $0.user.contains("ERROR invalid_argument") }
+            && valid.fired == ["schedule.create"] && valid.saved.count == 1)
+        let denied = await run([offer, complete, complete], deny: true)
+        check("R01 genuine permission denial was retried or saved", denied.log.count == 2
+            && denied.fired == ["schedule.create"] && denied.saved.isEmpty
+            && denied.reply.contains("denied"))
+        let missingTime = complete.replacingOccurrences(
+            of: ",\"date\":\"\(dateText)\",\"time\":\"09:00\"", with: "")
+        check("R01 missing-time control failed to remove structured timing", missingTime != complete)
+        // A genuinely unknown time may still be asked about on the ordinary repaired
+        // round; it must not be coerced into invented timing or native execution.
+        let unknownOffer = "I'll set a reminder to call the bank.\n\nIs that okay?"
+        let unknownTime = missingTime.replacingOccurrences(of: "Remind me at 9 AM tomorrow to call the bank", with: "Call the bank")
+        let timing = await run([unknownOffer, unknownTime, "What time should I remind you?"],
+                               requestOverride: "Remind me to call the bank")
+        check("R01 missing structured time entered execution or ended as infrastructure", timing.log.count == 3
+            && timing.log[2].user.contains("ERROR invalid_argument")
+            && timing.fired.isEmpty && timing.saved.isEmpty
+            && timing.reply == "What time should I remind you?")
+        for (field, bad) in [("time", "25:99"), ("date", "not-a-date")] {
+            let malformed = complete.replacingOccurrences(
+                of: "\"\(field)\":\"\(expected[field]!)\"", with: "\"\(field)\":\"\(bad)\"")
+            let result = await run([offer, malformed, "What time should I remind you?"])
+            check("R01 invalid native \(field) escaped preflight or lost its ordinary repair",
+                  result.log.count == 3 && result.log[2].user.contains("ERROR invalid_argument")
+                    && result.fired.isEmpty && result.saved.isEmpty)
+        }
+        var wrongKindArguments = expected; wrongKindArguments["kind"] = "banana"
+        let wrongKind = complete.replacingOccurrences(of: #""kind":"reminder""#, with: #""kind":"banana""#)
+        let invalidKind = await run([offer, wrongKind, complete], expectedOverride: wrongKindArguments)
+        check("R01 native wrong kind was saved or widened into reminder repair", invalidKind.log.count == 2
+            && invalidKind.fired == ["schedule.create"] && invalidKind.saved.isEmpty
+            && invalidKind.reply.contains("kind must be reminder, routine or trigger"))
+        let routine = recorded.replacingOccurrences(of: ">reminder</param>", with: ">routine</param>")
+        let otherKind = await run([offer, routine, "What should this routine do?"], liveFixture: true)
+        check("R01 reminder preflight changed other-kind repair or executed it", otherKind.log.count == 2
+            && !otherKind.log.contains { $0.user.contains("Return the complete reminder call") }
+            && otherKind.fired.isEmpty && otherKind.saved.isEmpty)
+        let unconfirmed = await run([complete, "Reminder set for tomorrow at 9 AM to call the bank."], unconfirmed: true)
+        check("R01 unconfirmed reminder changed its single card/approval flow", unconfirmed.log.count == 2
+            && unconfirmed.fired == ["schedule.create"] && unconfirmed.saved.count == 1)
+        print("  TOOLLOOP_PRODUCTION_REMINDER_ADMISSION: exact R01 offer/yes/raw, one repair, real private native schedule save, caps and denial")
         return []
     }
 
