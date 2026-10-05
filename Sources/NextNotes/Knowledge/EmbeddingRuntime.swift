@@ -38,7 +38,7 @@ import os
 /// cores. A CoreML/ANE build is the later experiment `--selftest-embed` should compare.
 actor EmbeddingRuntime: KnowledgeEmbedder {
     static let shared = EmbeddingRuntime(
-        modelURL: EmbeddingModels.embeddingGemma.fileURL,
+        modelURL: nil,
         displayName: EmbeddingModels.embeddingGemma.displayName,
         tag: "embeddinggemma-300m-qat",
         notesModelBusy: { await NotesModelRuntime.shared.isResidentOrBusy },
@@ -53,7 +53,7 @@ actor EmbeddingRuntime: KnowledgeEmbedder {
 
     nonisolated let model: String
     nonisolated let dimensions: Int
-    private let modelURL: URL
+    private let modelURL: URL?
     private let displayName: String
     private let gpuLayers: Int32
     private let notesModelBusy: @Sendable () async -> Bool
@@ -64,6 +64,33 @@ actor EmbeddingRuntime: KnowledgeEmbedder {
     private var outputWidth = 0
     private var lastUse = Date()
     private var idleTask: Task<Void, Never>?
+    private var terminationRequested = false
+    private var terminationTraceForTesting: OtherLlamaTerminationTrace?
+
+    func configureTerminationFixture(trace: OtherLlamaTerminationTrace) throws {
+        guard llamaModel == nil, context == nil, terminationTraceForTesting == nil else { throw CocoaError(.fileReadNoPermission) }
+        guard let modelURL else { throw CocoaError(.fileReadNoPermission) }
+        _ = try NativeOtherLlamaQuitSelfTest.validateModel(modelURL, expected: EmbeddingModels.embeddingGemma)
+        terminationTraceForTesting = trace
+    }
+    var terminationResidentForTesting: Bool? {
+        guard NativeOtherLlamaQuitSelfTest.isRequested else { return nil }
+        return llamaModel != nil || context != nil
+    }
+    nonisolated func finishTermination() async {
+        requestStop()
+        await closeForTermination()
+    }
+    private func closeForTermination() {
+        terminationRequested = true
+        shutdown()
+        stopRequested.withLock { $0 = true }
+        terminationTraceForTesting?.ownerClosed()
+    }
+    private func checkTerminationAdmission() throws {
+        guard !terminationRequested else { throw CancellationError() }
+        try Task.checkCancellation()
+    }
     /// Whether nothing live forbids a cold load for this purpose.
     private let mayLoad: @Sendable (EmbeddingPurpose) async -> Bool
     /// Bumped by every `shutdown()`, so a load that suspended across one knows.
@@ -73,7 +100,7 @@ actor EmbeddingRuntime: KnowledgeEmbedder {
     private nonisolated let stopRequested = OSAllocatedUnfairLock(initialState: false)
 
     init(
-        modelURL: URL, displayName: String, tag: String, dimensions: Int = EmbeddingMath.storedDimensions,
+        modelURL: URL?, displayName: String, tag: String, dimensions: Int = EmbeddingMath.storedDimensions,
         gpuLayers: Int32 = 0, notesModelBusy: @escaping @Sendable () async -> Bool,
         mayLoad: @escaping @Sendable (EmbeddingPurpose) async -> Bool = { _ in true }
     ) {
@@ -101,8 +128,10 @@ actor EmbeddingRuntime: KnowledgeEmbedder {
     }
 
     func embed(_ texts: [String], purpose: EmbeddingPurpose) async throws -> [[Float]] {
+        try checkTerminationAdmission()
         guard !texts.isEmpty else { return [] }
         try await loadIfNeeded(purpose: purpose)
+        try checkTerminationAdmission()
         // No suspension from here to the return: see the type's comment.
         guard let context, let vocabulary, let llamaModel else { throw LlamaError.notLoaded }
         defer {
@@ -124,7 +153,9 @@ actor EmbeddingRuntime: KnowledgeEmbedder {
                 // Pooled embeddings read every position, so every token is an output.
                 LlamaHelpers.add(token, position: llama_pos(position), logits: true, to: &batch)
             }
+            terminationTraceForTesting?.nativeEntered()
             let status = encoderOnly ? llama_encode(context, batch) : llama_decode(context, batch)
+            terminationTraceForTesting?.nativeReturned(succeeded: status == 0)
             guard status == 0, let pooled = llama_get_embeddings_seq(context, 0) else { throw LlamaError.decodeFailed }
             let full = Array(UnsafeBufferPointer(start: pooled, count: outputWidth))
             vectors.append(EmbeddingMath.matryoshka(full, dimensions: dimensions))
@@ -170,11 +201,13 @@ actor EmbeddingRuntime: KnowledgeEmbedder {
     }
 
     private func loadIfNeeded(purpose: EmbeddingPurpose) async throws {
+        try checkTerminationAdmission()
         if llamaModel != nil, context != nil {
             // Loaded already; the notes model cannot have loaded since, because its load
             // shuts this runtime down first.
             return
         }
+        let modelURL = modelURL ?? EmbeddingModels.embeddingGemma.fileURL
         guard FileManager.default.fileExists(atPath: modelURL.path) else {
             throw KnowledgeEmbeddingError.modelMissing(displayName)
         }
@@ -186,6 +219,7 @@ actor EmbeddingRuntime: KnowledgeEmbedder {
         if await !mayLoad(purpose) { throw KnowledgeEmbeddingError.foregroundBusy }
         // The last suspension before the load.
         if await notesModelBusy() { throw KnowledgeEmbeddingError.notesModelResident }
+        try checkTerminationAdmission()
         guard epoch == shutdowns else { throw KnowledgeEmbeddingError.notesModelResident }
         if llamaModel != nil, context != nil { return }
 

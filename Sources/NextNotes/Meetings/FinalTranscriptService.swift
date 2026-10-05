@@ -18,6 +18,49 @@ final class FinalTranscriptService {
     static let shared = FinalTranscriptService()
 
     private var tasks: [UUID: Task<Void, Never>] = [:]
+    private var terminationRequested = false
+    private var terminationFixtureID: UUID?
+    private var terminationFixtureTrace: FinalTranscriptTerminationTrace?
+
+    /// COMMON metadata-only diagnostic; the ordinary default remains nil.
+    func configureFinalTerminationFixture(id: UUID, store: MeetingStore,
+                                          trace: FinalTranscriptTerminationTrace) throws {
+        let root = store.directory(for: id).deletingLastPathComponent().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+        let prefix = "NextNotesMeetingResumeTest-"
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              NativeFinalTranscriptQuitSelfTest.isRequested, self === Self.shared,
+              tasks.isEmpty, terminationFixtureTrace == nil,
+              root.path == root.resolvingSymlinksInPath().path,
+              root.deletingLastPathComponent().path == temporary.path,
+              root.lastPathComponent.hasPrefix(prefix),
+              UUID(uuidString: String(root.lastPathComponent.dropFirst(prefix.count))) != nil else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        terminationFixtureID = id
+        terminationFixtureTrace = trace
+    }
+
+    /// Returns the SAME map handle; no replacement Task or native result override.
+    func finalTerminationTaskForTesting(id: UUID) -> Task<Void, Never>? {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              NativeFinalTranscriptQuitSelfTest.isRequested, id == terminationFixtureID else { return nil }
+        return tasks[id]
+    }
+
+    /// Close future admission and retain the SAME existing map before cancellation.
+    func beginTermination() -> [Task<Void, Never>] {
+        terminationRequested = true
+        let owned = Array(tasks.values)
+        terminationFixtureTrace?.captured(count: owned.count)
+        for task in owned { task.cancel() }
+        return owned
+    }
+
+    /// A cancelled native await still owns work until its actual Task returns.
+    func finishTermination(_ owned: [Task<Void, Never>]) async {
+        for task in owned { await task.value }
+    }
 
     private let transcribe: @Sendable ([Float]) async throws -> ASRResult
     private let afterFinalPass: @MainActor (Meeting, MeetingStore) -> Void
@@ -39,27 +82,34 @@ final class FinalTranscriptService {
     /// Stops a pass that is no longer wanted. Deleting the meeting is the case
     /// that matters (wired in `MeetingStore.delete` beside the other cancels).
     func cancel(_ id: UUID) {
+        // Only the actual Task's defer releases the slot. Removing it here would
+        // lose native ownership and admit a successor while this pass still lives.
         tasks[id]?.cancel()
-        tasks[id] = nil
     }
 
     /// Runs the final pass, then hands the meeting to whatever comes next.
     /// Returns immediately; the session that called it is already gone.
     func process(_ meeting: Meeting, store: MeetingStore = .shared) {
         let id = meeting.id
-        guard tasks[id] == nil else { return }
+        guard !terminationRequested, tasks[id] == nil else { return }
         tasks[id] = Task { @MainActor [weak self] in
             guard let self else { return }
-            defer { self.tasks[id] = nil }
+            defer {
+                self.tasks[id] = nil
+                if id == self.terminationFixtureID { self.terminationFixtureTrace?.ended() }
+            }
             await self.run(id: id, store: store)
         }
+        if id == terminationFixtureID { terminationFixtureTrace?.assigned() }
     }
 
     private func run(id: UUID, store: MeetingStore) async {
-        guard var meeting = store.meeting(id: id) else { return }
+        guard !terminationRequested, !Task.isCancelled,
+              var meeting = store.meeting(id: id) else { return }
         guard let audio = store.audioURL(for: meeting) else {
             meeting.transcriptPass = "live-only:no-audio"
             store.save(meeting)
+            if id == terminationFixtureID { terminationFixtureTrace?.handoff() }
             afterFinalPass(meeting, store)
             return
         }
@@ -92,10 +142,13 @@ final class FinalTranscriptService {
                 let track = try await MeetingFinalPass.transcribeTrack(
                     samples, source: source, transcribe: transcribe
                 )
+                try Task.checkCancellation()
+                guard !terminationRequested else { return }
                 windows += track.windows.count
                 finalsByTrack[source] = track.segments
             }
-            guard store.meeting(id: id) != nil else { return }
+            try Task.checkCancellation()
+            guard !terminationRequested, store.meeting(id: id) != nil else { return }
 
             var accepted: [AudioSource: Bool] = [:]
             var combined: [TranscriptSegment] = []
@@ -137,9 +190,11 @@ final class FinalTranscriptService {
                 (rtf \(String(format: "%.4f", rtf), privacy: .public), \
                 \(windows, privacy: .public) windows, accepted \(acceptedNote, privacy: .public)
                 """)
+            if id == terminationFixtureID { terminationFixtureTrace?.handoff() }
             afterFinalPass(store.meeting(id: id) ?? meeting, store)
         } catch is CancellationError {
-            keepLive(id: id, pass: "live-only:failed", store: store)
+            // Cancellation is an unfinished pass, not a failed-but-ready pipeline.
+            return
         } catch {
             Log.meeting.error("final pass failed: \(error.localizedDescription, privacy: .public)")
             keepLive(id: id, pass: "live-only:failed", store: store)
@@ -149,12 +204,14 @@ final class FinalTranscriptService {
     /// The error path: the live transcript stays, the pass is named, and the
     /// pipeline continues. Never blocks diarization or notes on a failed pass.
     private func keepLive(id: UUID, pass: String, store: MeetingStore) {
-        guard var meeting = store.meeting(id: id) else { return }
+        guard !terminationRequested, !Task.isCancelled,
+              var meeting = store.meeting(id: id) else { return }
         meeting.transcriptPass = pass
         if store.transcript(for: id).isEmpty {
             meeting.status = .failed("The recording could not be transcribed.")
         }
         store.save(meeting)
+        if id == terminationFixtureID { terminationFixtureTrace?.handoff() }
         afterFinalPass(meeting, store)
     }
 }

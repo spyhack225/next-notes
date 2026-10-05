@@ -12,13 +12,27 @@ actor LlamaBackend {
     static let shared = LlamaBackend()
 
     private var isInitialized = false
+    private(set) var nativeProbeAllowed = true
+    private(set) var terminationProbeTraceForTesting: OtherLlamaTerminationTrace?
+
+    func configureProbeTerminationFixture(trace: OtherLlamaTerminationTrace) throws {
+        guard NativeOtherLlamaQuitSelfTest.isRequested, terminationProbeTraceForTesting == nil else { throw CocoaError(.fileReadNoPermission) }
+        terminationProbeTraceForTesting = trace
+    }
+    nonisolated func beginTermination() async { await closeNativeProbesForTermination() }
+    private func closeNativeProbesForTermination() {
+        nativeProbeAllowed = false
+        terminationProbeTraceForTesting?.ownerClosed()
+    }
     private(set) var isMetalAvailable = false
 
     /// Idempotent. Safe to call from every runtime before its first model load.
     func initialize() async {
+        guard nativeProbeAllowed else { return }
         if isInitialized { return }
 
         let metalEnabled = await MainActor.run { Settings.shared.llmMetalEnabled }
+        guard nativeProbeAllowed else { return }
 
         // llama.cpp keeps Metal residency sets alive for three minutes by default and can
         // assert while a GUI app is quitting. Neither model here needs that optimization;

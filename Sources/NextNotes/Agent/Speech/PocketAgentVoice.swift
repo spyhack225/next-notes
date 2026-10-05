@@ -10,29 +10,84 @@ final class PocketAgentVoice {
 
     // Shared by the model-backed session probe to avoid loading a second
     // Pocket model on a 16 GB machine.
-    let manager = PocketTtsManager(precision: .int8)
+    let manager: PocketTtsManager
+    private let terminationFixtureRoot: URL?
+    private let terminationFixtureTrace: StartupTerminationTrace?
+
+    init() {
+        manager = PocketTtsManager(precision: .int8)
+        terminationFixtureRoot = nil
+        terminationFixtureTrace = nil
+    }
+
+    init(terminationFixtureRoot: URL, trace: StartupTerminationTrace) throws {
+        let root = try NativeStartupTerminationSelfTest.validateAssets(terminationFixtureRoot, pocket: true)
+        self.terminationFixtureRoot = root
+        self.terminationFixtureTrace = trace
+        manager = PocketTtsManager(defaultVoice: "alba", language: .english, directory: root,
+                                   precision: .int8, placement: .gpu)
+    }
     private(set) var isReady = false
     private(set) var isPreparing = false
     private(set) var errorMessage: String?
     private var prepareTask: Task<Void, Never>?
+    private var terminationRequested = false
+    private var terminationPrepareTask: Task<Void, Never>?
+
+    /// Snapshot before cancel; prepare() may clear its ordinary slot across an await.
+    func beginTermination() {
+        guard !terminationRequested else { return }
+        terminationRequested = true
+        terminationPrepareTask = prepareTask
+        terminationPrepareTask?.cancel()
+    }
+
+    /// This joins preparation/warmup only, not every caller-owned synthesis stream.
+    func finishTermination() async {
+        beginTermination()
+        await terminationPrepareTask?.value
+        terminationPrepareTask = nil
+    }
+
+    private func checkTerminationAdmission() throws {
+        guard !terminationRequested else { throw CancellationError() }
+        try Task.checkCancellation()
+    }
 
     func prepare() async {
+        guard !terminationRequested, !Task.isCancelled else { return }
         if isReady { return }
         if let prepareTask { await prepareTask.value; return }
         isPreparing = true
         errorMessage = nil
         let pending = Task { @MainActor in
+            defer { terminationFixtureTrace?.taskEnded() }
             do {
-                try await manager.initialize()
+                try checkTerminationAdmission()
+                do {
+                    terminationFixtureTrace?.loadEntered(pocket: true)
+                    defer { terminationFixtureTrace?.loadReturned() }
+                    try await manager.initialize()
+                }
+                try checkTerminationAdmission()
                 try await warmFirstPrediction()
+                try checkTerminationAdmission()
                 isReady = true
+                terminationFixtureTrace?.readyPublished()
+            } catch is CancellationError {
+                // Quit has no new readiness or failure announcement.
             } catch {
-                errorMessage = error.localizedDescription
-                Log.agent.error("Pocket TTS load failed: \(error.localizedDescription, privacy: .public)")
+                // Some native failures are not CancellationError. Closing still
+                // forbids a late load-failure announcement; cleanup below remains.
+                if !terminationRequested && !Task.isCancelled {
+                    errorMessage = error.localizedDescription
+                    Log.agent.error("Pocket TTS load failed: \(error.localizedDescription, privacy: .public)")
+                }
             }
             isPreparing = false
         }
         prepareTask = pending
+        terminationFixtureTrace?.assigned()
         await pending.value
         prepareTask = nil
     }
@@ -42,7 +97,13 @@ final class PocketAgentVoice {
     /// submitted, versus about 0.08 s after this warmup on this machine.
     /// No generated frame reaches the speaker or the playback ledger.
     private func warmFirstPrediction() async throws {
-        let session = try await manager.makeSession(voice: Settings.shared.agentPocketVoice)
+        try checkTerminationAdmission()
+        terminationFixtureTrace?.warmEntered()
+        let session = try await manager.makeSession(voice: terminationFixtureRoot != nil ? "alba" : Settings.shared.agentPocketVoice)
+        if terminationRequested || Task.isCancelled {
+            await session.cancel()
+            throw CancellationError()
+        }
         session.enqueue("Ready.")
         let produced: Bool? = await withBoundedWait(.seconds(8)) {
             do {
@@ -62,10 +123,12 @@ final class PocketAgentVoice {
 
     func frames(for text: String, voice: String)
         async throws -> AsyncThrowingStream<PocketTtsSynthesizer.AudioFrame, Error> {
+        try checkTerminationAdmission()
         // The one-time native warmup can be draining a cancelled CoreML call.
         // If it exceeds this caller's budget, fall back for this reply while
         // the prepare task keeps exclusive ownership until cancel() returns.
         let prepared: Void? = await withBoundedWait(.seconds(10)) { await self.prepare() }
+        try checkTerminationAdmission()
         guard prepared != nil else { throw PocketPlaybackError.modelUnavailable("Pocket TTS is still preparing.") }
         guard isReady else { throw PocketPlaybackError.modelUnavailable(errorMessage) }
         return try await manager.synthesizeStreaming(text: text, voice: voice)

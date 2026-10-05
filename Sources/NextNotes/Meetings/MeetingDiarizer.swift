@@ -14,6 +14,34 @@ import Foundation
 /// transcript whose speaker labels shuffle while you read it is worse than no labels.
 actor MeetingDiarizer {
     static let shared = MeetingDiarizer()
+    private var terminationFixtureDirectory: URL?
+    private var terminationFixtureTrace: DiarizerNativeTrace?
+    private var terminationRequested = false
+    private var terminationLoadTask: Task<Void, Error>?
+
+    func configureTerminationFixture(directory: URL, trace: DiarizerNativeTrace) throws {
+        guard NativeDiarizationQuitSelfTest.isRequested, self === Self.shared,
+              models == nil, loadTask == nil, terminationFixtureDirectory == nil else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        terminationFixtureDirectory = try NativeDiarizationQuitSelfTest.validateAssets(directory)
+        terminationFixtureTrace = trace
+    }
+    func beginTermination() {
+        guard !terminationRequested else { return }
+        terminationRequested = true
+        terminationLoadTask = loadTask
+        terminationLoadTask?.cancel()
+    }
+    func finishTermination() async {
+        beginTermination()
+        if let owned = terminationLoadTask { _ = await owned.result }
+        terminationLoadTask = nil
+    }
+    private func checkTerminationAdmission() throws {
+        guard !terminationRequested else { throw CancellationError() }
+        try Task.checkCancellation()
+    }
 
     /// One stretch of one speaker, in seconds from the start of the recording.
     ///
@@ -61,7 +89,17 @@ actor MeetingDiarizer {
             "PldaRho.mlmodelc/coremldata.bin",
             "plda-parameters.json",
         ]
-        let root = modelsRoot
+        let root: URL
+        if NativeDiarizationQuitSelfTest.isRequested {
+            let arguments = CommandLine.arguments
+            guard let index = arguments.firstIndex(of: "--native-startup-assets"),
+                  arguments.indices.contains(index + 1),
+                  let copied = try? NativeDiarizationQuitSelfTest.validateAssets(
+                      URL(fileURLWithPath: arguments[index + 1])) else { return false }
+            root = copied.appendingPathComponent("speaker-diarization", isDirectory: true)
+        } else {
+            root = modelsRoot
+        }
         guard required.allSatisfy({ FileManager.default.fileExists(atPath: root.appendingPathComponent($0).path) })
         else { return false }
 
@@ -86,19 +124,28 @@ actor MeetingDiarizer {
 
     /// Downloads and compiles the models if they aren't already on disk.
     func prepare() async throws {
+        try checkTerminationAdmission()
         if models != nil { return }
-        if let loadTask { return try await loadTask.value }
+        if let loadTask {
+            try await loadTask.value
+            try checkTerminationAdmission()
+            return
+        }
 
         let task = Task<Void, Error> { [weak self] in try await self?.load() }
         loadTask = task
         defer { loadTask = nil }
         try await task.value
+        try checkTerminationAdmission()
     }
 
     private func load() async throws {
+        try checkTerminationAdmission()
         guard models == nil else { return }
         let started = Date()
-        models = try await Self.loaded()
+        let loaded = try await Self.loaded(directory: terminationFixtureDirectory)
+        try checkTerminationAdmission()
+        models = loaded
         Log.meeting.info("""
             diarizer ready in \(Date().timeIntervalSince(started), format: .fixed(precision: 1))s
             """)
@@ -123,10 +170,17 @@ actor MeetingDiarizer {
             return []
         }
         try await prepare()
+        try checkTerminationAdmission()
         guard let models else { throw DiarizationError.notPrepared }
-        return try await Self.speakerRuns(
+        terminationFixtureTrace?.nativeEntered()
+        var succeeded = false
+        defer { terminationFixtureTrace?.nativeReturned(succeeded: succeeded) }
+        let result = try await Self.speakerRuns(
             from: models, in: samples, hint: hint, merged: merged, progress: progress
         )
+        succeeded = true
+        try checkTerminationAdmission()
+        return result
     }
 
     /// Frees the models. Called when nothing is going to be diarized for a while.
@@ -157,7 +211,7 @@ actor MeetingDiarizer {
         }
     }
 
-    private nonisolated static func loaded() async throws -> Models {
+    private nonisolated static func loaded(directory: URL? = nil) async throws -> Models {
         // One load, through a manager with the default configuration — the same call the
         // pre-M-03 code made — so the download, the compile and FluidAudio's prewarm all
         // happen exactly once. `prepareModels` returns nothing, so the prepared struct is
@@ -165,8 +219,8 @@ actor MeetingDiarizer {
         // `ModelCache` keeps, not a recompile) and every hinted pass after this one
         // builds on it instead of loading again.
         let manager = OfflineDiarizerManager(config: .default)
-        try await manager.prepareModels()
-        let prepared = try await OfflineDiarizerModels.load()
+        try await manager.prepareModels(directory: directory)
+        let prepared = try await OfflineDiarizerModels.load(from: directory)
         return Models(defaultManager: manager, prepared: prepared)
     }
 

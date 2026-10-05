@@ -20,15 +20,78 @@ final class DiarizationService {
     /// re-read. `MeetingStore` caches transcripts, and nothing else observes that cache.
     private(set) var revision = 0
 
-    @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
+    private struct OwnedTask {
+        let binding: UUID
+        let handle: Task<Void, Never>
+        let onStallForTesting: (@MainActor () -> Void)?
+        var watchdogFallback = false
+    }
+    @ObservationIgnored private var tasks: [UUID: OwnedTask] = [:]
+    @ObservationIgnored private var terminationRequested = false
+    @ObservationIgnored private var terminationFixtureID: UUID?
+    @ObservationIgnored private var terminationFixtureTrace: DiarizationTerminationTrace?
+
+    func configureTerminationFixture(id: UUID, store: MeetingStore,
+                                     trace: DiarizationTerminationTrace) throws {
+        guard NativeDiarizationQuitSelfTest.isRequested, self === Self.shared,
+              store === MeetingStore.shared, tasks.isEmpty, terminationFixtureTrace == nil,
+              NativeDiarizationQuitSelfTest.isConfinedMeetingStore(store) else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        terminationFixtureID = id; terminationFixtureTrace = trace
+    }
+    func ownedTerminationTaskForTesting(id: UUID) -> Task<Void, Never>? {
+        guard NativeDiarizationQuitSelfTest.isRequested, id == terminationFixtureID else { return nil }
+        return tasks[id]?.handle
+    }
+    func triggerActualWatchdogForTesting(id: UUID) -> Bool {
+        guard NativeDiarizationQuitSelfTest.isRequested, id == terminationFixtureID,
+              let operation = tasks[id]?.onStallForTesting else { return false }
+        operation(); return true
+    }
+    // COMMON nil/no-op original bodies retain its actual cancellation/handoff.
+    func beginTermination() -> [Task<Void, Never>] {
+        terminationRequested = true
+        let owned = tasks.values.map(\.handle)
+        terminationFixtureTrace?.captured(count: owned.count)
+        for task in owned { task.cancel() }
+        return owned
+    }
+    func finishTermination(_ owned: [Task<Void, Never>]) async {
+        for task in owned { await task.value }
+    }
+    private func acceptsOwner(_ id: UUID, _ binding: UUID) -> Bool {
+        guard !terminationRequested, let owned = tasks[id] else { return false }
+        return owned.binding == binding && !owned.handle.isCancelled
+    }
+    private func permitsHandoff(_ id: UUID, _ binding: UUID) -> Bool {
+        guard !terminationRequested, let owned = tasks[id], owned.binding == binding else { return false }
+        return !owned.handle.isCancelled || owned.watchdogFallback
+    }
+    private func markWatchdogFallback(_ id: UUID, _ binding: UUID) -> Bool {
+        guard acceptsOwner(id, binding) else { return false }
+        tasks[id]?.watchdogFallback = true
+        return true
+    }
+    private func releaseOwner(_ id: UUID, _ binding: UUID) {
+        guard tasks[id]?.binding == binding else { return }
+        tasks[id] = nil; progress[id] = nil; lastProgressAt[id] = nil
+    }
+    private func applyProgress(_ id: UUID, _ binding: UUID, _ fraction: Double) {
+        guard acceptsOwner(id, binding) else { return }
+        noteProgress(id); progress[id] = fraction
+    }
     /// The stall watchdog's clock: when each running pass last reported progress
     /// (M-08). Advanced beside every `progress[id]` write, never on its own.
     @ObservationIgnored private var lastProgressAt: [UUID: Date] = [:]
 
-    private let store: MeetingStore
+    // Retain an explicitly injected store; resolving the default happens only
+    // when real service work needs it, so quit can close an empty owner cheaply.
+    private let providedStore: MeetingStore?
+    private var store: MeetingStore { providedStore ?? MeetingStore.shared }
 
-    init(store: MeetingStore = .shared) {
-        self.store = store
+    init(store: MeetingStore? = nil) {
+        providedStore = store
     }
 
     func isRunning(_ id: UUID) -> Bool { tasks[id] != nil }
@@ -83,8 +146,9 @@ final class DiarizationService {
 
     /// Stops a pass that is no longer wanted. Deleting the meeting is the case that matters.
     func cancel(_ id: UUID) {
-        tasks[id]?.cancel()
-        tasks[id] = nil
+        tasks[id]?.watchdogFallback = false
+        tasks[id]?.handle.cancel()
+        // Retain exact native owner until its actual Task defer. Progress withdraws.
         progress[id] = nil
         lastProgressAt[id] = nil
     }
@@ -97,7 +161,8 @@ final class DiarizationService {
         then next: @escaping @MainActor () -> Void
     ) {
         let id = meeting.id
-        guard tasks[id] == nil else { return }
+        guard !terminationRequested, tasks[id] == nil else { return }
+        let binding = UUID()
         noteProgress(id)
 
         // M-08: a clustering pass that stops reporting progress is stopped rather than
@@ -105,34 +170,39 @@ final class DiarizationService {
         // the recording (`releaseAudio` refuses to drop audio while one is set), and the
         // pipeline continues with the labels it has — a diarization that failed never
         // blocked the notes.
-        let watchdog = StageWatch(
-            limit: StageWatchdog.diarizeLimit,
-            lastProgress: { [weak self] in self?.lastProgressAt[id] ?? .distantPast },
-            isLaneBusy: { await StageWatchdog.urgentLaneBusy() },
-            onStall: { [weak self] in
-                guard let self else { return }
+        let onStall: @MainActor () -> Void = { [weak self] in
+                guard let self, self.markWatchdogFallback(id, binding) else { return }
                 let since = Date().timeIntervalSince(self.lastProgressAt[id] ?? .distantPast)
                 Log.meeting.error("""
                     diarize stalled · \(Int(since), privacy: .public)s without progress \
                     on "\(meeting.title, privacy: .public)"
                     """)
                 self.problems[id] = StageWatchdog.stallMessage
-                self.tasks[id]?.cancel()
-            }
+                self.tasks[id]?.handle.cancel()
+        }
+        let watchdog = StageWatch(
+            limit: StageWatchdog.diarizeLimit,
+            lastProgress: { [weak self] in self?.lastProgressAt[id] ?? .distantPast },
+            isLaneBusy: { await StageWatchdog.urgentLaneBusy() },
+            onStall: onStall
         )
         watchdog.start()
 
-        tasks[id] = Task { @MainActor [weak self] in
+        let task = Task { @MainActor [weak self] in
             guard let self else { return }
             defer {
                 watchdog.cancel()
-                self.tasks[id] = nil
-                self.progress[id] = nil
-                self.lastProgressAt[id] = nil
+                if id == self.terminationFixtureID { self.terminationFixtureTrace?.ended() }
+                self.releaseOwner(id, binding)
             }
-            await diarize(id, forcedSpeakers: forcedSpeakers)
+            await diarize(id, binding: binding, forcedSpeakers: forcedSpeakers)
+            guard self.permitsHandoff(id, binding) else { return }
+            if id == self.terminationFixtureID { self.terminationFixtureTrace?.handoff() }
             next()
         }
+        tasks[id] = OwnedTask(binding: binding, handle: task,
+            onStallForTesting: NativeDiarizationQuitSelfTest.isRequested ? onStall : nil)
+        if id == terminationFixtureID { terminationFixtureTrace?.assigned() }
     }
 
     /// The shortest track `MeetingDiarizer.speakerRuns` clusters. Mirrors that actor's own
@@ -150,7 +220,7 @@ final class DiarizationService {
     ///     nil clusters with whatever hint the meeting's own shape supports.
     /// - Returns: whether any speaker label was written.
     @discardableResult
-    private func diarize(_ id: UUID, forcedSpeakers: Int? = nil) async -> Bool {
+    private func diarize(_ id: UUID, binding: UUID, forcedSpeakers: Int? = nil) async -> Bool {
         let began = ContinuousClock.now
         var audioSeconds = 0.0
         var runsCount = 0
@@ -178,7 +248,7 @@ final class DiarizationService {
             )
         }
 
-        guard let meeting = store.meeting(id: id) else { return false }
+        guard acceptsOwner(id, binding), let meeting = store.meeting(id: id) else { return false }
         guard let audio = store.audioURL(for: meeting) else {
             problems[id] = DiarizationError.noAudio.localizedDescription
             errorClass = .other
@@ -215,6 +285,7 @@ final class DiarizationService {
             if audioSeconds >= Self.minimumDiarizableSeconds {
                 let prepareBegan = ContinuousClock.now
                 try await MeetingDiarizer.shared.prepare()
+                guard acceptsOwner(id, binding) else { throw CancellationError() }
                 let prepareMs = ModelPassRecorder.milliseconds(prepareBegan.duration(to: .now))
                 if prepareMs >= Self.diarizerLoadThresholdMs {
                     warm = false
@@ -229,13 +300,20 @@ final class DiarizationService {
             // browser, an unknown app and a meeting with no attendees get neither.
             hint = forcedSpeakers.map { SpeakerCountHint(numSpeakers: $0) }
                 ?? SpeakerCountHint.for(meeting)
+            guard acceptsOwner(id, binding) else { throw CancellationError() }
             let runs = try await MeetingDiarizer.shared.speakerRuns(in: samples, hint: hint) { fraction in
                 Task { @MainActor [weak self] in
-                    self?.noteProgress(id)
-                    self?.progress[id] = fraction
+                    guard let self else { return }
+                    let operation: @MainActor () -> Void = { [weak self] in
+                        self?.applyProgress(id, binding, fraction)
+                    }
+                    if id == self.terminationFixtureID,
+                       self.terminationFixtureTrace?.holdFirstProgress(operation) == true { return }
+                    operation()
                 }
             }
             runsCount = runs.count
+            guard acceptsOwner(id, binding) else { throw CancellationError() }
             try Task.checkCancellation()
             guard !runs.isEmpty else {
                 Log.meeting.info("diarization found no speech on the system track")
@@ -294,6 +372,7 @@ final class DiarizationService {
             errorClass = .cancelled
             return false
         } catch {
+            guard acceptsOwner(id, binding) else { return false }
             errorClass = UsageErrorClass.classify(error)
             errorMessage = error.localizedDescription
             LatencyTrace.record(

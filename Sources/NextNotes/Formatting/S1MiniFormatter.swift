@@ -113,10 +113,34 @@ actor S1MiniRuntime {
     private var model: OpaquePointer?
     private var context: OpaquePointer?
     private var vocabulary: OpaquePointer?
+    private var terminationRequested = false
+    private var terminationModelURLForTesting: URL?
+    private var terminationTraceForTesting: OtherLlamaTerminationTrace?
+
+    func configureTerminationFixture(modelURL: URL, trace: OtherLlamaTerminationTrace) throws {
+        guard model == nil, context == nil, terminationTraceForTesting == nil else { throw CocoaError(.fileReadNoPermission) }
+        terminationModelURLForTesting = try NativeOtherLlamaQuitSelfTest.validateModel(modelURL, expected: S1MiniModels.spec)
+        terminationTraceForTesting = trace
+    }
+    var terminationResidentForTesting: Bool? {
+        guard NativeOtherLlamaQuitSelfTest.isRequested else { return nil }
+        return model != nil || context != nil
+    }
+    nonisolated func finishTermination() async { await closeForTermination() }
+    private func closeForTermination() {
+        terminationRequested = true
+        shutdown()
+        terminationTraceForTesting?.ownerClosed()
+    }
+    private func checkTerminationAdmission() throws {
+        guard !terminationRequested else { throw CancellationError() }
+        try Task.checkCancellation()
+    }
 
     /// Loads the runtime without generating text so selecting S1-mini never makes the next
     /// dictation pay the model's cold-start cost.
     func prepare() async throws {
+        try checkTerminationAdmission()
         try await loadIfNeeded()
     }
 
@@ -127,6 +151,7 @@ actor S1MiniRuntime {
     /// `defer`, because `defer` can't await and the release must happen before the caller
     /// resumes — a `Task { }` in a `defer` would let the notes model start loading first.
     func normalize(_ transcript: String, preferences: CleanupPreferences) async throws -> String {
+        try checkTerminationAdmission()
         await LlamaBackend.shared.beginCleanup()
         do {
             let result = try await performNormalize(transcript, preferences: preferences)
@@ -143,6 +168,7 @@ actor S1MiniRuntime {
         preferences: CleanupPreferences
     ) async throws -> String {
         try await loadIfNeeded()
+        try checkTerminationAdmission()
         guard let context, let vocabulary else { throw RuntimeError.notLoaded }
 
         let structure = preferences.formatsLists ? "lists" : "prose"
@@ -175,7 +201,10 @@ actor S1MiniRuntime {
             LlamaHelpers.add(token, position: Int32(index), logits: false, to: &promptBatch)
         }
         promptBatch.logits[Int(promptBatch.n_tokens) - 1] = 1
-        guard llama_decode(context, promptBatch) == 0 else { throw RuntimeError.decodeFailed }
+        terminationTraceForTesting?.nativeEntered()
+        let prefillStatus = llama_decode(context, promptBatch)
+        terminationTraceForTesting?.nativeReturned(succeeded: prefillStatus == 0)
+        guard prefillStatus == 0 else { throw RuntimeError.decodeFailed }
 
         guard let sampler = llama_sampler_init_greedy() else { throw RuntimeError.samplerFailed }
         defer { llama_sampler_free(sampler) }
@@ -190,7 +219,9 @@ actor S1MiniRuntime {
 
             var tokenBatch = llama_batch_init(1, 0, 1)
             LlamaHelpers.add(token, position: position, logits: true, to: &tokenBatch)
+            terminationTraceForTesting?.nativeEntered()
             let result = llama_decode(context, tokenBatch)
+            terminationTraceForTesting?.nativeReturned(succeeded: result == 0)
             llama_batch_free(tokenBatch)
             guard result == 0 else { throw RuntimeError.decodeFailed }
             position += 1
@@ -216,10 +247,12 @@ actor S1MiniRuntime {
     }
 
     private func loadIfNeeded() async throws {
+        try checkTerminationAdmission()
         if model != nil, context != nil, vocabulary != nil { return }
-        guard S1MiniModels.isDownloaded else { throw RuntimeError.modelMissing }
+        guard terminationModelURLForTesting != nil || S1MiniModels.isDownloaded else { throw RuntimeError.modelMissing }
 
         await LlamaBackend.shared.initialize()
+        try checkTerminationAdmission()
 
         var modelParameters = llama_model_default_params()
         // S1-mini's own model card targets laptop CPU inference, and at 0.6B it is fast
@@ -229,7 +262,7 @@ actor S1MiniRuntime {
         // Repacking Q4 weights doubles first-load memory and can take minutes under load.
         // The 0.6B model is fast enough without that one-time transformation.
         modelParameters.use_extra_bufts = false
-        guard let loadedModel = llama_model_load_from_file(S1MiniModels.fileURL.path, modelParameters) else {
+        guard let loadedModel = llama_model_load_from_file((terminationModelURLForTesting ?? S1MiniModels.fileURL).path, modelParameters) else {
             throw RuntimeError.modelLoadFailed
         }
 

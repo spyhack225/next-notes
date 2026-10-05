@@ -123,7 +123,10 @@ final class InstalledModelLibrary {
     static let shared = InstalledModelLibrary(
         defaults: sharedDefaults,
         runtimeAdopter: sharedRuntimeAdopter
-    )
+        )
+        sharedIfLoaded = library
+        return library
+    }()
 
     /// The defaults `.shared` reads and writes.
     ///
@@ -212,6 +215,7 @@ final class InstalledModelLibrary {
 
     /// Where the manifest of downloaded (non-built-in) models lives.
     private let manifestURL: URL
+    private let isolatesBuiltInForTerminationTesting: Bool
 
     /// Where the active selection and the last-used table are persisted. Injected so a
     /// self-test can drive a library without writing the user's own defaults.
@@ -225,7 +229,8 @@ final class InstalledModelLibrary {
     init(
         manifestURL: URL? = nil,
         defaults: UserDefaults = .standard,
-        runtimeAdopter: (@Sendable (InstalledLocalModel?) async -> Void)? = nil
+        runtimeAdopter: (@Sendable (InstalledLocalModel?) async -> Void)? = nil,
+        isolatesBuiltInForTerminationTesting: Bool = false
     ) {
         self.manifestURL = manifestURL
             ?? ModelSpec.directory.appendingPathComponent("library.json")
@@ -234,6 +239,13 @@ final class InstalledModelLibrary {
         self.activeAgentModelID = defaults.string(forKey: Self.activeDefaultsKey)
             ?? Self.builtInID
         refresh()
+    }
+
+    /// COMMON fixture admission only; constructor already confined the manifest.
+    var permitsTerminationHardwareFixture: Bool {
+        NativeOtherLlamaQuitSelfTest.isTrialParentCase
+            && isolatesBuiltInForTerminationTesting
+            && defaults === SelfTestHarnessDefaults.shared && runtimeAdopter == nil
     }
 
     // MARK: - Reading
@@ -382,6 +394,7 @@ final class InstalledModelLibrary {
     /// never been classified. Rows whose file has vanished are dropped rather than shown as
     /// broken: the user deleted it in Finder, and the app should agree.
     func refresh() {
+        guard !terminationRequested else { return }
         reloadFromDisk()
         // A self-test has no UI waiting on a probe, and every one of them ends the process
         // within seconds. Spawning an untracked probe here is what crashed the process on
@@ -403,6 +416,22 @@ final class InstalledModelLibrary {
     /// The probe this store started, so a caller that is about to end the process can wait
     /// for it.
     private var probeTask: Task<Void, Never>?
+    private var terminationRequested = false
+    private var terminationProbeTask: Task<Void, Never>?
+
+    func beginTermination() {
+        guard !terminationRequested else { return }
+        terminationRequested = true
+        terminationProbeTask = probeTask
+        terminationProbeTask?.cancel()
+    }
+
+    /// The SAME latest lazy task; backend admission/actor join also covers direct callers.
+    func finishTermination() async {
+        beginTermination()
+        await terminationProbeTask?.value
+        terminationProbeTask = nil
+    }
 
     /// Waits for an in-flight probe. **Nothing may end the process while a probe is inside
     /// llama.** `NSApp.terminate` runs static destructors, and llama frees its Metal device
@@ -416,7 +445,7 @@ final class InstalledModelLibrary {
     private func reloadFromDisk() {
         var found: [InstalledLocalModel] = []
 
-        if NotesModels.isDownloaded {
+        if !isolatesBuiltInForTerminationTesting, NotesModels.isDownloaded {
             found.append(
                 InstalledLocalModel(
                     id: Self.builtInID,
@@ -449,14 +478,18 @@ final class InstalledModelLibrary {
     /// after the probes, because a download can finish while they run and a save built from
     /// the earlier read would drop it.
     func refreshSupportVerdicts() async {
+        guard !terminationRequested, !Task.isCancelled else { return }
         var probed: [String: LlamaProbeResult] = [:]
         for entry in loadManifest() where entry.fileIsPresent {
+            guard !terminationRequested, !Task.isCancelled else { return }
             if let support = entry.support,
                support.llamaBuildTag == LlamaArchitectures.buildTag,
                support.fileBytes == entry.bytes {
                 continue
             }
-            probed[entry.id] = await LlamaLoadProbe.probe(entry.fileURL)
+            let result = await LlamaLoadProbe.probe(entry.fileURL)
+            guard !terminationRequested, !Task.isCancelled else { return }
+            probed[entry.id] = result
         }
         guard !probed.isEmpty else { return }
 
@@ -482,12 +515,15 @@ final class InstalledModelLibrary {
     @discardableResult
     func refreshSupportVerdictIfNeeded(_ model: InstalledLocalModel) async -> InstalledLocalModel {
         let current = self.model(withID: model.id) ?? model
+        guard !terminationRequested, !Task.isCancelled else { return current }
         if let support = current.support,
            support.llamaBuildTag == LlamaArchitectures.buildTag,
            support.fileBytes == current.bytes {
             return current
         }
         let result = await LlamaLoadProbe.probe(current.fileURL)
+        // A refused closing probe must never persist a false incompatible-model verdict.
+        guard !terminationRequested, !Task.isCancelled else { return current }
         var manifest = loadManifest()
         guard let index = manifest.firstIndex(where: { $0.id == current.id }) else {
             // The built-in model has no manifest row of its own, and is runnable by

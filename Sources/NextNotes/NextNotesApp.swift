@@ -10,6 +10,17 @@ import SwiftUI
 @MainActor
 enum NextNotesEntryPoint {
     static func main() {
+        if CommandLine.arguments.dropFirst().contains(UsageReportReaderSelfTest.flag) {
+            exit(UsageReportReaderSelfTest.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
+        }
+        if CommandLine.arguments.dropFirst().contains(UsageReport.flag) {
+            exit(UsageReport.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
+        }
+        // Explicit owner-ledger diagnostic: no SwiftUI scene, delegate, migration or
+        // eagerly constructed meeting/dictation/usage owner before the read-only report.
+        if CommandLine.arguments.dropFirst().contains("--jobs-report") {
+            exit(JobReport.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
+        }
         // The original reader regression must run before any owner-backed UI is built.
         // Every other launch retains SwiftUI App's existing entry and scene lifecycle.
         if CommandLine.arguments.dropFirst().contains("--selftest-task-harness-read") {
@@ -85,6 +96,17 @@ enum SelfTest {
     /// AppKit's normal termination status is zero. A named failed verdict must
     /// survive `NSApp.terminate(nil)` so scripts cannot mistake it for success.
     @MainActor static var failed = false
+
+    /// Diagnostics may finish inside a Swift MainActor job. Return from that job
+    /// before entering Cocoa quit: terminateLater must be able to run the actual
+    /// delegate drain on the same actor. Live diagnostics also use this seam.
+    @MainActor static func requestTermination() {
+        RunLoop.main.perform(inModes: [.common]) {
+            MainActor.assumeIsolated {
+                NSApp.terminate(nil)
+            }
+        }
+    }
     /// The flag the process was launched with, if any.
     ///
     /// The harness's own flags are excluded. They share the `--selftest` prefix but are
@@ -234,7 +256,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Meetings run from a singleton because the menu bar, the Meetings section and the
     /// scheduler all have to reach the same session. The delegate holds it so a running
     /// recording is closed out when the app quits.
-    let meetings = MeetingController.shared
+    let meetings: MeetingController = {
+        if SelfTest.requested == "--selftest-native-termination" {
+            return MeetingController(store: (NativeRecordingQuitSelfTest.isRequested
+                || NativeFinalTranscriptQuitSelfTest.isRequested || NativeDiarizationQuitSelfTest.isRequested)
+                ? MeetingStore.shared : MeetingStore.isolated())
+        }
+        return MeetingController.shared
+    }()
     private var hud: HUDPanel?
     /// The notch island. Created once and kept for the life of the process: it is a window
     /// that shows and hides itself, not one that is made and thrown away.
@@ -246,6 +275,101 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// D-06: the wake observer that re-warms Apple's cleanup model after sleep. Held so
     /// the token stays addressable, the way `CalendarService` holds its observers.
     private var warmObserver: NSObjectProtocol?
+
+    private var nativeTerminationTask: Task<Void, Never>?
+
+    private var terminationFixtureForTesting: (
+        service: NotesService, runtime: NotesModelRuntime,
+        reply: @MainActor (NSApplication.TerminateReply) -> Void,
+        willExit: @MainActor () -> Void
+    )?
+
+    func configureNativeTerminationFixture(
+        service: NotesService, runtime: NotesModelRuntime,
+        reply: @escaping @MainActor (NSApplication.TerminateReply) -> Void,
+        willExit: @escaping @MainActor () -> Void
+    ) throws {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              terminationFixtureForTesting == nil else { throw CocoaError(.fileWriteNoPermission) }
+        terminationFixtureForTesting = (service, runtime, reply, willExit)
+    }
+
+    private var recordingQuitFixtureForTesting: (
+        runtime: NotesModelRuntime, isRecording: Bool,
+        stop: @MainActor () async -> Void,
+        reply: @MainActor (NSApplication.TerminateReply) -> Void,
+        willExit: @MainActor () -> Void
+    )?
+
+    func configureRecordingQuitFixture(
+        runtime: NotesModelRuntime, isRecording: Bool,
+        stop: @escaping @MainActor () async -> Void,
+        reply: @escaping @MainActor (NSApplication.TerminateReply) -> Void,
+        willExit: @escaping @MainActor () -> Void
+    ) throws {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              NativeRecordingQuitSelfTest.isRequested,
+              recordingQuitFixtureForTesting == nil, terminationFixtureForTesting == nil else {
+            throw CocoaError(.fileWriteNoPermission)
+        }
+        recordingQuitFixtureForTesting = (runtime, isRecording, stop, reply, willExit)
+    }
+
+    private var startupTerminationFixtureForTesting: (
+        parakeet: ParakeetModels?, pocket: PocketAgentVoice?, queue: TranscriptionQueue?, diarizer: MeetingDiarizer?,
+        finalReply: (@MainActor (Bool) -> Bool)?,
+        reply: @MainActor (NSApplication.TerminateReply) -> Void,
+        willExit: @MainActor () -> Void
+    )?
+
+    func configureStartupTerminationFixture(
+        parakeet: ParakeetModels?, pocket: PocketAgentVoice?, queue: TranscriptionQueue? = nil, diarizer: MeetingDiarizer? = nil,
+        finalReply: (@MainActor (Bool) -> Bool)? = nil,
+        reply: @escaping @MainActor (NSApplication.TerminateReply) -> Void,
+        willExit: @escaping @MainActor () -> Void
+    ) throws {
+        guard SelfTest.requested == "--selftest-native-termination",
+              CommandLine.arguments.contains("--native-startup-case"),
+              startupTerminationFixtureForTesting == nil,
+              terminationFixtureForTesting == nil, recordingQuitFixtureForTesting == nil,
+              (parakeet != nil ? 1 : 0) + (pocket != nil ? 1 : 0) + (queue != nil ? 1 : 0) + (diarizer != nil ? 1 : 0) == 1,
+              queue == nil || queue === TranscriptionQueue.shared,
+              diarizer == nil || (NativeDiarizationQuitSelfTest.isRequested && diarizer === MeetingDiarizer.shared),
+              finalReply == nil || (diarizer != nil && NativeDiarizationQuitSelfTest.isRequested) else {
+            throw CocoaError(.fileWriteNoPermission)
+        }
+        startupTerminationFixtureForTesting = (parakeet, pocket, queue, diarizer, finalReply, reply, willExit)
+    }
+
+    private var otherLlamaTerminationFixtureForTesting: (
+        s1: S1MiniRuntime?, embedding: EmbeddingRuntime, library: InstalledModelLibrary?,
+        finalReply: (@MainActor (Bool) -> Bool)?,
+        safetyDrain: (@MainActor () async -> Void)?,
+        reply: @MainActor (NSApplication.TerminateReply) -> Void,
+        willExit: @MainActor () -> Void
+    )?
+
+    func configureOtherLlamaTerminationFixture(
+        s1: S1MiniRuntime?, embedding: EmbeddingRuntime, library: InstalledModelLibrary?,
+        finalReply: (@MainActor (Bool) -> Bool)? = nil,
+        safetyDrain: (@MainActor () async -> Void)? = nil,
+        reply: @escaping @MainActor (NSApplication.TerminateReply) -> Void,
+        willExit: @escaping @MainActor () -> Void
+    ) throws {
+        guard NativeOtherLlamaQuitSelfTest.isRequested,
+              otherLlamaTerminationFixtureForTesting == nil,
+              terminationFixtureForTesting == nil, startupTerminationFixtureForTesting == nil,
+              recordingQuitFixtureForTesting == nil else { throw CocoaError(.fileWriteNoPermission) }
+        otherLlamaTerminationFixtureForTesting = (s1, embedding, library, finalReply, safetyDrain, reply, willExit)
+    }
+
+    private func observedTerminationReply(_ reply: NSApplication.TerminateReply) -> NSApplication.TerminateReply {
+        terminationFixtureForTesting?.reply(reply)
+        startupTerminationFixtureForTesting?.reply(reply)
+        recordingQuitFixtureForTesting?.reply(reply)
+        otherLlamaTerminationFixtureForTesting?.reply(reply)
+        return reply
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         Self.current = self
@@ -644,8 +768,50 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// They make the two large local runtimes testable after installation and in support.
     private func runRequestedSelfTest() -> Bool {
         guard SelfTest.isRunning else { return false }
-        startSelfTestWatchdog()
+        // An in-process exit watchdog could recreate the unsafe native teardown.
+        // This exact process-owning fixture uses the parent's owned-process watchdog.
+        if SelfTest.requested != "--selftest-native-termination" { startSelfTestWatchdog() }
         let arguments = Set(CommandLine.arguments.dropFirst())
+        if arguments.contains("--selftest-native-termination") {
+            Task { @MainActor in
+                do {
+                    if NativeRecordingQuitSelfTest.isRequested {
+                        try await NativeRecordingQuitSelfTest.arm()
+                    } else {
+                        try await NativeTerminationSelfTest.arm()
+                    }
+                } catch {
+                    SelfTest.failed = true
+                    SelfTest.diagnostic("NATIVE_TERMINATION_FAILED: INPUT/native preparation unavailable")
+                    SelfTest.requestTermination()
+                }
+                // Native hook requests quit; do not issue a premature second quit.
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-agent-evidence") {
+            Task { @MainActor in
+                let problems = await MeetingEvidenceSelfTest.failures()
+                for problem in problems { print("MEETING_EVIDENCE_WRONG: " + problem) }
+                SelfTest.failed = !problems.isEmpty
+                let result = problems.isEmpty ? "MEETING_EVIDENCE_OK: 89 checks" : "MEETING_EVIDENCE_FAILED: \(problems.count)"
+                writeSelfTest(result)
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-agent-fit") {
+            Task { @MainActor in
+                let failures = await MeetingReviewFitSelfTest.failures()
+                for failure in failures { print("MEETING_REVIEW_FIT_WRONG: " + failure) }
+                let marker = failures.isEmpty ? "MEETING_REVIEW_FIT_OK" : "MEETING_REVIEW_FIT_FAILED: \(failures.count)"
+                print(marker)
+                writeSelfTest(marker)
+                SelfTest.failed = !failures.isEmpty
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-model-roles") {
             Task { @MainActor in
                 let failures = await ModelRoleSelfTest.run()
@@ -653,7 +819,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 writeSelfTest(failures.isEmpty
                     ? "MODEL_ROLES_OK: fallback, routing, call paths, discovery and tool-call bridging verified"
                     : "MODEL_ROLES_FAILED: \(failures.count) problem(s)")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -670,63 +836,63 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     writeSelfTest("USAGE_LOG_FAILED: \(summaryProblems.count) problem(s) in the summary cases")
                 }
                 SelfTest.failed = !coreOK || !summaryProblems.isEmpty
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-llm-prefix-cache") {
             Task { @MainActor in
                 SelfTest.failed = !(await PrefixCacheSelfTest.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-chat-template") {
             Task { @MainActor in
                 SelfTest.failed = !(await ChatTemplateSelfTest.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-store-isolation") {
             Task { @MainActor in
                 writeSelfTest(await StoreIsolationSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-model-unopenable") {
             Task { @MainActor in
                 SelfTest.failed = !(await ModelSupportSelfTest.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-agent-answers") {
             Task { @MainActor in
                 SelfTest.failed = !(await AgentAnswersSelfTest.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-private-network") {
             Task { @MainActor in
                 SelfTest.failed = !(await PrivateNetworkingSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-tool-review") {
             Task { @MainActor in
                 SelfTest.failed = !(await ToolCallReviewSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-openrouter-contract") {
             SelfTest.failed = !OpenRouterContractSelfTest.run()
             writeSelfTest(SelfTest.failed ? "OPENROUTER_CONTRACT_FAILED" : "OPENROUTER_CONTRACT_OK")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-openrouter") {
@@ -738,7 +904,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     SelfTest.failed = true
                     writeSelfTest("OPENROUTER_FAILED: \(error.localizedDescription)")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -751,7 +917,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     SelfTest.failed = true
                     writeSelfTest("OPENROUTER_SPEED_FAILED: \(error.localizedDescription)")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -770,7 +936,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 } catch {
                     writeSelfTest("S1_MINI_FAILED: \(error.localizedDescription)")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -782,7 +948,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             guard let path = SelfTest.value(after: "--selftest-acoustic-measure") else {
                 SelfTest.failed = true
                 writeSelfTest("ACOUSTIC_MEASURE_FAILED: supply a speech audio file path")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return true
             }
             Task { @MainActor in
@@ -793,14 +959,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     SelfTest.failed = true
                     writeSelfTest("ACOUSTIC_MEASURE_FAILED: \(error.localizedDescription)")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-systemaudio-timeout") {
             Task { @MainActor in
                 SelfTest.failed = !(await SystemAudioCapture.runStartTimeoutSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -855,21 +1021,21 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 // the only one that ran: the flag reported every failure on stdout and still
                 // exited 0, which is a green suite that never passed.
                 SelfTest.failed = !(await CleanupRouter.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-cleanup-structure") {
             Task { @MainActor in
                 SelfTest.failed = !SpokenStructure.runSelfTest()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-commandkey") {
             Task { @MainActor in
                 SelfTest.failed = !(await CommandKeySelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -902,7 +1068,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     ? "DICTATION_HYGIENE_OK: history appends in memory, retention is opt-in, the clipboard survives"
                     : "DICTATION_HYGIENE_FAILED: \(problems.count) problem(s)")
                 SelfTest.failed = !problems.isEmpty
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -914,159 +1080,159 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 let ok = await ActionOrchestrator.runSelfTest()
                 writeSelfTest(ok ? "ACTION_RUNTIME_OK" : "ACTION_RUNTIME_FAILED: lifecycle")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-memory") {
             Task { @MainActor in
                 SelfTest.failed = !(await MemorySelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-memory-review") {
             Task { @MainActor in
                 SelfTest.failed = !(await MemoryReviewSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-memory-portability") {
             Task { @MainActor in
                 SelfTest.failed = !(await MemoryPortabilitySelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-schedule") {
             Task { @MainActor in
                 SelfTest.failed = !(await ScheduleSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-routine-authority") {
             Task { @MainActor in
                 SelfTest.failed = !(await RoutineAuthoritySelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-digest") {
             Task { @MainActor in
                 SelfTest.failed = !(await DigestSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-podcast") {
             Task { @MainActor in
                 SelfTest.failed = !(await PodcastSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-guided") {
             Task { @MainActor in
                 SelfTest.failed = !GuidedFirstSuccessSelfTest.run()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-ui-strings") {
             SelfTest.failed = !UIStringsLint.run()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-agent-panes") {
             Task { @MainActor in
                 SelfTest.failed = !AgentPaneSelfTest.run()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-index") {
             Task { @MainActor in
                 SelfTest.failed = !(await KnowledgeIndexSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-embed") {
             Task { @MainActor in
                 SelfTest.failed = !(await KnowledgeEmbedSelfTest.run(text: SelfTest.value(after: "--selftest-embed")))
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-search") {
             Task { @MainActor in
                 SelfTest.failed = !(await KnowledgeSearchSelfTest.run(query: SelfTest.value(after: "--selftest-search")))
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-ask") {
             Task { @MainActor in
                 SelfTest.failed = !(await KnowledgeAskSelfTest.run(question: SelfTest.value(after: "--selftest-ask")))
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-extract") {
             Task { @MainActor in
                 SelfTest.failed = !(await KnowledgeExtractSelfTest.run(path: SelfTest.value(after: "--selftest-extract")))
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-resolve") {
             Task { @MainActor in
                 SelfTest.failed = !(await EntityResolveSelfTest.run(path: SelfTest.value(after: "--selftest-resolve")))
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-graph-layout") {
             Task { @MainActor in
                 SelfTest.failed = !(await GraphLayoutSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-assemble") {
             Task { @MainActor in
                 SelfTest.failed = !(await AssemblerSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-portrait") {
             Task { @MainActor in
                 SelfTest.failed = !(await PortraitSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-file-index") {
             Task { @MainActor in
                 SelfTest.failed = !(await FileIndexSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-persona") {
             Task { @MainActor in
                 SelfTest.failed = !PersonaSelfTest.run()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-now-block") {
             Task { @MainActor in
                 SelfTest.failed = !AgentNowSelfTest.runSelfTest()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1080,14 +1246,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-avatar") {
             Task { @MainActor in
                 SelfTest.failed = !AgentAvatarSelfTest.run()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-skills") {
             Task { @MainActor in
                 SelfTest.failed = !(await SkillsSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1108,14 +1274,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                         ? "WAKE_LIVE_OK: \(result.headline)"
                         : "WAKE_LIVE_FAILED: \(result.headline)"
                 )
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-task-durability") {
             Task { @MainActor in
                 writeSelfTest(await TaskStoreSelfTest.runIncludingToolBoundary())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1129,14 +1295,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if arguments.contains("--selftest-task-authority") {
             Task { @MainActor in
                 writeSelfTest(await TaskAuthoritySelfTest.runIncludingSubmission())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-task-restoration") {
             Task { @MainActor in
                 writeSelfTest(await TaskRestorationProductionSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1145,7 +1311,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let marker = await TaskWorkerAttemptSelfTest.run()
                 SelfTest.failed = SelfTest.failed || marker.contains("_FAILED")
                 writeSelfTest(marker)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1154,14 +1320,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let marker = await ReceiptPersistenceRuntimeSelfTest.run()
                 SelfTest.failed = SelfTest.failed || marker.contains("_FAILED")
                 writeSelfTest(marker)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-task-history-repair") {
             Task { @MainActor in
                 writeSelfTest(TaskHistoryRepairSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1176,7 +1342,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor in
                 guard let directory = SelfTest.value(after: "--selftest-experience-sheet") else {
                     writeSelfTest("EXPERIENCE_SHEET_FAILED: an output folder is required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 SelfTest.failed = !ExperienceSheet.write(to: directory)
@@ -1189,7 +1355,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let result = await AppleResumeOwnerSelfTest.run()
                 if !result.hasPrefix("APPLE_RESUME_OWNER_OK:") { SelfTest.failed = true }
                 writeSelfTest(result)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1198,7 +1364,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 let result = await ApplePlaybackTimelineSelfTest.run()
                 if !result.hasPrefix("APPLE_PLAYBACK_TIMELINE_OK:") { SelfTest.failed = true }
                 writeSelfTest(result)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1210,7 +1376,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let result = await VoicePlaybackResumeReceiptSelfTest.run()
         if !result.hasPrefix("VOICE_PLAYBACK_RESUME_RECEIPT_OK:") { SelfTest.failed = true }
         writeSelfTest(result)
-        NSApp.terminate(nil)
+        SelfTest.requestTermination()
     }
     return true
 }
@@ -1219,21 +1385,21 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let result = await VoicePlaybackProjectionSelfTest.run()
                 if !result.hasPrefix("VOICE_PLAYBACK_PROJECTION_OK:") { SelfTest.failed = true }
                 writeSelfTest(result)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-voice-session-reducer") {
             Task { @MainActor in
                 if !(await VoiceSessionReducerSelfTest.run(tracePath: SelfTest.value(after: "--selftest-voice-session-reducer"))) { SelfTest.failed = true }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-voice-duplex-work") {
             Task { @MainActor in
                 SelfTest.failed = !(await VoiceDuplexWorkSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1260,7 +1426,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     ? "COMPUTER_VISION_FAILED"
                     : "COMPUTER_VISION_OK: stub-gated screenshots, consent gate, pixel budget and one-retry policy verified"
             )
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-computer-actions") {
@@ -1273,7 +1439,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                             + "wait_for found its text and timed out honestly, and drag and right_click reported what they could not verify"
                         : "COMPUTER_ACTIONS_FAILED"
                 )
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1287,7 +1453,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                             + "outranked the coordinate, and the target-line parser held against canned completions"
                         : "CLICK_COORDINATE_FAILED"
                 )
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1302,7 +1468,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard free.isEmpty else {
                     ComputerYieldSelfTest.report(free, marker: "unused")
                     SelfTest.failed = true
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let live = await ComputerYieldLiveSelfTest.run()
@@ -1324,7 +1490,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     ComputerYieldSelfTest.report(all, marker: "unused")
                     SelfTest.failed = true
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1337,7 +1503,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                         ? "SEAT_GRID_OK: snapshot, screenshot gate, click retry, cap check, consent block and receipt verified"
                         : "SEAT_GRID_FAILED"
                 )
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1402,7 +1568,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     guard let browser = DebugBrowser.installed() else {
                         SelfTest.failed = true
                         writeSelfTest("CDP_ABSENT: no Chromium-family browser installed")
-                        NSApp.terminate(nil)
+                        SelfTest.requestTermination()
                         return
                     }
                     let marker = "CDP-SELFTEST-MARKER-9182"
@@ -1577,7 +1743,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                               ? "CDP_OK: real Chromium debugger answered targets, snapshot, read_page, "
                                   + "a waited URL and an honest timeout"
                               : "CDP_FAILED: \(failures.count) leg(s) wrong")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1587,7 +1753,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
         if arguments.contains("--selftest-metrics") {
             SelfTest.failed = !LatencyTrace.runSelfTest()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-meeting-quality") {
@@ -1596,7 +1762,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                 ? "MEETING_QUALITY_OK"
                 : "MEETING_QUALITY_FAILED: \(failures.count) check(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-notes-longform") {
@@ -1625,35 +1791,35 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 } else {
                     SelfTest.failed = !(await MeetingIntegritySelfTest.run { writeSelfTest($0) })
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-resource-policy") {
             Task { @MainActor in
                 SelfTest.failed = !(await MeetingResourcePolicySelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-resources") {
             Task { @MainActor in
                 SelfTest.failed = !(await MeetingResourceSelfTest.run { writeSelfTest($0) })
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-resources-live") {
             Task { @MainActor in
                 SelfTest.failed = !(await MeetingResourceLiveProbe.run { writeSelfTest($0) })
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-health") {
             Task { @MainActor in
                 SelfTest.failed = !(await MeetingHealthSelfTest.run { writeSelfTest($0) })
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1676,28 +1842,28 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-meeting-scratchpad") {
             Task { @MainActor in
                 SelfTest.failed = !MeetingScratchpadSelfTest.run()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-tidier") {
             Task { @MainActor in
                 SelfTest.failed = !MeetingScratchpadTidierSelfTest.run()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-recall") {
             Task { @MainActor in
                 SelfTest.failed = !(await MeetingRecallSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-console") {
             Task { @MainActor in
                 SelfTest.failed = !MeetingConsoleSelfTest.run()
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1707,7 +1873,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                 ? "DIARIZE_ASSIGN_OK"
                 : "DIARIZE_ASSIGN_FAILED: \(failures.count) check(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-diarize-hints") {
@@ -1717,64 +1883,64 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest(failures.isEmpty
                     ? "DIARIZE_HINTS_OK"
                     : "DIARIZE_HINTS_FAILED: \(failures.count) check(s) wrong")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-cleanup-router") {
             Task { @MainActor in
                 SelfTest.failed = !(await CleanupRouter.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-live") {
             SelfTest.failed = !MeetingLiveAgent.runSelfTest()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-meeting-live-tools") {
             Task { @MainActor in
                 SelfTest.failed = !(await MeetingLiveToolSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-tts") {
             SelfTest.failed = !AgentSpeechPolicy.runSelfTest()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-tts-stream") {
             SelfTest.failed = !AgentSpeechPolicy.runStreamSelfTest()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-tts-pocket") {
             Task { @MainActor in
                 SelfTest.failed = !(await PocketAgentVoice.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-tts-kokoro") {
             Task { @MainActor in
                 SelfTest.failed = !(await KokoroAgentVoice.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-local-model-stream") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentLocalModelSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-toolloop") {
             Task { @MainActor in
                 SelfTest.failed = !(await AgentToolLoop.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1782,7 +1948,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             Task { @MainActor in
                 SelfTest.failed = !(await ConcurrentVoiceSelfTest.run())
                 writeSelfTest(SelfTest.failed ? "CONCURRENT_VOICE_FAILED" : "CONCURRENT_VOICE_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1790,7 +1956,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             Task { @MainActor in
                 SelfTest.failed = !(await LocalVoicePromptProbe.run())
                 writeSelfTest(SelfTest.failed ? "VOICE_PROMPT_PROBE_FAILED" : "VOICE_PROMPT_PROBE_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1803,7 +1969,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     : await VoiceCapabilityConversationSelfTest.run()
                 SelfTest.failed = SelfTest.failed || !passed
                 writeSelfTest(SelfTest.failed ? "VOICE_CAPABILITIES_FAILED" : "VOICE_CAPABILITIES_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1811,7 +1977,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             Task { @MainActor in
                 SelfTest.failed = !(await LocalVoiceFrontendSpeculationSelfTest.run())
                 writeSelfTest(SelfTest.failed ? "VOICE_SPECULATION_FAILED" : "VOICE_SPECULATION_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1819,7 +1985,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             Task { @MainActor in
                 SelfTest.failed = !(await PocketTtsSessionSelfTest.run())
                 writeSelfTest(SelfTest.failed ? "POCKET_SESSION_FAILED" : "POCKET_SESSION_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1831,7 +1997,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                       !args[index + 1].hasPrefix("--"), !args[index + 2].hasPrefix("--") else {
                     SelfTest.failed = true
                     writeSelfTest("VOICE_RAPID_FAILED: first and second WAV paths required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let failures = await AgentCaptureController.runVoiceRapidTurnsSelfTest(
@@ -1840,7 +2006,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in failures { writeSelfTest("VOICE_RAPID_WRONG: \(failure)") }
                 SelfTest.failed = !failures.isEmpty
                 writeSelfTest(SelfTest.failed ? "VOICE_RAPID_FAILED" : "VOICE_RAPID_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1849,7 +2015,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let passed = await AgentPCMRenderer.runConfigurationRecoverySelfTest()
                 SelfTest.failed = SelfTest.failed || !passed
                 writeSelfTest(SelfTest.failed ? "PCM_RECONFIGURATION_FAILED" : "PCM_RECONFIGURATION_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1857,7 +2023,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             Task { @MainActor in
                 SelfTest.failed = !(await AgentPCMRenderer.runReverseCallbackIsolationSelfTest())
                 writeSelfTest(SelfTest.failed ? "PCM_CALLBACK_FAILED" : "PCM_CALLBACK_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1866,13 +2032,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard let path = SelfTest.value(after: "--selftest-pcm-source") else {
                     SelfTest.failed = true
                     writeSelfTest("PCM_SOURCE_FAILED: far speech WAV required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let result = await AgentPCMSourceProbe.run(farURL: URL(fileURLWithPath: path))
                 SelfTest.failed = !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1881,13 +2047,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard let path = SelfTest.value(after: "--selftest-acoustic-hybrid") else {
                     SelfTest.failed = true
                     writeSelfTest("ECHO_HYBRID_FAILED: near speech WAV required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let result = await AcousticHybridProbe.run(voice: "selected", nearURL: URL(fileURLWithPath: path))
                 SelfTest.failed = !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1897,7 +2063,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in failures { writeSelfTest("VOICE_SUSPEND_WRONG: \(failure)") }
                 SelfTest.failed = !failures.isEmpty
                 writeSelfTest(SelfTest.failed ? "VOICE_SUSPEND_FAILED" : "VOICE_SUSPEND_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1906,7 +2072,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let result = await AgentSpeechSynthesizer.runLiveSuspendSelfTest()
                 SelfTest.failed = !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1917,7 +2083,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard let path = SelfTest.value(after: flag) else {
                     SelfTest.failed = true
                     writeSelfTest("ECHO_INT16_FAILED: far WAV path required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let result = cold
@@ -1925,7 +2091,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     : AcousticEchoProcessor.runInt16ReplaySelfTest(farURL: URL(fileURLWithPath: path))
                 SelfTest.failed = !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1935,7 +2101,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     voice: SelfTest.value(after: "--selftest-acoustic-live") ?? "selected")
                 SelfTest.failed = !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1953,7 +2119,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                       !args[index + 1].hasPrefix("--"), !args[index + 2].hasPrefix("--") else {
                     SelfTest.failed = true
                     writeSelfTest("ECHO_SPEECH_FAILED: far and near WAV paths required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let far = URL(fileURLWithPath: args[index + 1])
@@ -1967,7 +2133,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                         : AcousticEchoProcessor.runSpeechReplaySelfTest(farURL: far, nearURL: near)))
                 SelfTest.failed = !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1976,7 +2142,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let result = await VoiceEchoLiveProbe.run()
                 SelfTest.failed = SelfTest.failed || !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1984,7 +2150,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             Task { @MainActor in
                 SelfTest.failed = !(await LocalVoiceFrontendSelfTest.run())
                 writeSelfTest(SelfTest.failed ? "VOICE_FRONTEND_FAILED" : "VOICE_FRONTEND_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -1993,7 +2159,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard let path = SelfTest.value(after: "--selftest-voice-barge") else {
                     SelfTest.failed = true
                     writeSelfTest("VOICE_BARGE_FAILED: WAV path required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let failures = await AgentCaptureController.runVoiceBargeSelfTest(
@@ -2002,7 +2168,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in failures { writeSelfTest("VOICE_BARGE_WRONG: \(failure)") }
                 SelfTest.failed = SelfTest.failed || !failures.isEmpty
                 writeSelfTest(SelfTest.failed ? "VOICE_BARGE_FAILED" : "VOICE_BARGE_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2011,7 +2177,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard let path = SelfTest.value(after: "--selftest-voice-pipeline") else {
                     SelfTest.failed = true
                     writeSelfTest("VOICE_PIPELINE_FAILED: WAV path required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let failures = await AgentCaptureController.runVoicePipelineSelfTest(
@@ -2020,7 +2186,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in failures { writeSelfTest("VOICE_PIPELINE_WRONG: \(failure)") }
                 SelfTest.failed = SelfTest.failed || !failures.isEmpty
                 writeSelfTest(SelfTest.failed ? "VOICE_PIPELINE_FAILED" : "VOICE_PIPELINE_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2033,7 +2199,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                       !orderedArguments[index + 2].hasPrefix("--") else {
                     SelfTest.failed = true
                     writeSelfTest("NATIVE_INPUT_FAILED: two fixture WAV paths are required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let before = SelfTestStoreGuard.take()
@@ -2046,7 +2212,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in failures { writeSelfTest("NATIVE_INPUT_WRONG: \(failure)") }
                 SelfTest.failed = SelfTest.failed || !failures.isEmpty
                 writeSelfTest(SelfTest.failed ? "NATIVE_INPUT_FAILED" : "NATIVE_INPUT_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2058,7 +2224,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let result = await VoiceLatencySelfTest.run()
                 SelfTest.failed = SelfTest.failed || !result.ok
                 writeSelfTest(result.marker)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2067,14 +2233,14 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard let path = SelfTest.value(after: "--selftest-voice-eou") else {
                     SelfTest.failed = true
                     writeSelfTest("VOICE_EOU_FAILED: WAV path required")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let failures = await LocalVoiceTurnDetector.selfTest(wav: URL(fileURLWithPath: path))
                 for failure in failures { writeSelfTest("VOICE_EOU_WRONG: \(failure)") }
                 SelfTest.failed = !failures.isEmpty
                 writeSelfTest(SelfTest.failed ? "VOICE_EOU_FAILED" : "VOICE_EOU_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2083,7 +2249,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let result = AcousticEchoProcessor.runStopTailSelfTest()
                 SelfTest.failed = !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2092,7 +2258,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let result = AcousticEchoProcessor.runReplaySelfTest()
                 SelfTest.failed = !result.0
                 writeSelfTest(result.1)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2102,7 +2268,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 if SelfTest.outputPath != nil {
                     writeSelfTest(SelfTest.failed ? "VOICE_CONVERSATION_FAILED" : "VOICE_CONVERSATION_OK")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2112,7 +2278,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 if SelfTest.outputPath != nil {
                     writeSelfTest(SelfTest.failed ? "VOICE_WORK_LIFECYCLE_FAILED" : "VOICE_WORK_LIFECYCLE_OK")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2122,7 +2288,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 if SelfTest.outputPath != nil {
                     writeSelfTest(SelfTest.failed ? "VOICE_DELIVERY_FAILED" : "VOICE_DELIVERY_OK")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2135,7 +2301,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in failures { print("VOICE_TURNS_WRONG: \(failure)") }
                 SelfTest.failed = !failures.isEmpty
                 writeSelfTest(failures.isEmpty ? "VOICE_TURNS_OK" : "VOICE_TURNS_FAILED")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2143,7 +2309,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             Task { @MainActor in
                 SelfTest.failed = !(await VoiceCapabilityConversationSelfTest.runTurnRouting())
                 writeSelfTest(SelfTest.failed ? "VOICE_TURN_ROUTING_FAILED" : "VOICE_TURN_ROUTING_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2153,7 +2319,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in failures { print("PLAYBACK_LEDGER_WRONG: \(failure)") }
                 SelfTest.failed = !failures.isEmpty
                 writeSelfTest(failures.isEmpty ? "PLAYBACK_LEDGER_OK" : "PLAYBACK_LEDGER_FAILED")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2161,7 +2327,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             Task { @MainActor in
                 SelfTest.failed = !(await NotesModelRuntime.conversationSchedulingSelfTest())
                 writeSelfTest(SelfTest.failed ? "VOICE_SCHEDULING_FAILED" : "VOICE_SCHEDULING_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2171,7 +2337,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 if SelfTest.outputPath != nil {
                     writeSelfTest(SelfTest.failed ? "VOICE_LOCAL_FAILED" : "VOICE_LOCAL_OK")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2180,7 +2346,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let marker = await C04ResultContextSelfTest.run()
                 if !marker.hasPrefix("C04_RESULT_CONTEXT_OK ") { SelfTest.failed = true }
                 writeSelfTest(marker)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2189,14 +2355,14 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let marker = await C04FinalResultContextSelfTest.run()
                 if !marker.hasPrefix("C04_FINAL_RESULT_CONTEXT_OK ") { SelfTest.failed = true }
                 writeSelfTest(marker)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-toolloop-production") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2206,61 +2372,61 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest(SelfTest.failed
                     ? "TOOLLOOP_LIVE_GRADER_FAILED"
                     : "TOOLLOOP_LIVE_GRADER_OK")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-toolloop-live") {
             Task { @MainActor in
                 SelfTest.failed = !(await ToolLoopLiveEval.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-native-tools") {
             Task { @MainActor in
                 SelfTest.failed = !(await NativeToolsSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-capability-manifest") {
             Task { @MainActor in
                 SelfTest.failed = !(await AgentCapabilityManifestSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-voice-grounding") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.runVoiceGrounding())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-tool-awareness") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAgentToolLoopSelfTest.runToolAwareness())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-acp-confirm") {
             SelfTest.failed = !ACPConfirmation.runSelfTest()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-scheduler") {
             Task { @MainActor in
                 SelfTest.failed = !(await ComputeScheduler.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-capture") {
             Task { @MainActor in
                 SelfTest.failed = !(await AudioCaptureHub.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2269,13 +2435,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let (passed, report) = await AudioCaptureHub.runLiveMicrophoneSelfTest()
                 SelfTest.failed = !passed
                 writeSelfTest(report)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-meeting-reconcile") {
             SelfTest.failed = !MeetingActionReconciler.runSelfTest()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return true
         }
         if arguments.contains("--selftest-meeting-reconcile-llm") {
@@ -2291,56 +2457,56 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-model-fit") {
             Task { @MainActor in
                 SelfTest.failed = !(await ModelLibrarySelfTests.runModelFitSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-hf-search") {
             Task { @MainActor in
                 SelfTest.failed = !(await ModelLibrarySelfTests.runSearchSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-model-library") {
             Task { @MainActor in
                 SelfTest.failed = !(await ModelLibrarySelfTests.runModelLibrarySelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-transcript-bus") {
             Task { @MainActor in
                 SelfTest.failed = !(await TranscriptBus.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-function-calls") {
             Task { @MainActor in
                 SelfTest.failed = !(await FunctionCallSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-duplex") {
             Task { @MainActor in
                 SelfTest.failed = !(await RealtimeAudioSession.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-contention") {
             Task { @MainActor in
                 SelfTest.failed = !(await ContentionSelfTests.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
         if arguments.contains("--selftest-residency") {
             Task { @MainActor in
                 SelfTest.failed = !(await ModelResidencyPolicy.runSelfTest())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2387,7 +2553,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 } catch {
                     writeSelfTest("PARAKEET_FAILED: \(error.localizedDescription)")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2398,7 +2564,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-db") {
             Task { @MainActor in
                 writeSelfTest(await MessagesDatabaseSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2409,7 +2575,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-decode") {
             Task { @MainActor in
                 writeSelfTest(await MessagesDecoderSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2420,7 +2586,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-class") {
             Task { @MainActor in
                 writeSelfTest(await MessagesClassSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2431,7 +2597,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-loop") {
             Task { @MainActor in
                 writeSelfTest(await MessagesLedgerSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2442,7 +2608,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-watch") {
             Task { @MainActor in
                 writeSelfTest(await MessagesWatcherSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2454,7 +2620,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-pairing") {
             Task { @MainActor in
                 writeSelfTest(await SelfChannelSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2465,7 +2631,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-format") {
             Task { @MainActor in
                 for line in AgentMessageFormat.runSelfTest() { writeSelfTest(line) }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2476,7 +2642,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-authority") {
             Task { @MainActor in
                 writeSelfTest(await IMessageAuthoritySelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2487,7 +2653,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-approval") {
             Task { @MainActor in
                 writeSelfTest(await IMessageApprovalSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2498,7 +2664,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-attachment") {
             Task { @MainActor in
                 writeSelfTest(await IMessageAttachmentSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2508,7 +2674,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-consent") {
             Task { @MainActor in
                 writeSelfTest(IMessageConsentSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2518,7 +2684,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-imessage-observe") {
             Task { @MainActor in
                 writeSelfTest(IMessageObserveSelfTest.run())
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
             }
             return true
         }
@@ -2530,7 +2696,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         // ten minutes to diagnose once. Say so and exit non-zero.
         writeSelfTest("SELFTEST_FAILED: \(SelfTest.requested ?? "unknown") needs an argument, "
                       + "or is not a self-test this build knows.")
-        NSApp.terminate(nil)
+        SelfTest.requestTermination()
         return true
     }
 
@@ -2560,7 +2726,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runIMessagePairNow() {
         Task { @MainActor in
             for line in await IMessagePairNow.run() { writeSelfTest(line) }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -2572,7 +2738,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         Task { @MainActor in
             let text = SelfTest.value(after: IMessageSendTest.flag) ?? ""
             for line in await IMessageSendTest.run(text: text) { writeSelfTest(line) }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -2586,7 +2752,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             let chat = SelfTest.value(after: "--imessage-chat")
             let report = await IMessageReportReader.read(days: days, chatGUID: chat)
             for line in report.lines { writeSelfTest(line) }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -2597,7 +2763,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runIMessageAddressProbe() {
         Task { @MainActor in
             for line in await IMessageAddressProbe.run() { writeSelfTest(line) }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -2740,7 +2906,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in failures { writeSelfTest("  \(failure)") }
                 writeSelfTest("LEARN_FAILED: \(failures.count) of \(total)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -2760,7 +2926,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         Task { @MainActor in
             guard Permissions.hasAccessibility else {
                 writeSelfTest("AXREADBACK_FAILED: no Accessibility grant, so nothing is readable")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
 
@@ -2823,7 +2989,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest("=== AX readback by app ===")
             for row in rows.sorted() { writeSelfTest(row) }
             writeSelfTest("AXREADBACK_OK: \(rows.count) app(s) probed")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -2853,17 +3019,17 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         Task { @MainActor in
             guard Permissions.hasAccessibility else {
                 writeSelfTest("CONTEXT_FAILED: no Accessibility grant, so no tree is readable")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             guard AXHarvester.supports(bundleID: bundleID) else {
                 writeSelfTest("CONTEXT_FAILED: \(bundleID) has no adapter, or is on the deny list")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).first else {
                 writeSelfTest("CONTEXT_FAILED: \(bundleID) is not running — open it, with a project, and retry")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
 
@@ -2941,7 +3107,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } else {
                 writeSelfTest("CONTEXT_OK: \(context.candidates.count) name(s) from \(context.appName)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -2973,7 +3139,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             if !structureFailures.isEmpty {
                 for failure in structureFailures { writeSelfTest("  \(failure)") }
                 writeSelfTest("CLEANUP_FAILED: \(structureFailures.count) spoken-structure case(s)")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             writeSelfTest("  spoken structure: lists, quotations, code and tables all render")
@@ -3010,7 +3176,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 }
                 if failures > 0 {
                     writeSelfTest("CLEANUP_FAILED: \(failures) guard vector(s) wrong")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 writeSelfTest("  \(CleanupGuardVectors.all.count + CleanupGuardVectors.regressions.count) guard vectors correct")
@@ -3176,7 +3342,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                             + (FoundationModelFormatter.unavailableReason
                                 ?? "Apple Intelligence unavailable")
                     )
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let planner = AppleStructurePlanner()
@@ -3255,7 +3421,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     guard ran else { return }
                 } catch {
                     writeSelfTest("CLEANUP_MODEL_COMPARE_FAILED: \(error.localizedDescription)")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
             }
@@ -3263,11 +3429,11 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest("")
                 for failure in assertionFailures { writeSelfTest("  \(failure)") }
                 writeSelfTest("CLEANUP_FAILED: \(assertionFailures.count) assertion(s)")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             writeSelfTest("CLEANUP_OK")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -3377,7 +3543,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
         guard !resolved.isEmpty else {
             writeSelfTest("CLEANUP_MODEL_COMPARE_ABSENT: no GGUF in the Models folder")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
             return false
         }
 
@@ -3539,7 +3705,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 interleaved: false
             ) else {
                 writeSelfTest("SYSTEM_AUDIO_FAILED: no capture format")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
 
@@ -3552,7 +3718,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 )
             } catch {
                 writeSelfTest("SYSTEM_AUDIO_FAILED: \(error.localizedDescription)")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
 
@@ -3592,7 +3758,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } else {
                 writeSelfTest("SYSTEM_AUDIO_OK: \(measurements)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -3639,7 +3805,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } else {
                 writeSelfTest("CALENDAR_FAILED: \(failures.count) decision rule(s) wrong")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -3912,7 +4078,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } catch {
                 writeSelfTest("TRANSCRIBE_FAILED: \(error.localizedDescription)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -3958,7 +4124,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let run = try await Self.transcribeFile(at: path)
                 guard !run.segments.isEmpty else {
                     writeSelfTest("NOTES_FAILED: nothing was transcribed from \(path)")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
 
@@ -3976,7 +4142,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard let provider = await ModelRoleStore.shared.provider(for: .meetingNotes) else {
                     let reasons = await Self.providerReasons()
                     writeSelfTest("NOTES_FAILED: no provider available — \(reasons)")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 if resolution.effective != resolution.requested, let note = resolution.note {
@@ -4011,7 +4177,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } catch {
                 writeSelfTest("NOTES_FAILED: \(error.localizedDescription)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4020,7 +4186,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runNotesContextSelfTest() {
         Task { @MainActor in
             _ = await MeetingNotesContextSelfTest.run { writeSelfTest($0) }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4029,7 +4195,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runNotesLongformSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await NotesLongformSelfTest.run { writeSelfTest($0) })
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4038,7 +4204,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runNotesTruncationSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await NotesTruncationSelfTest.run { writeSelfTest($0) })
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4050,7 +4216,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         Task { @MainActor in
             let dir = SelfTest.value(after: "--selftest-meeting-finals")
             SelfTest.failed = !(await MeetingFinalsSelfTest.run(dir: dir) { writeSelfTest($0) })
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4061,7 +4227,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runMeetingResumeSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await MeetingResumeSelfTest.run { writeSelfTest($0) })
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4071,7 +4237,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runMeetingBacklogSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await MeetingBacklogSelfTest.run { writeSelfTest($0) })
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4082,7 +4248,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runMeetingTapRetrySelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await MeetingTapRetrySelfTest.run { writeSelfTest($0) })
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4095,7 +4261,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runAudioRetentionSelfTest() {
         Task { @MainActor in
             SelfTest.failed = !(await AudioRetentionSelfTest.run { writeSelfTest($0) })
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4106,7 +4272,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runNotesContextLiveProbe() {
         Task { @MainActor in
             _ = await MeetingNotesContextLiveProbe.run { writeSelfTest($0) }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4119,7 +4285,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runIMessageSendPath() {
         Task { @MainActor in
             for line in await MessagesSendPathProbe.run() { writeSelfTest(line) }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4133,7 +4299,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private func runIMessageSelfFlow() {
         Task { @MainActor in
             for line in await MessagesSelfFlowReport.run() { writeSelfTest(line) }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4157,7 +4323,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         Task { @MainActor in
             if NotesModels.isDownloaded {
                 writeSelfTest("NOTES_MODEL_DOWNLOAD_ALREADY: \(NotesModels.spec.displayName) is on disk")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             let free = ModelDownloader.availableDiskBytes()
@@ -4168,7 +4334,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     NOTES_MODEL_DOWNLOAD_NO_ROOM: \(SelfTest.byteText(free)) free, \
                     \(SelfTest.byteText(needed)) needed
                     """)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             writeSelfTest("""
@@ -4209,7 +4375,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } catch {
                 writeSelfTest("NOTES_MODEL_DOWNLOAD_FAILED: \(error.localizedDescription)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4229,7 +4395,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             await library.drainProbes()
             guard !library.models.isEmpty else {
                 writeSelfTest("LOCAL_MODEL_PROBE_EMPTY: nothing to classify")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             for model in library.models {
@@ -4242,7 +4408,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     model.bytes))
             }
             writeSelfTest("LOCAL_MODEL_PROBE_OK: \(library.models.count) model(s)")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4251,7 +4417,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             for line in await UsageReport.run(arguments: CommandLine.arguments) {
                 writeSelfTest(line)
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4285,7 +4451,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest(row)
             }
             writeSelfTest("MEETING_QUALITY_REPORT_DONE: \(meetings.count) meeting(s)")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4306,7 +4472,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest("AVATAR_SHEET_FAILED")
                 SelfTest.failed = true
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4329,7 +4495,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest("SETTINGS_SHEET_FAILED")
                 SelfTest.failed = true
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4343,7 +4509,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(passed ? "MEETING_CONSOLE_PREVIEW_OK \(directory)"
                                  : "MEETING_CONSOLE_PREVIEW_FAILED")
             SelfTest.failed = !passed
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -4406,7 +4572,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     LLM_METAL_FAILED: neither \(NotesModels.spec.displayName) nor \
                     \(S1MiniModels.spec.displayName) is downloaded — nothing to load on the GPU.
                     """)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             if !usingNotesModel {
@@ -4449,7 +4615,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                         no tokens.
                         """)
                     await runtime.shutdown()
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 // Freed before S1-mini loads: the point is that both *can* run, not that a
@@ -4500,7 +4666,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                         writeSelfTest("""
                             LLM_METAL_FAILED: the model the Agent role uses did not answer a trial
                             """)
-                        NSApp.terminate(nil)
+                        SelfTest.requestTermination()
                         return
                     }
                 } else if agentChoice == .appleFoundation {
@@ -4517,7 +4683,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 await runtime.shutdown()
                 writeSelfTest("LLM_METAL_FAILED: \(error.localizedDescription)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -5617,7 +5783,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                 ? "DICTATION_OK: every hold came back to idle"
                 : "DICTATION_FAILED: \(failures.count) problem(s)")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -5764,7 +5930,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } else {
                 writeSelfTest("CALLS_FAILED: \(failures.count) rule(s) wrong")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -6493,7 +6659,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } else {
                 writeSelfTest("ISLAND_FAILED: \(failures.count) rule(s) wrong")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -6926,7 +7092,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } else {
                 writeSelfTest("SETTINGS_FAILED: \(failures.count) problem(s)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -6983,7 +7149,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } else {
                 writeSelfTest("ORB_FAILED: \(failures.count) problem(s)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -7019,7 +7185,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     GWS_FAILED: no gws binary found. Install it from the Workspace tab, \
                     or with `brew install googleworkspace-cli`.
                     """)
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             let version = await cli.version() ?? "unknown"
@@ -7044,7 +7210,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             if CommandLine.arguments.contains("--live-mail") {
                 await writeLiveMailReading()
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -7107,7 +7273,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
             guard let meeting = Self.loadMeeting(from: url) else {
                 writeSelfTest("AGENT_FAILED: \(url.path) has no \(MeetingStore.recordFile)")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             let segments = Self.loadTranscript(from: url)
@@ -7122,13 +7288,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
 
             guard !segments.isEmpty else {
                 writeSelfTest("AGENT_FAILED: nothing was transcribed in \(url.path)")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             guard let provider = await ModelRoleStore.shared.provider(for: .agent) else {
                 let reasons = await Self.providerReasons()
                 writeSelfTest("AGENT_FAILED: no provider available — \(reasons)")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
 
@@ -7162,7 +7328,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             } catch {
                 writeSelfTest("AGENT_FAILED: \(error.localizedDescription)")
             }
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -7337,7 +7503,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             guard let write = registry.tool(named: "send_email") else {
                 failures.append("send_email vanished")
                 writeSelfTest("TOOLS_FAILED: \(failures.joined(separator: "; "))")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             let denied = await PermissionBroker.shared.authorize(
@@ -7439,7 +7605,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "TOOLS_OK: registry, router and broker hold"
                           : "TOOLS_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -7800,7 +7966,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             if !WakeWordModelManager.isDownloaded {
                 for failure in failures { writeSelfTest("  WAKE_WRONG: \(failure)") }
                 writeSelfTest("WAKE_MODEL_MISSING: \(WakeWordModelManager.unavailableReason)")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
 
@@ -7909,7 +8075,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "WAKE_OK: model loaded; phrase spotting and authority split hold"
                           : "WAKE_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -7952,7 +8118,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "TASKS_OK: submit, run and cancel hold"
                           : "TASKS_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -7992,7 +8158,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         writeSelfTest(failures.isEmpty
                       ? "MEETING_CONTEXT_OK: extraction and the authority split hold"
                       : "MEETING_CONTEXT_FAILED: \(failures.count) rule(s) wrong")
-        NSApp.terminate(nil)
+        SelfTest.requestTermination()
     }
 
     private func runRealtimeSelfTest() {
@@ -8088,7 +8254,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
 
             for failure in failures { writeSelfTest("  REALTIME_WRONG: \(failure)") }
             writeSelfTest(failures.isEmpty ? "REALTIME_OK" : "REALTIME_FAILED")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -8096,14 +8262,14 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         Task { @MainActor in
             if !Permissions.hasAccessibility {
                 writeSelfTest("COMPUTER_FAILED: Accessibility is not granted, so the window cannot be inspected.")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             let stub = AccessibilitySnapshot.capture(processID: 2_000_000, limit: 20)
             writeSelfTest(stub)
             if !AccessibilitySnapshot.isStub(stub) || stub.contains("label: OK") {
                 writeSelfTest("COMPUTER_FAILED: an empty tree did not report stub/zero names")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             let harness = ComputerSelfTestHarness()
@@ -8118,13 +8284,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard snapshot.contains("OK") else {
                     writeSelfTest("COMPUTER_FAILED: inspect did not see the self-test OK button")
                     harness.close()
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 guard let buttonID = AccessibilitySnapshot.id(matching: "OK") else {
                     writeSelfTest("COMPUTER_FAILED: inspect found no OK button id")
                     harness.close()
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let click = try ComputerToolExecutor.run(
@@ -8140,19 +8306,19 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard afterClick.contains("OK"), !AccessibilitySnapshot.isStub(afterClick) else {
                     writeSelfTest("COMPUTER_FAILED: Eve loop snapshot after click was stub or lost OK")
                     harness.close()
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 guard harness.buttonClicked else {
                     writeSelfTest("COMPUTER_FAILED: click ran but the OK button was not pressed")
                     harness.close()
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 guard let fieldID = AccessibilitySnapshot.firstTextFieldID() else {
                     writeSelfTest("COMPUTER_FAILED: inspect found no text field")
                     harness.close()
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 let typed = try ComputerToolExecutor.run(
@@ -8166,7 +8332,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 guard typedValue == "hello" else {
                     writeSelfTest("COMPUTER_FAILED: type ran but the field reads “\(typedValue)”")
                     harness.close()
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
                 writeSelfTest("COMPUTER_OK: inspected, clicked OK, typed hello")
@@ -8174,7 +8340,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest("COMPUTER_FAILED: \(error.localizedDescription)")
             }
             harness.close()
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -8251,7 +8417,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "MCP_OK: initialize, session, list and call hold"
                           : "MCP_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -8294,12 +8460,12 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 } else {
                     writeSelfTest("COMPOSIO_FAILED: \(failures.count) rule(s) wrong before live call")
                 }
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             if ComposioProvider.looksLikePlatformProjectKey {
                 writeSelfTest("COMPOSIO_FAILED: got an ak_… Platform key; Connect MCP needs a For You key from Sign in")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
 
@@ -8322,7 +8488,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     failures.append("search tool vanished after refresh")
                     for failure in failures { writeSelfTest("  COMPOSIO_WRONG: \(failure)") }
                     writeSelfTest("COMPOSIO_FAILED: \(failures.count) rule(s) wrong")
-                    NSApp.terminate(nil)
+                    SelfTest.requestTermination()
                     return
                 }
 
@@ -8351,7 +8517,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "COMPOSIO_OK: Connect MCP initialize, list and search hold"
                           : "COMPOSIO_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -8460,7 +8626,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "ACP_OK: initialize, session, subscribe and permission relay hold"
                           : "ACP_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -8475,7 +8641,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 for failure in resolutionFailures { writeSelfTest("  ACP_LIVE_WRONG: \(failure)") }
                 SelfTest.failed = true
                 writeSelfTest("ACP_LIVE_FAILED: provider resolution")
-                NSApp.terminate(nil)
+                SelfTest.requestTermination()
                 return
             }
             let failures = await ACPAgentBackend.runLiveProviderSelfTest()
@@ -8484,7 +8650,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "ACP_LIVE_OK: official adapter initialize, session/new and prompt hold"
                           : "ACP_LIVE_FAILED: \(failures.count) provider check(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -8674,7 +8840,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "ACTIVITY_OK: tool runs project public titles"
                           : "ACTIVITY_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -8725,7 +8891,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "FS_OK: search, read and privileged-shell refuse hold"
                           : "FS_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -9042,7 +9208,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             writeSelfTest(failures.isEmpty
                           ? "BROWSER_OK: target binding, stale IDs, debugger deadline and AX safety hold"
                           : "BROWSER_FAILED: \(failures.count) rule(s) wrong")
-            NSApp.terminate(nil)
+            SelfTest.requestTermination()
         }
     }
 
@@ -9161,30 +9327,127 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     /// "Keep Recording" calls the whole thing off. Never shown under `SelfTest.isRunning`,
     /// where a modal would keep `NSApp.terminate` from ever completing.
     ///
-    /// SIGTERM (`pkill`, which `make install` sends) cannot be caught and needs no alert:
-    /// it lands on `endAbruptly`, which now leaves the meeting resumable.
+    /// This delegate handles AppKit quit. The install script's SIGTERM does not invoke
+    /// this asynchronous drain; no signal-handler shutdown guarantee is implied.
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
-        guard !SelfTest.isRunning, meetings.isRecording else { return .terminateNow }
-        let alert = NSAlert()
-        alert.messageText = "A meeting is being recorded"
-        alert.informativeText = "Stop the recording and quit? What was said so far is kept."
-        alert.addButton(withTitle: "Stop and Quit")
-        alert.addButton(withTitle: "Keep Recording")
-        NSApp.activate(ignoringOtherApps: true)
-        guard alert.runModal() == .alertFirstButtonReturn else { return .terminateCancel }
-        // Bounded like every other wait on a stage: a stop that never comes must not hold
-        // the quit hostage either. `.terminateLater` buys the seconds, and the reply is
-        // sent when the bounded stop returns — not when the unbounded one does.
-        Task { @MainActor in
-            _ = await withBoundedWait(.seconds(10)) {
-                await MeetingController.shared.stop()
+        if nativeTerminationTask != nil { return observedTerminationReply(.terminateLater) }
+        let stopRecording = recordingQuitFixtureForTesting?.isRecording
+            ?? (!SelfTest.isRunning && meetings.isRecording)
+        if stopRecording, recordingQuitFixtureForTesting == nil {
+            let alert = NSAlert()
+            alert.messageText = "A meeting is being recorded"
+            alert.informativeText = "Stop the recording and quit? What was said so far is kept."
+            alert.addButton(withTitle: "Stop and Quit")
+            alert.addButton(withTitle: "Keep Recording")
+            NSApp.activate(ignoringOtherApps: true)
+            guard alert.runModal() == .alertFirstButtonReturn else {
+                return observedTerminationReply(.terminateCancel)
             }
-            NSApp.reply(toApplicationShouldTerminate: true)
         }
-        return .terminateLater
+        // Do not initialize the notes singleton merely because an idle app quits.
+        let service = terminationFixtureForTesting?.service
+            ?? (stopRecording ? NotesService.shared : NotesService.sharedIfLoaded)
+        // Constructing the empty shared actor starts no native/file/model work.
+        let runtime = recordingQuitFixtureForTesting?.runtime
+            ?? terminationFixtureForTesting?.runtime ?? NotesModelRuntime.shared
+        let ownedNotesTasks = service?.beginTermination() ?? []
+        // Empty singleton owns no native/file work. Close before recording stop
+        // so its later default final-pass submission cannot escape quit ownership.
+        let finalTranscripts = FinalTranscriptService.shared
+        let ownedFinalTasks = finalTranscripts.beginTermination()
+        let diarization = DiarizationService.shared
+        let ownedDiarizationTasks = diarization.beginTermination()
+        let diarizer = MeetingDiarizer.shared
+        // Constructors retain only cheap actor/value owners; never initialize
+        // LocalModelStore, load weights, fetch assets or read a saved choice here.
+        let pocket = startupTerminationFixtureForTesting?.pocket ?? PocketAgentVoice.shared
+        let parakeet = startupTerminationFixtureForTesting?.parakeet ?? ParakeetModels.shared
+        let asrQueue = startupTerminationFixtureForTesting?.queue ?? TranscriptionQueue.shared
+        pocket.beginTermination()
+        // Loaded-only MainActor parents: never read a model manifest or saved role
+        // merely to quit. Capture existing handles before backend closes admission.
+        let modelTasks = ModelLibraryStore.sharedIfLoaded?.beginTermination() ?? []
+        let library = otherLlamaTerminationFixtureForTesting?.library ?? InstalledModelLibrary.sharedIfLoaded
+        library?.beginTermination()
+        // S1's empty actor is cheap. FIXED embedding's empty actor resolves its
+        // built-in file only on admitted load; this diagnostic injects an empty
+        // private owner for non-embedding modes, avoiding the ORIGINAL eager URL.
+        let s1 = otherLlamaTerminationFixtureForTesting?.s1 ?? S1MiniRuntime.shared
+        let embedding: EmbeddingRuntime
+        if let selected = otherLlamaTerminationFixtureForTesting?.embedding {
+            embedding = selected
+        } else if SelfTest.requested == "--selftest-native-termination",
+                  startupTerminationFixtureForTesting != nil || recordingQuitFixtureForTesting != nil {
+            // Scope-preserving COMMON fixture selection ONLY for existing confined
+            // standalone modes which never load Notes. This actor holds values,
+            // opens no file and is not evidence for shared embedding native ownership.
+            let empty = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+                .appendingPathComponent("NextNotesEmptyTerminationOwner-" + UUID().uuidString + ".gguf")
+            embedding = EmbeddingRuntime(modelURL: empty, displayName: "Empty diagnostic quit owner",
+                tag: "empty-diagnostic-quit", notesModelBusy: { false }, mayLoad: { _ in false })
+        } else {
+            // Native Notes7 already reaches shared.stopNow before its first decode;
+            // ordinary flags and real production retain the actual shared selection.
+            embedding = EmbeddingRuntime.shared
+        }
+        nativeTerminationTask = Task { @MainActor in
+            await runtime.beginTermination()
+            await asrQueue.beginTermination()
+            await diarizer.beginTermination()
+            await parakeet.beginTermination()
+            await s1.finishTermination()
+            await embedding.finishTermination()
+            for task in modelTasks { await task.value }
+            await library?.finishTermination()
+            // SAME backend actor joins synchronous vocab calls. It refuses new
+            // native work without llama_backend_free / a process-wide destructor.
+            await LlamaBackend.shared.beginTermination()
+            if stopRecording {
+                // Read the immutable diagnostic callback on MainActor before the
+                // existing Sendable bounded-work closure; no additional actor hop.
+                let stopForTesting = self.recordingQuitFixtureForTesting?.stop
+                _ = await withBoundedWait(.seconds(10)) {
+                    if let stopForTesting { await stopForTesting() }
+                    else { await MeetingController.shared.stop() }
+                }
+            }
+            for task in ownedNotesTasks { await task.value }
+            await asrQueue.finishTermination()
+            await finalTranscripts.finishTermination(ownedFinalTasks)
+            await diarization.finishTermination(ownedDiarizationTasks)
+            await diarizer.finishTermination()
+            await pocket.finishTermination()
+            await parakeet.finishTermination()
+            let drained = await runtime.finishTermination()
+            let diagnosticDrain = self.otherLlamaTerminationFixtureForTesting?.safetyDrain
+            // Preserve the ordinary nil path's existing release/reply ordering.
+            if diagnosticDrain == nil { self.nativeTerminationTask = nil }
+            // Veto-only diagnostic callbacks cannot promote a false real result.
+            let allowExit = drained && (self.startupTerminationFixtureForTesting?.finalReply?(drained) ?? true)
+                && (self.otherLlamaTerminationFixtureForTesting?.finalReply?(drained) ?? true)
+            if allowExit { self.nativeTerminationTask = nil }
+            sender.reply(toApplicationShouldTerminate: allowExit)
+            guard !allowExit, drained, let diagnosticDrain else {
+                self.nativeTerminationTask = nil
+                return
+            }
+            // SAME existing delegate task, AFTER first measurement and veto reply.
+            // Never a new waiter, native hold, model pass, timer or product timeout.
+            // Consume the diagnostic continuation once. A failed safety predicate
+            // after cleanup cannot schedule an unbounded Cocoa re-quit loop.
+            self.otherLlamaTerminationFixtureForTesting?.safetyDrain = nil
+            await diagnosticDrain()
+            self.nativeTerminationTask = nil
+            SelfTest.requestTermination()
+        }
+        return observedTerminationReply(.terminateLater)
     }
 
     func applicationWillTerminate(_ notification: Notification) {
+        terminationFixtureForTesting?.willExit()
+        startupTerminationFixtureForTesting?.willExit()
+        recordingQuitFixtureForTesting?.willExit()
+        otherLlamaTerminationFixtureForTesting?.willExit()
         controller.deactivate()
         // The resident fast-listening engine is a child process and nothing kills it for us.
         // Synchronous on purpose: this method cannot await, and a `Task` here would be

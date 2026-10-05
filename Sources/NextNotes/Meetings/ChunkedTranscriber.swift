@@ -649,11 +649,46 @@ actor TranscriptionQueue {
     static let shared = TranscriptionQueue()
 
     private var tail: Task<Void, Never>?
+    private var terminationFixtureModels: ParakeetModels?
+    private var terminationFixtureTrace: ASRQueueTerminationTrace?
+
+    /// Exact process-owning diagnostic only; the production model route remains nil.
+    func configureTerminationFixture(models: ParakeetModels, trace: ASRQueueTerminationTrace) throws {
+        guard SelfTest.requested == "--selftest-native-termination",
+              let mode = CommandLine.arguments.firstIndex(of: "--native-startup-case"),
+              CommandLine.arguments.indices.contains(mode + 1),
+              ["asr-queue-active", "asr-queue-queued", "asr-queue-closed",
+               "final-pass-active", "final-pass-cancel", "final-pass-closed"].contains(CommandLine.arguments[mode + 1]),
+              tail == nil, terminationFixtureModels == nil else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        terminationFixtureModels = models
+        terminationFixtureTrace = trace
+    }
+
+    private var terminationRequested = false
+
+    /// No later call may extend the existing chain once quit takes ownership.
+    func beginTermination() { terminationRequested = true }
+
+    /// SAME tail transitively joins every already-admitted work Task. Cancelling a
+    /// caller or the tail wrapper would not join the real unstructured inference.
+    func finishTermination() async {
+        beginTermination()
+        let ownedTail = tail
+        await ownedTail?.value
+    }
+
+    private func checkTerminationAdmission() throws {
+        guard !terminationRequested else { throw CancellationError() }
+    }
 
     /// Loads the model before a recording starts, so the first window doesn't pay for it.
     /// Does not hold `.realtimeASR` — warm-up is not a recognition pass.
     func warmUp() async throws {
-        _ = try await ParakeetModels.shared.manager()
+        try checkTerminationAdmission()
+        _ = try await (terminationFixtureModels ?? ParakeetModels.shared).manager()
+        try checkTerminationAdmission()
     }
 
     func transcribe(_ samples: [Float], lane: WorkClass = .realtimeASR) async throws -> ASRResult {
@@ -669,9 +704,12 @@ actor TranscriptionQueue {
         _ samples: [Float],
         lane: WorkClass = .realtimeASR
     ) async throws -> (result: ASRResult, laneWait: TimeInterval, compute: TimeInterval) {
+        try checkTerminationAdmission()
         let previous = tail
         let work = Task { () throws -> (ASRResult, TimeInterval, TimeInterval) in
+            defer { terminationFixtureTrace?.workEnded() }
             await previous?.value
+            try checkTerminationAdmission()
             // After Stop nothing may run at `.realtimeASR` (P0-06): the M-01 final pass
             // acquires `.background` per window through `acquireCancellable`, so a live
             // dictation or meeting window always goes first. The chain (`tail`) is
@@ -689,11 +727,20 @@ actor TranscriptionQueue {
             let laneWait = ChunkedTranscriber.seconds(laneBegan.duration(to: .now))
             let computeBegan = ContinuousClock.now
             do {
-                let manager = try await ParakeetModels.shared.manager()
+                try checkTerminationAdmission()
+                let manager = try await (terminationFixtureModels ?? ParakeetModels.shared).manager()
+                try checkTerminationAdmission()
                 // A fresh decoder state per window: the windows are cut at silence, so there is
                 // no context to carry, and sharing one across two tracks would splice them.
                 var decoderState = try TdtDecoderState()
-                let result = try await manager.transcribe(samples, decoderState: &decoderState)
+                let result: ASRResult
+                do {
+                    terminationFixtureTrace?.nativeEntered()
+                    var succeeded = false
+                    defer { terminationFixtureTrace?.nativeReturned(succeeded: succeeded) }
+                    result = try await manager.transcribe(samples, decoderState: &decoderState)
+                    succeeded = true
+                }
                 let compute = ChunkedTranscriber.seconds(computeBegan.duration(to: .now))
                 await ComputeScheduler.shared.release(jobID)
                 return (result, laneWait, compute)
@@ -703,6 +750,7 @@ actor TranscriptionQueue {
             }
         }
         tail = Task { _ = try? await work.value }
+        terminationFixtureTrace?.workAssigned()
         return try await work.value
     }
 }

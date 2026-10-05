@@ -147,6 +147,76 @@ actor NotesModelRuntime {
     func setOptionalLoadProbeForTesting(_ probe: (@Sendable () async -> Void)?) {
         optionalLoadProbeForTesting = probe
     }
+    // Exact isolated native quit fixture only. Nil on every production load.
+    private var modelFileForTerminationTesting: URL?
+    private var decodeObserverForTerminationTesting: (@Sendable (Bool, Int32?) -> Void)?
+
+    func configureTerminationNativeFixture(
+        modelFile: URL, observer: @escaping @Sendable (Bool, Int32?) -> Void
+    ) throws {
+        let file = modelFile.standardizedFileURL.resolvingSymlinksInPath()
+        let temporary = FileManager.default.temporaryDirectory
+            .standardizedFileURL.resolvingSymlinksInPath()
+        let directory = file.deletingLastPathComponent()
+        let prefix = "NextNotesNativeTerminationTest-"
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              modelFile.standardizedFileURL.path == file.path,
+              directory.deletingLastPathComponent().path == temporary.path,
+              directory.lastPathComponent.hasPrefix(prefix),
+              UUID(uuidString: String(directory.lastPathComponent.dropFirst(prefix.count))) != nil,
+              model == nil, loadTask == nil, !nativeOwner else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        let values = try file.resourceValues(forKeys: [.isRegularFileKey, .isSymbolicLinkKey, .fileSizeKey])
+        guard
+              values.isRegularFile == true, values.isSymbolicLink != true,
+              Int64(values.fileSize ?? 0) == spec.expectedBytes else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        modelFileForTerminationTesting = file
+        decodeObserverForTerminationTesting = observer
+    }
+
+    private func decodeNative(_ context: OpaquePointer, _ batch: llama_batch) -> Int32 {
+        decodeObserverForTerminationTesting?(true, nil)
+        let result = llama_decode(context, batch)
+        decodeObserverForTerminationTesting?(false, result)
+        return result
+    }
+
+    private var terminationRequested = false
+    private var terminationLoadTask: Task<Void, Error>?
+
+    /// Permanently close this native owner. Fail existing queued reservations instead
+    /// of handing a context to work that has not entered when quit was accepted.
+    func beginTermination() {
+        guard !terminationRequested else { return }
+        terminationRequested = true
+        terminationLoadTask = loadTask
+        terminationLoadTask?.cancel()
+        let queued = nativeWaiters
+        nativeWaiters.removeAll()
+        for waiter in queued { waiter.continuation.resume(returning: false) }
+    }
+
+    /// Join separately owned loading, then obtain the SAME reservation after its
+    /// previous native owner releases it. Never free the process-wide backend here.
+    func finishTermination() async -> Bool {
+        beginTermination()
+        if let loading = terminationLoadTask { _ = await loading.result }
+        guard await reserveNativeContext(for: .background, duringTermination: true) else { return false }
+        defer { releaseNativeContext() }
+        guard activeOperations == 0, loadTask == nil else { return false }
+        shutdownNow()
+        terminationLoadTask = nil
+        return true
+    }
+
+    private func checkTerminationAdmission() throws {
+        if terminationRequested { throw CancellationError() }
+        try Task.checkCancellation()
+    }
+
     private var nativeOwner = false
     private var nativeWaiters: [(id: UUID, workClass: WorkClass, continuation: CheckedContinuation<Bool, Never>)] = []
     /// Test-only signal after a real native prefill chunk has decoded.
@@ -324,12 +394,13 @@ actor NotesModelRuntime {
 
     /// Opens a GGUF, or returns nil. Never traps, never leaks a half-opened model.
     private static func openNative(
-        _ candidate: ModelSpec, parameters: llama_model_params
+        _ candidate: ModelSpec, parameters: llama_model_params, fileURL: URL? = nil
     ) -> (OpaquePointer, OpaquePointer)? {
-        guard FileManager.default.fileExists(atPath: candidate.fileURL.path) else { return nil }
+        let file = fileURL ?? candidate.fileURL
+        guard FileManager.default.fileExists(atPath: file.path) else { return nil }
         // P0-13's unopenable-model probe counts every full-weight open.
         LlamaLoadProbe.noteFullWeightLoad()
-        guard let loaded = llama_model_load_from_file(candidate.fileURL.path, parameters) else { return nil }
+        guard let loaded = llama_model_load_from_file(file.path, parameters) else { return nil }
         guard let vocabulary = llama_model_get_vocab(loaded) else {
             llama_model_free(loaded)
             return nil
@@ -413,7 +484,7 @@ actor NotesModelRuntime {
     private func prewarmIfNeeded(voice: Bool) async {
         // A self-test must never pull gigabytes into memory as a side effect of driving
         // the UI or a voice session; the probe is how the contract is exercised instead.
-        guard !SelfTest.isRunning || prewarmProbeForTesting != nil else { return }
+        guard !terminationRequested, !SelfTest.isRunning || prewarmProbeForTesting != nil else { return }
         guard pressureSnapshot().allowsOptionalWork else { return }
         guard model == nil, loadTask == nil, !prewarmInFlight else { return }
         prewarmInFlight = true
@@ -438,7 +509,7 @@ actor NotesModelRuntime {
         // The actor re-entered across the awaits above: a real turn may have loaded or
         // started loading the weights in that window, and a cancelled caller no longer
         // wants them.
-        guard !Task.isCancelled, model == nil, loadTask == nil,
+        guard !terminationRequested, !Task.isCancelled, model == nil, loadTask == nil,
               pressureSnapshot().allowsOptionalWork else { return }
 
         if let probe = prewarmProbeForTesting {
@@ -602,6 +673,7 @@ actor NotesModelRuntime {
         parameters.load_mode = LLAMA_LOAD_MODE_MMAP
         parameters.use_extra_bufts = false
         await LlamaBackend.shared.initialize()
+        guard !terminationRequested, !Task.isCancelled else { return .cannotOpen("busy") }
         guard let (loaded, loadedVocabulary) = Self.openNative(candidate, parameters: parameters) else {
             return .cannotOpen("the file would not open")
         }
@@ -670,12 +742,13 @@ actor NotesModelRuntime {
         while generated < Self.trialMaxTokens {
             try Task.checkCancellation()
             await ComputeScheduler.shared.checkpoint(jobID)
+            try checkTerminationAdmission()
             let token = llama_sampler_sample(sampler, context, -1)
             if llama_vocab_is_eog(vocabulary, token) { break }
             generated += 1
             batch.n_tokens = 0
             LlamaHelpers.add(token, position: position, logits: true, to: &batch)
-            guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+            guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
             kvTokens.append(token)
             position += 1
         }
@@ -888,6 +961,7 @@ actor NotesModelRuntime {
         var index = 0
         while index < tokens.count {
             await ComputeScheduler.shared.checkpoint(jobID)
+            try checkTerminationAdmission()
             try Task.checkCancellation()
             if optional { try checkOptionalAdmission() }
             let end = min(index + chunk, tokens.count)
@@ -896,7 +970,7 @@ actor NotesModelRuntime {
                 LlamaHelpers.add(tokens[offset], position: llama_pos(startPosition + offset),
                     logits: offset == tokens.count - 1, to: &batch)
             }
-            guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+            guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
             index = end
             prefillChunkObserverForTesting?()
         }
@@ -961,6 +1035,8 @@ actor NotesModelRuntime {
                 try Task.checkCancellation()
                 // Let a queued realtimeASR job take the lane between tokens.
                 await ComputeScheduler.shared.checkpoint(jobID)
+                try checkTerminationAdmission()
+
 
                 let token = llama_sampler_sample(sampler, context, -1)
                 if llama_vocab_is_eog(vocabulary, token) { break }
@@ -973,7 +1049,7 @@ actor NotesModelRuntime {
 
                 batch.n_tokens = 0
                 LlamaHelpers.add(token, position: position, logits: true, to: &batch)
-                guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+                guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
                 // P0-18: this token's KV entry is at `position`, so the ledger grows with it.
                 kvTokens.append(token)
                 position += 1
@@ -1077,6 +1153,7 @@ actor NotesModelRuntime {
             while generated < maxTokens {
                 try Task.checkCancellation()
                 await ComputeScheduler.shared.checkpoint(jobID)
+                try checkTerminationAdmission()
 
                 let token = llama_sampler_sample(sampler, context, -1)
                 if llama_vocab_is_eog(vocabulary, token) { break }
@@ -1119,7 +1196,7 @@ actor NotesModelRuntime {
 
                 batch.n_tokens = 0
                 LlamaHelpers.add(token, position: position, logits: true, to: &batch)
-                guard llama_decode(context, batch) == 0 else { throw LlamaError.decodeFailed }
+                guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
                 // P0-18: this token's KV entry is at `position`, so the ledger grows with it.
                 kvTokens.append(token)
                 position += 1
@@ -1173,7 +1250,7 @@ actor NotesModelRuntime {
             throw CancellationError()
         }
         defer { releaseNativeContext() }
-        try Task.checkCancellation()
+        try checkTerminationAdmission()
         activeOperations += 1
         defer {
             activeOperations -= 1
@@ -1186,6 +1263,7 @@ actor NotesModelRuntime {
         }
         queueTrace.end(note: "app_llm class=\(workClass.rawValue)")
         do {
+            try checkTerminationAdmission()
             let result = try await body(jobID)
             await ComputeScheduler.shared.release(jobID)
             return result
@@ -1197,7 +1275,10 @@ actor NotesModelRuntime {
 
     /// One llama context and sampler must have one owner even when the actor re-enters
     /// at a scheduler checkpoint. Voice wins the next reservation after current work ends.
-    private func reserveNativeContext(for workClass: WorkClass) async -> Bool {
+    private func reserveNativeContext(
+        for workClass: WorkClass, duringTermination: Bool = false
+    ) async -> Bool {
+        guard !terminationRequested || duringTermination else { return false }
         if !nativeOwner {
             nativeOwner = true
             return true
@@ -1898,6 +1979,7 @@ actor NotesModelRuntime {
     }
 
     private func loadIfNeeded(schedulerJobID: UUID? = nil, optional: Bool = false) async throws {
+        try checkTerminationAdmission()
         if optional { try checkOptionalAdmission() }
         if optional, let optionalLoadProbeForTesting {
             await optionalLoadProbeForTesting()
@@ -1978,11 +2060,13 @@ actor NotesModelRuntime {
     }
 
     private func load(schedulerJobID: UUID? = nil, optional: Bool = false) async throws {
+        try checkTerminationAdmission()
         if optional { try checkOptionalAdmission() }
         loadAttemptCount += 1
         // The first load of the process adopts whatever the user picked last time, unless
         // something read `activeSpec` earlier and adopted it already.
         await adoptSavedSelectionIfNeeded()
+        try checkTerminationAdmission()
         if optional { try checkOptionalAdmission() }
         // Nothing is loaded at this point — this is the load — so a choice that was recorded
         // while a generation held the lane can be taken up now, before the file is opened.
@@ -1993,7 +2077,12 @@ actor NotesModelRuntime {
         // to the built-in spec and reports `.modelMissing`; the call path names what will
         // answer, because the runtime never touches the library and never opens a
         // replacement file on its own.
-        if !spec.isDownloaded {
+        let fixtureSize = modelFileForTerminationTesting.flatMap {
+            try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize
+        }
+        let isDownloaded = modelFileForTerminationTesting == nil
+            ? spec.isDownloaded : Int64(fixtureSize ?? 0) == spec.expectedBytes
+        if !isDownloaded {
             // The built-in model simply hasn't been downloaded yet — the caller handles that.
             guard !isUsingBuiltInModel else { throw LlamaError.modelMissing }
             spec = NotesModels.spec
@@ -2004,6 +2093,7 @@ actor NotesModelRuntime {
         ModelResidencyPolicy.installPressureObserver()
 
         await LlamaBackend.shared.initialize()
+        try checkTerminationAdmission()
         // Both models are gigabytes and both are resident at once if this waits for nothing.
         // The dictation path is the one with a person waiting on it, so notes generation
         // yields: it loads only once the cleanup pass in flight has released its context.
@@ -2011,6 +2101,7 @@ actor NotesModelRuntime {
         // One-directional only. Do not call beginCleanup() here — on-device cleanup is this
         // same runtime, and closing the cycle deadlocks (AGENTS.md).
         await LlamaBackend.shared.awaitCleanupIdle()
+        try checkTerminationAdmission()
 
         if let schedulerJobID {
             await ComputeScheduler.shared.checkpoint(schedulerJobID)
@@ -2020,6 +2111,7 @@ actor NotesModelRuntime {
         // together. `loadTask` is already set, so the embedder refuses to load again
         // until this model is gone.
         await EmbeddingRuntime.shared.stopNow()
+        try checkTerminationAdmission()
         if optional { try checkOptionalAdmission() }
 
         var modelParameters = llama_model_default_params()
@@ -2040,7 +2132,7 @@ actor NotesModelRuntime {
         // build, and the runtime returns to the built-in spec **without opening it**: a
         // silent replacement file is how the notice ended up claiming Gemma on a Mac where
         // Gemma had never been downloaded.
-        guard let (loadedModel, loadedVocabulary) = Self.openNative(spec, parameters: modelParameters) else {
+        guard let (loadedModel, loadedVocabulary) = Self.openNative(spec, parameters: modelParameters, fileURL: modelFileForTerminationTesting) else {
             let failed = spec
             if !isUsingBuiltInModel {
                 await openFailureSink?(failed, "open failed")
@@ -2057,7 +2149,7 @@ actor NotesModelRuntime {
         // P0-04: the file itself names its turn markers. `llama_model_chat_template` is the
         // default template the vocabulary carries; the GGUF key is the same string and is
         // only read when the model reports none, for architecture and pre-tokenizer too.
-        let metadata = GGUFMetadata.read(spec.fileURL)
+        let metadata = GGUFMetadata.read(modelFileForTerminationTesting ?? spec.fileURL)
         let template = Self.chatTemplate(for: loadedModel) ?? metadata?.chatTemplate
         family = ChatTemplate.detect(
             template: template,

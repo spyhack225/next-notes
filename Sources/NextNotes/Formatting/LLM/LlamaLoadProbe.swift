@@ -111,6 +111,7 @@ extension LlamaBackend {
     /// freed before this returns. The silent callback is restored in a `defer` — a global
     /// callback that kept capturing would swallow every later load's logs.
     func openVocabularyOnly(at path: String) -> (opened: Bool, log: String) {
+        guard nativeProbeAllowed else { return (false, "Native work is closing.") }
         probeLog.withLock { $0 = "" }
         llama_log_set({ _, text, _ in
             guard let text else { return }
@@ -124,8 +125,10 @@ extension LlamaBackend {
         var parameters = llama_model_default_params()
         parameters.vocab_only = true
         parameters.n_gpu_layers = 0
+        terminationProbeTraceForTesting?.nativeEntered()
         let model = llama_model_load_from_file(path, parameters)
         if let model { llama_model_free(model) }
+        terminationProbeTraceForTesting?.nativeReturned(succeeded: model != nil)
         return (model != nil, probeLog.withLock { $0 })
     }
 }

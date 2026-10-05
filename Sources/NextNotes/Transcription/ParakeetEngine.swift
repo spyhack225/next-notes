@@ -5,11 +5,24 @@ import Foundation
 
 /// NVIDIA Parakeet TDT 0.6B, compiled to CoreML and run locally via FluidAudio.
 ///
-/// **Near-streaming while the key is held.** Audio is still buffered in process,
-/// and every ~2 s of new speech a provisional pass re-transcribes the buffer so
-/// the HUD can show live text. On release, if the leftover since the last
-/// partial is tiny, that partial is promoted to the final rather than paying a
-/// cold full-buffer pass again; otherwise one final batch pass runs as before.
+/// **Segments are transcribed once, while the key is held.** `DictationSegmenter` cuts the
+/// hold at pauses (≥ 3 s per segment, hard cap 14.5 s), and each cut segment is transcribed
+/// on its own and its text frozen. Live text re-runs only the **open tail** — every second
+/// of new speech, and immediately when the speaker stops — so a model pass never covers
+/// more than one native 15 s encoder window, whatever the length of the hold. The old
+/// engine re-transcribed the whole buffer every second: O(n²), 82 s of model time inside a
+/// 120 s hold, and a key-up pass over everything.
+///
+/// **Key-up is usually free.** People stop speaking a few hundred milliseconds before they
+/// let go of the key, and the end of speech already started a tail pass. So `finish()` asks
+/// `ParakeetKeyUp.plan` what is still missing: nothing (the last tail covers every frame of
+/// speech, or nothing was said after the committed segments), the pass already running, or
+/// one fresh pass over the uncovered tail — started at once on a second manager over the
+/// same weights rather than queued behind a stale partial.
+///
+/// **The `.realtimeASR` lane is held per model pass**, not for the whole hold. Notes and
+/// the pre-clean LLM jobs run in the gaps between passes and park again (at their next
+/// checkpoint) for each one. `start()` still owns the lane around a cold model load.
 /// Models stay warm via `ParakeetModels`.
 actor ParakeetEngine: TranscriptionEngine {
     /// Self-test probe: the engine yields non-final chunks during a hold.
@@ -18,33 +31,55 @@ actor ParakeetEngine: TranscriptionEngine {
     private var samples: [Float] = []
     private var continuation: AsyncThrowingStream<TranscriptionChunk, Error>.Continuation?
 
-    /// Sample count at which the last provisional was fired.
-    private var lastPartialAt = 0
-    /// Most recent completed provisional text — reused on release when leftover audio is short.
-    private var lastPartialText = ""
-    /// Sample position represented by `lastPartialText`.
-    private var lastCompletedPartialAt = 0
-    /// One active provisional pass. A second pass never starts until this one completes.
-    private var partialTask: Task<Void, Never>?
-    /// The newest snapshot waiting behind the active pass. Older snapshots are discarded.
-    private var queuedPartial: (samples: [Float], at: Int)?
+    // MARK: Segments
 
-    /// `ComputeScheduler` lane held for this engine instance from successful
-    /// `start()` through `finish()`. Notes take `.background` and checkpoint;
-    /// holding `.realtimeASR` here is what makes them park during live ASR.
-    /// Owned by this engine so a superseded start releases *its* job, not a
-    /// later hold's.
+    private var segmenter = DictationSegmenter()
+    /// Cuts found but not transcribed yet, in order.
+    private var pendingCuts: [Int] = []
+    /// The frozen text of every transcribed segment, in order.
+    private var committedTexts: [String] = []
+    /// Where the transcribed segments end: the start of the open tail.
+    private var committedEnd = 0
+
+    // MARK: Tail partials
+
+    /// Sample count at which the last tail pass was requested.
+    private var lastTailRequestAt = 0
+    private var tailRequested = false
+    /// The newest completed tail pass, kept for key-up when nothing was said after it.
+    private var tailPartial: (start: Int, end: Int, text: String)?
+
+    // MARK: Work
+
+    /// One model pass at a time while the key is down. The pass itself is a separate task
+    /// so `finish()` can await exactly that pass (or leave a stale one behind).
+    private var worker: Task<Void, Never>?
+    private var inflight: (pass: ParakeetKeyUp.Pass, task: Task<String?, Never>)?
+    /// The session the worker serves; nil outside start()…finish().
+    private var activeSession: Int?
+    /// Set by `finish()`: from here on it, not the worker, owns every result.
+    private var finishing = false
+
+    // MARK: Lane
+
+    /// `ComputeScheduler` lane held around a cold model load in `start()`. Owned by this
+    /// engine so a superseded start releases *its* job, not a later hold's.
     private var schedulerJobID: UUID?
-    /// Seconds the last `start()` waited to be scheduled on the shared `.realtimeASR`
-    /// lane (F-01). The meeting side records the same number per window
-    /// (`MeetingTranscribeTally.laneWait`); without it here, the question "did a dictation
-    /// queue behind a meeting?" is unanswerable from a hold's own row, and the gate for the
-    /// per-pass-acquire change has nothing to read.
+    /// One `.realtimeASR` job shared by this engine's overlapping passes (the key-up pass
+    /// can run beside a stale partial). Released when the last of them leaves.
+    private var laneAcquire: Task<UUID, Never>?
+    private var laneHolders = 0
+    /// Seconds `start()` waited for the lane (F-01), and the sum over every pass since.
     private var startLaneWaitSeconds: TimeInterval = 0
+    private var passLaneWaitSeconds: TimeInterval = 0
 
-    /// The value above, read by the tail after `finish()` for the `dictation.asr` usage row.
-    /// Actor-isolated, so the read is an `await`. 0 when the acquire did not wait.
-    var startLaneWait: TimeInterval { startLaneWaitSeconds }
+    /// What this hold's ASR waited on the shared `.realtimeASR` lane: the start's wait
+    /// around a cold load plus every model pass's own wait (F-01). With the lane held per
+    /// pass rather than for the whole hold, a dictation that queued behind a meeting window
+    /// queues at its passes, so that sum is the honest answer to "was it ever blocked?".
+    /// Read by the tail after `finish()` for the `dictation.asr` usage row.
+    var startLaneWait: TimeInterval { startLaneWaitSeconds + passLaneWaitSeconds }
+
     /// Bumped by `finish()` (and each new `start()`) so a start that was
     /// suspended across `acquire` / model load can tell it was cancelled and
     /// release its own lane — actors are re-entrant at `await`.
@@ -55,14 +90,23 @@ actor ParakeetEngine: TranscriptionEngine {
     private var runtimeGeneration: UInt64?
     private var runtimeLoaded = false
 
+    /// Measurements of the last hold, read by `--selftest-dictation-segments`.
+    struct Diagnostics: Sendable {
+        var passes = 0
+        var segmentPasses = 0
+        var computeSeconds: TimeInterval = 0
+        /// One entry per emitted partial: the audio it covers (samples) and when it landed.
+        var partials: [(end: Int, at: TimeInterval)] = []
+        var keyUpPlan = ""
+        var keyUpSeconds: TimeInterval = 0
+        var finalText = ""
+    }
+    private(set) var diagnostics = Diagnostics()
+
     private let converter = AudioConverter()
 
     private var partialIntervalSamples: Int {
         Int(StreamingASR.dictationPartialIntervalSeconds * 16_000)
-    }
-
-    private var reuseBelowSamples: Int {
-        Int(StreamingASR.dictationReusePartialBelowSeconds * 16_000)
     }
 
     func preferredInputFormat() async -> AVAudioFormat? {
@@ -73,15 +117,17 @@ actor ParakeetEngine: TranscriptionEngine {
         let generation = recognitionGeneration &+ 1
         recognitionGeneration = generation
 
-        samples.removeAll(keepingCapacity: true)
-        lastPartialAt = 0
-        lastPartialText = ""
-        lastCompletedPartialAt = 0
-        partialTask?.cancel()
-        let oldPartial = partialTask
-        partialTask = nil
-        queuedPartial = nil
-        await oldPartial?.value
+        // A previous session's pass may still be running on the Neural Engine; it cannot be
+        // stopped, and its result is ignored (`activeSession` no longer matches). Nothing
+        // here waits for it: two managers can run side by side over the shared weights.
+        activeSession = nil
+        worker?.cancel()
+        worker = nil
+        resetSession()
+        // Not in `resetSession()`: the tail reads both after `finish()`.
+        startLaneWaitSeconds = 0
+        passLaneWaitSeconds = 0
+        diagnostics = Diagnostics()
         // A previous start that never reached finish must not leave a stale id;
         // only this instance's lane is released below on failure.
         await releaseSchedulerLane()
@@ -89,24 +135,23 @@ actor ParakeetEngine: TranscriptionEngine {
         let (stream, continuation) = AsyncThrowingStream<TranscriptionChunk, Error>.makeStream()
         self.continuation = continuation
 
-        // Hold the ASR lane for load + feed + partials + finish so notes
-        // checkpoints yield for the whole recognition window, not only the
-        // final batch pass. Store the id before the (slow) model load so a
-        // timed-out start whose finish() races us still finds something to
-        // release — unless finish already invalidated `generation`.
-        // How long the queueing took, measured where the queueing happens (F-01). Recorded
-        // before the generation check below, so a start that was cancelled while parked
-        // still files what it waited — that wait is exactly the contention being measured.
-        let laneBegan = Date()
-        let jobID = await ComputeScheduler.shared.acquire(.realtimeASR)
-        startLaneWaitSeconds = Date().timeIntervalSince(laneBegan)
-        guard recognitionGeneration == generation else {
-            await ComputeScheduler.shared.release(jobID)
-            continuation.finish()
-            self.continuation = nil
-            throw CancellationError()
+        // The lane is held around a cold load only: loading compiles for the Neural Engine,
+        // and notes checkpoints must yield to it. A warm start has nothing to schedule, and
+        // each model pass takes the lane itself. How long the queueing took is measured
+        // where it happens (F-01), before the generation check, so a start that was
+        // cancelled while parked still files what it waited.
+        if !(await ParakeetModels.shared.isLoaded) {
+            let laneBegan = Date()
+            let jobID = await ComputeScheduler.shared.acquire(.realtimeASR)
+            startLaneWaitSeconds = Date().timeIntervalSince(laneBegan)
+            guard recognitionGeneration == generation else {
+                await ComputeScheduler.shared.release(jobID)
+                continuation.finish()
+                self.continuation = nil
+                throw CancellationError()
+            }
+            schedulerJobID = jobID
         }
-        schedulerJobID = jobID
         let runtimeGeneration = await ModelRuntimeManager.shared.beginLoading(.parakeetASR)
         self.runtimeGeneration = runtimeGeneration
         runtimeLoaded = false
@@ -128,6 +173,7 @@ actor ParakeetEngine: TranscriptionEngine {
             await releaseSchedulerLane()
             throw error
         }
+        await releaseSchedulerLane()
         guard recognitionGeneration == generation else {
             // The model cache is process-wide. A superseded engine must not
             // call it unloaded when another session (or the shared load task)
@@ -138,7 +184,6 @@ actor ParakeetEngine: TranscriptionEngine {
                     generation: runtimeGeneration
                 )
             }
-            await releaseSchedulerLane()
             continuation.finish()
             self.continuation = nil
             throw CancellationError()
@@ -148,7 +193,7 @@ actor ParakeetEngine: TranscriptionEngine {
             .parakeetASR,
             generation: runtimeGeneration
         )
-
+        activeSession = generation
         return stream
     }
 
@@ -166,18 +211,17 @@ actor ParakeetEngine: TranscriptionEngine {
             Log.speech.error("Parakeet: audio conversion failed — \(error.localizedDescription, privacy: .public)")
             return
         }
-
-        await maybeEmitPartial()
+        schedule()
     }
 
     func finish() async {
         // Invalidate any in-flight start suspended across acquire / load.
         recognitionGeneration &+= 1
+        finishing = true
+        let keyUp = Date()
 
-        // Take ownership of the lane id up front so every exit path — short
-        // audio, reuse, full pass, error — releases exactly once.
-        let jobID = schedulerJobID
-        schedulerJobID = nil
+        // A start that was cancelled mid-load may still hold its lane.
+        await releaseSchedulerLane()
 
         // ParakeetModels intentionally remains resident between turns. Reflect
         // that truth in the registry; a cancelled start that never completed a
@@ -194,86 +238,77 @@ actor ParakeetEngine: TranscriptionEngine {
             runtimeLoaded = false
         }
 
-        let activePartial = partialTask
-        partialTask?.cancel()
-        partialTask = nil
-        queuedPartial = nil
-
-        // Do not begin the final model pass while a provisional pass still owns the manager.
-        // FluidAudio cancellation is cooperative, so the controller's finish deadline is
-        // the upper bound on this wait rather than spawning two recognizers concurrently.
-        await activePartial?.value
-
         defer {
             continuation?.finish()
             continuation = nil
-            samples.removeAll(keepingCapacity: true)
-            lastPartialAt = 0
-            lastPartialText = ""
-            lastCompletedPartialAt = 0
-            partialTask = nil
-            queuedPartial = nil
+            activeSession = nil
+            worker = nil
+            resetSession()
         }
 
         guard samples.count >= ParakeetInput.minimumCapturedSamples else {
             Log.speech.info("Parakeet: skipped — only \(self.samples.count) samples captured")
-            if let jobID { await ComputeScheduler.shared.release(jobID) }
             return
         }
 
-        let leftover = samples.count - lastCompletedPartialAt
-        let reusable = !lastPartialText.isEmpty
-            && leftover < reuseBelowSamples
-            && lastCompletedPartialAt >= ParakeetInput.minimumModelSamples
+        // Every complete frame, so "was anything said after this pass" sees the last word.
+        _ = segmenter.advance(over: samples)
+        let total = samples.count
+        let committed = joined(committedTexts)
+        let plan = ParakeetKeyUp.plan(
+            committedEnd: committedEnd,
+            hasCommitted: !committedTexts.isEmpty,
+            tail: tailPartial.map { ParakeetKeyUp.Pass(isSegment: false, start: $0.start, end: $0.end) },
+            inflight: inflight?.pass,
+            lastSpeechEnd: segmenter.lastSpeechEnd
+        )
 
         do {
-            var text: String
-            let elapsed: TimeInterval
-            let audioSeconds = Double(samples.count) / 16_000
-
-            if reusable {
-                text = lastPartialText
-                elapsed = 0
-                Log.speech.info("""
-                    Parakeet: reused partial (\(audioSeconds, format: .fixed(precision: 1))s audio, \
-                    leftover \(Double(leftover) / 16_000, format: .fixed(precision: 2))s)
-                    """)
-            } else {
-                let manager = try await ParakeetModels.shared.manager()
-                var decoderState = try TdtDecoderState()
-                let started = Date()
-                // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s
-                // floor. Padding silence can make the model invent words on a
-                // near-empty tap, so a long answer from almost no audio is
-                // treated as empty.
-                let realSamples = samples.count
-                let result = try await manager.transcribe(
-                    ParakeetInput.padded(samples), decoderState: &decoderState)
-                elapsed = Date().timeIntervalSince(started)
-                text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-                if realSamples < 3_200, text.split(whereSeparator: \.isWhitespace).count > 2 {
-                    Log.speech.info("Parakeet: padded short audio produced words from noise — treating as empty")
-                    text = ""
+            var texts = committedTexts
+            switch plan {
+            case .reuseTail:
+                texts.append(tailPartial?.text ?? "")
+            case .committedOnly:
+                break
+            case .awaitInflight:
+                if let text = await inflight?.task.value {
+                    texts.append(text)
+                } else {
+                    // The pass failed: transcribe what it was for, once, now.
+                    texts.append(try await keyUpPass(from: committedEnd, to: total))
                 }
-                Log.speech.info("""
-                    Parakeet: \(audioSeconds, format: .fixed(precision: 1))s audio in \
-                    \(elapsed, format: .fixed(precision: 2))s (\(audioSeconds / max(elapsed, 0.0001), format: .fixed(precision: 0))× realtime)
-                    """)
+            case .awaitSegmentAndTranscribe(let from):
+                // Both start now: the remainder is not queued behind the segment.
+                async let rest = keyUpPass(from: from, to: total)
+                if let segment = await inflight?.task.value {
+                    texts.append(segment)
+                    texts.append(try await rest)
+                } else {
+                    _ = try? await rest
+                    texts.append(try await keyUpPass(from: committedEnd, to: total))
+                }
+            case .transcribe(let from):
+                texts.append(try await keyUpPass(from: from, to: total))
             }
 
+            let text = joined(texts)
+            let waited = Date().timeIntervalSince(keyUp)
+            diagnostics.keyUpPlan = plan.name
+            diagnostics.keyUpSeconds = waited
+            diagnostics.finalText = text
+            Log.speech.info("""
+                Parakeet: final \(Double(total) / 16_000, format: .fixed(precision: 1))s audio, \
+                \(self.committedTexts.count) segment(s), key-up \(plan.name, privacy: .public) \
+                in \(waited, format: .fixed(precision: 3))s
+                """)
             continuation?.yield(
-                TranscriptionChunk(
-                    text: text,
-                    isFinal: true
-                )
+                TranscriptionChunk(text: text, isFinal: true, committedText: committed)
             )
         } catch {
             Log.speech.error("Parakeet failed: \(error.localizedDescription, privacy: .public)")
             continuation?.finish(throwing: error)
             continuation = nil
         }
-
-        if let jobID { await ComputeScheduler.shared.release(jobID) }
     }
 
     private func releaseSchedulerLane() async {
@@ -282,67 +317,229 @@ actor ParakeetEngine: TranscriptionEngine {
         await ComputeScheduler.shared.release(jobID)
     }
 
-    // MARK: - Partials
-
-    /// Re-transcribes the buffer so far when enough new audio has arrived.
-    /// Model work runs off the feed path's critical section via one bounded task;
-    /// the audio thread only ever handed us a copied buffer.
-    private func maybeEmitPartial() async {
-        // A partial below the model's 0.3 s floor would only throw (D-04); it is
-        // never padded — partials keep their cadence and their own audio.
-        guard samples.count >= ParakeetInput.minimumModelSamples else { return }
-        guard samples.count - lastPartialAt >= partialIntervalSamples else { return }
-
-        let snapshot = samples
-        let at = samples.count
-        lastPartialAt = at
-
-        if partialTask != nil {
-            // Keep only the newest complete view of the audio. Older snapshots can never
-            // improve the transcript and used to form an unbounded chain when inference lagged.
-            queuedPartial = (snapshot, at)
-            return
-        }
-        startPartial(snapshot: snapshot, at: at, generation: recognitionGeneration)
+    private func resetSession() {
+        samples.removeAll(keepingCapacity: true)
+        segmenter = DictationSegmenter()
+        pendingCuts = []
+        committedTexts = []
+        committedEnd = 0
+        lastTailRequestAt = 0
+        tailRequested = false
+        tailPartial = nil
+        inflight = nil
+        finishing = false
     }
 
-    private func startPartial(snapshot: [Float], at: Int, generation: Int) {
-        partialTask = Task { [weak self] in
-            await self?.runPartial(snapshot: snapshot, at: at, generation: generation)
-            await self?.partialDidFinish(generation: generation)
+    private func joined(_ texts: [String]) -> String {
+        texts.filter { !$0.isEmpty }.joined(separator: " ")
+    }
+
+    // MARK: - While the key is down
+
+    /// Cuts and tail requests for the audio just fed, and the worker if it is idle.
+    private func schedule() {
+        guard let session = activeSession, !finishing else { return }
+        let scan = segmenter.advance(over: samples)
+        pendingCuts += scan.cuts
+        let spokeSinceRequest = segmenter.lastSpeechEnd > lastTailRequestAt
+        let tailLength = samples.count - committedEnd
+        if tailLength >= ParakeetInput.minimumModelSamples, spokeSinceRequest,
+           scan.speechEnded || samples.count - lastTailRequestAt >= partialIntervalSamples {
+            // End of speech starts the tail pass at once: by key-up it is usually done.
+            tailRequested = true
+            lastTailRequestAt = samples.count
+        }
+        if worker == nil, !pendingCuts.isEmpty || tailRequested {
+            worker = Task { [weak self] in await self?.drain(session: session) }
         }
     }
 
-    private func partialDidFinish(generation: Int) {
-        guard generation == recognitionGeneration else {
-            partialTask = nil
-            queuedPartial = nil
-            return
+    /// Runs segment passes (in order) and then the newest tail pass, one at a time.
+    private func drain(session: Int) async {
+        while activeSession == session, !finishing, let pass = nextPass() {
+            let audio = Array(samples[pass.start..<pass.end])
+            let task = Task { [weak self] () -> String? in
+                await self?.modelPass(audio, isSegment: pass.isSegment)
+            }
+            inflight = (pass, task)
+            let text = await task.value
+            // From key-up on, `finish()` owns the in-flight pass and its result.
+            guard activeSession == session, !finishing else { return }
+            inflight = nil
+            if pass.isSegment {
+                pendingCuts.removeFirst()
+                // A failed segment pass leaves its audio in the open tail.
+                guard let text else { continue }
+                committedTexts.append(text)
+                committedEnd = pass.end
+                tailPartial = nil
+                if segmenter.lastSpeechEnd > committedEnd,
+                   samples.count - committedEnd >= ParakeetInput.minimumModelSamples {
+                    tailRequested = true
+                    lastTailRequestAt = samples.count
+                } else {
+                    emitPartial(end: pass.end)
+                }
+            } else if let text, !text.isEmpty {
+                tailPartial = (pass.start, pass.end, text)
+                emitPartial(end: pass.end)
+            }
         }
-        partialTask = nil
-        guard let queued = queuedPartial else { return }
-        queuedPartial = nil
-        startPartial(snapshot: queued.samples, at: queued.at, generation: generation)
+        if activeSession == session, !finishing { worker = nil }
     }
 
-    private func runPartial(snapshot: [Float], at: Int, generation: Int) async {
-        guard generation == recognitionGeneration, !Task.isCancelled else { return }
+    private func nextPass() -> ParakeetKeyUp.Pass? {
+        if let cut = pendingCuts.first {
+            return ParakeetKeyUp.Pass(isSegment: true, start: committedEnd, end: cut)
+        }
+        guard tailRequested else { return nil }
+        tailRequested = false
+        // A tail with no speech in it (a segment just took the last words) needs no pass.
+        guard samples.count - committedEnd >= ParakeetInput.minimumModelSamples,
+              segmenter.lastSpeechEnd > committedEnd else { return nil }
+        return ParakeetKeyUp.Pass(isSegment: false, start: committedEnd, end: samples.count)
+    }
+
+    private func emitPartial(end: Int) {
+        var texts = committedTexts
+        if let tail = tailPartial, tail.start == committedEnd { texts.append(tail.text) }
+        let text = joined(texts)
+        guard !text.isEmpty else { return }
+        diagnostics.partials.append((end, ProcessInfo.processInfo.systemUptime))
+        continuation?.yield(
+            TranscriptionChunk(text: text, isFinal: false, committedText: joined(committedTexts))
+        )
+    }
+
+    // MARK: - Model passes
+
+    /// One pass while the key is down. A failed pass must not kill the hold — `finish()`
+    /// still has the audio — so it is logged and answered with nil.
+    private func modelPass(_ audio: [Float], isSegment: Bool) async -> String? {
         do {
             let manager = try await ParakeetModels.shared.manager()
-            var decoderState = try TdtDecoderState()
-            let result = try await manager.transcribe(snapshot, decoderState: &decoderState)
-            let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard generation == recognitionGeneration, !Task.isCancelled else { return }
-            guard !text.isEmpty else { return }
-            lastPartialText = text
-            lastCompletedPartialAt = at
-            continuation?.yield(TranscriptionChunk(text: text, isFinal: false))
+            return try await transcribe(audio, with: manager, isSegment: isSegment)
         } catch {
-            // A failed partial must not kill the hold — finish() still has the buffer.
             Log.speech.error(
                 "Parakeet partial failed: \(error.localizedDescription, privacy: .public)"
             )
+            return nil
         }
+    }
+
+    /// The key-up pass over `[from, to)`. On the second manager, so it never queues behind
+    /// a stale partial still running on the first.
+    private func keyUpPass(from: Int, to: Int) async throws -> String {
+        let audio = Array(samples[from..<to])
+        let manager = try await ParakeetModels.shared.keyUpManager()
+        var text = try await transcribe(ParakeetInput.padded(audio), with: manager, isSegment: false)
+        // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s floor. Padding
+        // silence can make the model invent words on a near-empty tap, so a long answer
+        // from almost no audio is treated as empty.
+        if audio.count < 3_200, text.split(whereSeparator: \.isWhitespace).count > 2 {
+            Log.speech.info("Parakeet: padded short audio produced words from noise — treating as empty")
+            text = ""
+        }
+        return text
+    }
+
+    /// One model pass inside the shared `.realtimeASR` lane.
+    private func transcribe(_ audio: [Float], with manager: AsrManager, isSegment: Bool) async throws -> String {
+        await enterLane()
+        let started = Date()
+        do {
+            var decoderState = try TdtDecoderState()
+            let result = try await manager.transcribe(audio, decoderState: &decoderState)
+            await leaveLane()
+            diagnostics.passes += 1
+            if isSegment { diagnostics.segmentPasses += 1 }
+            diagnostics.computeSeconds += Date().timeIntervalSince(started)
+            return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch {
+            await leaveLane()
+            throw error
+        }
+    }
+
+    /// Joins (or takes) this engine's `.realtimeASR` job. The first pass in acquires it and
+    /// records the wait; a pass that overlaps one already running shares its job.
+    private func enterLane() async {
+        laneHolders += 1
+        if let laneAcquire {
+            _ = await laneAcquire.value
+            return
+        }
+        let began = Date()
+        let acquire = Task { await ComputeScheduler.shared.acquire(.realtimeASR) }
+        laneAcquire = acquire
+        _ = await acquire.value
+        passLaneWaitSeconds += Date().timeIntervalSince(began)
+    }
+
+    private func leaveLane() async {
+        laneHolders -= 1
+        guard laneHolders == 0, let acquire = laneAcquire else { return }
+        laneAcquire = nil
+        await ComputeScheduler.shared.release(await acquire.value)
+    }
+}
+
+/// What key-up still has to transcribe. Pure, so `--selftest-dictation-segments` pins the
+/// decision without a model.
+enum ParakeetKeyUp {
+    /// A model pass over `[start, end)` of the hold.
+    struct Pass: Equatable, Sendable {
+        var isSegment: Bool
+        var start: Int
+        var end: Int
+    }
+
+    enum Plan: Equatable, Sendable {
+        /// The last completed tail pass covers every frame of speech: no model work.
+        case reuseTail
+        /// Nothing was said after the committed segments: no model work.
+        case committedOnly
+        /// The pass already running covers every frame of speech: wait for it, start nothing.
+        case awaitInflight
+        /// The running segment pass is still needed, and the speech after it gets its own
+        /// pass, started now beside it.
+        case awaitSegmentAndTranscribe(from: Int)
+        /// One pass from `from` to the end, started now. A running tail pass that does not
+        /// reach the last word is stale and is not waited for.
+        case transcribe(from: Int)
+
+        var name: String {
+            switch self {
+            case .reuseTail: "reused-tail"
+            case .committedOnly: "committed-only"
+            case .awaitInflight: "awaited-inflight"
+            case .awaitSegmentAndTranscribe: "segment+tail-pass"
+            case .transcribe: "tail-pass"
+            }
+        }
+    }
+
+    /// - Parameters:
+    ///   - lastSpeechEnd: end of the last non-silent 20 ms frame (0 when none was heard).
+    ///   - hasCommitted: whether any segment text is frozen. With none, an all-quiet hold
+    ///     still gets its pass: the silence floor is a frame RMS, and a whisper below it is
+    ///     still the only thing the person said.
+    static func plan(
+        committedEnd: Int,
+        hasCommitted: Bool,
+        tail: Pass?,
+        inflight: Pass?,
+        lastSpeechEnd: Int
+    ) -> Plan {
+        if let tail, tail.start == committedEnd, lastSpeechEnd <= tail.end {
+            return .reuseTail
+        }
+        if let inflight, inflight.start == committedEnd {
+            if lastSpeechEnd <= inflight.end { return .awaitInflight }
+            if inflight.isSegment { return .awaitSegmentAndTranscribe(from: inflight.end) }
+        }
+        if hasCommitted, lastSpeechEnd <= committedEnd { return .committedOnly }
+        return .transcribe(from: committedEnd)
     }
 }
 
@@ -396,20 +593,81 @@ actor ParakeetModels {
 
     private var loaded: AsrManager?
     private var loadTask: Task<AsrManager, Error>?
+    private let terminationFixtureRoot: URL?
+    private let terminationFixtureTrace: StartupTerminationTrace?
+
+    init() {
+        terminationFixtureRoot = nil
+        terminationFixtureTrace = nil
+    }
+
+    init(terminationFixtureRoot: URL, trace: StartupTerminationTrace) throws {
+        self.terminationFixtureRoot = try NativeStartupTerminationSelfTest.validateAssets(terminationFixtureRoot, pocket: false)
+        self.terminationFixtureTrace = trace
+    }
+    private var terminationRequested = false
+    private var terminationLoadTask: Task<AsrManager, Error>?
+
+    /// Quit owns the SAME coalesced load handle even if manager() later clears its slot.
+    func beginTermination() {
+        guard !terminationRequested else { return }
+        terminationRequested = true
+        terminationLoadTask = loadTask
+        terminationLoadTask?.cancel()
+    }
+
+    /// Model preparation only: live recognition remains owned by engine/meeting callers.
+    func finishTermination() async {
+        beginTermination()
+        if let owned = terminationLoadTask { _ = await owned.result }
+        terminationLoadTask = nil
+    }
+
+    private func checkTerminationAdmission() throws {
+        guard !terminationRequested else { throw CancellationError() }
+        try Task.checkCancellation()
+    }
 
     var isLoaded: Bool { loaded != nil }
 
+    /// The loaded weights, kept so a second manager can share them.
+    private var loadedModels: AsrModels?
+    private var keyUp: AsrManager?
+
+    /// A second `AsrManager` over the same loaded weights, for the dictation key-up pass.
+    ///
+    /// `AsrManager` is an actor, so a key-up pass on the shared manager would queue behind
+    /// a stale partial still running on it. FluidAudio builds exactly this kind of clone
+    /// for its own parallel chunk workers (`AsrManager.makeWorkerClone`: `init(config:models:)`
+    /// over the same `MLModel` instances), so it costs no weights and no load — only the
+    /// actor. Falls back to the shared manager when the weights are not held here.
+    func keyUpManager() async throws -> AsrManager {
+        let shared = try await manager()
+        if let keyUp { return keyUp }
+        guard let loadedModels else { return shared }
+        let made = AsrManager(config: .default, models: loadedModels)
+        keyUp = made
+        return made
+    }
+
     /// Loads once; concurrent callers await the same task rather than racing to download.
     func manager(progressHandler: ProgressHandler? = nil) async throws -> AsrManager {
+        try checkTerminationAdmission()
         if let loaded { return loaded }
-        if let loadTask { return try await loadTask.value }
+        if let loadTask {
+            let existing = try await loadTask.value
+            try checkTerminationAdmission()
+            return existing
+        }
 
         let task = Task<AsrManager, Error> {
+            defer { terminationFixtureTrace?.taskEnded() }
+            try checkTerminationAdmission()
             // Built as a value first: os.Logger requires a literal interpolation, so a
             // ternary can't be passed directly as the argument.
-            let stage = Self.isDownloaded
+            let stage = terminationFixtureRoot != nil ? "loading isolated public model copy" : (Self.isDownloaded
                 ? "loading models from disk"
-                : "downloading models (~470 MB, one time)"
+                : "downloading models (~470 MB, one time)")
             Log.speech.info("Parakeet: \(stage, privacy: .public)")
             let started = Date()
             // ANE is FluidAudio's default and the bench path (~100× realtime). CPU-only was
@@ -421,33 +679,72 @@ actor ParakeetModels {
             // the fallback if ANE refuses to load, not the steady state.
             let models: AsrModels
             do {
+                if let root = terminationFixtureRoot {
+                    terminationFixtureTrace?.loadEntered(pocket: false)
+                    defer { terminationFixtureTrace?.loadReturned() }
+                    let trace = terminationFixtureTrace
+                    let progress: ProgressHandler = { update in
+                        trace?.progress(update)
+                        progressHandler?(update)
+                    }
+                    models = try await AsrModels.load(
+                        from: root.appendingPathComponent(Repo.parakeetV3.folderName),
+                        version: .v3, encoderPrecision: .int8,
+                        encoderComputeUnits: .cpuAndNeuralEngine, progressHandler: progress
+                    )
+                } else {
                 models = try await AsrModels.downloadAndLoad(
                     version: .v3,
                     encoderPrecision: .int8,
                     encoderComputeUnits: .cpuAndNeuralEngine,
                     progressHandler: progressHandler
                 )
+                }
             } catch {
+                // Cancellation/quit is not evidence that ANE needs a CPU replacement.
+                try checkTerminationAdmission()
+                if error is CancellationError { throw error }
                 Log.speech.error(
                     "Parakeet: Neural Engine load failed — \(error.localizedDescription, privacy: .public) — retrying on CPU"
                 )
+                if let root = terminationFixtureRoot {
+                    terminationFixtureTrace?.loadEntered(pocket: false)
+                    defer { terminationFixtureTrace?.loadReturned() }
+                    let trace = terminationFixtureTrace
+                    let progress: ProgressHandler = { update in
+                        trace?.progress(update)
+                        progressHandler?(update)
+                    }
+                    models = try await AsrModels.load(
+                        from: root.appendingPathComponent(Repo.parakeetV3.folderName),
+                        version: .v3, encoderPrecision: .int8,
+                        encoderComputeUnits: .cpuOnly, progressHandler: progress
+                    )
+                } else {
                 models = try await AsrModels.downloadAndLoad(
                     version: .v3,
                     encoderPrecision: .int8,
                     encoderComputeUnits: .cpuOnly,
                     progressHandler: progressHandler
                 )
+                }
             }
+            try checkTerminationAdmission()
             let manager = AsrManager(config: .default)
             try await manager.loadModels(models)
+            loadedModels = models
+            try checkTerminationAdmission()
             Log.speech.info("Parakeet: ready in \(Date().timeIntervalSince(started), format: .fixed(precision: 1))s")
             return manager
         }
         loadTask = task
+        terminationFixtureTrace?.assigned()
 
         do {
             let manager = try await task.value
+            try checkTerminationAdmission()
             loaded = manager
+            terminationFixtureTrace?.readyPublished()
             return manager
         } catch {
             // Don't cache a failed load — a transient download error shouldn't wedge the

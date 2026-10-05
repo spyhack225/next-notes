@@ -10,7 +10,59 @@ import Observation
 @MainActor
 @Observable
 final class NotesService {
-    static let shared = NotesService()
+    private(set) static weak var sharedIfLoaded: NotesService?
+    private static var recordingQuitSharedFactoryForTesting: (@MainActor () -> NotesService)?
+    static let shared: NotesService = {
+        let service = recordingQuitSharedFactoryForTesting?() ?? NotesService()
+        sharedIfLoaded = service
+        return service
+    }()
+
+    static func configureRecordingQuitSharedFactory(
+        store: MeetingStore,
+        providerResolver: @escaping @MainActor (LLMProviderID?) async -> (any LLMProvider)?,
+        contextAssembler: MeetingNotesContextAssembler,
+        didCreate: @escaping @MainActor () -> Void
+    ) throws {
+        let root = store.directory(for: UUID()).deletingLastPathComponent().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+        let prefix = "NextNotesMeetingResumeTest-"
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              NativeRecordingQuitSelfTest.isRequested,
+              sharedIfLoaded == nil, recordingQuitSharedFactoryForTesting == nil,
+              root.path == root.resolvingSymlinksInPath().path,
+              root.deletingLastPathComponent().path == temporary.path,
+              root.lastPathComponent.hasPrefix(prefix),
+              UUID(uuidString: String(root.lastPathComponent.dropFirst(prefix.count))) != nil else {
+            throw CocoaError(.fileWriteNoPermission)
+        }
+        recordingQuitSharedFactoryForTesting = {
+            let service = NotesService(store: store, providerResolver: providerResolver,
+                                       contextAssembler: contextAssembler)
+            didCreate()
+            return service
+        }
+    }
+
+    var terminationAdmissionClosedForRecordingQuitTesting: Bool? {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              NativeRecordingQuitSelfTest.isRequested else { return nil }
+        return terminationRequested
+    }
+
+    /// COMMON diagnostic reads the existing map before joining those actual Tasks.
+    /// Production stop does not gain this await or any new registry.
+    func recordingQuitTaskSnapshotForTesting() -> [Task<Void, Never>]? {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
+              NativeRecordingQuitSelfTest.isRequested else { return nil }
+        return Array(tasks.values)
+    }
+
+    var ownedTaskCountForTerminationTesting: Int {
+        guard SelfTest.isRunning,
+              SelfTest.requested == "--selftest-native-termination" else { return -1 }
+        return tasks.count
+    }
 
     /// What each running generation is doing, keyed by meeting.
     private(set) var steps: [UUID: NotesGenerator.Step] = [:]
@@ -20,6 +72,16 @@ final class NotesService {
     private(set) var revision = 0
 
     @ObservationIgnored private var tasks: [UUID: Task<Void, Never>] = [:]
+    @ObservationIgnored private var terminationRequested = false
+
+    /// Capture before cancellation: cancel(_:) discards its ordinary UI handle.
+    /// Quit retains and joins these exact handles rather than consulting a later slot.
+    func beginTermination() -> [Task<Void, Never>] {
+        terminationRequested = true
+        let owned = Array(tasks.values)
+        for task in owned { task.cancel() }
+        return owned
+    }
     /// The stall watchdog's clock (M-08): when each running pass last changed its
     /// step. Advanced beside every `steps[id]` write, never on its own.
     @ObservationIgnored private var lastProgressAt: [UUID: Date] = [:]
@@ -73,7 +135,7 @@ final class NotesService {
         preferring preferred: LLMProviderID? = nil
     ) async -> String? {
         let id = meeting.id
-        guard !isRunning(id) else { return nil }
+        guard !terminationRequested, !isRunning(id) else { return nil }
         // M-16a: the notes pass is a stage span. The note carries the
         // map-reduce flag with chunk, collapse and drop counts (M-05), or the
         // error's type name — never a model name, a token count or text.
@@ -97,6 +159,7 @@ final class NotesService {
             provider = await ModelRoleStore.shared.provider(for: .meetingNotes)
         }
 
+        guard !terminationRequested, !Task.isCancelled else { return nil }
         guard let provider else {
             let reason = if let preferred {
                 await LLMProviders.make(preferred).unavailableReason
@@ -113,6 +176,7 @@ final class NotesService {
 
         do {
             let brief = await notesBrief(for: meeting, provider: provider)
+            guard !terminationRequested, !Task.isCancelled else { return nil }
             // P0-20b: the usage row names the role that chose the model, and says when
             // Regenerate's preferred engine overrode it rather than the role.
             let generator = NotesGenerator(
@@ -121,14 +185,15 @@ final class NotesService {
             )
             let result = try await generator.notes(for: meeting, segments: segments, brief: brief) { step in
                 Task { @MainActor [weak self] in
-                    self?.noteProgress(id)
-                    self?.steps[id] = step
+                    guard let self, !self.terminationRequested else { return }
+                    self.noteProgress(id)
+                    self.steps[id] = step
                 }
             }
             // The meeting can be deleted while the model is generating, and `saveNotes`
             // would re-create the directory that `delete` just removed — a meeting the user
             // deleted minutes ago reappearing with notes and no audio.
-            guard store.meeting(id: id) != nil else { return nil }
+            guard !terminationRequested, !Task.isCancelled, store.meeting(id: id) != nil else { return nil }
             // The lines the person typed themselves go in above the model's, under their
             // own heading, and the merge is idempotent — so a second pass over a document
             // that already carries the block cannot leave two of them behind.
@@ -262,7 +327,7 @@ final class NotesService {
         announce: Bool = false
     ) {
         let id = meeting.id
-        guard !isRunning(id), tasks[id] == nil else { return }
+        guard !terminationRequested, !isRunning(id), tasks[id] == nil else { return }
         noteProgress(id)
 
         // M-08: a generation that stops changing its step is stopped rather than left
@@ -295,13 +360,14 @@ final class NotesService {
                 self.stoppedByWatchdog.remove(id)
             }
 
-            guard var updated = store.meeting(id: id) else { return }
+            guard !terminationRequested, !Task.isCancelled, var updated = store.meeting(id: id) else { return }
             let previousStatus = updated.status
             updated.status = .summarizing
             store.save(updated)
 
             let segments = store.transcript(for: id)
             let model = await generate(for: updated, segments: segments, preferring: provider)
+            guard !terminationRequested else { return }
             // A failed model cannot hide the person's notes. This also catches a line
             // saved after generate's snapshot while the panel was closing: the merge
             // compares first, so an ordinary completed pass does no second file write.
@@ -353,7 +419,7 @@ final class NotesService {
             guard extracts else { return }
             await KnowledgeExtractionService.shared.extract(finished, directory: store.directory(for: id))
             // Done whether or not extraction ran — unless the meeting went while it did.
-            guard var extracted = store.meeting(id: id), extracted.status == .extracting else { return }
+            guard !terminationRequested, var extracted = store.meeting(id: id), extracted.status == .extracting else { return }
             extracted.status = finalStatus
             store.save(extracted)
         }

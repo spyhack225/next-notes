@@ -104,7 +104,12 @@ enum ModelSupportRefusal: Sendable, Equatable {
 @MainActor
 @Observable
 final class ModelLibraryStore {
-    static let shared = ModelLibraryStore()
+    private(set) static weak var sharedIfLoaded: ModelLibraryStore?
+    static let shared: ModelLibraryStore = {
+        let store = ModelLibraryStore()
+        sharedIfLoaded = store
+        return store
+    }()
 
     /// What happens after a new brain finishes downloading, when one was already in use.
     ///
@@ -205,6 +210,22 @@ final class ModelLibraryStore {
 
     @ObservationIgnored private var tasks: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private var searchTask: Task<Void, Never>?
+    @ObservationIgnored private var terminationRequested = false
+
+    /// The existing download task map owns the calls that may probe/try downloaded models.
+    /// Capture before cancel; no new registry or persistence is introduced.
+    func beginTermination() -> [Task<Void, Never>] {
+        terminationRequested = true
+        let owned = Array(tasks.values)
+        for task in owned { task.cancel() }
+        searchTask?.cancel()
+        return owned
+    }
+
+    private func checkTerminationAdmission() throws {
+        guard !terminationRequested else { throw CancellationError() }
+        try Task.checkCancellation()
+    }
 
     /// The installed-model library the post-download policy acts on. Injected so P0-02's
     /// self-test can drive a real switch and a real delete against scratch files instead
@@ -216,7 +237,15 @@ final class ModelLibraryStore {
     /// verdict so no model is loaded and no real file is touched.
     @ObservationIgnored var verifyForTesting: ((InstalledLocalModel) async -> ModelTrialResult)?
 
-    init(library: InstalledModelLibrary = .shared) {
+    @ObservationIgnored var terminationTrialReturnedForTesting: ((ModelTrialResult) -> Void)?
+
+    init(library: InstalledModelLibrary = .shared, hardwareForTesting: HardwareProfile? = nil) {
+        if hardwareForTesting != nil {
+            guard NativeOtherLlamaQuitSelfTest.isTrialParentCase,
+                  library.permitsTerminationHardwareFixture else {
+                preconditionFailure("Native trial caller fixture unavailable")
+            }
+        }
         self.library = library
         hardware = HardwareProfile.current()
         postDownloadPolicy = UserDefaults.standard.string(forKey: Self.policyDefaultsKey)
@@ -411,6 +440,7 @@ final class ModelLibraryStore {
     /// Nothing is fetched here. Either the download starts, or a sheet asks the one question
     /// that has to be answered first — never a refusal.
     func startDownload(_ model: HuggingFaceModel) {
+        guard !terminationRequested else { return }
         guard downloads[model.id]?.isActive != true else { return }
         downloads[model.id] = .checking
         tasks[model.id]?.cancel()
@@ -421,6 +451,7 @@ final class ModelLibraryStore {
     }
 
     private func prepareDownload(_ model: HuggingFaceModel) async {
+        guard !terminationRequested, !Task.isCancelled else { return }
         let key = await token()
         do {
             let details = try await HuggingFaceClient.details(repoID: model.id, token: key)
@@ -493,6 +524,7 @@ final class ModelLibraryStore {
     /// sheet was shown with when the person changed it there for this one download; it never
     /// rewrites `postDownloadPolicy` itself.
     func confirmPendingDownload(policy: PostDownloadPolicy? = nil) {
+        guard !terminationRequested else { return }
         guard let pending = pendingConfirmation else { return }
         pendingConfirmation = nil
         downloads[pending.model.id] = .checking
@@ -551,7 +583,9 @@ final class ModelLibraryStore {
         confirmed: Bool = false,
         policy: PostDownloadPolicy = .downloadOnly
     ) async {
+        guard !terminationRequested, !Task.isCancelled else { return }
         let key = await token()
+        guard !terminationRequested, !Task.isCancelled else { return }
         let destination = ModelSpec.directory
             .appendingPathComponent(installedFileName(model: model, file: file))
         let remote = ModelDownloader.RemoteFile(
@@ -570,7 +604,7 @@ final class ModelLibraryStore {
         downloads[model.id] = .verifying
         do {
             if let existing = try await reusableArtifactBeforeDownload(file) {
-                try Task.checkCancellation()
+                try checkTerminationAdmission()
                 guard library.model(withID: existing.id) == existing,
                       existing.verifiedArtifact?.matches(
                         sha256: file.sha256, bytes: file.sizeBytes, at: existing.fileURL) == true else {
@@ -583,7 +617,8 @@ final class ModelLibraryStore {
             downloads[model.id] = .downloading(completed: remote.resumeOffset, total: file.sizeBytes)
             let verifiedArtifact = try await ModelDownloader.downloadVerified(remote) { [weak self] progress in
                 Task { @MainActor [weak self] in
-                    guard let self, self.downloads[model.id]?.isActive == true else { return }
+                    guard let self, !self.terminationRequested,
+                          self.downloads[model.id]?.isActive == true else { return }
                     self.downloads[model.id] = progress.completedBytes >= progress.totalBytes
                         ? .verifying
                         : .downloading(completed: progress.completedBytes, total: progress.totalBytes)
@@ -593,7 +628,9 @@ final class ModelLibraryStore {
             // the vocabulary only, never the weights. A file that cannot answer is still
             // added — so it can be seen and deleted — but it never reaches a role, and the
             // post-download policy never switches to it or deletes anything for it.
+            try checkTerminationAdmission()
             let support = await LlamaLoadProbe.probe(destination)
+            try checkTerminationAdmission()
             let newModel = InstalledLocalModel(
                 id: "\(model.id)/\(file.path)",
                 displayName: model.name,
@@ -690,8 +727,10 @@ final class ModelLibraryStore {
         previousActiveID: String,
         newModel: InstalledLocalModel
     ) async {
-        guard policy != .downloadOnly, previousActiveID != newModel.id else { return }
+        guard !terminationRequested, !Task.isCancelled,
+              policy != .downloadOnly, previousActiveID != newModel.id else { return }
         let trialResult = await runTrial(newModel)
+        guard !terminationRequested, !Task.isCancelled else { return }
         library.setLastTrial(trialResult, for: newModel.id)
         let loadSucceeded = (trialResult.answeredTokens ?? 0) > 0
         let outcome = Self.decide(
@@ -728,7 +767,9 @@ final class ModelLibraryStore {
     /// it. The trial loads a model, so this is `async` and the caller shows progress; the
     /// verdict lands on the row through `setLastTrial`, which is what the UI gates on.
     func checkModel(_ model: InstalledLocalModel) async {
+        guard !terminationRequested, !Task.isCancelled else { return }
         let result = await runTrial(model)
+        guard !terminationRequested, !Task.isCancelled else { return }
         library.setLastTrial(result, for: model.id)
     }
 
@@ -736,7 +777,11 @@ final class ModelLibraryStore {
     /// `verifyForTesting`, so no model is loaded and no real file is touched.
     private func runTrial(_ model: InstalledLocalModel) async -> ModelTrialResult {
         if let verifyForTesting { return await verifyForTesting(model) }
-        return await NotesModelRuntime.shared.trial(model)
+        let result = await NotesModelRuntime.shared.trial(model)
+        if NativeOtherLlamaQuitSelfTest.isTrialParentCase {
+            terminationTrialReturnedForTesting?(result)
+        }
+        return result
     }
 
     // MARK: - Partial downloads
