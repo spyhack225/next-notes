@@ -275,6 +275,18 @@ enum ToolCallNameResolver {
         if let exact = allowed.first(where: { $0.id == trimmed || $0.aliases.contains(trimmed) }) {
             return .tool(exact.id)
         }
+        // The catalogue prints canonical ids with their real risk in brackets.
+        // A copied label must name that SAME allowed tool, never become the last
+        // fuzzy token ("search [read]" used to select "read"). Decoration grants
+        // no capability: wrong-risk, blocked and unknown bases remain unresolved.
+        if let label = trimmed.range(of: " [", options: .backwards), trimmed.hasSuffix("]") {
+            let id = String(trimmed[..<label.lowerBound])
+            let risk = String(trimmed[label.upperBound..<trimmed.index(before: trimmed.endIndex)])
+            if let exact = allowed.first(where: { $0.id == id && $0.risk.rawValue == risk }) {
+                return .tool(exact.id)
+            }
+            return .unknown(suggestions: suggestions(for: trimmed, allowed: allowed))
+        }
         // 2. The router, which knows about MCP and Composio spellings the manifest does not.
         let routed = ToolRouter.resolve(trimmed)
         if case .tool(let id) = routed, let entry = allowed.first(where: { $0.id == id }) {

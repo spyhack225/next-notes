@@ -1089,6 +1089,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
         failures.append(contentsOf: await runModelIdentityContractCases(agent: agent, check: check))
         failures.append(contentsOf: await runReminderAdmissionCases(agent: agent, check: check))
+        failures.append(contentsOf: await runO08CatalogueNameCases(agent: agent, check: check))
         failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
         failures.append(contentsOf: await ExplicitMemorySaveSelfTest.run())
@@ -2457,6 +2458,141 @@ enum RealtimeAgentToolLoopSelfTest {
         print("  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT_REPAIR: actual omitted/blank subject, one repair, caps, exact card/approval/backing, missing recipient")
         return []
     }
+
+    // O08_CATALOGUE_NAME_COMMON_BEGIN
+    /// Exact b11df78 owner input and raw, through the actual runner/executor and
+    /// retained fixture consumer. No document id is invented or append approved.
+    @MainActor
+    static func runO08CatalogueNameCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorCap = agent.maxCallsForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
+        defer {
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            agent.localModelProviderForTesting = priorProvider
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.answerDepthForTesting = priorDepth
+            agent.maxCallsForTesting = priorCap
+            agent.budgetForTesting = priorBudget
+            AgentToolExecutor.recordedReadApprovalsForTesting = priorApprovals
+            agent.setTypedPendingForTesting(nil)
+        }
+        let request = "Add 'bring passports' to my trip doc"
+        let raw = #"<function name="filesystem.search [read]"><param name="query">trip</param></function>"#
+        let question = "Which document should I add that to?"
+        let inputs = allEnabledFixture()
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let parsed = AgentToolCallParser.parse(raw, knownNames: AgentCapabilityManifest.callNames(manifest))
+        check("O08 retained raw no longer parses as the same unmasked call", parsed.calls.count == 1
+            && parsed.calls.first?.name == "filesystem.search [read]"
+            && parsed.calls.first?.arguments == ["query": "trip"] && parsed.malformed.isEmpty)
+        let fixtures = LiveEvalFixtures(); fixtures.beginCase()
+        var received: [(String, [String: String])] = []
+        AgentToolExecutor.fakeForTesting = { tool, arguments in
+            received.append((tool.id, arguments))
+            return try await fixtures.run(tool, arguments)
+        }
+        AgentToolExecutor.fireOverrideForTesting = nil
+        agent.denyUnattendedApprovalsForTesting = true
+        agent.answerDepthForTesting = .balanced
+        agent.maxCallsForTesting = nil
+        agent.budgetForTesting = nil
+        agent.setTypedPendingForTesting(nil)
+        AgentSession.shared.forgetAllConversations()
+        let log = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000, script: [raw, question], log: log)
+        let result = await agent.handle(request, source: .text)
+        check("O08 actual runner changed the search operation or its exact query",
+              received.count == 1 && received.first?.0 == "filesystem.search"
+                && received.first?.1 == ["query": "trip"])
+        check("O08 fixture did not validate/consume the search exactly once",
+              fixtures.calls.count == 1 && fixtures.calls.first?.toolID == "filesystem.search"
+                && fixtures.calls.first?.arguments == ["query": "trip"])
+        check("O08 verified result did not reach the SAME planner before its document question",
+              log.calls.last?.user.contains(fixtures.summary(for: "filesystem.search", arguments: ["query": "trip"])) == true
+                && result.reply == question)
+        check("O08 lookup invented an append or asked for write approval",
+              !received.contains { $0.0 == "append_doc" }
+                && PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        for (name, expected) in [("filesystem.search", "filesystem.search"),
+                                 ("filesystem.read", "filesystem.read"),
+                                 ("files.find", "filesystem.find"),
+                                 ("search_emial", "search_email")] {
+            check("O08 plain name/alias/typo behavior changed: \(name)",
+                  ToolCallNameResolver.resolve(name, allowed: manifest.allowed) == .tool(expected))
+        }
+        // Exact printed catalogue forms only. No aliases are installed globally and
+        // the risk is checked against the descriptor, never supplied as authority.
+        for entry in manifest.allowed {
+            let name = entry.id + " [" + entry.risk.rawValue + "]"
+            check("O08 exact catalogue spelling changed its canonical operation: \(name)",
+                  ToolCallNameResolver.resolve(name, allowed: manifest.allowed) == .tool(entry.id))
+        }
+        let readManifest = AgentCapabilityManifestBuilder.build(inputs, request: request, maxRisk: .read)
+        var noSearch = readManifest
+        noSearch = AgentCapabilityManifest(reader: noSearch.reader, maxRisk: noSearch.maxRisk,
+            allowed: noSearch.allowed.filter { $0.id != "filesystem.search" }, unavailable: noSearch.unavailable,
+            selected: noSearch.selected.filter { $0.id != "filesystem.search" }, selectedIntents: noSearch.selectedIntents,
+            compactCatalogue: noSearch.compactCatalogue, catalogueTokens: noSearch.catalogueTokens)
+        let provider = PlannerScriptProvider(id: .localServer, window: 4_096,
+            promptTokens: 2_000, script: [], log: PlannerScriptLog())
+        let beforeDirect = received.count
+        let beforeValidated = fixtures.calls.count
+        let direct = ToolStepRunner(agent: agent, owner: agent.currentGeneration,
+            work: nil, provider: provider, manifest: manifest, budget: .typedLocal,
+            ceilingRemaining: .seconds(30), request: request, maxCalls: 8,
+            readerContextTokens: 4_096, untrustedOutputs: [])
+        let directResult = await direct.execute(AgentToolCall(name: "filesystem.search [read]",
+            arguments: ["query": "trip"], rationale: "exact O08 request", evidence: nil))
+        if case .completed = directResult.disposition {
+            check("O08 direct actual runner/read consumer lost operation or result",
+                  directResult.canonicalID == "filesystem.search"
+                    && directResult.output == fixtures.summary(for: "filesystem.search", arguments: ["query": "trip"])
+                    && received.count == beforeDirect + 1 && received.last?.0 == "filesystem.search"
+                    && received.last?.1 == ["query": "trip"]
+                    && fixtures.calls.count == beforeValidated + 1
+                    && fixtures.calls.last?.toolID == "filesystem.search"
+                    && direct.completedToolIDs == ["filesystem.search"]
+                    && direct.callsUsed == 1 && direct.repairs == 0)
+        } else { check("O08 direct actual search was replaced or refused", false) }
+        for (name, allowed) in [
+            ("filesystem.search [read]", noSearch),
+            ("filesystem.write [modify]", readManifest),
+            ("filesystem.search [modify]", manifest),
+            ("filesystem.search [unknown]", manifest),
+            ("filesystem.rocket [read]", manifest),
+            ("files.find [read]", manifest),
+            ("filesystem.search [read] [read]", manifest),
+        ] {
+            let before = received.count
+            let runner = ToolStepRunner(agent: agent, owner: agent.currentGeneration,
+                work: nil, provider: provider, manifest: allowed, budget: .typedLocal,
+                ceilingRemaining: .seconds(30), request: request, maxCalls: 8,
+                readerContextTokens: 4_096, untrustedOutputs: [])
+            let result = await runner.execute(AgentToolCall(name: name, arguments: ["query": "trip"],
+                rationale: "catalogue decoration negative", evidence: nil))
+            if case .repaired = result.disposition {
+                check("O08 blocked/wrong-risk/unknown decoration reached another operation: \(name)",
+                      received.count == before && runner.completedToolIDs.isEmpty
+                        && runner.callsUsed == 0 && runner.repairs == 1)
+            } else { check("O08 decorated negative bypassed the existing name repair: \(name)", false) }
+        }
+        print("  TOOLLOOP_PRODUCTION_O08_NAME: exact search/risk raw, actual fixture consumer, same-result question, catalogue and blocked/wrong-risk negatives")
+        return []
+    }
+    // O08_CATALOGUE_NAME_COMMON_END
 
     /// Installed 334b3f8 R01: exact offer -> yes -> malformed function call. The
     /// planner is scripted, but actual executor/confirmation/validation and native

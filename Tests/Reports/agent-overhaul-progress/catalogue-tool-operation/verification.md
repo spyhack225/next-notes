@@ -1,0 +1,7 @@
+# Preserve the operation in copied catalogue names — 2026-10-05
+
+Both retained b11df78 owner O08 runs emitted filesystem.search [read] with query=trip. The catalogue prints that exact spelling, but fuzzy resolution treated the risk label as the operation and selected filesystem.read. Its missing-path repair then stopped the trip-document flow. The existing resolver now recognizes the exact allowed canonical id and its actual risk label before fuzzy matching. Invalid, blocked or unknown decorations do not gain authority or resolve to another operation; plain names, aliases and typos retain their existing path.
+
+The unchanged owner request/raw fails on the original and passes through the actual handle, runner, executor and retained fixture search consumer on the fix. The search result reaches the same planner before its document question, with no invented document id or append approval. Direct actual-runner positives and blocked/wrong-risk/unknown negatives pass. Tool loop, registry/router, review and owner isolation pass once. The exact pinned Mini replay executes filesystem.search with query=trip and grades owner O08 PASS, 1/1. Its final reply still says it lacks direct trip-document access and offers to find/create one; this is not a completed edit or full semantic/user-flow acceptance. Raw rounds are retained; broader owner/full/quick and live external document acceptance remain open.
+
+Evidence: `~/Library/Caches/NextNotesBuild/integration/o08-catalogue-name/`. Bulk logs stay outside iCloud.
