@@ -196,10 +196,18 @@ struct AgentCapabilityManifest: Sendable, Equatable {
                 ? entry.parameters.first(where: { $0.name == "subject" })
                     .map { "; subject: " + $0.description } ?? ""
                 : ""
+            // Preserve the create schema's conditional fields in both text modes.
+            // These are the SAME descriptions native tool definitions receive.
+            let scheduleContract = entry.id == "schedule.create"
+                ? ["kind", "model", "repeat", "time"].compactMap { name in
+                    entry.parameters.first(where: { $0.name == name })
+                        .map { "; " + $0.name + "?: " + $0.description }
+                }.joined()
+                : ""
             if compact {
                 let required = entry.parameters.filter(\.isRequired).map(\.name)
                 let tail = required.isEmpty ? "" : "; needs " + required.joined(separator: ", ")
-                return "- \(entry.id): \(String(entry.modelDescription.prefix(compactDescriptionWidth)))\(tail)\(subjectContract)"
+                return "- \(entry.id): \(String(entry.modelDescription.prefix(compactDescriptionWidth)))\(tail)\(subjectContract)\(scheduleContract)"
             }
             let arguments = entry.parameters.map { parameter in
                 parameter.isRequired
@@ -208,7 +216,7 @@ struct AgentCapabilityManifest: Sendable, Equatable {
             }.joined(separator: "; ")
             return "- \(entry.id) [\(entry.risk.rawValue)]: "
                 + String(entry.modelDescription.prefix(85))
-                + (arguments.isEmpty ? "" : "; " + arguments) + subjectContract
+                + (arguments.isEmpty ? "" : "; " + arguments) + subjectContract + scheduleContract
         }.joined(separator: "\n")
     }
 

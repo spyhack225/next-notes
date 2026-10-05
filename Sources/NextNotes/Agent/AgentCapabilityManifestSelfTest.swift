@@ -385,6 +385,71 @@ enum AgentCapabilityManifestSelfTest {
         check("small talk still carries \(quiet.selected.count) tools",
               quiet.selected.count <= AgentCapabilityManifestBuilder.coreIDs.count)
 
+        // R02_SCHEMA_COMMON: preserve the existing native schedule.create contract
+        // in both text catalogue modes, with the exact original R02 request.
+        let bookRequest = "Every night at 10, remind me to put the book out"
+        let bookManifest = AgentCapabilityManifestBuilder.build(
+            .allEnabled(tools: allTools, reader: local), request: bookRequest)
+        if let create = bookManifest.selected.first(where: { $0.id == "schedule.create" }),
+           let native = bookManifest.toolWireDefinitions().first(where: { $0.name == create.id }),
+           let nativeData = native.parametersJSON.data(using: .utf8),
+           let nativeSchema = try? JSONSerialization.jsonObject(with: nativeData) as? [String: Any],
+           let properties = nativeSchema["properties"] as? [String: [String: Any]] {
+            for name in ["kind", "model", "repeat", "time"] {
+                guard let parameter = create.parameters.first(where: { $0.name == name }) else {
+                    wrong("R02 schema has no \(name) parameter"); continue
+                }
+                check("R02 \(name) lost its existing optional native schema",
+                      !parameter.isRequired && properties[name]?["description"] as? String == parameter.description)
+                for compact in [false, true] {
+                    let text = AgentCapabilityManifest.renderCatalogue([create], compact: compact)
+                    check("R02 \(compact ? "compact" : "full") catalogue loses native \(name) contract",
+                          text.contains(parameter.description))
+                }
+            }
+        } else { wrong("R02 original request has no selected native schedule.create schema") }
+        for reader in [local, apple] {
+            let manifest = AgentCapabilityManifestBuilder.build(
+                .allEnabled(tools: allTools, reader: reader), request: bookRequest)
+            check("R02 selected catalogue exceeds its existing reader budget",
+                  manifest.catalogueTokens <= AgentCapabilityManifestBuilder.catalogueBudget(for: reader))
+            check("R02 renderer changed allowed tool or selected intent parity",
+                  manifest.allowedIDs == bookManifest.allowedIDs
+                    && manifest.selectedIDs == bookManifest.selectedIDs
+                    && manifest.selectedIntents == bookManifest.selectedIntents)
+        }
+        // Defaults and explicit choices belong to the existing native parser, not
+        // the catalogue. No scheduler, stored selection or provider is entered.
+        let routine = ["kind": "routine", "title": "Check", "text": "Check my inbox",
+                       "repeat": "daily", "time": "09:00"]
+        let parseNow = Date(timeIntervalSince1970: 0)
+        let parseZone = TimeZone(secondsFromGMT: 0)!
+        do {
+            let automatic = try ScheduleToolExecutor.parseCreate(routine, now: parseNow,
+                timeZone: parseZone, availableTools: [])
+            check("R02 omitted routine model no longer defaults auto", automatic.model == .auto)
+            for choice in [AgentSchedule.ModelChoice.local, .cloud] {
+                var explicit = routine; explicit["model"] = choice.rawValue
+                let parsed = try ScheduleToolExecutor.parseCreate(explicit, now: parseNow,
+                    timeZone: parseZone, availableTools: [])
+                check("R02 explicit \(choice.rawValue) model was coerced", parsed.model == choice)
+            }
+            var reminder = routine; reminder["kind"] = "reminder"
+            let parsed = try ScheduleToolExecutor.parseCreate(reminder, now: parseNow,
+                timeZone: parseZone, availableTools: [])
+            check("R02 ordinary reminder now requires model setup",
+                  parsed.kind == .reminder && parsed.model == .auto && parsed.allowedTools.isEmpty)
+        } catch { wrong("R02 existing default/explicit model parser refused: \(error.localizedDescription)") }
+        var invalid = routine; invalid["model"] = "gpt-4o-mini"
+        do {
+            _ = try ScheduleToolExecutor.parseCreate(invalid, now: parseNow,
+                timeZone: parseZone, availableTools: [])
+            wrong("R02 invalid explicit routine model was silently defaulted")
+        } catch {
+            check("R02 invalid explicit routine model lost its native refusal",
+                  error.localizedDescription.contains("model must be auto, local or cloud"))
+        }
+
         // MARK: 10 — The switch-off cases a person can be in
         for (label, off) in [
             ("memory", AgentCapabilityInputs.Switches(memory: false, schedules: true, knowledgeTools: true, skills: true)),
