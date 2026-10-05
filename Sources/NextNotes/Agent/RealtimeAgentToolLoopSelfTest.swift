@@ -1084,6 +1084,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
+        failures.append(contentsOf: await runA04ActiveAppReadCases(agent: agent, check: check))
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
         failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
         failures.append(contentsOf: await runModelIdentityContractCases(agent: agent, check: check))
@@ -2036,6 +2037,147 @@ enum RealtimeAgentToolLoopSelfTest {
             check("Y02 actual handle changed advice/compound or executed a read/write: \(request)",
                   untouched.tools.isEmpty && untouched.calls.count == 1 && untouched.reply == originalRaw)
         }
+        return []
+    }
+
+    /// Exact installed full334b A04, through the selected manifest and existing
+    /// executor/final-answer floor. Only the external observation is a fixture.
+    @MainActor
+    static func runA04ActiveAppReadCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorBudget = agent.budgetForTesting
+        defer {
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.localModelProviderForTesting = priorProvider
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.answerDepthForTesting = priorDepth
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.budgetForTesting = priorBudget
+            agent.setTypedPendingForTesting(nil)
+        }
+        let request = "Which app is frontmost?"
+        let raw = "The frontmost app is... let me check."
+        let result = "App: Safari\nBundle: com.apple.Safari\nWindow: YouTube"
+        let grounded = "Safari is frontmost; its window is YouTube."
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let entry = manifest.entry(named: "computer.active_app")
+        check("A04 INPUT_INVALID: exact registered ready observe/no-argument descriptor absent",
+              entry?.intent == .screen && entry?.risk == .observe
+                && entry?.parameters.contains(where: \.isRequired) == false)
+        if entry?.intent != .screen || entry?.risk != .observe { return ["A04 INPUT_INVALID"] }
+        func pending(_ question: String, turn: [String] = [], session: Set<String> = []) -> String? {
+            AgentAccountRead.pendingRead(reply: raw, selectedIntents: [.screen],
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: manifest, request: question) },
+                request: question, manifest: manifest)?.toolID
+        }
+        check("A04 exact final omission has no current-app floor", pending(request) == "computer.active_app")
+        check("A04 prior-turn app observation suppressed fresh state",
+              pending(request, session: ["computer.active_app"]) == "computer.active_app")
+        check("A04 unrelated screen read substituted for the current app",
+              pending(request, turn: ["computer.clipboard"]) == "computer.active_app")
+        check("A04 exact completed current-turn app was re-read",
+              pending(request, turn: ["computer.active_app"]) == nil)
+        for question in ["What app is active right now?", "Which application is in front?"] {
+            check("A04 narrow equivalent current-app question missed", pending(question) == "computer.active_app")
+        }
+        for question in ["What's on my screen?", "Read my clipboard", "Click the frontmost app",
+                         "Which app is frontmost? Then click its button", "Explain what frontmost means",
+                         "If Safari is frontmost, quit it", "He asked \"Which app is frontmost?\""] {
+            check("A04 general/compound/quoted screen request acquired observation: \(question)", pending(question) == nil)
+        }
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+        AgentToolExecutor.fakeForTesting = nil
+        AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+            autoObserve: true, autoRead: true, autoSearchFiles: true, autoComputerControl: false, grants: [])
+        agent.readApprovalOverrideForTesting = true
+        agent.answerDepthForTesting = .balanced
+        agent.denyUnattendedApprovalsForTesting = true
+        agent.budgetForTesting = nil
+        var fired: [(String, [String: String])] = []
+        AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+            guard ["computer.active_app", "computer.clipboard"].contains(tool.id), arguments.isEmpty else {
+                throw AgentError.permissionDenied("Unexpected action in the active-app fixture.")
+            }
+            fired.append((tool.id, arguments))
+            return AgentToolResult(summary: tool.id == "computer.active_app" ? result : "Fixture clipboard text.")
+        }
+        let log = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: [raw, grounded, raw, grounded], log: log)
+        AgentSession.shared.forgetAllConversations()
+        agent.setTypedPendingForTesting(nil)
+        let first = await agent.handle(request, source: .text)
+        check("A04 exact raw omission did not reach actual executor observation once",
+              fired.map(\.0) == ["computer.active_app"] && fired.allSatisfy { $0.1.isEmpty })
+        check("A04 actual observation did not reach the existing final provider round",
+              log.calls.count == 2 && log.calls[1].user.contains(result) && first.reply == grounded)
+        let second = await agent.handle(request, source: .text)
+        check("A04 next turn re-used stale session state instead of observing again",
+              fired.map(\.0) == ["computer.active_app", "computer.active_app"]
+                && log.calls.count == 4 && log.calls[3].user.contains(result) && second.reply == grounded)
+        check("A04 unexpected pending approval or tool write survived joined turns",
+              PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        fired.removeAll()
+        let completedLog = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: [#"<tool_call>{"name":"computer.active_app","arguments":{}}</tool_call>"#, grounded],
+            log: completedLog)
+        AgentSession.shared.forgetAllConversations(); agent.setTypedPendingForTesting(nil)
+        let completed = await agent.handle(request, source: .text)
+        check("A04 already-grounded current-turn response was replaced or repeated",
+              fired.map(\.0) == ["computer.active_app"] && completedLog.calls.count == 2
+                && completedLog.calls[1].user.contains(result) && completed.reply == grounded)
+        fired.removeAll()
+        let otherLog = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: [#"<tool_call>{"name":"computer.clipboard","arguments":{}}</tool_call>"#, raw, grounded],
+            log: otherLog)
+        AgentSession.shared.forgetAllConversations(); agent.setTypedPendingForTesting(nil)
+        let other = await agent.handle(request, source: .text)
+        check("A04 unrelated completed read suppressed actual app observation",
+              fired.map(\.0) == ["computer.clipboard", "computer.active_app"] && otherLog.calls.count == 3
+                && otherLog.calls[2].user.contains(result) && other.reply == grounded)
+        fired.removeAll()
+        let missingInputs = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged).filter { $0.id != "computer.active_app" },
+            reader: .voiceFrontend)
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = missingInputs
+        let absent = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000, script: [raw], log: absent)
+        AgentSession.shared.forgetAllConversations(); agent.setTypedPendingForTesting(nil)
+        _ = await agent.handle(request, source: .text)
+        check("A04 absent active-app tool was invented or bypassed the manifest", fired.isEmpty && absent.calls.count == 1)
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+        AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+            autoObserve: false, autoRead: false, autoSearchFiles: false, autoComputerControl: false, grants: [])
+        agent.readApprovalOverrideForTesting = false
+        let denied = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000, script: [raw, grounded], log: denied)
+        AgentSession.shared.forgetAllConversations(); agent.setTypedPendingForTesting(nil)
+        let refused = await agent.handle(request, source: .text)
+        check("A04 denied observation entered backing or presented a verified app", fired.isEmpty
+            && denied.calls.count == 1 && refused.reply != grounded
+            && PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        print("  TOOLLOOP_PRODUCTION_A04: exact omission, real executor, current-turn suppression, fresh subsequent turn, scope and admission")
         return []
     }
 

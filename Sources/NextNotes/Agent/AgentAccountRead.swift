@@ -16,7 +16,7 @@ enum AccountReadTools {
         case .files:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
-        case .meetings, .memory:
+        case .meetings, .memory, .screen:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
         default: return nil
@@ -47,7 +47,7 @@ enum AccountReadTools {
 ///
 /// So the three rules this file follows are the inverse of that design. **Narrow**: only the
 /// person's accounts and requested meeting reads; completed reads suppress another read through
-/// the same manifest. `.knowledge` / `.screen` stay outside this check; memory recall requires an explicit self-knowledge question.
+/// the same manifest. `.knowledge` stays outside this check; memory recall and current-app observation require exact questions.
 /// **The app reads, the model is not asked to**: instead of a re-plan
 /// note (result 1) the loop runs the class's own read through `ToolStepRunner` and the always-
 /// affordable final round answers from the real result. **Only on a final round** (result 3), so
@@ -56,13 +56,16 @@ enum AccountReadTools {
 /// Everything here is pure. The loop owns when to ask, and the executor owns what runs.
 enum AgentAccountRead {
     /// Account/meeting reads and an explicit named-file lookup, selected by the manifest.
-    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings, .files, .memory]
+    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings, .files, .memory, .screen]
 
     /// The read each class gets when the person asked about it in general, and the tool that
     /// performs it. `nil` for a class with no default read.
     static func defaultRead(for intent: AgentIntentClass, request: String,
                             now: Date = Date()) -> (toolID: String, arguments: [String: String])? {
         switch intent {
+        case .screen:
+            guard requestsActiveAppRead(request) else { return nil }
+            return ("computer.active_app", [:])
         case .memory:
             guard requestsMemoryRead(request) else { return nil }
             // Empty query uses the existing bounded retained-fact recall.
@@ -133,12 +136,16 @@ enum AgentAccountRead {
             // ask to read the inbox. Only an actual requested read supplies that floor.
             if intent == .mail, !requestsMailRead(request) { continue }
             if intent == .memory, !requestsMemoryRead(request) { continue }
+            if intent == .screen, !requestsActiveAppRead(request) { continue }
             guard let toolID = toolIDFor(intent) else { continue }
             if completedThisTurn.contains(toolID) { continue }
-            if completedThisSession.contains(toolID) { continue }
+            // The frontmost app is live state: yesterday's or the prior turn's
+            // observation does not answer what is in front now.
+            if intent != .screen, completedThisSession.contains(toolID) { continue }
             // Any completed read of this class is enough, including an alternative
             // meeting/mail read. Its metadata comes from the same manifest, not a second table.
-            if let manifest, (completedThisTurn + Array(completedThisSession)).contains(where: { id in
+            if intent != .screen, let manifest,
+               (completedThisTurn + Array(completedThisSession)).contains(where: { id in
                 let entry = manifest.entry(named: id)
                     ?? manifest.unavailable.first { $0.id == id || $0.aliases.contains(id) }
                 return entry?.intent == intent && entry.map { $0.risk <= .read } == true
@@ -146,7 +153,8 @@ enum AgentAccountRead {
             // 3. The reply is final — the loop only asks here, after a round that parsed no
             //    call, so a turn about to call `draft_email` never reaches this.
             // 4. The reply presents contents or offers/promises the requested read.
-            guard (intent == .memory && requestsMemoryRead(request))
+            guard (intent == .screen && requestsActiveAppRead(request))
+                || (intent == .memory && requestsMemoryRead(request))
                 || (intent != .files && presents(intent, reply))
                 || (intent == .meetings && presentsRequestedMeetingContents(reply, request: request))
                 || (intent == .meetings && presentsRequestedMeetingAbsence(reply, request: request))
@@ -160,6 +168,16 @@ enum AgentAccountRead {
             return (intent, read.toolID, read.arguments)
         }
         return nil
+    }
+
+    /// A single observation of the current app, never general screen contents,
+    /// an explanation, quoted prose or a compound instruction.
+    private static func requestsActiveAppRead(_ request: String) -> Bool {
+        guard !request.contains(where: { "\n\r\"“”`".contains($0) }) else { return false }
+        let question = AgentDirectIntent.questionForm(request)
+        return question.range(of:
+            #"^(?:which|what) (?:app|application) is (?:frontmost|active|in front)(?: right now)?$"#,
+            options: .regularExpression) != nil
     }
 
     /// Explicit self-knowledge reads only; a memory save, forget, advice or hypothetical
