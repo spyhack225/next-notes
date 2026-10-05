@@ -41,6 +41,8 @@ enum AgentPaneSelfTest {
         "UI/Agent/PortraitView.swift",
         "UI/Agent/ActivityView.swift",
         "UI/Settings/RemindersSection.swift",
+        "UI/Agent/CatchUpViews.swift",
+        "UI/Settings/CatchUpSection.swift",
     ]
 
     /// Every pane that must be laid out on the shared scaffold.
@@ -328,6 +330,9 @@ enum AgentPaneSelfTest {
         } else {
             failures.append("could not read AgentView to check where the draft is kept")
         }
+
+        // The catch-up screens: what a row, the ready card and the closing buttons say.
+        failures += CatchUpPresentationSelfTest.run()
 
         for note in notes { print("NOTE: \(note)") }
         for failure in failures { print("AGENT_PANES_WRONG: \(failure)") }

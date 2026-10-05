@@ -430,6 +430,11 @@ struct IslandView: View {
                 .font(DS.Font.callout)
                 .foregroundStyle(secondaryInk)
 
+        case .catchUpReady:
+            Text("Your catch-up is ready.")
+                .font(DS.Font.callout)
+                .foregroundStyle(secondaryInk)
+
         case .pendingApproval(let proposal, let waiting):
             // Exactly what `.agentProposal` draws for the same proposal, not a copy of it:
             // one card, two routes onto it. The one line above it says the card is still
@@ -538,6 +543,14 @@ struct IslandView: View {
             Button("Open") { state.openNotes(meetingID: id) }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.small)
+
+        case .catchUpReady(let id, _):
+            HStack(spacing: DS.Space.s) {
+                Button("Later") { state.dismissNotice() }
+                Button("Play") { state.playCatchUp(taskID: id) }
+                    .buttonStyle(.borderedProminent)
+            }
+            .controlSize(.small)
 
         case .agentListening:
             HStack(spacing: DS.Space.s) {

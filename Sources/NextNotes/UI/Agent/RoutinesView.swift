@@ -26,6 +26,7 @@ struct RoutinesView: View {
                     + "and runs that wait for something to happen. Anything it would write or "
                     + "send waits for your yes."
             )
+            CatchUpPaneSection()
             if !review.openSuggestions.isEmpty { suggestions }
             AgentSplit {
                 listsColumn

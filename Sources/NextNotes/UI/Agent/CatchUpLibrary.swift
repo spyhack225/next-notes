@@ -1,0 +1,292 @@
+import AVFoundation
+import Foundation
+import Observation
+
+/// The catch-ups on this Mac, newest first, read off the finished runs that wrote them.
+///
+/// There is no catch-up store. A catch-up is a finished run of the catch-up routine: its
+/// words are the run's result, and its saved audio is the file linked to that same run
+/// (`AgentTask.artifacts`). This reads the one task list the Agent already keeps, keeps the
+/// runs the catch-up routine made, and notices the moment one gains its audio — that moment
+/// is "ready", and it is announced once, never auto-played.
+///
+/// Reuse, not new logic: no scheduling, no rendering, no second list. The only thing owned
+/// here is which closing offers the person has already answered, kept in preferences
+/// because it is one person's own convenience rather than a fact about the catch-up.
+@MainActor
+@Observable
+final class CatchUpLibrary {
+    static let shared = CatchUpLibrary()
+
+    /// Newest first. At most `Self.keep` rows.
+    private(set) var entries: [CatchUpEntry] = []
+    /// Bumped when an offer is answered. Preferences are not observable, so rows that read
+    /// `openOffer` read this too and redraw.
+    private(set) var answeredOffers = 0
+    /// Set by whoever shows the "ready" moment (the island). Called once per catch-up, when
+    /// its audio first appears after launch.
+    @ObservationIgnored var onReady: ((CatchUpEntry) -> Void)?
+
+    static let keep = 14
+
+    @ObservationIgnored private let tasks: @MainActor () -> [AgentTask]
+    @ObservationIgnored private let catchUpScheduleIDs: @MainActor () -> Set<UUID>
+    @ObservationIgnored private let fileExists: (URL) -> Bool
+    @ObservationIgnored private let measure: (URL) -> TimeInterval?
+    @ObservationIgnored private let defaults: UserDefaults
+    @ObservationIgnored private let now: () -> Date
+
+    @ObservationIgnored private var started = false
+    @ObservationIgnored private var withAudio: Set<String> = []
+    @ObservationIgnored private var durations: [URL: TimeInterval] = [:]
+    @ObservationIgnored private var expiry: Task<Void, Never>?
+
+    private static let handledKey = "catchUp.handledOffers"
+    private static let handledKeep = 60
+
+    init(
+        tasks: @escaping @MainActor () -> [AgentTask] = { AgentTaskManager.shared.tasks },
+        catchUpScheduleIDs: @escaping @MainActor () -> Set<UUID> = {
+            Set(ScheduleStore.shared.schedules.filter(\.isCatchUp).map(\.id))
+        },
+        fileExists: @escaping (URL) -> Bool = { FileManager.default.fileExists(atPath: $0.path) },
+        measure: @escaping (URL) -> TimeInterval? = CatchUpLibrary.audioLength,
+        defaults: UserDefaults? = nil,
+        now: @escaping () -> Date = { Date() }
+    ) {
+        self.tasks = tasks
+        self.catchUpScheduleIDs = catchUpScheduleIDs
+        self.fileExists = fileExists
+        self.measure = measure
+        self.defaults = defaults ?? (SelfTest.isRunning ? SelfTestHarnessDefaults.shared : .standard)
+        self.now = now
+    }
+
+    /// Reads the runs once without announcing anything that already exists, then follows the
+    /// task list. Called once from the island, which is where "ready" is shown.
+    func start() {
+        guard !started else { return }
+        started = true
+        reload(announce: false)
+        track()
+    }
+
+    /// The runs of the catch-up routine, as rows. `announce` is false for the first read, so
+    /// a catch-up that was made yesterday is not announced again at launch.
+    func reload(announce: Bool = true) {
+        let scheduleIDs = catchUpScheduleIDs()
+        let moments = Set(CatchUpTemplate.Moment.allCases.map { CatchUpTemplate.title(for: $0) })
+        var next: [CatchUpEntry] = []
+        for task in tasks() where task.status == .completed && task.scheduleID != nil {
+            // The routine's own runs: by the routine's identity, or by the title it wore
+            // while it was running if the routine has since been deleted.
+            guard let scheduleID = task.scheduleID,
+                  scheduleIDs.contains(scheduleID) || moments.contains(task.objective) else { continue }
+            let audio = audioFile(of: task)
+            let entry = CatchUpText.entry(
+                id: task.id, title: task.objective, madeAt: task.finishedAt ?? task.createdAt,
+                text: task.result ?? "", audioURL: audio, duration: audio.flatMap(length))
+            if let entry { next.append(entry) }
+        }
+        next.sort { $0.madeAt > $1.madeAt }
+        next = Array(next.prefix(Self.keep))
+
+        let audible = Set(next.filter { $0.audioURL != nil }.map(\.id))
+        let arrived = next.filter { $0.audioURL != nil && !withAudio.contains($0.id) }
+        withAudio.formUnion(audible)
+        if next != entries { entries = next }
+        scheduleExpiry()
+        if announce, started, let newest = arrived.first { onReady?(newest) }
+    }
+
+    /// The file a run's saved-audio step linked to it, if it is still there.
+    private func audioFile(of task: AgentTask) -> URL? {
+        let directory = LongFormRenderer.audioDirectory.standardizedFileURL.path
+        for value in task.artifacts {
+            guard let url = URL(string: value), url.isFileURL,
+                  url.standardizedFileURL.path.hasPrefix(directory + "/"),
+                  ["m4a", "wav"].contains(url.pathExtension.lowercased()),
+                  fileExists(url) else { continue }
+            return url
+        }
+        return nil
+    }
+
+    private func length(of url: URL) -> TimeInterval? {
+        if let known = durations[url] { return known }
+        guard let measured = measure(url) else { return nil }
+        durations[url] = measured
+        return measured
+    }
+
+    nonisolated static func audioLength(_ url: URL) -> TimeInterval? {
+        guard let file = try? AVAudioFile(forReading: url), file.processingFormat.sampleRate > 0 else {
+            return nil
+        }
+        return Double(file.length) / file.processingFormat.sampleRate
+    }
+
+    // MARK: - Following the task list
+
+    /// `withObservationTracking` fires once, so it re-arms from a hop — the same shape the
+    /// island uses. Only the task list is read, and a reload that changes nothing assigns
+    /// nothing, so the many progress updates a busy Agent makes cost one filter each.
+    private func track() {
+        withObservationTracking {
+            _ = tasks()
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.reload()
+                self.track()
+            }
+        }
+    }
+
+    /// A catch-up still waiting for its audio stops claiming it is "getting it ready" after
+    /// `audioWaitWindow`, and nothing else changes at that moment, so one sleep re-reads.
+    private func scheduleExpiry() {
+        expiry?.cancel()
+        expiry = nil
+        let current = now()
+        guard let waiting = entries.first(where: { $0.isPreparingAudio(now: current) }) else { return }
+        let remaining = waiting.madeAt.addingTimeInterval(CatchUpEntry.audioWaitWindow)
+            .timeIntervalSince(current)
+        expiry = Task { @MainActor [weak self] in
+            try? await Task.sleep(for: .seconds(max(1, remaining + 1)))
+            guard !Task.isCancelled else { return }
+            self?.reload(announce: false)
+        }
+    }
+
+    // MARK: - The closing offer
+
+    private var handled: Set<String> {
+        Set(defaults.stringArray(forKey: Self.handledKey) ?? [])
+    }
+
+    /// The one catch-up whose closing question is still worth a button: the newest, still
+    /// fresh, not yet answered. Older ones keep their words and lose their buttons.
+    func openOffer(for entry: CatchUpEntry) -> CatchUpOffer? {
+        _ = answeredOffers
+        guard entry.id == entries.first?.id, entry.offerIsFresh(now: now()),
+              !handled.contains(entry.id) else { return nil }
+        return entry.offer
+    }
+
+    /// "Not now", or the answer being given: either way the question is closed.
+    func closeOffer(_ entry: CatchUpEntry) {
+        var ids = (defaults.stringArray(forKey: Self.handledKey) ?? []).filter { $0 != entry.id }
+        ids.append(entry.id)
+        defaults.set(Array(ids.suffix(Self.handledKeep)), forKey: Self.handledKey)
+        answeredOffers += 1
+    }
+
+    /// Saying yes starts an ordinary turn in the conversation. Whatever it would write or send
+    /// stops at the normal approval card, which is the one confirmation this keeps.
+    func acceptOffer(_ entry: CatchUpEntry) {
+        guard let offer = openOffer(for: entry) else { return }
+        closeOffer(entry)
+        NavigationState.shared.showConversation()
+        Task { await RealtimeAgent.shared.handleLive(offer.yesText, source: .text) }
+    }
+}
+
+/// Plays a catch-up's saved audio when the person presses Play. Nothing starts it otherwise.
+///
+/// One player for the whole app, so a second Play replaces the first and the island's Play
+/// and the Library's Play are the same button. It yields to a conversation: while the Agent is
+/// listening or working the briefing pauses rather than talking over it or leaking into the
+/// microphone, and stays paused until the person presses Play again.
+@MainActor
+@Observable
+final class CatchUpPlayer {
+    static let shared = CatchUpPlayer()
+
+    private(set) var playingID: String?
+    private(set) var isPlaying = false
+    private(set) var elapsed: TimeInterval = 0
+    private(set) var duration: TimeInterval = 0
+    /// A plain sentence when the file would not open, cleared by the next Play.
+    private(set) var problem: String?
+
+    @ObservationIgnored private var player: AVAudioPlayer?
+    @ObservationIgnored private var ticker: Task<Void, Never>?
+
+    var progress: Double { duration > 0 ? min(1, elapsed / duration) : 0 }
+
+    func isCurrent(_ entry: CatchUpEntry) -> Bool { playingID == entry.id }
+
+    func toggle(_ entry: CatchUpEntry) {
+        if isCurrent(entry), let player {
+            if isPlaying { pause() } else { resume(player) }
+        } else {
+            play(entry)
+        }
+    }
+
+    func play(_ entry: CatchUpEntry) {
+        stop()
+        problem = nil
+        guard let url = entry.audioURL else { return }
+        do {
+            let next = try AVAudioPlayer(contentsOf: url)
+            guard next.prepareToPlay(), next.play() else { throw CocoaError(.fileReadUnknown) }
+            player = next
+            playingID = entry.id
+            duration = next.duration
+            elapsed = 0
+            isPlaying = true
+            tick()
+        } catch {
+            problem = "That recording can\u{2019}t be played right now."
+        }
+    }
+
+    func pause() {
+        player?.pause()
+        isPlaying = false
+        ticker?.cancel()
+        ticker = nil
+        elapsed = player?.currentTime ?? elapsed
+    }
+
+    private func resume(_ player: AVAudioPlayer) {
+        guard player.play() else { return }
+        isPlaying = true
+        tick()
+    }
+
+    func stop() {
+        player?.stop()
+        player = nil
+        ticker?.cancel()
+        ticker = nil
+        playingID = nil
+        isPlaying = false
+        elapsed = 0
+        duration = 0
+    }
+
+    /// Four times a second while playing: moves the bar, notices the end, and steps aside for
+    /// a conversation. Stops itself the moment there is nothing to follow.
+    private func tick() {
+        ticker?.cancel()
+        ticker = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .milliseconds(250))
+                guard let self, let player = self.player, !Task.isCancelled else { return }
+                self.elapsed = player.currentTime
+                if ActivationController.shared.mode != .idle {
+                    self.pause()
+                    return
+                }
+                if !player.isPlaying {
+                    // Finished: leave the row at its start, not stuck on "playing".
+                    self.stop()
+                    return
+                }
+            }
+        }
+    }
+}

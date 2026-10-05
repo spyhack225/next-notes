@@ -23,6 +23,7 @@ struct AgentSettingsTab: View {
             permissions
             remembered
             MemoriesSection()
+            CatchUpSettingsSection()
             RemindersSection()
             KnowledgeSection()
             MessagesAccessSection()

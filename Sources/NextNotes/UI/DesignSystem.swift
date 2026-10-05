@@ -157,6 +157,10 @@ enum DS {
         /// vocabularies can sit on the same screen without arguing.
         static let emptyStateTitle = SwiftUI.Font.title3.weight(.semibold)
         static let emptyStateMessage = SwiftUI.Font.callout
+        /// The name of a prepared thing — a catch-up — set the way the landing page sets a
+        /// headline: serif, at a text style so Dynamic Type still applies. Not for controls
+        /// or running text; one heading per card.
+        static let briefingTitle = SwiftUI.Font.system(.title3, design: .serif)
     }
 
     // MARK: - Spacing
