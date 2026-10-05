@@ -266,6 +266,26 @@ final class ToolStepRunner: ToolStepExecuting {
         let arguments = AgentToolLoop.groundedArguments(
             for: canonicalID, proposed: call.arguments, request: request,
             now: SelfTest.fixtureClock ?? Date())
+        // The draft's required subject is model-authored prose, not a fact the person
+        // must supply. Return the incomplete proposal to the SAME planner once, before
+        // it acquires an execution signature or asks the person to write that subject.
+        if canonicalID == "draft_email",
+           let subject = entry.parameters.first(where: { $0.name == "subject" }),
+           subject.isRequired,
+           arguments[subject.name]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true {
+            guard repairs == 0, callsUsed + repairs + 1 < maxCalls,
+                  ceilingRemaining > .zero else {
+                return ToolStepResult(canonicalID: canonicalID, disposition: .endTurn(
+                    .stopped("I couldn't finish the email draft.")))
+            }
+            repairs += 1
+            return ToolStepResult(canonicalID: canonicalID, disposition: .repaired(
+                toolID: canonicalID, note: ToolRepair(
+                    kind: .missingArgument, toolID: canonicalID,
+                    message: "The draft is missing its subject. " + subject.description
+                        + " Send the complete draft call again. Leave unknown addresses or ids "
+                        + "missing; never invent them.").modelText))
+        }
         // P1-25: an id has to come from something the person was shown or something they said.
         // This sits **before** the repeated-call signature and before the executor, and that
         // position is the whole point: on 20 September an `append_doc` was approved with

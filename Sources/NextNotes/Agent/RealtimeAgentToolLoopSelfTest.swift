@@ -1084,6 +1084,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
+        failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
         failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
         failures.append(contentsOf: await ExplicitMemorySaveSelfTest.run())
@@ -1452,6 +1453,154 @@ enum RealtimeAgentToolLoopSelfTest {
             for: ["to": "ana@example.com", "subject": "Friday deck", "body": "I'll send the deck Friday."])
         check("P5 draft preview lost its composed subject", preview?.contains("Subject: Friday deck") == true)
         print("  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT: schema + wire + selected catalogue + review preview")
+        return []
+    }
+
+    /// Exact prompt-mode M04: the model omitted its creative subject. Re-enter the SAME
+    /// planner through the runner's repair disposition before executor/card admission.
+    @MainActor
+    static func runDraftSubjectRepairCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorCap = agent.maxCallsForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
+        agent.answerDepthForTesting = .balanced
+        agent.budgetForTesting = nil
+        defer {
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            AgentToolExecutor.recordedReadApprovalsForTesting = priorApprovals
+            agent.localModelProviderForTesting = priorProvider
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.answerDepthForTesting = priorDepth
+            agent.maxCallsForTesting = priorCap
+            agent.budgetForTesting = priorBudget
+            agent.setTypedPendingForTesting(nil)
+        }
+        let request = "Draft an email to ana@example.com saying I'll send the deck on Friday"
+        let recorded = "I can draft that email for you.\n\n"
+            + #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","body":"I'll send the deck on Friday."}}</tool_call>"#
+        let complete = #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","subject":"Deck for Friday","body":"I'll send the deck on Friday."}}</tool_call>"#
+        let expected = ["to": "ana@example.com", "subject": "Deck for Friday",
+                        "body": "I'll send the deck on Friday."]
+
+        @MainActor
+        func run(_ script: [String], cap: Int? = nil) async
+            -> (reply: String, calls: [LiveEvalLoggedCall], model: [PlannerScriptLog.Call]) {
+            let fixtures = LiveEvalFixtures()
+            fixtures.beginCase()
+            let log = PlannerScriptLog()
+            AgentToolExecutor.fakeForTesting = fixtures.run
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            agent.denyUnattendedApprovalsForTesting = true
+            agent.maxCallsForTesting = cap
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+            let turn = await agent.handle(request, source: .text)
+            return (turn.reply, fixtures.calls, log.calls)
+        }
+        let repaired = await run([recorded, complete, "The draft is ready for review."])
+        check("M04 omitted subject did not reach the same planner repair", repaired.model.count == 3
+            && repaired.model[1].user.contains("ERROR missing_argument")
+            && repaired.model[1].user.contains("Write a short subject from the request")
+            && repaired.model[1].user.contains(request))
+        check("M04 corrected draft lost exact model-authored contents", repaired.calls.count == 1
+            && repaired.calls.first?.toolID == "draft_email" && repaired.calls.first?.arguments == expected)
+        for blank in ["", "  "] {
+            let raw = recorded.replacingOccurrences(of: #""body":"#,
+                with: #""subject":""# + blank + #"","body":"#)
+            let result = await run([raw, complete, "The draft is ready for review."])
+            check("M04 blank subject did not receive one repair", result.model.count == 3
+                && result.calls.count == 1 && result.calls.first?.arguments == expected)
+        }
+        let repeated = await run([recorded, recorded, complete])
+        check("M04 missing subject received a second repair", repeated.model.count == 2 && repeated.calls.isEmpty)
+        let spent = await run([
+            #"<tool_call>{"name":"launch_rocket","arguments":{}}</tool_call>"#,
+            recorded, complete,
+        ])
+        check("M04 creative repair ignored an already-spent repair", spent.model.count == 2 && spent.calls.isEmpty)
+        let capped = await run([recorded, complete], cap: 1)
+        check("M04 creative repair exceeded the existing call cap", capped.model.count == 1 && capped.calls.isEmpty)
+        let supplied = await run([complete, "The draft is ready for review."])
+        check("M04 supplied subject was reauthored", supplied.model.count == 2
+            && supplied.calls.count == 1 && supplied.calls.first?.arguments == expected)
+
+        // Keep the actual executor/orchestrator/review/gate/fire path. Substitute only the
+        // external write backing, and join the real entered operation before restoring it.
+        @MainActor
+        func review(_ text: String, script: [String], missingRecipient: Bool) async {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                autoObserve: true, autoRead: true, autoSearchFiles: true,
+                autoComputerControl: false, grants: [])
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                ran.record(tool.id + "|" + (arguments["subject"] ?? ""))
+                guard tool.id == "draft_email", arguments == expected else {
+                    throw AgentError.permissionDenied("Unexpected draft payload in the review fixture.")
+                }
+                return AgentToolResult(summary: "Draft saved (fixture).")
+            }
+            agent.denyUnattendedApprovalsForTesting = false
+            agent.maxCallsForTesting = nil
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+            let operation = Task { @MainActor in await agent.handle(text, source: .text) }
+            var shown: PermissionRequest?
+            // Existing bounded review wait seam; no production wait or budget change.
+            for _ in 0..<200 {
+                if let pending = PermissionGate.shared.pending, pending.toolID == "draft_email" {
+                    shown = pending; break
+                }
+                try? await Task.sleep(for: .milliseconds(10))
+            }
+            check("M04 actual review card absent", shown != nil)
+            if let shown {
+                let card = ToolCallReviewStore.shared.review(for: shown)
+                let proposal = PermissionGate.shared.islandProposal(for: shown)
+                check("M04 wrote before approval", ran.toolIDs.isEmpty)
+                if missingRecipient {
+                    check("M04 missing recipient lost its question", card.field("to")?.problem == .missing
+                        && card.field("to")?.prompt == "Who should this go to?"
+                        && !card.isReadyToRun && !proposal.canExecute)
+                    check("M04 missing recipient triggered subject repair", log.calls.count == 1
+                        && shown.arguments["subject"] == "Deck for Friday")
+                    check("M04 missing recipient allowed approval", !PermissionGate.shared.respond(id: shown.id, approved: true))
+                    PermissionGate.shared.cancelPending(id: shown.id)
+                } else {
+                    check("M04 actual card did not receive the corrected model subject", shown.arguments == expected
+                        && card.field("subject")?.problem == nil && card.isReadyToRun && proposal.canExecute)
+                    check("M04 incomplete draft reached a card before repair", log.calls.count == 2
+                        && log.calls[1].user.contains("ERROR missing_argument"))
+                    let approved = PermissionGate.shared.respond(id: shown.id, approved: true)
+                    check("M04 corrected draft could not be approved once", approved)
+                    if !approved { PermissionGate.shared.cancelPending(id: shown.id) }
+                }
+            } else { operation.cancel() }
+            _ = await operation.value
+            if let shown { ToolCallReviewStore.shared.remove(id: shown.id) }
+            check("M04 backing was duplicated or entered for an unknown recipient",
+                ran.toolIDs == (missingRecipient ? [] : ["draft_email|Deck for Friday"]))
+            check("M04 review retained permission after joined completion",
+                PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        }
+        await review(request, script: [recorded, complete, "The draft is ready."], missingRecipient: false)
+        let unknown = #"<tool_call>{"name":"draft_email","arguments":{"subject":"Deck for Friday","body":"I'll send the deck on Friday."}}</tool_call>"#
+        await review("Draft an email saying I'll send the deck on Friday", script: [unknown], missingRecipient: true)
+        print("  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT_REPAIR: actual omitted/blank subject, one repair, caps, exact card/approval/backing, missing recipient")
         return []
     }
 
@@ -3255,7 +3404,7 @@ enum RealtimeAgentToolLoopSelfTest {
                 request: "draft an email to a@b.com about the deck",
                 script: [
                     truncated,
-                    hermes(#"{"name":"draft_email","arguments":{"to":"a@b.com","body":"the deck goes out Friday"}}"#),
+                    hermes(#"{"name":"draft_email","arguments":{"to":"a@b.com","subject":"Deck","body":"the deck goes out Friday"}}"#),
                     "The draft is ready for your approval.",
                 ])
             let repair = result.users.last { $0.contains("ERROR truncated_call") } ?? ""
