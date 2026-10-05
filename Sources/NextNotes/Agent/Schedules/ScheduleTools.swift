@@ -31,7 +31,7 @@ enum ScheduleToolCatalogue {
     private static let idParameter = WorkspaceTool.Parameter(name: "id", description: "the id from schedule.list")
 
     private static let triggerParameters: [WorkspaceTool.Parameter] = [
-        .init(name: "on", description: "trigger: notes_ready, meeting_starting or call_started", isRequired: false),
+        .init(name: "on", description: "trigger: notes_ready, meeting_starting, call_started or returned (back at the Mac after time away)", isRequired: false),
         .init(name: "leadMinutes", description: "meeting_starting: minutes before the start, 0-120", isRequired: false),
         .init(name: "filter", description: "meetings: text the title or an attendee must contain", isRequired: false),
     ]
@@ -203,12 +203,24 @@ enum ScheduleToolExecutor {
                 createdAt: now,
                 createdInSession: sessionID
             )
+            if kind != .reminder, schedule.isCatchUp {
+                // The identity is stamped once, here, from the template's own titles; every
+                // later decision reads it and never the words on the screen. A retired title
+                // is renamed to the moment's.
+                schedule.templateID = CatchUpTemplate.identity
+                if CatchUpTemplate.legacyTitles.contains(schedule.title) {
+                    schedule.title = CatchUpTemplate.title(for: kind == .trigger ? .whileOut : .morning)
+                }
+            }
             schedule.budget.maxOutputTokens = schedule.effectiveMaxOutputTokens
             if kind == .trigger {
                 schedule.plainEnglish = triggerSentence(for: schedule)
             } else {
                 guard let when, let rule = RecurrenceRule(when) else { throw ScheduleError.invalid("Unknown time zone.") }
                 schedule.plainEnglish = sentence(for: schedule, rule: rule, currentZone: timeZone)
+            }
+            if schedule.templateID == CatchUpTemplate.identity {
+                schedule.plainEnglish = CatchUpTemplate.plainEnglish(for: schedule)
             }
             if let existing = duplicate(of: schedule, in: store.schedules) {
                 throw ScheduleError.invalid(
@@ -526,7 +538,7 @@ enum ScheduleToolExecutor {
         switch word {
         case "":
             guard let base else {
-                throw ScheduleError.invalid("A trigger needs on: notes_ready, meeting_starting or call_started.")
+                throw ScheduleError.invalid("A trigger needs on: notes_ready, meeting_starting, call_started or returned.")
             }
             event = base.event
         case "notes_ready", "meeting_notes_ready", "notesready", "meetingnotesready", "after_meeting", "meeting_ended":
@@ -535,9 +547,11 @@ enum ScheduleToolExecutor {
             event = .meetingStarting
         case "call_started", "callstarted", "call_start", "call_starts", "call":
             event = .callStarted
+        case "returned", "return", "back", "back_at_mac", "back_from_away", "returned_from_away", "welcome_back":
+            event = .returned
         default:
             throw ScheduleError.invalid(
-                "A trigger can wait for notes_ready, meeting_starting or call_started — not \"\(argument("on"))\".")
+                "A trigger can wait for notes_ready, meeting_starting, call_started or returned — not \"\(argument("on"))\".")
         }
         var filter = base?.filter
         if arguments["filter"] != nil {
@@ -568,6 +582,14 @@ enum ScheduleToolExecutor {
                         + "To switch it to calls, pass filter \"none\" to drop that filter.")
             }
             return .callStarted
+        case .returned:
+            if let filter {
+                throw ScheduleError.invalid(arguments["filter"] != nil
+                    ? "A trigger for coming back can't be filtered; meeting triggers can."
+                    : "A trigger for coming back can't be filtered, and this one only runs for “\(filter)”. "
+                        + "To switch it, pass filter \"none\" to drop that filter.")
+            }
+            return .returned
         }
     }
 
