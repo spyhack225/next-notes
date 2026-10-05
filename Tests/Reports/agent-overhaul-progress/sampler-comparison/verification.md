@@ -7,3 +7,5 @@ Focused original eleven ignored-option/preflight/report assertions fail; the byt
 Same tested binary, MiniCPM5-2B-Q4_K_M file, Oct5 09:00 fixture clock and timezone, three runs per arm: baseline **9,10,10/10**, vendor **5,5,4/10**. Every run records one matching native sampler receipt and all ten full raw-round/model/clock/arm rows. This is an experimental comparison, not a default or thinking promotion. F03 wrong file wording, actual video playback, full/owner and voice latency remain open.
 
 Logs, inputs and metadata: `~/Library/Caches/NextNotesBuild/integration/sampler-arm/native-dispatch/`; raw rounds: `~/Library/Caches/NextNotesBuild/quick/minicpm-sampler-{baseline,minicpm-vendor}-20261005/`. Bulk evidence stays outside iCloud.
+
+Installed334b baseline full: **20/30**, owner **8/10**, 157.8s; all40 raw/model/clock/arm rows retained at `~/Library/Caches/NextNotesBuild/toolloop-live/minicpm-full-334b3f8-20261005/`. This fails the full25/30 and owner gates; no unchanged repeat was run. Next producer work targets reminder continuation R01 and explicit memory recall Y02.

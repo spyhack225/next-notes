@@ -355,7 +355,9 @@ enum VoiceLatencySelfTest {
     /// `usage.jsonl` and the per-pass frontend rows share its `turnID`. Without the join the
     /// log answers "which model answered" and "how long did the turn take" about two
     /// different turns.
-    private static func validateUsageLog(turn: VoiceClosedTurn, index: Int) -> [String] {
+    private static func validateUsageLog(
+        turn: VoiceClosedTurn, index: Int, emitModelPass: ((String) -> Void)? = nil
+    ) -> [String] {
         var wrong: [String] = []
         let rows = UsageLog.shared.load()
         let summaries = rows.filter {
@@ -377,6 +379,11 @@ enum VoiceLatencySelfTest {
             $0.feature == UsageFeature.agentVoice.rawValue && $0.turnID == turn.turnID
                 && $0.pass != "turn"
         }
+        for row in passes {
+            if let line = modelPassLine(row, index: index) {
+                if let emitModelPass { emitModelPass(line) } else { SelfTest.diagnostic(line) }
+            }
+        }
         if turn.marks[.frontendFirstToken] != nil, passes.isEmpty {
             wrong.append("run \(index): the frontend answered but no agent.voice pass row "
                 + "shares the turn's id")
@@ -389,6 +396,18 @@ enum VoiceLatencySelfTest {
         return wrong
     }
 
+    /// Report the joined pass's own measurements, never the turn summary's TTFT.
+    private static func modelPassLine(_ row: UsageRecord, index: Int) -> String? {
+        let ttft = row.ttftMs.map(String.init) ?? "unavailable"
+        let decode = row.tokensPerSec.map { String(format: "%.3f", $0) } ?? "unavailable"
+        let completion = row.completionTokens.map(String.init) ?? "unavailable"
+        let estimated = row.countsEstimated.map { $0 ? "true" : "false" } ?? "unavailable"
+        let warm = row.warm.map { $0 ? "true" : "false" } ?? "unavailable"
+        return "VOICE_LATENCY_MODEL run=\(index) pass=\(row.pass) provider=\(row.provider) "
+            + "model=\(String(reflecting: row.modelID)) model_ttft_ms=\(ttft) decode_tok_s=\(decode) "
+            + "completion_tokens=\(completion) counts_estimated=\(estimated) warm=\(warm)"
+    }
+
     // MARK: - The pure cases, before any pipeline run
 
     private static func instrumentationProblems() async -> [String] {
@@ -399,6 +418,7 @@ enum VoiceLatencySelfTest {
         wrong += selfTestAbsentStages()
         wrong += selfTestDiscard()
         wrong += selfTestUsageRow()
+        wrong += selfTestJoinedModelPassOutput()
         wrong += await MainActorStallProbeSelfTest.run()
         return wrong
     }
@@ -591,6 +611,59 @@ enum VoiceLatencySelfTest {
                 + "measure")
         }
         return problems
+    }
+
+    /// Same timeline, persisted usage rows and actual joined consumer as a native
+    /// counted run. Authored values test reporting only, never hardware performance.
+    private static func selfTestJoinedModelPassOutput() -> [String] {
+        let timeline = VoiceLatencyTimeline(); timeline.beginSession(UUID())
+        let turnID = UUID(); stampCompleteTurn(timeline, turnID: turnID)
+        timeline.endSession(); UsageLog.shared.flush()
+        guard let turn = timeline.closedTurnsForTesting().last,
+              let summary = UsageLog.shared.load().last(where: {
+                  $0.pass == "turn" && $0.turnID == turnID
+              }) else { return ["model pass output: INVALID actual timeline/summary fixture"] }
+        var measured = summary
+        measured.id = UUID(); measured.pass = "frontend-answer"; measured.provider = "llama"
+        measured.modelID = "Fixture model"; measured.warm = true
+        measured.ttftMs = 37; measured.totalMs = 2_037
+        measured.completionTokens = 51; measured.tokensPerSec = 25.5
+        measured.countsEstimated = false
+        var unavailable = measured
+        unavailable.id = UUID(); unavailable.pass = "frontend-route"
+        unavailable.provider = "appleFM"; unavailable.warm = nil
+        unavailable.ttftMs = nil; unavailable.completionTokens = nil
+        unavailable.tokensPerSec = nil; unavailable.countsEstimated = true
+        var otherTurn = measured
+        otherTurn.id = UUID(); otherTurn.turnID = UUID(); otherTurn.modelID = "Ignore other turn"
+        var otherFeature = measured
+        otherFeature.id = UUID(); otherFeature.feature = UsageFeature.agentTyped.rawValue
+        otherFeature.modelID = "Ignore other feature"
+        for row in [measured, unavailable, otherTurn, otherFeature] { UsageLog.shared.record(row) }
+        UsageLog.shared.flush()
+        var lines: [String] = []
+        var wrong = validateUsageLog(turn: turn, index: 7, emitModelPass: { lines.append($0) })
+        if lines.count != 2 {
+            wrong.append("model pass output: actual joined consumer emitted \(lines.count) rows instead of two")
+        }
+        if !lines.contains(where: {
+            $0.hasPrefix("VOICE_LATENCY_MODEL run=7 pass=frontend-answer provider=llama model=\"Fixture model\"")
+                && $0.contains("model_ttft_ms=37 decode_tok_s=25.500")
+                && $0.contains("completion_tokens=51 counts_estimated=false warm=true")
+        }) {
+            wrong.append("model pass output: joined measured row lost native TTFT/decode/count provenance")
+        }
+        if !lines.contains(where: {
+            $0.contains("pass=frontend-route provider=appleFM")
+                && $0.contains("model_ttft_ms=unavailable decode_tok_s=unavailable")
+                && $0.contains("completion_tokens=unavailable counts_estimated=true warm=unavailable")
+        }) {
+            wrong.append("model pass output: missing values were omitted, invented or borrowed from turn latency")
+        }
+        if lines.contains(where: { $0.contains("Ignore") || $0.contains("pass=turn ") }) {
+            wrong.append("model pass output: another turn/feature or turn latency was reported as a model pass")
+        }
+        return wrong
     }
 
     /// A turn with every mark, on a timeline of its own so the shared one stays clean.
