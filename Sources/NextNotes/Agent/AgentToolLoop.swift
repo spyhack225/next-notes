@@ -232,9 +232,37 @@ enum AgentToolLoop {
         now: Date = Date(), calendar: Calendar = .current
     ) -> [String: String] {
         switch tool {
-        case "get_agenda": groundCalendarDay(proposed, request: request, now: now, calendar: calendar)
-        case "search_email": groundMailFilter(proposed, request)
-        default: proposed
+        case "get_agenda": return groundCalendarDay(proposed, request: request, now: now, calendar: calendar)
+        case "search_email": return groundMailFilter(proposed, request)
+        case "schedule.create":
+            guard proposed["date"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+            else { return proposed }
+            var objective = request
+            if request.hasPrefix(PendingAction.confirmedPrefix) {
+                let lines = request.components(separatedBy: "\n")
+                guard lines.count == 4, lines[1].hasPrefix("You then asked: "),
+                      lines[2].hasPrefix("The user answered: ") else { return proposed }
+                let answer = String(lines[2].dropFirst("The user answered: ".count))
+                guard VoiceTurnPolicy.isBareAcknowledgment(answer) else { return proposed }
+                objective = String(lines[0].dropFirst(PendingAction.confirmedPrefix.count))
+                    .trimmingCharacters(in: .whitespaces)
+                let pending = PendingAction(requestText: objective,
+                    question: String(lines[1].dropFirst("You then asked: ".count)),
+                    capabilityID: nil, origin: .typedQuestion, sessionID: nil, at: now)
+                guard pending.confirmedPrompt(acknowledgment: answer) == request else { return proposed }
+            }
+            let kind = proposed["kind"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            let repeatWord = proposed["repeat"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            guard ["", "reminder"].contains(kind), ["", "once"].contains(repeatWord),
+                  proposed["inMinutes"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true,
+                  explicitlyRequests("remind", in: objective),
+                  !MultiStepPlanRouting.likelyMultiStep(objective),
+                  !objective.contains(where: { ";\n\r".contains($0) }) else { return proposed }
+            // Bind timing before the reminder's "to ..." body, never borrow a date
+            // from the words it will say later. The existing single-day rule stays shared.
+            let timing = objective.lowercased().components(separatedBy: " to ").first ?? objective
+            return groundCalendarDay(proposed, request: timing, now: now, calendar: calendar)
+        default: return proposed
         }
     }
 

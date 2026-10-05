@@ -2705,6 +2705,120 @@ enum RealtimeAgentToolLoopSelfTest {
                   clarification.log.count == 2 && clarification.fired.isEmpty
                     && clarification.saved.isEmpty && clarification.reply == question)
         }
+        // R01_DATE_COMMON: retained native no-date call; 07:00 reveals next-clock drift.
+        let recordedNoDate = #"<function name="schedule.create"><param name="id">bank_call_reminder</param><param name="title">Call the bank</param><param name="text">Remind me at 9 AM tomorrow to call the bank</param><param name="kind">reminder</param><param name="time">09:00</param><param name="days">7</param></function>"#
+        let parsedDateCall = AgentToolCallParser.parse(recordedNoDate, knownNames: ["schedule.create"])
+        let dateInputs = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+        let dateManifest = AgentCapabilityManifestBuilder.build(dateInputs, request: request)
+        let dateQualified = SelfTest.isRunning && parsedDateCall.calls.count == 1
+            && parsedDateCall.malformed.isEmpty
+            && dateManifest.entry(named: "schedule.create")?.risk == .modify
+        check("R01_DATE actual reminder parser/descriptor fixture unavailable", dateQualified)
+        if !dateQualified {
+            SelfTest.diagnostic("TOOLLOOP_PRODUCTION_R01_DATE_INPUT_INVALID")
+        } else if let emitted = parsedDateCall.calls.first,
+                  let tool = AgentToolRegistry.shared.tool(named: "schedule.create") {
+            let morning = calendar.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 7))!
+            let intended = calendar.date(from: DateComponents(year: 2026, month: 10, day: 6, hour: 9))!
+            do {
+                let originalWhen = try ScheduleToolExecutor.parseWhen(
+                    emitted.arguments, base: nil, now: morning, timeZone: zone)
+                if case .once(let originalAt) = originalWhen.repeatRule {
+                    check("R01_DATE original no-date parser behavior no longer characterized",
+                          originalAt == calendar.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 9))!)
+                } else { check("R01_DATE original no-date call was not one-shot", false) }
+                let grounded = AgentToolLoop.groundedArguments(
+                    for: emitted.name, proposed: emitted.arguments, request: request,
+                    now: morning, calendar: calendar)
+                var expectedGrounded = emitted.arguments; expectedGrounded["date"] = "2026-10-06"
+                check("R01_DATE producer did not bind tomorrow or changed recorded fields/recurrence",
+                      grounded == expectedGrounded)
+                let dateStore = ScheduleStore(directory: root.appendingPathComponent("morning-date-proof"))
+                let dateScheduler = AgentScheduler(
+                    store: dateStore, system: RoutineAuthoritySelfTest.NoSystem(),
+                    deliverer: RoutineAuthoritySelfTest.QuietDeliverer(),
+                    environment: RoutineAuthoritySelfTest.AbsentEnvironment(),
+                    settings: { ScheduleSettingsSnapshot(enabled: true, quietStart: nil,
+                                                         quietEnd: nil, speech: .never) },
+                    timeZone: { zone })
+                let result = try await ScheduleToolExecutor.run(tool, arguments: grounded,
+                    scheduler: dateScheduler, now: morning, timeZone: zone)
+                let persisted = ScheduleStore(directory: dateStore.directory).schedules
+                check("R01_DATE actual private-store reminder ran today instead of intended tomorrow",
+                      persisted.count == 1 && persisted.first?.nextRunAt == intended
+                        && persisted.first?.prompt == emitted.arguments["text"]
+                        && persisted.first?.when?.timeZone == zone.identifier
+                        && result.verification == "Schedule read back from agent-schedules.json")
+                if case .once(let storedAt)? = persisted.first?.when?.repeatRule {
+                    check("R01_DATE persisted rule was not the intended one-shot date", storedAt == intended)
+                } else { check("R01_DATE persisted rule was changed to recurrence", false) }
+                for (word, changed) in [
+                    ("routine", ["kind": "routine"]),
+                    ("trigger", ["kind": "trigger", "on": "call_started"]),
+                    ("daily", ["repeat": "daily"]),
+                    ("weekly", ["repeat": "weekly", "days": "monday"]),
+                    ("offset", ["inMinutes": "120"]),
+                ] {
+                    let payload = emitted.arguments.merging(changed) { _, new in new }
+                    check("R01_DATE changed recurrence/trigger/offset: \(word)",
+                          AgentToolLoop.groundedArguments(for: emitted.name, proposed: payload,
+                              request: request, now: morning, calendar: calendar) == payload)
+                }
+                for ambiguous in [
+                    "Remind me at 9 today or tomorrow to call the bank",
+                    "Remind me at 9 tomorrow and email Marcus about the bank",
+                    "Remind me at 9; email Marcus tomorrow",
+                    "Remind me at 9 to say tomorrow to Sarah",
+                    "Remind me at 9 on 2026-10-07 to call the bank",
+                ] {
+                    check("R01_DATE grounded ambiguous/body/compound/explicit date: \(ambiguous)",
+                          AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                              request: ambiguous, now: morning, calendar: calendar) == emitted.arguments)
+                }
+                // R01_DATE_WRAPPER_ADD_BEGIN
+                // Additive guards only: keep the qualified original DATE COMMON assertions.
+                let acceptedDatePending = PendingAction(requestText: request, question: "Is that okay?",
+                    capabilityID: "schedule.create", origin: .typedQuestion, sessionID: nil, at: morning)
+                for answer in ["yes", "yes please", "go ahead", "okay"] {
+                    let wrapped = acceptedDatePending.confirmedPrompt(acknowledgment: answer)
+                    check("R01_DATE accepted original timing did not survive the shared wrapper: \(answer)",
+                          AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                              request: wrapped, now: morning, calendar: calendar) == expectedGrounded)
+                }
+                for answer in ["yes at 10", "yes tomorrow afternoon", "9", "which time?", "no"] {
+                    let wrapped = acceptedDatePending.confirmedPrompt(acknowledgment: answer)
+                    check("R01_DATE date floor erased changed-time/unknown/refused answer: \(answer)",
+                          AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                              request: wrapped, now: morning, calendar: calendar) == emitted.arguments)
+                }
+                let borrowedDatePending = PendingAction(requestText: "Remind me at 9 to call the bank",
+                    question: "Should I remind you tomorrow?", capabilityID: "schedule.create",
+                    origin: .typedQuestion, sessionID: nil, at: morning)
+                check("R01_DATE wrapper question donated a date absent from the original objective",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                          request: borrowedDatePending.confirmedPrompt(acknowledgment: "yes"),
+                          now: morning, calendar: calendar) == emitted.arguments)
+                let malformedWrapper = acceptedDatePending.confirmedPrompt(acknowledgment: "yes")
+                    .replacingOccurrences(of: "That answer confirms it.", with: "That answer changes it.")
+                check("R01_DATE malformed wrapper was treated as the producer's accepted original",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                          request: malformedWrapper, now: morning, calendar: calendar) == emitted.arguments)
+                // R01_DATE_WRAPPER_ADD_END
+            } catch { check("R01_DATE actual morning producer/store threw: \(error)", false) }
+            var expectedNoDateCall = emitted.arguments; expectedNoDateCall["date"] = dateText
+            let dateConsumer = await run([offer, recordedNoDate,
+                "Done. I've set a reminder to call the bank at 9 AM tomorrow."],
+                expectedOverride: expectedNoDateCall)
+            check("R01_DATE actual handle/executor/approval did not use grounded date once",
+                  dateConsumer.log.count == 3 && dateConsumer.fired == ["schedule.create"]
+                    && dateConsumer.saved.count == 1 && dateConsumer.saved.first?.nextRunAt == expectedAt
+                    && dateConsumer.saved.first?.prompt == emitted.arguments["text"]
+                    && dateConsumer.log.last?.user.contains("Saved") == true)
+            print("TOOLLOOP_PRODUCTION_R01_DATE morning=07:00 expected=tomorrow09:00 actualSaved=\(dateConsumer.saved.count)")
+        }
+        // R01_DATE_END_COMMON
+
         print("  TOOLLOOP_PRODUCTION_REMINDER_ADMISSION: exact R01 offer/yes/raw, one repair, real private native schedule save, caps and denial")
         return []
     }
