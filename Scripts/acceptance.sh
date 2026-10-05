@@ -161,8 +161,8 @@ INTEGRATION_ENTRIES=(
   "selftest-task-worker-attempt|300"
   "selftest-receipt-persistence|300"
   "selftest-agent-presentation|300"
-  "selftest-digest|300"
-  "selftest-podcast|300"
+  # PL-11: one Catch-up suite; --selftest-digest and --selftest-podcast remain aliases of it.
+  "selftest-catch-up|300"
   "selftest-guided|300"
   # browser CDP
   "selftest-cdp|300"
@@ -302,6 +302,9 @@ EXPERIMENTAL_ENTRIES=(
   "selftest-apple-resume-owner|300"
   "selftest-contention|300"
   "selftest-context|300|via-open"
+  "selftest-google-connect|300"
+  "selftest-mac-accounts|300"
+  "selftest-mac-accounts-live|300|via-open"
   "selftest-gws|300"
   "selftest-hf-search|600"
   "selftest-island|300"

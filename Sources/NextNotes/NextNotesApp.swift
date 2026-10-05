@@ -1127,16 +1127,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
-        if arguments.contains("--selftest-digest") {
+        // PL-11: `--selftest-digest` and `--selftest-podcast` are the retired names of this suite.
+        if arguments.contains("--selftest-catch-up") || arguments.contains("--selftest-digest")
+            || arguments.contains("--selftest-podcast") {
             Task { @MainActor in
-                SelfTest.failed = !(await DigestSelfTest.run())
-                SelfTest.requestTermination()
-            }
-            return true
-        }
-        if arguments.contains("--selftest-podcast") {
-            Task { @MainActor in
-                SelfTest.failed = !(await PodcastSelfTest.run())
+                SelfTest.failed = !(await CatchUpSelfTest.run())
                 SelfTest.requestTermination()
             }
             return true

@@ -20,6 +20,8 @@ struct ScheduleTriggerOccurrence: Codable, Equatable, Sendable {
         case meetingNotesReady
         case meetingStarting
         case callStarted
+        /// The person came back to their Mac after a weekend or a long time away (PL-11).
+        case returned
     }
 
     var event: Event
@@ -72,6 +74,14 @@ struct ScheduleTriggerOccurrence: Codable, Equatable, Sendable {
             title: call.displayName, start: call.since, observedAt: now)
     }
 
+    /// First presence after `awayFrom`, the last moment the person was at the Mac. The key names
+    /// the absence, so one return runs once however many ticks see it.
+    static func returned(awayFrom: Date, at now: Date) -> ScheduleTriggerOccurrence {
+        ScheduleTriggerOccurrence(
+            event: .returned, key: "return:\(Int(awayFrom.timeIntervalSince1970))",
+            title: "", start: awayFrom, observedAt: now)
+    }
+
     static func test(for trigger: ScheduleTrigger, at now: Date) -> ScheduleTriggerOccurrence {
         ScheduleTriggerOccurrence(event: trigger.event, key: "test:\(UUID().uuidString)", title: "",
                                   observedAt: now, isTest: true)
@@ -97,6 +107,14 @@ struct ScheduleTriggerOccurrence: Codable, Equatable, Sendable {
         case .meetingNotesReady: lines.append("Event: notes are ready for a meeting that just ended.")
         case .meetingStarting: lines.append("Event: a meeting is about to start.")
         case .callStarted: lines.append("Event: a call just started.")
+        case .returned:
+            var line = "Event: the person is back at their Mac after being away"
+            if let start {
+                let hours = max(1, Int((observedAt.timeIntervalSince(start) / 3_600).rounded()))
+                line += " since \(AgentScheduler.stamp(start, zone: zone)) (about \(hours) hour\(hours == 1 ? "" : "s"))"
+            }
+            lines.append(line + ".")
+            return lines.joined(separator: "\n")
         }
         lines.append((event == .callStarted ? "App: " : "Meeting: ") + clean(title))
         if !attendees.isEmpty {
@@ -118,13 +136,14 @@ extension ScheduleTrigger {
         case .meetingNotesReady: .meetingNotesReady
         case .meetingStarting: .meetingStarting
         case .callStarted: .callStarted
+        case .returned: .returned
         }
     }
 
     var filter: String? {
         switch self {
         case .meetingNotesReady(let filter), .meetingStarting(_, let filter): filter
-        case .callStarted: nil
+        case .callStarted, .returned: nil
         }
     }
 
@@ -185,7 +204,49 @@ extension ScheduleTrigger {
             return suffix.isEmpty ? when : when.replacingOccurrences(of: "a meeting", with: "a meeting" + suffix)
         case .callStarted:
             return "when a call starts"
+        case .returned:
+            return "when you're back at your Mac after a weekend or a long time away"
         }
+    }
+}
+
+/// Notices that the person has come back, from the presence signal the scheduler already reads
+/// (`ScheduleEnvironment.isUserPresent`: keyboard or mouse in the last two minutes).
+///
+/// Pure, so the self-test drives days of it instantly. It is sampled on the scheduler's own
+/// tick; there is no timer, store or second observer. A return is the first presence after at
+/// least `minimumAway` without any — which covers a weekend, a long lunch and a night — and it
+/// is reported once. If the Mac is in a call, a recording, a dictation, an agent turn or quiet
+/// hours at that moment the return is held for `holdWindow` and reported at the first free
+/// sample while the person is still there, then dropped; it is never reported into those.
+/// The last-seen time lives in memory only: a relaunch starts counting again.
+struct AbsenceDetector: Sendable {
+    static let minimumAway: TimeInterval = 6 * 3_600
+    static let holdWindow: TimeInterval = 45 * 60
+
+    private(set) var lastPresentAt: Date?
+    private var held: (awayFrom: Date, since: Date)?
+
+    mutating func observe(now: Date, present: Bool, blocked: Bool) -> ScheduleTriggerOccurrence? {
+        guard present else { return nil }
+        let previous = lastPresentAt
+        lastPresentAt = now
+        if let held {
+            if now.timeIntervalSince(held.since) > Self.holdWindow {
+                self.held = nil
+            } else if blocked {
+                return nil
+            } else {
+                self.held = nil
+                return .returned(awayFrom: held.awayFrom, at: now)
+            }
+        }
+        guard let previous, now.timeIntervalSince(previous) >= Self.minimumAway else { return nil }
+        if blocked {
+            held = (previous, now)
+            return nil
+        }
+        return .returned(awayFrom: previous, at: now)
     }
 }
 
@@ -234,6 +295,11 @@ final class AgentTriggerEvents {
             $0.isOrganizerOrSelfAccepted && !$0.isAllDay && $0.end > now && $0.start <= horizon
         }
         publish(due.map { .meetingStarting($0, at: now) })
+    }
+
+    /// `AgentScheduler`'s presence sample (PL-11): the person is back after time away.
+    func returned(_ occurrence: ScheduleTriggerOccurrence) {
+        publish([occurrence])
     }
 
     /// `MeetingScheduler.callChanged`, for a call that has just settled and been answered.

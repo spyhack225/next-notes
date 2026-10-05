@@ -242,7 +242,7 @@ prints one `<NAME>_OK` / `<NAME>_FAILED` line last:
 --selftest-voice-turn-routing --selftest-wake-live
 --selftest-computer-actions  --selftest-click-coordinate --selftest-cdp
 --selftest-computer-vision    --selftest-seat-grid
---selftest-digest             --selftest-podcast
+--selftest-catch-up            (--selftest-digest and --selftest-podcast are aliases)
 --selftest-guided             --selftest-ui-strings
 --selftest-agent-panes
 --selftest-agent-answers
@@ -948,9 +948,13 @@ bonus that would buy the missing hits costs 12–18 false accepts, measured and 
 and the remaining fix is real-room recordings (`WAKE_MIC` has no captures on this
 machine — `--wake-mic-record` now records them), not a lowered bar.
 `--selftest-computer-vision` and `--selftest-seat-grid` pin the screenshot policy (stub-tree gating, consent failing closed,
-the one-retry rule, and the D5 seat-grid chain); `--selftest-digest` and `--selftest-podcast`
-pin the two scheduled content routines (reads-only, silence token, consumer words, file-sink
-only, never auto-played); `--selftest-guided` is the D9 first-success script (calendar →
+the one-retry rule, and the D5 seat-grid chain); `--selftest-catch-up` pins the one Catch-up
+routine that replaced the morning digest and podcast (identity and legacy migration, reads-only
+ceiling, silence token, consumer words, text delivered before the file render, one return per
+absence) — `--selftest-digest` and `--selftest-podcast` are aliases of it, and
+`--selftest-catch-up --real-voice [--real-voice-out <file>]` is the opt-in real render that
+refuses with `CATCH_UP_REAL_VOICE_ABSENT` when the model files are missing and never downloads;
+`--selftest-guided` is the D9 first-success script (calendar →
 names → proposal → approval → executed → one follow-up); `--selftest-ui-strings` scans
 `UI/` user-visible strings for banned developer words (`cron`, `artifact`, raw tool ids,
 schema keys) and fails per offender.
@@ -2613,10 +2617,13 @@ development machine. Treat anything here as unproven, and do not describe it as 
   synthetic-voice rows, and `WAKE_MIC` has no captures here. The remaining fix is
   real-room recordings, not a lowered bar — `--wake-mic-record` is the recorder that
   produces them, and it has never been run with a live microphone either.
-- **The podcast routine with real voices.** `LongFormRenderer`'s production synthesis
-  (`LongFormSynthesisFactory.live()`, Pocket/Kokoro frame paths) has never rendered a real
-  file — neither voice model is downloaded here — and no scheduled run has produced a
-  Library audio item. The scripted self-test runs entirely through an injected fake.
+- **The Catch-up audio, with real voices.** The voice models ARE on this Mac
+  (`~/.cache/fluidaudio/Models/pocket-tts` and `kokoro-82m-coreml`). On 2026-10-05
+  `--selftest-catch-up --real-voice` rendered a real catch-up paragraph through the
+  production `LongFormRenderer` and `LongFormSynthesisFactory.live()` cold: Pocket, 6 clauses,
+  about 18 s of audio, peak about 0.65, 9–21 s to render. Nobody has listened to it, Kokoro was
+  not the engine, and no scheduled run in the installed app has produced a Library audio item.
+  The scripted suite still uses an injected fake.
 - **The system-audio tap with its TCC grant.** Every call succeeds without it and every
   sample is zero, so no meeting has yet contained an "Others" track.
 - **Gemma 4 E4B.** Never downloaded (~9 GB of free disk is needed: 4.98 GB plus the
