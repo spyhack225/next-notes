@@ -39,7 +39,34 @@ enum VoiceLatencySelfTest {
         ("speech_end_to_first_audio", .voiceSpeechEndToFirstAudio),
     ]
 
+    /// PL-12 uses the same turn and monotonic marks. L1 is the first stable partial
+    /// reaching preparation, L2 the first answer consumed after commit, L3 playback.
+    /// Numeric preparation metadata rides in the existing timeline notes (no new store).
+    static func listenSeconds(_ column: String, turn: VoiceClosedTurn) -> Double? {
+        let from: UInt64?
+        let to: UInt64?
+        switch column {
+        case "L1":
+            from = turn.marks[.voiceOnset]?.nanos
+            to = turn.notes["preparation_first_nanos"].flatMap(UInt64.init)
+        case "L2":
+            from = turn.marks[.endpoint]?.nanos
+            to = turn.marks[.frontendFirstToken]?.nanos
+        case "L3":
+            from = turn.marks[.endpoint]?.nanos
+            to = turn.marks[.firstAudible]?.nanos
+        default: return nil
+        }
+        guard let from, let to, to >= from else { return nil }
+        return Double(to - from) / 1_000_000_000
+    }
+
     static func run() async -> Result {
+        if CommandLine.arguments.contains("--voice-latency-partials") {
+            let problems = await VoicePreparationSelfTest.run()
+            for problem in problems { SelfTest.diagnostic("VOICE_PREPARATION_WRONG: \(problem)") }
+            return (problems.isEmpty, problems.isEmpty ? "VOICE_PREPARATION_OK" : "VOICE_PREPARATION_FAILED")
+        }
         // Same flag and actual persistence/consumer seams, without loading a voice model.
         // This bounded instrumentation proof does not satisfy the file-fed latency gate.
         if CommandLine.arguments.contains("--voice-latency-instrumentation") {
@@ -120,6 +147,13 @@ enum VoiceLatencySelfTest {
             SelfTest.diagnostic("VOICE_LATENCY_MEDIAN \(name(for: span))="
                 + "\(Self.format(median(values))) p90=\(Self.format(p90(values))) "
                 + "n=\(values.count)")
+        }
+        for column in ["L1", "L2", "L3"] {
+            let values = counted.compactMap { listenSeconds(column, turn: $0) }
+            SelfTest.diagnostic("VOICE_LATENCY_LISTEN \(column) median=\(format(median(values)))"
+                + " p95=\(format(p95(values))) min=\(format(values.min()))"
+                + " max=\(format(values.max())) n=\(values.count) units=s")
+            if values.count != runs { wrong.append("\(column): expected \(runs) measurements, got \(values.count)") }
         }
         let stalls = counted.map(\.mainStallSeconds)
         SelfTest.diagnostic("VOICE_LATENCY_MEDIAN main_stall_max="
@@ -251,6 +285,9 @@ enum VoiceLatencySelfTest {
         if index == 0 { parts.append("kind=warmup") }
         for (name, span) in columns {
             parts.append("\(name)=\(Self.format(turn.seconds(span)))")
+        }
+        for column in ["L1", "L2", "L3"] {
+            parts.append("\(column)=\(Self.format(listenSeconds(column, turn: turn)))")
         }
         parts.append("speculation=\(turn.notes["speculation"] ?? "absent")")
         parts.append("main_stall_max=\(Self.format(turn.mainStallSeconds))")
@@ -615,6 +652,13 @@ enum VoiceLatencySelfTest {
         let sorted = values.sorted()
         let index = min(sorted.count - 1, Int((Double(sorted.count - 1) * 0.9).rounded()))
         return sorted[index]
+    }
+
+    /// Nearest-rank p95; with five measured turns this is the slowest turn.
+    static func p95(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        return sorted[max(0, Int(ceil(Double(sorted.count) * 0.95)) - 1)]
     }
 
     private static func format(_ value: Double?) -> String {
