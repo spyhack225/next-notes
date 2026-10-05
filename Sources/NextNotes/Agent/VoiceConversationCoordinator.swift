@@ -57,6 +57,8 @@ final class VoiceConversationCoordinator {
     private var provisionalText = ""
     private var preparationEpoch: UInt64 = 0
     private var preparationTask: Task<Void, Never>?
+    /// First stable partial handed to preparation, on the existing voice timeline clock.
+    private var preparationStartedAt: UInt64?
     /// One prewarm per voice session; `closeSession` clears it.
     private var didPrewarmWorker = false
     /// The last committed response failure is a test/UI seam. It is cleared for
@@ -236,15 +238,18 @@ final class VoiceConversationCoordinator {
         preparationTask?.cancel()
         preparationTask = Task { @MainActor in
             await FrontendResponder.shared.cancelSpeculation(through: epoch - 1)
-            guard text.split(whereSeparator: \.isWhitespace).count >= 4 else { return }
-            do { try await Task.sleep(for: .milliseconds(220)) } catch { return }
-            guard epoch == self.preparationEpoch, !Task.isCancelled,
+            guard !text.isEmpty, epoch == self.preparationEpoch, !Task.isCancelled,
                   AgentCaptureController.shared.isSessionActive else { return }
             let request = self.frontendRequest(text)
             let voiceTurn = AgentCaptureController.shared.voiceShadowCurrentTurn
                 ?? VoiceSession.shared.beginTurnIfNeeded()
             let ids = UsageCorrelation(turnID: self.reserveUsageTurn(for: voiceTurn),
                 conversationID: AgentSession.shared.sessionID)
+            if self.preparationStartedAt == nil {
+                let at = VoiceLatencyTimeline.nowNanos()
+                self.preparationStartedAt = at
+                VoiceLatencyTimeline.shared.note("preparation_first_nanos", String(at))
+            }
             await ModelPassRecorder.$correlation.withValue(ids) {
                 await FrontendResponder.shared.speculate(system: Self.systemPrompt,
                     messages: request.messages, maxTokens: Self.responseTokenLimit, revision: epoch)
@@ -268,6 +273,7 @@ final class VoiceConversationCoordinator {
         preparationTask?.cancel()
         preparationTask = nil
         provisionalText = ""
+        preparationStartedAt = nil
         Task { await FrontendResponder.shared.cancelSpeculation(through: epoch) }
     }
 
@@ -480,13 +486,14 @@ final class VoiceConversationCoordinator {
             noteHesitation(text)
             return AgentTurn(reply: "", delegated: false)
         }
-        // Stop a debounce that has not started. Retain an already prepared
+        // Stop preparation that has not started. Retain an already prepared
         // stream until respond compares its complete request key at commit.
         preparationEpoch &+= 1
         let commitRevision = preparationEpoch
         preparationTask?.cancel()
         preparationTask = nil
         provisionalText = ""
+        preparationStartedAt = nil
         responseTask?.cancel()
         let id = UUID()
         responseID = id
