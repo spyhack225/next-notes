@@ -268,6 +268,33 @@ enum LiveEvalGrader {
            ]) {
             return true
         }
+        // R02 asks for a reminder every night at 22:00. Reuse the actual native
+        // create parser: days=7 without repeat is once, not daily. No store,
+        // execution, role lookup or owner identity is involved in this parse.
+        if evalCase.id == "R02", !calls.contains(where: { call in
+            guard call.toolID == "schedule.create",
+                  let schedule = try? ScheduleToolExecutor.parseCreate(call.arguments,
+                      now: Date(timeIntervalSince1970: 0), timeZone: TimeZone(secondsFromGMT: 0)!,
+                      availableTools: []),
+                  schedule.kind == .reminder, let when = schedule.when else { return false }
+            return when.repeatRule == .daily && when.time == ScheduleLocalTime(hour: 22, minute: 0)
+        }) {
+            return true
+        }
+        // This bounded complete statement captures its explicit named subject.
+        // Sarah and implicit pronouns remain valid; different names, including
+        // names absent from the fixture, contradict its canonical Sarah fact.
+        if evalCase.id == "K03",
+           let expression = try? NSRegularExpression(
+               pattern: #"(?:^|[.!?]\s+)\s*([\p{L}][\p{L}'’-]*(?:\s+[\p{L}][\p{L}'’-]*)*)\s+said\s+(?:that\s+)?the\s+budget\s+needs\s+(?:a\s+)?(?:10%|ten\s+percent)\s+buffer(?:\s+for\s+ads)?[.!]?\s*$"#,
+               options: .caseInsensitive),
+           let match = expression.firstMatch(in: finalReply,
+               range: NSRange(finalReply.startIndex..<finalReply.endIndex, in: finalReply)),
+           let speakerRange = Range(match.range(at: 1), in: finalReply),
+           !["sarah", "she", "he", "they", "i", "we", "you", "it", "someone", "the speaker"]
+               .contains(String(finalReply[speakerRange]).lowercased()) {
+            return true
+        }
         for group in evalCase.mustMention {
             let hit = group.contains { lowered.contains($0.lowercased()) }
             if !hit { return true }
@@ -594,6 +621,58 @@ enum LiveEvalGrader {
         expect(.ungrounded, "K01", replies: ["Nothing was decided."], calls: [
             call("meeting.decisions"),
         ])
+        // K03_SPEAKER_ATTRIBUTION_COMMON_BEGIN
+        // The retained native model raw itself swaps Sarah for Serge. The same
+        // fixture and actual grader must reject that attribution, without forcing
+        // every valid short answer to repeat Sarah's name.
+        let k03Evidence = LiveEvalFixtures(now: Date(timeIntervalSince1970: 1_780_000_000))
+            .summary(for: "meeting.recent_context", arguments: [:])
+        if !k03Evidence.contains("Sarah said the budget needs a 10% buffer for ads.") {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: K03 fixture speaker changed")
+            misclassified += 1
+        }
+        expect(.ungrounded, "K03", replies: [
+            "I don't have any information about what Sarah said regarding the budget. If you'd like, I can look it up — just let me know how you'd like me to find it.",
+            "Serge said the budget needs a 10% buffer for ads.",
+        ], calls: [call("meeting.recent_context")])
+        expect(.ungrounded, "K03", replies: [
+            "Ana said the budget needs a 10% buffer for ads.",
+        ], calls: [call("meeting.search", ["query": "Sarah budget"])])
+        expect(.ungrounded, "K03", replies: [
+            "Marcus said the budget needs a ten percent buffer for ads.",
+        ], calls: [call("meeting.transcript")])
+        // Names unseen in the corpus must not bypass the attribution check.
+        expect(.ungrounded, "K03", replies: [
+            "Olivia said the budget needs a 10% buffer for ads.",
+        ], calls: [call("meeting.recent_context")])
+        expect(.ungrounded, "K03", replies: [
+            "David Chen said the budget needs a ten percent buffer for ads.",
+        ], calls: [call("meeting.transcript")])
+        expect(.pass, "K03", replies: [
+            "Sarah said the budget needs a 10% buffer for ads.",
+        ], calls: [call("meeting.recent_context")])
+        expect(.pass, "K03", replies: [
+            "She said the budget needs a 10% buffer for ads.",
+        ], calls: [call("meeting.recent_context")])
+        expect(.pass, "K03", replies: [
+            "The budget needs a 10% buffer for ads.",
+        ], calls: [call("search_knowledge", ["query": "Sarah budget"])])
+        expect(.pass, "K03", replies: [
+            "Serge needs to send the revised budget to Ana. Sarah said the budget needs a 10% buffer for ads.",
+        ], calls: [call("meeting.recent_context")])
+        // Preserve existing verdict priority: an unrelated tool or no read cannot
+        // pass just because the reply attributes the statement correctly.
+        expect(.wrongTool, "K03", replies: [
+            "Sarah said the budget needs a 10% buffer for ads.",
+        ], calls: [call("get_agenda", ["date": today])])
+        expect(.refusal, "K03", replies: ["I don't have access to your meetings."])
+        expect(.ungrounded, "K03", replies: ["Sarah said the launch date moved."],
+               calls: [call("meeting.recent_context")])
+        // Scope remains K03; a budget action item does not establish its speaker.
+        expect(.pass, "K02", replies: ["Serge said the budget needs a 10% buffer for ads."],
+               calls: [call("meeting.action_items")])
+        // K03_SPEAKER_ATTRIBUTION_COMMON_END
+
         // UNGROUNDED — a banned mention.
         expect(.ungrounded, "N01", replies: ["I'm your alter ego."])
         // UNGROUNDED — the reply is longer than the case allows.
@@ -627,12 +706,42 @@ enum LiveEvalGrader {
         ], calls: [
             call("get_agenda", ["date": today]),
         ])
-        // PASS — a restating question after a completed write is not an offer.
-        expect(.pass, "R02", replies: [
+        // A restating question is not an offer, but this omitted-repeat write
+        // still fails the original every-night request (native default is once).
+        expect(.ungrounded, "R02", replies: [
             "Reminder set for 10 pm to put the book out. Is that right?",
         ], calls: [
             call("schedule.create", ["text": "put the book out", "time": "22:00"], risk: .write),
         ])
+
+        // R02_DAILY_SEMANTICS_COMMON_BEGIN
+        // Exact retained quiet e3ef6e1 native payload: days=7 is not repeat=daily.
+        let r02Original = ["days": "7", "id": "every-night-10-reminder", "kind": "reminder",
+                           "text": "Remind to put the book out every night at 10",
+                           "time": "22:00", "title": "Put the book out"]
+        expect(.ungrounded, "R02", replies: [
+            "I can set that reminder for you, but I need a few details first. What would you like the reminder to say? And should it go off every night at 10 specifically, or on certain days of the week?",
+            "The reminder to put the book out every night at 10 is set. It will go off each day at 10 p.m.",
+        ], calls: [call("schedule.create", r02Original, turn: 1, risk: .modify)])
+        let r02Daily = ["text": "put the book out", "kind": "reminder",
+                        "time": "22:00", "repeat": "daily"]
+        expect(.pass, "R02", replies: ["Reminder set every night at 10 pm to put the book out."],
+               calls: [call("schedule.create", r02Daily, risk: .modify)])
+        expect(.pass, "R02", replies: ["Reminder set for 10 pm to put the book out. Is that right?"],
+               calls: [call("schedule.create", r02Daily, risk: .modify)])
+        // Native aliases are parsed, not guessed by string equality in the grader.
+        expect(.pass, "R02", replies: ["Reminder set every night at 10 pm to put the book out."],
+               calls: [call("schedule.create", r02Daily.merging(["repeat": "every day", "time": "10pm"]) { _, new in new }, risk: .modify)])
+        for change in [["repeat": "weekdays"], ["time": "21:00"],
+                       ["kind": "routine"], ["repeat": "tomorrowish"]] {
+            expect(.ungrounded, "R02", replies: ["Reminder set every night at 10 pm to put the book out."],
+                   calls: [call("schedule.create", r02Daily.merging(change) { _, new in new }, risk: .modify)])
+        }
+        // Preserve no-call/refusal and wrong-tool priority over semantic grading.
+        expect(.refusal, "R02", replies: ["I don't have access to reminders."])
+        expect(.wrongTool, "R02", replies: ["Reminder set every night at 10 pm to put the book out."],
+               calls: [call("get_agenda", ["date": today])])
+        // R02_DAILY_SEMANTICS_COMMON_END
         // PASS — a found file revealed to the user.
         expect(.pass, "F01", replies: ["I found Pricing 2026.pdf and opened it."], calls: [
             call("filesystem.find", ["query": "pricing document"]),
