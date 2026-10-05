@@ -379,8 +379,11 @@ final class LiveEvalFixtures: @unchecked Sendable {
     var calls: [LiveEvalLoggedCall] { log.calls }
 
     /// The `AgentToolExecutor.fakeForTesting` seam. Records the call, then answers from the
-    /// fixture table. It never throws: a fixture is always available.
+    /// fixture table only for arguments the real execution boundary would accept.
     func run(_ tool: AgentTool, _ arguments: [String: String]) async throws -> AgentToolResult {
+        if let problem = ToolCallValidation.problem(tool: tool, arguments: arguments) {
+            throw AgentError.permissionDenied(problem)
+        }
         log.record(toolID: tool.id, arguments: arguments, risk: tool.risk)
         let result = AgentToolResult(summary: summary(for: tool.id, arguments: arguments))
         log.verifiedResult()

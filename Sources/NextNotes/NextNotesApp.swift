@@ -2377,7 +2377,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
         if arguments.contains("--selftest-toolloop-live-grader") {
             Task { @MainActor in
-                SelfTest.failed = !LiveEvalGrader.runSelfTest()
+                SelfTest.failed = !(await LiveEvalGrader.runSelfTest())
                 writeSelfTest(SelfTest.failed
                     ? "TOOLLOOP_LIVE_GRADER_FAILED"
                     : "TOOLLOOP_LIVE_GRADER_OK")

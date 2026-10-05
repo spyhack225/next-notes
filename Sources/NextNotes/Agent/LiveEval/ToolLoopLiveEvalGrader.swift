@@ -421,7 +421,7 @@ enum LiveEvalGrader {
 
     /// No model, no network: canned replies and calls, one per verdict class, plus the
     /// mailbox the mail cases are answered from. Fails if any single branch stops matching.
-    static func runSelfTest() -> Bool {
+    static func runSelfTest() async -> Bool {
         let previousModelName = modelName
         defer { modelName = previousModelName }
         modelName = "Qwen3-4B-Instruct-2507"
@@ -834,6 +834,7 @@ enum LiveEvalGrader {
             + "\(mailboxProblems) problem(s)")
 
         var instrumentFailures = ToolLoopLiveEval.instrumentSelfTestFailures()
+        instrumentFailures += await fixtureArgumentFailures()
         if let fixed = SelfTest.parseFixtureClock("2026-10-04T12:34:56.789Z") {
             let fixtures = LiveEvalFixtures(now: fixed)
             let day = dayString(now: fixed)
@@ -861,6 +862,78 @@ enum LiveEvalGrader {
         }
         SelfTest.diagnostic("TOOLLOOP_LIVE_INSTRUMENT: \(instrumentFailures.count) problem(s)")
         return misclassified == 0 && mailboxProblems == 0 && instrumentFailures.isEmpty
+    }
+
+    /// Replay the recorded M04 arguments through the actual live-eval executor seam.
+    /// The real validator supplies the refusal; no tool, account or model is entered.
+    private static func fixtureArgumentFailures() async -> [String] {
+        guard SelfTest.isRunning,
+              let draft = AgentToolRegistry.shared.tool(named: "draft_email"),
+              let evalCase = LiveEvalCases.caseWithID(id: "M04") else {
+            return ["live fixture validation prerequisites missing"]
+        }
+        var failures: [String] = []
+        func check(_ label: String, _ condition: Bool) {
+            if !condition { failures.append("fixture arguments: " + label) }
+        }
+        let fixtures = LiveEvalFixtures()
+        let oldFake = AgentToolExecutor.fakeForTesting
+        let oldApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
+        AgentToolExecutor.fakeForTesting = fixtures.run
+        defer {
+            AgentToolExecutor.fakeForTesting = oldFake
+            AgentToolExecutor.recordedReadApprovalsForTesting = oldApprovals
+        }
+        // Exact original raw M04 call: there is no subject to validate or approve.
+        let recorded = ["to": "ana@example.com", "body": "I'll send the deck on Friday."]
+        var emptySubject = recorded; emptySubject["subject"] = "  "
+        var placeholderSubject = recorded; placeholderSubject["subject"] = "[Subject]"
+        for (label, arguments) in [("missing subject", recorded),
+                                    ("empty subject", emptySubject),
+                                    ("placeholder subject", placeholderSubject)] {
+            fixtures.beginCase()
+            let problem = ToolCallValidation.problem(tool: draft, arguments: arguments)
+            check(label + " must be refused by production", problem != nil)
+            var refused = false
+            do {
+                _ = try await AgentToolExecutor.run("draft_email", arguments: arguments,
+                    policy: .denyMutations, promptIfNeeded: false)
+            } catch AgentError.permissionDenied(let message) {
+                refused = message == problem
+            } catch { }
+            check(label + " was accepted by live fixture", refused)
+            check(label + " recorded successful work", fixtures.calls.isEmpty)
+            check(label + " recorded a verified result", fixtures.log.firstResult(for: 0) == nil)
+            if label == "missing subject" {
+                check("recorded M04 must not pass without a runnable draft",
+                    grade(case: evalCase, replies: [
+                        "I have drafted the email for you. Do you want to send it now?"
+                    ], calls: fixtures.calls, trace: []) != .pass)
+            }
+        }
+        fixtures.beginCase()
+        var complete = recorded; complete["subject"] = "Deck for Friday"
+        do {
+            let result = try await AgentToolExecutor.run("draft_email", arguments: complete,
+                policy: .denyMutations, promptIfNeeded: false)
+            check("valid draft result changed", result.summary == fixtures.summary(
+                for: "draft_email", arguments: complete))
+            check("valid draft log changed", fixtures.calls == [LiveEvalLoggedCall(
+                turn: 0, toolID: draft.id, arguments: complete, risk: draft.risk)])
+            check("valid draft lost verified result", fixtures.log.firstResult(for: 0) != nil)
+            check("valid M04 no longer passes", grade(case: evalCase, replies: [
+                "I have drafted the email for you. Do you want to send it now?"
+            ], calls: fixtures.calls, trace: []) == .pass)
+        } catch { failures.append("fixture arguments: valid draft refused") }
+        fixtures.beginCase()
+        do {
+            _ = try await AgentToolExecutor.run("search_email", arguments: ["query": "in:inbox"],
+                policy: .denyMutations, autoApproveReads: true, promptIfNeeded: false)
+            check("valid read did not run", fixtures.calls.count == 1
+                && fixtures.calls.first?.toolID == "search_email"
+                && fixtures.log.firstResult(for: 0) != nil)
+        } catch { failures.append("fixture arguments: valid read refused") }
+        return failures
     }
 
     private static func call(
