@@ -1958,6 +1958,42 @@ enum RealtimeAgentToolLoopSelfTest {
             let result = await agent.handle(request, source: .text)
             return (result.reply, ran.toolIDs, log.calls)
         }
+        // Actual no-call -> existing bounded refusal re-plan -> runner navigation.
+        // Exact original model raws are retained; this scripted consumer proves the
+        // correction reaches the next round, not native YouTube follow-through.
+        let a02Refusals = [
+                "I don't have a tool I can use to browse or play YouTube videos directly. If you'd like, I can open the YouTube search page for \"Cortech\" in your browser instead — would you like me to do that?",
+                "I can't browse the web from here, but I don't have a way to find or play videos on YouTube. Want me to help with something else?",
+            ]
+        for refusal in a02Refusals {
+            let a02 = await run("Open youtube and play the latest Cortech video", [
+                refusal,
+                #"<tool_call>{"name":"browser.navigate","arguments":{"url":"https://www.youtube.com"}}</tool_call>"#,
+                "The YouTube page is open.",
+            ])
+            check("A02 exact no-call refusal did not enter the existing correction round",
+                  a02.calls.count == 3
+                    && a02.calls[1].user.contains("Correction from the application")
+                    && a02.calls[1].user.contains("browser.navigate"))
+            check("A02 corrected browser call bypassed the actual runner or invented another action",
+                  a02.tools == ["browser.navigate"] && a02.reply == "The YouTube page is open.")
+            let repeated = await run("Open youtube and play the latest Cortech video", [
+                refusal, refusal,
+                #"<tool_call>{"name":"browser.navigate","arguments":{"url":"https://www.youtube.com"}}</tool_call>"#,
+            ])
+            check("A02 false-refusal correction spent more than its existing single rebuttal",
+                  repeated.calls.count == 2 && repeated.tools.isEmpty && repeated.reply == refusal)
+        }
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged).filter { !$0.id.hasPrefix("browser.") },
+            reader: .voiceFrontend)
+        for refusal in a02Refusals {
+            let absent = await run("Open youtube and play the latest Cortech video", [refusal])
+            check("A02 missing-browser consumer was replanned or supplied a browser action",
+                  absent.calls.count == 1 && absent.tools.isEmpty && absent.reply == refusal)
+        }
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
         // A full-executor fake cannot prove recipient review. Keep the exact request,
         // promise and invented address at the real card/gate/fire boundary instead.
         await runPromiseRecipientReviewCase(agent: agent, check: check)

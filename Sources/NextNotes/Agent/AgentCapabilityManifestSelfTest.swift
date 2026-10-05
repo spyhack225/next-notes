@@ -283,6 +283,51 @@ enum AgentCapabilityManifestSelfTest {
                 wrong("refusal guard \(expected ? "missed" : "fired on") \"\(reply)\"")
             }
         }
+        // Exact cb0cf62 A02 no-call rounds. A browser absence is contradicted
+        // only by ready browser tools, never by an unrelated app/file capability.
+        let browserRefusals = [
+                "I don't have a tool I can use to browse or play YouTube videos directly. If you'd like, I can open the YouTube search page for \"Cortech\" in your browser instead — would you like me to do that?",
+                "I can't browse the web from here, but I don't have a way to find or play videos on YouTube. Want me to help with something else?",
+            ]
+        let browserRequest = "Open youtube and play the latest Cortech video"
+        let browserManifest = AgentCapabilityManifestBuilder.build(
+            .allEnabled(tools: allTools, reader: local), request: browserRequest)
+        check("A02 ready browser fixture is vacuous",
+              browserManifest.selectedIDs.contains("browser.navigate"))
+        let noBrowser = AgentCapabilityManifestBuilder.build(
+            .allEnabled(tools: allTools.filter { !$0.id.hasPrefix("browser.") }, reader: local),
+            request: browserRequest)
+        let unavailableBrowser = AgentCapabilityManifest(
+            reader: browserManifest.reader, maxRisk: browserManifest.maxRisk,
+            allowed: browserManifest.allowed.filter { $0.intent != .browser },
+            unavailable: browserManifest.allowed.filter { $0.intent == .browser }.map { entry in
+                AgentCapabilityManifest.Entry(
+                    id: entry.id, aliases: entry.aliases, namespace: entry.namespace,
+                    intent: entry.intent, source: entry.source, risk: entry.risk,
+                    executionMode: entry.executionMode, modelDescription: entry.modelDescription,
+                    parameters: entry.parameters, readiness: .needsSetup("The browser needs setup."),
+                    userPhrase: entry.userPhrase)
+            },
+            selected: browserManifest.selected.filter { $0.intent != .browser },
+            selectedIntents: [.browser], compactCatalogue: false, catalogueTokens: 0)
+        for raw in browserRefusals {
+            check("A02 exact browser absence was not corrected when its browser tools are ready",
+                  AgentRefusalGuard.rebuttal(for: raw, manifest: browserManifest)?.contains("browser.navigate") == true)
+            check("A02 browser absence was contradicted by unrelated ready tools",
+                  AgentRefusalGuard.rebuttal(for: raw, manifest: noBrowser) == nil)
+            check("A02 unavailable browser was described as ready",
+                  AgentRefusalGuard.rebuttal(for: raw, manifest: unavailableBrowser) == nil)
+        }
+        for raw in ["I don't have a verified URL to browse.",
+                    "I can't tell from the web page who owns it.",
+                    "I can't confirm this web page is current.",
+                    "I don't have a subscription for this website.",
+                    "I can't play protected videos on YouTube.",
+                    "Would you like me to browse the web?",
+                    "I don't have a tool to edit video."] {
+            check("A02 browser repair overrode information/playback/offer limits: \(raw)",
+                  AgentRefusalGuard.rebuttal(for: raw, manifest: browserManifest) == nil)
+        }
         // `mayBeDenial` holds the audio, so it must still catch a real denial opening and must
         // not fire on ordinary prose.
         check("a denial opening is no longer held",

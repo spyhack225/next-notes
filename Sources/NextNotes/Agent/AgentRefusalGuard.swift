@@ -67,11 +67,19 @@ enum AgentRefusalGuard {
         "no way to know", "can't confirm", "cannot confirm", "not able to tell",
     ]
 
+    /// Opening/reading web pages is distinct from opening an app or playing a
+    /// protected video. Only ready browser tools contradict an absence of browsing.
+    private static let browserCapability = Capability(
+        subjects: ["browse", "browsing", "web"],
+        toolIDs: ["browser.navigate", "browser.snapshot", "browser.read_page"],
+        label: "opening and reading browser pages")
+
     /// The capability classes, in the order a reply is read. Subjects are the words a person
     /// uses; the tool ids are what contradicts a denial of them. The subject lists are
     /// deliberately longer than the old table's, because the old table's gaps *were* the bug:
     /// "your Google Drive" and "your tools" were not subjects, so two real denials survived.
     static let capabilities: [Capability] = [
+        browserCapability,
         Capability(subjects: ["file", "files", "folder", "folders", "directory", "document",
                               "documents", "project", "projects", "desktop", "downloads",
                               "your mac", "this mac", "repo", "repository"],
@@ -120,6 +128,18 @@ enum AgentRefusalGuard {
     static func rebuttal(for reply: String, manifest: AgentCapabilityManifest) -> String? {
         var contradicted: [Capability] = []
         for clause in clauses(of: reply) {
+            // The generic "don't have a" exemption protects missing information
+            // and identities. An explicit missing browser tool is a capability
+            // claim instead; test only that capability, not the generic tools row.
+            if clause.range(
+                of: #"^i (?:don't|do not) have a (?:tool(?: i can use)?|way) to browse\b"#,
+                options: .regularExpression) != nil {
+                if contradicts(browserCapability, manifest: manifest),
+                   !contradicted.contains(where: { $0.label == browserCapability.label }) {
+                    contradicted.append(browserCapability)
+                }
+                continue
+            }
             guard isDenial(clause) else { continue }
             for capability in capabilities where names(capability, in: clause) {
                 if capability.toolIDs.isEmpty || contradicts(capability, manifest: manifest) {
