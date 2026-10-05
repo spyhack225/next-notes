@@ -17,7 +17,7 @@ import Foundation
 ///   no `AVAudioPlayer`, no reference to `AgentSpeechSynthesizer` or `AgentPCMRenderer`,
 ///   and never touches `AVAudioSession`. Its only audio input is the injected
 ///   `Synthesis` closure; its only output is the file it is handed a directory for.
-///   `PodcastSelfTest` asserts the live graph is idle across a render.
+///   `CatchUpSelfTest` asserts the live graph is idle across a render.
 /// - **It never plays anything.** There is no playback call in the file to reach.
 /// - **It yields.** Before the first clause and between clauses it waits for the same
 ///   things the routine runner waits for — a meeting or dictation, the ASR lane, the
@@ -258,7 +258,7 @@ final class LongFormRenderer {
     }
 
     /// Waits for a clear machine: no meeting or dictation, both compute lanes idle,
-    /// no dictation cleanup in flight. Called before the first clause and between
+    /// no live agent speech, no dictation cleanup in flight. Called before the first clause and between
     /// clauses, so a recording that starts mid-render pauses the work instead of
     /// fighting it for the machine or the microphone.
     private func waitForQuietLane() async throws {
@@ -267,7 +267,7 @@ final class LongFormRenderer {
         while true {
             let asrBusy = await environment.isASRLaneBusy()
             let notesBusy = await environment.isNotesLaneBusy()
-            if !environment.isRecording, !asrBusy, !notesBusy { break }
+            if !environment.isRecording, !asrBusy, !notesBusy, !environment.isAgentSpeaking { break }
             try Task.checkCancellation()
             guard Date() < deadline else {
                 throw LongFormRenderError.busy(waited: limits.yieldTimeout)
@@ -315,8 +315,7 @@ final class LongFormRenderer {
     }
 }
 
-/// What went wrong, in the renderer's own words. `PodcastTemplate` turns these into
-/// sentences; the renderer never talks to the user itself.
+/// What went wrong, in the renderer's own words. `CatchUpTemplate` logs these; the renderer never talks to the user itself.
 enum LongFormRenderError: LocalizedError, Equatable {
     /// Neither offline voice engine is available. Never triggers a download: the
     /// model is fetched because the user asked for it in Settings, not at 06:00.
@@ -365,6 +364,13 @@ protocol LongFormRenderingEnvironment: AnyObject {
     func isASRLaneBusy() async -> Bool
     func isNotesLaneBusy() async -> Bool
     func awaitCleanupIdle() async
+    /// The agent is talking, or a voice turn is open. A render shares the voice engine with the
+    /// live reply (there is one audio channel), so it waits between clauses until that ends.
+    var isAgentSpeaking: Bool { get }
+}
+
+extension LongFormRenderingEnvironment {
+    var isAgentSpeaking: Bool { false }
 }
 
 @MainActor
@@ -383,6 +389,13 @@ final class LiveLongFormEnvironment: LongFormRenderingEnvironment {
 
     func awaitCleanupIdle() async {
         await LlamaBackend.shared.awaitCleanupIdle()
+    }
+
+    /// The same signals the scheduler's presence rule reads for "the agent is busy", plus the
+    /// session that speaks a delivered catch-up.
+    var isAgentSpeaking: Bool {
+        RealtimeAudioSession.shared.isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
+            || ActivationController.shared.mode != .idle
     }
 }
 
@@ -428,6 +441,11 @@ enum LongFormSynthesisFactory {
     }
 
     static func pocket(_ request: LongFormRenderer.SynthesisRequest) async throws -> LongFormRenderer.Audio {
+        // A file render has no one waiting on its first sound, so it waits out the model's load
+        // and warm-up (a cold start takes 10–30 s) instead of the live reply's ten-second bound,
+        // which would drop the whole render on the first catch-up after a launch. It joins the
+        // load already in flight; it never starts a second one.
+        await PocketAgentVoice.shared.prepare()
         let voice = pocketVoice(for: request.speaker)
         var samples: [Float] = []
         let frames = try await PocketAgentVoice.shared.frames(for: request.text, voice: voice)

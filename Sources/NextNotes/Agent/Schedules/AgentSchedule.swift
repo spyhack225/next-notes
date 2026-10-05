@@ -81,6 +81,12 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
     /// so schedules saved before triggers existed still decode.
     var handledEventKeys: [String]?
 
+    /// The stable identity of a built-in template (`CatchUpTemplate.identity`), or nil for a
+    /// schedule the person made themselves. Output budget, the audio step and the title that
+    /// follows the moment all key on this, never on the words in `title`. Optional so
+    /// schedules saved before it existed still decode.
+    var templateID: String?
+
     init(
         id: UUID = UUID(),
         kind: Kind,
@@ -96,7 +102,8 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
         budget: Budget = .standard,
         enabled: Bool = true,
         createdAt: Date,
-        createdInSession: UUID? = nil
+        createdInSession: UUID? = nil,
+        templateID: String? = nil
     ) {
         self.id = id
         self.kind = kind
@@ -120,6 +127,7 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
         pendingDelivery = nil
         queuedDeliveries = nil
         handledEventKeys = nil
+        self.templateID = templateID
     }
 
     /// Everything held, oldest first: `pendingDelivery` then `queuedDeliveries`. Setting it
@@ -134,8 +142,25 @@ struct AgentSchedule: Codable, Identifiable, Equatable, Sendable {
 
     /// Template defaults also apply to schedules created before this field existed.
     var effectiveMaxOutputTokens: Int {
-        budget.maxOutputTokens ?? (title == DigestTemplate.title ? 1_536
-            : title == PodcastTemplate.title ? 4_096 : 384)
+        budget.maxOutputTokens ?? (isCatchUp ? CatchUpTemplate.maxOutputTokens
+            : Budget.defaultMaxOutputTokens)
+    }
+
+    /// Whether this is the Catch-up routine: by identity, or — for a schedule saved before
+    /// identities existed, or made by a tool call that used one of the template's titles — by
+    /// the retired and moment titles. Once `templateID` is set the title no longer matters.
+    var isCatchUp: Bool {
+        if let templateID { return templateID == CatchUpTemplate.identity }
+        return CatchUpTemplate.isKnownTitle(title)
+    }
+
+    /// What the person sees on a notification and in the task list: a catch-up is titled by
+    /// the moment it is for, everything else by its own title.
+    func displayTitle(now: Date, zone: TimeZone) -> String {
+        guard isCatchUp else { return title }
+        let scheduleZone = when.flatMap { TimeZone(identifier: $0.timeZone) } ?? zone
+        return CatchUpTemplate.title(
+            for: CatchUpTemplate.moment(trigger: trigger, now: now, zone: scheduleZone))
     }
 
     /// The short id the tools accept and `schedule.list` prints.
@@ -256,6 +281,8 @@ enum ScheduleTrigger: Codable, Equatable, Sendable {
     case meetingNotesReady(filter: String?)
     case meetingStarting(leadMinutes: Int, filter: String?)
     case callStarted
+    /// The person is back at their Mac after a weekend or a long time away (PL-11).
+    case returned
 }
 
 /// The latest thing that happened to a schedule, for the list and the tools.

@@ -171,10 +171,11 @@ final class AgentScheduler {
             environment: LiveScheduledRunEnvironment(),
             tools: LiveScheduledToolRunner(),
             recorder: LiveScheduledRunRecorder(),
-            // Option B long-form audio: the morning podcast's routine answer is turned
-            // into a Library file inside the run. Every other routine's answer passes
-            // through the transform unchanged.
-            answerTransform: PodcastTemplate.resultTransform(renderer: .live()))
+            // PL-11: a catch-up's text is the result; the same words are rendered with one
+            // voice into the Library after it is handed back, and the file is linked to the
+            // run's task when it lands. Every other routine's answer passes through unchanged.
+            answerTransform: CatchUpTemplate.resultTransform(
+                renderer: .live(), attach: { AgentTaskManager.shared.foldArtifacts(taskID: $0) }))
     )
 
     static let tickInterval: TimeInterval = 30
@@ -194,6 +195,8 @@ final class AgentScheduler {
     /// How long a trigger's skipped or failed run is retried for its event.
     nonisolated static let notesReadyRetryWindow: TimeInterval = 2 * 60 * 60
     nonisolated static let callStartedRetryWindow: TimeInterval = 10 * 60
+    /// A catch-up for a return is for the minutes after the person sat down.
+    nonisolated static let returnedRetryWindow: TimeInterval = 30 * 60
 
     let store: ScheduleStore
     private let system: ReminderSystemRegistering
@@ -218,6 +221,9 @@ final class AgentScheduler {
         return pendingPasses
     }
     private var wakeObserver: NSObjectProtocol?
+    /// The presence signal's memory (PL-11): when the person was last at the Mac, so a return
+    /// after a weekend or a long time away can be published once. In memory only.
+    private var absence = AbsenceDetector()
     /// When the previous pass ran. Nil before the first pass after launch — which is how a
     /// backlog is attributed to "Next Notes wasn't running" rather than to sleep.
     private(set) var lastPassAt: Date?
@@ -422,6 +428,7 @@ final class AgentScheduler {
     /// One pass. Separated from the loop so the self-test can run it directly.
     func runOnce(now: Date) async {
         let settings = settingsProvider()
+        observePresence(now: now, settings: settings)
         store.reload()
         guard settings.enabled else {
             if turnedOffAt == nil { turnedOffAt = now }
@@ -444,6 +451,17 @@ final class AgentScheduler {
         }
         lastPassAt = now
         turnedOffAt = nil
+    }
+
+    /// Samples the presence signal this scheduler already reads for the speech rule. A return
+    /// after time away is published as one trigger event; nothing is published into a call, a
+    /// recording, a dictation, an agent turn or quiet hours (the detector holds it briefly).
+    private func observePresence(now: Date, settings: ScheduleSettingsSnapshot) {
+        let blocked = environment.isRecording || environment.isDictating || environment.isCallActive
+            || environment.isAgentBusy || settings.isQuiet(now, zone: zoneProvider())
+        if let occurrence = absence.observe(now: now, present: environment.isUserPresent, blocked: blocked) {
+            events.returned(occurrence)
+        }
     }
 
     private func process(_ original: AgentSchedule, now: Date, settings: ScheduleSettingsSnapshot) async {
@@ -805,9 +823,11 @@ final class AgentScheduler {
         let zone = schedule.when.flatMap { TimeZone(identifier: $0.timeZone) } ?? zoneProvider()
         let body: String
         let spoken: String
+        let title = schedule.kind != .reminder ? schedule.displayTitle(now: now, zone: zone) : "Reminder"
         if schedule.kind != .reminder {
             body = text
-            spoken = "\(schedule.title): \(text)"
+            // A catch-up is already written to be said; a title in front would be read aloud.
+            spoken = schedule.isCatchUp ? text : "\(title): \(text)"
         } else if missed, let slot {
             body = "Missed: \(text) (due \(Self.stamp(slot, zone: zone)))"
             spoken = "You missed a reminder: \(text)"
@@ -825,7 +845,7 @@ final class AgentScheduler {
             && !settings.isQuiet(now, zone: zoneProvider())
         return ScheduleDelivery(
             scheduleID: schedule.id,
-            title: schedule.kind != .reminder ? schedule.title : missed ? "Missed reminder" : "Reminder",
+            title: schedule.kind != .reminder ? title : missed ? "Missed reminder" : "Reminder",
             body: body, missed: missed, speak: speak, spoken: spoken, kind: schedule.kind)
     }
 
@@ -862,7 +882,9 @@ final class AgentScheduler {
             store.schedules.contains { schedule in
                 guard schedule.kind == .trigger, schedule.enabled, let trigger = schedule.trigger,
                       trigger.event == occurrence.event, !schedule.hasHandled(occurrence.key) else { return false }
-                switch Self.triggerDecision(trigger, occurrence: occurrence, createdAt: schedule.createdAt, now: checkedAt) {
+                switch Self.triggerDecision(
+                    trigger, occurrence: occurrence, createdAt: schedule.createdAt, now: checkedAt,
+                    recentCatchUpAt: recentCatchUp(for: occurrence, excluding: schedule.id, now: checkedAt)) {
                 case .ignore, .notYet: return false
                 case .run, .tooLate: return true
                 }
@@ -883,8 +905,31 @@ final class AgentScheduler {
         case tooLate(String)
     }
 
+    /// How long after one catch-up reached the person another is not worth making: a morning
+    /// catch-up already told them what changed overnight.
+    nonisolated static let catchUpCooldown: TimeInterval = 8 * 3_600
+
+    /// When another catch-up last reached the person, or is on its way, within the cooldown, for
+    /// the one event it matters to. Delivered, run on request and held for quiet hours count; so
+    /// does one that is running right now (`.started`), one that is due and not yet claimed (the
+    /// Mac woke up and this pass has not got to it), and one waiting to deliver or retry. A run
+    /// that had nothing to say does not.
+    private func recentCatchUp(for occurrence: ScheduleTriggerOccurrence, excluding id: UUID, now: Date) -> Date? {
+        guard occurrence.event == .returned else { return nil }
+        let told: Set<ScheduleRunRecord.Outcome> = [.completed, .ranNow, .delivered, .deferred, .started]
+        return store.schedules.compactMap { other -> Date? in
+            guard other.id != id, other.isCatchUp else { return nil }
+            if other.enabled, !other.pendingDeliveries.isEmpty { return now }
+            if other.enabled, other.kind == .routine, let due = other.nextRunAt, due <= now { return now }
+            guard let run = other.lastRun, told.contains(run.outcome),
+                  run.at <= now, now.timeIntervalSince(run.at) < Self.catchUpCooldown else { return nil }
+            return run.at
+        }.max()
+    }
+
     nonisolated static func triggerDecision(
-        _ trigger: ScheduleTrigger, occurrence: ScheduleTriggerOccurrence, createdAt: Date, now: Date
+        _ trigger: ScheduleTrigger, occurrence: ScheduleTriggerOccurrence, createdAt: Date, now: Date,
+        recentCatchUpAt: Date? = nil
     ) -> TriggerDecision {
         guard trigger.matches(occurrence) else { return .ignore }
         switch occurrence.event {
@@ -900,6 +945,10 @@ final class AgentScheduler {
             return .run
         case .meetingNotesReady, .callStarted:
             return occurrence.observedAt.addingTimeInterval(1) < createdAt ? .ignore : .run
+        case .returned:
+            if occurrence.observedAt.addingTimeInterval(1) < createdAt { return .ignore }
+            if recentCatchUpAt != nil { return .tooLate("you were caught up a little while ago") }
+            return .run
         }
     }
 
@@ -912,6 +961,8 @@ final class AgentScheduler {
             return (occurrence.start ?? occurrence.observedAt).addingTimeInterval(meetingStartingGrace)
         case .callStarted:
             return occurrence.observedAt.addingTimeInterval(callStartedRetryWindow)
+        case .returned:
+            return occurrence.observedAt.addingTimeInterval(returnedRetryWindow)
         }
     }
 
@@ -932,13 +983,16 @@ final class AgentScheduler {
                 let now = fixedNow ?? Date()
                 // Past its end date: the next pass turns it off and says so.
                 if let ends = schedule.endsAt, ends <= now { continue }
-                switch Self.triggerDecision(trigger, occurrence: occurrence, createdAt: schedule.createdAt, now: now) {
+                switch Self.triggerDecision(
+                    trigger, occurrence: occurrence, createdAt: schedule.createdAt, now: now,
+                    recentCatchUpAt: recentCatchUp(for: occurrence, excluding: schedule.id, now: now)) {
                 case .ignore, .notYet:
                     continue
                 case .tooLate(let reason):
                     schedule.markHandled(occurrence.key)
                     record(&schedule, slot: nil, at: now, outcome: .skipped,
-                           detail: "Skipped “\(occurrence.title)” — \(reason).", skippedSlots: 1)
+                           detail: occurrence.title.isEmpty ? "Skipped — \(reason)."
+                               : "Skipped “\(occurrence.title)” — \(reason).", skippedSlots: 1)
                     store.save(schedule)
                 case .run:
                     // Claim, then dispatch: the key is on disk before the run starts.
@@ -977,6 +1031,11 @@ final class AgentScheduler {
             } else if pending.text == nil, let occurrence = pending.occurrence, Self.triggerDeadline(for: occurrence) < now {
                 record(&schedule, slot: nil, at: now, outcome: .skipped,
                        detail: "Not retried for “\(occurrence.title)” — it was too late to be useful.", skippedSlots: 1)
+            } else if pending.text == nil, let occurrence = pending.occurrence, occurrence.event == .returned,
+                      recentCatchUp(for: occurrence, excluding: schedule.id, now: now) != nil {
+                // A retry is a new decision: another catch-up reached the person meanwhile.
+                record(&schedule, slot: nil, at: now, outcome: .skipped,
+                       detail: "Skipped — you were caught up a little while ago.", skippedSlots: 1)
             } else if pending.text != nil || pending.occurrence != nil {
                 due.append(pending)
             }
@@ -1110,7 +1169,9 @@ final class AgentScheduler {
                 schedule.endsAt = endsAt
                 schedule.enabled = true
             }
-            schedule.plainEnglish = ScheduleToolExecutor.triggerSentence(for: schedule)
+            schedule.plainEnglish = schedule.templateID == CatchUpTemplate.identity
+                ? CatchUpTemplate.plainEnglish(for: schedule)
+                : ScheduleToolExecutor.triggerSentence(for: schedule)
             guard store.save(schedule) else { throw ScheduleError.couldNotSave }
             return schedule
         }
@@ -1118,7 +1179,9 @@ final class AgentScheduler {
         if let when = edit.when { schedule.when = when }
         if let endsAt = edit.endsAt { schedule.endsAt = endsAt }
         if let when = schedule.when, let rule = RecurrenceRule(when) {
-            schedule.plainEnglish = ScheduleToolExecutor.sentence(for: schedule, rule: rule, currentZone: zoneProvider())
+            schedule.plainEnglish = schedule.templateID == CatchUpTemplate.identity
+                ? CatchUpTemplate.plainEnglish(for: schedule)
+                : ScheduleToolExecutor.sentence(for: schedule, rule: rule, currentZone: zoneProvider())
             if timingChanged {
                 let next = bounded(rule.next(after: now), by: schedule.endsAt)
                 guard next != nil else {

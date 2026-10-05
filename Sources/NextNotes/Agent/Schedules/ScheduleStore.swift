@@ -44,7 +44,7 @@ final class ScheduleStore {
 
     init(directory: URL) {
         self.directory = directory
-        schedules = load()
+        schedules = loadMigrated()
         drafts = loadDrafts()
     }
 
@@ -74,8 +74,21 @@ final class ScheduleStore {
     /// Re-reads the file. The scheduler rebuilds every decision from disk each pass, so an
     /// edit made elsewhere is seen on the next tick.
     func reload() {
-        schedules = load()
+        schedules = loadMigrated()
         drafts = loadDrafts()
+    }
+
+    /// `load()` plus the one-time carry-over of the two retired routines to Catch-up
+    /// (`CatchUpTemplate.migrated`). Written back at once, atomically and in place, so the file
+    /// itself becomes the migrated one and later reads find nothing left to change. An
+    /// unreadable file is never rewritten. A failed write leaves the old file whole and the
+    /// migrated schedules in memory; the next read migrates again.
+    private func loadMigrated() -> [AgentSchedule] {
+        let loaded = load()
+        let migration = CatchUpTemplate.migrated(loaded)
+        guard migration.changed else { return loaded }
+        _ = write(migration.schedules)
+        return migration.schedules
     }
 
     private func load() -> [AgentSchedule] {
