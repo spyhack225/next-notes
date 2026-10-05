@@ -98,6 +98,9 @@ extension WorkspaceToolRunner {
         tool: String, arguments: [String: String], firedAt: Date,
         calendarEventID: String? = nil, cli: any WorkspaceCLIRunning
     ) async -> UnknownOutcome {
+        if let mac = await GoogleSource.macWorkspace(forTool: tool, cli: cli) {
+            return await resolveUnknownOnMac(tool: tool, arguments: arguments, firedAt: firedAt, mac: mac)
+        }
         do {
             switch tool {
             case "send_email", "reply_email", "draft_email":

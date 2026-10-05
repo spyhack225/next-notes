@@ -453,6 +453,9 @@ struct AgentCapabilityInputs: Sendable {
     var switches: Switches
     var consent: Consent
     var workspace: VoiceCapabilitySnapshot.WorkspaceStatus
+    /// Google tools that are connected but lack one thing (an unticked permission, Full Disk
+    /// Access for mail), each with its plain sentence. Empty means no known gap (PL-09).
+    var workspaceGaps: [String: String] = [:]
     /// `nil` means this process has not measured it, and unknown must not become a denial.
     var accessibilityGranted: Bool?
     var fileIndexAvailable: Bool
@@ -505,6 +508,7 @@ struct AgentCapabilityInputs: Sendable {
                 knowledgeGraphCloud: Settings.shared.knowledgeGraphCloudConsent,
                 filesCloud: UserDefaults.standard.bool(forKey: IndexedFoldersStore.cloudConsentKey)),
             workspace: workspace,
+            workspaceGaps: service.workspaceGaps,
             accessibilityGranted: Permissions.hasAccessibility,
             fileIndexAvailable: LiveFileRetrieval().isAvailable,
             reader: reader)
@@ -987,7 +991,10 @@ enum AgentCapabilityManifestBuilder {
         switch tool.namespace {
         case .workspace:
             switch inputs.workspace {
-            case .signedIn, .unknown, .checking: return .ready
+            case .signedIn:
+                if let gap = inputs.workspaceGaps[tool.id] { return .needsSetup(gap) }
+                return .ready
+            case .unknown, .checking: return .ready
             case .notInstalled, .needsOAuthClient, .signedOut, .failed:
                 return .needsSetup(InputsText.workspaceSetup)
             }
@@ -1100,6 +1107,7 @@ enum AgentCapabilityManifestRuntime {
         let switches: AgentCapabilityInputs.Switches
         let consent: AgentCapabilityInputs.Consent
         let workspace: VoiceCapabilitySnapshot.WorkspaceStatus
+        let workspaceGaps: [String: String]
         let accessibilityGranted: Bool?
         let fileIndexAvailable: Bool
         let registryCount: Int
@@ -1122,6 +1130,7 @@ enum AgentCapabilityManifestRuntime {
         let live = AgentCapabilityInputs.live(reader: reader)
         let key = CacheKey(
             switches: live.switches, consent: live.consent, workspace: live.workspace,
+            workspaceGaps: live.workspaceGaps,
             accessibilityGranted: live.accessibilityGranted,
             fileIndexAvailable: live.fileIndexAvailable,
             registryCount: live.tools.count, reader: live.reader)

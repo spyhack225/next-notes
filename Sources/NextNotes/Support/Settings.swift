@@ -1048,6 +1048,15 @@ final class Settings {
         didSet { defaults.set(mcpServersJSON, forKey: Keys.mcpServersJSON) }
     }
 
+    /// Where "my Google account" comes from (PL-09): this Mac's own accounts, or Google's sign-in.
+    /// Nil until the person picks; an unset choice resolves from facts (`GoogleSource.effective`).
+    var googleSource: GoogleSource? {
+        didSet {
+            if let googleSource { defaults.set(googleSource.rawValue, forKey: Keys.googleSource) }
+            else { defaults.removeObject(forKey: Keys.googleSource) }
+        }
+    }
+
     /// Whether the first-launch permissions checklist has been dismissed. The checklist
     /// itself stays reachable from Settings, so this only decides whether it opens by
     /// itself — not whether the app is usable.
@@ -1217,6 +1226,7 @@ final class Settings {
         static let dictionaryLearning = "dictionaryLearning"
         static let dictionaryReviewDismissedFingerprint = "dictionaryReviewDismissedFingerprint"
         static let hasCompletedOnboarding = "hasCompletedOnboarding"
+        static let googleSource = "googleSource"
         static let meetingsKeepAudio = "meetingsKeepAudio"
         static let meetingsDiarize = "meetingsDiarize"
         static let meetingsDiarizeOfferDismissed = "meetingsDiarizeOfferDismissed"
@@ -1369,6 +1379,7 @@ final class Settings {
         autoSendEnabled = defaults.object(forKey: Keys.autoSendEnabled) as? Bool ?? true
         autoSendApps = defaults.dictionary(forKey: Keys.autoSendApps) as? [String: String] ?? [:]
         hasCompletedOnboarding = defaults.object(forKey: Keys.hasCompletedOnboarding) as? Bool ?? false
+        googleSource = defaults.string(forKey: Keys.googleSource).flatMap(GoogleSource.init(rawValue:))
         meetingsKeepAudio = defaults.object(forKey: Keys.meetingsKeepAudio) as? Bool ?? false
         // Nothing stored means nobody has been asked, so the models decide — and nothing
         // is written here: `didSet` does not fire from `init`, and the stored key is

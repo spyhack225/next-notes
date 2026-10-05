@@ -932,6 +932,9 @@ final class ActionOrchestrator {
     /// whatever it is. Static and pure so the rule can be pinned without a runtime.
     static func status(forThrown error: Error, afterFiring: Bool) -> ActionReceiptStatus {
         guard afterFiring else { return .failed }
+        // PL-09: the Mac's own Mail and Calendar say, in the error itself, whether anything was
+        // sent: only "Mail was told and did not confirm" is unknown.
+        if let mac = error as? MacWorkspaceError { return mac.outcomeIsKnown ? .failed : .outcomeUnknown }
         guard let cli = error as? WorkspaceCLIError else { return .failed }
         return cli.outcomeIsKnown ? .failed : .outcomeUnknown
     }

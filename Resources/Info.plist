@@ -56,6 +56,8 @@
 	<string>Next Notes transcribes your speech on-device to insert text where you're typing.</string>
 	<key>NSAudioCaptureUsageDescription</key>
 	<string>Next Notes records what you hear during a meeting so it can transcribe the other participants on-device. Audio never leaves this Mac.</string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>Next Notes asks Mail to write a draft, send an email or reply, only after you approve it, so it goes out from your own Google account.</string>
 	<key>NSCalendarsFullAccessUsageDescription</key>
 	<string>Next Notes reads your calendar to know when a meeting starts, so it can offer to take notes.</string>
 	<key>NSUserNotificationsUsageDescription</key>

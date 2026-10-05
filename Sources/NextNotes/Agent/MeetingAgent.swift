@@ -365,7 +365,7 @@ actor MeetingAgent {
                 source: source, transcript: transcript,
                 // P1-19: read once per pass, not once per proposal. The CLI caches it anyway,
                 // and a nil here is the honest answer when the profile read could not be made.
-                accountTag: await GoogleWorkspaceCLI.shared.accountTag()
+                accountTag: await GoogleSource.accountTag()
             )
             recorder.noteCounts(["proposed": calls.count, "accepted": planned.count])
             ledger.adopt(recorder)
