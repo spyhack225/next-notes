@@ -1271,7 +1271,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if arguments.contains("--selftest-wake-live") {
             Task { @MainActor in
-                let result = WakeWordLiveSelfTest.run(
+                let result = await WakeWordLiveSelfTest.run(
                     fixtureDirectory: SelfTest.value(after: "--selftest-wake-live")
                         .map { URL(fileURLWithPath: $0) }
                 )
@@ -7968,6 +7968,16 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             failures.append(contentsOf: wakeConfirmationFailures())
             failures.append(contentsOf: wakeWatchdogFailures())
 
+            if CommandLine.arguments.contains("--wake-callback-only") {
+                failures.append(contentsOf: await WakeWordAudioMonitor.audioCallbackRegressionFailures())
+                for failure in failures { writeSelfTest("  WAKE_WRONG: \(failure)") }
+                writeSelfTest(failures.isEmpty ? "WAKE_OK: actual audio callback confirmation"
+                    : "WAKE_FAILED: \(failures.count) actual callback rule(s) wrong")
+                SelfTest.failed = !failures.isEmpty
+                SelfTest.requestTermination()
+                return
+            }
+
             if !WakeWordModelManager.isDownloaded {
                 for failure in failures { writeSelfTest("  WAKE_WRONG: \(failure)") }
                 writeSelfTest("WAKE_MODEL_MISSING: \(WakeWordModelManager.unavailableReason)")
@@ -9369,6 +9379,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let parakeet = startupTerminationFixtureForTesting?.parakeet ?? ParakeetModels.shared
         let asrQueue = startupTerminationFixtureForTesting?.queue ?? TranscriptionQueue.shared
         pocket.beginTermination()
+        let wake = WakeWordAudioMonitor.shared
+        wake.beginTermination()
         // Loaded-only MainActor parents: never read a model manifest or saved role
         // merely to quit. Capture existing handles before backend closes admission.
         let modelTasks = ModelLibraryStore.sharedIfLoaded?.beginTermination() ?? []
@@ -9422,6 +9434,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             await diarization.finishTermination(ownedDiarizationTasks)
             await diarizer.finishTermination()
             await pocket.finishTermination()
+            await wake.finishTermination()
             await parakeet.finishTermination()
             let drained = await runtime.finishTermination()
             let diagnosticDrain = self.otherLlamaTerminationFixtureForTesting?.safetyDrain

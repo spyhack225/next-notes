@@ -48,26 +48,34 @@ final class ActivationController {
         }
     }
 
-    func beginAgent(source: String, utterance: String? = nil) {
+    @discardableResult
+    func beginAgent(source: String, utterance: String? = nil,
+        wakeConfirmationPending: Bool = false,
+        onSessionOpened: (@MainActor (UUID) -> Void)? = nil,
+        onFinished: (@MainActor () -> Void)? = nil) -> Task<Void, Never> {
         if mode == .agentWorking {
             RealtimeAgent.shared.interrupt()
         }
         markListening()
-        // The person is about to speak a turn, so the on-device model warms while they do.
-        // A no-op when it is already warm, when the assistant role is on another model, or
-        // when the model is not on this Mac; why not at launch is on `prewarm`.
-        _ = NotesModelRuntime.shared.prewarm(voice: true)
         // The island is the acknowledgement, so it goes first. This used to sit behind
         // `WakeWordAudioMonitor.sync()`, which — being the only microphone subscriber —
         // stopped the shared AVAudioEngine synchronously on this actor before anything
         // was drawn. Feedback now costs a paint; the monitor idles itself afterwards
         // and keeps its seat, so no engine is stopped on the wake path at all.
         IslandState.shared.showAgentListening(transcript: utterance ?? "")
+        // The person is about to speak a turn, so the on-device model warms while they do.
+        // A no-op when it is already warm, when the assistant role is on another model, or
+        // when the model is not on this Mac; why not at launch is on `prewarm`.
+        _ = NotesModelRuntime.shared.prewarm(voice: true)
         WakeWordAudioMonitor.shared.sync()
         AgentAuditLog.shared.record(kind: .wake, title: "Agent woke", detail: source)
-        Task {
+        return Task {
+            defer { onFinished?() }
+            guard !Task.isCancelled else { return }
             await AgentCaptureController.shared.beginSession(captureAudio: !SelfTest.isRunning,
-                origin: source.hasPrefix("wake") ? .wake : (source == "shortcut" ? .shortcut : .other))
+                origin: source.hasPrefix("wake") ? .wake : (source == "shortcut" ? .shortcut : .other),
+                wakeConfirmationPending: wakeConfirmationPending, onOpened: onSessionOpened)
+            guard !Task.isCancelled else { return }
             if let utterance, !utterance.isEmpty {
                 AgentCaptureController.shared.simulateSpeech(utterance)
                 AgentCaptureController.shared.simulateSilence()

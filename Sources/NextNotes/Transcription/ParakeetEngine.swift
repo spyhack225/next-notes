@@ -433,6 +433,13 @@ actor ParakeetModels {
 
     var isLoaded: Bool { loaded != nil }
 
+    /// Wake confirmation borrows only an already-resident manager. Never wait for
+    /// loadTask, inspect installed files, clone weights, download, or call manager().
+    func residentManager() -> AsrManager? {
+        guard !terminationRequested, !Task.isCancelled else { return nil }
+        return loaded
+    }
+
     /// The loaded weights, kept so a second manager can share them.
     private var loadedModels: AsrModels?
     private var keyUp: AsrManager?

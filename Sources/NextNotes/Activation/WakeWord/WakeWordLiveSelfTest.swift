@@ -2,8 +2,8 @@ import Foundation
 
 /// `--selftest-wake-live`: the wake word made measurable (roadmap P0-1, demo D7).
 ///
-/// Plays the committed fixture set through the real spotter — `SherpaKeywordSpotter.spot(wav:)`,
-/// the same entry `--selftest-wake` uses to prove "loaded" — with scratch keywords at the
+/// Plays the committed fixture set through the production bounded first-hit window and
+/// resident-only confirmation, with scratch keywords at the
 /// three shipped grid points (sensitivities 0, 0.6 and 1.0, the exact rows of the
 /// `WakeWordTuning` header table) and prints hit / false-accept rates plus per-variant
 /// attribution. The per-sensitivity grid it prints **replaces** the one-off synthesised
@@ -100,7 +100,7 @@ enum WakeWordLiveSelfTest {
     static let captureFileExtensions: Set<String> = ["wav", "aiff", "caf"]
 
     @MainActor
-    static func run(fixtureDirectory: URL?) -> Outcome {
+    static func run(fixtureDirectory: URL?) async -> Outcome {
         var failures: [String] = []
         func fail(_ line: String, _ reasons: inout [String]) {
             SelfTest.diagnostic(line)
@@ -185,6 +185,9 @@ enum WakeWordLiveSelfTest {
         )
 
         // MARK: Hits
+        var stageOneHits: [Double: Int] = [:]
+        var stageOneFalse: [Double: Int] = [:]
+        var unavailablePerSensitivity: [Double: Int] = [:]
         var hitsPerSensitivity: [Double: Int] = [:]
         var variantCounts: [String: Int] = [:]
         var missing = 0
@@ -198,8 +201,11 @@ enum WakeWordLiveSelfTest {
             var fired: [Double] = []
             for (sensitivity, spotter) in spotters {
                 spotter.reset()
-                let hit = (try? spotter.spot(wav: url)) != nil
-                if hit {
+                let judged = try? await WakeWordAudioMonitor.confirmationForCorpus(
+                    wav: url, spotter: spotter, phrase: manifest.phrase)
+                if judged != nil { stageOneHits[sensitivity, default: 0] += 1 }
+                if judged == .unavailable { unavailablePerSensitivity[sensitivity, default: 0] += 1 }
+                if case .confirmed(_)? = judged {
                     hitsPerSensitivity[sensitivity, default: 0] += 1
                     fired.append(sensitivity)
                 }
@@ -227,8 +233,11 @@ enum WakeWordLiveSelfTest {
             }
             for (sensitivity, spotter) in spotters {
                 spotter.reset()
-                let fired = (try? spotter.spot(wav: url)) != nil
-                if fired {
+                let judged = try? await WakeWordAudioMonitor.confirmationForCorpus(
+                    wav: url, spotter: spotter, phrase: manifest.phrase)
+                if judged != nil { stageOneFalse[sensitivity, default: 0] += 1 }
+                if judged == .unavailable { unavailablePerSensitivity[sensitivity, default: 0] += 1 }
+                if case .confirmed(_)? = judged {
                     falsePerSensitivity[sensitivity, default: 0] += 1
                     var rule = ""
                     if let explainer = generous, sensitivity == headlineSensitivity {
@@ -242,7 +251,12 @@ enum WakeWordLiveSelfTest {
             }
         }
 
-        // MARK: Grid (replaces the one-off synth runs in the tuning header)
+        // Stage-one diagnostics remain distinct: confirmation cannot recover a miss.
+        for sensitivity in gridSensitivities {
+            SelfTest.diagnostic("  WAKE_STAGE_ONE_GRID sens=\(sensitivity) hits=\(stageOneHits[sensitivity] ?? 0)/\(manifest.hits.count) false=\(stageOneFalse[sensitivity] ?? 0)/\(manifest.nearMisses.count)")
+            SelfTest.diagnostic("  WAKE_CONFIRMATION_UNAVAILABLE sens=\(sensitivity) candidates=\(unavailablePerSensitivity[sensitivity] ?? 0)")
+        }
+        // MARK: Grid (production two-stage verdict, unchanged acceptance bars)
         for sensitivity in gridSensitivities {
             let hits = hitsPerSensitivity[sensitivity] ?? 0
             let falses = falsePerSensitivity[sensitivity] ?? 0
@@ -254,12 +268,16 @@ enum WakeWordLiveSelfTest {
             SelfTest.diagnostic("  WAKE_VARIANT \"\(rule)\": \(variantCounts[rule] ?? 0)")
         }
 
-        // MARK: Local microphone captures (informational)
+        // MARK: Local microphone captures (stage-one informational only)
         reportLiveCaptures(generous: generous, generousRules: generousRules)
 
         let headlineHits = hitsPerSensitivity[headlineSensitivity] ?? 0
         let headlineFalse = falsePerSensitivity[headlineSensitivity] ?? 0
         let hitRate = manifest.hits.isEmpty ? 0 : Double(headlineHits) / Double(manifest.hits.count)
+        let unavailable = unavailablePerSensitivity[headlineSensitivity] ?? 0
+        if unavailable > 0 {
+            failures.append("wake confirmation unavailable for \(unavailable) candidate(s); resident ASR required for acoustic acceptance")
+        }
         if missing > 0 { failures.append("\(missing) fixture file(s) missing") }
         if hitRate < minimumHitRate {
             failures.append("hit rate \(String(format: "%.2f", hitRate)) under \(minimumHitRate) at sensitivity \(headlineSensitivity)")
@@ -272,6 +290,7 @@ enum WakeWordLiveSelfTest {
             "WAKE_HIT \(headlineHits)/\(manifest.hits.count)",
             "WAKE_FALSE \(headlineFalse)/\(manifest.nearMisses.count)",
             "WAKE_HIT_RATE \(String(format: "%.2f", hitRate))",
+            "WAKE_CONFIRMATION_UNAVAILABLE \(unavailable)",
         ]
         let headline = "\(headlineHits)/\(manifest.hits.count) hits, "
             + "\(headlineFalse)/\(manifest.nearMisses.count) false at sens \(headlineSensitivity)"
@@ -344,7 +363,7 @@ enum WakeWordLiveSelfTest {
                 ? "  WAKE_MIC_HIT \(file.lastPathComponent)\(rule)"
                 : "  WAKE_MIC_MISS \(file.lastPathComponent)\(rule) — check it contains the phrase")
         }
-        SelfTest.diagnostic("  WAKE_MIC: \(heard)/\(files.count) local captures heard (informational, not in the verdict)")
+        SelfTest.diagnostic("  WAKE_MIC: \(heard)/\(files.count) local captures heard (stage one only; room acceptance remains open)")
     }
 
     static func currentManifestPhrase() -> String? {

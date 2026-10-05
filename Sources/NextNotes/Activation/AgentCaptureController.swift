@@ -256,7 +256,12 @@ final class AgentCaptureController {
         await beginSession(captureAudio: !SelfTest.isRunning)
     }
 
-    func beginSession(captureAudio: Bool = true, origin: VoiceSessionOrigin = .other) async {
+    private(set) var wakeConfirmationPending = false
+    private var wakeRemainder = ""
+
+    func beginSession(captureAudio: Bool = true, origin: VoiceSessionOrigin = .other,
+        wakeConfirmationPending: Bool = false,
+        onOpened: (@MainActor (UUID) -> Void)? = nil) async {
         if isSessionActive {
             if origin == .wake { VoiceConversationCoordinator.shared.noteSessionOpened(origin: origin, at: Date()) }
             return
@@ -316,6 +321,8 @@ final class AgentCaptureController {
         turnDetectorReady = false
         modelEOUAt = nil
         eouDroppedChunks = 0
+        self.wakeConfirmationPending = wakeConfirmationPending
+        onOpened?(captureID)
 
         if captureAudio {
             prepareVoiceFrontend()
@@ -341,6 +348,30 @@ final class AgentCaptureController {
             startVAD()
             prepareConversationModel()
         }
+    }
+
+    func resolveWakeConfirmation(sessionID: UUID, result: WakePhraseConfirmation.Result?,
+        spottedAt: Date, audioSeconds: TimeInterval) async {
+        guard isSessionActive, captureSessionID == sessionID, wakeConfirmationPending else { return }
+        if let result, !result.accepted {
+            WakeWordTelemetry.shared.recordFalseAccept(
+                keyword: WakeWordAudioMonitor.shared.lastDetection?.keyword ?? "",
+                reason: "audio-confirmation")
+            await endSession(source: .notAddressed)
+            return
+        }
+        wakeConfirmationPending = false
+        // These are actual recognized words from the capture prefix, not simulated
+        // speech/levels. Keep live post-hit input and its endpoint ownership intact.
+        if let result, !result.remainder.isEmpty {
+            wakeRemainder = result.remainder
+            heardSpeech = true
+            if speechBeganAt == nil { speechBeganAt = spottedAt.addingTimeInterval(-audioSeconds) }
+            if lastSpeechAt.map({ $0 < spottedAt }) ?? true { lastSpeechAt = spottedAt }
+            lastTranscriptChangeAt = Date()
+        }
+        // nil explicitly means confirmation unavailable; preserve wake availability.
+        // The ordinary VAD/EOU decides when retained speech ends, without a new timer.
     }
 
     /// What a file-fed session has reached, for `--selftest-voice-latency` (P2-01), which
@@ -401,11 +432,16 @@ final class AgentCaptureController {
     /// Island Done / second shortcut: leave the conversation. Not how a turn ends.
     func endSession(source: EndpointSource = .done) async {
         guard isSessionActive else { return }
+        let unconfirmedWake = wakeConfirmationPending
         isSessionActive = false
         voiceShadowQueuedTurn = nil
         captureSessionID = nil
+        wakeConfirmationPending = false
+        wakeRemainder = ""
         VoiceConversationCoordinator.shared.closeSession()
-        await LocalVoiceFrontend.shared.clearStagedTurn()
+        // No staged frontend/speculation exists while this wake is pending.
+        // Skip its unnecessary hop so old capture handles are owned before await.
+        if !unconfirmedWake { await LocalVoiceFrontend.shared.clearStagedTurn() }
         let conversationID = modelConversationID
         modelConversationID = nil
         if let conversationID {
@@ -1091,7 +1127,7 @@ final class AgentCaptureController {
     }
 
     private func stageFrontendIfNeeded() {
-        guard isSessionActive, turnHandlerForTesting == nil,
+        guard isSessionActive, !wakeConfirmationPending, turnHandlerForTesting == nil,
               !frontendStagedForTurn, !deferFrontendForEOU else { return }
         frontendStagedForTurn = true
         Task {
@@ -1319,7 +1355,7 @@ final class AgentCaptureController {
     /// or empty partial cancels its pending debounce. Do not clear the final
     /// partial in resetTurn: handle() compares the exact committed request.
     private func prepareResponseForRecognizedSpeech(_ userTurn: String) {
-        guard isSessionActive, captureSessionID != nil,
+        guard isSessionActive, !wakeConfirmationPending, captureSessionID != nil,
               turnHandlerForTesting == nil, !deferFrontendForEOU else { return }
         let trimmed = userTurn.trimmingCharacters(in: .whitespacesAndNewlines)
         let beganLongEnough = speechBeganAt.map {
@@ -1343,6 +1379,7 @@ final class AgentCaptureController {
 
     @discardableResult
     private func tick(force: Bool) async -> Bool {
+        guard !wakeConfirmationPending else { return false }
         defer {
             if isSessionActive {
                 VoiceSession.shared.send(.timer(.quietWindow))
@@ -1490,6 +1527,7 @@ final class AgentCaptureController {
         source: EndpointSource,
         continueSession: Bool
     ) async {
+        guard !wakeConfirmationPending else { return }
         if let inputProducerProbeForTesting {
             // Harness-only: text/endpoint eligibility was selected by the real
             // tick; permit the next file's input to arrive before this commit.
@@ -1530,6 +1568,7 @@ final class AgentCaptureController {
         // barrier until the committed text reaches the frontend below.
         RealtimeAgent.shared.userSpeechEnded()
         lastEmittedRequest = text
+        wakeRemainder = ""
         let modelSuppliedText = shouldUseModelText() || localOwnsPartial
         let committedModelText = shouldUseModelText() ? modelFinalText : modelPartialText
         commitRawTurn()
@@ -1986,6 +2025,7 @@ final class AgentCaptureController {
         }
         transcript = ""
         rawTranscript = ""
+        wakeRemainder = ""
         latestFullTranscript = ""
         lastTranscriptChangeAt = nil
         heardSpeech = false
@@ -2005,13 +2045,20 @@ final class AgentCaptureController {
     }
 
     private func pendingTurn(provisional: Bool = true) -> String {
+        let live: String
         if shouldUseModelText() {
-            return filterLocalRecognition(modelFinalText, provisional: false)
+            live = filterLocalRecognition(modelFinalText, provisional: false)
+        } else if localOwnsPartial {
+            live = filterLocalRecognition(modelPartialText, provisional: provisional)
+        } else {
+            live = filterAppleRecognition(rawTranscript, provisional: provisional)
         }
-        if localOwnsPartial {
-            return filterLocalRecognition(modelPartialText, provisional: provisional)
-        }
-        return filterAppleRecognition(rawTranscript, provisional: provisional)
+        let prior = Self.normalized(wakeRemainder)
+        let current = Self.normalized(live)
+        let repeatsPrefix = !prior.isEmpty && (current == prior
+            || current.hasPrefix(prior + " ") || prior.hasPrefix(current + " "))
+        let tail = repeatsPrefix ? Self.pending(full: live, committed: wakeRemainder) : live
+        return [wakeRemainder, tail].filter { !$0.isEmpty }.joined(separator: " ")
     }
 
     // Each recognizer owns its cumulative revisions. Echo labels may follow
