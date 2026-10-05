@@ -1083,6 +1083,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
+        failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
         failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
         failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
@@ -1643,6 +1644,160 @@ enum RealtimeAgentToolLoopSelfTest {
         check("P1 consumer changed an offer whose meeting default is unavailable",
               unavailable.reply == meetingOffer && unavailableLog.calls.count == 1)
         print("  TOOLLOOP_PRODUCTION_OFFERED_READ: actual typed consumer, fixture reads")
+        return []
+    }
+
+    // Insert as a member of existing RealtimeAgentToolLoopSelfTest. Invocation in existing
+    // isolated suite: failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
+    // No new repository harness/file. COMMON before both AgentAccountRead producers.
+    @MainActor
+    static func runY02ReadConsumerCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let originalRequest = "What do you know about me?"
+        let originalRaw = "I know you're Serge Kadjo, and I'm Will. That's all I have from what we've talked about so far — no more, no less. If there's something specific you'd like me to remember or help with, just let me know."
+        let groundedReply = "Your brother is Cyril; you are the CEO of ProductFlo; you prefer short answers."
+        let tools = AgentToolRegistry.shared.tools(upTo: .privileged)
+        let inputs = AgentCapabilityInputs.allEnabled(tools: tools, reader: .voiceFrontend)
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: originalRequest)
+        let eligible = SelfTest.isRunning && manifest.selectedIntents.contains(.memory)
+            && manifest.entry(named: "memory.recall")?.risk == .read
+            && manifest.entry(named: "memory.recall")?.intent == .memory
+            && manifest.allowedIDs.contains("memory.recall")
+        check("Y02 explicit self-knowledge read requires the actual selected read descriptor", eligible)
+        guard eligible else {
+            SelfTest.diagnostic("TOOLLOOP_PRODUCTION_Y02_INPUT_INVALID: selected recall unavailable")
+            return []
+        }
+
+        let previousInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let previousFake = AgentToolExecutor.fakeForTesting
+        let previousProvider = agent.localModelProviderForTesting
+        let previousApproval = agent.readApprovalOverrideForTesting
+        let previousDepth = agent.answerDepthForTesting
+        let previousTrace = agent.plannerTraceForTesting
+        agent.readApprovalOverrideForTesting = true
+        agent.answerDepthForTesting = .deep
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = previousInputs
+            AgentToolExecutor.fakeForTesting = previousFake
+            agent.localModelProviderForTesting = previousProvider
+            agent.readApprovalOverrideForTesting = previousApproval
+            agent.answerDepthForTesting = previousDepth
+            agent.plannerTraceForTesting = previousTrace
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+
+        func pending(_ request: String, using selected: AgentCapabilityManifest,
+                     turn: [String] = [], session: Set<String> = [])
+            -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+            AgentAccountRead.pendingRead(
+                reply: originalRaw, selectedIntents: selected.selectedIntents,
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: selected, request: request) },
+                request: request, manifest: selected)
+        }
+        check("Y02 pure explicit recall did not select the existing empty-query read",
+              pending(originalRequest, using: manifest)?.toolID == "memory.recall"
+                && pending(originalRequest, using: manifest)?.arguments.isEmpty == true)
+        check("Y02 repeated an actual completed-turn recall",
+              pending(originalRequest, using: manifest, turn: ["memory.recall"]) == nil)
+        check("Y02 repeated an actual completed-session recall",
+              pending(originalRequest, using: manifest, session: ["memory.recall"]) == nil)
+        for request in ["Remember that my brother is Cyril", "Forget what you know about me",
+                        "How do you remember things about me?", "Tell me how memory works",
+                        "What do you know about me and email it to Ana?"] {
+            let selected = AgentCapabilityManifestBuilder.build(inputs, request: request)
+            check("Y02 injected a recall into save/forget/advice/compound: \(request)",
+                  pending(request, using: selected) == nil)
+        }
+        check("Y02 mistook a completed memory write for a recall",
+              pending(originalRequest, using: manifest, turn: ["memory.remember"])?.toolID == "memory.recall")
+        var disabledInputs = inputs
+        disabledInputs.switches.memory = false
+        disabledInputs.switches.knowledgeTools = false
+        let disabled = AgentCapabilityManifestBuilder.build(disabledInputs, request: originalRequest)
+        check("Y02 disabled fixture retained an available recall descriptor",
+              disabled.entry(named: "memory.recall") == nil)
+        check("Y02 injected an unavailable memory read", pending(originalRequest, using: disabled) == nil)
+
+        // Existing fake substitutes only fixture backing; actual handle/manifest/runner consumes it.
+        // Every started handle Task returns before fake/context/session replacement below.
+        @MainActor
+        func run(_ request: String, _ script: [String], using fixtureInputs: AgentCapabilityInputs,
+                 completedSession: Bool = false)
+            async -> (reply: String, calls: [PlannerScriptLog.Call], tools: [LiveEvalLoggedCall], output: String, raw: [String]) {
+            let fixtures = LiveEvalFixtures()
+            let log = PlannerScriptLog()
+            var rounds: [String] = []
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = fixtureInputs
+            agent.plannerTraceForTesting = { event in
+                if case .round(_, _, _, _, let raw, _) = event { rounds.append(raw) }
+            }
+            AgentToolExecutor.fakeForTesting = { tool, arguments in
+                try await fixtures.run(tool, arguments)
+            }
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            if completedSession {
+                agent.localModelProviderForTesting = PlannerScriptProvider(
+                    id: .localServer, window: 4_096, promptTokens: 2_000,
+                    script: [originalRaw, groundedReply],
+                    log: PlannerScriptLog())
+                let earlier = Task { @MainActor in await agent.handle(originalRequest, source: .text) }
+                _ = await earlier.value
+                let priorReadCompleted = fixtures.log.calls.map(\.toolID) == ["memory.recall"]
+                    && AgentSession.shared.completedToolIDs.contains("memory.recall")
+                check("Y02 completed-session control did not actually complete its earlier read", priorReadCompleted)
+                // The same session/history remains. Clear only this owned fixture observation.
+                fixtures.log.clear()
+                rounds.removeAll()
+                agent.setTypedPendingForTesting(nil)
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            let operation = Task { @MainActor in await agent.handle(request, source: .text) }
+            let turn = await operation.value
+            return (turn.reply, log.calls, fixtures.log.calls,
+                    fixtures.summary(for: "memory.recall", arguments: [:]), rounds)
+        }
+        let actual = await run(originalRequest, [originalRaw, groundedReply], using: inputs)
+        let exactRead = actual.tools.count == 1 && actual.tools.first?.toolID == "memory.recall"
+            && actual.tools.first?.arguments.isEmpty == true && actual.tools.first?.risk == .read
+        check("Y02 actual handle skipped recall or entered memory-write backing", exactRead)
+        check("Y02 actual final provider lost requested identity or returned memory evidence",
+              actual.calls.count == 2 && actual.raw.first == originalRaw
+                && actual.calls[1].user.contains("Current user request:\n" + originalRequest)
+                && actual.calls[1].user.contains(actual.output)
+                && actual.calls[1].grammar == nil)
+        check("Y02 actual consumer did not deliver grounded Cyril/ProductFlo/CEO fields",
+              actual.reply == groundedReply && actual.reply.contains("Cyril")
+                && actual.reply.contains("ProductFlo") && actual.reply.contains("CEO"))
+        print("TOOLLOOP_PRODUCTION_Y02 calls=\(actual.calls.count) recalls=\(actual.tools.filter { $0.toolID == "memory.recall" }.count) writes=\(actual.tools.filter { $0.risk > .read }.count)")
+
+        let completedTurn = await run(originalRequest, [
+            #"<tool_call>{"name":"memory.recall","arguments":{}}</tool_call>"#, originalRaw,
+        ], using: inputs)
+        check("Y02 actual completed-turn read was repeated by no-call consumer",
+              completedTurn.tools.map(\.toolID) == ["memory.recall"]
+                && completedTurn.calls.count == 2 && completedTurn.reply == originalRaw)
+        let completedSession = await run(originalRequest, [originalRaw], using: inputs, completedSession: true)
+        check("Y02 actual completed-session memory was read again",
+              completedSession.tools.isEmpty && completedSession.calls.count == 1
+                && completedSession.reply == originalRaw)
+        let unavailable = await run(originalRequest, [originalRaw], using: disabledInputs)
+        check("Y02 actual handle read disabled memory",
+              unavailable.tools.isEmpty && unavailable.calls.count == 1 && unavailable.reply == originalRaw)
+        let requestedSave = await run("Remember that my brother is Cyril", [originalRaw], using: inputs)
+        check("Y02 recall floor replaced or added a read to the existing explicit save",
+              requestedSave.tools.map(\.toolID) == ["memory.remember"] && requestedSave.calls.isEmpty)
+        for request in ["Forget what you know about me", "How do you remember things about me?",
+                        "Tell me how memory works", "What do you know about me and email it to Ana?"] {
+            let untouched = await run(request, [originalRaw], using: inputs)
+            check("Y02 actual handle changed advice/compound or executed a read/write: \(request)",
+                  untouched.tools.isEmpty && untouched.calls.count == 1 && untouched.reply == originalRaw)
+        }
         return []
     }
 

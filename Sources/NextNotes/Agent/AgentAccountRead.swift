@@ -16,7 +16,7 @@ enum AccountReadTools {
         case .files:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
-        case .meetings:
+        case .meetings, .memory:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
         default: return nil
@@ -47,7 +47,7 @@ enum AccountReadTools {
 ///
 /// So the three rules this file follows are the inverse of that design. **Narrow**: only the
 /// person's accounts and requested meeting reads; completed reads suppress another read through
-/// the same manifest. `.knowledge` / `.screen` / `.memory` stay outside this check.
+/// the same manifest. `.knowledge` / `.screen` stay outside this check; memory recall requires an explicit self-knowledge question.
 /// **The app reads, the model is not asked to**: instead of a re-plan
 /// note (result 1) the loop runs the class's own read through `ToolStepRunner` and the always-
 /// affordable final round answers from the real result. **Only on a final round** (result 3), so
@@ -56,13 +56,17 @@ enum AccountReadTools {
 /// Everything here is pure. The loop owns when to ask, and the executor owns what runs.
 enum AgentAccountRead {
     /// Account/meeting reads and an explicit named-file lookup, selected by the manifest.
-    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings, .files]
+    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings, .files, .memory]
 
     /// The read each class gets when the person asked about it in general, and the tool that
     /// performs it. `nil` for a class with no default read.
     static func defaultRead(for intent: AgentIntentClass, request: String,
                             now: Date = Date()) -> (toolID: String, arguments: [String: String])? {
         switch intent {
+        case .memory:
+            guard requestsMemoryRead(request) else { return nil }
+            // Empty query uses the existing bounded retained-fact recall.
+            return ("memory.recall", [:])
         case .mail:
             // P1-09's own default: the newest messages, which is what "summarise my emails"
             // means and what the empty query means. A query is the *model's* to write; this is
@@ -125,6 +129,7 @@ enum AgentAccountRead {
             // Selecting the mail class for "email it" permits a write; it does not
             // ask to read the inbox. Only an actual requested read supplies that floor.
             if intent == .mail, !requestsMailRead(request) { continue }
+            if intent == .memory, !requestsMemoryRead(request) { continue }
             guard let toolID = toolIDFor(intent) else { continue }
             if completedThisTurn.contains(toolID) { continue }
             if completedThisSession.contains(toolID) { continue }
@@ -138,7 +143,8 @@ enum AgentAccountRead {
             // 3. The reply is final — the loop only asks here, after a round that parsed no
             //    call, so a turn about to call `draft_email` never reaches this.
             // 4. The reply presents contents or offers/promises the requested read.
-            guard (intent != .files && presents(intent, reply))
+            guard (intent == .memory && requestsMemoryRead(request))
+                || (intent != .files && presents(intent, reply))
                 || (intent == .meetings && presentsRequestedMeetingContents(reply, request: request))
                 || (intent == .files && presentsRequestedFileAbsence(reply, request: request))
             else { continue }
@@ -150,6 +156,14 @@ enum AgentAccountRead {
             return (intent, read.toolID, read.arguments)
         }
         return nil
+    }
+
+    /// Explicit self-knowledge reads only; a memory save, forget, advice or hypothetical
+    /// question never acquires a read from selecting the memory class.
+    static func requestsMemoryRead(_ request: String) -> Bool {
+        let tokens = words(of: request)
+        return tokens == ["what", "do", "you", "know", "about", "me"]
+            || tokens == ["what", "do", "you", "remember", "about", "me"]
     }
 
     /// Only the explicit locate clause supplies a file name; a later email/write
