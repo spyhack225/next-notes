@@ -1112,16 +1112,15 @@ enum RealtimeAgentToolLoopSelfTest {
             AgentCapabilityInputs.allEnabled(
                 tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend),
             request: "summarise my emails")
-        func toolID(_ intent: AgentIntentClass) -> String? {
-            AccountReadTools.toolID(for: intent, manifest: manifest)
-        }
         func pending(
             _ reply: String, _ intents: Set<AgentIntentClass>, request: String = "summarise my emails",
             turn: [String] = [], session: Set<String> = []
         ) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
             AgentAccountRead.pendingRead(
                 reply: reply, selectedIntents: intents, completedThisTurn: turn,
-                completedThisSession: session, toolIDFor: toolID, request: request)
+                completedThisSession: session, toolIDFor: {
+                    AccountReadTools.toolID(for: $0, manifest: manifest, request: request)
+                }, request: request)
         }
 
         // G1 — the owner's own failure: three emails, senders and subjects, no read at all.
@@ -1180,6 +1179,33 @@ enum RealtimeAgentToolLoopSelfTest {
             || pending(offeredMeeting, [.meetings],
                        request: "What did we decide in the last meeting?")?.toolID != "meeting.decisions" {
             fail("P1: K01's exact meeting offer did not request decisions")
+        }
+        // Exact installed MiniCPM K01: an unsupported decision followed by a
+        // generic question still needs the requested read, not an offer repair.
+        let unsupportedMeetingContents = "We had a decision to keep things moving forward and to be honest about what we're not sure of. We also agreed to stop guessing and instead say so directly when something is unclear.\n\nIs there anything else you'd like to go over?"
+        if pending(unsupportedMeetingContents, [.meetings],
+                   request: "What did we decide in the last meeting?")?.toolID != "meeting.decisions" {
+            fail("P1: exact unsupported K01 content did not request decisions")
+        }
+        if pending(unsupportedMeetingContents, [.meetings],
+                   request: "What did we decide in the last meeting?", turn: ["meeting.decisions"]) != nil
+            || pending(unsupportedMeetingContents, [.meetings],
+                       request: "What did we decide in the last meeting?", session: ["meeting.decisions"]) != nil {
+            fail("P1: unsupported meeting content re-read completed decisions")
+        }
+        for reply in ["Which meeting do you mean?", "What decision do you mean?",
+                      "You should agree on a decision in the last meeting.",
+                      "We will decide that later.", "We haven't decided that yet.",
+                      "We decided? Which meeting do you mean?"] {
+            if pending(reply, [.meetings], request: "What did we decide in the last meeting?") != nil {
+                fail("P1: meeting clarification/advice/uncertainty admitted a read: \(reply)")
+            }
+        }
+        for request in ["Email the decisions from the last meeting to Ana",
+                        "How should we decide things in meetings?"] {
+            if pending(unsupportedMeetingContents, [.meetings], request: request) != nil {
+                fail("P1: meeting write/advice request admitted content read: \(request)")
+            }
         }
         if pending("Should I show your last meeting?", [.meetings],
                    request: "Show my last meeting")?.toolID != "meeting.recent_context" {
@@ -1354,11 +1380,14 @@ enum RealtimeAgentToolLoopSelfTest {
         let mailOffer = "I can check your last emails for you. Should I just show you the latest few messages?"
         let measuredM03 = "I can check your last emails for you. Should I just show you the most recent ones?"
         let meetingOffer = "I can check the decisions from the last meeting for you. Should I look at the decisions recorded in the most recent meeting?"
+        let unsupportedMeetingContents = "We had a decision to keep things moving forward and to be honest about what we're not sure of. We also agreed to stop guessing and instead say so directly when something is unclear.\n\nIs there anything else you'd like to go over?"
         let corpus = "P1 fixture: Marcus pricing sheet; Ana deck; launch October 14."
         for (name, request, offer, tool) in [
             ("M03 previous offer", "Summarize my last emails", mailOffer, "search_email"),
             ("M03 installed three-run reply", "Summarize my last emails", measuredM03, "search_email"),
             ("K01", "What did we decide in the last meeting?", meetingOffer, "meeting.decisions"),
+            ("K01 installed unsupported content", "What did we decide in the last meeting?",
+             unsupportedMeetingContents, "meeting.decisions"),
             ("recent emails", "Summarize my most recent emails", "I'll pull up your most recent emails.", "search_email"),
             ("mail read question", "Any new emails?", measuredM03, "search_email"),
             ("wrapped mail read question", "Can you tell me what is in my inbox?", measuredM03, "search_email"),

@@ -132,7 +132,9 @@ enum AgentAccountRead {
             // 3. The reply is final — the loop only asks here, after a round that parsed no
             //    call, so a turn about to call `draft_email` never reaches this.
             // 4. The reply presents contents or offers/promises the requested read.
-            guard presents(intent, reply) else { continue }
+            guard presents(intent, reply)
+                || (intent == .meetings && presentsRequestedMeetingContents(reply, request: request))
+            else { continue }
             guard let read = defaultRead(for: intent, request: request, now: now) else { continue }
             if let manifest {
                 guard let entry = manifest.entry(named: read.toolID),
@@ -169,6 +171,25 @@ enum AgentAccountRead {
             // email-as-write verb ("find the document to email to Marcus").
             let object = words(of: String(text[verb.upperBound...])).prefix(while: { $0 != "to" })
             if object.contains(where: { accountNouns(.mail).contains($0) }) { return true }
+        }
+        return false
+    }
+
+    /// A factual past-meeting claim belongs to the read the person just requested,
+    /// even when a generic closing question follows it. Advice/writes do not bind
+    /// this floor; reuse the existing meeting question routes, not a new intent map.
+    private static func presentsRequestedMeetingContents(_ reply: String, request: String) -> Bool {
+        let query = AgentDirectIntent.questionForm(request)
+        guard let route = AgentDirectIntent.questionRoutes.first(where: { $0.intent == .meetings }),
+              route.patterns.contains(where: {
+                  query.range(of: $0, options: .regularExpression)?.lowerBound == query.startIndex
+              }) else { return false }
+        for statement in reply.components(separatedBy: CharacterSet(charactersIn: ".!")) {
+            // A question is not an assertion, including "We decided?".
+            guard !statement.contains("?") else { continue }
+            let text = AgentDirectIntent.questionForm(statement)
+            if text.range(of: #"^(?:we|they) (?:decided|agreed|had (?:a |the )?decisions?)\b"#,
+                          options: .regularExpression) != nil { return true }
         }
         return false
     }
