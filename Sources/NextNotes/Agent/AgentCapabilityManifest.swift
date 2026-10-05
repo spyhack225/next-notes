@@ -405,7 +405,7 @@ struct AgentCapabilityManifest: Sendable, Equatable {
         case .meetings, .knowledge: ["look through past meetings and their notes"]
         case .reminders: ["set and list your reminders"]
         case .memory: ["remember what you tell me about yourself"]
-        case .screen: ["see and control Mac apps"]
+        case .screen: ["see and control Mac app windows"]
         case .browser: ["open and read web pages"]
         case .shell: ["run a command on your Mac, once you approve it"]
         case .skills: ["add a new skill, once you approve it"]
@@ -433,8 +433,9 @@ struct AgentCapabilityManifest: Sendable, Equatable {
                     ? "I don't have anything to look things up with yet."
                     : "Not much yet. " + notes.joined(separator: " ")
             }
-            let head = list.prefix(3).map { $0 }.joined(separator: ", ")
-            return "I can \(head), and more."
+            var seen: Set<String> = []
+            let spoken = list.filter { seen.insert($0).inserted }.joined(separator: ", ")
+            return "I can \(spoken)."
         }
         guard !list.isEmpty else {
             return notes.isEmpty

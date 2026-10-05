@@ -20,6 +20,9 @@ import Foundation
 enum AgentCapabilityManifestSelfTest {
     @MainActor
     static func run() async -> Bool {
+        if CommandLine.arguments.contains("--capability-voice-complete") {
+            return voiceCompleteness()
+        }
         var failures: [String] = []
         func check(_ name: String, _ condition: Bool) {
             if !condition { failures.append(name) }
@@ -547,6 +550,62 @@ enum AgentCapabilityManifestSelfTest {
         } else {
             print("CAPABILITY_MANIFEST_FAILED: \(failures.count) problems")
         }
+        return failures.isEmpty
+    }
+
+    /// Same manifest reply and snapshot consumer as the retained broad-list failure.
+    @MainActor
+    private static func voiceCompleteness() -> Bool {
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            if !condition { failures.append(name) }
+        }
+        let reader = AgentCapabilityManifest.Reader(
+            provider: .appLLM, displayName: "Fixture", contextTokens: 8_192)
+        let inputs = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: reader)
+        let full = AgentCapabilityManifestBuilder.build(inputs,
+            request: "can you list me all of your tasks, all of your capabilities and functionalities?")
+        let ready = Set(full.allowed.map(\.intent))
+        let abilities = AgentIntentClass.spokenOrder.filter { ready.contains($0) }
+            .flatMap { AgentCapabilityManifest.abilities(for: $0) }
+        let spoken = full.capabilitiesAnswer(voice: true)
+        let snapshot = VoiceCapabilitySnapshot.make(manifest: full,
+            availability: .init(accessibilityGranted: nil, workspace: .unknown))
+        check("broad reply omits ready abilities", !abilities.isEmpty && abilities.allSatisfy(spoken.contains))
+        check("actual snapshot omits ready abilities", abilities.allSatisfy(snapshot.spokenSummary.contains))
+        check("computer category omitted from broad reply", spoken.contains("window"))
+        check("ordinary concise-list bound changed", spoken.count < 400)
+        check("snapshot lost connection qualification", snapshot.spokenSummary.contains("haven't confirmed"))
+        check("snapshot claims an unconfirmed account", !snapshot.spokenSummary.contains("signed in"))
+        check("snapshot lost approval boundary", snapshot.spokenSummary.contains("wait for your approval"))
+
+        func restricted(_ intents: Set<AgentIntentClass>) -> AgentCapabilityManifest {
+            let allowed = full.allowed.filter { intents.contains($0.intent) }
+            return AgentCapabilityManifest(reader: full.reader, maxRisk: full.maxRisk,
+                allowed: allowed, unavailable: [], selected: allowed, selectedIntents: intents,
+                compactCatalogue: false, catalogueTokens: 0)
+        }
+        check("limited roster promises more", restricted([.calendar]).capabilitiesAnswer(voice: true)
+            == "I can check your calendar.")
+        let shared = restricted([.meetings, .knowledge]).capabilitiesAnswer(voice: true)
+        check("shared ability duplicated or promises more",
+            shared == "I can look through past meetings and their notes.")
+        let empty = restricted([]).capabilitiesAnswer(voice: true)
+        check("empty roster claims abilities", !empty.hasPrefix("I can ") && !empty.contains("and more"))
+        var disconnectedInputs = inputs
+        disconnectedInputs.workspace = .signedOut
+        disconnectedInputs.accessibilityGranted = false
+        let disconnected = AgentCapabilityManifestBuilder.build(disconnectedInputs, request: "")
+        let limited = disconnected.capabilitiesAnswer(voice: true)
+        for intent in [AgentIntentClass.calendar, .mail, .drive, .screen]
+            where !disconnected.allowed.contains(where: { $0.intent == intent }) {
+            check("unavailable class claimed: \(intent.rawValue)",
+                !AgentCapabilityManifest.abilities(for: intent).contains(where: limited.contains))
+        }
+        for problem in failures { SelfTest.diagnostic("CAPABILITY_VOICE_COMPLETE_WRONG: \(problem)") }
+        print("CAPABILITY_VOICE_COMPLETE failures=\(failures.count)")
+        print(failures.isEmpty ? "CAPABILITY_MANIFEST_OK" : "CAPABILITY_MANIFEST_FAILED")
         return failures.isEmpty
     }
 
