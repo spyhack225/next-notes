@@ -990,6 +990,80 @@ enum LiveEvalGrader {
                 "I have drafted the email for you. Do you want to send it now?"
             ], calls: fixtures.calls, trace: []) == .pass)
         } catch { failures.append("fixture arguments: valid draft refused") }
+        // R01_FIXTURE_COMMON: paste inside fixtureArgumentFailures, before final read control.
+        do {
+            let raw = "<tool_call>\n  {\"name\":\"schedule.create\",\"arguments\":{\"title\":\"Call the bank\",\"text\":\"Reminder to call the bank at 9 AM tomorrow.\",\"kind\":\"routine\",\"tools\":\"calendar\",\"model\":\"gpt-4o-mini\",\"plainEnglish\":\"True\",\"on\":\"True\",\"leadMinutes\":null,\"filter\":null,\"repeat\":\"Never\",\"time\":\"Tomorrow 09:00\",\"date\":\"2026-10-06\",\"inMinutes\":null,\"days\":null,\"day\":null,\"endsOn\":null,\"speak\":null},\"rationale\":\"User asked to remind them at 9 tomorrow to call the bank. I need to create a reminder for tomorrow (2026-10-06) at 9 AM.\"}\n</tool_call>"
+            let parsed = AgentToolCallParser.parse(raw, knownNames: ["schedule.create"])
+            let tool = AgentToolRegistry.shared.tool(named: "schedule.create")
+            let eval = LiveEvalCases.caseWithID(id: "R01")
+            let qualified = SelfTest.isRunning && eval != nil && parsed.calls.count == 1 && parsed.malformed.isEmpty
+                && tool.map { ToolCallValidation.problem(tool: $0, arguments: parsed.calls[0].arguments) == nil } == true
+            check("R01 native schedule parser/generic-boundary fixture unavailable", qualified)
+            if !qualified { SelfTest.diagnostic("TOOLLOOP_LIVE_R01_FIXTURE_INPUT_INVALID") }
+            else if let tool, let call = parsed.calls.first, let eval {
+                let now = SelfTest.parseFixtureClock("2026-10-05T09:00:00-04:00")!
+                let zone = TimeZone.current
+                let root = FileManager.default.temporaryDirectory
+                    .appendingPathComponent("NextNotesR01Fixture-\(UUID().uuidString)", isDirectory: true)
+                defer { try? FileManager.default.removeItem(at: root) }
+                let store = ScheduleStore(directory: root)
+                let scheduler = AgentScheduler(store: store, system: RoutineAuthoritySelfTest.NoSystem(),
+                    deliverer: RoutineAuthoritySelfTest.QuietDeliverer(),
+                    environment: RoutineAuthoritySelfTest.AbsentEnvironment(),
+                    settings: { ScheduleSettingsSnapshot(enabled: true, quietStart: nil,
+                                                         quietEnd: nil, speech: .never) },
+                    timeZone: { zone })
+                var realError: String?
+                do { _ = try await ScheduleToolExecutor.run(tool, arguments: call.arguments,
+                    scheduler: scheduler, now: now, timeZone: zone) }
+                catch { realError = error.localizedDescription }
+                check("R01 exact native false-positive no longer rejected by actual store producer",
+                      realError?.contains("Tomorrow 09:00") == true
+                        && ScheduleStore(directory: root).schedules.isEmpty)
+                let scheduleFixtures = LiveEvalFixtures(now: now)
+                let savedFake = AgentToolExecutor.fakeForTesting
+                AgentToolExecutor.fakeForTesting = scheduleFixtures.run
+                defer { AgentToolExecutor.fakeForTesting = savedFake }
+                var rejected = false
+                do { _ = try await AgentToolExecutor.run(tool.id, arguments: call.arguments,
+                    policy: .denyMutations, promptIfNeeded: false) }
+                catch { rejected = error.localizedDescription == realError }
+                check("R01 live fixture admitted the actual producer's rejected native payload", rejected)
+                check("R01 live fixture logged work/result for rejected native payload",
+                      scheduleFixtures.calls.isEmpty && scheduleFixtures.log.firstResult(for: 0) == nil)
+                check("R01 original success wording still passes without a valid executed call",
+                      grade(case: eval, replies: ["Good. A reminder to call the bank at 9 tomorrow is set."],
+                          calls: scheduleFixtures.calls, trace: []) != .pass)
+                let valid = ["title": "Call the bank", "text": "Call the bank", "kind": "reminder",
+                             "date": "2026-10-06", "time": "09:00"]
+                for (name, arguments, runnable) in [
+                    ("valid reminder", valid, true),
+                    ("valid daily routine", valid.merging(["kind": "routine", "repeat": "daily", "model": "auto"]) { _, new in new }, true),
+                    ("valid trigger", ["title": "Call note", "text": "Read call notes", "kind": "trigger", "on": "call_started"], true),
+                    ("invalid time", valid.merging(["time": "Tomorrow 09:00"]) { _, new in new }, false),
+                    ("invalid kind", valid.merging(["kind": "weekly"]) { _, new in new }, false),
+                    ("invalid model", valid.merging(["kind": "routine", "model": "gpt-4o-mini"]) { _, new in new }, false),
+                    ("invalid trigger", valid.merging(["kind": "trigger", "on": "True"]) { _, new in new }, false),
+                    ("invalid end", valid.merging(["endsOn": "tomorrowish"]) { _, new in new }, false),
+                ] {
+                    scheduleFixtures.beginCase()
+                    var accepted = false
+                    do {
+                        let result = try await AgentToolExecutor.run(tool.id, arguments: arguments,
+                            policy: .denyMutations, promptIfNeeded: false)
+                        accepted = true
+                        check("R01 runnable fixture summary changed: \(name)",
+                              result.summary == scheduleFixtures.summary(for: tool.id, arguments: arguments))
+                    } catch { }
+                    check("R01 schedule fixture preflight disagreed with real field contracts: \(name)", accepted == runnable)
+                    check("R01 invalid field recorded work/result: \(name)",
+                          runnable ? scheduleFixtures.calls.count == 1 && scheduleFixtures.log.firstResult(for: 0) != nil
+                            : scheduleFixtures.calls.isEmpty && scheduleFixtures.log.firstResult(for: 0) == nil)
+                }
+            }
+        }
+        // R01_FIXTURE_END_COMMON
+
         fixtures.beginCase()
         do {
             _ = try await AgentToolExecutor.run("search_email", arguments: ["query": "in:inbox"],

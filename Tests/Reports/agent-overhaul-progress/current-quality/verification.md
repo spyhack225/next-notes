@@ -8,7 +8,7 @@ Tested code: f1b796a. Installed binary SHA256 `2b3c3e8a4025116e9f0e0df12f5c1d561
 | Full, two consecutive runs | 27/30 and 25/30 |
 | Owner cases | 8/10 in both runs |
 
-The numerical quick/full bars are met on this installed build; broader readiness remains open. The third quick run refuses F03 after reading pricing evidence. Both full runs fail F02 current projects, N01 identity roles and N03 brother recall; the second additionally fails R01 reminder completion and R03 task-list capability. Owner O01 and O08 fail both runs.
+The numerical quick/full bars are met on this installed build; broader readiness remains open. The third quick run refuses F03 after reading pricing evidence. Both full runs fail F02 current projects, N01 identity roles and N03 general knowledge (Australia’s capital); the second additionally fails R01 reminder completion and R03 task-list capability. Owner O01 and O08 fail both runs.
 
 Inspection also found false-positive PASSes: K03 substitutes Serge for Sarah despite full source evidence; M02 calls the September 26 message “new”; first-full R01 emits a malformed routine/time/repeat payload accepted by the synthetic scheduler. These are unresolved consumer failures, not product acceptance. Fixture fidelity is being corrected against the real scheduling parser; no grader threshold or corpus was changed. Full/owner, floor, voice latency and physical interaction acceptance remain open.
 
