@@ -120,6 +120,7 @@ final class ModelResidencyGuardian: @unchecked Sendable {
     private var pressure = ModelResidencyPolicy.PressureSnapshot(
         level: .normal, generation: 0, changedAt: Date())
     private var releaseInFlight = false
+    private var floorPressureObservation: (@Sendable (ModelResidencyPolicy.PressureSnapshot) -> Void)?
     private let releaseForTesting: (@Sendable () async -> Void)?
 
     init(releaseForTesting: (@Sendable () async -> Void)? = nil) {
@@ -130,6 +131,27 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         lock.lock()
         defer { lock.unlock() }
         return pressure
+    }
+
+    /// One floor-only observation, seeded/disposed under the existing state lock.
+    /// Callback is synchronous local metadata only: never reenter this guardian.
+    func beginFloorPressureObservation(
+        _ observer: @escaping @Sendable (ModelResidencyPolicy.PressureSnapshot) -> Void
+    ) -> Bool {
+        guard releaseForTesting != nil ||
+            (SelfTest.requested == "--selftest-llm-metal" && CommandLine.arguments.contains("--floor")) else { return false }
+        lock.lock()
+        defer { lock.unlock() }
+        guard floorPressureObservation == nil else { return false }
+        floorPressureObservation = observer
+        observer(pressure)
+        return true
+    }
+
+    func endFloorPressureObservation() {
+        lock.lock()
+        floorPressureObservation = nil
+        lock.unlock()
     }
 
     /// Install before optional loads, not only after the first model is opened.
@@ -175,6 +197,8 @@ final class ModelResidencyGuardian: @unchecked Sendable {
             pressure = .init(level: level, generation: pressure.generation &+ 1, changedAt: Date())
             Log.llm.info("residency: pressure=\(level.rawValue, privacy: .public)")
         }
+        // Same lock serializes seed/events/disposal; callback never enters a model owner.
+        floorPressureObservation?(pressure)
         guard level != .normal, !releaseInFlight else { return false }
         releaseInFlight = true
         return true

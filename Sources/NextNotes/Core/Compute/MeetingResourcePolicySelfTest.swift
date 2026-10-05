@@ -8,6 +8,38 @@ enum MeetingResourcePolicySelfTest {
         func expect(_ value: Bool, _ message: String) {
             if !value { failures.append(message) }
         }
+        // Worst delivered pressure must survive warning -> normal without a consumer poll.
+        let pressureHistory = LockedBox<[ModelResidencyPolicy.PressureLevel]>([])
+        let observedGuardian = ModelResidencyGuardian(releaseForTesting: {})
+        expect(observedGuardian.beginFloorPressureObservation { snapshot in
+            pressureHistory.value = pressureHistory.value + [snapshot.level]
+        }, "private pressure observation did not begin")
+        expect(pressureHistory.value == [.normal], "observer did not seed initial state")
+        observedGuardian.receive(.warning)
+        observedGuardian.receive(.normal)
+        expect(observedGuardian.snapshot.level == .normal, "original transient-pressure fixture changed")
+        expect(pressureHistory.value == [.normal, .warning, .normal], "transient warning lost before consumer observation")
+        let refusedHistory = LockedBox<Int>(0)
+        expect(!observedGuardian.beginFloorPressureObservation { _ in
+            refusedHistory.value = refusedHistory.value + 1
+        }, "active pressure observation replaced")
+        expect(refusedHistory.value == 0, "refused observer received a seed")
+        observedGuardian.endFloorPressureObservation()
+        let disposedCount = pressureHistory.value.count
+        observedGuardian.receive(.normal)
+        expect(pressureHistory.value.count == disposedCount, "pressure callback ran after disposal")
+        observedGuardian.receive(.critical)
+        let seededHistory = LockedBox<[ModelResidencyPolicy.PressureLevel]>([])
+        expect(observedGuardian.beginFloorPressureObservation { snapshot in
+            seededHistory.value = seededHistory.value + [snapshot.level]
+        }, "pressure observer could not rearm after disposal")
+        expect(seededHistory.value == [.critical], "existing critical state not seeded atomically")
+        observedGuardian.endFloorPressureObservation()
+        observedGuardian.receive(.normal)
+        // No source or model effect: ordinary guardian registration must be refused.
+        let ordinaryGuardian = ModelResidencyGuardian()
+        expect(!ordinaryGuardian.beginFloorPressureObservation { _ in }, "non-floor production observer admitted")
+
         let guardian = ModelResidencyGuardian(releaseForTesting: {})
         let runtime = NotesModelRuntime(
             spec: NotesModels.spec, gpuLayers: 0, pressureSnapshot: { guardian.snapshot })
@@ -83,6 +115,10 @@ enum MeetingResourcePolicySelfTest {
             await releases.increment()
             await releaseGate.park()
         })
+        let coalescedHistory = LockedBox<[ModelResidencyPolicy.PressureLevel]>([])
+        expect(coalesced.beginFloorPressureObservation { snapshot in
+            coalescedHistory.value = coalescedHistory.value + [snapshot.level]
+        }, "coalesced pressure observation did not begin")
         coalesced.receive(.warning)
         for _ in 0..<100 {
             if await releaseGate.started { break }
@@ -95,6 +131,12 @@ enum MeetingResourcePolicySelfTest {
         expect(await releases.count == 1, "concurrent pressure spawned duplicate release pass")
         coalesced.receive(.normal)
         expect(coalesced.snapshot.allowsOptionalWork, "release wait blocked normal admission")
+        expect(coalescedHistory.value == [.normal, .warning, .critical, .warning, .normal],
+               "held release lost delivered peak/normal pressure events")
+        coalesced.endFloorPressureObservation()
+        let coalescedDisposedCount = coalescedHistory.value.count
+        coalesced.receive(.normal)
+        expect(coalescedHistory.value.count == coalescedDisposedCount, "held release callback survived disposal")
         await releaseGate.release()
 
         // Required work still reaches its real loader; use an absent file so no native

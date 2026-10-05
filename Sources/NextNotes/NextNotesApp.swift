@@ -4301,6 +4301,12 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             wrongPrefill = prefill; wrongPrefill.errorClass = "other"
             check("failed prefill accepted", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
             check("foreign turn qualified prefill", !floorPrefillQualified(row: prefill, turnID: UUID()))
+            check("thermal clock lost first independent deadline", floorThermalNextTick(elapsed: 0) == 1)
+            check("thermal clock shifted first deadline", floorThermalNextTick(elapsed: 9.5) == 1)
+            check("thermal clock reused elapsed deadline", floorThermalNextTick(elapsed: 10) == 2)
+            check("late thermal wake backfilled missed samples", floorThermalNextTick(elapsed: 35) == 4)
+            check("negative thermal clock admitted", floorThermalNextTick(elapsed: -1) == nil)
+            check("nonfinite thermal clock admitted", floorThermalNextTick(elapsed: .infinity) == nil)
             var noTTFT = row
             noTTFT.ttftMs = nil
             check("missing TTFT accepted", !floorUsageProblems(rows: [noTTFT], turnIDs: [turn], expectedRuns: 1).isEmpty)
@@ -7663,25 +7669,53 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             .filter { $0.activationPolicy == .regular }
             .compactMap(\.bundleIdentifier).sorted().joined(separator: ",")
         ModelResidencyPolicy.installPressureObserver()
-        var pressureWorstObserved = ModelResidencyPolicy.pressureSnapshot.level
-        var pressureGeneration = ModelResidencyPolicy.pressureSnapshot.generation
-        var pressureHistoryGap = false
-        var thermalSamples = ["0:\(before.thermalState.rawValue)"]
+        // Writes are serialized by the guardian lock; callback is local metadata only.
+        let pressureHistory = LockedBox<(worst: ModelResidencyPolicy.PressureLevel,
+            observations: Int, generation: UInt64, gap: Bool)>((.normal, 0, 0, false))
+        var pressureObservationStarted = ModelResidencyGuardian.shared.beginFloorPressureObservation { snapshot in
+            var history = pressureHistory.value
+            if history.observations > 0 && snapshot.generation != history.generation &&
+                snapshot.generation != (history.generation &+ 1) { history.gap = true }
+            if snapshot.level == .critical || (snapshot.level == .warning && history.worst == .normal) {
+                history.worst = snapshot.level
+            }
+            history.observations += 1
+            history.generation = snapshot.generation
+            pressureHistory.value = history
+        }
+        defer {
+            if pressureObservationStarted { ModelResidencyGuardian.shared.endFloorPressureObservation() }
+        }
         let measurementBegan = ContinuousClock.now
-        var lastThermal = measurementBegan
-        func observe() {
-            let pressure = ModelResidencyPolicy.pressureSnapshot
-            if pressure.generation > pressureGeneration + 1 { pressureHistoryGap = true }
-            pressureGeneration = pressure.generation
-            if pressure.level == .critical ||
-                (pressure.level == .warning && pressureWorstObserved == .normal) {
-                pressureWorstObserved = pressure.level
+        let thermalReadings = LockedBox<[(tick: Int, actual: Double, state: Int, lateness: Double, skipped: Int)]>([
+            (0, 0, ProcessInfo.processInfo.thermalState.rawValue, 0, 0)
+        ])
+        // This diagnostic owner runs independently of MainActor/model stream pieces.
+        let thermalOwner: Task<Void, Error> = Task.detached(priority: .utility) {
+            let clock = ContinuousClock()
+            var tick = 1
+            while true {
+                try Task.checkCancellation()
+                try await clock.sleep(until: measurementBegan.advanced(by: .seconds(tick * 10)))
+                try Task.checkCancellation()
+                let elapsed = measurementBegan.duration(to: clock.now).components
+                let actual = Double(elapsed.seconds) + Double(elapsed.attoseconds) / 1e18
+                guard let nextTick = Self.floorThermalNextTick(elapsed: actual) else {
+                    throw NSError(domain: "NextNotes.Floor.Thermal", code: 1)
+                }
+                let state = ProcessInfo.processInfo.thermalState.rawValue
+                try Task.checkCancellation()
+                thermalReadings.value = thermalReadings.value + [
+                    (tick, actual, state, max(0, actual - Double(tick * 10)), max(0, nextTick - tick - 1))
+                ]
+                // Never backfill missed deadlines with invented thermal samples.
+                tick = max(tick + 1, nextTick)
             }
-            let now = ContinuousClock.now
-            if lastThermal.duration(to: now) >= .seconds(10) {
-                thermalSamples.append("\(Self.floorSeconds(measurementBegan.duration(to: now))):\(ProcessInfo.processInfo.thermalState.rawValue)")
-                lastThermal = now
-            }
+        }
+        func stopThermal() async -> Bool {
+            thermalOwner.cancel()
+            if case .failure(let error) = await thermalOwner.result { return error is CancellationError }
+            return false // The owned infinite sampler must settle through cancellation.
         }
         // Existing artifact proof is cheap; a legacy usable row is hashed once for this
         // diagnostic without registering it or changing a saved role/selection.
@@ -7710,7 +7744,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 try await TranscriptionQueue.shared.warmUp()
             }
         } catch {
-            writeSelfTest("LLM_METAL_FAILED: floor input unavailable: \(error.localizedDescription)")
+            let thermalJoined = await stopThermal()
+            writeSelfTest("LLM_METAL_FAILED: floor input unavailable: \(error.localizedDescription); thermal_joined=\(thermalJoined)")
             SelfTest.failed = true
             return
         }
@@ -7721,8 +7756,9 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let selectedSpec = await runtime.activeSpec()
         guard Self.floorArtifactSelected(requested: model.fileURL, active: selectedSpec.fileURL) else {
             _ = await runtime.finishTermination()
+            let thermalJoined = await stopThermal()
             SelfTest.failed = true
-            writeSelfTest("LLM_METAL_FAILED: requested floor artifact was not selected")
+            writeSelfTest("LLM_METAL_FAILED: requested floor artifact was not selected; thermal_joined=\(thermalJoined)")
             return
         }
         let provider = LlamaLLMProvider(modelName: model.id, runtime: runtime)
@@ -7739,8 +7775,9 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             guard reset && unloaded else { throw LlamaError.notLoaded }
         } catch {
             _ = await runtime.finishTermination()
+            let thermalJoined = await stopThermal()
             SelfTest.failed = true
-            writeSelfTest("LLM_METAL_FAILED: exact2000 preparation/cold reset: " + error.localizedDescription)
+            writeSelfTest("LLM_METAL_FAILED: exact2000 preparation/cold reset: " + error.localizedDescription + "; thermal_joined=\(thermalJoined)")
             return
         }
         let prefillTurnID = UUID()
@@ -7772,7 +7809,6 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 var firstText = false
                 for try await piece in stream where !piece.isEmpty {
                     if !firstText { recorder.noteFirstToken(); firstText = true }
-                    observe()
                 }
                 recorder.noteModelEnd()
                 if !firstText { throw LlamaError.decodeFailed }
@@ -7801,7 +7837,6 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     // iteration stays on MainActor and does not transfer local telemetry.
                     for try await piece in stream where !piece.isEmpty {
                         if firstText == nil { firstText = .now; recorder.noteFirstToken() }
-                        observe()
                     }
                     recorder.noteModelEnd()
                     guard let start = firstText else { throw LlamaError.decodeFailed }
@@ -7840,7 +7875,17 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
         let modelJoined = await runtime.finishTermination()
         if !modelJoined { failures.append("private model did not join") }
-        observe()
+        let thermalJoined = await stopThermal()
+        if !thermalJoined { failures.append("thermal sampler did not join by expected cancellation") }
+        if pressureObservationStarted {
+            ModelResidencyGuardian.shared.endFloorPressureObservation()
+            pressureObservationStarted = false
+        }
+        let pressureObservation = pressureHistory.value
+        let pressureWorstObserved = pressureObservation.worst
+        let pressureHistoryGap = pressureObservation.gap
+        let thermalSamples = thermalReadings.value
+        if pressureObservation.observations == 0 { failures.append("pressure event observer unavailable") }
         UsageLog.shared.flush()
         let rows = UsageLog.shared.load().filter {
             $0.pass == "floor" && $0.turnID.map { turnIDs.contains($0) } == true
@@ -7880,6 +7925,9 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let after = HardwareProfile.current()
         if pressureWorstObserved != .normal { contention.append("pressure") }
         if after.thermalState != .nominal { contention.append("thermal-end") }
+        for sample in thermalSamples {
+            writeSelfTest("LLM_FLOOR_THERMAL: scheduled_s=\(sample.tick * 10) actual_s=\(String(format: "%.4f", sample.actual)) state=\(sample.state) lateness_s=\(String(format: "%.4f", sample.lateness)) skipped_deadlines=\(sample.skipped) clock=ContinuousClock")
+        }
         // Preserve the actual joined metadata rows before harness cleanup removes
         // its isolated log. No second log/file/store, and no rounded counter rebuild.
         do {
@@ -7911,7 +7959,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         for row in rows {
             writeSelfTest("LLM_FLOOR_ROUND: condition=\(condition) status=\(status) row=\(row.id) turn=\(row.turnID?.uuidString ?? "NA") round=\(row.round ?? -1) model=\(row.modelID) tokens=\(row.completionTokens ?? -1) estimated=\(row.countsEstimated.map { String($0) } ?? "NA") ttft_ms=\(row.ttftMs.map(String.init) ?? "NA") total_ms=\(row.totalMs) decode_tps=\(row.tokensPerSec.map { String(format: "%.2f", $0) } ?? "NA") warm=\(row.warm.map { String($0) } ?? "NA") load_ms=\(row.loadMs.map(String.init) ?? "NA") cached=\(row.cachedTokens.map(String.init) ?? "NA")")
         }
-        writeSelfTest("LLM_FLOOR: status=\(status) condition=\(condition) model=\(model.id) artifact_sha256=\(artifactDigest) artifact_proof=\(artifactProof) artifact_bytes=\(model.bytes) executable_sha256=\(executableDigest) chip=\(before.chipName) hardware=\(before.modelIdentifier) memory_bytes=\(before.memoryBytes) free_disk_start=\(before.freeDiskBytes) free_disk_end=\(after.freeDiskBytes) power=\(power) low_power=\(before.isLowPowerModeEnabled) load=\(loadKnown ? load.map { String(format: "%.2f", $0) }.joined(separator: ",") : "NA") requested_runs=\(runs) actual_rounds=\(turnIDs.count) fixed256_10=\(runs == 10 && turnIDs.count >= 10 && sampleProblems.isEmpty) fixed_tokens=256 decode_median=\(median) decode_p10=\(p10) peak_rss_bytes=\(Self.peakResidentBytes()) pressure_worst_observed=\(pressureWorstObserved.rawValue) pressure_history_gap=\(pressureHistoryGap) pressure_continuous=UNMEASURED swap_start=\(swapBefore.map(String.init) ?? "NA") swap_end=\(swapAfter.map(String.init) ?? "NA") swap_growth=\(swapGrowth.map(String.init) ?? "NA") thermal_samples=\(thermalSamples.joined(separator: ",")) asr_workload_qualified=\(asrWorkloadQualified) asr_native_returned=\(calls.count) asr_native_success=\(successful.count) asr_native_failed=\(calls.count - successful.count) asr_frames=\(asrFrames) decode_overlap_runs=\(overlaps) model_joined=\(modelJoined) prefill_tps_ttft=\(prefillRate) sustain_requested_s=\(sustainSeconds.map { String($0) } ?? "NA") sustain_actual_s=\(Self.floorSeconds(sustainElapsed)) C2=UNMEASURED thermal_sampling=on_text_10s external_contention=UNKNOWN_REQUIRES_AUDIT open_apps=\(apps) contention=\(contention.joined(separator: ","))")
+        writeSelfTest("LLM_FLOOR: status=\(status) condition=\(condition) model=\(model.id) artifact_sha256=\(artifactDigest) artifact_proof=\(artifactProof) artifact_bytes=\(model.bytes) executable_sha256=\(executableDigest) chip=\(before.chipName) hardware=\(before.modelIdentifier) memory_bytes=\(before.memoryBytes) free_disk_start=\(before.freeDiskBytes) free_disk_end=\(after.freeDiskBytes) power=\(power) low_power=\(before.isLowPowerModeEnabled) load=\(loadKnown ? load.map { String(format: "%.2f", $0) }.joined(separator: ",") : "NA") requested_runs=\(runs) actual_rounds=\(turnIDs.count) fixed256_10=\(runs == 10 && turnIDs.count >= 10 && sampleProblems.isEmpty) fixed_tokens=256 decode_median=\(median) decode_p10=\(p10) peak_rss_bytes=\(Self.peakResidentBytes()) pressure_worst_observed=\(pressureWorstObserved.rawValue) pressure_history_gap=\(pressureHistoryGap) pressure_continuous=\(pressureObservation.observations > 0 ? "GUARDIAN_EVENTS" : "UNAVAILABLE") pressure_observations=\(pressureObservation.observations) swap_start=\(swapBefore.map(String.init) ?? "NA") swap_end=\(swapAfter.map(String.init) ?? "NA") swap_growth=\(swapGrowth.map(String.init) ?? "NA") thermal_samples=\(thermalSamples.map { "\(String(format: "%.2f", $0.actual)):\($0.state)" }.joined(separator: ",")) thermal_skipped_deadlines=\(thermalSamples.reduce(0) { $0 + $1.skipped }) thermal_joined=\(thermalJoined) asr_workload_qualified=\(asrWorkloadQualified) asr_native_returned=\(calls.count) asr_native_success=\(successful.count) asr_native_failed=\(calls.count - successful.count) asr_frames=\(asrFrames) decode_overlap_runs=\(overlaps) model_joined=\(modelJoined) prefill_tps_ttft=\(prefillRate) sustain_requested_s=\(sustainSeconds.map { String($0) } ?? "NA") sustain_actual_s=\(Self.floorSeconds(sustainElapsed)) C2=UNMEASURED thermal_sampling=independent_10s external_contention=UNKNOWN_REQUIRES_AUDIT open_apps=\(apps) contention=\(contention.joined(separator: ","))")
         if failures.isEmpty {
             writeSelfTest("LLM_METAL_OK: \(status) floor execution diagnostic only; full floor acceptance remains open")
         } else {
@@ -7937,6 +7985,12 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             }
         }
         throw LlamaError.tokenizationFailed
+    }
+
+    /// Next future anchored ten-second deadline; no retroactive synthetic samples.
+    private nonisolated static func floorThermalNextTick(elapsed: Double) -> Int? {
+        guard elapsed.isFinite, elapsed >= 0, elapsed / 10 < Double(Int.max) else { return nil }
+        return Int(elapsed / 10) + 1
     }
 
     private static func floorDurationSeconds(_ duration: Duration) -> Double {
