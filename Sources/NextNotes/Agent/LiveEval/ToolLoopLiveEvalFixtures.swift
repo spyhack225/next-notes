@@ -63,9 +63,11 @@ final class LiveEvalCallLog: @unchecked Sendable {
 final class LiveEvalFileRetrieval: FileRetrieving, @unchecked Sendable {
     let log: LiveEvalCallLog
     private let root: String
+    private let now: Date
 
-    init(log: LiveEvalCallLog) {
+    init(log: LiveEvalCallLog, now: Date = Date()) {
         self.log = log
+        self.now = now
         root = FileManager.default.temporaryDirectory
             .appendingPathComponent("NextNotesToolloopLiveEval", isDirectory: true).path
     }
@@ -80,8 +82,8 @@ final class LiveEvalFileRetrieval: FileRetrieving, @unchecked Sendable {
             isDirectory: false,
             category: .pdf,
             size: 248_000,
-            modifiedAt: Date().addingTimeInterval(-3 * 24 * 60 * 60),
-            accessedAt: Date(),
+            modifiedAt: now.addingTimeInterval(-3 * 24 * 60 * 60),
+            accessedAt: now,
             root: root + "/Documents",
             depth: 3)
     }
@@ -314,8 +316,8 @@ final class LiveEvalFixtures: @unchecked Sendable {
     private let today: String
     private let tomorrow: String
 
-    init(now: Date = Date()) {
-        files = LiveEvalFileRetrieval(log: log)
+    init(now: Date = SelfTest.fixtureClock ?? Date()) {
+        files = LiveEvalFileRetrieval(log: log, now: now)
         mailbox = LiveEvalMailbox(messages: Self.mail(now: now), now: now)
         let formatter = DateFormatter()
         formatter.calendar = Calendar.current
@@ -389,7 +391,7 @@ final class LiveEvalFixtures: @unchecked Sendable {
         arguments[name]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
-    private func summary(for toolID: String, arguments: [String: String]) -> String {
+    func summary(for toolID: String, arguments: [String: String]) -> String {
         switch toolID {
         case "get_agenda":
             let date = value(arguments, "date")

@@ -304,7 +304,7 @@ enum LiveEvalGrader {
         }
     }
 
-    private static func todaySpellings(now: Date = Date()) -> [String] {
+    private static func todaySpellings(now: Date = SelfTest.fixtureClock ?? Date()) -> [String] {
         // No bare day-of-month. "27" is inside any date the 27th of a month appears in, so
         // it would turn a wrong answer into a pass once a month — and a mention that weak is
         // not what "names today" means anyway. Every form here carries the month or the
@@ -407,7 +407,7 @@ enum LiveEvalGrader {
     }
 
     /// `yyyy-MM-dd` in the local time zone, the same string the fixtures use.
-    static func dayString(offset: Int = 0, now: Date = Date()) -> String {
+    static func dayString(offset: Int = 0, now: Date = SelfTest.fixtureClock ?? Date()) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar.current
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -794,7 +794,34 @@ enum LiveEvalGrader {
         SelfTest.diagnostic("TOOLLOOP_LIVE_MAIL: \(rows("in:inbox").count) rows, "
             + "\(mailboxProblems) problem(s)")
 
-        return misclassified == 0 && mailboxProblems == 0
+        var instrumentFailures = ToolLoopLiveEval.instrumentSelfTestFailures()
+        if let fixed = SelfTest.parseFixtureClock("2026-10-04T12:34:56.789Z") {
+            let fixtures = LiveEvalFixtures(now: fixed)
+            let day = dayString(now: fixed)
+            let next = dayString(offset: 1, now: fixed)
+            let prompt = AgentNow.render(AgentNowFacts(), shape: .dateOnly, now: fixed,
+                                         zone: .current, cloud: false, cloudConsent: false)
+            if !fixtures.summary(for: "get_agenda", arguments: ["date": day])
+                .hasPrefix("On \(day):")
+                || !fixtures.summary(for: "get_agenda", arguments: ["date": next])
+                    .hasPrefix("On \(next):")
+                || !todaySpellings(now: fixed).contains(day) || !prompt.contains(day) {
+                instrumentFailures.append("prompt/fixture/grader dates disagree")
+            }
+            let hit = try? fixtures.files.find(query: "pricing", category: nil, folder: nil,
+                                               modifiedAfter: nil, limit: 1).first
+            if hit?.accessedAt != fixed
+                || hit?.modifiedAt != fixed.addingTimeInterval(-3 * 24 * 60 * 60) {
+                instrumentFailures.append("file fixture clock drifted")
+            }
+        } else {
+            instrumentFailures.append("fixed clock could not be parsed")
+        }
+        for failure in instrumentFailures {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_INSTRUMENT_WRONG: \(failure)")
+        }
+        SelfTest.diagnostic("TOOLLOOP_LIVE_INSTRUMENT: \(instrumentFailures.count) problem(s)")
+        return misclassified == 0 && mailboxProblems == 0 && instrumentFailures.isEmpty
     }
 
     private static func call(

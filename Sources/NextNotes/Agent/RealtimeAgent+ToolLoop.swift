@@ -2295,7 +2295,7 @@ extension RealtimeAgent {
                     toolIDFor: { intent in
                         AccountReadTools.toolID(for: intent, manifest: manifest)
                     },
-                    request: currentRequest, now: Date()) {
+                    request: currentRequest, now: SelfTest.fixtureClock ?? Date()) {
                     speech?.cancel()
                     let call = AgentToolCall(name: pending.toolID,
                                              arguments: pending.arguments,

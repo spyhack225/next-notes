@@ -180,6 +180,22 @@ enum SelfTest {
         return next
     }
 
+    /// One explicit live-eval clock for prompt rendering, tool fixtures and grading.
+    /// Other self-tests and normal application calls keep their live clock.
+    static var fixtureClock: Date? {
+        guard requested == "--selftest-toolloop-live",
+              let value = value(after: "--fixture-now") else { return nil }
+        return parseFixtureClock(value)
+    }
+
+    static func parseFixtureClock(_ value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: value) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: value)
+    }
+
     /// How long a self-test may run before it is declared hung.
     ///
     /// A self-test that never finishes never fails, because the process falls through into

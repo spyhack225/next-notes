@@ -263,7 +263,8 @@ final class ToolStepRunner: ToolStepExecuting {
         }
         // Bound by this code, not taken from the model: what the user said this turn.
         let arguments = AgentToolLoop.groundedArguments(
-            for: canonicalID, proposed: call.arguments, request: request)
+            for: canonicalID, proposed: call.arguments, request: request,
+            now: SelfTest.fixtureClock ?? Date())
         // P1-25: an id has to come from something the person was shown or something they said.
         // This sits **before** the repeated-call signature and before the executor, and that
         // position is the whole point: on 20 September an `append_doc` was approved with

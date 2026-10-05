@@ -33,6 +33,7 @@ enum ToolLoopLiveEval {
 
     struct Options {
         var model: String?
+        var fixtureNow: String?
         var contextTokens: Int?
         var only: [String]?
         var report: String?
@@ -75,8 +76,23 @@ enum ToolLoopLiveEval {
 
     // MARK: - Entry
 
+    private static func clockFailure(options: Options, clockRequested: Bool) -> String? {
+        if clockRequested, options.fixtureNow.flatMap(SelfTest.parseFixtureClock) == nil {
+            return "--fixture-now requires an ISO8601 date and time"
+        }
+        if options.fixtureNow != nil, options.model == nil || options.model == "agent" {
+            return "a pinned fixture clock requires an explicit --model"
+        }
+        return nil
+    }
+
     static func runSelfTest() async -> Bool {
         let options = parseOptions()
+        if let failure = clockFailure(
+            options: options, clockRequested: CommandLine.arguments.contains("--fixture-now")) {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: \(failure)")
+            return false
+        }
         if options.quick, options.only != nil {
             SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: --quick and --only are exclusive")
             return false
@@ -89,6 +105,9 @@ enum ToolLoopLiveEval {
         guard !selected.isEmpty else {
             SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: no cases selected")
             return false
+        }
+        if let pin = options.fixtureNow {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_CLOCK: \(pin) timezone=\(TimeZone.current.identifier)")
         }
         if options.needleFirst && !NeedleModels.isDownloaded {
             SelfTest.diagnostic("TOOLLOOP_LIVE_ABSENT: Needle 3 is not installed")
@@ -216,6 +235,7 @@ enum ToolLoopLiveEval {
     private static func parseOptions() -> Options {
         var options = Options()
         options.model = SelfTest.value(after: "--model")
+        options.fixtureNow = SelfTest.value(after: "--fixture-now")
         options.contextTokens = SelfTest.value(after: "--context-tokens")
             .flatMap(Int.init).flatMap { $0 > 0 ? $0 : nil }
         if let only = SelfTest.value(after: "--only") {
@@ -672,6 +692,17 @@ enum ToolLoopLiveEval {
 
     // MARK: - Report
 
+    /// System/user are the character counts supplied by the existing planner trace.
+    /// Raw completion text remains complete for every round, including earlier turns.
+    private struct RawRound: Codable {
+        let index: Int
+        let systemCharacters: Int
+        let userCharacters: Int
+        let maxTokens: Int
+        let raw: String
+        let seconds: Double
+    }
+
     private struct ReportRow: Codable {
         var id: String
         var verdict: String
@@ -686,13 +717,16 @@ enum ToolLoopLiveEval {
         var lastUserCharacters: Int?
         var lastMaxTokens: Int?
         var lastRaw: String?
+        var rawRounds: [RawRound]
+        var modelPin: String?
+        var fixtureNow: String?
         var usagePasses: [String]
         var timing: [TurnTiming]
         var needle: [NeedleAttempt]
         var process: ProcessSnapshot
     }
 
-    private static func reportRows(_ results: [CaseResult]) -> [ReportRow] {
+    private static func reportRows(_ results: [CaseResult], options: Options) -> [ReportRow] {
         results.map { result in
             let rounds = result.trace.compactMap { event -> PlannerTraceEvent? in
                 if case .round = event { return event }
@@ -739,16 +773,83 @@ enum ToolLoopLiveEval {
                 lastUserCharacters: lastUser,
                 lastMaxTokens: lastMaxTokens,
                 lastRaw: lastRaw.map { String($0.prefix(400)) },
+                rawRounds: rounds.compactMap { event in
+                    guard case .round(let index, let system, let user, let maxTokens, let raw, let seconds) = event else { return nil }
+                    return RawRound(index: index, systemCharacters: system, userCharacters: user,
+                        maxTokens: maxTokens, raw: raw, seconds: seconds)
+                },
+                modelPin: options.model, fixtureNow: options.fixtureNow,
                 usagePasses: usage, timing: result.timing, needle: result.needle,
                 process: result.process)
         }
+    }
+
+    /// Instrument checks reached by the existing live-grader flag; no resolver or model.
+    static func instrumentSelfTestFailures() -> [String] {
+        var failures: [String] = []
+        var options = Options()
+        options.model = "apple"
+        options.fixtureNow = "not-a-clock"
+        if clockFailure(options: options, clockRequested: true) == nil {
+            failures.append("malformed clock passed resolver preflight")
+        }
+        options.fixtureNow = nil
+        if clockFailure(options: options, clockRequested: true) == nil {
+            failures.append("missing clock passed resolver preflight")
+        }
+        options.fixtureNow = "2026-10-04T12:34:56.789Z"
+        if clockFailure(options: options, clockRequested: true) != nil {
+            failures.append("valid explicit model/clock refused")
+        }
+        options.model = "agent"
+        if clockFailure(options: options, clockRequested: true) == nil {
+            failures.append("unpinned model passed clock preflight")
+        }
+        options.model = "apple"
+        guard let evalCase = LiveEvalCases.caseWithID(id: "C01") else {
+            return failures + ["report fixture C01 absent"]
+        }
+        let raw = [String(repeating: "é👩🏽‍💻漢字\n", count: 100) + "FIRST-END",
+                   String(repeating: "答🌍\n", count: 150) + "SECOND-END"]
+        let result = CaseResult(
+            evalCase: evalCase, verdict: .pass, seconds: 1, replies: [], calls: [],
+            trace: [.round(index: 0, systemCharacters: 123, userCharacters: 45,
+                           maxTokens: 512, raw: raw[0], seconds: 0.25),
+                    .round(index: 1, systemCharacters: 456, userCharacters: 78,
+                           maxTokens: 1024, raw: raw[1], seconds: 0.5)],
+            usage: [], infrastructureError: nil, timing: [], needle: [], process: .current())
+        do {
+            let row = reportRows([result], options: options)[0]
+            let data = try JSONEncoder().encode(row)
+            let decoded = try JSONDecoder().decode(ReportRow.self, from: data)
+            if decoded.rawRounds.map(\.raw) != raw || decoded.rounds != 2
+                || decoded.rawRounds.map(\.index) != [0, 1]
+                || decoded.rawRounds.map(\.systemCharacters) != [123, 456]
+                || decoded.rawRounds.map(\.userCharacters) != [45, 78]
+                || decoded.rawRounds.map(\.maxTokens) != [512, 1024]
+                || decoded.rawRounds.map(\.seconds) != [0.25, 0.5]
+                || decoded.modelPin != options.model || decoded.fixtureNow != options.fixtureNow {
+                failures.append("multi-round Unicode report lost full trace or pins")
+            }
+            var shortcut = row
+            shortcut.rawRounds = []
+            shortcut.rounds = 0
+            let object = try JSONSerialization.jsonObject(with: JSONEncoder().encode(shortcut))
+                as? [String: Any]
+            if (object?["rawRounds"] as? [Any])?.isEmpty != true {
+                failures.append("shortcut report omitted empty rawRounds")
+            }
+        } catch {
+            failures.append("report round-trip failed: \(error)")
+        }
+        return failures
     }
 
     private static func writeReport(
         results: [CaseResult], model: ResolvedModel, bar: Int, options: Options, elapsed: Double,
         interrupted: String?
     ) -> String? {
-        let rows = reportRows(results)
+        let rows = reportRows(results, options: options)
         let plannedScored = selectCases(options).filter(\.scored).count
         let tag = options.quick ? "quick" : (options.only != nil ? "only" : "full")
 
@@ -774,6 +875,10 @@ enum ToolLoopLiveEval {
         lines.append("- Mode: \(tag); pass bar \(bar)/\(plannedScored); elapsed "
             + "\(String(format: "%.1f", elapsed))s")
         lines.append("- Needle first: \(options.needleFirst ? "yes" : "no")")
+        lines.append("- Model pin: `\(options.model ?? "Agent role (unpinned)")`; fixture clock: "
+            + "`\(options.fixtureNow ?? "live clock")`; time zone: `\(TimeZone.current.identifier)`.")
+        lines.append("- JSONL rawRounds preserves every planner round and its full completion; "
+            + "systemCharacters/userCharacters are prompt character counts, not prompt text.")
         if let artifact = model.artifact {
             lines.append("- Artifact: `\(artifact.id)`; `\(artifact.fileURL.path)`; \(artifact.bytes) bytes")
         }

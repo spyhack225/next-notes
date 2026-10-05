@@ -374,7 +374,7 @@ enum AgentNow {
         // than the code assuming it away.
         let cloud = reader == .openRouter
         let consent = UserDefaults.standard.bool(forKey: "agentCloudConsent")
-        return render(AgentNowCache.shared.snapshot(), shape: shape, now: Date(),
+        return render(AgentNowCache.shared.snapshot(), shape: shape, now: SelfTest.fixtureClock ?? Date(),
                       zone: .current, cloud: cloud, cloudConsent: consent)
     }
 }
