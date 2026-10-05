@@ -1,17 +1,21 @@
 import Foundation
 
-/// The tool that reads each of the three accounts, read out of the turn's own manifest.
+/// The default account or meeting read, resolved through the turn's own manifest.
 ///
 /// It is a manifest lookup and not a table, which is the whole point: a class whose read the
 /// manifest did not select this turn returns nil, so the guard cannot propose a tool the turn
 /// was never offered. That is the same rule the executor enforces, read through the same value.
 enum AccountReadTools {
-    static func toolID(for intent: AgentIntentClass, manifest: AgentCapabilityManifest) -> String? {
+    static func toolID(for intent: AgentIntentClass, manifest: AgentCapabilityManifest,
+                       request: String = "") -> String? {
         let id: String
         switch intent {
         case .mail: id = "search_email"
         case .calendar: id = "get_agenda"
         case .drive: id = "find_drive_files"
+        case .meetings:
+            guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
+            id = read.toolID
         default: return nil
         }
         return manifest.entry(named: id)?.id
@@ -39,17 +43,17 @@ enum AccountReadTools {
 ///    draft out as text.
 ///
 /// So the three rules this file follows are the inverse of that design. **Narrow**: only the
-/// person's own three accounts, never `.meetings` / `.knowledge` / `.screen` / `.memory`, which is
-/// where result 2 happened. **The app reads, the model is not asked to**: instead of a re-plan
+/// person's accounts and requested meeting reads; completed reads suppress another read through
+/// the same manifest. `.knowledge` / `.screen` / `.memory` stay outside this check.
+/// **The app reads, the model is not asked to**: instead of a re-plan
 /// note (result 1) the loop runs the class's own read through `ToolStepRunner` and the always-
 /// affordable final round answers from the real result. **Only on a final round** (result 3), so
 /// a turn that parsed a call is never touched.
 ///
 /// Everything here is pure. The loop owns when to ask, and the executor owns what runs.
 enum AgentAccountRead {
-    /// The three accounts this is about, and nothing else. A `Set` so the caller can intersect
-    /// it with `manifest.selectedIntents` rather than hand-compare three values.
-    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive]
+    /// Account and meeting reads the person already requested, selected by the manifest.
+    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings]
 
     /// The read each class gets when the person asked about it in general, and the tool that
     /// performs it. `nil` for a class with no default read.
@@ -69,6 +73,11 @@ enum AgentAccountRead {
             return ("get_agenda",
                     AgentToolLoop.groundedArguments(
                         for: "get_agenda", proposed: [:], request: request, now: now))
+        case .meetings:
+            let decisions: Set<String> = ["decide", "decided", "decides", "deciding", "decision", "decisions"]
+            let id = words(of: request).contains(where: { decisions.contains($0) })
+                ? "meeting.decisions" : "meeting.recent_context"
+            return (id, [:])
         case .drive:
             // The request's own nouns, because a Drive search with no query answers nothing and
             // a Drive search with a wrong one invents a file.
@@ -98,9 +107,10 @@ enum AgentAccountRead {
     static func pendingRead(
         reply: String, selectedIntents: Set<AgentIntentClass>,
         completedThisTurn: [String], completedThisSession: Set<String>,
-        toolIDFor: (AgentIntentClass) -> String?, request: String, now: Date = Date()
+        toolIDFor: (AgentIntentClass) -> String?, request: String, now: Date = Date(),
+        manifest: AgentCapabilityManifest? = nil
     ) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
-        // 1. One of the person's own three accounts, and only those.
+        // 1. An account or meeting class selected for this request.
         let candidates = selectedIntents.intersection(classes).sorted { $0.rawValue < $1.rawValue }
         guard candidates.isEmpty == false else { return nil }
         // 2. Nothing of that class has run. The class's tool is what decides, not the class:
@@ -109,17 +119,28 @@ enum AgentAccountRead {
             guard let toolID = toolIDFor(intent) else { continue }
             if completedThisTurn.contains(toolID) { continue }
             if completedThisSession.contains(toolID) { continue }
+            // Any completed read of this class is enough, including an alternative
+            // meeting/mail read. Its metadata comes from the same manifest, not a second table.
+            if let manifest, (completedThisTurn + Array(completedThisSession)).contains(where: { id in
+                let entry = manifest.entry(named: id)
+                    ?? manifest.unavailable.first { $0.id == id || $0.aliases.contains(id) }
+                return entry?.intent == intent && entry.map { $0.risk <= .read } == true
+            }) { continue }
             // 3. The reply is final — the loop only asks here, after a round that parsed no
             //    call, so a turn about to call `draft_email` never reaches this.
-            // 4. The reply presents that account, in one of two shapes.
+            // 4. The reply presents contents or offers/promises the requested read.
             guard presents(intent, reply) else { continue }
             guard let read = defaultRead(for: intent, request: request, now: now) else { continue }
+            if let manifest {
+                guard let entry = manifest.entry(named: read.toolID),
+                      entry.intent == intent, entry.risk <= .read else { continue }
+            }
             return (intent, read.toolID, read.arguments)
         }
         return nil
     }
 
-    /// The two shapes a reply can present an account in, and they are both needed.
+    /// Account contents, entry lists, or the exact offered read the person already asked for.
     ///
     /// Naming it is necessary and **not sufficient** — and the second half is what the task's
     /// own G8 case is about. *"Your calendar is a good place to keep that — somewhere nobody
@@ -134,9 +155,31 @@ enum AgentAccountRead {
     /// would classify "Want to see them?" and "Here are the six" identically, which is the
     /// mistake that silenced the app on 2026-09-22.
     static func presents(_ intent: AgentIntentClass, _ reply: String) -> Bool {
-        // A question is not a claim. "Want to see the latest messages?" names the account
-        // and asserts nothing, and treating it as one is the gate that silenced the app.
-        guard isQuestion(reply) == false else { return false }
+        // A requested read needs no second confirmation. A wh-question still asks
+        // for missing information, even when it contains an offer phrase ("should I").
+        if isQuestion(reply) {
+            let sentences = reply.split(whereSeparator: { ".!?".contains($0) }).map(String.init)
+            guard let offer = sentences.last else { return false }
+            let offerWords = words(of: offer)
+            let clarificationWords: Set<String> = ["what", "which", "who", "whose", "where", "when", "why", "how"]
+            guard let first = offerWords.first, !clarificationWords.contains(first),
+                  PendingAction.offerPhrases.contains(where: { offer.lowercased().contains($0) })
+            else { return false }
+            // M03's measured final offer says "ones", not "emails". It belongs to
+            // this class only when a preceding sentence promises its actual read.
+            let offersRead = offerWords.contains { word in
+                ["show", "see", "hear"].contains(word)
+                    || readVerbStems.contains { word.hasPrefix($0) }
+            }
+            guard offersRead else { return false }
+            if offerWords.contains(where: { accountNouns(intent).contains($0) }) { return true }
+            return sentences.dropLast().contains { sentence in
+                let antecedent = words(of: sentence)
+                let beginsPromise = antecedent.first.map { ["i", "im", "ill", "ive"].contains($0) } == true
+                    || Array(antecedent.prefix(2)) == ["let", "me"]
+                return beginsPromise && namesAccount(intent, sentence) && promisesToRead(antecedent)
+            }
+        }
         // Two separate questions, because they have separate answers. *Whose* account is being
         // talked about, and *what* is being said about its contents.
         if namesAccount(intent, reply), describesContents(intent, reply) { return true }
@@ -159,6 +202,7 @@ enum AgentAccountRead {
         case .calendar: ["calendar", "schedule", "agenda", "day", "meeting", "meetings",
                          "event", "events"]
         case .drive: ["drive", "files", "folders", "documents", "docs"]
+        case .meetings: ["meeting", "meetings", "transcript", "transcripts"]
         default: []
         }
     }
@@ -179,14 +223,14 @@ enum AgentAccountRead {
     }
 
     /// Whether the reply holds the account as **the person's**: a possessive, then the account
-    /// noun within a small window. Two words is enough for "your latest emails" and short
-    /// enough that "your calendar is a good place" cannot reach a mail noun three words on.
+    /// noun within a small window. Three words covers "your most recent emails"; naming
+    /// the account still needs an exact read offer, a promise or actual content.
     static func namesAccount(_ intent: AgentIntentClass, _ reply: String) -> Bool {
         let words = words(of: reply)
         let nouns = Set(accountNouns(intent))
         let possessives: Set<String> = ["your", "my", "our"]
         for (index, word) in words.enumerated() where possessives.contains(word) {
-            for step in 1...2 {
+            for step in 1...3 {
                 let next = index + step
                 guard next < words.count else { break }
                 if nouns.contains(words[next]) { return true }
@@ -244,7 +288,10 @@ enum AgentAccountRead {
         guard present.contains(where: { word in denialStems.contains { word.hasPrefix($0) } })
             == false else { return false }
         let firstPerson: Set<String> = ["i", "im", "ill", "ive"]
-        guard present.contains(where: { firstPerson.contains($0) }) else { return false }
+        let letMe = zip(present, present.dropFirst()).contains { pair in
+            pair.0 == "let" && pair.1 == "me"
+        }
+        guard letMe || present.contains(where: { firstPerson.contains($0) }) else { return false }
         return present.contains { word in
             readVerbStems.contains { word.hasPrefix($0) }
         }
@@ -346,6 +393,7 @@ enum AgentAccountRead {
         case .mail: notReadYet
         case .calendar: "I haven't looked at your calendar yet."
         case .drive: "I haven't looked at your Drive yet."
+        case .meetings: "I haven't looked at your meetings yet."
         default: "I haven't looked yet."
         }
     }

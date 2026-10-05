@@ -1025,14 +1025,15 @@ enum RealtimeAgentToolLoopSelfTest {
               declineLog.calls.count == beforeDecline)
         check("a decline left a pending action behind", agent.typedPending == nil)
 
-        // Case 4: the offer, then the conversation is cleared. The pending action dies with
+        // Case 4: a write offer, then the conversation is cleared. Requested reads now
+        // run without a second confirmation; writes keep this pending-action contract. The pending action dies with
         // its session, so "yes" is a new request and the model sees it alone.
         let orphanLog = PlannerScriptLog()
         agent.localModelProviderForTesting = PlannerScriptProvider(
             id: .localServer, window: 4_096, promptTokens: 2_000,
-            script: ["Would you like me to read that message?"], log: orphanLog)
+            script: ["Would you like me to draft that email?"], log: orphanLog)
         agent.setTypedPendingForTesting(nil)
-        _ = await agent.handle("Read my latest email", source: .text)
+        _ = await agent.handle("Draft an email to ana@example.com about Friday", source: .text)
         check("the second offer kept no pending action (\(agent.typedPending == nil))",
               agent.typedPending != nil)
         AgentSession.shared.forgetAllConversations()
@@ -1081,6 +1082,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: runDirectIntentCases(check: check))
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
         failures.append(contentsOf: runAccountReadCases(check: check))
+        failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
         failures.append(contentsOf: await ExplicitMemorySaveSelfTest.run())
 
@@ -1135,9 +1137,9 @@ enum RealtimeAgentToolLoopSelfTest {
             != "search_email" {
             fail("G1b: a reply naming the inbox did not ask for a read")
         }
-        // G1c — a question naming the inbox is an offer, and an offer is not a claim.
-        if pending("Want to see the latest messages in your inbox?", [.mail]) != nil {
-            fail("G1c: an offer was treated as a fabricated answer")
+        // G1c — an exact read offer adds the requested read; it is still not a claim.
+        if pending("Want to see the latest messages in your inbox?", [.mail])?.toolID != "search_email" {
+            fail("G1c: an exact inbox read offer was left as an offer")
         }
         // G1d — a promise to read, which is O02's own reply and the shape that made the first
         // version of the matcher miss it: the account is named with a modifier in between
@@ -1154,6 +1156,43 @@ enum RealtimeAgentToolLoopSelfTest {
         if pending("Of course. I\u{2019}ll check your inbox right away.", [.mail])?.toolID
             != "search_email" {
             fail("G1e: \"I'll check your inbox right away\" was left as a promise")
+        }
+
+        // P1: exact measured offers, a three-word possessive window, and the
+        // existing promise grammar must request a read without asking again.
+        let offeredMail = "I can check your last emails for you. Should I just show you the latest few messages?"
+        let measuredM03 = "I can check your last emails for you. Should I just show you the most recent ones?"
+        let offeredMeeting = "I can check the decisions from the last meeting for you. Should I look at the decisions recorded in the most recent meeting?"
+        for reply in [offeredMail, measuredM03, "I'll pull up your most recent emails.",
+                      "Let me check your inbox."] {
+            if pending(reply, [.mail])?.toolID != "search_email" {
+                fail("P1: promised/offered mail was not read: \(reply)")
+            }
+            if pending(reply, [.mail], turn: ["search_email"]) != nil
+                || pending(reply, [.mail], session: ["search_email"]) != nil {
+                fail("P1: promised/offered mail re-read a completed account")
+            }
+        }
+        if !AgentAccountRead.presents(.meetings, offeredMeeting)
+            || pending(offeredMeeting, [.meetings],
+                       request: "What did we decide in the last meeting?")?.toolID != "meeting.decisions" {
+            fail("P1: K01's exact meeting offer did not request decisions")
+        }
+        if pending("Should I show your last meeting?", [.meetings],
+                   request: "Show my last meeting")?.toolID != "meeting.recent_context" {
+            fail("P1: a general meeting offer did not request recent context")
+        }
+        for (reply, intent) in [("Which emails should I summarize?", AgentIntentClass.mail),
+                                ("Which account should I use for your emails?", .mail),
+                                ("Should I send your emails?", .mail),
+                                ("I can check your last emails for you. Which account should I use for your emails?", .mail),
+                                ("Should I just show you the most recent ones?", .mail),
+                                ("Should I check your last emails? Should I just show you the most recent ones?", .mail),
+                                ("Which meeting do you mean?", .meetings),
+                                ("Your calendar is a good place to keep that. Should I explain why?", .calendar)] {
+            if pending(reply, [intent]) != nil {
+                fail("P1: clarification/advice caused an account read: \(reply)")
+            }
         }
 
         // G2 — the honest sentence, and a pending action so "go for it" can run the read.
@@ -1260,6 +1299,119 @@ enum RealtimeAgentToolLoopSelfTest {
         print("  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure")
         failures.append(contentsOf: runIdentifierCases(check: check))
         return failures
+    }
+
+    /// P1's actual no-call consumer: fixture provider and executor, the same
+    /// handle/manifest/runner/final-answer path a typed request uses. No live reads.
+    @MainActor
+    static func runOfferedReadConsumerCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let previousReadApproval = agent.readApprovalOverrideForTesting
+        let previousDepth = agent.answerDepthForTesting
+        agent.readApprovalOverrideForTesting = true
+        agent.answerDepthForTesting = .deep
+        defer {
+            AgentToolExecutor.fakeForTesting = nil
+            agent.localModelProviderForTesting = nil
+            agent.readApprovalOverrideForTesting = previousReadApproval
+            agent.answerDepthForTesting = previousDepth
+            agent.setTypedPendingForTesting(nil)
+        }
+        let mailOffer = "I can check your last emails for you. Should I just show you the latest few messages?"
+        let measuredM03 = "I can check your last emails for you. Should I just show you the most recent ones?"
+        let meetingOffer = "I can check the decisions from the last meeting for you. Should I look at the decisions recorded in the most recent meeting?"
+        let corpus = "P1 fixture: Marcus pricing sheet; Ana deck; launch October 14."
+        for (name, request, offer, tool) in [
+            ("M03 previous offer", "Summarize my last emails", mailOffer, "search_email"),
+            ("M03 installed three-run reply", "Summarize my last emails", measuredM03, "search_email"),
+            ("K01", "What did we decide in the last meeting?", meetingOffer, "meeting.decisions"),
+            ("recent emails", "Summarize my most recent emails", "I'll pull up your most recent emails.", "search_email"),
+        ] {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            AgentToolExecutor.fakeForTesting = { tool, _ in
+                ran.record(tool.id)
+                return AgentToolResult(summary: corpus)
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000,
+                script: [offer, "Marcus sent the pricing sheet; Ana sent the deck. The launch is October 14."], log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let result = await agent.handle(request, source: .text)
+            check("P1 consumer \(name) did not run exactly its requested read: \(ran.toolIDs)",
+                  ran.toolIDs == [tool])
+            check("P1 consumer \(name) did not pass the real runner result to final answer",
+                  log.calls.count == 2 && log.calls[1].user.contains(corpus))
+            check("P1 consumer \(name) delivered the offer instead of the grounded final round",
+                  result.reply.contains("October 14") && !result.reply.contains("Should I"))
+        }
+        // A real alternative meeting read already completed. The later offer must
+        // remain, with no second read or final-answer pass generated by this repair.
+        let log = PlannerScriptLog()
+        let ran = ScriptedToolLog()
+        AgentToolExecutor.fakeForTesting = { tool, _ in
+            ran.record(tool.id)
+            return AgentToolResult(summary: corpus)
+        }
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: [#"<tool_call>{"name":"meeting.recent_context","arguments":{}}</tool_call>"#,
+                     meetingOffer], log: log)
+        AgentSession.shared.forgetAllConversations()
+        agent.setTypedPendingForTesting(nil)
+        let grounded = await agent.handle("What did we decide in the last meeting?", source: .text)
+        check("P1 consumer re-read after a real alternative meeting read: \(ran.toolIDs)",
+              ran.toolIDs == ["meeting.recent_context"])
+        check("P1 consumer removed the reply after a completed meeting read",
+              grounded.reply == meetingOffer && log.calls.count == 2)
+        for (request, reply) in [
+            ("Summarize my last emails", "Which account should I use for your emails?"),
+            ("Summarize my last emails", "Should I send your emails?"),
+            ("Summarize my last emails", "I can check your last emails for you. Which account should I use for your emails?"),
+            ("Summarize my last emails", "Should I just show you the most recent ones?"),
+            ("Summarize my last emails", "Should I check your last emails? Should I just show you the most recent ones?"),
+            ("What is on my calendar?", "Your calendar is a good place to keep that — somewhere nobody would move it."),
+        ] {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            AgentToolExecutor.fakeForTesting = { tool, _ in
+                ran.record(tool.id)
+                return AgentToolResult(summary: corpus)
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000,
+                script: [reply], log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let result = await agent.handle(request, source: .text)
+            check("P1 consumer read for clarification/advice", ran.toolIDs.isEmpty)
+            check("P1 consumer changed clarification/advice", result.reply == reply && log.calls.count == 1)
+        }
+        // The exact default must remain registered/allowed in this manifest.
+        let previousInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged).filter { $0.id != "meeting.decisions" },
+            reader: .voiceFrontend)
+        let unavailableLog = PlannerScriptLog()
+        let unavailableReads = ScriptedToolLog()
+        AgentToolExecutor.fakeForTesting = { tool, _ in
+            unavailableReads.record(tool.id)
+            return AgentToolResult(summary: corpus)
+        }
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: [meetingOffer], log: unavailableLog)
+        AgentSession.shared.forgetAllConversations()
+        agent.setTypedPendingForTesting(nil)
+        let unavailable = await agent.handle("What did we decide in the last meeting?", source: .text)
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = previousInputs
+        check("P1 consumer ran an unavailable meeting default", unavailableReads.toolIDs.isEmpty)
+        check("P1 consumer changed an offer whose meeting default is unavailable",
+              unavailable.reply == meetingOffer && unavailableLog.calls.count == 1)
+        print("  TOOLLOOP_PRODUCTION_OFFERED_READ: actual typed consumer, fixture reads")
+        return []
     }
 
     /// P1-17: "Look things up without asking" said one thing and did another.

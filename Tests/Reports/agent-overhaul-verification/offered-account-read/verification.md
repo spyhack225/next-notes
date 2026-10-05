@@ -1,0 +1,7 @@
+# Requested reads run behind offers
+
+The terminal no-call producer refused question offers and excluded meetings. It now admits an exact read/display offer for the selected account or meetings class, including the measured nounless M03 offer with its same-class first-person read antecedent. The existing manifest supplies allowed read defaults and suppresses repeated class reads. Wh-clarifications, write offers, unavailable defaults and advice stay unchanged.
+
+Original packaged test failed 26 assertions (seven pure failures reported twice plus twelve actual-loop assertions). Identical M03/K01/three-word/Let-me fixtures pass in the fixed actual handle→manifest→runner→fixture backing→final-answer path. The older conversation-clear fixture now uses a write offer: explicitly requested reads no longer need a second confirmation. Production, manifest, grader and store isolation21files32defaults pass.
+
+Pinned Gemma live M03/K01/M05: actual search_email now runs behind the original M03 offer, but its single-email summary is UNGROUNDED; meeting.decisions runs and K01 passes; M05 remains UNGROUNDED. Live result1/3, not3/3. No full quality/default/phase completion claim. Logs, original/fixed patches and raw live rounds: `~/Library/Caches/NextNotesBuild/integration/account-read/`. Answer-only final completions are not yet in the planner raw-round trace; this instrument gap is retained for repair.
