@@ -1232,8 +1232,55 @@ enum RealtimeAgentToolLoopSelfTest {
         ]
         for reply in miniReplies {
             check("F03 write clause injected an unrequested inbox read",
-                  pending(reply, [.files, .mail], request: f03Request) == nil)
+                  pending(reply, [.files, .mail], request: f03Request)?.intent != .mail)
         }
+        let fileManifest = AgentCapabilityManifestBuilder.build(
+            AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend),
+            request: f03Request)
+        func filePending(_ reply: String, request: String? = nil,
+                         completed: [String] = [], manifest: AgentCapabilityManifest? = nil)
+            -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+            let selected = manifest ?? fileManifest
+            let request = request ?? f03Request
+            return AgentAccountRead.pendingRead(
+                reply: reply, selectedIntents: selected.selectedIntents,
+                completedThisTurn: completed, completedThisSession: [],
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: selected, request: request) },
+                request: request, manifest: selected)
+        }
+        check("F03 fixture omitted the selected registered file-search descriptor",
+              fileManifest.entry(named: "filesystem.search")?.risk == .read)
+        for reply in miniReplies {
+            let read = filePending(reply)
+            check("F03 unsupported local-file absence skipped requested search",
+                  read?.intent == .files && read?.toolID == "filesystem.search"
+                    && read?.arguments == ["query": "pricing"])
+            for completed in ["filesystem.search", FileToolCatalogue.findID] {
+                check("F03 repeated a genuine completed file read",
+                      filePending(reply, completed: [completed]) == nil)
+            }
+        }
+        for (request, reply) in [
+            ("Email the pricing document to Marcus", miniReplies[0]),
+            ("Can I find the pricing document?", miniReplies[0]),
+            ("How do I find the pricing document?", miniReplies[0]),
+            (f03Request, "Which pricing document do you mean?"),
+            (f03Request, "What is Marcus's email address?"),
+            (f03Request, "I don't have a budget document on this Mac."),
+            (f03Request, "I haven't searched for the pricing document yet."),
+            (f03Request, "Your files are a good place to keep the pricing document."),
+            (f03Request, "- Marcus <marcus@example.com> — Pricing sheet\n- Ana <ana@example.com> — Deck"),
+        ] {
+            check("F03 file floor admitted an unrequested read or clarification",
+                  filePending(reply, request: request) == nil)
+        }
+        let noSearch = AgentCapabilityManifestBuilder.build(
+            AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged).filter { $0.id != "filesystem.search" },
+                reader: .voiceFrontend), request: f03Request)
+        check("F03 file floor invented an unavailable file-search tool",
+              filePending(miniReplies[0], manifest: noSearch) == nil)
         let requestedRead = "I can check your last emails for you. Should I just show you the most recent ones?"
         for request in ["Read my emails", "Could you please search my email for pricing?",
                         "Read my emails and draft a reply to Ana", "Any new emails?",
@@ -1532,7 +1579,7 @@ enum RealtimeAgentToolLoopSelfTest {
             check("P1 consumer changed clarification/advice", result.reply == reply && log.calls.count == 1)
         }
         // Preserve the exact measured MiniCPM no-call rounds. The wrong automatic
-        // inbox read/final-answer branch, not the model's denial, is this regression.
+        // inbox branch stays excluded; the requested file read now needs its own proof.
         let f03First = "I don't have a pricing document on this Mac, and I can't send emails without knowing Marcus's email address. If you have the document or Marcus's email, let me know and I'll help."
         for second in [
             "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you find the document another way.",
@@ -1540,23 +1587,40 @@ enum RealtimeAgentToolLoopSelfTest {
         ] {
             let log = PlannerScriptLog()
             let ran = ScriptedToolLog()
-            AgentToolExecutor.fakeForTesting = { tool, _ in
+            var rawRounds: [String] = []
+            agent.plannerTraceForTesting = { event in
+                if case .round(_, _, _, _, let raw, _) = event { rawRounds.append(raw) }
+            }
+            var readArguments: [[String: String]] = []
+            let fileResult = "F03 fixture search result: /fixture/Pricing 2026.pdf"
+            let finalQuestion = "I found Pricing 2026.pdf. What is Marcus's email address?"
+            AgentToolExecutor.fakeForTesting = { tool, arguments in
                 ran.record(tool.id)
-                return AgentToolResult(summary: corpus)
+                readArguments.append(arguments)
+                return AgentToolResult(summary: fileResult)
             }
             agent.localModelProviderForTesting = PlannerScriptProvider(
                 id: .localServer, window: 4_096, promptTokens: 2_000,
-                script: [f03First, second, "This mailbox summary is not the requested file search."], log: log)
+                script: [f03First, second, finalQuestion], log: log)
             AgentSession.shared.forgetAllConversations()
             agent.setTypedPendingForTesting(nil)
             let operation = Task { @MainActor in
                 await agent.handle("Find the pricing document and email it to Marcus", source: .text)
             }
             let turn = await operation.value
-            check("F03 actual pendingRead consumer ran an unrequested mailbox read", ran.toolIDs.isEmpty)
-            check("F03 actual pendingRead consumer entered a final mailbox-summary round",
-                  log.calls.count == 2 && turn.reply == second)
+            check("F03 actual pendingRead consumer ran an unrequested mailbox read",
+                  !ran.toolIDs.contains("search_email") && !ran.toolIDs.contains("read_email"))
+            check("F03 actual pendingRead consumer omitted the authorized file search",
+                  ran.toolIDs == ["filesystem.search"] && readArguments == [["query": "pricing"]])
+            check("F03 actual producer missed selected file catalogue or changed retained raw rounds",
+                  log.calls.count == 3 && log.calls[0].system.contains("filesystem.search")
+                    && Array(rawRounds.prefix(2)) == [f03First, second]
+                    && log.calls[2].user.contains(fileResult))
+            check("F03 actual read consumer failed to preserve the missing-recipient question",
+                  turn.reply == finalQuestion && !ran.toolIDs.contains("draft_email")
+                    && !ran.toolIDs.contains("send_email"))
         }
+        agent.plannerTraceForTesting = previousTrace
         // The exact default must remain registered/allowed in this manifest.
         let previousInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
         AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(

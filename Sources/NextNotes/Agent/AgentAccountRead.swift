@@ -13,6 +13,9 @@ enum AccountReadTools {
         case .mail: id = "search_email"
         case .calendar: id = "get_agenda"
         case .drive: id = "find_drive_files"
+        case .files:
+            guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
+            id = read.toolID
         case .meetings:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
@@ -52,8 +55,8 @@ enum AccountReadTools {
 ///
 /// Everything here is pure. The loop owns when to ask, and the executor owns what runs.
 enum AgentAccountRead {
-    /// Account and meeting reads the person already requested, selected by the manifest.
-    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings]
+    /// Account/meeting reads and an explicit named-file lookup, selected by the manifest.
+    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings, .files]
 
     /// The read each class gets when the person asked about it in general, and the tool that
     /// performs it. `nil` for a class with no default read.
@@ -78,6 +81,9 @@ enum AgentAccountRead {
             let id = words(of: request).contains(where: { decisions.contains($0) })
                 ? "meeting.decisions" : "meeting.recent_context"
             return (id, [:])
+        case .files:
+            guard let query = requestedFileQuery(request) else { return nil }
+            return ("filesystem.search", ["query": query])
         case .drive:
             // The request's own nouns, because a Drive search with no query answers nothing and
             // a Drive search with a wrong one invents a file.
@@ -132,8 +138,9 @@ enum AgentAccountRead {
             // 3. The reply is final — the loop only asks here, after a round that parsed no
             //    call, so a turn about to call `draft_email` never reaches this.
             // 4. The reply presents contents or offers/promises the requested read.
-            guard presents(intent, reply)
+            guard (intent != .files && presents(intent, reply))
                 || (intent == .meetings && presentsRequestedMeetingContents(reply, request: request))
+                || (intent == .files && presentsRequestedFileAbsence(reply, request: request))
             else { continue }
             guard let read = defaultRead(for: intent, request: request, now: now) else { continue }
             if let manifest {
@@ -143,6 +150,35 @@ enum AgentAccountRead {
             return (intent, read.toolID, read.arguments)
         }
         return nil
+    }
+
+    /// Only the explicit locate clause supplies a file name; a later email/write
+    /// clause cannot become part of the filesystem search query.
+    private static func requestedFileQuery(_ request: String) -> String? {
+        let clause = request.replacingOccurrences(
+            of: #"\b(?:and|then|also)\b"#, with: "\n", options: [.regularExpression, .caseInsensitive])
+            .components(separatedBy: CharacterSet(charactersIn: ".!?;\n")).first ?? ""
+        let command = AgentDirectIntent.questionForm(clause)
+        guard command.range(of: #"^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:find|locate|look for)\b"#,
+                            options: .regularExpression) != nil,
+              let located = AgentDirectIntent.parse(clause),
+              case .locate(let name, _) = located else { return nil }
+        // The search descriptor asks for words from the name, not the generic object.
+        let query = words(of: name).filter { !["document", "documents", "doc", "docs"].contains($0) }
+        return query.isEmpty ? nil : query.joined(separator: " ")
+    }
+
+    /// F03's unsupported local-file absence claim is contents, not a capability
+    /// denial or a missing-recipient question. A completed read suppresses it above.
+    private static func presentsRequestedFileAbsence(_ reply: String, request: String) -> Bool {
+        guard let query = requestedFileQuery(request) else { return false }
+        let name = words(of: query)
+        return reply.components(separatedBy: CharacterSet(charactersIn: ".!?\n")).contains { sentence in
+            let text = AgentDirectIntent.questionForm(sentence)
+            return text.range(of: #"^i (?:don't|do not) have\b.+\bon (?:this|your|the) mac\b"#,
+                              options: .regularExpression) != nil
+                && name.allSatisfy { words(of: text).contains($0) }
+        }
     }
 
     /// Bind the existing default mail read to a requested read clause. A separate
@@ -448,6 +484,7 @@ enum AgentAccountRead {
         case .calendar: "I haven't looked at your calendar yet."
         case .drive: "I haven't looked at your Drive yet."
         case .meetings: "I haven't looked at your meetings yet."
+        case .files: "I haven't looked for that file yet."
         default: "I haven't looked yet."
         }
     }
