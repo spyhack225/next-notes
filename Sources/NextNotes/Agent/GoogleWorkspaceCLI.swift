@@ -202,7 +202,7 @@ actor GoogleWorkspaceCLI {
         let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
         let admitted = executable.resolvingSymlinksInPath().standardizedFileURL
         var directory: ObjCBool = false
-        guard SelfTest.isRunning, SelfTest.requested == "--selftest-task-worker-attempt",
+        guard SelfTest.isRunning, ["--selftest-task-worker-attempt", "--selftest-gws"].contains(SelfTest.requested ?? ""),
               safe.path.hasPrefix(temporary.path + "/"), !safe.pathComponents.contains("Application Support"),
               FileManager.default.fileExists(atPath: safe.path, isDirectory: &directory), directory.boolValue,
               admitted.path == executable.standardizedFileURL.path,
@@ -221,6 +221,15 @@ actor GoogleWorkspaceCLI {
                   FileManager.default.isExecutableFile(atPath: testingExecutable.path) else { return nil }
             return testingExecutable
         }
+        // These fixture checks never discover or start the owner's Google setup. Explicit
+        // isolated executables return above, preserving the real spawn/exit-code test seam.
+        if SelfTest.isRunning, [
+            "--selftest-mac-accounts", "--selftest-google-connect", "--selftest-settings",
+            "--selftest-capability-manifest", "--selftest-ui-strings", "--selftest-store-isolation",
+            "--selftest-task-worker-attempt",
+        ].contains(SelfTest.requested ?? "") || (
+            SelfTest.requested == "--selftest-gws" && SelfTest.value(after: "--gws-fixture-root") != nil
+        ) { return nil }
         if let cachedPath, FileManager.default.isExecutableFile(atPath: cachedPath.path) {
             return cachedPath
         }
@@ -496,7 +505,7 @@ actor GoogleWorkspaceCLI {
     /// `gws` command that prints more than a pipe buffer — any Drive listing — would
     /// otherwise block writing while this waited for it to finish, and neither side would
     /// ever move again.
-    private static func spawn(
+    static func spawn(
         executable: URL,
         arguments: [String],
         timeout: TimeInterval

@@ -16,6 +16,11 @@ import Foundation
 /// of these words, it is allowlisted by file and line below with a comment, never by
 /// weakening a rule.
 enum UIStringsLint {
+    static let technicalWords = [
+        "terminal", "homebrew", "brew", "oauth", "client id", "client secret", "api key",
+        "gcloud", "gws", "json", "command line", "command-line", "keyring", "token",
+    ]
+
 
     /// The flag entry point. Prints every offender and one terminal verdict.
     static func run() -> Bool {

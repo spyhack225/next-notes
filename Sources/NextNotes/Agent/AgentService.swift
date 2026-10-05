@@ -23,6 +23,8 @@ final class AgentService {
     private(set) var revision = 0
     /// Where the CLI's own setup has got to, re-probed rather than remembered.
     private(set) var authState: WorkspaceAuthState = .notInstalled
+    /// What each Google tool still lacks, in a sentence, for the capability manifest (PL-09).
+    private(set) var workspaceGaps: [String: String] = [:]
     /// `gws 0.22.5`, when there is a binary to ask.
     private(set) var version: String?
     private(set) var isProbing = false
@@ -129,16 +131,21 @@ final class AgentService {
         }
 
         await cli.forget()
-        let state = await cli.authState()
+        GoogleSource.forget()
+        // PL-09: the source in force decides — this Mac's own accounts, or Google's sign-in —
+        // and the same answer carries what each tool still lacks.
+        let status = await GoogleSource.status(cli: cli)
+        let state = status.state
         // The version cannot change without a reinstall, and a reinstall restarts the app,
         // so it is asked for once rather than on every probe.
         var resolvedVersion = version
-        if state == .notInstalled {
+        if state == .notInstalled || GoogleSource.isThisMac(state) {
             resolvedVersion = nil
         } else if resolvedVersion == nil {
             resolvedVersion = await cli.version()
         }
         authState = state
+        workspaceGaps = status.gaps
         version = resolvedVersion
     }
 

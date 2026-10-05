@@ -504,7 +504,7 @@ enum AgentToolExecutor {
                 // optional and why a nil accountTag skips the check rather than refusing.
                 // `GoogleWorkspaceCLI.shared` because this is the name/arguments entry point,
                 // which has no CLI of its own to ask; the read is cached after the first call.
-                accountTag: await GoogleWorkspaceCLI.shared.accountTag(),
+                accountTag: await GoogleSource.accountTag(),
                 startsAt: proposalStartsAt(toolName: tool.name, arguments: arguments)
             )
             // §8.2's two-step ingestion consent: the first read from a newly connected

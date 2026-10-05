@@ -68,6 +68,11 @@ enum WorkspaceToolRunner {
         }
 
         let arguments = proposal.arguments
+        // PL-09: with "this Mac" as the Google source, mail and calendar are answered by the
+        // Mac's own Mail and Calendar; the same tool ids, the same shapes, no `gws`.
+        if let mac = await GoogleSource.macWorkspace(forTool: tool.name, cli: cli) {
+            return try await runOnMac(tool: tool.name, arguments: arguments, mac: mac)
+        }
         switch tool.name {
         case "search_email": return try await searchEmail(arguments, cli: cli)
         case "read_email": return try await readEmail(arguments, cli: cli)
@@ -250,13 +255,16 @@ enum WorkspaceToolRunner {
         if let responseID = fields["id"] {
             guard let responseID = responseID as? String, responseID == id else { return nil }
         }
-        let sender = header(fields, "from").map {
+        let stamp = (fields["internalDate"] as? String).flatMap(Int.init) ?? 0
+        return mailContextReference(id: id, sender: header(fields, "from"), stamp: stamp)
+    }
+
+    /// Shared descriptor from already-fetched mail facts, for Google and the Mac's Mail index.
+    static func mailContextReference(id: String, sender rawSender: String?, stamp: Int) -> ActionContextReference? {
+        guard !id.isEmpty else { return nil }
+        let sender = rawSender.map {
             String($0.split(whereSeparator: \.isWhitespace).joined(separator: " ").prefix(80))
         }.flatMap { $0.isEmpty ? nil : $0 }
-        // Gmail metadata defines internalDate as an integer string. Keep missing,
-        // Boolean and fractional external values unknown in NEW reference metadata;
-        // the existing tolerant display/sort parser remains unchanged.
-        let stamp = (fields["internalDate"] as? String).flatMap(Int.init) ?? 0
         let at = stamp > 0 ? Date(timeIntervalSince1970: Double(stamp) / 1_000) : nil
         guard sender != nil || at != nil else { return nil }
         let title = sender.map { sender in
@@ -285,7 +293,7 @@ enum WorkspaceToolRunner {
 
     /// A snippet as a sentence fragment: entities resolved, runs of whitespace collapsed, and
     /// a hard stop mid-word so the model never reads a half word as a fact.
-    private static func snippet(from raw: String?) -> String {
+    static func snippet(from raw: String?) -> String {
         guard let raw, !raw.isEmpty else { return "" }
         var text = raw
         for entity in ["&amp;", "&lt;", "&gt;", "&quot;", "&#39;", "&apos;", "&nbsp;"] {
@@ -300,14 +308,14 @@ enum WorkspaceToolRunner {
         return String(text.prefix(snippetCharacters)).trimmingCharacters(in: .whitespaces) + "…"
     }
 
-    private static let snippetCharacters = 140
+    static let snippetCharacters = 140
 
     /// `Tue 23 Sep 08:12` — enough to order by eye, short enough to fit ten on a line.
     ///
     /// `internalDate` is epoch milliseconds **as a string** in the metadata response, which
     /// is why this is a number first and a date second. The user's locale and zone, because
     /// "08:12" means nothing without knowing whose morning it is.
-    private static func mailLabel(_ mail: WorkspaceMailSummary) -> String? {
+    static func mailLabel(_ mail: WorkspaceMailSummary) -> String? {
         guard mail.stamp > 0 else { return nil }
         let formatter = DateFormatter()
         formatter.locale = .current
@@ -318,7 +326,7 @@ enum WorkspaceToolRunner {
 
     /// How many messages to ask for. Unparseable is the default rather than a failure: a model
     /// that wrote "all" wanted mail, and refusing the call teaches it nothing.
-    private static func searchCount(_ raw: String?) -> Int {
+    static func searchCount(_ raw: String?) -> Int {
         guard let raw else { return defaultSearchResults }
         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let value = Int(trimmed) else { return defaultSearchResults }
@@ -1067,14 +1075,14 @@ enum WorkspaceToolRunner {
     /// The cap, cut the way `ToolResultBudget` cuts: at a line boundary, and saying how
     /// much was not shown. The old constant cut mid-word and appended a bare "…", which a
     /// small model reads as the end of the answer rather than as a cut.
-    private static func truncated(_ text: String, toolID: String) -> String {
+    static func truncated(_ text: String, toolID: String) -> String {
         ToolResultBudget.cap(text, to: maxResultCharacters(toolID: toolID))
     }
 
     /// The midnight the model meant. An unparseable date means today, which answers something
     /// rather than failing the whole proposal; a date in the past is honoured rather than
     /// clamped, since "was anything booked last Tuesday" has an answer.
-    private static func day(from value: String?) -> Date {
+    static func day(from value: String?) -> Date {
         let calendar = Calendar.current
         guard let value, !value.isEmpty else { return calendar.startOfDay(for: Date()) }
         let formatter = DateFormatter()
@@ -1094,7 +1102,7 @@ enum WorkspaceToolRunner {
         return formatter.string(from: date)
     }
 
-    private static func dayLabel(_ date: Date) -> String {
+    static func dayLabel(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.dateStyle = .full
         formatter.timeStyle = .none
