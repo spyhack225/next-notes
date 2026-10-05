@@ -1198,6 +1198,34 @@ enum RealtimeAgentToolLoopSelfTest {
             }
         }
 
+        // F03: class selection permits mail tools; it does not request an inbox read.
+        let f03Request = "Find the pricing document and email it to Marcus"
+        let miniReplies = [
+            "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you find the document another way.",
+            "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you draft the message instead.",
+        ]
+        for reply in miniReplies {
+            check("F03 write clause injected an unrequested inbox read",
+                  pending(reply, [.files, .mail], request: f03Request) == nil)
+        }
+        let requestedRead = "I can check your last emails for you. Should I just show you the most recent ones?"
+        for request in ["Read my emails", "Could you please search my email for pricing?",
+                        "Read my emails and draft a reply to Ana", "Any new emails?",
+                        "What's in my inbox?", "Latest emails",
+                        "Can you tell me what is in my inbox?",
+                        "Please give me a summary of my recent emails"] {
+            check("F03 read qualification rejected the requested mail read: \(request)",
+                  pending(requestedRead, [.mail], request: request)?.toolID == "search_email")
+        }
+        for request in ["Email the pricing document to Marcus", "Send my latest emails to Ana",
+                        "Find the pricing document to email to Marcus",
+                        "Draft an email to Ana", "Should I read my latest emails?",
+                        "How do I read my latest emails?", "Can I read my latest emails?",
+                        "Explain how to check my inbox", "If I check my inbox, what happens?"] {
+            check("F03 write/advice/self-directed question admitted an inbox offer: \(request)",
+                  pending(requestedRead, [.mail], request: request) == nil)
+        }
+
         // G2 — the honest sentence, and a pending action so "go for it" can run the read.
         //
         // **What is *not* here, deliberately.** The first draft of this case asserted that the
@@ -1332,6 +1360,11 @@ enum RealtimeAgentToolLoopSelfTest {
             ("M03 installed three-run reply", "Summarize my last emails", measuredM03, "search_email"),
             ("K01", "What did we decide in the last meeting?", meetingOffer, "meeting.decisions"),
             ("recent emails", "Summarize my most recent emails", "I'll pull up your most recent emails.", "search_email"),
+            ("mail read question", "Any new emails?", measuredM03, "search_email"),
+            ("wrapped mail read question", "Can you tell me what is in my inbox?", measuredM03, "search_email"),
+            ("requested mail summary", "Please give me a summary of my recent emails", measuredM03, "search_email"),
+            // This qualifies the requested READ only; compound write completion remains open.
+            ("explicit compound mail read", "Read my last emails and draft a reply to Ana", measuredM03, "search_email"),
         ] {
             var captured: [PlannerTraceEvent] = []
             agent.plannerTraceForTesting = { captured.append($0) }
@@ -1402,6 +1435,32 @@ enum RealtimeAgentToolLoopSelfTest {
             let result = await agent.handle(request, source: .text)
             check("P1 consumer read for clarification/advice", ran.toolIDs.isEmpty)
             check("P1 consumer changed clarification/advice", result.reply == reply && log.calls.count == 1)
+        }
+        // Preserve the exact measured MiniCPM no-call rounds. The wrong automatic
+        // inbox read/final-answer branch, not the model's denial, is this regression.
+        let f03First = "I don't have a pricing document on this Mac, and I can't send emails without knowing Marcus's email address. If you have the document or Marcus's email, let me know and I'll help."
+        for second in [
+            "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you find the document another way.",
+            "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you draft the message instead.",
+        ] {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            AgentToolExecutor.fakeForTesting = { tool, _ in
+                ran.record(tool.id)
+                return AgentToolResult(summary: corpus)
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000,
+                script: [f03First, second, "This mailbox summary is not the requested file search."], log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let operation = Task { @MainActor in
+                await agent.handle("Find the pricing document and email it to Marcus", source: .text)
+            }
+            let turn = await operation.value
+            check("F03 actual pendingRead consumer ran an unrequested mailbox read", ran.toolIDs.isEmpty)
+            check("F03 actual pendingRead consumer entered a final mailbox-summary round",
+                  log.calls.count == 2 && turn.reply == second)
         }
         // The exact default must remain registered/allowed in this manifest.
         let previousInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting

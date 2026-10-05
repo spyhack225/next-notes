@@ -116,6 +116,9 @@ enum AgentAccountRead {
         // 2. Nothing of that class has run. The class's tool is what decides, not the class:
         //    a `read_email` after a `search_email` is still a read of the same account.
         for intent in candidates {
+            // Selecting the mail class for "email it" permits a write; it does not
+            // ask to read the inbox. Only an actual requested read supplies that floor.
+            if intent == .mail, !requestsMailRead(request) { continue }
             guard let toolID = toolIDFor(intent) else { continue }
             if completedThisTurn.contains(toolID) { continue }
             if completedThisSession.contains(toolID) { continue }
@@ -138,6 +141,36 @@ enum AgentAccountRead {
             return (intent, read.toolID, read.arguments)
         }
         return nil
+    }
+
+    /// Bind the existing default mail read to a requested read clause. A separate
+    /// write clause cannot donate its account noun to an earlier file-search verb.
+    private static func requestsMailRead(_ request: String) -> Bool {
+        guard let read = AgentDirectIntent.capabilityVerbs.first(where: { $0.toolID == "search_email" }),
+              let questions = AgentDirectIntent.questionRoutes.first(where: { $0.intent == .mail })
+        else { return false }
+        let command = "^(?:please\\s+)?(?:(?:can|could|would|will)\\s+you\\s+)?(?:please\\s+)?(?:"
+            + read.verbs.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|") + ")\\b"
+        let separated = request.replacingOccurrences(
+            of: #"\b(?:and|then|also)\b"#, with: "\n", options: [.regularExpression, .caseInsensitive])
+        for clause in separated.components(separatedBy: CharacterSet(charactersIn: ".!?;\n")) {
+            let text = AgentDirectIntent.questionForm(clause)
+            // A requested presentation can wrap the same existing inbox question.
+            let question = text.replacingOccurrences(
+                of: #"^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?tell\s+me\s+"#,
+                with: "", options: .regularExpression)
+            if questions.patterns.contains(where: { pattern in
+                question.range(of: pattern, options: .regularExpression)?.lowerBound == question.startIndex
+            }) { return true }
+            let summary = #"^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?give\s+me\s+(?:a\s+)?summary\s+of\b"#
+            guard let verb = text.range(of: command, options: .regularExpression)
+                ?? text.range(of: summary, options: .regularExpression) else { continue }
+            // Bind the account noun to the read object, not a later infinitive's
+            // email-as-write verb ("find the document to email to Marcus").
+            let object = words(of: String(text[verb.upperBound...])).prefix(while: { $0 != "to" })
+            if object.contains(where: { accountNouns(.mail).contains($0) }) { return true }
+        }
+        return false
     }
 
     /// Account contents, entry lists, or the exact offered read the person already asked for.
