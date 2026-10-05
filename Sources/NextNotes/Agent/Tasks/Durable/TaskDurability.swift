@@ -40,6 +40,9 @@ struct TaskWorkerToolBackingObservation: Equatable, Sendable {
     let receiptID: UUID
     let toolID: String
     let state: TaskWorkerToolBackingState
+    /// Current named application backing-await scope only. It says nothing about
+    /// native instructions, remote descendants, effect completion or complete active coverage.
+    var invocationInFlight = false
 }
 
 /// Persisted optional execution metadata. Typed local and normal typed ACP producers

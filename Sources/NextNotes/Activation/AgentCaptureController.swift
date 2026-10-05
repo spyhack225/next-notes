@@ -114,6 +114,7 @@ final class AgentCaptureController {
         case goodbye
         case done
         case disowned
+        case notAddressed
         case idle
         case none
     }
@@ -202,6 +203,9 @@ final class AgentCaptureController {
     /// A tool or permission request belongs to a turn, not to the VAD timer.
     /// The timer must keep endpointing speech while this task is suspended.
     private var activeTurnTask: Task<Void, Never>?
+    @ObservationIgnored private var islandTurnObserverForTesting:
+        (@MainActor (Task<Void, Never>, String, Bool) -> Void)?
+    @ObservationIgnored private var islandTurnScopeForTesting: (@MainActor () -> Bool)?
     private var turnGeneration = 0
     /// A suspended fake lets `--selftest-realtime` prove the next endpoint does
     /// not wait for a previous tool. Never installed during normal operation.
@@ -252,8 +256,11 @@ final class AgentCaptureController {
         await beginSession(captureAudio: !SelfTest.isRunning)
     }
 
-    func beginSession(captureAudio: Bool = true) async {
-        if isSessionActive { return }
+    func beginSession(captureAudio: Bool = true, origin: VoiceSessionOrigin = .other) async {
+        if isSessionActive {
+            if origin == .wake { VoiceConversationCoordinator.shared.noteSessionOpened(origin: origin, at: Date()) }
+            return
+        }
         let captureID = UUID()
         captureSessionID = captureID
         voiceShadowQueuedTurn = nil
@@ -290,11 +297,12 @@ final class AgentCaptureController {
         fileEOUResets = 0
         fileEOUCommitTrigger = nil
         isSessionActive = true
+        VoiceConversationCoordinator.shared.noteSessionOpened(origin: origin, at: Date())
         // A voice conversation does not share the CPU with an embedding backfill.
         Task { await EmbeddingRuntime.shared.stopNow() }
         RealtimeAudioSession.shared.begin()
+        VoicePlaybackDelivery.shared.outputSessionOpened()
         RealtimeAgent.shared.userSpeechEnded()
-        ActivationController.shared.markListening()
         lastEndpoint = .none
         lastReply = ""
         lastEmittedRequest = ""
@@ -308,7 +316,6 @@ final class AgentCaptureController {
         turnDetectorReady = false
         modelEOUAt = nil
         eouDroppedChunks = 0
-        IslandState.shared.showAgentListening(transcript: "", level: 0)
 
         if captureAudio {
             prepareVoiceFrontend()
@@ -419,10 +426,10 @@ final class AgentCaptureController {
             RealtimeAgent.shared.cancel()
         }
         lastEndpoint = source
+        VoicePlaybackDelivery.shared.outputSessionClosed()
         RealtimeAudioSession.shared.end()
-        let shadowReason: VoiceSessionCloseReason = source == .idle ? .idle : (source == .disowned ? .notAddressed : .done)
+        let shadowReason: VoiceSessionCloseReason = source == .idle ? .idle : ([.disowned, .notAddressed].contains(source) ? .notAddressed : .done)
         VoiceSession.shared.send(.sessionClosed(shadowReason))
-        VoiceAnnouncementQueue.shared.clear()
         stopVAD()
         VoiceLatencyTimeline.shared.endSession()
         MainActorStallProbe.shared.stop()
@@ -433,7 +440,10 @@ final class AgentCaptureController {
         // A new session may have opened while the detached engine drained.
         // Its card and capture state belong to that newer session.
         guard captureSessionID == nil else { return }
-        if source == .disowned {
+        if source == .notAddressed {
+            IslandState.shared.showAgentReply("Going quiet.")
+            ActivationController.shared.finishAgent()
+        } else if source == .disowned {
             IslandState.shared.showAgentReply("Okay, I'll ignore that.")
             ActivationController.shared.finishAgent()
         } else if lastReply.isEmpty {
@@ -477,7 +487,7 @@ final class AgentCaptureController {
         transcript = text
         rawTranscript = text
         latestFullTranscript = committedPrefix.isEmpty ? text : committedPrefix + " " + text
-        IslandState.shared.showAgentListening(transcript: text, level: level)
+        VoiceSession.shared.listeningFeed(transcript: text, level: level, force: RealtimeAgent.shared.voiceInputActive)
     }
 
     /// Self-test seam for SpeechAnalyzer's cumulative snapshots. The normal
@@ -556,7 +566,7 @@ final class AgentCaptureController {
         }
         if RealtimeAgent.shared.voiceInputActive
             || (!RealtimeAgent.shared.isThinking && !RealtimeAudioSession.shared.isSpeaking) {
-            IslandState.shared.showAgentListening(transcript: transcript, level: level)
+            VoiceSession.shared.listeningFeed(transcript: transcript, level: level, force: RealtimeAgent.shared.voiceInputActive)
         }
         if chunk.isFinal, userTurn.count >= Limits.minCharacters {
             heardSpeech = true
@@ -1051,7 +1061,7 @@ final class AgentCaptureController {
             || (!RealtimeAgent.shared.isThinking && !RealtimeAudioSession.shared.isSpeaking) {
             self.level = level
             MainActorSection.run("island.listening") {
-                IslandState.shared.showAgentListening(transcript: transcript, level: level)
+                VoiceSession.shared.listeningFeed(transcript: transcript, level: level, force: RealtimeAgent.shared.voiceInputActive)
             }
         }
     }
@@ -1441,8 +1451,8 @@ final class AgentCaptureController {
                     VoiceConversationCoordinator.shared.closeSession()
                     VoiceSession.shared.send(.sessionClosed(.goodbye))
                     await LocalVoiceFrontend.shared.clearStagedTurn()
+                    VoicePlaybackDelivery.shared.outputSessionClosed()
                     RealtimeAudioSession.shared.end()
-                    VoiceAnnouncementQueue.shared.clear()
                     await emitTurn(text, source: .goodbye, continueSession: false)
                     stopVAD()
                     await stopEngine()
@@ -1454,7 +1464,11 @@ final class AgentCaptureController {
             }
         }
 
-        if VoiceAnnouncementQueue.shared.flush(userHasFloor: heardSpeech || !pendingTurn().isEmpty) {
+        if VoiceConversationCoordinator.shared.notAddressedCloseDue(now: now) {
+            await endSession(source: .notAddressed)
+            return true
+        }
+        if VoicePlaybackDelivery.shared.flushOutput(userHasFloor: heardSpeech || !pendingTurn().isEmpty) {
             lastActivityAt = now
             return false
         }
@@ -1573,13 +1587,41 @@ final class AgentCaptureController {
                 self.activeTurnTask = nil
                 VoiceSession.shared.producerDidSettle()
                 self.lastActivityAt = Date()
-                ActivationController.shared.markListening()
-                IslandState.shared.showAgentListening(transcript: "", level: 0)
+                VoiceSession.shared.listeningFeed(transcript: "", level: 0)
+            }
+            if SelfTest.isRunning, SelfTest.requested == "--selftest-island",
+               let activeTurnTask, let observer = islandTurnObserverForTesting {
+                // Capture the existing Task synchronously before its first actor hop.
+                // An expired installed scope still exposes its handle for joined cleanup.
+                observer(activeTurnTask, text, islandTurnScopeForTesting?() == true)
             }
             return
         }
         _ = await RealtimeAgent.shared.handle(text, source: .voice, turn: shadowTurn)
         lastActivityAt = Date()
+    }
+
+    /// Observe the SAME entered capture Task before internal slot clearing.
+    /// No product Task, query, await, or ownership transfer is added.
+    @discardableResult
+    func observeIslandTurnForTesting(root: URL, bridge: TaskBridge,
+        _ observer: (@MainActor (Task<Void, Never>, String, Bool) -> Void)?) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-island",
+              bridge.permitsHarness,
+              VoiceConversationCoordinator.shared.taskBridgeOverrideForTesting === bridge,
+              VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge),
+              IslandState.sharedContextMatchesForTesting(root: root, bridge: bridge),
+              !isSessionActive, activeTurnTask == nil else { return false }
+        islandTurnObserverForTesting = observer
+        if observer == nil { islandTurnScopeForTesting = nil }
+        else { islandTurnScopeForTesting = { [weak self, weak bridge] in
+            guard let self, let bridge, bridge.permitsHarness, self.isSessionActive,
+                  VoiceSession.shared.state.sessionID == self.captureSessionID else { return false }
+            return VoiceConversationCoordinator.shared.taskBridgeOverrideForTesting === bridge
+                && VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge)
+                && IslandState.sharedContextMatchesForTesting(root: root, bridge: bridge)
+        } }
+        return true
     }
 
     /// Wait for a lightweight test turn before asserting its reply.
@@ -1858,7 +1900,7 @@ final class AgentCaptureController {
             + "It often notices a small change in nature or daily life. "
             + "The sound and the pause matter as much as the words. "
             + "I can give you several examples and explain each one in turn."
-        audio.speak(longReply)
+        audio.speak(OutputScheduler.tokenForTesting(), longReply)
         let outputDeadline = Date().addingTimeInterval(20)
         while firstOutputAt == nil && Date() < outputDeadline {
             try? await Task.sleep(for: .milliseconds(50))
@@ -2298,7 +2340,7 @@ final class AgentCaptureController {
         // retain the current token and queued clause until the recognizer
         // revises it into the exact playback echo. The endpoint then resumes
         // the same reply without producing an interruption receipt or turn.
-        audio.speak("I can help with questions. I can also walk you through it.")
+        audio.speak(OutputScheduler.tokenForTesting(), "I can help with questions. I can also walk you through it.")
         speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
         let provisionalToken = speech.currentPlaybackToken
         let queuedBeforeProvisional = speech.pendingClauseCount
@@ -2366,7 +2408,7 @@ final class AgentCaptureController {
 
         // Reproduce the 18:48 feedback loop through the live acoustic advisory
         // entry point and both transcript producers, without a real microphone.
-        audio.speak("I can help with questions or tasks—do you have anything in mind?")
+        audio.speak(OutputScheduler.tokenForTesting(), "I can help with questions or tasks—do you have anything in mind?")
         speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
         capture.noteAcousticLevel(0.8, nearCandidate: true)
         capture.speechBeganAt = Date().addingTimeInterval(-Limits.minSpeech - 0.05)
@@ -2407,7 +2449,7 @@ final class AgentCaptureController {
         // endpoint sink without creating a model/work turn. A real phrase
         // beginning with the same filler must still barge in once it settles.
         let workBeforeHesitation = RealtimeAgent.shared.voiceWork?.id
-        audio.speak("I am describing the result in detail.")
+        audio.speak(OutputScheduler.tokenForTesting(), "I am describing the result in detail.")
         speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
         capture.simulateCumulativeSpeech("Uh")
         if !audio.isSpeaking {
@@ -2451,7 +2493,7 @@ final class AgentCaptureController {
         }
         turns.removeAll()
 
-        audio.speak("I am describing the result in detail.")
+        audio.speak(OutputScheduler.tokenForTesting(), "I am describing the result in detail.")
         speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
         capture.simulateCumulativeSpeech("mm hmm")
         if !audio.isSpeaking { failures.append("a brief acknowledgment stopped playback") }
@@ -2492,7 +2534,7 @@ final class AgentCaptureController {
             failures.append("wordless mic activity kept the voice input floor or effect barrier")
         }
 
-        audio.speak("I am describing the result in detail.")
+        audio.speak(OutputScheduler.tokenForTesting(), "I am describing the result in detail.")
         speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
         // simulateCumulativeSpeech backdates a fresh onset for endpoint tests;
         // this case needs a real just-started onset before its first fragment.
@@ -2527,7 +2569,7 @@ final class AgentCaptureController {
             || turns.last != "Hello there please tell me" {
             failures.append("confirmed local EOU waited for volatile Apple text or lost its full request")
         }
-        audio.speak("I am describing the result in detail.")
+        audio.speak(OutputScheduler.tokenForTesting(), "I am describing the result in detail.")
         speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
         capture.rawTranscript = "Wait"
         capture.transcript = "Wait"
@@ -2633,7 +2675,7 @@ final class AgentCaptureController {
         guard let oldID = capture.captureSessionID else {
             return ["listening pause test did not open capture"]
         }
-        audio.speak("I am describing the result in detail.")
+        audio.speak(OutputScheduler.tokenForTesting(), "I am describing the result in detail.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         let candidateAt = Date()
         capture.considerListeningCandidate(true, now: candidateAt)
@@ -2677,7 +2719,7 @@ final class AgentCaptureController {
         }
         await capture.endSession(source: .done)
         await capture.beginSession(captureAudio: false)
-        audio.speak("A new reply belongs to a new session.")
+        audio.speak(OutputScheduler.tokenForTesting(), "A new reply belongs to a new session.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         capture.considerListeningCandidate(true)
         if audio.resumeAfterListening(captureID: oldID) || !synth.isPausedForListening {

@@ -8,8 +8,29 @@ enum AgentWorkPresentationScope {
     struct Binding: Sendable, Equatable {
         let taskID: String
         let stepID: String
+        var voiceRevision: Int? = nil
+    }
+    /// References to the SAME existing Manager voice worker only. Presentation metadata never
+    /// supplies a permission, receipt, lease or execution grant.
+    struct VoiceProgress: Sendable {
+        let taskID: String
+        let bridge: TaskBridge
+        let origin: TaskOrigin
+        let revision: @MainActor @Sendable () -> Int?
+        let isCurrent: @MainActor @Sendable (Int) -> Bool
+        @MainActor func currentRevision(taskID: String) -> Int? {
+            guard self.taskID == taskID else { return nil }
+            let observed: Int?
+            if let binding = AgentWorkPresentationScope.binding {
+                guard binding.taskID == taskID else { return nil }
+                observed = binding.voiceRevision
+            } else { observed = revision() }
+            guard let observed, isCurrent(observed) else { return nil }
+            return observed
+        }
     }
     @TaskLocal static var binding: Binding?
+    @TaskLocal static var voiceProgress: VoiceProgress?
 }
 
 /// Memory-only context reported by the actual computer backing. Only the newest step
@@ -71,6 +92,9 @@ final class AgentActivityStore {
 
     private init() {}
 
+    /// Numeric/identity diagnostic at the actual producer; no substitute step/feed.
+    var voiceProgressObserverForTesting: (@MainActor (String) -> Void)?
+
     func begin(task: AgentTask, title: String) {
         append(AgentActivity(taskID: task.id, kind: .thinking, title: title))
         taskSteps[task.id] = []
@@ -85,6 +109,9 @@ final class AgentActivityStore {
         detail: String = "",
         avatar: AgentAvatarState? = nil
     ) {
+        if let scope = AgentWorkPresentationScope.voiceProgress {
+            guard scope.currentRevision(taskID: taskID) != nil else { return }
+        }
         append(AgentActivity(taskID: taskID, kind: kind, title: title, detail: detail))
         var steps = taskSteps[taskID] ?? []
         if !steps.isEmpty {
@@ -95,6 +122,12 @@ final class AgentActivityStore {
         steps.append(AgentStep(title: title, detail: detail, avatar: state))
         taskSteps[taskID] = steps
         liveAvatarState = state
+        if let scope = AgentWorkPresentationScope.voiceProgress, scope.taskID == taskID {
+            _ = scope.bridge.noteProgress(taskID: taskID, step: steps.count, title: title)
+        }
+        if SelfTest.isRunning, SelfTest.requested == "--selftest-voice-work-lifecycle" {
+            voiceProgressObserverForTesting?(taskID)
+        }
     }
 
     func finish(taskID: String, title: String) {
@@ -113,7 +146,10 @@ final class AgentActivityStore {
     func presentationBinding(taskID: String?) -> AgentWorkPresentationScope.Binding? {
         guard let taskID, !taskID.isEmpty,
               let step = taskSteps[taskID]?.last, !step.isCompleted else { return nil }
-        return .init(taskID: taskID, stepID: step.id)
+        let revision = AgentWorkPresentationScope.voiceProgress.flatMap {
+            $0.taskID == taskID ? $0.revision() : nil
+        }
+        return .init(taskID: taskID, stepID: step.id, voiceRevision: revision)
     }
 
     func noteWindow(
@@ -305,18 +341,28 @@ final class AgentAuditLog {
     /// whatever this launch has written, and under `SelfTest.isRunning` it starts empty on
     /// purpose. `--usage-report --usage-turn <id>` needs every row on disk, and it must be
     /// callable off the main actor, so the load is `static` and returns a value.
-    nonisolated static func loadForReport() -> [AgentAuditEntry] { load() }
+    nonisolated static func loadForReport(directory: URL? = nil) throws -> [AgentAuditEntry] {
+        let url = (directory ?? AppIdentity.applicationSupportDirectoryURL)
+            .appendingPathComponent("agent-audit.jsonl")
+        guard let data = try UsageLog.reportData(at: url) else { return [] }
+        return decode(data)
+    }
 
     /// `nonisolated` because it reads a file and builds a value: no `self`, no main-actor
     /// state, and `--usage-report` calls it off the main actor. The enclosing class being
     /// `@MainActor` does not make a stateless static actor-bound, and marking this one so
     /// would have forced the report to hop for no reason.
-    nonisolated private static func load() -> [AgentAuditEntry] {
+    nonisolated private static func load() -> [AgentAuditEntry] { load(url: fileURL) }
+
+    nonisolated private static func load(url: URL) -> [AgentAuditEntry] {
+        guard let data = try? Data(contentsOf: url) else { return [] }
+        return decode(data)
+    }
+
+    nonisolated private static func decode(_ data: Data) -> [AgentAuditEntry] {
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        guard let data = try? Data(contentsOf: fileURL),
-              let text = String(data: data, encoding: .utf8)
-        else { return [] }
+        guard let text = String(data: data, encoding: .utf8) else { return [] }
         return text.split(separator: "\n").reversed().compactMap { line in
             try? decoder.decode(AgentAuditEntry.self, from: Data(line.utf8))
         }

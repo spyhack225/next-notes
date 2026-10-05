@@ -168,7 +168,7 @@ enum AppleResumeOwnerSelfTest {
         // Same actual capture seam as original94: starts producer isolation but
         // does not dispatch a model or create a microphone graph.
         capture.simulateCumulativeSpeech("Um")
-        audio.beginSpokenReply()
+        audio.beginSpokenReply(OutputScheduler.tokenForTesting())
         speech.utteranceVolume = 0
         audio.appendSpokenReply(clause); audio.finalizeSpokenReply()
         let token = speech.currentPlaybackToken
@@ -283,8 +283,8 @@ enum AppleResumeOwnerSelfTest {
         let retainedProof = proofs.last
         audio.noteUserSpeech()
         check(speech.didStop && shadow.state.output == nil, "C19 stop removes old output owner")
-        audio.beginSpokenReply(); speech.utteranceVolume = 0
-        audio.appendSpokenReply(clause); audio.finalizeSpokenReply()
+        audio.beginSpokenReply(OutputScheduler.tokenForTesting()); speech.utteranceVolume = 0
+        audio.appendSpokenReply(OutputScheduler.currentTokenForTesting(), clause); audio.finalizeSpokenReply(OutputScheduler.currentTokenForTesting())
         let replacementToken = speech.currentPlaybackToken
         let replacementOutput = shadow.state.output?.id
         check(replacementToken != token && speech.outputGeneration != generation

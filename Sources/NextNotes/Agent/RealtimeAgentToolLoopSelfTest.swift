@@ -565,9 +565,15 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        // This scripted loop has no person to complete an approval card. Missing
+        // mutation arguments must exercise the executor's unattended rejection,
+        // regardless of the owner's standing computer-control preference.
+        let previousDenial = agent.denyUnattendedApprovalsForTesting
+        agent.denyUnattendedApprovalsForTesting = true
         let providerState = ToolLoopTestState()
         agent.localModelProviderForTesting = ToolLoopTestProvider(state: providerState)
         defer {
+            agent.denyUnattendedApprovalsForTesting = previousDenial
             agent.localModelProviderForTesting = nil
             agent.localModelLimitForTesting = nil
             agent.budgetForTesting = nil
@@ -711,7 +717,10 @@ enum RealtimeAgentToolLoopSelfTest {
         agent.localModelProviderForTesting = ToolLoopTestProvider(
             state: ToolLoopTestState(), firstCall: "computer.type"
         )
+        let asksBeforeMalformedMutation = PermissionGate.shared.askCount
         let forbidden = await agent.handle("type a secret", source: .text)
+        check("unattended malformed mutation waited on an approval card",
+              PermissionGate.shared.askCount == asksBeforeMalformedMutation)
         // P1-10b: the executor still refuses it, and the refusal no longer names the tool
         // or counts steps. "did not run" is gone from every user-facing string in the
         // Agent (P1-10's own Done-when), so the check is on what the sentence now owes:
@@ -746,7 +755,14 @@ enum RealtimeAgentToolLoopSelfTest {
         check("typed turn spoke while a voice session was open", recorder.spoken.isEmpty)
         await AgentCaptureController.shared.endSession(source: .done)
         let conversation = VoiceConversationCoordinator.shared
+        let bridge = conversation.taskBridge
+        var priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
+        func rows() -> [AgentTask] {
+            bridge.cachedTasks.filter { !priorTaskIDs.contains($0.id) && $0.source == "voice" }
+                .sorted { $0.createdAt < $1.createdAt }
+        }
         conversation.resetForTesting()
+        priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
         agent.localModelProviderForTesting = nil
         defer { conversation.resetForTesting() }
         let voiceState = ToolLoopTestState()
@@ -760,7 +776,7 @@ enum RealtimeAgentToolLoopSelfTest {
         await AgentCaptureController.shared.beginSession(captureAudio: false)
         _ = await agent.handle("tell me which app is frontmost", source: .voice)
         for _ in 0..<300 {
-            if conversation.jobs.first?.status == "finished" { break }
+            if rows().first?.status == .completed { break }
             try? await Task.sleep(for: .milliseconds(10))
         }
         _ = VoiceAnnouncementQueue.shared.flush(userHasFloor: false)
@@ -768,7 +784,7 @@ enum RealtimeAgentToolLoopSelfTest {
             !$0.contains("/private/")
         })
         check("verified tool result produced no voice fallback", !recorder.spoken.isEmpty)
-        check("voice worker lost the full text result", conversation.jobs.first?.result.contains("/private/") == true)
+        check("voice worker lost the full text result", rows().first?.result?.contains("/private/") == true)
         // Coordinator routing is the frontend; the worker makes exactly the read and
         // answer rounds. There is no third local-model header pass or summary pass.
         check("voice worker added a model/summary round", (await voiceState.rounds) == 2)
@@ -779,6 +795,7 @@ enum RealtimeAgentToolLoopSelfTest {
         await AgentCaptureController.shared.endSession(source: .done)
 
         conversation.resetForTesting()
+        priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
         let quietVoiceState = ToolLoopTestState()
         conversation.streamForTesting = { system, messages in
             _ = await quietVoiceState.next(user: messages.last?.content ?? "", system: system)
@@ -788,13 +805,14 @@ enum RealtimeAgentToolLoopSelfTest {
         let quiet = await agent.handle("say hello", source: .voice)
         let quietCarriesCatalogue = await quietVoiceState.sawToolCatalogue
         check("a voice turn that wants no tool reached the planner",
-              conversation.jobs.isEmpty && !quietCarriesCatalogue && quiet.reply == "Hello.")
+              rows().isEmpty && !quietCarriesCatalogue && quiet.reply == "Hello.")
         let quietFirstPass = await quietVoiceState.firstSystemCharacters
         check("quiet frontend exceeded the existing first-pass prompt budget (\(quietFirstPass) chars)",
               quietFirstPass > 0 && quietFirstPass < Self.voiceFirstPassBudget)
         await AgentCaptureController.shared.endSession(source: .done)
 
         conversation.resetForTesting()
+        priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
         recorder.reset()
         let answerState = ToolLoopTestState()
         conversation.streamForTesting = { system, messages in
@@ -822,10 +840,11 @@ enum RealtimeAgentToolLoopSelfTest {
         agent.userSpeechStarted()
         _ = await spokenTurn.value
         check("interrupted frontend spoke a later clause", !recorder.spoken.contains("Second answer."))
-        check("plain frontend answer created a planner job", conversation.jobs.isEmpty)
+        check("plain frontend answer created a planner job", rows().isEmpty)
         agent.discardVoiceInput()
         await AgentCaptureController.shared.endSession(source: .done)
         conversation.resetForTesting()
+        priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
         AgentSpeechSynthesizer.shared.restoreSystemBacking()
 
         // P0-05 + P1-02 step 6: the budget a typed pass asks for comes from the reader's

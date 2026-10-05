@@ -61,7 +61,9 @@ final class ModelPassRecorder: @unchecked Sendable {
         self.pass = pass
         self.provider = provider
         self.round = round
-        self.ids = ids
+        var correlated = ids
+        correlated.taskID = UsageLog.sanitiseTaskID(ids.taskID ?? Self.correlation?.taskID)
+        self.ids = correlated
         self.requestedRole = requestedRole
         self.log = log
     }
@@ -224,7 +226,8 @@ final class ModelPassRecorder: @unchecked Sendable {
             revision: ids.revision,
             meetingID: ids.meetingID,
             dictationRunID: ids.dictationRunID,
-            scheduleID: ids.scheduleID
+            scheduleID: ids.scheduleID,
+            taskID: ids.taskID
         )
         lock.unlock()
         log.record(row)

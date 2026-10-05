@@ -102,11 +102,20 @@ final class AgentHarnessRouter {
     /// machine that already has one installed.
     var availabilityProbe: ((String) -> Bool)?
 
-    private static var fileURL: URL {
-        AppIdentity.applicationSupportDirectory.appendingPathComponent("agent-harness-history.json")
+    static var fileURL: URL {
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            let root = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+            return SelfTest.checkedSettingsFixturePath(root.appendingPathComponent("agent-harness-history.json"))
+        }
+        return AppIdentity.applicationSupportDirectory.appendingPathComponent("agent-harness-history.json")
     }
 
     private init() {
+        if SelfTest.isRunning, ["--selftest-voice-work-lifecycle", "--selftest-acp"].contains(SelfTest.requested ?? "") {
+            persistEnabled = false
+            return // Exact diagnostic constructor isolation BEFORE owner history lookup.
+        }
         entries = Self.load()
         if let last = entries.last(where: { $0.intentClass == AgentHarnessClass.coding.rawValue }),
            let id = AgentHarnessID(rawValue: last.harnessID), id != .local {
@@ -168,6 +177,9 @@ final class AgentHarnessRouter {
     }
 
     func restorePersistence() {
+        if SelfTest.isRunning, ["--selftest-voice-work-lifecycle", "--selftest-acp"].contains(SelfTest.requested ?? "") {
+            resetForTesting(); return
+        }
         persistEnabled = true
         availabilityProbe = nil
         entries = Self.load()
@@ -251,6 +263,18 @@ final class AgentHarnessRouter {
         return nil
     }
 
+    /// Exact diagnostic ownership/state proof; no history snippets or paths are logged.
+    func settingsSheetIsolationFailures() -> [String] {
+        guard SelfTest.requested == "--selftest-settings-sheet" else { return ["Wrong harness fixture scope"] }
+        let expected = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+            .appendingPathComponent("agent-harness-history.json")
+        var failures: [String] = []
+        if Self.fileURL.standardizedFileURL.resolvingSymlinksInPath() != expected { failures.append("Harness history escaped fixture root") }
+        if !entries.isEmpty || lastCodingID != nil || lastChoice != nil { failures.append("Harness history is not the empty fixture") }
+        return failures
+    }
+
     private func finalize(
         _ id: AgentHarnessID,
         source: AgentHarnessSource
@@ -262,7 +286,8 @@ final class AgentHarnessRouter {
             lastChoice = choice
             return choice
         }
-        let available = availabilityProbe?(id.acpCLI) ?? ACPAgentBackend.isOnPATH(id.acpCLI)
+        let available = SelfTest.requested == "--selftest-settings-sheet"
+            ? false : (availabilityProbe?(id.acpCLI) ?? ACPAgentBackend.isOnPATH(id.acpCLI))
         let note = available
             ? ""
             : "\(id.displayName) isn’t installed. Run once with local tools, or cancel."

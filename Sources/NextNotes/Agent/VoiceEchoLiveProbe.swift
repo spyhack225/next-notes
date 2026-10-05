@@ -68,7 +68,7 @@ enum VoiceEchoLiveProbe {
             "I can help with questions. What would you like to know?"
         ]
         for reply in replies {
-            audio.speak(reply)
+            audio.speak(OutputScheduler.tokenForTesting(), reply)
             for _ in 0..<250 {
                 if !speech.isSpeaking || speech.persistentPlaybackFailure != nil { break }
                 // A false interruption that later resumes is still audible

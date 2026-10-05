@@ -129,8 +129,8 @@ struct AgentGrounding: Sendable, Equatable {
         let filesOn = defaults.object(forKey: IndexedFoldersStore.enabledKey) as? Bool ?? false
         let folders = (mayReadFiles && filesOn) ? published.folders : []
         return Self(
-            assistantName: AgentGroundingFacts.assistantName(),
-            userFullName: AgentGroundingFacts.userFullName(),
+            assistantName: published.assistantName ?? AgentGroundingFacts.assistantName(),
+            userFullName: published.userFullName ?? AgentGroundingFacts.userFullName(),
             folders: folders,
             indexedItems: folders.isEmpty ? 0 : published.indexedItems,
             surfaces: published.surfaces,
@@ -204,6 +204,8 @@ final class AgentGroundingCache: @unchecked Sendable {
     struct Snapshot: Sendable, Equatable {
         var folders: [String] = []
         var indexedItems: Int = 0
+        var assistantName: String?
+        var userFullName: String?
         /// The manifest's own plain words for what is reachable. Published as prose, not as
         /// ids, because the reader is a `nonisolated` prompt builder: resolving an id needs the
         /// registry, which belongs to the main actor, and a second id-to-prose table beside
@@ -226,11 +228,19 @@ final class AgentGroundingCache: @unchecked Sendable {
         return value
     }
 
-    func publish(folders: [String], indexedItems: Int, manifest: AgentCapabilityManifest) {
+    func publish(folders: [String], indexedItems: Int, manifest: AgentCapabilityManifest,
+                 assistantName: String? = nil, userFullName: String? = nil) {
         lock.lock()
         defer { lock.unlock() }
         value = Snapshot(folders: folders, indexedItems: indexedItems,
+                         assistantName: assistantName, userFullName: userFullName,
                          surfaces: manifest.groundingSurfaces, setupNotes: manifest.setupNotes)
+    }
+
+    func publishConfinedEmptyForTesting() {
+        lock.lock()
+        defer { lock.unlock() }
+        value = Snapshot(assistantName: "Next", userFullName: "", surfaces: [], setupNotes: [])
     }
 
     func resetForTesting() {

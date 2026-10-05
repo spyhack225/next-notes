@@ -28,6 +28,14 @@ enum TaskACPPrimaryAdmissionSelfTest {
               let value = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return [:] }
         return value
     }
+    static func writeVoicePeer(root: URL, database: URL, hold: Bool = false) throws -> (URL, URL) {
+        let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let canonical = root.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-work-lifecycle",
+              canonical.path.hasPrefix(temp.path + "/"), !canonical.pathComponents.contains("Application Support"),
+              database.deletingLastPathComponent().path == canonical.path else { throw FixtureError.unsafeRoot }
+        return try writePeer(root: canonical, database: database, mode: hold ? "hold" : "normal")
+    }
     private static func writePeer(root: URL, database: URL?, mode: String) throws -> (URL, URL) {
         let script = root.appendingPathComponent("owned-peer.py")
         let output = root.appendingPathComponent("owned-launch.json")

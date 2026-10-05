@@ -2,11 +2,9 @@ import Foundation
 
 /// `--usage-report`: one line per (feature, model) over this Mac's own `usage.jsonl`.
 ///
-/// A diagnostic in the `--notes-context-live` shape, **not** a `--selftest-*` flag: under
-/// the harness `UsageLog.shared` is an empty temp store, so the report has to run before
-/// `runRequestedSelfTest` with `SelfTest.isRunning` still false. `NextNotesApp` mirrors
-/// every line through `writeSelfTest`, which honours `--selftest-out`, so a
-/// LaunchServices launch with no stdout still leaves its rows in a file.
+/// Runs before App/delegate construction. The report selects the same stored rows,
+/// uses the existing formatter, and honours explicit temporary diagnostic output.
+/// No writer, model, meeting or voice owner is needed to produce this projection.
 enum UsageReport {
     static let daysFlag = "--usage-days"
     static let featureFlag = "--usage-feature"
@@ -66,8 +64,10 @@ enum UsageReport {
     /// (feature, model), sorted by feature then how often it ran, then
     /// `USAGE_REPORT_OK rows=<total> files=<k> since=<date>`. No rows at all is
     /// `USAGE_REPORT_EMPTY`, which is not a failure.
-    static func lines(for rows: [UsageRecord], files: Int, since: Date) -> [String] {
-        let considered = rows.filter { $0.ts >= since }
+    static func lines(for rows: [UsageRecord], files: Int, since: Date, feature: String? = nil) -> [String] {
+        let considered = rows.filter { row in
+            row.ts >= since && (feature.map { matches(row, feature: $0) } ?? true)
+        }
         guard !considered.isEmpty else { return ["USAGE_REPORT_EMPTY"] }
         let summary = UsageSummary.compute(rows: considered, since: since).sorted { lhs, rhs in
             if lhs.feature != rhs.feature { return lhs.feature < rhs.feature }
@@ -75,42 +75,122 @@ enum UsageReport {
             return lhs.modelID < rhs.modelID
         }
         var lines = summary.map { rowLine($0) }
+        if feature == "task." {
+            // Same reader and rows; sums are a retained projection, not a stored balance.
+            for id in Set(considered.compactMap(\.taskID)).sorted() {
+                let task = UsageSummary.task(rows: considered, taskID: id)
+                lines.append("USAGE_TASK_ROW task=\(id) passes=\(task.passes) "
+                    + "prompt_tokens=\(intText(task.promptTokens)) "
+                    + "completion_tokens=\(intText(task.completionTokens)) "
+                    + "total_tokens=\(intText(task.totalTokens)) cost=- coverage=retained")
+            }
+        }
         lines.append("USAGE_REPORT_OK rows=\(considered.count) files=\(files) "
             + "since=\(dateText(since))")
         return lines
     }
 
-    /// Reads the real `UsageLog.shared` off the main actor, applies `--usage-days N`
-    /// (default `defaultDays`) and `--usage-feature <prefix>` (default all), and formats
-    /// the report. A `--usage-days` value that is not a positive number falls back to the
-    /// default rather than reading nothing.
-    static func run(arguments: [String]) async -> [String] {
-        if let raw = turnValue(in: arguments), let turnID = UUID(uuidString: raw) {
-            return await turnReport(turnID: turnID)
-        }
-        if let raw = turnValue(in: arguments) {
-            return ["USAGE_TURN_BAD_ID: \(raw) is not a uuid"]
-        }
-        let days = daysValue(in: arguments)
-        let feature = featureValue(in: arguments)
-        let since = Date().addingTimeInterval(-Double(days) * 86_400)
-        let (rows, files) = await Task.detached(priority: .utility) { () -> ([UsageRecord], Int) in
-            let log = UsageLog.shared
-            var rows = log.load(since: since)
-            if let feature { rows = rows.filter { $0.feature.hasPrefix(feature) } }
-            return (rows, fileCount(in: log.directory))
+    static let flag = "--usage-report"
+    /// Explicit public test corpus; never a fallback for an invalid owner invocation.
+    static let rootFlag = "--usage-root"
+
+    /// Read on the existing diagnostic utility lane. No foreground model path uses this.
+    static func run(arguments: [String], directory: URL? = nil, now: Date = Date()) async -> [String] {
+        await Task.detached(priority: .utility) {
+            read(arguments: arguments, directory: directory, now: now)
         }.value
-        return lines(for: rows, files: files, since: since)
     }
 
-    /// The whole history for one turn, from both files. The audit side is read with its own
-    /// store rather than the in-memory list, because this runs outside the harness and the
-    /// list holds at most `AgentAuditLog.memoryRows` of whatever this launch has seen.
-    private static func turnReport(turnID: UUID) async -> [String] {
-        let (usage, audit) = await Task.detached(priority: .utility) { () -> ([UsageRecord], [AgentAuditEntry]) in
-            (UsageLog.shared.load(since: nil), AgentAuditLog.loadForReport())
-        }.value
-        return turnLines(turnID: turnID, usage: usage, audit: audit)
+    /// The actual report producer, also called by the early standalone CLI.
+    static func read(arguments: [String], directory: URL? = nil, now: Date = Date()) -> [String] {
+        let arguments = arguments.first?.hasPrefix("--") == false ? Array(arguments.dropFirst()) : arguments
+        guard validArguments(arguments) else { return ["USAGE_REPORT_FAILED: conflicting or unknown modifier"] }
+        let selected: URL
+        if let root = directory ?? value(after: rootFlag, in: arguments).map({ URL(fileURLWithPath: $0, isDirectory: true) }) {
+            guard isolatedRoot(root) else { return ["USAGE_REPORT_FAILED: isolated source refused"] }
+            selected = root.standardizedFileURL
+        } else {
+            guard !SelfTest.isRunning else { return ["USAGE_REPORT_FAILED: owner history unavailable under harness"] }
+            selected = AppIdentity.applicationSupportDirectoryURL
+        }
+        if let raw = turnValue(in: arguments), UUID(uuidString: raw) == nil {
+            return ["USAGE_TURN_BAD_ID: \(raw) is not a uuid"]
+        }
+        do {
+            if let raw = turnValue(in: arguments), let turnID = UUID(uuidString: raw) {
+                return try turnLines(turnID: turnID, usage: UsageLog.loadForReport(directory: selected),
+                                     audit: AgentAuditLog.loadForReport(directory: selected))
+            }
+            let since = now.addingTimeInterval(-Double(daysValue(in: arguments)) * 86_400)
+            return try lines(for: UsageLog.loadForReport(directory: selected, since: since),
+                             files: fileCount(in: selected), since: since, feature: featureValue(in: arguments))
+        } catch { return ["USAGE_REPORT_FAILED: existing usage history could not be read; source retained"] }
+    }
+
+    /// Runs before SwiftUI/delegate owner construction. Output stays available to
+    /// LaunchServices through the existing explicit temporary diagnostic output option.
+    static func runStandalone(arguments: [String]) -> Int32 {
+        let output = value(after: SelfTest.outputFlag, in: arguments)
+        if let output {
+            let candidate = URL(fileURLWithPath: output).standardizedFileURL.resolvingSymlinksInPath()
+            let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().path
+            guard candidate.path.hasPrefix(temp + "/"),
+                  !candidate.pathComponents.contains("Application Support") else {
+                print("USAGE_REPORT_FAILED: output must be a temporary diagnostic file")
+                return 1
+            }
+        }
+        let rows = read(arguments: arguments)
+        for row in rows { print(row) }
+        if let output {
+            do { try (rows.joined(separator: "\n") + "\n").write(toFile: output, atomically: true, encoding: .utf8) }
+            catch { print("USAGE_REPORT_FAILED: temporary diagnostic output could not be saved"); return 1 }
+        }
+        return rows.last?.hasPrefix("USAGE_REPORT_FAILED") == true
+            || rows.last?.hasPrefix("USAGE_TURN_BAD_ID") == true ? 1 : 0
+    }
+
+    private static func validArguments(_ arguments: [String]) -> Bool {
+        let allowed: Set<String> = [flag, daysFlag, featureFlag, turnFlag, rootFlag, SelfTest.outputFlag, SelfTest.timeoutFlag]
+        guard arguments.filter({ $0 == flag }).count == 1 else { return false }
+        var seen = Set<String>(); var index = 0
+        while index < arguments.count {
+            let argument = arguments[index]
+            let parts = argument.split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+            let key = String(parts[0])
+            guard allowed.contains(key), seen.insert(key).inserted else { return false }
+            if key == flag { guard parts.count == 1 else { return false } }
+            else if parts.count == 1 {
+                // Existing days/feature/turn missing values keep their original fallback.
+                if index + 1 < arguments.count, !arguments[index + 1].hasPrefix("--") { index += 1 }
+                else if [rootFlag, SelfTest.outputFlag, SelfTest.timeoutFlag].contains(key) { return false }
+            }
+            if key == rootFlag, value(after: key, in: arguments)?.isEmpty != false { return false }
+            if key == SelfTest.timeoutFlag {
+                guard let raw = value(after: key, in: arguments), let seconds = Double(raw),
+                      seconds.isFinite, seconds > 0 else { return false }
+            }
+            index += 1
+        }
+        return true
+    }
+
+    /// Only the explicitly named fresh system-temp corpus namespace is injectable.
+    /// No symlink alias, owner support directory, or arbitrary path is accepted.
+    private static func isolatedRoot(_ root: URL) -> Bool {
+        let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL.path
+        let standard = root.standardizedFileURL
+        guard standard.path == standard.resolvingSymlinksInPath().path,
+              standard.path.hasPrefix(temp + "/") else { return false }
+        let first = String(standard.path.dropFirst(temp.count + 1)).split(separator: "/").first.map(String.init) ?? ""
+        let prefix = "NextNotesUsageReportTest-"
+        return first.hasPrefix(prefix) && UUID(uuidString: String(first.dropFirst(prefix.count))) != nil
+    }
+
+    /// `task.` is a projection filter, not a second feature namespace/log. Keep actual
+    /// feature/model provenance so existing report columns and historical readers agree.
+    static func matches(_ row: UsageRecord, feature: String) -> Bool {
+        feature == "task." ? UsageLog.sanitiseTaskID(row.taskID) != nil : row.feature.hasPrefix(feature)
     }
 
     /// `--usage-turn <uuid>`. A value that is absent, empty or begins with `--` is nil —

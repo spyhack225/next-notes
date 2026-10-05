@@ -226,7 +226,7 @@ enum ToolCallInspector {
             }
         case .dateTime:
             if !context.confirmsDate(trimmed) { unverified.append(trimmed) }
-        case .file:
+        case .file, .folder:
             if !context.confirmsFile(trimmed) { unverified.append(trimmed) }
         case .choice, .text, .longText:
             break

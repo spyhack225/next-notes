@@ -72,6 +72,7 @@ final class ToolStepRunner: ToolStepExecuting {
     /// Whether the input this step was planned from is still the current one. P0-07's effect
     /// gate asks the same question, so there is one answer.
     var revisionIsCurrent: @MainActor @Sendable () -> Bool = { true }
+    var plannedVoiceApprovalRevision: Int?
     private let agent: RealtimeAgent
     private let owner: Int
     private let workID: String?
@@ -168,6 +169,7 @@ final class ToolStepRunner: ToolStepExecuting {
         // Fast paths and whole-turn backends also need a revision snapshot. The
         // ordinary round loop replaces this closure for each new planning round.
         let revision = work?.revision ?? 0
+        self.plannedVoiceApprovalRevision = work?.revision
         self.revisionIsCurrent = { [work] in (work?.revision ?? 0) == revision }
     }
 
@@ -329,6 +331,9 @@ final class ToolStepRunner: ToolStepExecuting {
         let workID = self.workID
         let owner = self.owner
         let revisionIsCurrent = self.revisionIsCurrent
+        let voiceApprovalRevision = self.plannedVoiceApprovalRevision
+        let permissionContext = agent.typedPermissionContext(TaskEventJournal.current,
+            owner: owner, revisionIsCurrent: revisionIsCurrent)
         // P0-20a: the timer's clock starts inside the executor's post-approval `fire`, so the
         // recorded `ms` is execution and never the card's wait.
         let executionTimer = ToolExecutionTimer()
@@ -347,7 +352,8 @@ final class ToolStepRunner: ToolStepExecuting {
                 // and a Drive listing — sizes it for the model that will read it instead of for
                 // a constant chosen before any of them were known. Outside a planned turn
                 // nothing is bound and those callers keep today's 2,000.
-                let result = try await MemoryProvenance.$current.withValue(provenance) {
+                let result = try await TaskEventJournal.$current.withValue(permissionContext) {
+                    try await MemoryProvenance.$current.withValue(provenance) {
                     try await ToolExecutionTimer.$current.withValue(executionTimer) {
                         try await ToolResultBudget.$readerContextTokens.withValue(window) {
                             try await AgentToolExecutor.run(
@@ -363,6 +369,12 @@ final class ToolStepRunner: ToolStepExecuting {
                                 // a consequential effect waits at this final boundary. This is
                                 // the only place the voice input barrier applies to an effect,
                                 // and P3-02 moves it to `TaskBridge` as a one-line change.
+                                // Same worker route, never a shared Coordinator lookup.
+                                // Gate captures only an exact live task/Bridge match.
+                                voiceApprovalBridge: agent.voiceWork?.id.uuidString == workID
+                                    ? agent.voiceTaskBridge : nil,
+                                voiceApprovalGeneration: owner,
+                                voiceApprovalRevision: voiceApprovalRevision,
                                 isStillValid: {
                                     guard agent.isCurrent(owner), revisionIsCurrent() else { return false }
                                     guard await agent.mayCommitEffect(risk: tool.risk) else { return false }
@@ -371,6 +383,7 @@ final class ToolStepRunner: ToolStepExecuting {
                             )
                         }
                     }
+                }
                 }
                 // P1-5 additive hook: a completed step's reference and link are the run's
                 // artifacts — keep them so the terminal card can link them.
@@ -409,7 +422,7 @@ final class ToolStepRunner: ToolStepExecuting {
         } else {
             let callBegan = ContinuousClock.now
             let readLimit = budget.readCallLimit(ceilingRemaining: ceilingRemaining)
-            execution = await withBoundedWait(readLimit) { await execute() }
+            execution = await withBoundedWait(readLimit, joinCancelledWork: agent.requiresVoiceChildJoin && workID != nil) { await execute() }
             charge(callBegan.duration(to: .now))
         }
         guard let execution else {

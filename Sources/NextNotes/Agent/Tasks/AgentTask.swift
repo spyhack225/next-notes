@@ -14,6 +14,23 @@ enum AgentTaskStatus: String, Codable, Sendable, CaseIterable {
     case failed
     case cancelled
 
+    var isTerminal: Bool { self == .completed || self == .failed || self == .cancelled }
+
+    /// A stored running snapshot does not reveal delegated/finalizing/cancelling.
+    /// Recovering remains a launch-held unknown, never reconstructed as active work.
+    var contractState: TaskState? {
+        switch self {
+        case .queued: .queued
+        case .running: .running
+        case .waitingForInput: .needsInput
+        case .waitingForPermission, .waitingForCompatibilityCLI: .needsPermission
+        case .completed: .completed
+        case .failed: .failed
+        case .cancelled: .cancelled
+        case .recovering: nil
+        }
+    }
+
     /// Consumer state words (§8.3 naming map). "Task · WaitingForPermission" is
     /// machinery reaching the screen; "Waiting for you" is the state.
     var humanState: String {
@@ -37,6 +54,23 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     var id: String
     var objective: String
     var source: String
+    /// Producer-supplied ownership metadata. Absent legacy values remain unknown;
+    /// neither a source label nor a backend reconstructs a session or grant.
+    var origin: TaskOrigin?
+    /// Positive authored voice provenance only; legacy source strings confer no authority.
+    var hasVoiceOrigin: Bool {
+        guard source == "voice", scheduleID == nil,
+              case .voice(_, let turn)? = origin else { return false }
+        return turn.raw > 0
+    }
+    var userWords: String?
+    /// Only owned encoding3 carries a live voice revision; legacy projects zero.
+    var revision: Int
+    var startedAt: Date?
+    var finishedAt: Date?
+    /// Delivery facts in the SAME task row; nil is historical/unknown.
+    var delivery: TaskDelivery?
+    var deliveryAttempts: Int
     var createdAt: Date
     var contextReferences: [String]
     var status: AgentTaskStatus
@@ -97,8 +131,21 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         compatibilityDirectory: String? = nil,
         scheduleID: UUID? = nil,
         durability: TaskDurability? = nil,
-        pendingInteraction: TaskPendingInteraction? = nil
+        pendingInteraction: TaskPendingInteraction? = nil,
+        origin: TaskOrigin? = nil,
+        userWords: String? = nil,
+        revision: Int = 0,
+        startedAt: Date? = nil,
+        finishedAt: Date? = nil,
+        delivery: TaskDelivery? = nil, deliveryAttempts: Int = 0
     ) {
+        self.origin = origin
+        self.userWords = userWords
+        self.revision = revision
+        self.startedAt = startedAt
+        self.finishedAt = finishedAt
+        self.delivery = delivery
+        self.deliveryAttempts = deliveryAttempts
         self.scheduleID = scheduleID
         self.durability = durability
         self.pendingInteraction = pendingInteraction
@@ -123,7 +170,7 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, objective, source, createdAt, contextReferences, status, progress
+        case id, objective, source, origin, userWords, revision, startedAt, finishedAt, delivery, deliveryAttempts, createdAt, contextReferences, status, progress
         case result, artifacts, artifactRecords, tool, arguments, meetingID, backend, failure, acpCLI
         case compatibilityCommand, compatibilityCLI, compatibilityDirectory, scheduleID, durability, pendingInteraction
     }
@@ -133,6 +180,19 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         id = try container.decode(String.self, forKey: .id)
         objective = try container.decode(String.self, forKey: .objective)
         source = try container.decodeIfPresent(String.self, forKey: .source) ?? "user"
+        origin = try container.decodeIfPresent(TaskOrigin.self, forKey: .origin)
+        userWords = try container.decodeIfPresent(String.self, forKey: .userWords)
+        revision = try container.decodeIfPresent(Int.self, forKey: .revision) ?? 0
+        guard revision >= 0 else {
+            throw DecodingError.dataCorruptedError(forKey: .revision, in: container, debugDescription: "Invalid work revision")
+        }
+        startedAt = try container.decodeIfPresent(Date.self, forKey: .startedAt)
+        finishedAt = try container.decodeIfPresent(Date.self, forKey: .finishedAt)
+        delivery = try container.decodeIfPresent(TaskDelivery.self, forKey: .delivery)
+        deliveryAttempts = try container.decodeIfPresent(Int.self, forKey: .deliveryAttempts) ?? 0
+        guard deliveryAttempts >= 0 else {
+            throw DecodingError.dataCorruptedError(forKey: .deliveryAttempts, in: container, debugDescription: "Invalid delivery count")
+        }
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         contextReferences = try container.decodeIfPresent([String].self, forKey: .contextReferences) ?? []
         status = try container.decodeIfPresent(AgentTaskStatus.self, forKey: .status) ?? .queued
@@ -163,6 +223,13 @@ struct AgentTask: Identifiable, Sendable, Equatable, Codable {
         try container.encode(id, forKey: .id)
         try container.encode(objective, forKey: .objective)
         try container.encode(source, forKey: .source)
+        try container.encodeIfPresent(origin, forKey: .origin)
+        try container.encodeIfPresent(userWords, forKey: .userWords)
+        if revision != 0 { try container.encode(revision, forKey: .revision) }
+        try container.encodeIfPresent(startedAt, forKey: .startedAt)
+        try container.encodeIfPresent(finishedAt, forKey: .finishedAt)
+        try container.encodeIfPresent(delivery, forKey: .delivery)
+        if delivery != nil || deliveryAttempts != 0 { try container.encode(deliveryAttempts, forKey: .deliveryAttempts) }
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(contextReferences, forKey: .contextReferences)
         try container.encode(status, forKey: .status)

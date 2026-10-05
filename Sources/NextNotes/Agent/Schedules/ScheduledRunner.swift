@@ -122,6 +122,7 @@ struct ScheduledRunOutcome: Equatable, Sendable {
         case nothingToReport
         case skipped
         case failed
+        case stopped
     }
 
     var status: Status
@@ -204,10 +205,24 @@ protocol ScheduledToolRunning: AnyObject {
 /// Where the run's `AgentTask` and audit lines go. The self-test records them in memory.
 @MainActor
 protocol ScheduledRunRecording: AnyObject {
-    func begin(_ task: AgentTask)
+    func begin(_ task: AgentTask) -> Bool
     func finish(taskID: String, status: AgentTaskStatus, result: String?, failure: String?)
     func audit(kind: AgentAuditEntry.Kind, title: String, detail: String, toolID: String?,
                taskID: String?, scheduleID: UUID)
+    func begin(_ task: AgentTask, executionOwner: Task<ScheduledRunOutcome, Never>) -> Bool
+    func context(taskID: String) -> TaskJournalContext?
+    func finishAdmitted(taskID: String, status: AgentTaskStatus, result: String?, failure: String?) -> Bool
+    func release(_ context: TaskJournalContext?)
+}
+
+extension ScheduledRunRecording {
+    func begin(_ task: AgentTask, executionOwner: Task<ScheduledRunOutcome, Never>) -> Bool { begin(task) }
+    func context(taskID: String) -> TaskJournalContext? { nil }
+    func finishAdmitted(taskID: String, status: AgentTaskStatus, result: String?, failure: String?) -> Bool {
+        finish(taskID: taskID, status: status, result: result, failure: failure)
+        return true
+    }
+    func release(_ context: TaskJournalContext?) {}
 }
 
 // MARK: - The runner
@@ -258,6 +273,27 @@ final class ScheduledRunner: ScheduledRunning {
     }
 
     func run(_ schedule: AgentSchedule, now: Date) async -> ScheduledRunOutcome {
+        // One REAL task-scoped run. passChain remains order/whole-pass stop owner.
+        // No adapter task or second registry; Manager retains this exact operation.
+        var capturedOwner: Task<ScheduledRunOutcome, Never>?
+        let operation = Task { @MainActor [self] in
+            defer { capturedOwner = nil }
+            guard let owner = capturedOwner else {
+                return ScheduledRunOutcome(status: .stopped, text: "This run stopped before it started.")
+            }
+            return await runBody(schedule, now: now, executionOwner: owner)
+        }
+        capturedOwner = operation // MainActor does not yield before the handle is assigned.
+        return await withTaskCancellationHandler {
+            await operation.value
+        } onCancel: { operation.cancel() }
+    }
+
+    private func runBody(_ schedule: AgentSchedule, now: Date,
+                         executionOwner: Task<ScheduledRunOutcome, Never>) async -> ScheduledRunOutcome {
+        guard !Task.isCancelled else {
+            return ScheduledRunOutcome(status: .stopped, text: "This run stopped before it started.")
+        }
         guard schedule.kind != .reminder else {
             return ScheduledRunOutcome(status: .failed, text: "A reminder runs no tools.")
         }
@@ -289,100 +325,127 @@ final class ScheduledRunner: ScheduledRunning {
             objective: schedule.title, source: AgentTask.scheduledSource, createdAt: now,
             status: .running, progress: "Running on a schedule",
             backend: backend, scheduleID: schedule.id)
-        recorder.begin(task)
+        guard !Task.isCancelled, recorder.begin(task, executionOwner: executionOwner) else {
+            return ScheduledRunOutcome(status: .failed,
+                text: "This run couldn’t be saved. It wasn’t started.", taskID: task.id)
+        }
         recorder.audit(kind: .task, title: "Routine started: \(schedule.title)",
                        detail: "schedule \(schedule.id.uuidString) · \(model.label)",
                        toolID: nil, taskID: task.id, scheduleID: schedule.id)
 
-        let system = systemPrompt(for: schedule, now: now)
-        let state = RunState()
-        let authority = ActionAuthority.scheduled(schedule.id)
-        let loop: AgentToolLoop.Outcome
-        do {
-            // The graph answers a cloud route only with its own consent (`KnowledgeGraphScope`).
-            loop = try await KnowledgeGraphScope.$reader.withValue(reader) {
-                try await AgentToolLoop.run(
-                user: schedule.prompt,
-                maxRounds: AgentToolLoop.maxRoundsBound,
-                maxCalls: max(1, schedule.budget.maxToolCalls),
-                maxWallTime: .seconds(max(1, schedule.budget.maxSeconds)),
-                complete: { [state] user in
-                    // A draft ends the run: nothing more is asked of the model.
-                    guard state.drafts.isEmpty else { return "" }
-                    // P0-20a: the model is built by the environment seam, which never sees
-                    // the schedule, so the id is installed here for the recorder to read.
-                    return try await ModelPassRecorder.$correlation.withValue(
-                        UsageCorrelation(scheduleID: schedule.id)
-                    ) {
-                        let recorder = model.usageRecorder()
-                        do {
-                            let text = try await ModelPassRecorder.$current.withValue(recorder) {
-                                try await model.complete(system: system, user: user)
-                            }
-                            recorder?.finish(reason: "stop")
-                            if AgentToolCallParser.calls(in: text).isEmpty {
-                                state.finalAnswer = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                            }
-                            return text
-                        } catch {
-                            recorder?.fail(error)
-                            recorder?.finish(reason: error is CancellationError ? "cancelled" : "error")
-                            throw error
+        let context = recorder.context(taskID: task.id)
+        defer { recorder.release(context) }
+        return await TaskEventJournal.$current.withValue(context) {
+            let system = systemPrompt(for: schedule, now: now, contextTokens: model.contextTokens)
+            let state = RunState()
+            let authority = ActionAuthority.scheduled(schedule.id)
+            let loop: AgentToolLoop.Outcome
+            do {
+                // The graph answers a cloud route only with its own consent (`KnowledgeGraphScope`).
+                loop = try await KnowledgeGraphScope.$reader.withValue(reader) {
+                    try await AgentToolLoop.run(
+                    user: schedule.prompt,
+                    maxRounds: AgentToolLoop.maxRoundsBound,
+                    maxCalls: max(1, schedule.budget.maxToolCalls),
+                    maxWallTime: .seconds(max(1, schedule.budget.maxSeconds)),
+                    complete: { [state] user in
+                        // A draft ends the run: nothing more is asked of the model.
+                        guard state.drafts.isEmpty else { return "" }
+                        try Task.checkCancellation()
+                        // The SAME captured owner revalidates BEFORE another model call.
+                        // Nil legacy context stays unbound; no extra awaited hop.
+                        if TaskEventJournal.current?.isStillValid?() == false {
+                            throw CancellationError()
                         }
-                    }
-                },
-                execute: { [weak self, state] call in
-                    guard let self else { return "The routine stopped." }
-                    return await self.execute(call, schedule: schedule, authority: authority,
-                                              taskID: task.id, now: now, state: state)
-                })
-            }
-        } catch {
-            let reason = "The model failed: \(error.localizedDescription)"
-            return finish(task, schedule: schedule, outcome: ScheduledRunOutcome(
-                status: .failed, text: reason, drafts: state.drafts, refusals: state.refusals, taskID: task.id))
-        }
-
-        var outcome = ScheduledRunOutcome(status: .failed, text: "", drafts: state.drafts,
-                                          calls: loop.calls, refusals: state.refusals, taskID: task.id)
-        let answer = state.finalAnswer ?? ""
-        if answer == Self.silenceToken {
-            outcome.status = .nothingToReport
-        } else if !answer.isEmpty {
-            outcome.status = .reported
-            outcome.text = answer
-            // The one place a template may turn its answer into a file. Artifacts are
-            // captured on the ledger here, so whoever finishes the task can fold them in;
-            // `LiveScheduledRunRecorder.finish` does exactly that.
-            if let answerTransform {
-                let processed = await answerTransform(schedule, answer, task.id, now)
-                outcome.text = processed.text
-                outcome.artifacts = processed.artifacts
-                for artifact in processed.artifacts {
-                    AgentArtifactLedger.capture(taskID: task.id, artifact: artifact)
+                        // P0-20a: the model is built by the environment seam, which never sees
+                        // the schedule, so the id is installed here for the recorder to read.
+                        return try await ModelPassRecorder.$correlation.withValue(
+                            UsageCorrelation(scheduleID: schedule.id)
+                        ) {
+                            let recorder = model.usageRecorder()
+                            do {
+                                let text = try await ModelPassRecorder.$current.withValue(recorder) {
+                                    try await model.complete(system: system, user: user)
+                                }
+                                recorder?.finish(reason: "stop")
+                                if AgentToolCallParser.calls(in: text).isEmpty {
+                                    state.finalAnswer = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                                }
+                                return text
+                            } catch {
+                                recorder?.fail(error)
+                                recorder?.finish(reason: error is CancellationError ? "cancelled" : "error")
+                                throw error
+                            }
+                        }
+                    },
+                    execute: { [weak self, state] call in
+                        guard let self else { return "The routine stopped." }
+                        return await self.execute(call, schedule: schedule, authority: authority,
+                                                  taskID: task.id, now: now, state: state)
+                    })
                 }
+            } catch {
+                if Task.isCancelled {
+                    return ScheduledRunOutcome(status: .stopped,
+                        text: "This run stopped before its result was delivered.", taskID: task.id)
+                }
+                let reason = "The model failed: \(error.localizedDescription)"
+                return finish(task, schedule: schedule, outcome: ScheduledRunOutcome(
+                    status: .failed, text: reason, drafts: state.drafts, refusals: state.refusals, taskID: task.id))
             }
-        } else if !state.drafts.isEmpty {
-            outcome.status = .reported
-            outcome.text = Self.draftSummary(state.drafts)
-        } else if loop.calls >= schedule.budget.maxToolCalls {
-            outcome.text = "It stopped at its limit of \(schedule.budget.maxToolCalls) tool calls without an answer."
-        } else if state.finalAnswer != nil {
-            outcome.text = "The model returned no answer."
-        } else {
-            outcome.text = "It stopped at its time limit of \(schedule.budget.maxSeconds) seconds without an answer."
+
+            guard !Task.isCancelled else {
+                return ScheduledRunOutcome(status: .stopped,
+                    text: "This run stopped before its result was delivered.", taskID: task.id)
+            }
+            var outcome = ScheduledRunOutcome(status: .failed, text: "", drafts: state.drafts,
+                                              calls: loop.calls, refusals: state.refusals, taskID: task.id)
+            let answer = state.finalAnswer ?? ""
+            if answer == Self.silenceToken {
+                outcome.status = .nothingToReport
+            } else if !answer.isEmpty {
+                outcome.status = .reported
+                outcome.text = answer
+                // The one place a template may turn its answer into a file. Artifacts are
+                // captured on the ledger here, so whoever finishes the task can fold them in;
+                // `LiveScheduledRunRecorder.finish` does exactly that.
+                if let answerTransform {
+                    let processed = await answerTransform(schedule, answer, task.id, now)
+                    outcome.text = processed.text
+                    outcome.artifacts = processed.artifacts
+                    for artifact in processed.artifacts {
+                        AgentArtifactLedger.capture(taskID: task.id, artifact: artifact)
+                    }
+                }
+            } else if !state.drafts.isEmpty {
+                outcome.status = .reported
+                outcome.text = Self.draftSummary(state.drafts)
+            } else if loop.calls >= schedule.budget.maxToolCalls {
+                outcome.text = "It stopped at its limit of \(schedule.budget.maxToolCalls) tool calls without an answer."
+            } else if state.finalAnswer != nil {
+                outcome.text = "The model returned no answer."
+            } else {
+                outcome.text = "It stopped at its time limit of \(schedule.budget.maxSeconds) seconds without an answer."
+            }
+            return finish(task, schedule: schedule, outcome: outcome)
         }
-        return finish(task, schedule: schedule, outcome: outcome)
     }
 
     private func finish(_ task: AgentTask, schedule: AgentSchedule, outcome: ScheduledRunOutcome) -> ScheduledRunOutcome {
+        let admitted: Bool
         switch outcome.status {
+        case .stopped: return outcome
         case .failed:
-            recorder.finish(taskID: task.id, status: .failed, result: nil, failure: outcome.text)
+            admitted = recorder.finishAdmitted(taskID: task.id, status: .failed, result: nil, failure: outcome.text)
         case .nothingToReport:
-            recorder.finish(taskID: task.id, status: .completed, result: "Nothing to report", failure: nil)
+            admitted = recorder.finishAdmitted(taskID: task.id, status: .completed, result: "Nothing to report", failure: nil)
         case .reported, .skipped:
-            recorder.finish(taskID: task.id, status: .completed, result: outcome.text, failure: nil)
+            admitted = recorder.finishAdmitted(taskID: task.id, status: .completed, result: outcome.text, failure: nil)
+        }
+        guard admitted else {
+            return ScheduledRunOutcome(status: .stopped,
+                text: "This run stopped before its result could be saved.", taskID: task.id)
         }
         recorder.audit(kind: .task, title: "Routine \(outcome.status.rawValue): \(schedule.title)",
                        detail: "schedule \(schedule.id.uuidString) · \(outcome.calls) calls · "
@@ -395,6 +458,11 @@ final class ScheduledRunner: ScheduledRunning {
         _ call: AgentToolCall, schedule: AgentSchedule, authority: ActionAuthority,
         taskID: String, now: Date, state: RunState
     ) async -> String {
+        // Refuse the SAME current run before receipt preparation, read backing,
+        // or scheduled draft creation. A caller await is not a backing admission.
+        guard !Task.isCancelled, TaskEventJournal.current?.isStillValid?() != false else {
+            return "This run stopped before this action was started."
+        }
         if !state.drafts.isEmpty {
             return "Not run: this routine already prepared a draft and is ending."
         }
@@ -470,7 +538,7 @@ final class ScheduledRunner: ScheduledRunning {
 
     // MARK: - Prompt
 
-    func systemPrompt(for schedule: AgentSchedule, now: Date) -> String {
+    func systemPrompt(for schedule: AgentSchedule, now: Date, contextTokens: Int? = nil) -> String {
         let available = schedule.allowedTools.compactMap { registry.tool(named: $0) }
             .filter { RoutineToolCeiling.runRefusal($0, schedule: schedule) == nil }
         let catalogue = available.map { tool in
@@ -501,7 +569,7 @@ final class ScheduledRunner: ScheduledRunning {
         // them, and a routine that thinks it ran yesterday is its own bug — so this renders
         // from the cache rather than from `AgentNow.current`, which reads the wall clock.
         return AgentPromptContext.assemble(
-            .scheduledRun, rules: rules, capabilities: capabilities,
+            .scheduledRun, rules: rules, contextTokens: contextTokens, capabilities: capabilities,
             now: AgentNow.render(
                 AgentNowCache.shared.snapshot(), shape: .unattended, now: now, zone: zone,
                 cloud: KnowledgeGraphScope.reader == .openRouter,
@@ -639,15 +707,33 @@ final class LiveScheduledToolRunner: ScheduledToolRunning {
 
 @MainActor
 final class LiveScheduledRunRecorder: ScheduledRunRecording {
-    func begin(_ task: AgentTask) {
-        AgentTaskManager.shared.beginScheduledRun(task)
+    // Nil keeps the SAME lazy shared owner. Explicit injection never constructs or
+    // seeds another ledger; the caller supplies the existing isolated test manager.
+    private let providedManager: AgentTaskManager?
+    private var taskManager: AgentTaskManager { providedManager ?? .shared }
+
+    init(taskManager: AgentTaskManager? = nil) { providedManager = taskManager }
+
+    func begin(_ task: AgentTask) -> Bool {
+        taskManager.beginScheduledRun(task)
     }
 
+    func begin(_ task: AgentTask, executionOwner: Task<ScheduledRunOutcome, Never>) -> Bool {
+        taskManager.beginScheduledRun(task, executionOwner: executionOwner)
+    }
+    func context(taskID: String) -> TaskJournalContext? { taskManager.scheduledJournalContext(taskID: taskID) }
+    func finishAdmitted(taskID: String, status: AgentTaskStatus, result: String?, failure: String?) -> Bool {
+        guard taskManager.finishScheduledRunAdmitted(id: taskID, status: status, result: result, failure: failure) else { return false }
+        taskManager.foldArtifacts(taskID: taskID)
+        return true
+    }
+    func release(_ context: TaskJournalContext?) { taskManager.releaseScheduledRun(context) }
+
     func finish(taskID: String, status: AgentTaskStatus, result: String?, failure: String?) {
-        AgentTaskManager.shared.finishScheduledRun(id: taskID, status: status, result: result, failure: failure)
+        guard taskManager.finishScheduledRun(id: taskID, status: status, result: result, failure: failure) else { return }
         // Option B long-form audio: whatever a run's answer transform captured is folded
         // onto the task here, so the Library sees the file on the same record as its run.
-        AgentTaskManager.shared.foldArtifacts(taskID: taskID)
+        taskManager.foldArtifacts(taskID: taskID)
     }
 
     func audit(kind: AgentAuditEntry.Kind, title: String, detail: String, toolID: String?,

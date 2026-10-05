@@ -662,6 +662,9 @@ final class ActionOrchestrator {
         promptIfNeeded: Bool,
         permissionAlreadyGranted: Bool = false,
         allowUnverifiedResult: Bool = false,
+        voiceApprovalBridge: TaskBridge? = nil,
+        voiceApprovalGeneration: Int? = nil,
+        voiceApprovalRevision: Int? = nil,
         isStillValid: (@MainActor @Sendable () async -> Bool)? = nil,
         /// An explicitly isolated fixture uses the existing receipt writer on disk.
         /// Normal callers keep the same shared receipt store.
@@ -786,7 +789,8 @@ final class ActionOrchestrator {
                     throw AgentError.needsPermission(request.title)
                 }
                 if !permissionAlreadyGranted {
-                    guard await PermissionGate.shared.ask(request) else {
+                    guard await PermissionGate.shared.ask(request, voiceBridge: voiceApprovalBridge,
+                                                          voiceGeneration: voiceApprovalGeneration, voiceRevision: voiceApprovalRevision) else {
                         add(.denied, "Permission dismissed")
                         ToolCallReviewStore.shared.remove(id: request.id)
                         throw AgentError.permissionDenied("You dismissed \(request.title).")
@@ -1272,12 +1276,14 @@ extension IslandState {
 
     @MainActor
     func showBackgroundAgentWork(title: String) {
+        guard IslandOwnership.mayWrite("ActionRuntime.showBackgroundAgentWork0") else { return }
         guard !hasForegroundVoiceActivity, PermissionGate.shared.pending == nil else { return }
         showAgentWork(title: title)
     }
 
     @MainActor
     func showBackgroundAgentReply(_ text: String) {
+        guard IslandOwnership.mayWrite("ActionRuntime.showBackgroundAgentReply1") else { return }
         guard !hasForegroundVoiceActivity, PermissionGate.shared.pending == nil else { return }
         showAgentReply(text)
     }

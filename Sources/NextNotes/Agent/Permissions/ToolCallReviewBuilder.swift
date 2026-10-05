@@ -75,7 +75,8 @@ enum ToolCallReviewBuilder {
             isRequired: parameter.isRequired,
             kind: kind,
             provenance: provenance,
-            prompt: prompt(for: parameter.name, label: label, kind: kind),
+            prompt: tool.id == "filesystem.tree" && parameter.name == "path"
+                ? "Which folder?" : prompt(for: parameter.name, label: label, kind: kind),
             origin: origin(for: provenance, kind: kind, context: context, value: value),
             unverified: unverified,
             problem: problem,
@@ -148,6 +149,7 @@ enum ToolCallReviewBuilder {
 
     private static func kind(of parameter: WorkspaceTool.Parameter, toolID: String) -> ToolCallFieldKind {
         let name = parameter.name.lowercased()
+        if toolID == "filesystem.tree", name == "path" { return .folder }
         switch parameter.kind {
         case .multiline: return .longText
         case .date: return .dateTime
@@ -199,6 +201,7 @@ enum ToolCallReviewBuilder {
 
     static func label(for name: String, toolID: String) -> String {
         if toolID == "upload_to_drive", name == "name" { return "Name in Google Drive" }
+        if toolID == "filesystem.tree", name == "path" { return "Which folder" }
         return labels[name.lowercased()] ?? prettify(name)
     }
 
@@ -227,6 +230,7 @@ enum ToolCallReviewBuilder {
         case .email: return "Which address should I use?"
         case .person: return "Who?"
         case .dateTime: return "When?"
+        case .folder: return "Which folder?"
         case .file: return "Which file?"
         default: return "What should \u{201c}\(label)\u{201d} be?"
         }

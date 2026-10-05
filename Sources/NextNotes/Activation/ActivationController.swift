@@ -52,7 +52,7 @@ final class ActivationController {
         if mode == .agentWorking {
             RealtimeAgent.shared.interrupt()
         }
-        mode = .agentListening
+        markListening()
         // The person is about to speak a turn, so the on-device model warms while they do.
         // A no-op when it is already warm, when the assistant role is on another model, or
         // when the model is not on this Mac; why not at launch is on `prewarm`.
@@ -66,7 +66,8 @@ final class ActivationController {
         WakeWordAudioMonitor.shared.sync()
         AgentAuditLog.shared.record(kind: .wake, title: "Agent woke", detail: source)
         Task {
-            await AgentCaptureController.shared.beginSession(captureAudio: !SelfTest.isRunning)
+            await AgentCaptureController.shared.beginSession(captureAudio: !SelfTest.isRunning,
+                origin: source.hasPrefix("wake") ? .wake : (source == "shortcut" ? .shortcut : .other))
             if let utterance, !utterance.isEmpty {
                 AgentCaptureController.shared.simulateSpeech(utterance)
                 AgentCaptureController.shared.simulateSilence()
@@ -76,6 +77,7 @@ final class ActivationController {
     }
 
     func markListening() {
+        guard IslandOwnership.mayWrite("ActivationController.markListening0") else { return }
         mode = .agentListening
     }
 
@@ -93,10 +95,12 @@ final class ActivationController {
     }
 
     func markWorking() {
+        guard IslandOwnership.mayWrite("ActivationController.markWorking1") else { return }
         mode = .agentWorking
     }
 
     func finishAgent() {
+        guard IslandOwnership.mayWrite("ActivationController.finishAgent2") else { return }
         mode = .idle
         WakeWordAudioMonitor.shared.sync()
     }

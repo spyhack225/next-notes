@@ -32,6 +32,8 @@ struct AgentView: View {
     /// live.
     @AppStorage("agent.inspector.visible") private var showsInspector = true
 
+    private var currentReplyInProgress: AgentSession.Message? { tasks.typedReplyInProgress ?? agent.respondingMessage }
+    private var isWorking: Bool { agent.isThinking || tasks.hasActiveTypedWork }
     private var isEmpty: Bool { session.messages.isEmpty && tasks.tasks.isEmpty }
     private var activeTasks: [AgentTask] {
         tasks.tasks.filter {
@@ -73,7 +75,7 @@ struct AgentView: View {
     /// The conversation is the source of truth for speech; audit requests and replies
     /// duplicate those rows. Only action events are interleaved with the messages.
     private var timeline: [TimelineItem] {
-        let messages = Self.presentedMessages(session.messages, responding: agent.respondingMessage)
+        let messages = Self.presentedMessages(session.messages, responding: currentReplyInProgress)
         let start = messages.first?.at ?? .distantPast
         let requests = audit.entries.filter { $0.kind == .request && $0.at >= start }
         let speech = messages.map { message -> TimelineItem in
@@ -348,7 +350,7 @@ struct AgentView: View {
             .onChange(of: session.messages.last?.id) { _, _ in
                 followLatest(proxy)
             }
-            .onChange(of: agent.respondingMessage?.text) { _, _ in
+            .onChange(of: currentReplyInProgress?.text) { _, _ in
                 // Streaming text changes layout without a repeated scroll animation.
                 if isReadingLatest {
                     proxy.scrollTo("conversation-bottom", anchor: .bottom)
@@ -826,14 +828,6 @@ struct AgentView: View {
         // than at the top: a send that is refused or that never begins must not leave the text
         // sitting in the box looking unsent. Stop never clears it at all.
         draft = ""
-        ACPConfirmationGate.shared.cancel()
-        if agent.isThinking {
-            // The interrupt is real and P3-11 owns what it means; what was missing is that
-            // nothing said so. The notice is a view row — `ComposerNotice` never becomes a
-            // message, so it cannot reach the model's history, the index or `usage.jsonl`.
-            notices.append(.interruptedEarlierRequest(Date()))
-            RealtimeAgent.shared.interrupt()
-        }
-        Task { await RealtimeAgent.shared.handleLive(text, source: .text) }
+        _ = agent.submitTypedMessage(text)
     }
 }

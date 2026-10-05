@@ -2,7 +2,7 @@ import Foundation
 import SQLite3
 
 enum TaskStoreSchema {
-    static let version: Int64 = 4
+    static let version: Int64 = 5
 
     /// P6-02a retains current AgentTask fields. Future projections are explicit empty/
     /// zero/nil defaults, not invented instructions, authority or delivery receipts.
@@ -38,7 +38,8 @@ enum TaskStoreSchema {
           delivery TEXT NOT NULL DEFAULT '',
           delivery_attempts INTEGER NOT NULL DEFAULT 0,
           durability TEXT,
-          pending_interaction TEXT
+          pending_interaction TEXT,
+          metadata_encoding_version INTEGER NOT NULL DEFAULT 0
         );
         CREATE INDEX task_state ON task(state);
         CREATE INDEX task_created ON task(created_at DESC);
@@ -107,8 +108,9 @@ enum TaskStoreSchema {
         guard (1...version).contains(current) else {
             throw TaskStoreError.unsupportedVersion(current)
         }
-        let columns = try TaskStore.stringColumn(db, "PRAGMA table_info(task)", column: 1)
-        if !columns.contains("pending_interaction") {
+        let taskColumns = try TaskStore.stringColumn(db,
+            "SELECT name||'|'||upper(type)||'|'||[notnull]||'|'||coalesce(dflt_value,'') FROM pragma_table_info('task')")
+        if !taskColumns.contains(where: { $0.hasPrefix("pending_interaction|") }) {
             try TaskStore.exec(db, "ALTER TABLE task ADD COLUMN pending_interaction TEXT")
         }
         if current < 4 {
@@ -125,14 +127,26 @@ enum TaskStoreSchema {
                 try TaskStore.exec(db, "ALTER TABLE task_artifact ADD COLUMN encoding_version INTEGER NOT NULL DEFAULT 0")
             }
         }
+        if current < 5 {
+            if let marker = taskColumns.first(where: { $0.hasPrefix("metadata_encoding_version|") }) {
+                // Historical extra columns do not establish producer ownership.
+                guard marker == "metadata_encoding_version|INTEGER|1|0",
+                      try TaskStore.integer(db, "SELECT COUNT(*) FROM task WHERE typeof(metadata_encoding_version)!='integer' OR metadata_encoding_version!=0") == 0 else {
+                    throw TaskStoreError.invalidRecord
+                }
+            } else {
+                try TaskStore.exec(db, "ALTER TABLE task ADD COLUMN metadata_encoding_version INTEGER NOT NULL DEFAULT 0")
+            }
+        }
         // An unmarked v1 diagnostic store stays v1 until the importer marks authority.
-        if current >= 2 { try TaskStore.exec(db, "PRAGMA user_version = \(version)") }
+        if current >= 2 && current < version { try TaskStore.exec(db, "PRAGMA user_version = \(version)") }
         try validateKnown(on: db)
         return current >= 2 ? version : current
     }
 
     /// Read-only validation never installs tables, changes WAL or upgrades the version.
-    static func validateKnown(on db: OpaquePointer) throws {
+    @discardableResult
+    static func validateKnown(on db: OpaquePointer) throws -> Int64 {
         let version = try TaskStore.integer(db, "PRAGMA user_version")
         guard (1...Self.version).contains(version) else { throw TaskStoreError.unsupportedVersion(version) }
         if version >= 2 {
@@ -147,7 +161,7 @@ enum TaskStoreSchema {
             sqlite3_finalize(pending)
         }
         for query in [
-            "SELECT origin,title,user_words,revision,started_at,finished_at,question,pending_request_id,delivery,delivery_attempts FROM task LIMIT 0",
+            "SELECT origin,title,user_words,revision,started_at,finished_at,question,pending_request_id,delivery,delivery_attempts\(version >= 5 ? ",metadata_encoding_version" : "") FROM task LIMIT 0",
             "SELECT seq,task_id,at,kind,detail,attempt FROM task_event LIMIT 0",
             "SELECT task_id,path,ordinal,added_at,kind,title\(version >= 4 ? " ,encoding_version" : "") FROM task_artifact LIMIT 0",
             "SELECT upstream,downstream,requirement FROM task_dependency LIMIT 0"
@@ -192,5 +206,6 @@ enum TaskStoreSchema {
             }
             guard code == SQLITE_DONE, primary.keys.sorted().compactMap({ primary[$0] }) == expected else { throw TaskStoreError.invalidRecord }
         }
+        return version
     }
 }

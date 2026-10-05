@@ -27,11 +27,11 @@ enum VoiceDeliverySelfTest {
               && summaryOnly.modelContextText.contains("do not assume the user heard it"),
               "a completed short summary marked the full written answer as spoken")
         await capture.beginSession(captureAudio: false)
-        session.speak("First fact. Second fact.")
+        session.speak(OutputScheduler.tokenForTesting(), "First fact. Second fact.")
         let messageID = AgentSession.shared.recordAssistant(
             "First fact. Second fact.", source: .voice)
         VoicePlaybackDelivery.shared.bind(
-            messageID: messageID, turn: RealtimeAgent.shared.currentGeneration)
+            messageID: messageID, output: session.retainedOutputID!, turn: RealtimeAgent.shared.currentGeneration)
         let firstToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: firstToken)
         synth.notifyTestingAudioFinished(token: firstToken)
@@ -85,7 +85,11 @@ enum VoiceDeliverySelfTest {
               "old session announcement leaked into new session")
         await capture.endSession(source: .done)
 
+        let scheduler = await OutputSchedulerSelfTest.run()
+        failures += scheduler.failures
+
         failures += streamingCases()
+        failures += await OutputTokenSelfTest.run()
 
         if failures.isEmpty {
             print("VOICE_DELIVERY_OK")

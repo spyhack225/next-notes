@@ -46,6 +46,9 @@ struct TaskJournalContext: Sendable {
     // Attach the same already-owned ACP Session to the existing worker slot.
     // Optional and diagnostic only; supplies no execution or persistence authority.
     var observeACPSession: (@MainActor @Sendable (ACPSession) -> Void)? = nil
+    // Exact named local backing invocation entry/return on this captured context.
+    // No journal write or authority follows; ACP prompt/model/permission waits are excluded.
+    var observeToolInvocation: (@MainActor @Sendable (UUID, String, Bool) -> Void)? = nil
 }
 
 enum TaskEventJournal {
@@ -88,18 +91,23 @@ enum TaskEventJournal {
     static func compact(in db: OpaquePointer, now: Date) throws {
         let cutoff = now.addingTimeInterval(-Double(terminalRetentionDays * 86_400)).timeIntervalSince1970
         guard cutoff.isFinite else { throw TaskStoreError.invalidRecord }
-        // A single indexed SQL operation; no synchronous per-history-row Swift scan.
-        // Malformed/unknown receipt shapes are conservatively retained.
+        // Drive the existing deletion from genuine terminal events, not every saved
+        // terminal task (many archived tasks have no journal). Latest terminal seq,
+        // age and receipt checks stay identical; malformed/unknown rows stay.
+        // A very large retained journal can still cost work; no universal bound is claimed.
         try TaskStore.run(db, """
             DELETE FROM task_event WHERE task_id IN (
-              SELECT t.id FROM task t JOIN task_event last ON last.seq=(
-                SELECT e.seq FROM task_event e WHERE e.task_id=t.id
-                  AND e.kind IN ('jobCompleted','jobFailed','jobCancelled') ORDER BY e.seq DESC LIMIT 1
-              ) WHERE t.state IN ('completed','failed','cancelled') AND typeof(last.at)='integer' AND last.at<?
-                AND (t.durability IS NULL OR (json_valid(t.durability)
-                  AND (json_type(t.durability,'$.receiptIDs') IS NULL
-                    OR (json_type(t.durability,'$.receiptIDs')='array'
-                      AND json_array_length(t.durability,'$.receiptIDs')=0))))
+              SELECT last.task_id FROM task_event last
+              WHERE last.kind IN ('jobCompleted','jobFailed','jobCancelled')
+                AND typeof(last.at)='integer' AND last.at<?
+                AND last.seq=(SELECT e.seq FROM task_event e WHERE e.task_id=last.task_id
+                  AND e.kind IN ('jobCompleted','jobFailed','jobCancelled') ORDER BY e.seq DESC LIMIT 1)
+                AND EXISTS (SELECT 1 FROM task t WHERE t.id=last.task_id
+                  AND t.state IN ('completed','failed','cancelled')
+                  AND (t.durability IS NULL OR (json_valid(t.durability)
+                    AND (json_type(t.durability,'$.receiptIDs') IS NULL
+                      OR (json_type(t.durability,'$.receiptIDs')='array'
+                        AND json_array_length(t.durability,'$.receiptIDs')=0)))))
             )
             """, [.real(cutoff)])
     }

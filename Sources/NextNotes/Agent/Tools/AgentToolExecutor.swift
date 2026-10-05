@@ -10,6 +10,37 @@ enum AgentToolExecutor {
     @MainActor static var fakeForTesting: FakeToolRun?
     /// Replaces only the external effect, after real approval, validity and argument checks.
     @MainActor static var fireOverrideForTesting: FakeToolRun?
+    /// Opt-in only for the admitted duplex caller. Other overrides still bypass
+    /// presentation; the real activity statements below remain the only producer.
+    @MainActor private static var fireProjectionRootForTesting: URL?
+    @MainActor private static var fireProjectionAdmissionForTesting: ((String?) -> Bool)?
+    @MainActor
+    static func installFireProjectionForTesting(root: URL, bridge: TaskBridge) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-duplex-work",
+              fireProjectionAdmissionForTesting == nil, fireProjectionRootForTesting == nil,
+              VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge),
+              IslandState.sharedContextMatchesForTesting(root: root, bridge: bridge),
+              VoiceConversationCoordinator.shared.taskBridgeOverrideForTesting === bridge else { return false }
+        fireProjectionRootForTesting = root
+        fireProjectionAdmissionForTesting = { [weak bridge] taskID in
+            guard let bridge, let taskID,
+                  let progress = AgentWorkPresentationScope.voiceProgress,
+                  progress.bridge === bridge, progress.taskID == taskID,
+                  progress.currentRevision(taskID: taskID) != nil else { return false }
+            return SelfTest.isRunning && SelfTest.requested == "--selftest-voice-duplex-work"
+                && VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge)
+                && IslandState.sharedContextMatchesForTesting(root: root, bridge: bridge)
+                && VoiceConversationCoordinator.shared.taskBridgeOverrideForTesting === bridge
+        }
+        return true
+    }
+    @MainActor
+    static func finishFireProjectionForTesting(root: URL) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-duplex-work",
+              fireProjectionRootForTesting == root else { return false }
+        fireProjectionAdmissionForTesting = nil; fireProjectionRootForTesting = nil
+        return true
+    }
     @MainActor static var workspaceCLIForTesting: (any WorkspaceCLIRunning)?
     /// Fixture policy only; the real broker, review and final validity still run.
     @MainActor static var policyOverrideForTesting: PermissionPolicy?
@@ -30,6 +61,9 @@ enum AgentToolExecutor {
         promptIfNeeded: Bool = false,
         authority: ActionAuthority? = nil,
         permissionAlreadyGranted: Bool = false,
+        voiceApprovalBridge: TaskBridge? = nil,
+        voiceApprovalGeneration: Int? = nil,
+        voiceApprovalRevision: Int? = nil,
         isStillValid: (@MainActor @Sendable () async -> Bool)? = nil
     ) async throws -> AgentToolResult {
         guard let tool = AgentToolRegistry.shared.tool(named: name) else {
@@ -227,6 +261,9 @@ enum AgentToolExecutor {
                                         || tool.namespace == .computer
                                         || tool.namespace == .workspace)
                     && tool.risk > .read,
+                voiceApprovalBridge: voiceApprovalBridge,
+                voiceApprovalGeneration: voiceApprovalGeneration,
+                voiceApprovalRevision: voiceApprovalRevision,
                 isStillValid: isStillValid,
                 receiptStore: (TaskEventJournal.current?.taskID == taskID
                     ? TaskEventJournal.current?.receiptStore : nil) ?? .shared,
@@ -250,27 +287,38 @@ enum AgentToolExecutor {
                         completedJournalAccepted = TaskEventJournal.toolCompleted(journal, tool: tool.id,
                             succeeded: backingReturned, receiptID: prepared.id)
                     }
+                    let overridden = SelfTest.isRunning && fireOverrideForTesting != nil
+                    let scopedProjection = overridden && VoiceWorkerScope.isWorker && fireProjectionAdmissionForTesting != nil
+                    if scopedProjection, fireProjectionAdmissionForTesting?(taskID) != true {
+                        throw AgentError.backendUnavailable("The isolated tool presentation context is no longer available.")
+                    }
+                    if !overridden || scopedProjection {
+                        // A denied or waiting action must not appear as executed activity. These
+                        // projections happen only after the orchestrator has received permission.
+                        AgentActivityStore.shared.update(
+                            taskID: taskID ?? "",
+                            kind: AgentActivityProjector.kind(for: tool),
+                            title: publicTitle,
+                            // The avatar's state is decided here, where the tool is, rather than
+                            // anywhere downstream that would have to read `publicTitle` back.
+                            avatar: AgentAvatarState.forTool(
+                                namespace: tool.namespace, name: tool.name, risk: tool.risk
+                            )
+                        )
+                        // Activity and canonical progress remain live. A voice worker
+                        // never attempts to replace the conversation's presentation.
+                        if !(VoiceWorkerScope.isWorker && IslandOwnership.sessionOwnsIsland) {
+                            if taskID == nil {
+                                IslandState.shared.showAgentWork(title: publicTitle)
+                            } else {
+                                IslandState.shared.showBackgroundAgentWork(title: publicTitle)
+                            }
+                        }
+                    }
                     if SelfTest.isRunning, let fire = fireOverrideForTesting {
                         let result = try await fire(tool, prepared.executionPlan.arguments)
                         backingReturned = true
                         return result
-                    }
-                    // A denied or waiting action must not appear as executed activity. These
-                    // projections happen only after the orchestrator has received permission.
-                    AgentActivityStore.shared.update(
-                        taskID: taskID ?? "",
-                        kind: AgentActivityProjector.kind(for: tool),
-                        title: publicTitle,
-                        // The avatar's state is decided here, where the tool is, rather than
-                        // anywhere downstream that would have to read `publicTitle` back.
-                        avatar: AgentAvatarState.forTool(
-                            namespace: tool.namespace, name: tool.name, risk: tool.risk
-                        )
-                    )
-                    if taskID == nil {
-                        IslandState.shared.showAgentWork(title: publicTitle)
-                    } else {
-                        IslandState.shared.showBackgroundAgentWork(title: publicTitle)
                     }
                     AgentAuditLog.shared.record(
                         kind: .tool,

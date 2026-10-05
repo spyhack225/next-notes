@@ -76,7 +76,7 @@ final class ToolCallReviewStore {
     func review(id: String) -> ToolCallReview? { reviews[id] }
 
     static func build(_ request: PermissionRequest) -> ToolCallReview {
-        let context = ToolCallContextBuilder.current(meetingID: request.meetingID)
+        let context = ToolCallContextBuilder.current(meetingID: request.meetingID, taskID: request.taskID)
         guard let tool = AgentToolRegistry.shared.tool(named: request.toolID) else {
             // An unknown tool is the most cautious case there is: show every argument as a
             // row, confirm nothing, and let the schema check refuse it downstream.
@@ -219,13 +219,39 @@ final class ToolCallReviewStore {
 /// question — "is this string in any of these strings" — does not need one.
 @MainActor
 enum ToolCallContextBuilder {
+    // Default nil. Only the exact isolated production Gate fixtures substitute
+    // the external meeting context; current user words still come from the session.
+    private static var meetingContextForTesting: (@MainActor (UUID?, String?) -> ToolCallContext?)?
+    @discardableResult
+    static func setMeetingContextForTesting(
+        _ provider: (@MainActor (UUID?, String?) -> ToolCallContext?)?, root: URL
+    ) -> Bool {
+        let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let canonical = root.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning,
+              ["--selftest-voice-work-lifecycle", "--selftest-voice-delivery", "--selftest-voice-duplex-work", "--selftest-island", "--selftest-task-recovery"].contains(SelfTest.requested ?? ""),
+              canonical.path == root.standardizedFileURL.path,
+              canonical.deletingLastPathComponent().path == temp.path,
+              UUID(uuidString: canonical.lastPathComponent) != nil,
+              FileManager.default.fileExists(atPath: canonical.path) else { return false }
+        if provider != nil, meetingContextForTesting != nil { return false }
+        meetingContextForTesting = provider; return true
+    }
 
-    static func current(meetingID: UUID? = nil, userWords: String? = nil) -> ToolCallContext {
+    static func current(meetingID: UUID? = nil, userWords: String? = nil, taskID: String? = nil) -> ToolCallContext {
         var context = ToolCallContext()
         context.now = Date()
         context.userWords = userWords ?? lastUserWords()
 
-        if let meetingID {
+        if let provider = meetingContextForTesting {
+            // An unmatched fixture request is invalid input, never permission to
+            // fall through to owner meeting history. The fixture refuses approval.
+            guard let owned = provider(meetingID, taskID) else { return context }
+            context.transcript = owned.transcript
+            context.notes = owned.notes
+            context.attendees = owned.attendees
+            context.people = owned.people
+        } else if let meetingID {
             if let meeting = MeetingStore.shared.meeting(id: meetingID) {
                 context.attendees = meeting.attendees
                 context.people += meeting.speakerNames.values

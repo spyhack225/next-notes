@@ -15,6 +15,11 @@ struct ACPAgentBackend: AgentBackend {
     static let codexAdapterPackage = "@agentclientprotocol/codex-acp@1.11.0"
     static let claudeAdapterPackage = "@agentclientprotocol/claude-agent-acp@0.76.0"
 
+    /// COMMON callback completion metadata, not health or approval authority.
+    /// Nil normally; acknowledges the real MainActor callback including early returns.
+    @MainActor static var activityHandledForTesting: (@MainActor @Sendable (String, Bool?, Double) -> Void)?
+
+
     struct Invocation: Equatable, Sendable {
         let command: String
         let arguments: [String]
@@ -117,11 +122,13 @@ struct ACPAgentBackend: AgentBackend {
             revision: nil,
             meetingID: nil,
             dictationRunID: nil,
-            scheduleID: task.scheduleID))
+            scheduleID: task.scheduleID,
+            taskID: ModelPassRecorder.correlation?.taskID == task.id
+                ? UsageLog.sanitiseTaskID(task.id) : nil))
     }
 
     private func runSession(_ task: AgentTask) async throws -> AgentTaskOutcome {
-        let boundAttempt = task.scheduleID == nil && ["user", "text", "selftest"].contains(task.source)
+        let boundAttempt = task.scheduleID == nil && (["user", "text", "selftest"].contains(task.source) || task.hasVoiceOrigin)
             && task.backend == AgentBackendKind.acp.rawValue && (task.durability?.attempt ?? 0) > 0
             && task.compatibilityCLI == nil && task.compatibilityCommand == nil
         if boundAttempt {
@@ -376,14 +383,40 @@ struct ACPAgentBackend: AgentBackend {
     ) async throws -> AgentTaskOutcome {
         // Readability callbacks do not inherit this task-local scope. Carry the
         // exact normal typed attempt to the Session's nested permission boundary.
-        let boundAttempt = task.scheduleID == nil && ["user", "text", "selftest"].contains(task.source)
+        let boundAttempt = task.scheduleID == nil && (["user", "text", "selftest"].contains(task.source) || task.hasVoiceOrigin)
             && task.backend == AgentBackendKind.acp.rawValue && (task.durability?.attempt ?? 0) > 0
             && task.compatibilityCLI == nil && task.compatibilityCommand == nil
         let taskContext = boundAttempt ? TaskEventJournal.current : nil
         let token = await session.subscribe { event in
             Task { @MainActor in
-                guard let current = AgentTaskManager.shared.task(id: task.id),
-                      current.status == .running else { return }
+                var activityAdmitted: Bool? = nil
+                let activityBegan: ContinuousClock.Instant? = SelfTest.isRunning
+                    && event.kind == "activity" && Self.activityHandledForTesting != nil ? ContinuousClock.now : nil
+                defer {
+                    if SelfTest.isRunning, event.kind == "activity" {
+                        let milliseconds = activityBegan.map {
+                            Double(ModelPassRecorder.milliseconds($0.duration(to: .now)))
+                        } ?? 0
+                        Self.activityHandledForTesting?(event.taskID, activityAdmitted, milliseconds)
+                    }
+                }
+                if event.kind == "activity", let context = taskContext {
+                    guard event.taskID == context.taskID, context.taskID == task.id,
+                          context.attempt > 0,
+                          context.leaseOwner == String(ProcessInfo.processInfo.processIdentifier) else { return }
+                    activityAdmitted = context.record(TaskJournalEventDraft(taskID: context.taskID,
+                        kind: .heartbeat, detail: "acp.activity", attempt: context.attempt))
+                    guard activityAdmitted == true else { return }
+                }
+                // The captured bound context just admitted this activity against its
+                // SAME live owner and primary row. A singleton lookup would instead
+                // discard a legitimate injected owner's event. There is no await
+                // between that admission and its existing presentation consumer.
+                // Unbound compatibility and permission events retain their old check.
+                if activityAdmitted != true {
+                    guard let current = AgentTaskManager.shared.task(id: task.id),
+                          current.status == .running else { return }
+                }
                 if event.kind == "permission", let actionID {
                     ActionOrchestrator.shared.appendExternalEvent(
                         actionID: actionID,

@@ -6,8 +6,8 @@ import FoundationModels
 /// Foundation Models owns its own inference state. A tool worker can therefore keep
 /// generating with llama.cpp while this lane handles a new spoken turn. The frontend
 /// receives only compact conversation and work status; it cannot perform tool effects.
-actor LocalVoiceFrontend {
-    static let shared = LocalVoiceFrontend()
+actor FrontendResponder {
+    static let shared = FrontendResponder()
 
     enum FrontendError: LocalizedError {
         case unavailable(String)
@@ -116,6 +116,12 @@ actor LocalVoiceFrontend {
     private var abandonedGeneration: UInt64 = 0
     private var generationForTesting: (@Sendable (String, [LLMChatMessage], Int) -> AsyncThrowingStream<String, Error>)?
     private var schedulerAcquiredObserverForTesting: (@Sendable () -> Void)?
+    private var retainingGenerationOwnerForTesting = false
+    private var generationCaptureForTesting: (@Sendable (String) -> Void)?
+    func ownedGenerationForTesting() -> Task<Void, Never>? {
+        guard retainingGenerationOwnerForTesting else { return nil }
+        return nativeGeneration
+    }
 
     func setSchedulerAcquiredObserverForTesting(_ observer: (@Sendable () -> Void)?) {
         schedulerAcquiredObserverForTesting = observer
@@ -126,6 +132,28 @@ actor LocalVoiceFrontend {
     ) {
         cancelSpeculation()
         generationForTesting = generator
+        retainingGenerationOwnerForTesting = false
+        generationCaptureForTesting = nil
+    }
+    @discardableResult
+    func setGenerationForTesting(
+        _ generator: (@Sendable (String, [LLMChatMessage], Int) -> AsyncThrowingStream<String, Error>)?,
+        retainingTaskOwner: Bool, fixtureRoot: URL? = nil,
+        onGenerationCapture: (@Sendable (String) -> Void)? = nil
+    ) -> Bool {
+        if retainingTaskOwner || onGenerationCapture != nil {
+            let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+            guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-delivery",
+                  let fixtureRoot, UUID(uuidString: fixtureRoot.lastPathComponent) != nil,
+                  fixtureRoot.deletingLastPathComponent().standardizedFileURL.path == temp.path,
+                  fixtureRoot.standardizedFileURL.path == fixtureRoot.resolvingSymlinksInPath().standardizedFileURL.path,
+                  let metadata = try? fixtureRoot.resourceValues(forKeys: [.isDirectoryKey, .isSymbolicLinkKey]),
+                  metadata.isDirectory == true, metadata.isSymbolicLink != true else { return false }
+        }
+        setGenerationForTesting(generator)
+        retainingGenerationOwnerForTesting = retainingTaskOwner
+        generationCaptureForTesting = onGenerationCapture
+        return true
     }
 
     /// Prepare the next request while the person is still talking. Apple's native
@@ -285,6 +313,35 @@ actor LocalVoiceFrontend {
         }
     }
 
+    /// Fresh result-only session on this SAME inference owner. Capture before
+    /// even the prompt hop: a newer request during any await keeps its generation.
+    func phrase(_ batch: [DeliveryItem], carriedOver: Bool) async -> String? {
+        guard !batch.isEmpty, batch.allSatisfy({ $0.kind.priority == .result }),
+              generationForTesting != nil || FoundationModelFormatter.unavailableReason == nil else { return nil }
+        let prior = serialBarrier()
+        nextGenerationTimingID &+= 1
+        let timing = GenerationTiming(id: nextGenerationTimingID, revision: nil)
+        generationCaptureForTesting?("phrase")
+        let request = await MainActor.run {
+            (AgentDeliveryPrompts.resultInstructions(carriedOver: carriedOver), AgentDeliveryPrompts.facts(batch))
+        }
+        // No turn routing, speculative slot or staged conversation is consumed.
+        guard !Task.isCancelled, timing.id == nextGenerationTimingID,
+              await Self.waitForPriorInference(prior), !Task.isCancelled,
+              timing.id == nextGenerationTimingID else { return nil }
+        let stream = await unsharedStream(system: request.0, messages: [.init(role: .user, content: request.1)],
+            maxTokens: 120, drain: nil, timing: timing, deliveryPhrase: true)
+        do {
+            var raw = ""
+            for try await delta in stream {
+                try Task.checkCancellation()
+                raw += delta
+            }
+            try Task.checkCancellation()
+            return await MainActor.run { AgentDeliveryPrompts.acceptedPhrase(raw) }
+        } catch { return nil }
+    }
+
     /// Streams cumulative Foundation Models snapshots as append-only deltas. The caller
     /// owns interruption and work lifecycle. Every request gets a fresh session so an
     /// interrupted answer cannot pollute the next turn's context.
@@ -324,6 +381,7 @@ actor LocalVoiceFrontend {
         let prior = serialBarrier()
         nextGenerationTimingID &+= 1
         let timing = GenerationTiming(id: nextGenerationTimingID, revision: commitRevision)
+        generationCaptureForTesting?("request")
         Self.emitTiming(timing, "committed_stream_started")
         return await unsharedStream(system: system, messages: messages,
                                     maxTokens: maxTokens, drain: prior, timing: timing)
@@ -364,7 +422,8 @@ actor LocalVoiceFrontend {
         messages: [LLMChatMessage],
         maxTokens: Int,
         drain: Task<Void, Never>?,
-        timing: GenerationTiming
+        timing: GenerationTiming,
+        deliveryPhrase: Bool = false
     ) async -> AsyncThrowingStream<String, Error> {
         let barrierStarted = ContinuousClock.now
         if await Self.waitForPriorInference(drain) {
@@ -382,28 +441,49 @@ actor LocalVoiceFrontend {
             drainBarrier = nil
             nativeGeneration = nil
         }
-        if let generationForTesting {
+        if deliveryPhrase, timing.id != nextGenerationTimingID {
+            return AsyncThrowingStream { $0.finish(throwing: CancellationError()) }
+        }
+        if let generationForTesting, !retainingGenerationOwnerForTesting {
             Self.emitTiming(timing, "testing_generator_returned")
             return generationForTesting(system, messages, maxTokens)
         }
         let acquiredObserver = schedulerAcquiredObserverForTesting
         let (stream, continuation) = AsyncThrowingStream<String, Error>.makeStream()
+        let ownedTestingGenerator = retainingGenerationOwnerForTesting ? generationForTesting : nil
         let task = Task {
                 defer {
                     Self.emitTiming(timing, "native_task_end", durationFrom: timing.cancelledAt)
                 }
                 do {
+                    // Substitute only the external generator inside the SAME owned
+                    // Task; scripted callbacks are never native kernel evidence.
+                    if let ownedTestingGenerator {
+                        for try await delta in ownedTestingGenerator(system, messages, maxTokens) {
+                            try Task.checkCancellation()
+                            if mayDeliver(timing) { continuation.yield(delta) }
+                        }
+                        continuation.finish()
+                        return
+                    }
                     // A live turn cannot race an unfinished warmup in Foundation
                     // Models. Both operations share one local inference service.
                     let warmupStarted = ContinuousClock.now
-                    try await self.prepare()
+                    if deliveryPhrase {
+                        // Join an already-owned warmup, but do not add a discarded
+                        // preparation inference to a delivery phrase.
+                        try await self.prepareTask?.value
+                    } else { try await self.prepare() }
                     Self.emitTiming(timing, "native_warmup_done", durationFrom: warmupStarted)
                     try Task.checkCancellation()
-                    let useNativeHistory = LocalVoicePrompt.isEnabled
-                    let useTypedResponse = LocalVoiceTypedResponse.isEnabled
-                    let useSplitDecision = LocalVoiceSplitResponse.isEnabled
+                    if deliveryPhrase, timing.id != nextGenerationTimingID { throw CancellationError() }
+                    let useNativeHistory = !deliveryPhrase && LocalVoicePrompt.isEnabled
+                    let useTypedResponse = !deliveryPhrase && LocalVoiceTypedResponse.isEnabled
+                    let useSplitDecision = !deliveryPhrase && LocalVoiceSplitResponse.isEnabled
                     let staged: LanguageModelSession?
-                    if useNativeHistory || useTypedResponse || useSplitDecision {
+                    if deliveryPhrase {
+                        staged = nil
+                    } else if useNativeHistory || useTypedResponse || useSplitDecision {
                         _ = self.takeStagedSession()
                         staged = nil
                     } else {
@@ -421,6 +501,7 @@ actor LocalVoiceFrontend {
                     acquiredObserver?()
                     do {
                         try Task.checkCancellation()
+                        if deliveryPhrase, timing.id != nextGenerationTimingID { throw CancellationError() }
                         if let reason = FoundationModelFormatter.unavailableReason {
                             throw FrontendError.unavailable(reason)
                         }
@@ -459,7 +540,7 @@ actor LocalVoiceFrontend {
                             let response = session.streamResponse(
                                 to: prompt,
                                 options: GenerationOptions(
-                                    temperature: 0.2,
+                                    temperature: deliveryPhrase ? 0.3 : 0.2,
                                     maximumResponseTokens: maxTokens
                                 )
                             )
@@ -572,24 +653,31 @@ actor LocalVoiceFrontend {
             print("VOICE_SPLIT_ROUTE intent=\(route.intent) task=\(route.taskNumber.map(String.init) ?? "none")")
         }
 
+        let payload: FrontendDecisionPayload
         switch route.intent {
-        case .describeCapabilities:
-            if mayDeliver(timing) { continuation.yield("<capabilities/>") }
-            return true
+        case .describeCapabilities: payload = FrontendDecisionPayload(intent: "capabilities")
         case .startExternalTask:
-            if mayDeliver(timing) { continuation.yield("<use_tools/>") }
-            return true
+            guard let value = FrontendToolContract.payload(.spawn, arguments: .init(objective: route.objective), acknowledgement: route.acknowledgement) else { throw FrontendError.typedDecisionIncomplete }
+            payload = value
         case .reviseRunningTask:
-            guard let taskNumber = route.taskNumber, taskNumber > 0 else {
-                throw FrontendError.typedDecisionIncomplete
-            }
-            if mayDeliver(timing) { continuation.yield("<revise id=\"\(taskNumber)\"/>") }
-            return true
+            guard let number = route.taskNumber, number > 0 else { throw FrontendError.typedDecisionIncomplete }
+            payload = FrontendDecisionPayload(intent: "revise", taskNumber: number, objective: route.objective)
         case .cancelRunningTask:
-            guard let taskNumber = route.taskNumber, taskNumber > 0 else {
-                throw FrontendError.typedDecisionIncomplete
-            }
-            if mayDeliver(timing) { continuation.yield("<cancel id=\"\(taskNumber)\"/>") }
+            guard let value = FrontendToolContract.payload(.cancel, arguments: .init(task: route.taskNumber)) else { throw FrontendError.typedDecisionIncomplete }
+            payload = value
+        case .checkTaskStatus:
+            guard let value = FrontendToolContract.payload(.status, arguments: .init(task: route.taskNumber)) else { throw FrontendError.typedDecisionIncomplete }
+            payload = value
+        case .answerApproval:
+            let change = route.approvalChange.isEmpty ? nil : route.approvalChange
+            guard let value = FrontendToolContract.payload(.approval, arguments: .init(decision: route.approvalDecision, change: change)) else { throw FrontendError.typedDecisionIncomplete }
+            payload = value
+        case .notAddressedToMe: payload = FrontendDecisionPayload(intent: "not_addressed")
+        case .answerQuestion: payload = FrontendDecisionPayload(intent: "answer")
+        }
+        switch route.intent {
+        case .describeCapabilities, .startExternalTask, .reviseRunningTask, .cancelRunningTask, .checkTaskStatus, .answerApproval, .notAddressedToMe:
+            if mayDeliver(timing) { continuation.yield(try payload.controlChunk()) }
             return true
         case .answerQuestion:
             try Task.checkCancellation()
@@ -661,7 +749,7 @@ actor LocalVoiceFrontend {
             guard current.hasPrefix(previous) else {
                 throw FrontendError.revisedSnapshot
             }
-            if current.contains("<answer/>") || current.contains("<capabilities/>")
+            if current.contains("<decision>") || current.contains("</decision>") || current.contains("<status") || current.contains("<answer/>") || current.contains("<capabilities/>")
                 || current.contains("<use_tools/>") || current.contains("<revise ")
                 || current.contains("<cancel ") {
                 throw FrontendError.splitAnswerProtocolViolation
@@ -669,7 +757,7 @@ actor LocalVoiceFrontend {
             if !current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if !started {
                     recorder.noteFirstToken()
-                    if mayDeliver(timing) { continuation.yield("<answer/>") }
+                    if mayDeliver(timing) { continuation.yield(try FrontendDecisionPayload(intent: "answer").controlChunk()) }
                     started = true
                     Self.emitTiming(timing, "first_answer_text")
                 }
@@ -789,7 +877,7 @@ actor LocalVoiceFrontend {
 
     private static func controlEnvelopePrefix(_ text: String) -> String? {
         switch VoiceFrontendEnvelope.parse(text) {
-        case .newWork, .revise, .cancel:
+        case .newWork, .revise, .cancel, .status:
             guard let end = text.range(of: "/>") else { return nil }
             return String(text[..<end.upperBound])
         default:

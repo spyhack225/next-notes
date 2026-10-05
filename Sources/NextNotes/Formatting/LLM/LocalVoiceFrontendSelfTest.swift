@@ -155,7 +155,7 @@ enum LocalVoiceFrontendSelfTest {
                         switch VoiceFrontendEnvelope.parse(output) {
                         case .answer(let answer) where !answer.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty:
                             first = seconds(start.duration(to: .now))
-                        case .capabilities, .newWork, .revise, .cancel:
+                        case .capabilities, .newWork, .decision, .revise, .cancel:
                             first = seconds(start.duration(to: .now))
                         default: break
                         }
@@ -177,6 +177,8 @@ enum LocalVoiceFrontendSelfTest {
                 let classified: Bool
                 switch (fixture.expected, parsed) {
                 case (.answer, .answer): classified = true
+                case (.newWork, .decision(let payload)): classified = payload.intent == "spawn"
+                case (.revise(let expected, _), .revise(let actual, _)): classified = expected == actual
                 default: classified = fixture.expected == parsed
                 }
                 await SelfTest.diagnostic("voice frontend first_text=\(String(format: "%.3f", first))s first_clause=\(firstClause.map { String(format: "%.3f", $0) } ?? "none")s clause=\(clauseText ?? "none") speech=\(fixture.speech) output=\(output) classified=\(classified)")

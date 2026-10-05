@@ -5,23 +5,63 @@ import Foundation
 /// All accesses share the conversation's main actor; no audio callback waits here.
 @MainActor
 final class VoiceConversationWork {
-    let id = UUID()
+    let id: UUID
     let original: String
+    let userWords: String?
     private(set) var revision = 0
     private(set) var followUps: [String] = []
 
-    init(_ original: String) { self.original = original }
+    init(_ original: String, id: UUID = UUID(), userWords: String? = nil) {
+        self.id = id; self.original = original; self.userWords = userWords
+    }
 
+    // Pending typed classification belongs to this same work item. The user
+    // turn is never queued behind its worker; only a write awaits classification.
+    private var typedInput: UUID?
+    private var typedWriteWaiter: CheckedContinuation<Void, Never>?
+    func beginTypedInput(_ token: UUID) { typedInput = token }
+    func hasTypedInput(_ token: UUID) -> Bool { typedInput == token }
+    func resolveTypedInput(_ token: UUID) {
+        guard typedInput == token else { return }
+        typedInput = nil; typedWriteWaiter?.resume(); typedWriteWaiter = nil
+    }
+    func releaseTypedInput() {
+        typedInput = nil; typedWriteWaiter?.resume(); typedWriteWaiter = nil
+    }
+    func waitForTypedInput() async {
+        while typedInput != nil && !Task.isCancelled {
+            await withCheckedContinuation { typedWriteWaiter = $0 }
+        }
+    }
+    private var typedQuestion: String?
+    private var typedQuestionWaiter: CheckedContinuation<Void, Never>?
+    func beginTypedQuestion(_ id: String) { typedQuestion = id }
+    func resolveTypedQuestion(_ id: String) {
+        guard typedQuestion == id else { return }
+        releaseTypedQuestion()
+    }
+    func releaseTypedQuestion() {
+        typedQuestion = nil; typedQuestionWaiter?.resume(); typedQuestionWaiter = nil
+    }
+    func waitForTypedQuestion() async {
+        while typedQuestion != nil && !Task.isCancelled {
+            await withCheckedContinuation { typedQuestionWaiter = $0 }
+        }
+    }
     func append(_ text: String) {
         followUps.append(text)
         revision += 1
     }
 
     var prompt: String {
-        guard !followUps.isEmpty else { return original }
+        let instruction: String
+        if let userWords, !userWords.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, userWords != original {
+            instruction = original + "\n(The person's exact words: " + userWords + ")"
+        } else { instruction = original }
+        guard !followUps.isEmpty else { return instruction }
         return """
             Original user request (retain unfinished parts):
-            \(original)
+            \(instruction)
 
             Subsequent user speech, in order:
             \(followUps.enumerated().map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n"))

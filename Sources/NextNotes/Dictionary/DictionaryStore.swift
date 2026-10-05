@@ -23,7 +23,49 @@ import Observation
 @MainActor
 @Observable
 final class DictionaryStore {
-    static let shared = DictionaryStore()
+    static let shared: DictionaryStore = {
+        let store = DictionaryStore()
+        loadedForTesting = store
+        return store
+    }()
+    private static weak var loadedForTesting: DictionaryStore?
+    private static var rootForTesting: URL?
+
+    /// The existing singleton captures its URL before load/watch. A diagnostic
+    /// cannot redirect an already loaded dictionary or fall back after removal.
+    static func installRootForTesting(_ root: URL, bridge: TaskBridge) -> Bool {
+        guard bridge.permitsHarness, VoiceCapabilitySnapshot.permitsContextRootForTesting(root),
+              rootForTesting == nil, loadedForTesting == nil else { return false }
+        rootForTesting = root
+        return true
+    }
+
+    static func finishRootForTesting(_ root: URL) {
+        guard rootForTesting == root else { return }
+        loadedForTesting?.watcher?.cancel()
+        loadedForTesting?.watcher = nil
+        rootForTesting = nil
+    }
+
+    static var hasRootAdmissionForTesting: Bool { rootForTesting != nil }
+
+    static func rootIsPreparedForTesting(_ root: URL) -> Bool {
+        rootForTesting == root && VoiceCapabilitySnapshot.permitsContextRootForTesting(root)
+            && (loadedForTesting == nil || loadedForTesting?.storageURL == root.appendingPathComponent("dictionary.txt"))
+    }
+
+    static func capturedRootMatchesForTesting(_ root: URL) -> Bool? {
+        guard VoiceCapabilitySnapshot.permitsContextRootForTesting(root),
+              let loadedForTesting else { return nil }
+        return loadedForTesting.storageURL == root.appendingPathComponent("dictionary.txt")
+    }
+
+    static func watcherActiveForTesting(_ root: URL) -> Bool? {
+        guard capturedRootMatchesForTesting(root) == true, let loadedForTesting else { return nil }
+        return loadedForTesting.watcher != nil
+    }
+
+    private let storageURL: URL
 
     private(set) var entries: [DictionaryEntry] = []
 
@@ -36,10 +78,11 @@ final class DictionaryStore {
     private var isSaving = false
 
     static var fileURL: URL {
-        AppIdentity.applicationSupportDirectory.appendingPathComponent("dictionary.txt")
+        (rootForTesting ?? AppIdentity.applicationSupportDirectory).appendingPathComponent("dictionary.txt")
     }
 
     private init() {
+        storageURL = Self.fileURL
         load()
         startWatching()
     }
@@ -162,7 +205,7 @@ final class DictionaryStore {
     // MARK: - Persistence
 
     private func load() {
-        guard let text = try? String(contentsOf: Self.fileURL, encoding: .utf8) else {
+        guard let text = try? String(contentsOf: storageURL, encoding: .utf8) else {
             entries = []
             revision += 1
             return
@@ -204,7 +247,7 @@ final class DictionaryStore {
 
         let body = entries.map(\.fileLine).joined(separator: "\n")
         let text = Self.header + body + "\n"
-        try? text.write(to: Self.fileURL, atomically: true, encoding: .utf8)
+        try? text.write(to: storageURL, atomically: true, encoding: .utf8)
     }
 
     private static let header = """
@@ -227,7 +270,7 @@ final class DictionaryStore {
     private func startWatching() {
         watcher?.cancel()
 
-        let descriptor = open(Self.fileURL.path, O_EVTONLY)
+        let descriptor = open(storageURL.path, O_EVTONLY)
         guard descriptor >= 0 else { return }
 
         let source = DispatchSource.makeFileSystemObjectSource(

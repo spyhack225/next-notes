@@ -64,7 +64,53 @@ struct IslandProposal: Identifiable, Equatable, Sendable {
 @MainActor
 @Observable
 final class IslandState {
-    static let shared = IslandState()
+    static let conversationThinkingTitle = "Thinking\u{2026}"
+    private(set) static weak var sharedIfLoaded: IslandState?
+    private static var sharedFactoryForTesting: (@MainActor () -> IslandState)?
+    private static var sharedRootForTesting: URL?
+    private static weak var sharedBridgeForTesting: TaskBridge?
+    static let shared: IslandState = {
+        // Normal construction is unchanged. Explicit conductor admission must
+        // precede first touch; a loaded singleton cannot be rebound or repointed.
+        let value = sharedFactoryForTesting?() ?? IslandState()
+        sharedIfLoaded = value
+        return value
+    }()
+    @discardableResult
+    static func installSharedContextForTesting(root: URL, bridge: TaskBridge, store: MeetingStore) -> Bool {
+        let meetingRoot = store.directory(for: UUID()).deletingLastPathComponent().standardizedFileURL
+        let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning, ["--selftest-island", "--selftest-voice-duplex-work", "--selftest-task-recovery"].contains(SelfTest.requested ?? ""), sharedIfLoaded == nil,
+              sharedFactoryForTesting == nil,
+              VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge),
+              meetingRoot.path == meetingRoot.resolvingSymlinksInPath().standardizedFileURL.path,
+              meetingRoot.deletingLastPathComponent().path == temp.path,
+              meetingRoot.lastPathComponent == "NextNotesMeetingResumeTest-" + root.lastPathComponent else { return false }
+        // Existing initializer collaborators are captured once by the SAME
+        // eventual shared Island; no second product owner or shared service loads.
+        let value = IslandState(meetings: MeetingController(store: store),
+            notes: NotesService(store: store), diarization: DiarizationService(store: store))
+        sharedRootForTesting = root; sharedBridgeForTesting = bridge
+        sharedFactoryForTesting = { [weak bridge] in
+            guard let bridge, VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge) else {
+                SelfTest.diagnostic("ISLAND_CONTEXT_INVALID expiredAdmission=true")
+                return value // Retain captured confined collaborators, never fall back.
+            }
+            return value
+        }
+        return true
+    }
+    static func sharedContextMatchesForTesting(root: URL, bridge: TaskBridge) -> Bool {
+        sharedIfLoaded != nil && sharedFactoryForTesting != nil
+            && sharedRootForTesting == root && sharedBridgeForTesting === bridge
+            && VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge)
+    }
+    @discardableResult
+    static func finishSharedContextForTesting(root: URL) -> Bool {
+        guard SelfTest.isRunning, ["--selftest-island", "--selftest-voice-duplex-work", "--selftest-task-recovery"].contains(SelfTest.requested ?? ""), sharedRootForTesting == root else { return false }
+        sharedFactoryForTesting = nil; sharedRootForTesting = nil; sharedBridgeForTesting = nil
+        return true
+    }
 
     enum Kind: Equatable {
         case hidden
@@ -236,6 +282,13 @@ final class IslandState {
     }
 
     private(set) var kind: Kind = .hidden
+    /// Current receipt-based conversation projection; only VoiceSession publishes it.
+    private(set) var sessionTaskIndicator: IslandTaskIndicator?
+    private(set) var voiceProjection: IslandProjection?
+    private(set) var voiceProjectionSessionID: UUID?
+    private var voiceTranscript = ""
+    private var voiceLevel: Float = 0
+
     /// What the panel treats as "the island changed its mind".
     ///
     /// `kind` itself carries a microphone level and a transcript, so it changes several
@@ -268,7 +321,7 @@ final class IslandState {
     var avatarState: AgentAvatarState? {
         switch kind {
         case .agentListening: .listening
-        case .agentWorking: AgentActivityStore.shared.liveAvatarState ?? .thinking
+        case .agentWorking: voiceProjection == .thinking ? .thinking : (AgentActivityStore.shared.liveAvatarState ?? .thinking)
         case .agentProposal: .waiting
         case .agentReply: .done
         default: nil
@@ -443,7 +496,15 @@ final class IslandState {
     }
 
     func showAgentListening(transcript: String, level: Float = 0) {
+        guard IslandOwnership.mayWrite("IslandState.showAgentListening0") else { return }
         if Self.suppressUpdatesForTesting { return }
+        if let projection = voiceProjection {
+            if projection == .listening {
+                voiceTranscript = transcript; voiceLevel = level
+            }
+            refresh()
+            return
+        }
         // Live, not a notice: the next buffer replaces this card.
         notice = nil
         kind = .agentListening(transcript: transcript, level: level)
@@ -456,6 +517,7 @@ final class IslandState {
     @MainActor static var suppressUpdatesForTesting = false
 
     func showAgentWork(title: String) {
+        guard IslandOwnership.mayWrite("IslandState.showAgentWork1") else { return }
         // Live, not a notice: Thinking used to expire after islandNotice (8 s) while
         // `askModel` was still waiting, so the island went blank and the turn had nowhere
         // to write the reply.
@@ -465,6 +527,8 @@ final class IslandState {
     /// The step-aware entry point: the island's collapsed card carries `current/total`
     /// and the expanded one carries the current step's title (P1-1).
     func showAgentWork(steps: [String], current: Int, total: Int) {
+        guard IslandOwnership.mayWrite("IslandState.showAgentWork2") else { return }
+        if voiceProjection != nil { refresh(); return }
         notice = nil
         kind = .agentWorking(
             steps: steps.isEmpty ? ["Thinking\u{2026}"] : steps,
@@ -561,12 +625,37 @@ final class IslandState {
         RealtimeAgent.shared.cancel()
     }
 
+    /// Called only from VoiceSession's ordered publishIsland command.
+    /// Notices keep their existing precedence; .none releases this projection.
+    func applyVoiceProjection(_ projection: IslandProjection, sessionID: UUID, transcript: String, level: Float) {
+        if projection == .none {
+            guard voiceProjectionSessionID == sessionID else { return }
+            voiceProjectionSessionID = nil
+        } else {
+            if voiceProjectionSessionID != sessionID, case .agentReply = notice?.kind {
+                // Opening a real new conversation retires the previous closing reply.
+                // Questions and other notices retain their existing precedence.
+                notice = nil
+            }
+            voiceProjectionSessionID = sessionID
+        }
+        voiceProjection = projection == .none ? nil : projection
+        voiceTranscript = projection == .speaking ? "" : transcript
+        voiceLevel = projection == .speaking ? 0 : level
+        refresh()
+    }
+
     // MARK: - Recomputing
 
     /// Derives the live half of the state, and lets a notice win over it.
     ///
     /// Exposed for `--selftest-island`, which drives it against pushed notices to prove the
     /// priority order without a microphone.
+    func applyTaskIndicator(_ indicator: IslandTaskIndicator?) {
+        sessionTaskIndicator = indicator
+        refresh()
+    }
+
     func refresh() {
         let next = notice?.kind ?? liveKind()
         let nextID = next.identity
@@ -630,16 +719,25 @@ final class IslandState {
         // which branch ran first.
         let pending = pendingSource()
         let winner = Self.liveWinner(
-            working: { if case .agentWorking = ActivationController.shared.mode { return true }
+            working: { if let projection = voiceProjection { return projection == .thinking }
+                       if case .agentWorking = ActivationController.shared.mode { return true }
                        return false }(),
-            listening: { if case .agentListening = ActivationController.shared.mode { return true }
+            listening: { if let projection = voiceProjection { return projection == .listening || projection == .speaking }
+                         if case .agentListening = ActivationController.shared.mode { return true }
                          return false }(),
             dictating: dictation?.state.shouldShowHUD == true
                 && dictation?.commandModeOwnsHUD == false
                 && Settings.shared.hudPlacement == .notch,
             pending: pending != nil,
             recording: meetings.session?.isRecording == true)
-        if case .agentWorking = ActivationController.shared.mode, winner == .working {
+        if voiceProjection == .thinking, winner == .working {
+            return .agentWorking(steps: [Self.conversationThinkingTitle], current: 1, total: 1)
+        }
+        if let projection = voiceProjection, winner == .listening,
+           projection == .listening || projection == .speaking {
+            return .agentListening(transcript: voiceTranscript, level: voiceLevel)
+        }
+        if voiceProjection == nil, case .agentWorking = ActivationController.shared.mode, winner == .working {
             // P1-1: the running task's own steps, so the notch shows "3/5" and the
             // current step rather than one opaque "Thinking…" title.
             let feed = AgentActivityStore.shared.liveSteps
@@ -653,7 +751,7 @@ final class IslandState {
             }
             return .agentWorking(steps: feed.titles, current: feed.current, total: feed.total)
         }
-        if case .agentListening = ActivationController.shared.mode {
+        if voiceProjection == nil, case .agentListening = ActivationController.shared.mode {
             return .agentListening(
                 transcript: AgentCaptureController.shared.transcript,
                 level: AgentCaptureController.shared.level
@@ -713,6 +811,10 @@ final class IslandState {
             _ = meetings.session?.systemLevel
             _ = notes.steps
             _ = diarization.progress
+            _ = voiceProjection
+            _ = sessionTaskIndicator
+            _ = voiceTranscript
+            _ = voiceLevel
             _ = ActivationController.shared.mode
             // P1-16: the gate is `@Observable`, so an answer, a cancel and the Needle watcher's
             // 180 s expiry all arrive as a change here rather than needing a poll. Without

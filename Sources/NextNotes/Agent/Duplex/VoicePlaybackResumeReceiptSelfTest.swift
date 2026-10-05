@@ -84,7 +84,7 @@ enum VoicePlaybackResumeReceiptSelfTest {
                 }
                 prior?(event)
             }
-            audio.beginSpokenReply()
+            audio.beginSpokenReply(OutputScheduler.tokenForTesting())
             speech.utteranceVolume = 0
             audio.appendSpokenReply(clause)
             audio.finalizeSpokenReply()

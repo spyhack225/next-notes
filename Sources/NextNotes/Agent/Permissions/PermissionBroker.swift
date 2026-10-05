@@ -10,6 +10,22 @@ import Observation
 actor PermissionBroker {
     static let shared = PermissionBroker()
 
+    // A single scoped external-boundary collaborator for the actual isolated ACP
+    // regression. Nil in production; no authority or alternate decision is returned.
+    private var grantBoundaryForTesting: (@Sendable (String, String) async -> Void)?
+    private var grantBoundaryRootForTesting: URL?
+    func setGrantBoundaryForTesting(_ callback: (@Sendable (String, String) async -> Void)?, root: URL) -> Bool {
+        let resolved = root.resolvingSymlinksInPath().standardizedFileURL
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-task-worker-attempt",
+              root.standardizedFileURL.path == resolved.path, resolved.path.hasPrefix(temporary.path + "/"),
+              !resolved.pathComponents.contains("Application Support"), FileManager.default.fileExists(atPath: resolved.path),
+              callback == nil ? grantBoundaryRootForTesting == resolved : grantBoundaryForTesting == nil else { return false }
+        grantBoundaryForTesting = callback
+        grantBoundaryRootForTesting = callback == nil ? nil : resolved
+        return true
+    }
+
     func authorize(
         _ tool: AgentTool,
         arguments: [String: String],
@@ -22,7 +38,7 @@ actor PermissionBroker {
         evidence: [ActionContextReference] = [],
         origin: ActionOriginContext? = nil,
         remoteAccessSuspended: Bool = false
-    ) -> PermissionDecision {
+    ) async -> PermissionDecision {
         // IM-12: a remote turn is the same authority under a smaller budget. The
         // denied band runs before grants, because a grant names a tool and never a
         // command — "always allow shell" cannot bless `sudo`.
@@ -39,6 +55,12 @@ actor PermissionBroker {
             taskID: taskID
         ) {
             Log.agent.info("permission grant \(grant.duration.rawValue, privacy: .public) for \(tool.id, privacy: .public)")
+            if SelfTest.isRunning, SelfTest.requested == "--selftest-task-worker-attempt",
+               let callback = grantBoundaryForTesting, let root = grantBoundaryRootForTesting,
+               root.path == root.resolvingSymlinksInPath().standardizedFileURL.path,
+               FileManager.default.fileExists(atPath: root.path), let taskID {
+                await callback(tool.id, taskID)
+            }
             return .allow
         }
 

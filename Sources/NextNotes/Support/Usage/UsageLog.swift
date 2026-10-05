@@ -1,5 +1,6 @@
 import AppKit
 import Foundation
+import Darwin
 
 /// The one persistent sink for per-pass usage and provenance (`usage.jsonl`).
 ///
@@ -51,7 +52,7 @@ final class UsageLog: @unchecked Sendable {
         self.maxBytes = max(1, maxBytes)
         self.maxAgeDays = max(1, maxAgeDays)
         self.now = now
-        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: inputRoot, withIntermediateDirectories: true)
         // Age compaction is the only rewrite this store ever performs, and it happens once,
         // off the main actor, on the rotated file only.
         queue.async { [weak self] in self?.compactLocked() }
@@ -69,7 +70,8 @@ final class UsageLog: @unchecked Sendable {
     /// Enqueues one row on the writer queue; returns without waiting for the disk. A row is
     /// rotated out of the way before an append that would pass `maxBytes`.
     func record(_ row: UsageRecord) {
-        queue.async { [weak self] in self?.appendLocked(row) }
+        let safe = Self.sanitisedRow(row)
+        queue.async { [weak self] in self?.appendLocked(safe) }
     }
 
     /// Waits for every queued write. Tests and `NSApplication.willTerminateNotification`
@@ -80,19 +82,48 @@ final class UsageLog: @unchecked Sendable {
 
     /// Both files, oldest first. Skips undecodable lines and rows with `v > schemaVersion`.
     func load(since: Date? = nil) -> [UsageRecord] {
-        queue.sync {
-            let decoder = Self.makeDecoder()
-            var rows: [UsageRecord] = []
-            for url in [rotatedURL, fileURL] {
-                guard let data = try? Data(contentsOf: url) else { continue }
-                for line in data.split(separator: 0x0A) where !line.isEmpty {
-                    guard let row = try? decoder.decode(UsageRecord.self, from: Data(line)),
-                          row.v <= Self.schemaVersion else { continue }
-                    if let since, row.ts < since { continue }
-                    rows.append(row)
-                }
+        queue.sync { () -> [UsageRecord] in
+            [rotatedURL, fileURL].flatMap { url -> [UsageRecord] in
+                guard let data = try? Data(contentsOf: url) else { return [] }
+                return Self.decodeRows(data, since: since)
             }
-            return rows
+        }
+    }
+
+    /// Report-only read through the SAME decoder: no writer, directory creation,
+    /// compaction, notification observer or queue. Missing sources remain absent.
+    static func loadForReport(directory: URL, since: Date? = nil) throws -> [UsageRecord] {
+        var attributes = stat()
+        if lstat(directory.path, &attributes) == 0 {
+            guard (attributes.st_mode & S_IFMT) == S_IFDIR else { throw CocoaError(.fileReadNoPermission) }
+        } else if errno == ENOENT { return [] }
+        else { throw CocoaError(.fileReadNoPermission) }
+        return try [rotatedName, fileName].flatMap { name -> [UsageRecord] in
+            guard let data = try reportData(at: directory.appendingPathComponent(name)) else { return [] }
+            return decodeRows(data, since: since)
+        }
+    }
+
+    /// Reject aliases/nonregular files before diagnostic payload access. Metadata
+    /// validation is sequential admission, not a cross-process snapshot or CAS claim.
+    static func reportData(at url: URL) throws -> Data? {
+        var attributes = stat()
+        if lstat(url.path, &attributes) != 0 {
+            if errno == ENOENT { return nil }
+            throw CocoaError(.fileReadNoPermission)
+        }
+        guard (attributes.st_mode & S_IFMT) == S_IFREG else { throw CocoaError(.fileReadNoPermission) }
+        return try Data(contentsOf: url)
+    }
+
+    /// SAME line decoder for the writer's load and diagnostic reads.
+    private static func decodeRows(_ data: Data, since: Date?) -> [UsageRecord] {
+        let decoder = makeDecoder()
+        return data.split(separator: 0x0A).compactMap { line in
+            guard !line.isEmpty,
+                  let row = try? decoder.decode(UsageRecord.self, from: Data(line)),
+                  row.v <= schemaVersion, since == nil || row.ts >= since! else { return nil }
+            return sanitisedRow(row)
         }
     }
 
@@ -138,6 +169,19 @@ final class UsageLog: @unchecked Sendable {
         return text
     }
 
+    /// A correlation string must be an exact app-generated identity, never free text.
+    /// Preserve UUID spelling; trimming/scrubbing would manufacture a different join.
+    static func sanitiseTaskID(_ value: String?) -> String? {
+        guard let value, value.utf8.count == 36, UUID(uuidString: value) != nil else { return nil }
+        return value
+    }
+
+    private static func sanitisedRow(_ row: UsageRecord) -> UsageRecord {
+        var safe = row
+        safe.taskID = sanitiseTaskID(row.taskID)
+        return safe
+    }
+
     // MARK: - The writer queue
 
     private func appendLocked(_ row: UsageRecord) {
@@ -175,7 +219,7 @@ final class UsageLog: @unchecked Sendable {
         for line in data.split(separator: 0x0A) where !line.isEmpty {
             guard let row = try? decoder.decode(UsageRecord.self, from: Data(line)),
                   row.v <= Self.schemaVersion, row.ts >= cutoff,
-                  let encoded = try? encoder.encode(row) else { continue }
+                  let encoded = try? encoder.encode(Self.sanitisedRow(row)) else { continue }
             kept.append(encoded)
         }
         var body = Data()

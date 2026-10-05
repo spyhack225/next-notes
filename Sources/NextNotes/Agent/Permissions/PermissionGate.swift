@@ -1,6 +1,8 @@
 import Foundation
 import Observation
 
+enum PermissionAnswerSurface: String, Sendable { case card, island, voice, withdrawn }
+
 /// One visible approval, with an ordered queue for independent tool workers.
 ///
 /// The island and the Agent sidebar show the same request. `AgentService` already owns
@@ -18,6 +20,10 @@ final class PermissionGate {
         // Live bound workers commit the exact decision before this waiter can resume.
         var decisionAdmission: ((Bool) -> Bool)?
         var review: ToolCallReview?
+        weak var voiceBridge: TaskBridge?
+        weak var voiceRoute: TaskBridge?
+        var voiceRouteRevision: Int?
+        var voiceRouteGeneration: Int?
     }
     private var waiting: WaitingApproval?
     private var queued: [WaitingApproval] = []
@@ -30,9 +36,40 @@ final class PermissionGate {
     /// run leaves it unchanged: nobody is there to answer.
     private(set) var askCount = 0
 
+    private var sharedApprovalRouteObserverForTesting: (@MainActor (Bool, Bool) -> Void)?
+    private var approvalRouteFixtureRoot: URL?
+    @discardableResult
+    func setSharedApprovalRouteObserverForTesting(_ observer: (@MainActor (Bool, Bool) -> Void)?, root: URL) -> Bool {
+        let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let resolved = root.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-delivery",
+              root.standardizedFileURL.path == resolved.path,
+              resolved.deletingLastPathComponent().path == temp.path,
+              UUID(uuidString: resolved.lastPathComponent) != nil,
+              FileManager.default.fileExists(atPath: resolved.path),
+              observer == nil ? approvalRouteFixtureRoot?.path == resolved.path : sharedApprovalRouteObserverForTesting == nil else { return false }
+        sharedApprovalRouteObserverForTesting = observer
+        approvalRouteFixtureRoot = observer == nil ? nil : resolved
+        return true
+    }
+    private func observeSharedApprovalRoute(_ selected: Bool, matched: Bool) {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-delivery",
+              let root = approvalRouteFixtureRoot,
+              root.path == root.resolvingSymlinksInPath().standardizedFileURL.path,
+              FileManager.default.fileExists(atPath: root.path) else { return }
+        sharedApprovalRouteObserverForTesting?(selected, matched)
+    }
+
     private init() {}
 
-    func ask(_ request: PermissionRequest) async -> Bool {
+    func ask(_ rawRequest: PermissionRequest, voiceBridge: TaskBridge? = nil,
+             voiceGeneration: Int? = nil, voiceRevision: Int? = nil) async -> Bool {
+        let request: PermissionRequest
+        if let bridge = voiceBridge,
+           bridge.approvalRouteRevision(rawRequest.taskID, generation: voiceGeneration, revision: voiceRevision) != nil {
+            guard let canonical = try? AgentTaskStore.canonicalPermissionRequest(rawRequest) else { return false }
+            request = canonical
+        } else { request = rawRequest }
         askCount += 1
         let requestID = request.id
         // Only the original task-bound caller supplies journal provenance. Callback
@@ -57,6 +94,11 @@ final class PermissionGate {
                 }
                 admitted = true
                 var entry = WaitingApproval(request: request, continuation: continuation)
+                if let bridge = voiceBridge, bridge.matchesLiveApprovalRoute(request.taskID, generation: voiceGeneration, revision: voiceRevision) {
+                    entry.voiceRoute = bridge
+                    entry.voiceRouteRevision = voiceRevision
+                    entry.voiceRouteGeneration = voiceGeneration
+                }
                 if requiresAdmission, let context {
                     entry.decisionAdmission = { decision in
                         let saved = context.record(TaskJournalEventDraft(taskID: context.taskID,
@@ -102,12 +144,33 @@ final class PermissionGate {
 
     private func present(_ entry: WaitingApproval) {
         let request = entry.request
-        pending = request
-        waiting = entry
+        var entry = entry
         // The review is built before the card is raised, so the island's first frame
         // already knows whether anything is missing. A card that says "Approve" for two
         // seconds and then changes its mind has already been pressed.
         ToolCallReviewStore.shared.begin(request, restoredReview: entry.review)
+        let currentRouteRevision = entry.voiceRoute?.approvalRouteRevision(request.taskID,
+            generation: entry.voiceRouteGeneration, revision: entry.voiceRouteRevision)
+        observeSharedApprovalRoute(false, matched: currentRouteRevision != nil)
+        if entry.continuation != nil, entry.restoredDecision == nil,
+           let bridge = entry.voiceRoute,
+           let revision = currentRouteRevision,
+           let review = ToolCallReviewStore.shared.review(id: request.id) {
+            guard bridge.approvalPresented(request, review: review, workRevision: revision, callerGeneration: entry.voiceRouteGeneration) else {
+                ToolCallReviewStore.shared.remove(id: request.id)
+                entry.continuation?.resume(returning: false)
+                advance()
+                return
+            }
+            entry.voiceBridge = bridge
+        }
+        // A mismatched local/canonical revision retains the inherited display-only
+        // card path. It gets no spoken state, current pending transaction or voice
+        // token; the unchanged captured revision/effect hold still fences backing.
+        pending = request
+        waiting = entry
+        // Admission precedes presentation; enqueue only after this exact Gate is current.
+        entry.voiceBridge?.offerApprovalPrompt(request.id)
         raiseIsland(for: request)
         // P1-29: a card that was **shown** is a moment the audit could not see, so "did the
         // person ever get asked?" had no answer in any log. The tool id and the request id,
@@ -118,7 +181,7 @@ final class PermissionGate {
             detail: "Waiting for a person.",
             toolID: request.toolID, taskID: request.taskID,
             triggerQuote: request.trigger.quote)
-        if VoiceConversationCoordinator.shared.voiceShadowOwnsTask(request.taskID), let task = request.taskID {
+        if entry.voiceRoute?.voiceShadowOwnsApprovalTask(request.taskID, generation: entry.voiceRouteGeneration, revision: entry.voiceRouteRevision) == true, let task = request.taskID {
             VoiceSession.shared.send(.approvalPending(requestID: request.id, task: TaskID(task)))
         }
     }
@@ -151,6 +214,13 @@ final class PermissionGate {
 
     /// The card for the request on screen. Built on demand so a view that appears late
     /// still gets fields rather than two sentences.
+    /// Session close invalidates playback authority even after the prompt ended.
+    /// Only the retained proposal's existing weak voice owner is touched.
+    func resetPendingVoiceApprovalPlayback() {
+        guard let request = pending, let entry = waiting, entry.request == request else { return }
+        entry.voiceBridge?.resetApprovalPlayback(request.id)
+    }
+
     var pendingReview: ToolCallReview? {
         guard let pending else { return nil }
         return ToolCallReviewStore.shared.review(for: pending)
@@ -168,9 +238,14 @@ final class PermissionGate {
         id: String,
         approved: Bool,
         duration: PermissionDuration = .once,
-        scope: PermissionScope? = nil
+        scope: PermissionScope? = nil,
+        via: PermissionAnswerSurface = .card,
+        beforeResume: (() -> Void)? = nil
     ) -> Bool {
         guard pending?.id == id else { return false }
+        // A displayed generic/restored/mismatched card has no heard-current voice
+        // authority. Its existing card decision remains available.
+        if via == .voice, waiting?.voiceBridge == nil { return false }
         if approved, waiting?.restoredDecision != nil, duration != .once {
             // Refuse the unsupported promise before committing or dispatching anything.
             // Hiding the duration picker alone would leave programmatic callers unsafe.
@@ -189,6 +264,16 @@ final class PermissionGate {
             raiseIsland(for: stillPending)
             return false
         }
+        // Refuse obsolete callers and unheard/mismatched spoken decisions before
+        // any journal/restored callback can emit an approval fact. The primary
+        // proposal transition still occurs below, immediately before grant/resume.
+        if let request = pending, let voiceBridge = waiting?.voiceBridge {
+            guard voiceBridge.matchesLiveApprovalRoute(request.taskID,
+                generation: waiting?.voiceRouteGeneration, revision: waiting?.voiceRouteRevision),
+                  voiceBridge.approvalDecisionIsCurrent(request, approved: approved, via: via) else {
+                raiseIsland(for: request); return false
+            }
+        }
         if let decision = waiting?.restoredDecision, let request = pending {
             // Preserve pinned/internal arguments that are deliberately absent from the
             // editable fields. Only the real review can replace visible values.
@@ -206,8 +291,22 @@ final class PermissionGate {
                 return false
             }
         }
+        if let request = pending, let voiceBridge = waiting?.voiceBridge {
+            guard voiceBridge.matchesLiveApprovalRoute(request.taskID,
+                generation: waiting?.voiceRouteGeneration, revision: waiting?.voiceRouteRevision) else {
+                raiseIsland(for: request); return false
+            }
+            guard voiceBridge.approvalDecisionAdmitted(request, approved: approved, via: via) else {
+                raiseIsland(for: request)
+                return false
+            }
+        }
+        // Spoken current-turn classification occurs only after primary admission,
+        // before either the permission grant or the SAME suspended waiter is emitted.
+        if via == .voice { beforeResume?() }
         let request = pending
         let wasRestored = waiting?.restoredDecision != nil
+        if let request { waiting?.voiceBridge?.approvalWithdrawn(request.id) }
         if wasRestored {
             // The durable owner has accepted the decision. Keep execution values until
             // the executor consumes them, but this card can no longer persist edits.
@@ -221,7 +320,7 @@ final class PermissionGate {
             AgentAuditLog.shared.record(
                 kind: .permission,
                 title: review.title,
-                detail: approved ? review.auditNote : "Dismissed",
+                detail: (approved ? review.auditNote : "Dismissed") + (via == .voice ? " · by voice" : ""),
                 toolID: review.toolID,
                 taskID: request?.taskID,
                 meetingID: request?.meetingID,
@@ -282,6 +381,8 @@ final class PermissionGate {
         pending = nil
         waiting = nil
         ToolCallReviewStore.shared.removeAll()
+        if let active { active.voiceBridge?.approvalWithdrawn(active.request.id) }
+        for entry in abandoned { entry.voiceBridge?.approvalWithdrawn(entry.request.id) }
         active?.continuation?.resume(returning: false)
         for entry in abandoned { entry.continuation?.resume(returning: false) }
         IslandState.shared.dismissNotice()
@@ -323,6 +424,7 @@ final class PermissionGate {
                 retained.append(entry)
                 continue
             }
+            entry.voiceBridge?.approvalWithdrawn(entry.request.id)
             ToolCallReviewStore.shared.remove(id: entry.request.id)
             entry.continuation?.resume(returning: false)
             cancelledCount += 1
@@ -330,6 +432,7 @@ final class PermissionGate {
         queued = retained
         if let pending, matches(pending), let waiting {
             if canCancel(waiting) {
+                waiting.voiceBridge?.approvalWithdrawn(pending.id)
                 ToolCallReviewStore.shared.remove(id: pending.id)
                 self.pending = nil
                 waiting.continuation?.resume(returning: false)

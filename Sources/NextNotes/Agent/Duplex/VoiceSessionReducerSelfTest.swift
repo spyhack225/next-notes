@@ -174,8 +174,8 @@ enum VoiceSessionReducerSelfTest {
         await Task.yield()
         agent.discardVoiceInput()
         let spokenBeforeReply = recorder.spoken.count
-        audio.beginSpokenReply()
-        audio.appendSpokenReply("First clause.")
+        audio.beginSpokenReply(OutputScheduler.tokenForTesting())
+        audio.appendSpokenReply(OutputScheduler.currentTokenForTesting(), "First clause.")
         let output = shadow.state.output?.id
         check(output != nil && shadow.state.output?.status == .queued,
               "queue before first render was not recorded")
@@ -192,7 +192,7 @@ enum VoiceSessionReducerSelfTest {
               "streaming clause gap prematurely finished output")
         let firstClauseToken = synth.currentPlaybackToken
         // Stream chunks concatenate verbatim; retain the sentence separator.
-        audio.appendSpokenReply(" Second clause.")
+        audio.appendSpokenReply(OutputScheduler.currentTokenForTesting(), " Second clause.")
         check(recorder.spoken.count == spokenBeforeReply + 2
               && Array(recorder.spoken.suffix(2)) == ["First clause.", "Second clause."]
               && synth.currentPlaybackToken != firstClauseToken,
@@ -200,7 +200,7 @@ enum VoiceSessionReducerSelfTest {
         check(shadow.state.output?.id == output && audio.voiceShadowOutputSnapshot?.id == output,
               "second streamed clause lost matching output identity")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
-        audio.finalizeSpokenReply()
+        audio.finalizeSpokenReply(OutputScheduler.currentTokenForTesting())
         recorder.finishNaturallyForTesting()
         synth.notifyTestingAudioFinished(token: synth.currentPlaybackToken)
         check(shadow.state.output == nil && audio.voiceShadowOutputSnapshot == nil,

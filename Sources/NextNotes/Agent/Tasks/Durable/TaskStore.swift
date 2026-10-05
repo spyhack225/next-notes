@@ -16,6 +16,8 @@ struct TaskStoreAuthorityProbe: Sendable {
     let identity: TaskStoreFileIdentity
     let authority: TaskStoreAuthority?
     let tasks: [AgentTask]
+    /// Optional read-only journal projection in this SAME existing snapshot transaction.
+    var events: [String: [TaskJournalEvent]] = [:]
 }
 
 /// A predicate on an existing primary task row, checked inside the same commit.
@@ -25,6 +27,14 @@ struct TaskWorkerWriteCondition: Equatable, Sendable {
     let attempt: Int
     let leaseOwner: String?
     let status: AgentTaskStatus
+    // Optional SAME-row voice projection predicate. Ordinary worker conditions
+    // keep their exact attempt/lease semantics; no presentation authority follows.
+    var typedRevision: Int? = nil
+    var typedPending: TaskPendingInteraction? = nil
+    var voiceOrigin: TaskOrigin? = nil
+    var voiceRevision: Int? = nil
+    var voiceInputRequestID: String? = nil
+    var voicePermission: TaskPendingInteraction? = nil
 }
 
 enum TaskStoreError: LocalizedError {
@@ -59,9 +69,10 @@ final class TaskStore: @unchecked Sendable {
     var authorityBoundaryForTesting: ((String, OpaquePointer?) throws -> Void)?
 
     private func boundary(_ name: String, db: OpaquePointer?) throws {
+        guard SelfTest.isRunning, let observer = authorityBoundaryForTesting else { return }
         let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().path + "/"
-        if SelfTest.isRunning, fileURL.resolvingSymlinksInPath().path.hasPrefix(temporary) {
-            try authorityBoundaryForTesting?(name, db)
+        if fileURL.resolvingSymlinksInPath().path.hasPrefix(temporary) {
+            try observer(name, db)
         }
     }
 
@@ -140,6 +151,9 @@ final class TaskStore: @unchecked Sendable {
     static func validate(_ tasks: [AgentTask]) throws {
         guard Set(tasks.map(\.id)).count == tasks.count, tasks.allSatisfy({ task in
             guard !task.id.isEmpty, task.createdAt.timeIntervalSince1970.isFinite,
+                  task.deliveryAttempts >= 0, task.revision >= 0,
+                  [task.startedAt, task.finishedAt].compactMap({ $0 }).allSatisfy({ $0.timeIntervalSince1970.isFinite }),
+                  task.userWords == nil || !(task.userWords?.isEmpty ?? true),
                   task.artifactRecords.allSatisfy({ !$0.kind.isEmpty && !$0.kind.utf8.contains(0) }) else { return false }
             switch task.pendingInteraction {
             case .permission(let request, _, let review):
@@ -190,7 +204,12 @@ final class TaskStore: @unchecked Sendable {
             if let handle { sqlite3_close_v2(handle) }
             throw TaskStoreError.sqlite(code)
         }
-        defer { sqlite3_close_v2(handle) }
+        defer {
+            sqlite3_close_v2(handle)
+            // Numeric-only temporary diagnostic after the SAME existing close returns.
+            // A notification cannot veto or replace the result after resource retirement.
+            try? boundary("existingClosed", db: nil)
+        }
         sqlite3_busy_timeout(handle, 0)
         try boundary("existingOpened", db: handle)
         guard try fileIdentity() == identity else { throw TaskStoreError.authorityConflict }
@@ -209,27 +228,34 @@ final class TaskStore: @unchecked Sendable {
         guard code == SQLITE_OK, moved == 0 else { throw TaskStoreError.authorityConflict }
     }
 
-    func probeAuthority(includeTasks: Bool = true) throws -> TaskStoreAuthorityProbe? {
+    func probeAuthority(includeTasks: Bool = true, includeJournal: Bool = false) throws -> TaskStoreAuthorityProbe? {
+        guard !includeJournal || includeTasks else { throw TaskStoreError.invalidRecord }
         guard lock.try() else { throw TaskStoreError.sqlite(SQLITE_BUSY) }
         defer { lock.unlock() }
         guard let identity = try fileIdentity() else { return nil }
         return try existing(identity: identity, writable: false) { db in
             try Self.exec(db, "BEGIN")
             do {
-                try TaskStoreSchema.validateKnown(on: db)
+                let schemaVersion = try TaskStoreSchema.validateKnown(on: db)
                 guard try Self.stringColumn(db, "PRAGMA foreign_key_check").isEmpty else { throw TaskStoreError.invalidRecord }
-                let marker = try Self.authority(in: db)
+                let marker = try Self.authority(in: db, validatedVersion: schemaVersion)
                 try boundary("probeMarkerRead", db: db)
+                let tasks = includeTasks ? try Self.readRows(from: db) : []
+                var events: [String: [TaskJournalEvent]] = [:]
+                if includeJournal {
+                    for task in tasks { events[task.id] = try TaskEventJournal.load(from: db, taskID: task.id) }
+                }
                 let result = TaskStoreAuthorityProbe(identity: identity,
-                    authority: marker, tasks: includeTasks ? try Self.readRows(from: db) : [])
+                    authority: marker, tasks: tasks, events: events)
                 try Self.exec(db, "COMMIT")
                 return result
             } catch { try? Self.exec(db, "ROLLBACK"); throw error }
         }
     }
 
-    private static func authority(in db: OpaquePointer) throws -> TaskStoreAuthority? {
-        if try integer(db, "PRAGMA user_version") == 1 { return nil }
+    private static func authority(in db: OpaquePointer, validatedVersion: Int64? = nil) throws -> TaskStoreAuthority? {
+        let version = try validatedVersion ?? integer(db, "PRAGMA user_version")
+        if version == 1 { return nil }
         let statement = try prepare(db, "SELECT singleton,database_id,generation FROM task_authority")
         defer { sqlite3_finalize(statement) }
         let code = sqlite3_step(statement)
@@ -416,27 +442,106 @@ final class TaskStore: @unchecked Sendable {
         defer { lock.unlock() }
         let after = TaskStoreAuthority(databaseID: before.databaseID, generation: before.generation + 1)
         try existing(identity: probe.identity, writable: true) { db in
-            try TaskStoreSchema.validateKnown(on: db)
             try Self.exec(db, "PRAGMA synchronous=NORMAL")
             try Self.transaction(db) {
+                // Validate this exact locked snapshot once, before any row mutation.
+                let schemaVersion = try TaskStoreSchema.validateKnown(on: db)
                 try Self.validateOpenedFile(db)
                 guard try fileIdentity() == probe.identity,
-                      try Self.authority(in: db) == before else { throw TaskStoreError.authorityConflict }
+                      try Self.authority(in: db, validatedVersion: schemaVersion) == before else { throw TaskStoreError.authorityConflict }
                 if let worker {
                     guard try Self.workerPrimaryObservation(worker, in: db).outcome == .accepted,
                           let next = tasks.first(where: { $0.id == worker.taskID }) else {
                         throw TaskStoreError.authorityConflict
                     }
-                    let starting = worker.status == .queued && next.status == .running
-                    guard worker.attempt >= 0, !starting || worker.attempt < Int.max,
-                          next.durability?.attempt == worker.attempt + (starting ? 1 : 0),
-                          starting || next.durability?.leaseOwner == worker.leaseOwner,
-                          events.filter({ $0.taskID == worker.taskID }).allSatisfy({ $0.attempt == next.durability?.attempt }) else {
-                        throw TaskStoreError.authorityConflict
+                    if let revision = worker.typedRevision {
+                        guard worker.voiceOrigin == nil, worker.voiceRevision == nil,
+                              worker.voiceInputRequestID == nil, worker.voicePermission == nil,
+                              worker.attempt > 0, worker.leaseOwner != nil,
+                              next.source == "text", next.origin == .typed,
+                              next.revision >= revision else { throw TaskStoreError.authorityConflict }
+                    }
+                    if let origin = worker.voiceOrigin, let revision = worker.voiceRevision {
+                        guard worker.attempt == 0, worker.leaseOwner == nil,
+                              next.source == "voice", next.durability == nil,
+                              next.origin == origin, case .voice = origin else { throw TaskStoreError.authorityConflict }
+                        if worker.status == .running {
+                            guard worker.voiceInputRequestID == nil, worker.voicePermission == nil else { throw TaskStoreError.authorityConflict }
+                            if next.status == .running {
+                                guard next.pendingInteraction == nil, next.revision >= revision,
+                                      events.isEmpty || (next.revision > revision
+                                        && events.count == next.revision - revision
+                                        && events.allSatisfy({ $0.taskID == worker.taskID && $0.attempt == 0
+                                            && $0.kind == .revisionRecorded
+                                            && $0.detail?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }))
+                                else { throw TaskStoreError.authorityConflict }
+                            } else {
+                                guard next.status == .waitingForPermission, next.revision == revision,
+                                      case .permission(let request, _, let review?) = next.pendingInteraction,
+                                      request.taskID == next.id, review.id == request.id, review.toolID == request.toolID,
+                                      events.count == 1, events.first?.kind == .permissionRequested,
+                                      events.allSatisfy({ $0.taskID == worker.taskID && $0.attempt == 0 }) else {
+                                    throw TaskStoreError.authorityConflict
+                                }
+                            }
+                        } else if worker.status == .waitingForInput {
+                            guard worker.voicePermission == nil, next.status == .running,
+                                  let request = worker.voiceInputRequestID, !request.isEmpty,
+                                  next.pendingInteraction == nil, next.revision >= revision,
+                                  let words = next.userWords, !words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                                  events.count == 2,
+                                  Set(events.map(\.kind)) == [.inputProvided, .workerStarted],
+                                  events.allSatisfy({ $0.taskID == worker.taskID && $0.attempt == 0 }) else {
+                                throw TaskStoreError.authorityConflict
+                            }
+                        } else if worker.status == .waitingForPermission {
+                            guard worker.voiceInputRequestID == nil,
+                                  case .permission(let request, _, let review?) = worker.voicePermission,
+                                  request.taskID == worker.taskID, review.id == request.id, review.toolID == request.toolID,
+                                  next.pendingInteraction == nil,
+                                  events.allSatisfy({ $0.taskID == worker.taskID && $0.attempt == 0 }) else {
+                                throw TaskStoreError.authorityConflict
+                            }
+                            if next.status == .cancelled {
+                                guard next.revision == revision, events.count == 1,
+                                      events.first?.kind == .jobCancelled else { throw TaskStoreError.authorityConflict }
+                            } else {
+                                guard next.status == .running, next.revision >= revision else { throw TaskStoreError.authorityConflict }
+                                if next.revision > revision {
+                                    guard events.first?.kind == .workerStarted,
+                                          events.count == 1 || (events.count - 1 == next.revision - revision
+                                            && events.dropFirst().allSatisfy({ $0.kind == .revisionRecorded
+                                                && $0.detail?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false }))
+                                    else { throw TaskStoreError.authorityConflict }
+                                } else {
+                                    guard events.count == 2,
+                                          Set(events.map(\.kind)) == [.permissionApproved, .workerStarted]
+                                            || Set(events.map(\.kind)) == [.permissionDenied, .workerStarted] else {
+                                        throw TaskStoreError.authorityConflict
+                                    }
+                                }
+                            }
+                        } else { throw TaskStoreError.authorityConflict }
+                    } else {
+                        guard worker.voiceOrigin == nil, worker.voiceRevision == nil,
+                              worker.voiceInputRequestID == nil, worker.voicePermission == nil else { throw TaskStoreError.authorityConflict }
+                        let starting = worker.status == .queued && next.status == .running
+                        guard worker.attempt >= 0, !starting || worker.attempt < Int.max,
+                              next.durability?.attempt == worker.attempt + (starting ? 1 : 0),
+                              starting || next.durability?.leaseOwner == worker.leaseOwner,
+                              events.filter({ $0.taskID == worker.taskID }).allSatisfy({ $0.attempt == next.durability?.attempt }) else {
+                            throw TaskStoreError.authorityConflict
+                        }
                     }
                 }
-                let artifactVersion = try TaskStoreSchema.installPendingInteractions(on: db)
+                // Current schema was fully checked above in this SAME transaction.
+                // Older versions still execute the existing migration and post-validation.
+                let artifactVersion = schemaVersion == TaskStoreSchema.version
+                    ? schemaVersion : try TaskStoreSchema.installPendingInteractions(on: db)
                 guard artifactVersion >= 4 || tasks.allSatisfy({ $0.artifactRecords.allSatisfy(\.isLegacy) }) else {
+                    throw TaskStoreError.invalidRecord
+                }
+                guard artifactVersion >= 5 || tasks.allSatisfy({ !Self.hasTaskEncoding($0) }) else {
                     throw TaskStoreError.invalidRecord
                 }
                 try Self.writeRows(tasks, to: db, preservingChildren: false)
@@ -449,6 +554,51 @@ final class TaskStore: @unchecked Sendable {
             }
         }
         return after
+    }
+
+    /// Bound ACP progress changes one existing row and its journal atomically.
+    /// The full snapshot API remains the owner for all other task mutations.
+    func commitActivity(before: AgentTask, after: AgentTask, probe: TaskStoreAuthorityProbe,
+                        event: TaskJournalEventDraft, worker: TaskWorkerWriteCondition) throws -> TaskStoreAuthority {
+        try Self.validate([after])
+        var allowed = before
+        allowed.durability?.heartbeatAt = after.durability?.heartbeatAt
+        allowed.durability?.lastProgressAt = after.durability?.lastProgressAt
+        guard allowed == after, before.id == worker.taskID, after.status == .running,
+              worker.status == .running, worker.attempt > 0,
+              event.taskID == worker.taskID, event.kind == .heartbeat,
+              (event.detail == "acp.activity" || (event.detail == "acp.periodic"
+                && after.durability?.lastProgressAt == before.durability?.lastProgressAt)),
+              event.attempt == worker.attempt,
+              event.receiptID == nil, let prior = probe.authority, prior.generation < Int64.max else {
+            throw TaskStoreError.invalidRecord
+        }
+        guard lock.try() else { throw TaskStoreError.sqlite(SQLITE_BUSY) }
+        defer { lock.unlock() }
+        let next = TaskStoreAuthority(databaseID: prior.databaseID, generation: prior.generation + 1)
+        try existing(identity: probe.identity, writable: true) { db in
+            try Self.exec(db, "PRAGMA synchronous=NORMAL")
+            try Self.transaction(db) {
+                let schemaVersion = try TaskStoreSchema.validateKnown(on: db)
+                try Self.validateOpenedFile(db)
+                guard try fileIdentity() == probe.identity,
+                      try Self.authority(in: db, validatedVersion: schemaVersion) == prior else { throw TaskStoreError.authorityConflict }
+                let current = try Self.workerPrimaryObservation(worker, in: db)
+                guard current.outcome == .accepted, current.durability == before.durability,
+                      after.durability?.attempt == worker.attempt,
+                      after.durability?.leaseOwner == worker.leaseOwner else { throw TaskStoreError.authorityConflict }
+                try Self.run(db, "UPDATE task SET durability=? WHERE id=?",
+                    [.optionalText(try after.durability.map(Self.json)), .text(worker.taskID)])
+                guard sqlite3_changes(db) == 1 else { throw TaskStoreError.authorityConflict }
+                try TaskEventJournal.append([event], to: db)
+                try TaskEventJournal.compact(in: db, now: Date())
+                try Self.run(db, "UPDATE task_authority SET generation=? WHERE singleton=1", [.integer(next.generation)])
+                try boundary("beforeAuthorityCommit", db: db)
+                try Self.validateOpenedFile(db)
+                guard try fileIdentity() == probe.identity else { throw TaskStoreError.authorityConflict }
+            }
+        }
+        return next
     }
 
     /// The Bool execution contract consumes the same single authoritative row read.
@@ -478,7 +628,11 @@ final class TaskStore: @unchecked Sendable {
 
     private static func workerPrimaryObservation(_ worker: TaskWorkerWriteCondition,
                                                  in db: OpaquePointer) throws -> TaskWorkerPrimaryObservation {
-        let statement = try prepare(db, "SELECT state,durability FROM task WHERE id=?")
+        let voice = worker.voiceOrigin != nil || worker.voiceRevision != nil || worker.voiceInputRequestID != nil || worker.voicePermission != nil
+        let typed = worker.typedRevision != nil || worker.typedPending != nil
+        let statement = try prepare(db, voice || typed
+            ? "SELECT state,durability,source,origin,metadata_encoding_version,revision,pending_interaction FROM task WHERE id=?"
+            : "SELECT state,durability FROM task WHERE id=?")
         defer { sqlite3_finalize(statement) }
         try bind(statement, [.text(worker.taskID)])
         let code = sqlite3_step(statement)
@@ -494,8 +648,61 @@ final class TaskStore: @unchecked Sendable {
         }
         let durability = try text(statement, 1).map { try decode(TaskDurability.self, $0) }
         guard (durability?.attempt ?? 0) >= 0 else { throw TaskStoreError.invalidRecord }
+        var voiceMatches = true
+        if voice {
+            voiceMatches = false
+            if let origin = worker.voiceOrigin, let revision = worker.voiceRevision, revision >= 0,
+               [.running, .waitingForInput, .waitingForPermission].contains(worker.status), worker.attempt == 0, worker.leaseOwner == nil, durability == nil,
+               try text(statement, 2) == "voice", sqlite3_column_type(statement, 4) == SQLITE_INTEGER {
+                let encoding = sqlite3_column_int64(statement, 4)
+                if [1, 2, 3].contains(encoding), let raw = try text(statement, 3),
+                   case .voice = origin {
+                    let currentOrigin = try decode(TaskOrigin.self, raw)
+                    let currentRevision: Int?
+                    if encoding == 3 {
+                        currentRevision = sqlite3_column_type(statement, 5) == SQLITE_INTEGER
+                            ? Int(exactly: sqlite3_column_int64(statement, 5)) : nil
+                    } else { currentRevision = 0 } // Unowned historical revision bytes remain opaque.
+                    let rawPending = try text(statement, 6)
+                    let pending = try rawPending.map { try decode(TaskPendingInteraction.self, $0) }
+                    let questionMatches: Bool
+                    if worker.status == .waitingForInput {
+                        if let requestID = worker.voiceInputRequestID,
+                           case .input(let request)? = pending {
+                            questionMatches = worker.voicePermission == nil && request.id == requestID && request.taskID == worker.taskID
+                        } else { questionMatches = false }
+                    } else if worker.status == .waitingForPermission {
+                        if case .permission(let request, _, _)? = worker.voicePermission {
+                            // Compare the exact canonical stored payload using this SAME
+                            // store's sorted-key/date codec, not decoded Date equality.
+                            let expectedPending = try worker.voicePermission.map { try json($0) }
+                            questionMatches = worker.voiceInputRequestID == nil
+                                && request.taskID == worker.taskID && rawPending == expectedPending
+                        } else { questionMatches = false }
+                    } else { questionMatches = worker.voiceInputRequestID == nil && worker.voicePermission == nil && pending == nil }
+                    voiceMatches = currentOrigin == origin && currentRevision == revision && questionMatches
+                }
+            }
+        }
+        var typedMatches = !typed
+        if let revision = worker.typedRevision {
+            typedMatches = false
+            if !voice, revision >= 0, worker.attempt > 0, worker.leaseOwner != nil,
+               try text(statement, 2) == "text",
+               let raw = try text(statement, 3), try decode(TaskOrigin.self, raw) == .typed,
+               sqlite3_column_type(statement, 4) == SQLITE_INTEGER {
+                let encoding = sqlite3_column_int64(statement, 4)
+                let currentRevision = encoding == 3
+                    ? (sqlite3_column_type(statement, 5) == SQLITE_INTEGER
+                        ? Int(exactly: sqlite3_column_int64(statement, 5)) : nil)
+                    : ([1, 2].contains(encoding) ? 0 : nil)
+                let rawPending = try text(statement, 6)
+                let expectedPending = try worker.typedPending.map { try json($0) }
+                typedMatches = currentRevision == revision && rawPending == expectedPending
+            }
+        }
         let matches = status == worker.status && (durability?.attempt ?? 0) == worker.attempt
-            && durability?.leaseOwner == worker.leaseOwner
+            && durability?.leaseOwner == worker.leaseOwner && voiceMatches && typedMatches
         return TaskWorkerPrimaryObservation(expected: worker, outcome: matches ? .accepted : .mismatch,
             observedAt: Date(), state: status, durability: durability)
     }
@@ -506,7 +713,7 @@ final class TaskStore: @unchecked Sendable {
                          events: [TaskJournalEventDraft] = [], now: Date = Date()) throws {
         try Self.validate(tasks)
         guard Set(tasks.map(\.id)).count == tasks.count,
-              tasks.allSatisfy({ $0.createdAt.timeIntervalSince1970.isFinite }),
+              tasks.allSatisfy({ $0.createdAt.timeIntervalSince1970.isFinite && $0.revision >= 0 }),
               events.allSatisfy({ event in tasks.contains { $0.id == event.taskID } }) else {
             throw TaskStoreError.invalidRecord
         }
@@ -524,6 +731,9 @@ final class TaskStore: @unchecked Sendable {
                 guard artifactVersion >= 4 || tasks.allSatisfy({ $0.artifactRecords.allSatisfy(\.isLegacy) }) else {
                     throw TaskStoreError.invalidRecord
                 }
+                guard artifactVersion >= 5 || tasks.allSatisfy({ !Self.hasTaskEncoding($0) }) else {
+                    throw TaskStoreError.invalidRecord
+                }
                 try Self.writeRows(tasks, to: db, preservingChildren: false)
                 try TaskEventJournal.append(events, to: db)
                 try TaskEventJournal.compact(in: db, now: now)
@@ -537,7 +747,16 @@ final class TaskStore: @unchecked Sendable {
         for id in oldIDs where !incoming.contains(id) && !preservingChildren {
             try Self.run(db, "DELETE FROM task WHERE id = ?", [.text(id)])
         }
+        guard !tasks.isEmpty else { return }
+        // Every row uses the same SQL within this write. Keep its statement local
+        // to this invocation; bindings and SQLite row-change checks remain per row.
+        let upsertStatement = try Self.prepare(db, Self.upsert)
+        defer { sqlite3_finalize(upsertStatement) }
         for (position, task) in tasks.enumerated() {
+            let resetCode = sqlite3_reset(upsertStatement)
+            guard resetCode == SQLITE_OK else { throw TaskStoreError.sqlite(resetCode) }
+            let clearCode = sqlite3_clear_bindings(upsertStatement)
+            guard clearCode == SQLITE_OK else { throw TaskStoreError.sqlite(clearCode) }
             let values: [SQLValue] = [
                 .text(task.id), .text(task.status.rawValue), .text(task.source), .text(task.backend),
                 .text(task.objective), .text(task.progress), .text(try Self.json(task.contextReferences)),
@@ -548,9 +767,17 @@ final class TaskStore: @unchecked Sendable {
                 .integer(Int64(position)), .real(task.createdAt.timeIntervalSince1970),
                 .optionalText(task.result), .optionalText(task.failure),
                 .optionalText(try task.durability.map(Self.json)),
-                .optionalText(try task.pendingInteraction.map(Self.json))
+                .text(try task.origin.map(Self.json) ?? ""), .text(task.userWords ?? ""),
+                task.startedAt.map { .real($0.timeIntervalSince1970) } ?? .optionalText(nil),
+                task.finishedAt.map { .real($0.timeIntervalSince1970) } ?? .optionalText(nil),
+                .optionalText(try task.pendingInteraction.map(Self.json)),
+                .integer(task.revision > 0 ? 3 : (Self.hasTaskDelivery(task) ? 2 : (Self.hasTaskMetadata(task) ? 1 : 0))),
+                .text(task.delivery?.rawValue ?? ""), .integer(Int64(task.deliveryAttempts)), .integer(Int64(task.revision))
             ]
-            try Self.run(db, Self.upsert, values)
+            try Self.bind(upsertStatement, values)
+            let stepCode = sqlite3_step(upsertStatement)
+            guard stepCode == SQLITE_DONE else { throw TaskStoreError.sqlite(stepCode) }
+            guard sqlite3_changes(db) == 1 else { throw TaskStoreError.invalidRecord }
             for (ordinal, path) in task.artifacts.enumerated() {
                 let record = task.artifactRecords[ordinal]
                 try Self.run(db, """
@@ -595,7 +822,7 @@ final class TaskStore: @unchecked Sendable {
                 pendingColumn = try Self.stringColumn(db, "PRAGMA table_info(task)", column: 1)
                     .contains("pending_interaction") ? "pending_interaction" : "NULL"
             }
-            let statement = try Self.prepare(db, "SELECT \(Self.columns),\(pendingColumn) FROM task ORDER BY sort_order,id")
+            let statement = try Self.prepare(db, "SELECT \(Self.columns),\(pendingColumn),\(version >= 5 ? "metadata_encoding_version" : "0"),delivery,delivery_attempts,revision FROM task ORDER BY sort_order,id")
             defer { sqlite3_finalize(statement) }
             var tasks: [AgentTask] = []
             var code = sqlite3_step(statement)
@@ -603,6 +830,12 @@ final class TaskStore: @unchecked Sendable {
                 func required(_ column: Int32) throws -> String {
                     guard let value = try Self.text(statement, column) else { throw TaskStoreError.invalidRecord }
                     return value
+                }
+                func optionalDate(_ column: Int32) throws -> Date? {
+                    if sqlite3_column_type(statement, column) == SQLITE_NULL { return nil }
+                    guard [SQLITE_FLOAT, SQLITE_INTEGER].contains(sqlite3_column_type(statement, column)),
+                          sqlite3_column_double(statement, column).isFinite else { throw TaskStoreError.invalidRecord }
+                    return Date(timeIntervalSince1970: sqlite3_column_double(statement, column))
                 }
                 guard let status = AgentTaskStatus(rawValue: try required(1)) else { throw TaskStoreError.invalidRecord }
                 let id = try required(0)
@@ -640,6 +873,53 @@ final class TaskStore: @unchecked Sendable {
                     artifactCode = sqlite3_step(artifactsStatement)
                 }
                 guard artifactCode == SQLITE_DONE else { throw TaskStoreError.sqlite(artifactCode) }
+                guard sqlite3_column_type(statement, 25) == SQLITE_INTEGER,
+                      [0, 1, 2, 3].contains(sqlite3_column_int64(statement, 25)) else { throw TaskStoreError.invalidRecord }
+                let encoding = sqlite3_column_int64(statement, 25)
+                let metadataOwned = encoding >= 1
+                let origin: TaskOrigin?
+                let userWords: String?
+                let startedAt: Date?
+                let finishedAt: Date?
+                if metadataOwned {
+                    guard sqlite3_column_type(statement, 20) == SQLITE_TEXT,
+                          sqlite3_column_type(statement, 21) == SQLITE_TEXT else { throw TaskStoreError.invalidRecord }
+                    let originText = try required(20)
+                    let wordsText = try required(21)
+                    origin = originText.isEmpty ? nil : try Self.decode(TaskOrigin.self, originText)
+                    userWords = wordsText.isEmpty ? nil : wordsText
+                    startedAt = try optionalDate(22)
+                    finishedAt = try optionalDate(23)
+                } else {
+                    // All old reserved bytes, including typed-looking/prefix collisions,
+                    // remain neutral and are never decoded as authored instructions.
+                    origin = nil; userWords = nil; startedAt = nil; finishedAt = nil
+                }
+                let delivery: TaskDelivery?
+                let deliveryAttempts: Int
+                if encoding >= 2 {
+                    guard sqlite3_column_type(statement, 26) == SQLITE_TEXT,
+                          sqlite3_column_type(statement, 27) == SQLITE_INTEGER,
+                          sqlite3_column_int64(statement, 27) >= 0,
+                          let attempts = Int(exactly: sqlite3_column_int64(statement, 27)) else { throw TaskStoreError.invalidRecord }
+                    let raw = try required(26)
+                    guard raw.isEmpty || TaskDelivery(rawValue: raw) != nil else { throw TaskStoreError.invalidRecord }
+                    delivery = raw.isEmpty ? nil : TaskDelivery(rawValue: raw)
+                    deliveryAttempts = attempts
+                } else {
+                    // Even an exact old enum-word collision remains unowned.
+                    delivery = nil; deliveryAttempts = 0
+                }
+                let revision: Int
+                if encoding == 3 {
+                    guard sqlite3_column_type(statement, 28) == SQLITE_INTEGER,
+                          sqlite3_column_int64(statement, 28) >= 0,
+                          let value = Int(exactly: sqlite3_column_int64(statement, 28)) else { throw TaskStoreError.invalidRecord }
+                    revision = value
+                } else {
+                    // Raw revision bytes from every prior encoding remain wholly opaque.
+                    revision = 0
+                }
                 var task = AgentTask(id: id, objective: try required(4), source: try required(2),
                     createdAt: Date(timeIntervalSince1970: sqlite3_column_double(statement, 16)),
                     contextReferences: try Self.decode([String].self, required(6)), status: status,
@@ -650,7 +930,10 @@ final class TaskStore: @unchecked Sendable {
                     compatibilityCommand: try Self.text(statement, 11), compatibilityCLI: try Self.text(statement, 12),
                     compatibilityDirectory: try Self.text(statement, 13), scheduleID: try Self.uuid(Self.text(statement, 14)),
                     durability: try Self.text(statement, 19).map { try Self.decode(TaskDurability.self, $0) },
-                    pendingInteraction: try Self.text(statement, 20).map { try Self.decode(TaskPendingInteraction.self, $0) })
+                    pendingInteraction: try Self.text(statement, 24).map { try Self.decode(TaskPendingInteraction.self, $0) },
+                    origin: origin, userWords: userWords, revision: revision,
+                    startedAt: startedAt, finishedAt: finishedAt,
+                    delivery: delivery, deliveryAttempts: deliveryAttempts)
                 task.artifactRecords = artifactRecords
                 tasks.append(task)
                 code = sqlite3_step(statement)
@@ -681,10 +964,10 @@ final class TaskStore: @unchecked Sendable {
     static let columns = """
         id,state,source,backend,objective,progress,context_references,tool,arguments,
         meeting_id,acp_cli,compatibility_command,compatibility_cli,compatibility_directory,
-        schedule_id,sort_order,created_at,result,failure,durability
+        schedule_id,sort_order,created_at,result,failure,durability,origin,user_words,started_at,finished_at
         """
     private static let upsert = """
-        INSERT INTO task(\(columns),pending_interaction) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        INSERT INTO task(\(columns),pending_interaction,metadata_encoding_version,delivery,delivery_attempts,revision) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
         ON CONFLICT(id) DO UPDATE SET
           state=excluded.state,source=excluded.source,backend=excluded.backend,
           objective=excluded.objective,progress=excluded.progress,
@@ -693,8 +976,39 @@ final class TaskStore: @unchecked Sendable {
           compatibility_command=excluded.compatibility_command,compatibility_cli=excluded.compatibility_cli,
           compatibility_directory=excluded.compatibility_directory,schedule_id=excluded.schedule_id,
           sort_order=excluded.sort_order,created_at=excluded.created_at,result=excluded.result,
-          failure=excluded.failure,durability=excluded.durability,pending_interaction=excluded.pending_interaction
+          failure=excluded.failure,durability=excluded.durability,
+          origin=CASE WHEN excluded.metadata_encoding_version=0 AND task.metadata_encoding_version=0 THEN task.origin ELSE excluded.origin END,
+          user_words=CASE WHEN excluded.metadata_encoding_version=0 AND task.metadata_encoding_version=0 THEN task.user_words ELSE excluded.user_words END,
+          started_at=CASE WHEN excluded.metadata_encoding_version=0 AND task.metadata_encoding_version=0 THEN task.started_at ELSE excluded.started_at END,
+          finished_at=CASE WHEN excluded.metadata_encoding_version=0 AND task.metadata_encoding_version=0 THEN task.finished_at ELSE excluded.finished_at END,
+          delivery=CASE WHEN task.metadata_encoding_version>=2 OR excluded.metadata_encoding_version>=2 THEN excluded.delivery ELSE task.delivery END,
+          delivery_attempts=CASE WHEN task.metadata_encoding_version>=2 OR excluded.metadata_encoding_version>=2 THEN excluded.delivery_attempts ELSE task.delivery_attempts END,
+          revision=CASE WHEN task.metadata_encoding_version=3 OR excluded.metadata_encoding_version=3 THEN excluded.revision ELSE task.revision END,
+          pending_interaction=excluded.pending_interaction,metadata_encoding_version=max(task.metadata_encoding_version,excluded.metadata_encoding_version)
+        WHERE typeof(task.metadata_encoding_version)='integer'
+          AND task.metadata_encoding_version IN (0,1,2,3)
+          AND (excluded.metadata_encoding_version=0 OR task.metadata_encoding_version IN (1,2,3)
+            OR (typeof(task.origin)='text' AND task.origin=''
+              AND typeof(task.user_words)='text' AND task.user_words=''
+              AND task.started_at IS NULL AND task.finished_at IS NULL))
+          AND (excluded.metadata_encoding_version<2 OR task.metadata_encoding_version>=2
+            OR (task.metadata_encoding_version=1 AND typeof(task.delivery)='text' AND task.delivery=''
+              AND typeof(task.delivery_attempts)='integer' AND task.delivery_attempts=0))
+          AND (excluded.metadata_encoding_version<3 OR task.metadata_encoding_version=3
+            OR (typeof(task.revision)='integer' AND task.revision=0))
+          AND (task.metadata_encoding_version<>3 OR excluded.revision>=task.revision)
         """
+
+    private static func hasTaskDelivery(_ task: AgentTask) -> Bool {
+        task.delivery != nil || task.deliveryAttempts > 0
+    }
+    private static func hasTaskEncoding(_ task: AgentTask) -> Bool {
+        hasTaskMetadata(task) || hasTaskDelivery(task) || task.revision > 0
+    }
+
+    private static func hasTaskMetadata(_ task: AgentTask) -> Bool {
+        task.origin != nil || task.userWords != nil || task.startedAt != nil || task.finishedAt != nil
+    }
 
     private static func json<T: Encodable>(_ value: T) throws -> String {
         let encoder = JSONEncoder()

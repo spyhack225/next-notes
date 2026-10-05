@@ -249,7 +249,7 @@ enum AgentReplyRenderer {
     /// failure rather than a scrub that quietly does nothing.
     private static let markupRegex = try? NSRegularExpression(pattern: [
         #"<\u200B?/?tool_call>"#, #"</\u200B?tool_call>"#,
-        #"<use_tools\s*/?>"#, #"<answer\s*/?>"#, #"<think>"#, #"</think>"#,
+        #"<use_tools\s*/?>"#, #"</?answer\s*/?>"#, #"<think>"#, #"</think>"#,
         #"<function[^>]*>"#, #"</function>"#, #"<parameter[^>]*>"#, #"</parameter>"#,
         #"\[TOOL_CALLS\]"#, #"</?tool_calls>"#, #"<\|[^>]*>"#, #"\|>"#,
         #"name=""#, #"\{"name"""#, #",?"arguments""#, #"\{"arguments"""#,

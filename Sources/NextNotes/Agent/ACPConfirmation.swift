@@ -78,6 +78,10 @@ final class ACPConfirmationGate {
     private var waiter: CheckedContinuation<ACPConfirmationOutcome, Never>?
 
     private init() {}
+    var voiceWaiterForTesting: Bool? {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-work-lifecycle" else { return nil }
+        return waiter != nil
+    }
 
     func offer(_ choice: AgentHarnessChoice, utterance: String) {
         guard choice.needsACPConfirmation else { return }

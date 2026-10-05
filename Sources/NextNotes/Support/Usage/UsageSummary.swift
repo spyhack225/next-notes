@@ -54,6 +54,49 @@ enum UsageSummary {
             }
     }
 
+    /// Projection over retained rows in the same log. Missing/partial counts stay unknown;
+    /// rotation, failed writes or an uninstrumented provider can leave incomplete coverage.
+    /// This is neither an effect receipt nor a complete bill. No price source exists yet.
+    struct TaskSummary: Sendable, Equatable {
+        var taskID: String
+        var passes: Int
+        var promptTokens: Int?
+        var completionTokens: Int?
+        var cachedTokens: Int?
+        var reasoningTokens: Int?
+        var totalTokens: Int?
+        var countsEstimated: Bool?
+        var cost: Double? { nil }
+    }
+
+    static func task(rows: [UsageRecord], taskID: String) -> TaskSummary {
+        let matched = rows.filter { $0.taskID == taskID && UsageLog.sanitiseTaskID($0.taskID) != nil }
+        func sum(_ value: (UsageRecord) -> Int?) -> Int? {
+            guard !matched.isEmpty else { return nil }
+            var total = 0
+            for row in matched {
+                guard let count = value(row), count >= 0 else { return nil }
+                let next = total.addingReportingOverflow(count)
+                guard !next.overflow else { return nil }
+                total = next.partialValue
+            }
+            return total
+        }
+        let prompt = sum { $0.promptTokens }
+        let completion = sum { $0.completionTokens }
+        let total: Int?
+        if let prompt, let completion {
+            let combined = prompt.addingReportingOverflow(completion)
+            total = combined.overflow ? nil : combined.partialValue
+        } else { total = nil }
+        let estimated: Bool? = matched.contains { $0.countsEstimated == true } ? true
+            : (!matched.isEmpty && matched.allSatisfy { $0.countsEstimated == false } ? false : nil)
+        return TaskSummary(taskID: taskID, passes: matched.count, promptTokens: prompt,
+            completionTokens: completion, cachedTokens: sum { $0.cachedTokens },
+            reasoningTokens: sum { $0.reasoningTokens }, totalTokens: total,
+            countsEstimated: estimated)
+    }
+
     // MARK: - Aggregation
 
     /// A separator no feature or model name can contain, so two pairs can never collide.

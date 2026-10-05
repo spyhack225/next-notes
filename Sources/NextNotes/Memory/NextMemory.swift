@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import NextNotesDictionary
 
 /// The small, local memory the Agent keeps about the person using it.
 ///
@@ -297,6 +298,35 @@ final class NextMemory {
                           graphCloudConsent: { KnowledgeIndexer.shared.settings.graphCloudConsent })
     }()
 
+    // Explicit diagnostic activity replaces only these existing input collaborators.
+    // Normal turns retain the live sources; an expired installed scope never falls back.
+    private static var activityForTesting: (() -> (dictionary: [DictionaryEntry], people: MemoryPeople,
+                                                  meetings: [Meeting], tasks: [AgentTask]))?
+    private static var activityRootForTesting: URL?
+
+    @discardableResult
+    static func installActivityContextForTesting(root: URL, bridge: TaskBridge) -> Bool {
+        guard ["--selftest-voice-duplex-work", "--selftest-voice-delivery", "--selftest-island", "--selftest-task-recovery"].contains(SelfTest.requested ?? ""),
+              VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge),
+              activityForTesting == nil else { return false }
+        activityRootForTesting = root
+        activityForTesting = { [weak bridge] in
+            guard let bridge,
+                  VoiceCapabilitySnapshot.contextIsAdmittedForTesting(root: root, bridge: bridge) else {
+                SelfTest.diagnostic("CONFINED_MEMORY_ACTIVITY_INVALID")
+                return ([], .notLoaded, [], [])
+            }
+            return ([], .notLoaded, [], [])
+        }
+        return true
+    }
+
+    static func finishActivityContextForTesting(root: URL) {
+        guard activityRootForTesting == root else { return }
+        activityForTesting = nil
+        activityRootForTesting = nil
+    }
+
     static let fileName = "next-memory.json"
     /// `nonisolated`, with the four pure helpers below, because the import pipeline screens
     /// and normalises text off the main actor before any of it reaches the store. None of
@@ -356,8 +386,9 @@ final class NextMemory {
     func refreshFromActivity() {
         guard !unsupportedStorageVersion else { return }
         var changed = false
+        let activity = Self.activityForTesting?()
 
-        for entry in DictionaryStore.shared.entries where entry.isEnabled {
+        for entry in activity?.dictionary ?? DictionaryStore.shared.entries where entry.isEnabled {
             switch entry.kind {
             case .term:
                 changed = upsert(
@@ -377,10 +408,10 @@ final class NextMemory {
         }
 
         // Resolved people replace keyword-matched attendee names: one person, one item.
-        let people = applyMemoryPeople(resolvedPeopleProvider())
+        let people = applyMemoryPeople(activity?.people ?? resolvedPeopleProvider())
         changed = people.changed || changed
         let resolvedNames = people.names
-        for meeting in MeetingStore.shared.meetings {
+        for meeting in activity?.meetings ?? MeetingStore.shared.meetings {
             // M1-a: a placeholder (`Meeting · …`, `.auto`) is not a name to learn.
             // Renames flip to `.user` first (see `MeetingStore.rename`), so what lands
             // here was chosen by the person.
@@ -403,7 +434,7 @@ final class NextMemory {
             }
         }
 
-        for task in AgentTaskManager.shared.tasks {
+        for task in activity?.tasks ?? AgentTaskManager.shared.tasks {
             for reference in task.contextReferences where reference.hasPrefix("project://") {
                 let path = String(reference.dropFirst("project://".count))
                 changed = upsert(

@@ -201,22 +201,23 @@ extension LLMProvider {
         user: String,
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error> {
-        AsyncThrowingStream { continuation in
-            let task = Task {
-                do {
-                    let completion = try await complete(
-                        system: system,
-                        user: user,
-                        maxTokens: maxTokens
-                    )
-                    try Task.checkCancellation()
-                    continuation.yield(completion.text)
-                    continuation.finish()
-                } catch {
-                    continuation.finish(throwing: error)
-                }
+        // This fallback emits one whole completion, so keep its existing await in the
+        // caller's task rather than letting stream termination abandon a producer task.
+        do {
+            let completion = try await complete(
+                system: system,
+                user: user,
+                maxTokens: maxTokens
+            )
+            try Task.checkCancellation()
+            return AsyncThrowingStream { continuation in
+                continuation.yield(completion.text)
+                continuation.finish()
             }
-            continuation.onTermination = { @Sendable _ in task.cancel() }
+        } catch {
+            return AsyncThrowingStream { continuation in
+                continuation.finish(throwing: error)
+            }
         }
     }
 }

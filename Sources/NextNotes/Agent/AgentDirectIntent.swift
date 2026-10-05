@@ -382,6 +382,36 @@ enum AgentDirectIntent: Equatable, Sendable {
         "schedule", "book", "draft",
     ]
 
+    /// The answer-only library shortcut cannot consume another instruction. This is
+    /// admission metadata, never permission: ambiguous instructions keep the planner.
+    static func hasInstructionBeyondLibraryLookup(_ text: String) -> Bool {
+        let instructionWords = actionVerbs.union(extraStepVerbs)
+            .union(capabilityVerbs.flatMap { $0.verbs + $0.standalone })
+        let clauses = text.components(separatedBy: CharacterSet(charactersIn: "?!;,\n"))
+        let words = questionForm(clauses.first ?? text).split(separator: " ").map(String.init)
+        let topic = words.firstIndex { $0 == "about" || $0 == "regarding" }
+        let lookupVerbs: Set<String> = ["search", "read", "recall", "summarise", "summarize"]
+        // A new clause beginning with a verb is an instruction, even if the preceding
+        // question names that same action as its topic.
+        for clause in clauses.dropFirst() {
+            // Polite opening words do not make a later command part of the first
+            // question's topic. Any ambiguous later instruction keeps the planner.
+            if questionForm(clause).split(separator: " ")
+                .contains(where: { instructionWords.contains(String($0)) }) { return true }
+        }
+        for (index, word) in words.enumerated() where instructionWords.contains(word) {
+            if index == 0, lookupVerbs.contains(word) { continue }
+            if let topic, index > topic,
+               !words[(topic + 1)..<index].contains(where: { ["then", "and", "also"].contains($0) }) {
+                // "What did we decide about the email draft?" names an action; it
+                // does not ask to perform it. Sequenced/ambiguous work still stands down.
+                continue
+            }
+            return true
+        }
+        return false
+    }
+
     // MARK: - Question forms (P1-07)
 
     /// One capability class and the ways a person *asks* for it, as opposed to commands it.
@@ -458,12 +488,26 @@ enum AgentDirectIntent: Equatable, Sendable {
     /// The capability id the normalized utterance names, or nil. A hit requires the
     /// tool to be in the planner's allow-list, so the fast path can never reach past it.
     static func toolShapeMatch(in normalized: String, allowedIDs: Set<String>) -> String? {
-        let words = Set(normalized.split(whereSeparator: \.isWhitespace).map(String.init))
+        let tokens = normalized.split(whereSeparator: \.isWhitespace).map { raw in
+            let token = String(raw)
+            var word = token
+            while word.hasSuffix(".") { word.removeLast() }
+            // normalize keeps URL/path punctuation. Only plain lexical words lose
+            // sentence periods; dotted identifiers, hidden files and paths stay exact.
+            return !word.isEmpty && word.allSatisfy({ $0.isLetter || $0 == "'" || $0 == "-" }) ? word : token
+        }
+        let words = Set(tokens)
         for entry in capabilityVerbs {
             guard allowedIDs.contains(entry.toolID) else { continue }
             let spacedID = entry.toolID.replacingOccurrences(of: "_", with: " ")
             if normalized.contains(entry.toolID) || normalized.contains(spacedID) { return entry.toolID }
-            if entry.standalone.contains(where: words.contains) { return entry.toolID }
+            // A distinctive verb must be a command, not a domain noun in "cancel the email one".
+            if tokens.indices.contains(where: { index in
+                guard entry.standalone.contains(tokens[index]) else { return false }
+                if index == 0 { return true }
+                guard let boundary = tokens[..<index].lastIndex(where: { ["and", "then", "also"].contains($0) }) else { return false }
+                return tokens[(boundary + 1)..<index].allSatisfy { leadingFiller.contains($0) }
+            }) { return entry.toolID }
             if entry.verbs.contains(where: words.contains),
                entry.nouns.contains(where: words.contains) { return entry.toolID }
         }

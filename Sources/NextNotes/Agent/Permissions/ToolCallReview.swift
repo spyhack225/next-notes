@@ -51,6 +51,7 @@ enum ToolCallFieldKind: String, Codable, Sendable {
     case dateTime
     case person
     case file
+    case folder
     case choice
 
     /// Kinds that name something in the world. A subject line the model composed is its
@@ -58,7 +59,7 @@ enum ToolCallFieldKind: String, Codable, Sendable {
     /// against what was actually said.
     var isFactual: Bool {
         switch self {
-        case .email, .dateTime, .person, .file, .choice: true
+        case .email, .dateTime, .person, .file, .folder, .choice: true
         case .text, .longText: false
         }
     }

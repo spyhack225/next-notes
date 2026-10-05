@@ -687,7 +687,7 @@ enum RoutineAuthoritySelfTest {
         var finished: [(String, AgentTaskStatus)] = []
         var audits: [AuditLine] = []
 
-        func begin(_ task: AgentTask) { begun.append(task) }
+        func begin(_ task: AgentTask) -> Bool { begun.append(task); return true }
 
         func finish(taskID: String, status: AgentTaskStatus, result: String?, failure: String?) {
             finished.append((taskID, status))

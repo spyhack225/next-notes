@@ -115,6 +115,12 @@ struct AgentCapabilityManifest: Sendable, Equatable {
     var unavailableIDs: Set<String> { Set(unavailable.map(\.id)) }
     var frontendTools: [Entry] { allowed.filter(\.frontendEligible) }
 
+    /// Frontend-owned controls share the decision adapter; external execution
+    /// remains exclusively in the existing registry and its risk/consent rules.
+    static func frontendControlSchemas(approvalOffered: Bool) -> [FrontendToolContract.Schema] {
+        FrontendToolContract.schemas(approvalOffered: approvalOffered)
+    }
+
     /// An allowed entry by canonical id or alias; nil when not allowed this turn.
     func entry(named name: String) -> Entry? {
         if let exact = allowed.first(where: { $0.id == name }) { return exact }

@@ -96,6 +96,7 @@ final class MainActorStallProbe: @unchecked Sendable {
         DispatchQueue.main.async { [weak self] in
             guard let self else { return }
             let landed = VoiceLatencyTimeline.nowNanos()
+            if SelfTest.isRunning { self.landingForTesting?(sent, landed) }
             self.lock.lock()
             self.sentAt = nil
             let lateness = landed &- sent
@@ -124,6 +125,10 @@ final class MainActorStallProbe: @unchecked Sendable {
         guard let worst else { return (0, nil, 0) }
         return (Double(worst.latenessNanos) / 1_000_000_000, worst.site, worst.atNanos)
     }
+
+    /// COMMON diagnostic only: numeric acknowledgement of the EXISTING main-queue ping.
+    /// Nil normally; no extra timer, queue, ownership or sampling work is installed.
+    @MainActor var landingForTesting: (@MainActor @Sendable (UInt64, UInt64) -> Void)?
 
     // MARK: - Labelling
 

@@ -82,6 +82,7 @@ final class RealtimeAudioSession {
     private var voiceShadowHeard = false
     /// Factual streamed-reply lifecycle, distinct from a gap between clauses.
     private var voiceShadowStreamOpen = false
+    var retainedOutputID: OutputID? { voiceShadowOutput?.id }
     var voiceShadowOutputSnapshot: VoiceSessionState.Output? {
         let actual = AgentSpeechSynthesizer.shared.voiceLifecycleSnapshot
         guard let output = voiceShadowOutput, actual.generation == output.generation,
@@ -142,11 +143,7 @@ final class RealtimeAudioSession {
     /// `AgentCaptureController` — this only tracks duplex phase.
     func begin() {
         AcousticEchoProcessor.shared.reset()
-        AgentSpeechSynthesizer.shared.onPlaybackEvent = { [weak self] event in
-            self?.receivePlaybackEvent(event)
-            VoicePlaybackDelivery.shared.receive(event)
-        }
-        AgentSpeechSynthesizer.shared.onVoiceLifecycleSettled = { [weak self] in self?.voiceShadowPlaybackSettled() }
+        installPlaybackListener()
         isActive = true
         isSpeaking = false
         phase = .listening
@@ -172,47 +169,74 @@ final class RealtimeAudioSession {
         Log.agent.info("duplex · end")
     }
 
+    // The existing listener serves sessionless scheduled/preview output too.
+    // Installing it opens no capture, graph or model and creates no second owner.
+    private func installPlaybackListener() {
+        AgentSpeechSynthesizer.shared.onPlaybackEvent = { [weak self] event in
+            self?.receivePlaybackEvent(event)
+            VoicePlaybackDelivery.shared.receive(event)
+        }
+        AgentSpeechSynthesizer.shared.onVoiceLifecycleSettled = { [weak self] in self?.voiceShadowPlaybackSettled() }
+    }
+
     // MARK: - Output
 
     /// Start a streamed spoken reply. Clears any prior utterance.
     /// Call `appendSpokenReply` as text grows, then `finalizeSpokenReply`.
-    func beginSpokenReply(turn: TurnID? = nil) {
+    @discardableResult
+    func beginSpokenReply(_ token: OutputToken, turn: TurnID? = nil, kind suppliedKind: OutputKind? = nil) -> Bool {
+        if let output = voiceShadowOutput, token.output <= output.id { return false }
+        if !isActive { installPlaybackListener() }
         listeningHold = nil
         speechBuffer.begin()
         let identity = turn ?? RealtimeAgent.shared.voiceFrontendShadowTurn
-        let kind: OutputKind = identity.map { turn == nil ? .fixed($0) : .answer($0) } ?? .delivery([])
-        voiceShadowOutput = (VoiceIDMint.shared.nextOutput(), kind, AgentSpeechSynthesizer.shared.outputGeneration)
+        let kind: OutputKind = suppliedKind ?? identity.map { turn == nil ? .fixed($0) : .answer($0) } ?? .delivery([])
+        voiceShadowOutput = (token.output, kind, AgentSpeechSynthesizer.shared.outputGeneration)
+        VoicePlaybackDelivery.shared.noteBegan(output: token.output, generation: AgentSpeechSynthesizer.shared.outputGeneration)
         voiceShadowOutputAnnounced = false
         voiceShadowHeard = false
         voiceShadowStreamOpen = true
         applySpeakingVolumeIfActive()
+        return true
     }
 
     /// Feed partial reply text. Completed clauses enqueue immediately when
     /// policy allows; silent forms (URL / listing / …) enqueue nothing.
-    func appendSpokenReply(_ chunk: String) {
+    func appendSpokenReply(_ token: OutputToken, _ chunk: String) {
+        guard voiceShadowOutput?.id == token.output,
+              voiceShadowOutput?.generation == AgentSpeechSynthesizer.shared.outputGeneration,
+              voiceShadowStreamOpen else { return }
         speechBuffer.append(chunk)
         noteEnqueueIfNeeded()
     }
 
     /// Flush any trailing incomplete clause. Safe to call after a single
     /// full-string `appendSpokenReply`.
-    func finalizeSpokenReply() {
+    func finalizeSpokenReply(_ token: OutputToken) {
+        guard voiceShadowOutput?.id == token.output,
+              voiceShadowOutput?.generation == AgentSpeechSynthesizer.shared.outputGeneration,
+              voiceShadowStreamOpen else { return }
         speechBuffer.finalize()
         voiceShadowStreamOpen = false
         noteEnqueueIfNeeded()
         voiceShadowPlaybackSettled()
     }
 
+    func cancelSpokenReply(_ token: OutputToken) {
+        guard voiceShadowOutput?.id == token.output,
+              voiceShadowOutput?.generation == AgentSpeechSynthesizer.shared.outputGeneration else { return }
+        noteUserSpeech()
+    }
+
     /// Speak a finished reply without blocking. Routes through the streaming
     /// buffer (begin → append → finalize) so one-shot and token-stream paths
     /// share the same queue. Empty spoken forms are a no-op and do not
     /// interrupt whatever is already playing.
-    func speak(_ reply: String) {
+    func speak(_ token: OutputToken, _ reply: String, kind: OutputKind? = nil) {
         guard !AgentSpeechPolicy.spokenClauses(reply).isEmpty else { return }
-        beginSpokenReply()
-        appendSpokenReply(reply)
-        finalizeSpokenReply()
+        guard beginSpokenReply(token, kind: kind) else { return }
+        appendSpokenReply(token, reply)
+        finalizeSpokenReply(token)
     }
 
     /// Keep recent replies across barge-in: SpeechAnalyzer can deliver a delayed
@@ -461,7 +485,8 @@ final class RealtimeAudioSession {
         guard let output = voiceShadowOutput, voiceShadowOutputAnnounced else { return }
         let actual = AgentSpeechSynthesizer.shared.voiceLifecycleSnapshot
         if actual.generation != output.generation || (!actual.hasClause && !voiceShadowStreamOpen) {
-            voiceShadowOutput = nil
+            // Keep this SAME tuple as the last admitted capability. Clearing
+            // the active snapshot does not authorize replaying its old token.
             voiceShadowOutputAnnounced = false
             VoiceSession.shared.send(.playback(output.id,
                 actual.generation == output.generation ? .finished : .interrupted(byUser: RealtimeAgent.shared.voiceInputActive)))
@@ -663,7 +688,7 @@ extension RealtimeAudioSession {
         }
 
         session.begin()
-        session.speak("I found three files.")
+        session.speak(OutputScheduler.tokenForTesting(), "I found three files.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if !session.isLikelyPlaybackEcho("found three files") {
             failures.append("speaker playback was not recognized as an echo")
@@ -704,7 +729,7 @@ extension RealtimeAudioSession {
 
         // Agent interrupt hook must still stop TTS (Wave 1 path).
         recorder.reset()
-        session.speak("Still listening.")
+        session.speak(OutputScheduler.tokenForTesting(), "Still listening.")
         RealtimeAgent.shared.interrupt()
         if !synth.didStop || recorder.stopCount == 0 {
             failures.append("RealtimeAgent.interrupt did not stop synthesizer")
@@ -713,7 +738,7 @@ extension RealtimeAudioSession {
         // Clause queue: multi-sentence reply leaves pending clauses; barge-in clears them.
         recorder.reset()
         session.begin()
-        session.speak("I found three files. The latest is enclosure version seventeen.")
+        session.speak(OutputScheduler.tokenForTesting(), "I found three files. The latest is enclosure version seventeen.")
         if recorder.spoken != ["I found three files."] {
             failures.append(
                 "clause stream should speak first clause only, got \(recorder.spoken)"
@@ -753,7 +778,7 @@ extension RealtimeAudioSession {
         }
         session.begin()
         var queuedRecognition = EchoRecognitionState()
-        session.speak("The opening sentence. Pending orchard description.")
+        session.speak(OutputScheduler.tokenForTesting(), "The opening sentence. Pending orchard description.")
         let delayedToken = synth.currentPlaybackToken
         if session.userSpeechExcludingPlayback(
             "The opening sentence. Pending orchard description.",
@@ -779,7 +804,7 @@ extension RealtimeAudioSession {
         }
 
         session.begin()
-        session.speak("Do you have anything in mind?")
+        session.speak(OutputScheduler.tokenForTesting(), "Do you have anything in mind?")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         var prefixRecognition = EchoRecognitionState()
         if session.userSpeechExcludingPlayback(
@@ -801,7 +826,7 @@ extension RealtimeAudioSession {
         session.noteUserSpeech()
 
         session.begin()
-        session.speak("Do you have anything in mind?")
+        session.speak(OutputScheduler.tokenForTesting(), "Do you have anything in mind?")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         var mineRecognition = EchoRecognitionState()
         if session.userSpeechExcludingPlayback(
@@ -819,7 +844,7 @@ extension RealtimeAudioSession {
         }
 
         session.begin()
-        session.speak("Green lantern closes.")
+        session.speak(OutputScheduler.tokenForTesting(), "Green lantern closes.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         var revisionRecognition = EchoRecognitionState()
         _ = session.userSpeechExcludingPlayback(
@@ -832,13 +857,13 @@ extension RealtimeAudioSession {
         }
 
         session.begin()
-        session.speak("What do you have in mind?")
+        session.speak(OutputScheduler.tokenForTesting(), "What do you have in mind?")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         var appleRevision = EchoRecognitionState()
         _ = session.userSpeechExcludingPlayback("Mine?", recognition: &appleRevision)
         session.noteUserSpeech()
         let afterFuzzyTail = Date().addingTimeInterval(4)
-        session.speak("I can help with questions.")
+        session.speak(OutputScheduler.tokenForTesting(), "I can help with questions.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if session.userSpeechExcludingPlayback("Mine? I can help with question",
             recognition: &appleRevision, provisional: true, now: afterFuzzyTail).text != "" {
@@ -859,7 +884,7 @@ extension RealtimeAudioSession {
             failures.append("recognizer reset retained expired echo labels")
         }
         session.begin()
-        session.speak("An echoed sentence.")
+        session.speak(OutputScheduler.tokenForTesting(), "An echoed sentence.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if session.userSpeechExcludingPlayback(
             "Écoute 👋. An echoed sentence. Stop! An echoed sentence. Merci."
@@ -868,7 +893,7 @@ extension RealtimeAudioSession {
         }
 
         session.begin()
-        session.speak("I can help you manage your calendar, draft emails, and search your files.")
+        session.speak(OutputScheduler.tokenForTesting(), "I can help you manage your calendar, draft emails, and search your files.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if session.userSpeechExcludingPlayback("I can help you manage your") != "" {
             failures.append("partial playback became user speech")
@@ -881,7 +906,7 @@ extension RealtimeAudioSession {
             failures.append("mixed user speech and playback were not separated")
         }
         session.noteUserSpeech()
-        session.speak("Yes, I can hear you clearly. How would you like me to help you manage your calendar?")
+        session.speak(OutputScheduler.tokenForTesting(), "Yes, I can hear you clearly. How would you like me to help you manage your calendar?")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         synth.notifyTestingAudioFinished(token: synth.currentPlaybackToken)
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
@@ -914,7 +939,7 @@ extension RealtimeAudioSession {
         // the echo tail it is still the agent's; once the tail has passed, the
         // words belong to the person, and a question invites exactly them.
         session.begin()
-        session.speak("Would you like the calendar or email?")
+        session.speak(OutputScheduler.tokenForTesting(), "Would you like the calendar or email?")
         let questionToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: questionToken)
         synth.notifyTestingAudioFinished(token: questionToken)
@@ -935,7 +960,7 @@ extension RealtimeAudioSession {
         }
 
         session.begin()
-        session.speak("Yes, I can set that up for you.")
+        session.speak(OutputScheduler.tokenForTesting(), "Yes, I can set that up for you.")
         let offerToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: offerToken)
         synth.notifyTestingAudioFinished(token: offerToken)
@@ -946,7 +971,7 @@ extension RealtimeAudioSession {
         }
 
         session.begin()
-        session.speak("Shall I set a reminder for nine?")
+        session.speak(OutputScheduler.tokenForTesting(), "Shall I set a reminder for nine?")
         let restateToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: restateToken)
         synth.notifyTestingAudioFinished(token: restateToken)
@@ -964,7 +989,7 @@ extension RealtimeAudioSession {
         // A clause that is still rendering keeps the original intent: its own
         // words can land at any point while the audio is playing.
         session.begin()
-        session.speak("Would you like the calendar or email?")
+        session.speak(OutputScheduler.tokenForTesting(), "Would you like the calendar or email?")
         let liveToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: liveToken)
         if session.userSpeechExcludingPlayback(
@@ -976,7 +1001,7 @@ extension RealtimeAudioSession {
         // A cumulative revision inherits its echo labels, so the question
         // exemption must not open a hole in the middle of one.
         session.begin()
-        session.speak("Shall I set a reminder for nine?")
+        session.speak(OutputScheduler.tokenForTesting(), "Shall I set a reminder for nine?")
         let inheritedToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: inheritedToken)
         synth.notifyTestingAudioFinished(token: inheritedToken)
@@ -988,7 +1013,7 @@ extension RealtimeAudioSession {
             now: Date().addingTimeInterval(3)).text != "yes" {
             failures.append("cumulative revision lost its inherited echo labels")
         }
-        session.speak("I stopped the tool plan because it took too long.")
+        session.speak(OutputScheduler.tokenForTesting(), "I stopped the tool plan because it took too long.")
         let revisedTailToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: revisedTailToken)
         session.noteUserSpeech()
@@ -1005,7 +1030,7 @@ extension RealtimeAudioSession {
         ) != "long." {
             failures.append("09:07 one-word restatement was removed as playback")
         }
-        session.speak("I don't have ears to hear audio.")
+        session.speak(OutputScheduler.tokenForTesting(), "I don't have ears to hear audio.")
         let activeLongToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: activeLongToken)
         if session.userSpeechExcludingPlayback(
@@ -1019,12 +1044,12 @@ extension RealtimeAudioSession {
         ) != "Audi." {
             failures.append("completed one-edit reference did not expire independently")
         }
-        session.speak("An older completed clause should expire on its own.")
+        session.speak(OutputScheduler.tokenForTesting(), "An older completed clause should expire on its own.")
         let oldToken = synth.currentPlaybackToken
         synth.notifyTestingFirstAudio(token: oldToken)
         synth.notifyTestingAudioFinished(token: oldToken)
         let completedAt = Date()
-        session.speak("A fresh active clause remains current.")
+        session.speak(OutputScheduler.tokenForTesting(), "A fresh active clause remains current.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if session.userSpeechExcludingPlayback(
             "older completed clause", now: completedAt.addingTimeInterval(16)
@@ -1032,7 +1057,7 @@ extension RealtimeAudioSession {
             failures.append("completed reference did not expire independently")
         }
         session.noteUserSpeech()
-        session.speak("I don't have ears to hear audio.")
+        session.speak(OutputScheduler.tokenForTesting(), "I don't have ears to hear audio.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         if session.userSpeechExcludingPlayback("Audi.") != "" {
             failures.append("09:48 one-word audio echo became a user turn")
@@ -1057,14 +1082,14 @@ extension RealtimeAudioSession {
         var forwarded: [String] = []
         capture.turnHandlerForTesting = { forwarded.append($0) }
         await capture.beginSession(captureAudio: false)
-        session.speak("I can help you manage your calendar and files.")
+        session.speak(OutputScheduler.tokenForTesting(), "I can help you manage your calendar and files.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         capture.simulateSpeech("I can help you manage your")
         capture.simulateSilence()
         _ = await capture.considerEndpoint()
         if !forwarded.isEmpty { failures.append("reflected reply reached the Agent") }
 
-        session.speak("I can help you manage your calendar and files.")
+        session.speak(OutputScheduler.tokenForTesting(), "I can help you manage your calendar and files.")
         synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
         capture.simulateSpeech("Can you hear me? I can help you manage your")
         capture.simulateSilence()
@@ -1194,7 +1219,7 @@ extension RealtimeAudioSession {
             failures.append("listening should restore full utterance volume")
         }
 
-        session.speak("I found three files.")
+        session.speak(OutputScheduler.tokenForTesting(), "I found three files.")
         if session.duckingEnabled,
            abs(synth.utteranceVolume - Self.duckedVolume) > 0.01 {
             failures.append(
@@ -1229,7 +1254,7 @@ extension RealtimeAudioSession {
             - /Users/me/d.txt
             """
         session.begin()
-        session.speak(listing)
+        session.speak(OutputScheduler.tokenForTesting(), listing)
         if session.isSpeaking || !recorder.spoken.isEmpty {
             failures.append("long listing must stay silent on duplex speak")
         }

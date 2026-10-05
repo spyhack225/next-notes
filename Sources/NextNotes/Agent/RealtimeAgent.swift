@@ -47,7 +47,8 @@ final class RealtimeAgent {
 
     func presentAnswer(_ snapshot: String, turn: Int) {
         guard isCurrent(turn), isThinking, currentTurnSource == .text,
-              !isVoiceWorker, !snapshot.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+              !isVoiceWorker, !typedReplySuppressed,
+              !snapshot.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
         respondingMessage = AgentSession.Message(
             id: currentTurnID, role: "assistant", text: snapshot,
             at: respondingMessage?.at ?? Date(), source: "text")
@@ -123,6 +124,11 @@ final class RealtimeAgent {
     private(set) var voiceInputActive = false
     /// Output has its own lifetime: yielding speech must not invalidate work.
     private(set) var speechGeneration = 0
+    private var spokenOutput: (owner: Int, id: OutputID)?
+    func retainSpokenOutput(_ output: OutputID, owner: Int) {
+        guard isCurrent(owner) else { return }
+        spokenOutput = (owner, output)
+    }
     private var voiceFrontendShadowIdentity: (owner: Int, turn: TurnID)?
     var voiceFrontendShadowTurn: TurnID? {
         guard let identity = voiceFrontendShadowIdentity, isCurrent(identity.owner) else { return nil }
@@ -135,6 +141,7 @@ final class RealtimeAgent {
         VoiceConversationCoordinator.shared.speechStarted()
         speechGeneration += 1
         let wasSpeaking = RealtimeAudioSession.shared.isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
+        VoicePlaybackDelivery.shared.noteUserBargeIn()
         RealtimeAudioSession.shared.noteUserSpeech()
         if wasSpeaking, let seconds = RealtimeAudioSession.shared.lastBargeInStopSeconds {
             LatencyTrace.record(.agentBargeInToTTSStopped, seconds: seconds)
@@ -174,15 +181,104 @@ final class RealtimeAgent {
     /// keeps the round barrier it has always had.
     func mayCommitEffect(risk: AgentRisk) async -> Bool {
         if risk <= .read { return true }
+        if isTypedWorker, let work = voiceWork, let bridge = typedTaskBridge {
+            await work.waitForTypedInput()
+            return !Task.isCancelled && bridge.ownsTypedEffect(work: work, worker: self)
+        }
         if isVoiceWorker {
-            return await VoiceConversationCoordinator.shared.mayCommitEffect()
+            return await VoiceConversationCoordinator.shared.mayCommitEffect(work: voiceWork, revision: voiceWork?.revision)
         }
         await waitForVoiceInput()
         return true
     }
 
+    /// A value of the existing execution context captures this actual planned
+    /// step's caller. Ordinary tool facts keep their original callback ownership.
+    func typedPermissionContext(_ context: TaskJournalContext?, owner: Int,
+        revisionIsCurrent: @escaping @MainActor @Sendable () -> Bool) -> TaskJournalContext? {
+        guard isTypedWorker, let context, let work = voiceWork, let bridge = typedTaskBridge else { return context }
+        let record: @MainActor @Sendable (TaskJournalEventDraft) -> Bool = { [weak self, weak work, weak bridge] event in
+            if [.permissionRequested, .permissionApproved, .permissionDenied].contains(event.kind) {
+                guard let self, let work, let bridge, self.isCurrent(owner), revisionIsCurrent(),
+                      bridge.retainsTypedOperation(work: work, worker: self) else { return false }
+            }
+            return context.record(event)
+        }
+        var scoped = TaskJournalContext(taskID: context.taskID, attempt: context.attempt, record: record,
+            isStillValid: context.isStillValid, capturePermission: context.capturePermission,
+            consumePermissionApproval: context.consumePermissionApproval,
+            restoredOrigin: context.restoredOrigin, restoredPermission: context.restoredPermission,
+            restoredArguments: context.restoredArguments, receiptStore: context.receiptStore,
+            leaseOwner: context.leaseOwner, observeACPSession: context.observeACPSession,
+            observeToolInvocation: context.observeToolInvocation)
+        if let capture = context.capturePermission {
+            scoped.capturePermission = { [weak self, weak work, weak bridge] request, origin, review in
+                guard let self, let work, let bridge, self.isCurrent(owner), revisionIsCurrent(),
+                      bridge.retainsTypedOperation(work: work, worker: self) else { return false }
+                return capture(request, origin, review)
+            }
+        }
+        return scoped
+    }
+
     /// The model answer owns a child task so barge-in cancels llama / provider work even
     /// while the VAD task remains free to endpoint the next utterance.
+    /// Non-owning route to the SAME Manager slot. Manual workers retain bounded waits.
+    weak var voiceTaskBridge: TaskBridge?
+    var requiresVoiceChildJoin: Bool {
+        if isTypedWorker, let work = voiceWork, let bridge = typedTaskBridge {
+            return bridge.retainsTypedOperation(work: work, worker: self)
+        }
+        guard isVoiceWorker, let work = voiceWork, let bridge = voiceTaskBridge else { return false }
+        return bridge.hasRetainedVoiceOperation(work: work, worker: self)
+    }
+
+    weak var typedTaskBridge: TaskBridge?
+    private(set) var isTypedWorker = false
+    private var typedPresentation: (@MainActor () -> Void)?
+    private var typedInputAlreadyRecorded = false
+    private var typedReplySuppressed = false
+    func stopTypedReplyOutput() {
+        guard isTypedWorker else { return }
+        typedReplySuppressed = true
+        respondingMessage = nil
+    }
+    var typedTaskOutcome: AgentTaskOutcome?
+    var typedTaskBridgeForTesting: TaskBridge?
+    init(typedWorker: VoiceConversationWork) {
+        isVoiceWorker = false; isTypedWorker = true; voiceWork = typedWorker
+    }
+    func finishTypedControl(_ reply: String, userWords: String) -> AgentTurn {
+        // Same addressed typed history/memory/output producer, without cancelling
+        // any Manager Task or borrowing the voice capture's current session.
+        currentTurnSource = .text; generation += 1; respondingMessage = nil
+        AgentSession.shared.recordUser(userWords, source: .text)
+        if Settings.shared.agentMemoryEnabled { rememberExplicit(userWords) }
+        return conclude(generation, reply, route: "typed-work-control", speak: false)
+    }
+    func runTypedWorkerTurn(_ work: VoiceConversationWork, recordInput: Bool) async -> AgentTurn {
+        voiceWork = work; typedTaskOutcome = nil; typedInputAlreadyRecorded = !recordInput
+        typedReplySuppressed = false
+        return await handle(work.userWords ?? work.original, source: .text)
+    }
+    func publishTypedResult(primaryCommitted: Bool, diagnostic: String?) {
+        let show = typedPresentation; typedPresentation = nil
+        if primaryCommitted { show?() }
+        else { finish(diagnostic ?? "The work finished, but I couldn't save its result.", speak: false) }
+    }
+    func makeTypedWorker(_ work: VoiceConversationWork) -> RealtimeAgent {
+        let worker = RealtimeAgent(typedWorker: work)
+        worker.localModelProviderForTesting = localModelProviderForTesting
+        worker.knowledgeContextForTesting = knowledgeContextForTesting
+        worker.budgetForTesting = budgetForTesting; worker.coldForTesting = coldForTesting
+        worker.maxCallsForTesting = maxCallsForTesting; worker.answerDepthForTesting = answerDepthForTesting
+        worker.fileRetrievalForTesting = fileRetrievalForTesting
+        worker.plannerTraceForTesting = plannerTraceForTesting
+        worker.rememberExplicit = rememberExplicit
+        worker.taskManagerForTesting = taskManagerForTesting
+        worker.typedPending = typedPending; typedPending = nil
+        return worker
+    }
     private var localModelTask: Task<AgentTurn, Never>?
     /// Open from the first reply token until the speech backing reports actual
     /// utterance start. The turn id keeps a late delegate callback from an
@@ -192,6 +288,12 @@ final class RealtimeAgent {
     /// Injectable only for the production-routing self-test. Normal turns always resolve
     /// the configured local provider and never use this seam.
     var localModelProviderForTesting: (any LLMProvider)?
+    /// Saves only statements in this turn's committed, addressed user input.
+    var rememberExplicit: @MainActor (String) -> Void = {
+        AgentSession.shared.rememberExplicitStatement($0)
+    }
+    /// The ask diagnostic supplies its actual isolated index; normal turns use the shared index.
+    @ObservationIgnored var knowledgeContextForTesting: KnowledgeToolContext?
     var localModelLimitForTesting: Duration?
     /// P1-06: the self-test seam for the whole budget, which is three numbers and not one.
     /// Nil in production, where `ToolLoopBudget.forTurn` answers from the turn itself.
@@ -224,37 +326,52 @@ final class RealtimeAgent {
     }
 
     func runVoiceObjective() async -> String {
-        guard let voiceWork else { return "The work item is unavailable." }
-        // One id per worker objective (P0-20a); a revision runs this again and gets its own.
+        let outcome = await runVoiceObjectiveOutcome()
+        return outcome.result ?? outcome.failure ?? ""
+    }
+
+    func runVoiceObjectiveOutcome() async -> AgentTaskOutcome {
+        guard let voiceWork else { return .failed("The work item is unavailable.") }
         currentTurnID = UUID()
-        // A question about past meetings is answered from the index as this background job:
-        // the frontend has already said it is on it, and the answer is announced when done.
         if voiceWork.followUps.isEmpty, KnowledgeAskRouting.isLibraryQuestion(voiceWork.original),
            KnowledgeToolGate.isAvailable, let answer = await answerFromKnowledge(voiceWork.original) {
-            return answer
+            return .voiceReply(answer)
         }
-        return await runPlannedToolLoop(voiceWork.prompt, voice: true)
+        let planned = await runPlannedTurn(voiceWork.prompt, voice: true)
+        return planned.taskOutcome ?? .voiceReply(planned.reply)
     }
 
     /// `KnowledgeAsker` on the voice model, or nil to fall back to the tool planner.
-    private func answerFromKnowledge(_ question: String) async -> String? {
-        guard let context = KnowledgeIndexer.shared.toolContext,
-              let provider = await LLMProviders.resolve(preferring: .appLLM) else { return nil }
+    private func answerFromKnowledge(
+        _ question: String, provider suppliedProvider: (any LLMProvider)? = nil,
+        context suppliedContext: KnowledgeToolContext? = nil,
+        receive: (@MainActor (KnowledgeAnswer) -> Void)? = nil,
+        emit: (KnowledgeAskEvent) -> Void = { _ in }
+    ) async -> String? {
+        guard let context = suppliedContext ?? KnowledgeIndexer.shared.toolContext else { return nil }
+        let provider: any LLMProvider
+        if let suppliedProvider { provider = suppliedProvider }
+        else if let resolved = await LLMProviders.resolve(preferring: .appLLM) { provider = resolved }
+        else { return nil }
         let owner = currentGeneration
-        let asker = KnowledgeAsker(context: context, model: ProviderKnowledgeAnswerModel(provider: provider))
+        let readerWindow = await AgentAnswerBudget.readerContextTokens(for: provider)
+        let asker = KnowledgeAsker(context: context,
+            model: ProviderKnowledgeAnswerModel(provider: provider, contextTokens: readerWindow),
+            contextTokens: readerWindow)
         do {
             let answer = try await KnowledgeGraphScope.$reader.withValue(provider.id) {
                 try await ModelPassRecorder.$correlation.withValue(
                     UsageCorrelation(turnID: currentTurnID,
                                      conversationID: AgentSession.shared.sessionID)
                 ) {
-                    try await asker.run(question)
+                    try await asker.run(question, emit: emit)
                 }
             }
             guard isCurrent(owner) else { return "I stopped looking." }
             AgentAuditLog.shared.record(kind: .reply, title: "Answered from the knowledge index",
                                         detail: "\(answer.rounds) rounds · cites " + answer.citations.map(\.marker)
                                             .joined(separator: ", "))
+            receive?(answer)
             return answer.spokenText
         } catch is CancellationError {
             return "I stopped looking."
@@ -264,7 +381,32 @@ final class RealtimeAgent {
         }
     }
 
-    func cancelVoiceObjective() { generation += 1 }
+    /// Typed-only fast path after the ordinary turn resolved its one answering provider.
+    /// A person who asks to approve reads keeps the existing planner/Gate path.
+    func typedKnowledgeAnswer(_ question: String, provider: any LLMProvider) async -> KnowledgeAnswer? {
+        guard currentTurnSource == .text, readsRunWithoutAsking,
+              KnowledgeAskRouting.isLibraryQuestion(question), KnowledgeToolGate.isAvailable,
+              !AgentDirectIntent.hasInstructionBeyondLibraryLookup(question) else { return nil }
+        let context = SelfTest.requested == "--selftest-ask"
+            ? knowledgeContextForTesting : nil
+        var answer: KnowledgeAnswer?
+        let owner = currentGeneration
+        _ = await answerFromKnowledge(question, provider: provider, context: context,
+                                      receive: { answer = $0 }, emit: { event in
+            guard self.isCurrent(owner) else { return }
+            switch event {
+            case .searching: self.progressTitle = "Looking in your library…"
+            case .generating: self.progressTitle = "Answering…"
+            case .answering(let snapshot):
+                self.presentAnswer(AgentReplyRenderer.scrub(
+                    KnowledgeAnswerParser.stripMarkers(snapshot), outcome: nil), turn: owner)
+            case .retrieved, .files, .finished: break
+            }
+        })
+        return answer
+    }
+
+    func cancelVoiceObjective() { voiceWork?.releaseTypedInput(); generation += 1 }
 
     func beginVoiceFrontend(voiceTurn: TurnID? = nil) -> Int {
         generation += 1
@@ -278,6 +420,19 @@ final class RealtimeAgent {
         let result = conclude(turn, Self.voiceSafeReply(text), route: "on-device-frontend", speak: !streamed)
         if voiceFrontendShadowIdentity?.owner == turn { voiceFrontendShadowIdentity = nil }
         return result
+    }
+
+    /// A model-owned side-talk decision has no assistant row, reply or audio.
+    func finishVoiceUnaddressed(turn: Int) -> AgentTurn {
+        guard isCurrent(turn) else { return AgentTurn(reply: "", delegated: false) }
+        isThinking = false; progressTitle = ""
+        finishFirstTTSTrace(note: "not_addressed")
+        if voiceFrontendShadowIdentity?.owner == turn { voiceFrontendShadowIdentity = nil }
+        if AgentCaptureController.shared.isSessionActive {
+            ActivationController.shared.markListening()
+            IslandState.shared.showAgentListening(transcript: "", level: 0)
+        }
+        return AgentTurn(reply: "", delegated: false)
     }
 
     /// The single voice-boundary scrub (P0-7, rewritten by P1-10b).
@@ -331,6 +486,16 @@ final class RealtimeAgent {
             return AgentTurn(reply: reply, delegated: false)
         }
 
+        if source == .text, self === RealtimeAgent.shared, !isTypedWorker,
+           !SelfTest.isRunning || typedTaskBridgeForTesting != nil {
+            let choice = AgentHarnessRouter.shared.choose(for: text)
+            if case .toolLoop = AgentTurnIntent.resolve(text, choice: choice,
+                hasConversationContext: AgentSession.shared.hasPriorAssistantTurn) {
+                let bridge = SelfTest.isRunning ? typedTaskBridgeForTesting : TaskBridge.shared
+                if let bridge { return await bridge.runTypedObjective(text, agent: self) }
+                if SelfTest.isRunning { return AgentTurn(reply: "The typed test has no isolated task owner.", delegated: false) }
+            }
+        }
         generation += 1
         let mine = generation
         currentTurnSource = source
@@ -348,7 +513,7 @@ final class RealtimeAgent {
                 replyTrace.end(note: "superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
-            AgentSession.shared.recordUser(text, source: source)
+            if !isTypedWorker || !typedInputAlreadyRecorded { AgentSession.shared.recordUser(text, source: source) }
             replyTrace.end(note: "acp-cancel")
             return conclude(mine, "Cancelled.", route: "acp-cancel")
         case .finished(let turn):
@@ -383,7 +548,10 @@ final class RealtimeAgent {
             return AgentTurn(reply: lastReply, delegated: false)
         }
         AgentAuditLog.shared.record(kind: .request, title: String(text.prefix(300)), detail: source.rawValue)
-        AgentSession.shared.recordUser(text, source: source)
+        if !isTypedWorker || !typedInputAlreadyRecorded { AgentSession.shared.recordUser(text, source: source) }
+        if source == .text, (!isTypedWorker || !typedInputAlreadyRecorded), isCurrent(mine), !Task.isCancelled, Settings.shared.agentMemoryEnabled {
+            rememberExplicit(text)
+        }
         // P1-02: a "yes" carries the action. Resolved before `AgentTurnIntent`, because the
         // synthesized prompt is a request, not an acknowledgement. The session row keeps the
         // literal "yes" — what the person said is what the conversation shows.
@@ -481,10 +649,11 @@ final class RealtimeAgent {
                 agent: self, turn: mine, allowSpeech: source == .voice,
                 firstTokenTrace: replyTrace, traceSource: isVoiceWorker ? "worker" : "text"
             )
-            let work = source == .voice ? VoiceConversationWork(text) : nil
+            let work = source == .voice ? VoiceConversationWork(text) : (isTypedWorker ? voiceWork : nil)
             voiceWork = work
             defer { if voiceWork === work { voiceWork = nil } }
-            let result = await runModelTurn(effectiveText, speech: speech, voice: source == .voice)
+            let result = await runModelTurn(work?.prompt ?? effectiveText, speech: speech, voice: source == .voice)
+            if isTypedWorker { typedTaskOutcome = result.taskOutcome }
             let reply = result.reply
             speech.finishPendingFirstTokenTrace(note: isCurrent(mine) ? "no-token" : "superseded")
             guard isCurrent(mine) else {
@@ -506,7 +675,8 @@ final class RealtimeAgent {
                 spokenReply: source == .voice && !speakable
                     ? speech.spokenFallback(for: reply) : nil,
                 contextKind: result.usedTools ? "tools" : nil,
-                speak: !speech.didStreamSpeech || !speakable
+                speak: !speech.didStreamSpeech || !speakable,
+                knowledgeAnswer: result.knowledgeAnswer
             )
         case .calendar, .mail, .files, .drive, .computer:
             beginWork(title: intent.progressTitle)
@@ -543,6 +713,10 @@ final class RealtimeAgent {
 
     /// Island Stop when there is no open session: cancel and leave a visible line.
     func cancel() {
+        if !isTypedWorker, !isVoiceWorker,
+           AgentTaskManager.sharedIfLoaded?.cancelNewestTypedObjective(sessionID: AgentSession.shared.sessionID) == true {
+            RealtimeAudioSession.shared.noteUserSpeech(); return
+        }
         if localModelProviderForTesting == nil && !isVoiceWorker {
             VoiceConversationCoordinator.shared.closeSession()
         }
@@ -628,7 +802,8 @@ final class RealtimeAgent {
                 meetingID: MeetingContextStore.shared.current?.meetingID,
                 backend: backend,
                 acpCLI: choice.acpCLI,
-                source: source.rawValue
+                source: source.rawValue,
+                origin: source == .text ? .typed : nil, userWords: text
             )
             guard task.status != .failed else {
                 return AgentTurn(reply: task.failure ?? "I couldn’t start that background task.", delegated: false)
@@ -643,9 +818,27 @@ final class RealtimeAgent {
         return AgentTurn(reply: reply, delegated: true)
     }
 
+    /// The Agent pane's existing submission boundary. The returned Task is the
+    /// caller it already launched, not a second worker registry or owner.
+    func submitTypedMessage(_ text: String, onInterrupted: () -> Void = {},
+        onReturn: (@MainActor @Sendable (AgentTurn) -> Void)? = nil) -> Task<AgentTurn, Never> {
+        ACPConfirmationGate.shared.cancel()
+        RealtimeAudioSession.shared.noteUserSpeech()
+        if SelfTest.isRunning { typedTaskBridgeForTesting?.stopTypedReplyOutput() }
+        else { AgentTaskManager.sharedIfLoaded?.stopTypedReplyOutput(sessionID: AgentSession.shared.sessionID) }
+        return Task { @MainActor in
+            let turn = await self.handleLive(text, source: .text)
+            onReturn?(turn); return turn
+        }
+    }
+
     func beginWork(title: String) {
         isThinking = true
         progressTitle = title.isEmpty ? "Working…" : title
+        // The existing tool activity producer reports admitted step progress to
+        // the same Bridge. Planning alone creates no extra save or progress step.
+        if isVoiceWorker && IslandOwnership.sessionOwnsIsland { return }
+        guard IslandOwnership.mayWrite("RealtimeAgent.beginWork") else { return }
         ActivationController.shared.markWorking()
         IslandState.shared.showAgentWork(title: progressTitle)
     }
@@ -661,7 +854,8 @@ final class RealtimeAgent {
         route: String,
         spokenReply: String? = nil,
         contextKind: String? = nil,
-        speak: Bool = true
+        speak: Bool = true,
+        knowledgeAnswer: KnowledgeAnswer? = nil
     ) -> AgentTurn {
         guard isCurrent(mine) else {
             return AgentTurn(reply: lastReply, delegated: false)
@@ -674,9 +868,17 @@ final class RealtimeAgent {
         // audit log, which is where ids belong; the person, the session history and the
         // next turn's context all get the scrubbed one.
         let shown = AgentReplyRenderer.scrub(reply, outcome: nil)
+        if isTypedWorker {
+            typedPresentation = { [weak self] in
+                self?.finish(shown, speak: false, contextKind: contextKind,
+                    unscrubbed: shown == reply ? nil : reply, knowledgeAnswer: knowledgeAnswer)
+            }
+            return AgentTurn(reply: shown, delegated: delegated)
+        }
         finish(shown, speak: speak, spokenReply: spokenReply.map {
             AgentReplyRenderer.scrub($0, outcome: nil)
-        }, contextKind: contextKind, unscrubbed: shown == reply ? nil : reply)
+        }, contextKind: contextKind, unscrubbed: shown == reply ? nil : reply,
+           knowledgeAnswer: knowledgeAnswer)
         return AgentTurn(reply: shown, delegated: delegated)
     }
 
@@ -797,17 +999,37 @@ final class RealtimeAgent {
     ///   when they ask why the turn went the way it did.
     private func finish(
         _ reply: String, speak: Bool = true,
-        spokenReply: String? = nil, contextKind: String? = nil, unscrubbed: String? = nil
+        spokenReply: String? = nil, contextKind: String? = nil, unscrubbed: String? = nil,
+        knowledgeAnswer: KnowledgeAnswer? = nil
     ) {
         let presented = respondingMessage
         respondingMessage = nil
         lastReply = reply
         isThinking = false
         progressTitle = ""
+        let visibleKnowledge = knowledgeAnswer.flatMap { answer -> (claims: [KnowledgeClaim], citations: [KnowledgeCitation])? in
+            let body = AgentReplyRenderer.scrub(answer.plainText, outcome: nil)
+            // A handoff notice is part of the canonical reply. Retain it as uncited text,
+            // rather than letting source rows replace and hide it.
+            guard !body.isEmpty, let range = reply.range(of: body, options: [.anchored, .backwards]) else { return nil }
+            let prefix = String(reply[..<range.lowerBound])
+            let raw = prefix + answer.raw
+            let allowed = Set(answer.citations.map(\.chunkID))
+            // Match the canonical reply's marker-removal then rendering order. Rendering
+            // first lets the parser alter punctuation exposed by a registry-ID removal.
+            let claims = KnowledgeAnswerParser.claims(raw).compactMap { claim -> KnowledgeClaim? in
+                let text = AgentReplyRenderer.scrub(claim.text, outcome: nil)
+                guard !text.isEmpty else { return nil }
+                return KnowledgeClaim(text: text, chunkIDs: claim.chunkIDs.filter(allowed.contains))
+            }
+            let retained = Set(claims.flatMap(\.chunkIDs))
+            return (claims, answer.citations.filter { retained.contains($0.chunkID) })
+        }
         let messageID = AgentSession.shared.recordAssistant(
             reply, contextKind: contextKind,
             source: currentTurnSource == .voice ? .voice : nil,
-            messageID: presented?.id, at: presented?.at)
+            messageID: presented?.id, at: presented?.at,
+            knowledgeClaims: visibleKnowledge?.claims, knowledgeCitations: visibleKnowledge?.citations)
         // The audit log is internal, so the model's id may appear here (P0-20a). The pane
         // still shows `answeringModel.name`.
         AgentAuditLog.shared.record(
@@ -825,7 +1047,9 @@ final class RealtimeAgent {
                 speakWithFirstAudioTrace(spokenReply ?? reply, turn: generation)
             }
             if currentTurnSource == .voice {
-                VoicePlaybackDelivery.shared.bind(messageID: messageID, turn: generation)
+                if let output = spokenOutput, output.owner == generation {
+                    VoicePlaybackDelivery.shared.bind(messageID: messageID, output: output.id, turn: generation)
+                }
             }
             ActivationController.shared.markListening()
             IslandState.shared.showAgentListening(transcript: "", level: 0)
@@ -852,9 +1076,11 @@ final class RealtimeAgent {
     }
 
     private func speakWithFirstAudioTrace(_ reply: String, turn: Int) {
-        guard !AgentSpeechPolicy.spokenClauses(reply).isEmpty else { return }
+        guard isCurrent(turn), !AgentSpeechPolicy.spokenClauses(reply).isEmpty else { return }
         beginFirstTTSTrace(for: turn)
-        RealtimeAudioSession.shared.speak(reply)
+        if let output = OutputScheduler.shared.speakFixed(reply, turn: voiceFrontendShadowTurn, agent: self, owner: turn) {
+            retainSpokenOutput(output, owner: turn)
+        }
     }
 
     private func finishFirstTTSTrace(note: String) {
@@ -942,11 +1168,17 @@ final class AgentSession {
         let role: String
         let text: String
         var contextKind: String? = nil
+        /// Existing conversation row carries only the answer claims and source descriptors.
+        var knowledgeClaims: [KnowledgeClaim]? = nil
+        var knowledgeCitations: [KnowledgeCitation]? = nil
         var at = Date()
         /// Nil for conversations saved before input sources were recorded.
         var source: String? = nil
         /// Optional so previously saved conversation rows still decode.
         var speechDelivery: VoiceSpeechDelivery? = nil
+        /// Visible save feedback, separate from words the person or model said.
+        /// Optional keeps earlier conversation files readable; it never enters prompts.
+        var rememberedFacts: [String]? = nil
         /// The session this row belongs to. Nil for rows saved before sessions existed;
         /// `AgentSessionBoundary.assignSessions` splits those on load.
         var sessionID: UUID? = nil
@@ -1294,15 +1526,22 @@ final class AgentSession {
             + String(delivery.completedText.prefix(350))
     }
 
-    func recordUser(_ text: String, source: AgentUtteranceSource? = nil) {
+    @discardableResult
+    func recordUser(_ text: String, source: AgentUtteranceSource? = nil, deferReview: Bool = false) -> UUID {
         if lastSuppressedVoice?.text != Self.normalized(text) {
             lastSuppressedVoice = nil
         }
         // Silence long enough ends the session before this row opens the next one.
         endSessionIfIdle()
-        append(Message(role: "user", text: String(text.prefix(Self.maxStoredCharacters)), source: source?.rawValue))
-        // A meeting line is evidence, not the user talking to the Agent: it does not count.
-        guard source != .meeting else { return }
+        let message = Message(role: "user", text: String(text.prefix(Self.maxStoredCharacters)), source: source?.rawValue)
+        append(message)
+        if !deferReview { admitUserReview(message.id) }
+        return message.id
+    }
+
+    /// Same review counter/callback, admitted only after a pending voice turn is classified.
+    func admitUserReview(_ id: UUID) {
+        guard messages.contains(where: { $0.id == id && $0.role == "user" && $0.source != "meeting" && $0.sessionID == sessionID }) else { return }
         userTurnsSinceReview += 1
         if userTurnsSinceReview >= AgentSessionBoundary.reviewEveryUserTurns {
             userTurnsSinceReview = 0
@@ -1311,16 +1550,89 @@ final class AgentSession {
         }
     }
 
+    /// Remove only the actual captured user row; never borrow a later same-text turn.
+    @discardableResult
+    func retractLastUser(_ text: String, id: UUID? = nil) -> Bool {
+        let index: Int?
+        if let id { index = messages.firstIndex(where: { $0.id == id }) }
+        else { index = messages.indices.last }
+        guard let index, messages[index].role == "user", messages[index].source == "voice",
+              messages[index].sessionID == sessionID,
+              messages[index].text == String(text.prefix(Self.maxStoredCharacters)) else { return false }
+        messages.remove(at: index)
+        if let fileURL {
+            do { try MainActorSection.run("session.save") { try Self.save(messages, to: fileURL) } }
+            catch { Log.agent.error("Could not save Agent conversation: \(error.localizedDescription, privacy: .public)") }
+        }
+        return true
+    }
+
+    /// Recognizes literal committed user words, then uses the existing memory guards.
+    /// No earlier user turn, tool output, generated reply or inferred identity is a source.
+    func rememberExplicitStatement(_ text: String, store: NextMemory = .shared) {
+        guard Settings.shared.agentMemoryEnabled, store.isEnabled,
+              let index = messages.indices.last,
+              messages[index].role == "user", messages[index].contextKind == nil,
+              ["text", "voice"].contains(messages[index].source ?? ""),
+              messages[index].sessionID == sessionID, messages[index].text == text,
+              messages[index].rememberedFacts == nil else { return }
+        // The existing explicit-command producer owns Remember directives, including
+        // its verified confirmation. Do not issue a second save beside that action.
+        guard AgentDirectIntent.memorySaveCall(text) == nil else { return }
+        let provenance = MemoryProvenance(origin: .userConversation,
+            occurredAt: messages[index].at, sessionID: sessionID,
+            userText: [text], untrustedText: [])
+        var feedback: [String] = []
+        for fact in ExplicitMemoryStatement.extract(text, userName: "") {
+            do {
+                let outcome = try MemoryToolExecutor.remember(kind: .profile, text: fact,
+                    provenance: provenance, store: store)
+                guard store.entry(id: outcome.entry.id)?.text == outcome.entry.text else { continue }
+                feedback.append((outcome.wasDuplicate ? "Already remembered: " : "Remembered: ")
+                    + outcome.entry.text)
+            } catch {
+                // Error descriptions can contain the full memory budget. Record only
+                // bounded refusal metadata, never fact text or stored private contents.
+                let category: String
+                if case MemoryWriteError.overBudget = error { category = "full" }
+                else if case MemoryWriteError.storage = error { category = "storage" }
+                else { category = "guard" }
+                AgentAuditLog.shared.record(kind: .tool, title: "Memory not saved", detail: category)
+            }
+        }
+        if !feedback.isEmpty { messages[index].rememberedFacts = feedback }
+        // The next ordinary conversation append persists this optional feedback with
+        // the existing snapshot. A second full-history save on the input path is avoided.
+    }
+
     @discardableResult
     func recordAssistant(_ text: String, contextKind: String? = nil,
                          source: AgentUtteranceSource? = nil,
-                         messageID: UUID? = nil, at: Date? = nil) -> UUID {
+                         messageID: UUID? = nil, at: Date? = nil,
+                         knowledgeClaims: [KnowledgeClaim]? = nil,
+                         knowledgeCitations: [KnowledgeCitation]? = nil) -> UUID {
+        let storedText = String(text.prefix(Self.maxStoredCharacters))
+        let claimedText = knowledgeClaims?.map(\.text).joined(separator: " ")
+        func normalized(_ value: String) -> String {
+            value.trimmingCharacters(in: .whitespacesAndNewlines)
+                .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+        }
+        // Source rows are another rendering of this same stored message. A capped or
+        // mismatched answer must use its canonical plain row, never a longer duplicate.
+        let retainsSourceRows = claimedText.map {
+            text == storedText && $0.count <= Self.maxStoredCharacters
+                && normalized($0) == normalized(storedText)
+        } ?? false
         let message = Message(
             id: messageID ?? UUID(),
-            role: "assistant", text: String(text.prefix(Self.maxStoredCharacters)),
-            contextKind: contextKind, at: at ?? Date(), source: source?.rawValue,
+            role: "assistant", text: storedText,
+            contextKind: contextKind, knowledgeClaims: retainsSourceRows ? knowledgeClaims : nil,
+            knowledgeCitations: retainsSourceRows ? knowledgeCitations : nil, at: at ?? Date(), source: source?.rawValue,
             speechDelivery: source == .voice ? VoiceSpeechDelivery() : nil)
-        append(message)
+        // An explicitly supplied `at` is the visible draft's own time (the answer the
+        // pane already showed); the commit keeps that row identity and position rather
+        // than re-stamping it at commit time. Rows without one keep the clock stamp.
+        append(message, at: at)
         // Only after an answer to the user, not a background task's announcement.
         if contextKind != Self.backgroundTaskContextKind { offerRoutineSuggestionOnce() }
         return message.id
@@ -1444,9 +1756,11 @@ final class AgentSession {
             .map(\.text)
     }
 
-    private func append(_ message: Message) {
+    private func append(_ message: Message, at: Date? = nil) {
         var message = message
-        message.at = now()
+        // The clock stamp is the default so idle boundaries and the fake-clock seam
+        // keep working; a caller-supplied `at` (the committed visible draft) wins.
+        message.at = at ?? now()
         message.sessionID = sessionID
         messages.append(message)
         if messages.count > Self.maxMessages {

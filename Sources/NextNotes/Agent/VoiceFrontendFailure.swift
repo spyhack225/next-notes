@@ -123,9 +123,13 @@ actor VoiceFrontendStreamProgress {
 enum VoiceFrontendResponseOutcome: Equatable, Sendable {
     case answer(String)
     case newWork
+    case spawn(String?, String?)
     case capabilities
-    case revise(Int)
-    case cancel(Int)
+    case notAddressed
+    case revise(Int, String? = nil)
+    case cancel(Int?)
+    case approval(String, String?)
+    case status(Int?)
     case failure(VoiceFrontendFailure)
 
     static func resolve(snapshot: String, termination: VoiceFrontendStreamTermination) -> Self {
@@ -157,14 +161,21 @@ enum VoiceFrontendResponseOutcome: Equatable, Sendable {
                 return .failure(.emptyCompletion(shape: shape.rawValue, length: length))
             }
             return .answer(answer)
+        case .decision(let payload):
+            if payload.intent == "approval", let approval = payload.approval {
+                return .approval(approval, payload.amendment)
+            }
+            return .spawn(payload.objective, payload.acknowledgement)
         case .newWork:
             guard snapshot.trimmingCharacters(in: .whitespacesAndNewlines) == "<use_tools/>" else {
                 return .failure(.malformedEnvelope(shape: shape.rawValue, length: length))
             }
             return .newWork
         case .capabilities: return .capabilities
-        case .revise(let index): return .revise(index)
+        case .notAddressed: return .notAddressed
+        case .revise(let index, let proposed): return .revise(index, proposed)
         case .cancel(let index): return .cancel(index)
+        case .status(let index): return .status(index)
         }
     }
 }

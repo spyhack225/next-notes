@@ -203,12 +203,20 @@ final class AgentScheduler {
     private let zoneProvider: () -> TimeZone
     private let runner: (any ScheduledRunning)?
     private let events: AgentTriggerEvents
+    private weak var heartbeatTaskManager: AgentTaskManager?
     private var eventSubscription: UUID?
 
     private var tick: Task<Void, Never>?
     /// Passes run one at a time: the loop, a wake, and a macOS reminder firing in the
     /// foreground can all ask for one at once.
     private var passChain: Task<Void, Never>?
+    private var pendingPasses = 0
+    /// Metadata-only diagnostic of the SAME retained pass owner. No new registry.
+    var pendingPassesForTesting: Int? {
+        guard SelfTest.isRunning,
+              store.directory.standardizedFileURL.resolvingSymlinksInPath().path.hasPrefix(FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath().path + "/") else { return nil }
+        return pendingPasses
+    }
     private var wakeObserver: NSObjectProtocol?
     /// When the previous pass ran. Nil before the first pass after launch — which is how a
     /// backlog is attributed to "Next Notes wasn't running" rather than to sleep.
@@ -225,10 +233,12 @@ final class AgentScheduler {
         settings: @escaping @MainActor () -> ScheduleSettingsSnapshot,
         timeZone: @escaping () -> TimeZone = { .current },
         runner: (any ScheduledRunning)? = nil,
-        events: AgentTriggerEvents = .shared
+        events: AgentTriggerEvents = .shared,
+        heartbeatTaskManager: AgentTaskManager? = nil
     ) {
         self.runner = runner
         self.events = events
+        self.heartbeatTaskManager = heartbeatTaskManager
         self.store = store
         self.system = system
         self.deliverer = deliverer
@@ -257,7 +267,7 @@ final class AgentScheduler {
             await self?.enqueue { await self?.reconcile(now: Date()) }
             while !Task.isCancelled {
                 guard let self else { return }
-                await self.serialPass(now: Date())
+                await self.runTick(now: Date())
                 let sleep = self.secondsUntilNextPass(now: Date())
                 try? await Task.sleep(for: .seconds(sleep))
             }
@@ -268,6 +278,7 @@ final class AgentScheduler {
     func stop() {
         tick?.cancel()
         tick = nil
+        passChain?.cancel()
         if let eventSubscription { events.unsubscribe(eventSubscription) }
         eventSubscription = nil
         if let wakeObserver {
@@ -292,6 +303,24 @@ final class AgentScheduler {
         await serialPass(now: Date())
     }
 
+    /// The EXISTING scheduler loop iteration. Reminder-off still runs this loop;
+    /// no new timer or widened lifecycle is introduced. Observation follows delivery.
+    func runTick(now: Date) async {
+        // The shared loop must keep observing existing workers while a routine
+        // awaits its model/tools. A tick never queues behind an already-owned pass.
+        // Explicit Run now and edits keep the existing serialized await below.
+        if pendingPasses == 0 {
+            _ = makeSerializedWork { [weak self] () async throws -> Bool in
+                await self?.runOnce(now: now)
+                return true
+            }
+        }
+        guard !Task.isCancelled,
+              let manager = heartbeatTaskManager
+                ?? (!SelfTest.isRunning ? AgentTaskManager.sharedIfLoaded : nil) else { return }
+        await manager.monitorTaskHeartbeats(now: now)
+    }
+
     private func serialPass(now: Date) async {
         await enqueue { [weak self] in await self?.runOnce(now: now) }
     }
@@ -299,14 +328,32 @@ final class AgentScheduler {
     /// Runs `body` after every pass or edit already queued. Passes await macOS between reading
     /// a schedule and saving it, so a tool or Settings edit made in that window would be
     /// overwritten — or a deleted reminder re-inserted — if it did not wait its turn.
-    private func serialized<T: Sendable>(_ body: @escaping @MainActor () async throws -> T) async throws -> T {
+    private func makeSerializedWork<T: Sendable>(_ body: @escaping @MainActor () async throws -> T) -> Task<T, Error> {
         let preceding = passChain
+        pendingPasses += 1
         let work = Task { @MainActor () async throws -> T in
-            await preceding?.value
-            return try await body()
+            defer {
+                pendingPasses -= 1
+                if pendingPasses == 0 { passChain = nil }
+            }
+            return try await withTaskCancellationHandler {
+                await preceding?.value
+                try Task.checkCancellation()
+                return try await body()
+            } onCancel: { preceding?.cancel() }
         }
-        passChain = Task { @MainActor in _ = try? await work.value }
-        return try await work.value
+        // SAME existing retained slot owns and joins the SAME actual operation.
+        // Cancelling its wrapper must propagate to its owned body, not merely its await.
+        passChain = Task { @MainActor in
+            await withTaskCancellationHandler {
+                _ = try? await work.value
+            } onCancel: { work.cancel() }
+        }
+        return work
+    }
+
+    private func serialized<T: Sendable>(_ body: @escaping @MainActor () async throws -> T) async throws -> T {
+        try await makeSerializedWork(body).value
     }
 
     private func enqueue(_ body: @escaping @MainActor () async -> Void) async {
@@ -390,8 +437,10 @@ final class AgentScheduler {
         }
 
         for id in store.schedules.map(\.id) {
+            guard !Task.isCancelled else { return }
             guard let schedule = store.schedule(id: id) else { continue }
             await process(schedule, now: now, settings: settings)
+            guard !Task.isCancelled else { return }
         }
         lastPassAt = now
         turnedOffAt = nil
@@ -428,12 +477,14 @@ final class AgentScheduler {
                 guard store.save(schedule) else { return }
                 await dispatch(&schedule, slot: pending.slot, missed: pending.missed, now: now, settings: settings,
                                heldText: pending.text, ignoreQuiet: pending.reason == Self.snoozeReason)
+                guard !Task.isCancelled else { return }
             }
         }
 
         // 2. A due slot.
         if schedule.enabled, let due = schedule.nextRunAt, due <= now {
             await claimAndDeliver(&schedule, due: due, rule: rule, now: now, settings: settings)
+            guard !Task.isCancelled else { return }
         }
 
         // 3. The end date: passed, or no slot left before it.
@@ -595,6 +646,11 @@ final class AgentScheduler {
             runnable.prompt = schedule.prompt + "\n\n" + event.context(zone: zoneProvider())
         }
         let result = await runner.run(runnable, now: now)
+        // A stop preserves the already-claimed started record for reconciliation;
+        // it cannot publish a cancelled result, queue retry or deliver drafts.
+        guard !Task.isCancelled else {
+            return ScheduledRunOutcome(status: .failed, text: "This run was stopped before its result was delivered.")
+        }
         if !result.drafts.isEmpty {
             deliverer.notifyDrafts(result.drafts, scheduleTitle: schedule.title)
         }
@@ -602,6 +658,9 @@ final class AgentScheduler {
             : " \(result.drafts.count) draft\(result.drafts.count == 1 ? "" : "s") awaiting approval."
         let refusalNote = result.refusals.isEmpty ? "" : " Refused: " + result.refusals.joined(separator: " ")
         switch result.status {
+        case .stopped:
+            record(&schedule, slot: slot, at: now, outcome: .interrupted,
+                   detail: result.text)
         case .skipped:
             let zone = schedule.when.flatMap { TimeZone(identifier: $0.timeZone) } ?? zoneProvider()
             let retryAt = now.addingTimeInterval(Self.skipRetryInterval)
@@ -1295,8 +1354,8 @@ final class LiveScheduleDelivery: ScheduleDelivering {
         IslandState.shared.showAgentReply(delivery.kind != .reminder || delivery.missed
             ? "\(delivery.title): \(delivery.body)" : "Reminder: \(delivery.body)")
         if delivery.speak {
-            // The synthesizer directly: no voice session, no microphone.
-            AgentSpeechSynthesizer.shared.speak(delivery.spoken)
+            // Same scheduled read-aloud: no voice session, no microphone.
+            OutputScheduler.shared.speakSessionless(delivery.spoken)
         }
     }
 
@@ -1310,7 +1369,7 @@ final class LiveScheduleDelivery: ScheduleDelivering {
     }
 
     func speak(_ text: String) {
-        AgentSpeechSynthesizer.shared.speak(text)
+        OutputScheduler.shared.speakSessionless(text)
     }
 
     func notifyDrafts(_ drafts: [RoutineDraft], scheduleTitle: String) {

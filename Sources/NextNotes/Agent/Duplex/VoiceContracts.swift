@@ -365,6 +365,16 @@ enum VoiceSessionReducer {
                 } else { commands.append(.scheduleTimer(.idleCheck, after: .seconds(1))) }
             }
         }
+        // Closing capture leaves accepted background work alive. Its genuine
+        // terminal event must still retire that ID without reopening conversation,
+        // delivery, island, audio or timers. Ignore all other closed-session events.
+        if next.phase == .closed, case .task(let taskEvent) = event {
+            switch taskEvent {
+            case .completed(let id, _, _), .failed(let id, _), .cancelled(let id):
+                next.activeTasks.remove(id)
+            default: break
+            }
+        }
         if held != next.effectsHeld { commands.insert(.setEffectsHeld(next.effectsHeld), at: 0) }
         if oldIsland != next.island { commands.append(.publishIsland(next.island)) }
         return (next, commands)

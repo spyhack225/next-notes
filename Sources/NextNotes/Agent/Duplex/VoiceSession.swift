@@ -1,7 +1,7 @@
 import Foundation
 
-/// Additive observer during P3-06a. Commands are recorded; existing producers
-/// remain the sole owners of work, response cancellation and physical playback.
+/// Existing reducer observer. A confined diagnostic admits only Island projection;
+/// normal work, audio and UI ownership remain legacy until P3-09 qualifies.
 @MainActor final class VoiceSession {
     enum Mode { case shadow }
     let mode = Mode.shadow
@@ -22,6 +22,31 @@ import Foundation
     private var recorder: FileHandle?
     private var reservedTurn: TurnID?
     private var bareBarrierFloor = false
+    private var islandProjectionForTesting = false
+    private weak var publishedIsland: IslandState?
+
+    /// Preparation only. Normal product publication stays legacy until the
+    /// complete P3-09 sole-writer contracts qualify; no default promotion.
+    func admitIslandProjectionForTesting() -> Bool {
+        guard SelfTest.isRunning,
+              ["--selftest-voice-playback-projection", "--selftest-voice-playback-resume-receipt",
+               "--selftest-apple-resume-owner"].contains(SelfTest.requested ?? ""),
+              !islandProjectionForTesting, !AgentCaptureController.shared.isSessionActive,
+              !AgentSpeechSynthesizer.shared.isSpeaking,
+              !VoiceConversationCoordinator.shared.hasActiveWork,
+              PermissionGate.shared.pending == nil, state.phase == .closed else { return false }
+        islandProjectionForTesting = true
+        return true
+    }
+    func finishIslandProjectionForTesting() -> Bool {
+        guard SelfTest.isRunning,
+              ["--selftest-voice-playback-projection", "--selftest-voice-playback-resume-receipt",
+               "--selftest-apple-resume-owner"].contains(SelfTest.requested ?? ""),
+              !AgentCaptureController.shared.isSessionActive,
+              publishedIsland?.voiceProjection == nil else { return false }
+        islandProjectionForTesting = false
+        return true
+    }
 
     struct LegacyProjection {
         var effectsHeld: Bool
@@ -87,10 +112,66 @@ import Foundation
                 try recorder.write(contentsOf: data)
             } catch { print("VOICE_SESSION_TRACE_FAILED: \(error.localizedDescription)"); SelfTest.failed = true }
         }
-        // No new timer, task, output or island owner in shadow mode. Existing
-        // capture ticks supply timer facts; commands remain diagnostics only.
+        // Only presentation adopts the existing reducer command. Audio, effect,
+        // timer and response commands remain diagnostics; their owners are unchanged.
+        if IslandOwnership.isEnabled || islandProjectionForTesting { for command in commands {
+            if case .publishIsland(let projection) = command, let sessionID = state.sessionID {
+                let capture = AgentCaptureController.shared
+                if projection == .none {
+                    // A pure reducer replay must never construct the live Island.
+                    // A reopened capture keeps its own presentation during old close.
+                    guard !capture.isSessionActive, let island = publishedIsland else { continue }
+                    IslandWriteScope.$isVoiceSession.withValue(true) {
+                        island.applyVoiceProjection(projection, sessionID: sessionID, transcript: "", level: 0)
+                        island.applyTaskIndicator(nil)
+                    }
+                    publishedIsland = nil
+                } else {
+                    guard capture.isSessionActive, capture.sessionID == sessionID else { continue }
+                    let island = IslandState.shared
+                    publishedIsland = island
+                    IslandWriteScope.$isVoiceSession.withValue(true) {
+                        island.applyVoiceProjection(projection, sessionID: sessionID,
+                            transcript: capture.transcript, level: capture.level)
+                        if projection == .thinking { ActivationController.shared.markWorking() }
+                        else if projection == .listening || projection == .speaking { ActivationController.shared.markListening() }
+                    }
+                    publishTaskIndicator()
+                }
+            }
+        } }
+        if IslandOwnership.isEnabled {
+            switch event {
+            case .task, .approvalPending, .approvalResolved: publishTaskIndicator()
+            default: break
+            }
+        }
         producerDidSettle(after: event)
     }
+    /// Capture remains the input producer. Only the Session writes its live feed.
+    func listeningFeed(transcript: String, level: Float, force: Bool = false) {
+        guard IslandOwnership.sessionOwnsIsland else {
+            IslandState.shared.showAgentListening(transcript: transcript, level: level); return
+        }
+        guard state.phase == .open, let session = state.sessionID,
+              AgentCaptureController.shared.sessionID == session,
+              let island = publishedIsland else { return }
+        guard force || state.island == .listening || state.island == .speaking else { return }
+        IslandWriteScope.$isVoiceSession.withValue(true) {
+            // A speaking card carries no imagined transcript or microphone meter.
+            island.applyVoiceProjection(state.island, sessionID: session,
+                transcript: state.island == .speaking ? "" : transcript,
+                level: state.island == .speaking ? 0 : level)
+        }
+    }
+    func publishTaskIndicator() {
+        guard IslandOwnership.sessionOwnsIsland, let session = state.sessionID,
+              AgentCaptureController.shared.sessionID == session,
+              let island = publishedIsland else { return }
+        let indicator = VoiceConversationCoordinator.shared.taskBridge.islandIndicator(sessionID: session)
+        IslandWriteScope.$isVoiceSession.withValue(true) { island.applyTaskIndicator(indicator) }
+    }
+
     /// Coalesces only the comparison, never ordered events. Runs after the
     /// synchronous producer stack, with no await added to the user's path.
     func producerDidSettle(after event: VoiceEvent? = nil) {

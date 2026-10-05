@@ -6412,9 +6412,24 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     """)
             }
 
-            var failures = await Self.islandStateFailures()
+            // The actual confined voice conductor is first, before older Island
+            // fixtures or panel hosting can first-touch its diagnostic collaborators.
+            var failures = await IslandVoiceOwnershipSelfTest.run()
+            // Refused or undrained authored scope is not permission to enter
+            // legacy default constructors or a mounted panel. Feature failures
+            // still run every original consumer check below.
+            if failures.contains(where: { $0.hasPrefix("island ownership: INPUT_INVALID") }) {
+                for failure in failures { writeSelfTest("  ISLAND_WRONG: \(failure)") }
+                writeSelfTest("ISLAND_FAILED: \(failures.count) rule(s) wrong")
+                SelfTest.requestTermination()
+                return
+            }
+            failures.append(contentsOf: await Self.islandStateFailures())
             failures.append(contentsOf: Self.islandViewFailures())
             failures.append(contentsOf: AgentWorkingCard.scriptedFourStepFailures())
+            // The live dictation card: words open it, key-up keeps them under a stage label,
+            // insertion closes it, and an open live card never takes a click.
+            failures.append(contentsOf: await IslandLiveTextSelfTest.failures())
 
             // The one property this panel must never lose. A key island would take focus
             // away from the text field `TextInjector` is about to type into.

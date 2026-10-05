@@ -446,16 +446,19 @@ struct IslandView: View {
             proposalBody(proposal)
 
         case .agentListening(let transcript, let level):
+            VStack(alignment: .leading, spacing: DS.Space.xs) {
             HStack(spacing: DS.Space.s) {
                 LevelBar(level: level)
                     .frame(width: DS.Size.islandBarWidth)
                 Text(state.listeningDetail(transcript))
                     .font(DS.Font.callout)
-                    .tracking(0)
+                    .tracking(DS.Font.wordTracking)
                     .foregroundStyle(secondaryInk)
                     .lineLimit(2)
                     .truncationMode(.head)
                     .fixedSize(horizontal: false, vertical: true)
+            }
+            if let indicator = state.sessionTaskIndicator { StatusChip(text: indicator.label) }
             }
 
         case .agentWorking(let steps, let current, let total):
@@ -466,11 +469,14 @@ struct IslandView: View {
                     .font(DS.Font.callout)
                     .foregroundStyle(secondaryInk)
                     .lineLimit(2)
-                Text("Step \(current) of \(total)")
-                    .font(DS.Font.caption)
-                    .monospacedDigit()
-                    .foregroundStyle(secondaryInk)
-                    .contentTransition(.numericText())
+                if state.voiceProjection != .thinking {
+                    Text("Step \(current) of \(total)")
+                        .font(DS.Font.caption)
+                        .monospacedDigit()
+                        .foregroundStyle(secondaryInk)
+                        .contentTransition(.numericText())
+                }
+                if let indicator = state.sessionTaskIndicator { StatusChip(text: indicator.label) }
             }
 
         case .agentReply(let text):

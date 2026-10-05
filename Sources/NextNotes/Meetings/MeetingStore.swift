@@ -26,7 +26,27 @@ import Observation
 @MainActor
 @Observable
 final class MeetingStore {
-    static let shared = MeetingStore()
+    static let shared: MeetingStore = {
+        // COMMON exact diagnostic: real Gate/Island/context defaults share empty
+        // confined history, before any owner-backed MeetingStore constructor.
+        if SelfTest.requested == "--selftest-acp-offered-options" {
+            return ACPOfferedOptionStandaloneFixture.isolatedMeetingStore()
+        }
+        // COMMON exact recording-quit diagnostic: the real pipeline compares against
+        // this same singleton; route it before owner-backed constructor/load occurs.
+        if SelfTest.requested == "--selftest-native-termination",
+           (NativeRecordingQuitSelfTest.isRequested || NativeFinalTranscriptQuitSelfTest.isRequested
+               || NativeDiarizationQuitSelfTest.isRequested) {
+            let root = FileManager.default.temporaryDirectory.standardizedFileURL
+                .resolvingSymlinksInPath().appendingPathComponent(
+                    "NextNotesMeetingResumeTest-\(UUID().uuidString)", isDirectory: true)
+            guard let store = try? MeetingStore.isolated(at: root) else {
+                preconditionFailure("Recording-quit fixture temporary store unavailable")
+            }
+            return store
+        }
+        return MeetingStore()
+    }()
 
     /// Newest first — the order the list always wants.
     private(set) var meetings: [Meeting] = []
@@ -67,6 +87,11 @@ final class MeetingStore {
     private(set) var scratchpadRevision = 0
 
     static var root: URL {
+        if SelfTest.requested == "--selftest-settings-sheet" {
+            let base = SelfTest.checkedSettingsFixturePath(FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesSelfTest-\(ProcessInfo.processInfo.processIdentifier)", isDirectory: true))
+            return SelfTest.checkedSettingsFixturePath(base.appendingPathComponent("Meetings", isDirectory: true))
+        }
         let directory = AppIdentity.applicationSupportDirectory
             .appendingPathComponent("Meetings", isDirectory: true)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)

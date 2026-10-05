@@ -143,7 +143,96 @@ struct VoiceCapabilitySnapshot: Sendable, Equatable {
     /// Reads cached account state, the planner roster and current Accessibility status.
     /// No subprocess, account refresh or permission prompt runs here.
     @MainActor
+    private static var contextForTesting: (() -> Self)?
+    @MainActor
+    private static var contextRootForTesting: URL?
+    @MainActor
+    private static weak var contextBridgeForTesting: TaskBridge?
+
+    @MainActor
+    static func contextIsAdmittedForTesting(root: URL, bridge: TaskBridge) -> Bool {
+        contextForTesting != nil && contextRootForTesting == root && contextBridgeForTesting === bridge
+            && permitsContextRootForTesting(root) && bridge.permitsHarness
+    }
+
+    @MainActor
+    static var requiresContextForTesting: Bool {
+        DictionaryStore.hasRootAdmissionForTesting
+    }
+
+    @MainActor
+    private static func missingContextForTesting() -> Self {
+        SelfTest.diagnostic("CONFINED_CONTEXT_INVALID missingAdmission=true")
+        // No registry, service, identity, dictionary or live facts are constructed.
+        AgentGroundingCache.shared.publishConfinedEmptyForTesting()
+        AgentNowCache.shared.publish(AgentNowFacts())
+        return make(tools: [], availability: Availability())
+    }
+
+    @MainActor
+    static func permitsContextRootForTesting(_ root: URL) -> Bool {
+        guard SelfTest.isRunning,
+              ["--selftest-voice-turn-routing-live", "--selftest-voice-duplex-work", "--selftest-voice-work-lifecycle", "--selftest-voice-delivery", "--selftest-island", "--selftest-task-recovery"].contains(SelfTest.requested ?? "") else { return false }
+        let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let resolved = root.resolvingSymlinksInPath().standardizedFileURL
+        var directory: ObjCBool = false
+        return root == resolved && root.deletingLastPathComponent() == temp
+            && UUID(uuidString: root.lastPathComponent) != nil
+            && FileManager.default.fileExists(atPath: root.path, isDirectory: &directory) && directory.boolValue
+    }
+
+    /// Authored capability inputs use the existing manifest builder. They describe
+    /// diagnostic policy, never a measured account, grant or installed capability.
+    @MainActor
+    static func installContextForTesting(root: URL, bridge: TaskBridge, inputs: AgentCapabilityInputs) -> Bool {
+        guard permitsContextRootForTesting(root), bridge.permitsHarness, DictionaryStore.rootIsPreparedForTesting(root),
+              contextForTesting == nil, AgentCapabilityManifestBuilder.inputsOverrideForTesting == nil else { return false }
+        contextRootForTesting = root; contextBridgeForTesting = bridge
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+        contextForTesting = { [weak bridge] in
+            let admitted = permitsContextRootForTesting(root) && bridge?.permitsHarness == true
+            var confined = inputs
+            if !admitted {
+                SelfTest.diagnostic("CONFINED_CONTEXT_INVALID")
+                confined.tools = []
+            }
+            // An expired scope never returns to the eager live-store path.
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = confined
+            let manifest = AgentCapabilityManifest.current(reader: .voiceFrontend)
+            AgentCapabilityManifestRuntime.publish(manifest)
+            AgentGroundingCache.shared.publish(folders: [], indexedItems: 0, manifest: manifest,
+                                                assistantName: "Next", userFullName: "")
+            AgentNowCache.shared.publish(AgentNowFacts())
+            return make(manifest: manifest, availability: Availability())
+        }
+        _ = contextForTesting?()
+        return true
+    }
+
+    @MainActor
+    static func finishContextForTesting(root: URL) {
+        guard contextRootForTesting == root else { return }
+        contextForTesting = nil; contextRootForTesting = nil; contextBridgeForTesting = nil
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = nil
+        AgentGroundingCache.shared.resetForTesting()
+        AgentNowCache.shared.resetForTesting()
+    }
+
+    @MainActor
+    static func publishContextForTestingIfInstalled() -> Bool {
+        guard let contextForTesting else {
+            guard requiresContextForTesting else { return false }
+            _ = missingContextForTesting()
+            return true
+        }
+        _ = contextForTesting()
+        return true
+    }
+
+    @MainActor
     static func current(maxCharacters: Int = 1_650) -> Self {
+        if let contextForTesting { return contextForTesting() }
+        if requiresContextForTesting { return missingContextForTesting() }
         // The voice frontend's prompt is assembled off the main actor moments from now, and
         // this is the last main-actor step before it. Publish the folder list, the row count
         // and the live roster so `AgentGrounding` has them.

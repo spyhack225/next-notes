@@ -391,6 +391,7 @@ enum AgentNowPublisher {
     /// that refreshed on its own schedule would be right on average and wrong exactly when
     /// somebody asked.
     static func refresh(now: Date = Date()) {
+        if VoiceCapabilitySnapshot.publishContextForTestingIfInstalled() { return }
         let calendar = CalendarService.shared
         let events = calendar.upcoming
             .filter { $0.isCurrent(at: now) && $0.isAllDay == false && $0.isOrganizerOrSelfAccepted }
@@ -405,8 +406,7 @@ enum AgentNowPublisher {
             && states.values.contains(where: \.isAuthorized)
         let session = MeetingController.shared.session
         let tasks = AgentTaskManager.shared.tasks.filter { $0.status == .running }
-        let jobs = VoiceConversationCoordinator.shared.jobs.filter { $0.status == "running" }
-        let working = (jobs.map(\.work.original) + tasks.map(\.objective))
+        let working = tasks.map(\.objective)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { !$0.isEmpty }
         let front = NSWorkspace.shared.frontmostApplication?.localizedName

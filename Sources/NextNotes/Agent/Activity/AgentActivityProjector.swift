@@ -4,6 +4,21 @@ import Foundation
 /// Public titles for the island and sidebar. Never chain-of-thought.
 enum AgentActivityProjector {
 
+    /// The mail producer owns this descriptor namespace; these labels grant no authority.
+    static func basedOnRows(_ references: [ActionContextReference]) -> [AgentBasedOnRow] {
+        var seen = Set<String>()
+        return references.compactMap { reference in
+            guard reference.kind == "mail", reference.source == "mail", !reference.value.isEmpty,
+                  reference.id == "mail:" + reference.value, seen.insert(reference.id).inserted else { return nil }
+            // Public title is emitted by the verified-mail producer, never derived from raw value/body.
+            let title = reference.title?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let fallback = reference.at.map { "Mail message · " + $0.formatted(date: .abbreviated, time: .shortened) } ?? "Mail message"
+            let label = title.flatMap { !$0.isEmpty && isPublic($0) ? $0 : nil } ?? fallback
+            return AgentBasedOnRow(id: reference.id, label: label)
+        }
+    }
+
+
     static func artifactLabel(_ artifact: AgentArtifact) -> String {
         if let title = artifact.title?.trimmingCharacters(in: .whitespacesAndNewlines),
            !title.isEmpty, isPublic(title) { return String(title.prefix(160)) }
@@ -101,6 +116,90 @@ enum AgentActivityProjector {
         }
     }
 
+    /// Stored job labels; no raw tool detail, prepared payload, result body or health inference.
+    static func jobTitle(_ task: AgentTask) -> String {
+        let title = task.objective.split(whereSeparator: { $0.isWhitespace }).joined(separator: " ")
+        guard !title.isEmpty, isPublic(title) else { return "Background task" }
+        return String(title.prefix(160))
+    }
+
+    static func jobState(_ task: AgentTask) -> String { task.status.humanState }
+
+    static func jobResult(_ task: AgentTask) -> String {
+        task.result?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            ? "Saved reply" : "No saved reply"
+    }
+
+    static func jobEventTitle(_ event: TaskJournalEvent) -> String {
+        switch event.draft.kind {
+        case .jobCreated: "Task saved"
+        case .workerStarted: "Work started"
+        case .toolStarted: "Action started"
+        case .toolCompleted: "Action ended"
+        case .permissionRequested: "Approval requested"
+        case .permissionApproved: "Approval recorded"
+        case .permissionDenied: "Approval not given"
+        case .inputRequested: "Answer requested"
+        case .inputProvided: "Answer recorded"
+        case .artifactCaptured: "Result reference saved"
+        case .heartbeat: "Progress saved"
+        case .retryScheduled: "Another attempt scheduled"
+        case .workerRecovered: "Work recovered"
+        case .recoveryHeld: "Work paused after restart"
+        case .jobCompleted: "Task marked done"
+        case .jobFailed: "Task marked unfinished"
+        case .jobCancelled: "Task stopped"
+        case .revisionRecorded: "Instructions updated"
+        case .dependencySatisfied: "Earlier work finished"
+        case .staleAttemptDropped: "Older update ignored"
+        case .outcomeResolved: "Outcome recorded"
+        }
+    }
+
+    static func jobIntegrations(_ events: [TaskJournalEvent]) -> [String] {
+        var names = Set<String>()
+        for event in events where event.draft.kind == .toolStarted {
+            let namespace = event.draft.detail?.split(separator: ".").first.map(String.init)
+            let label: String
+            switch namespace {
+            case "filesystem": label = "Files"
+            case "shell": label = "Commands"
+            case "computer": label = "Computer"
+            case "browser": label = "Browser"
+            case "memory": label = "Memory"
+            case "meeting": label = "Meetings"
+            case "knowledge": label = "Library"
+            case "schedule": label = "Reminders"
+            case "workspace": label = "Google Workspace"
+            case "mcp": label = "Connected tools"
+            case "github": label = "GitHub"
+            case "notion": label = "Notion"
+            case "slack": label = "Slack"
+            default: label = "Other tools"
+            }
+            names.insert(label)
+        }
+        return names.sorted()
+    }
+
+    /// Retained committed rows only. No health, effects or action authority follows.
+    static func jobTimelineRows(_ snapshot: TaskStoreAuthorityProbe?) -> [AgentSavedJobRow] {
+        guard let snapshot, snapshot.authority != nil else { return [] }
+        let waits: Set<AgentTaskStatus> = [.waitingForPermission, .waitingForInput, .waitingForCompatibilityCLI]
+        return snapshot.tasks.sorted { a, b in
+            if waits.contains(a.status) != waits.contains(b.status) { return waits.contains(a.status) }
+            return a.createdAt == b.createdAt ? a.id < b.id : a.createdAt > b.createdAt
+        }.map { task in
+            let events = snapshot.events[task.id] ?? []
+            return AgentSavedJobRow(id: task.id, title: jobTitle(task), state: jobState(task),
+                result: jobResult(task), integrations: jobIntegrations(events),
+                timeline: events.map { event in
+                    AgentAuditEntry(id: task.id + ":" + String(event.seq), at: event.draft.at,
+                        kind: .task, title: jobEventTitle(event), taskID: task.id)
+                })
+        }
+    }
+
     static func isPublic(_ title: String) -> Bool {
         let lowered = title.lowercased()
         let leaked = ["chain of thought", "secret chain", "i am reasoning", "let's think"]
@@ -151,3 +250,19 @@ struct AgentArtifactRow: Identifiable, Equatable, Sendable {
     }
 }
 enum AgentArtifactAction: Sendable { case open, copy }
+
+/// Public display labels only. Internal identity is never rendered as a source URL or ID.
+struct AgentBasedOnRow: Identifiable, Equatable, Sendable {
+    let id: String
+    let label: String
+}
+
+/// Ephemeral public drawing values, never a second stored task or journal collection.
+struct AgentSavedJobRow: Identifiable, Equatable, Sendable {
+    let id: String
+    let title: String
+    let state: String
+    let result: String
+    let integrations: [String]
+    let timeline: [AgentAuditEntry]
+}

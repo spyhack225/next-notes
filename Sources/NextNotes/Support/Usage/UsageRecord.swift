@@ -85,6 +85,9 @@ struct UsageRecord: Codable, Sendable, Equatable {
     var dictationRunID: UUID?
     /// A routine.
     var scheduleID: UUID?
+    /// Exact UUID-shaped background task identity; absent on older/unbound rows.
+    /// Display correlation only, never attempt, permission or effect authority.
+    var taskID: String? = nil
 }
 
 /// One tool call that ran inside a model pass. `ms` is execution time only — a write's
@@ -248,6 +251,7 @@ struct UsageCorrelation: Sendable, Equatable {
     var meetingID: UUID?
     var dictationRunID: UUID?
     var scheduleID: UUID?
+    var taskID: String? = nil
 
     init(
         turnID: UUID? = nil,
@@ -256,7 +260,8 @@ struct UsageCorrelation: Sendable, Equatable {
         revision: Int? = nil,
         meetingID: UUID? = nil,
         dictationRunID: UUID? = nil,
-        scheduleID: UUID? = nil
+        scheduleID: UUID? = nil,
+        taskID: String? = nil
     ) {
         self.turnID = turnID
         self.conversationID = conversationID
@@ -265,5 +270,6 @@ struct UsageCorrelation: Sendable, Equatable {
         self.meetingID = meetingID
         self.dictationRunID = dictationRunID
         self.scheduleID = scheduleID
+        self.taskID = taskID
     }
 }

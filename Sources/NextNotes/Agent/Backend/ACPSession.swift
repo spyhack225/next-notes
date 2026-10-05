@@ -44,16 +44,20 @@ actor ACPSession {
         approvePermissions: Bool,
         taskContext: TaskJournalContext? = nil
     ) async throws {
+        let client = try JSONRPCStdioClient(command: command, arguments: arguments, directory: directory)
+        // Publish the new owner only after its actual Process starts. A thrown
+        // constructor must leave the retained original client and owner paired.
         self.taskID = taskID
         self.approvePermissions = approvePermissions
         self.taskContext = taskContext
-        let client = try JSONRPCStdioClient(command: command, arguments: arguments, directory: directory)
         self.client = client
-        client.onIncoming { [weak self] message in
-            await self?.handleIncoming(message) ?? Data("{}".utf8)
+        client.onIncoming { [weak self, weak client] message in
+            guard let client else { return Data("{}".utf8) }
+            return await self?.handleIncoming(message, from: client) ?? Data("{}".utf8)
         }
-        client.onNotification { [weak self] message in
-            await self?.handleNotification(message)
+        client.onNotification { [weak self, weak client] message in
+            guard let client else { return }
+            await self?.handleNotification(message, from: client)
         }
 
         _ = try await client.request(method: "initialize", params: [
@@ -127,50 +131,81 @@ actor ACPSession {
         client = nil
     }
 
-    private func handleIncoming(_ message: [String: String]) async -> Data {
+    // The callback owns the actual originating transport, not a mutable Session slot.
+    // This check is synchronous on this actor and reuses its existing fields.
+    private func permissionCallerIsCurrent(_ source: JSONRPCStdioClient,
+                                           sessionID: String, taskID: String) -> Bool {
+        client === source && self.sessionID == sessionID && self.taskID == taskID
+            && !promptCancellationRequested
+    }
+
+    private func handleIncoming(_ message: [String: String], from source: JSONRPCStdioClient) async -> Data {
         let method = message["method"] ?? ""
         if method == "session/request_permission" || method.hasSuffix("request_permission") {
             let params = (message["paramsJSON"].flatMap { $0.data(using: .utf8) }
                 .flatMap { try? JSONSerialization.jsonObject(with: $0) }) as? [String: Any] ?? [:]
-            let options = params["options"] as? [[String: Any]] ?? []
+            // IDs are opaque offered values. A selected outcome must name one
+            // unique option; malformed offers cannot supply permission.
+            guard let options = params["options"] as? [[String: Any]], !options.isEmpty,
+                  options.allSatisfy({ $0["optionId"] is String && $0["name"] is String && $0["kind"] is String }),
+                  Set(options.compactMap { $0["optionId"] as? String }).count == options.count else {
+                return Self.cancelledPermissionResult
+            }
             let allow = options.first {
                 let kind = ($0["kind"] as? String ?? "").lowercased()
                 return kind == "allow_once" || kind == "allow-once"
-            }?["optionId"] as? String ?? "allow-once"
+            }?["optionId"] as? String
             let reject = options.first {
                 let kind = ($0["kind"] as? String ?? "").lowercased()
-                return kind.contains("reject") || kind.contains("deny")
-            }?["optionId"] as? String ?? "reject-once"
+                return kind == "reject_once" || kind == "reject-once"
+            }?["optionId"] as? String
+            // This surface approves or declines one operation. Neither an internal
+            // standing grant nor a decline silently selects a lasting peer option.
+            let rejectedResult = reject.map(Self.selectedPermissionResult) ?? Self.cancelledPermissionResult
             guard let sessionID, !sessionID.isEmpty,
                   let incomingID = params["sessionId"] as? String,
-                  incomingID == sessionID else { return Self.selectedPermissionResult(reject) }
-            guard !promptCancellationRequested else { return Self.cancelledPermissionResult }
+                  incomingID == sessionID else { return rejectedResult }
+            let incomingTaskID = taskID
+            let incomingContext = taskContext
+            let incomingApprovePermissions = approvePermissions
+            guard permissionCallerIsCurrent(source, sessionID: sessionID, taskID: incomingTaskID)
+                else { return Self.cancelledPermissionResult }
             let boundPolicy: PermissionPolicy?
-            if let context = taskContext {
-                guard context.taskID == taskID, context.attempt > 0,
+            if let context = incomingContext, incomingApprovePermissions {
+                guard context.taskID == incomingTaskID, context.attempt > 0,
                       context.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
-                      context.isStillValid != nil else { return Self.selectedPermissionResult(reject) }
+                      context.isStillValid != nil else { return rejectedResult }
                 // Reuse the existing policy hop to check the exact live handle and
                 // current primary attempt before any relay or fast permission reply.
                 boundPolicy = await MainActor.run {
                     guard context.isStillValid?() == true else { return nil }
                     return PermissionPolicy.fromSettings()
                 }
-                guard boundPolicy != nil else { return Self.selectedPermissionResult(reject) }
-                guard !promptCancellationRequested else { return Self.cancelledPermissionResult }
+                guard boundPolicy != nil else { return rejectedResult }
+                guard permissionCallerIsCurrent(source, sessionID: sessionID, taskID: incomingTaskID)
+                    else { return Self.cancelledPermissionResult }
             } else { boundPolicy = nil }
-            permissionRelayed = true
+            guard let allow else { return rejectedResult }
             let toolCall = params["toolCall"] as? [String: Any] ?? [:]
             let title = (toolCall["title"] as? String ?? "ACP tool action")
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             let detailData = try? JSONSerialization.data(withJSONObject: toolCall, options: .sortedKeys)
             let detail = detailData.flatMap { String(data: $0, encoding: .utf8) } ?? "{}"
-            publish(kind: "permission", title: "Permission required", detail: title)
-            if approvePermissions { return Self.selectedPermissionResult(allow) }
+            if incomingContext == nil {
+                permissionRelayed = true
+                publish(kind: "permission", title: "Permission required", detail: title)
+            }
+            if incomingApprovePermissions {
+                if incomingContext != nil {
+                    permissionRelayed = true
+                    publish(kind: "permission", title: "Permission required", detail: title)
+                }
+                return Self.selectedPermissionResult(allow)
+            }
             // A very large or unparseable request cannot be reviewed faithfully in the
             // Agent pane. Reject it instead of approving an abbreviated operation.
             guard !toolCall.isEmpty, detail.utf8.count <= 8192 else {
-                return Self.selectedPermissionResult(reject)
+                return rejectedResult
             }
             let tool = AgentTool.native(
                 namespace: .mcp,
@@ -181,24 +216,39 @@ actor ACPSession {
                 preview: { _ in detail }
             )
             let arguments = ["toolCall": detail]
-            let policy: PermissionPolicy
-            if let boundPolicy { policy = boundPolicy }
-            else { policy = await MainActor.run { PermissionPolicy.fromSettings() } }
-            guard !promptCancellationRequested else { return Self.cancelledPermissionResult }
-            let decision = await PermissionBroker.shared.authorize(
-                tool, arguments: arguments, policy: policy,
-                scope: .any, taskID: taskID
-            )
-            guard !promptCancellationRequested else { return Self.cancelledPermissionResult }
+            let decision: PermissionDecision
+            if let context = incomingContext {
+                guard context.taskID == incomingTaskID, context.attempt > 0,
+                      context.leaseOwner == String(ProcessInfo.processInfo.processIdentifier),
+                      context.isStillValid != nil else { return rejectedResult }
+                // SAME policy/MainActor and Broker hops, SAME one primary probe,
+                // moved to after the external decision. A client identity alone
+                // cannot keep a held/replaced primary attempt authoritative.
+                guard let admitted = await Self.authorizeBoundPermission(tool, arguments: arguments,
+                    context: context, taskID: incomingTaskID) else { return rejectedResult }
+                decision = admitted
+            } else {
+                let policy = await MainActor.run { PermissionPolicy.fromSettings() }
+                guard permissionCallerIsCurrent(source, sessionID: sessionID, taskID: incomingTaskID)
+                        else { return Self.cancelledPermissionResult }
+                decision = await PermissionBroker.shared.authorize(
+                    tool, arguments: arguments, policy: policy, scope: .any, taskID: incomingTaskID)
+            }
+            guard permissionCallerIsCurrent(source, sessionID: sessionID, taskID: incomingTaskID)
+                    else { return Self.cancelledPermissionResult }
+            if incomingContext != nil {
+                permissionRelayed = true
+                publish(kind: "permission", title: "Permission required", detail: title)
+            }
             switch decision {
             case .deny:
-                return Self.selectedPermissionResult(reject)
+                return rejectedResult
             case .allow:
                 return Self.selectedPermissionResult(allow)
             case .ask(let request), .askLocal(let request):
                 // This callback runs outside the parent task. Rebind only its exact
                 // captured normal typed context at the existing approval boundary.
-                let context = taskContext
+                let context = incomingContext
                 let approved = await TaskEventJournal.$current.withValue(context) { @MainActor in
                     let approved = await PermissionGate.shared.ask(request)
                     guard approved else { return false }
@@ -208,11 +258,22 @@ actor ACPSession {
                     guard let context else { return true }
                     return context.isStillValid?() == true
                 }
-                guard !promptCancellationRequested else { return Self.cancelledPermissionResult }
-                return Self.selectedPermissionResult(approved ? allow : reject)
+                guard permissionCallerIsCurrent(source, sessionID: sessionID, taskID: incomingTaskID)
+                    else { return Self.cancelledPermissionResult }
+                return approved ? Self.selectedPermissionResult(allow) : rejectedResult
             }
         }
         return Data("{}".utf8)
+    }
+
+    @MainActor
+    private static func authorizeBoundPermission(_ tool: AgentTool, arguments: [String: String],
+                                                context: TaskJournalContext, taskID: String) async -> PermissionDecision? {
+        let policy = PermissionPolicy.fromSettings()
+        let decision = await PermissionBroker.shared.authorize(tool, arguments: arguments,
+            policy: policy, scope: .any, taskID: taskID)
+        guard context.isStillValid?() == true else { return nil }
+        return decision
     }
 
     private static let cancelledPermissionResult = Data(
@@ -225,7 +286,8 @@ actor ACPSession {
             ?? cancelledPermissionResult
     }
 
-    private func handleNotification(_ message: [String: String]) async {
+    private func handleNotification(_ message: [String: String], from source: JSONRPCStdioClient) async {
+        guard client === source else { return }
         let method = message["method"] ?? ""
         guard method == "session/update" || method.hasSuffix("/update") else { return }
         let params = (message["paramsJSON"].flatMap { $0.data(using: .utf8) }
