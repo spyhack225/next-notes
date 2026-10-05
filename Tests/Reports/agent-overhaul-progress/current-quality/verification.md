@@ -1,17 +1,17 @@
 # Installed Agent quality checkpoint — 2026-10-05
 
-Tested code: f1b796a. Installed binary SHA256 `2b3c3e8a4025116e9f0e0df12f5c1d56161a5585d98fdfded290524f34a2d27b`. MiniCPM5-2B-Q4_K_M file pin, baseline sampler, New York timezone and fixed Oct 5 09:00 clock; same binary throughout. Load 1.7–3.2, swap 1.50 GiB, free disk above 14 GiB at run admission. Raw rounds and model receipts retained outside iCloud.
+Tested code: b11df78. Installed binary SHA256 `0079ba3f673cac62a2ef51d6c7785358f0e80640b4828ac274552a6133ac3ae7`. Explicit MiniCPM5-2B-Q4_K_M file, baseline sampler, New York timezone, fixed Oct 5 09:00 clock and unchanged binary. Load 1.8–2.5, swap 1.50 GiB, free disk above 14 GiB at admission. Raw rounds and model receipts stay outside iCloud.
 
-| Instrument | Results |
+| Instrument after native scheduling-fixture correction | Results |
 |---|---|
-| Quick, three runs | 10/10, 10/10, 9/10; min 9, median 10, max 10 |
-| Full, two consecutive runs | 27/30 and 25/30 |
+| Quick, three runs | 9/10, 8/10, 9/10; min 8, median 9, max 9 |
+| Full, consecutive runs | 25/30 and 25/30 |
 | Owner cases | 8/10 in both runs |
 
-The numerical quick/full bars are met on this installed build; broader readiness remains open. The third quick run refuses F03 after reading pricing evidence. Both full runs fail F02 current projects, N01 identity roles and N03 general knowledge (Australia’s capital); the second additionally fails R01 reminder completion and R03 task-list capability. Owner O01 and O08 fail both runs.
+The numeric full threshold is met, but one quick run falls below 9/10 and owner acceptance remains open. Both full runs fail R01 reminder completion, R02 repeating-reminder arguments, F02 current projects, F03 pricing-document follow-through and N01 identity roles. N03's actual Australia/Canberra request passes in both current runs. R02 now fails truthfully on unsupported model=gpt-4o-mini: routine proposals bypass the existing reminder-only preflight/repair. This is an exposed product failure, not acceptance restored by the former synthetic schedule result.
 
-Inspection also found false-positive PASSes: K03 substitutes Serge for Sarah despite full source evidence; M02 calls the September 26 message “new”; first-full R01 emits a malformed routine/time/repeat payload accepted by the synthetic scheduler. These are unresolved consumer failures, not product acceptance. Fixture fidelity is being corrected against the real scheduling parser; no grader threshold or corpus was changed. Full/owner, floor, voice latency and physical interaction acceptance remain open.
+Inspection preserves semantic false positives: K03 says Serge where its source says Sarah; M02 calls the September 26 message “new”; quick F03 can grade PASS while asking for a file named Marcus. The grader verdict does not establish those requests were correctly fulfilled. Owner O01/O08, broader readiness, model/default promotion and phase completion remain open. Historical f1b796a quick 10/10/9 and full 27/25 predate the scheduling fixture correction and retain their caveats.
 
-Verified and installed fixes through this checkpoint: explicit memory read, reminder argument repair and answered-offer continuation, requested model-name rule, named-speaker meeting selection/read, explicit email-sender query, fresh current-app read and missing relative reminder date. Focused original regressions and related checks accompany each commit; they do not promote a model or phase.
+The installed build also adds exact voice answer-model selection for the diagnostic. Same authored audio reaches Mini's committed turn, native token counts and playback acknowledgement; default Apple remains functional. One measured Mini turn: L1/L2/L3 0.759/2.882/3.213 s, answer decode 46.250 tok/s over 74 tokens. This is identity/stage proof, not fixed-256-token C2 floor or latency acceptance; the 200 ms and first-audio targets remain open.
 
-Evidence: `~/Library/Caches/NextNotesBuild/toolloop-live/minicpm-current-f1b796a-20261005/` and `integration/` beneath the same cache. Delivery worktree is retained for the next isolated slice; canonical foreign work remains untouched. This continuation removed six obsolete comparison/failed apps, reclaiming 1,226,668,990 bytes; current installed app, shared scratch, model files and raw comparisons are retained.
+Evidence: `~/Library/Caches/NextNotesBuild/toolloop-live/minicpm-current-b11df78-20261005/`, `integration/r01-schedule-fixture-fidelity/` and `integration/pl01-voice-candidate-pinning/`. Only the current staged app is retained. This turn removed four obsolete original stages (819,312,964 bytes); private models, raw evidence and unresolved peer worktrees remain. Parallel cache proposals cover the existing floor feeder and schedule preflight; no new P6 work.
