@@ -71,6 +71,13 @@ enum VoiceLatencySelfTest {
     }
 
     static func run() async -> Result {
+        if CommandLine.arguments.contains("--voice-latency-output-proof") {
+            // ASCII metadata only. 4,096 payload bytes cross stdout's buffered boundary;
+            // the App writes the ordinary final marker through its production seam.
+            let prefix = "VOICE_LATENCY_OUTPUT_PROOF "
+            SelfTest.diagnostic(prefix + String(repeating: "x", count: 4_096 - prefix.utf8.count))
+            return (true, "VOICE_LATENCY_OK")
+        }
         if CommandLine.arguments.contains("--voice-latency-model-guards") {
             return finish(await selfTestAnswerModelGuards())
         }

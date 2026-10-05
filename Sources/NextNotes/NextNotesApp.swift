@@ -137,9 +137,9 @@ enum SelfTest {
 
     /// Preserve model/audio probe detail when LaunchServices has no stdout.
     @MainActor static func diagnostic(_ line: String) {
-        print(line)
-        guard isRunning, let path = outputPath else { return }
         let text = line + "\n"
+        FileHandle.standardOutput.write(Data(text.utf8))
+        guard isRunning, let path = outputPath else { return }
         if let handle = FileHandle(forWritingAtPath: path) {
             handle.seekToEndOfFile()
             handle.write(Data(text.utf8))
