@@ -1,0 +1,3 @@
+# Native test asset lifecycle
+
+Applied the reviewed patch to the three existing parent runners in ~/Library/Caches/NextNotesBuild/evidence/agent-overhaul-closure/. Originals leak assets in three completed runs and two failed preparations. Actual-parent synthetic regression passes 41 run cases + 4 prepare cases: direct children are reaped before exact owned assets are removed; retained pairs, changed/open/symlinked roots and unrelated control assets are preserved. Codesign/sample/clone are explicit stubs; no native app or model acceptance is claimed. Raw results and patch: ~/Library/Caches/NextNotesBuild/integration/native-cleanup/review-evidence/. This fixes these three runners, not every self-test in the app.
