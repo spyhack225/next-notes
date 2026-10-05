@@ -1422,6 +1422,72 @@ enum RealtimeAgentToolLoopSelfTest {
                           && system > 0 && user > 0 && tokens > 0
                   })
         }
+        // M05's exact successful first turn followed by literal yes. Only the
+        // supplied provider/backing is controlled; pending detection, confirmation,
+        // conversation context and the manifest are the normal typed consumers.
+        do {
+            let request = "Summarize my last emails"
+            let summary = "Here's a quick summary of your last emails:\n\n1.  **Cyril** asked about dinner tomorrow.\n2.  **Ana Ruiz** needs the deck sent by Friday.\n3.  **Marcus Lee** shared an updated pricing sheet.\n4.  A GitHub note confirmed CI passed on main.\n5.  **Stripe** notified you about a September invoice.\n6.  **Marcus Lee** discussed contract renewal terms.\n\nWant me to help with any of these?"
+            let question = "Want me to help with any of these?"
+            // The existing reply renderer collapses double horizontal whitespace.
+            let displayedSummary = summary.replacingOccurrences(of: "  ", with: " ")
+            var observedRounds: [PlannerTraceEvent] = []
+            agent.plannerTraceForTesting = { observedRounds.append($0) }
+            for (text, expected) in [
+                (summary, question),
+                ("First sentence. Would you like me to read it?", "Would you like me to read it?"),
+                ("First! Second?   ", "Second?"),
+                ("First. unfinished tail", "unfinished tail"),
+                ("Single question?", "Single question?"),
+                ("   ", ""),
+            ] {
+                check("M05 pending last sentence included earlier content: \(expected)",
+                      PendingAction.lastSentence(text) == expected)
+            }
+            let log = PlannerScriptLog()
+            let fixtures = LiveEvalFixtures()
+            AgentToolExecutor.fakeForTesting = { tool, arguments in
+                try await fixtures.run(tool, arguments)
+            }
+            let groundedFollowUp = "Ana needs the deck by Friday; Marcus shared the updated pricing sheet. Which would you like to tackle first?"
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000,
+                script: ["I'll need to look at your emails. Let me search for them.\n<function name=\"search_email\"></function>", summary, groundedFollowUp], log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let first = await agent.handle(request, source: .text)
+            check("M05 exact first summary did not arrive after one successful mail read",
+                  first.reply == displayedSummary && fixtures.calls.map(\.toolID) == ["search_email"]
+                    && log.calls.count == 2
+                    && log.calls[1].user.contains(fixtures.summary(for: "search_email", arguments: [:]))
+                    && observedRounds.contains { event in
+                        guard case .round(_, _, _, _, let raw, _) = event else { return false }
+                        return raw == summary
+                    })
+            check("M05 pending question contains the whole completed summary",
+                  agent.typedPending?.requestText == request
+                    && agent.typedPending?.question == question
+                    && agent.typedPending?.origin == .typedQuestion
+                    && agent.typedPending?.sessionID == AgentSession.shared.sessionID)
+            let second = await agent.handle("yes", source: .text)
+            let confirmation = log.calls.last?.user ?? ""
+            check("M05 yes did not carry the exact question through the actual planner",
+                  log.calls.count == 3
+                    && confirmation.contains("You then asked: " + question)
+                    && !confirmation.contains("You then asked: " + summary)
+                    && confirmation.contains("The user answered: yes")
+                    && confirmation.contains("Earlier request from the user: " + request))
+            check("M05 confirmation lost its prior grounded deck/pricing context or mail catalogue",
+                  confirmation.contains("Ana Ruiz") && confirmation.contains("Marcus Lee")
+                    && confirmation.contains("deck") && confirmation.contains("pricing")
+                    && log.calls.last?.system.contains("search_email") == true)
+            check("M05 confirmation repeated completed mail or invented a consequential action",
+                  fixtures.calls.map(\.toolID) == ["search_email"]
+                    && second.reply == groundedFollowUp)
+            // The deterministic follow-up qualifies the producer/consumer seam;
+            // it is not native MiniCPM follow-up quality or an approval/effect proof.
+            agent.setTypedPendingForTesting(nil)
+        }
         agent.plannerTraceForTesting = previousTrace
         // A real alternative meeting read already completed. The later offer must
         // remain, with no second read or final-answer pass generated by this repair.

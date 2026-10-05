@@ -102,13 +102,16 @@ struct PendingAction: Equatable, Sendable {
     /// The reply's last non-empty sentence, terminator included.
     static func lastSentence(_ reply: String) -> String {
         var sentence = ""
+        var lastCompleted = ""
         for character in reply {
             sentence.append(character)
             guard character == "." || character == "!" || character == "?" else { continue }
             let trimmed = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
-            if !trimmed.isEmpty { sentence = trimmed }
+            if !trimmed.isEmpty { lastCompleted = trimmed }
+            sentence = ""
         }
-        return sentence.trimmingCharacters(in: .whitespacesAndNewlines)
+        let tail = sentence.trimmingCharacters(in: .whitespacesAndNewlines)
+        return tail.isEmpty ? lastCompleted : tail
     }
 
     // MARK: - The answer
