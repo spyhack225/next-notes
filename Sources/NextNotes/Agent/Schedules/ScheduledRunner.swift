@@ -569,7 +569,7 @@ final class ScheduledRunner: ScheduledRunning {
         // them, and a routine that thinks it ran yesterday is its own bug — so this renders
         // from the cache rather than from `AgentNow.current`, which reads the wall clock.
         return AgentPromptContext.assemble(
-            .scheduledRun, rules: rules, contextTokens: contextTokens, capabilities: capabilities,
+            .scheduledRun, rules: rules, capabilities: capabilities,
             now: AgentNow.render(
                 AgentNowCache.shared.snapshot(), shape: .unattended, now: now, zone: zone,
                 cloud: KnowledgeGraphScope.reader == .openRouter,

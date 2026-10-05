@@ -27,11 +27,6 @@ import Observation
 @Observable
 final class MeetingStore {
     static let shared: MeetingStore = {
-        // COMMON exact diagnostic: real Gate/Island/context defaults share empty
-        // confined history, before any owner-backed MeetingStore constructor.
-        if SelfTest.requested == "--selftest-acp-offered-options" {
-            return ACPOfferedOptionStandaloneFixture.isolatedMeetingStore()
-        }
         // COMMON exact recording-quit diagnostic: the real pipeline compares against
         // this same singleton; route it before owner-backed constructor/load occurs.
         if SelfTest.requested == "--selftest-native-termination",

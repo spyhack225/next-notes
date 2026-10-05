@@ -307,6 +307,7 @@ private struct FailedHold {
 /// what matters is that the *user's* wait is bounded, not that the CPU stops.
 func withBoundedWait<T: Sendable>(
     _ limit: Duration,
+    joinCancelledWork: Bool = false,
     _ work: @escaping @Sendable () async -> T
 ) async -> T? {
     let gate = RaceGate<T>()
@@ -319,7 +320,13 @@ func withBoundedWait<T: Sendable>(
     return await withTaskCancellationHandler {
         let result = await gate.value()
         timer.cancel()
-        if result == nil { job.cancel() }
+        if result == nil {
+            job.cancel()
+            // Background voice ownership cannot report return while its SAME
+            // cancelled child is still entered. Foreground callers keep their
+            // existing bounded return; cancellation receipts never await this drain.
+            if joinCancelledWork { await job.value }
+        }
         return result
     } onCancel: {
         // A new spoken turn cancels the old planner's parent task. Without

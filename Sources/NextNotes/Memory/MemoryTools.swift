@@ -106,11 +106,8 @@ enum MemoryToolExecutor {
             guard let kind = MemoryEntry.Kind(rawValue: argument("kind").lowercased()) else {
                 throw MemoryWriteError.invalidKind
             }
-            let text = try checkedText(argument("text"), provenance: provenance, store: store)
-            let outcome = try store.remember(kind: kind, text: text, source: source(provenance),
-                                             sessionID: provenance?.sessionID,
-                                             origin: provenance?.source, sourceLabel: provenance?.sourceLabel,
-                                             lineage: MemoryGuard.lineage(from: provenance))
+            let outcome = try remember(kind: kind, text: argument("text"),
+                                       provenance: provenance, store: store)
             return result(for: outcome, action: outcome.wasDuplicate ? .alreadyKnown : .saved, store: store)
 
         case "update":
@@ -145,6 +142,18 @@ enum MemoryToolExecutor {
         default:
             throw AgentError.unknownTool(tool.id)
         }
+    }
+
+    /// The same guarded writer serves tool calls and explicit committed user statements.
+    /// Callers supply provenance from their owned input, never from generated arguments.
+    @MainActor
+    static func remember(kind: MemoryEntry.Kind, text raw: String,
+                         provenance: MemoryProvenance?, store: NextMemory) throws -> NextMemory.WriteOutcome {
+        let text = try checkedText(raw, provenance: provenance, store: store)
+        return try store.remember(kind: kind, text: text, source: source(provenance),
+                                  sessionID: provenance?.sessionID, origin: provenance?.source,
+                                  sourceLabel: provenance?.sourceLabel,
+                                  lineage: MemoryGuard.lineage(from: provenance))
     }
 
     private static func source(_ provenance: MemoryProvenance?) -> MemoryEntry.Source {

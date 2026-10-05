@@ -222,7 +222,7 @@ enum ScheduleToolExecutor {
             // Routines and triggers run once immediately as a test. If it fails, say why and remove it: a
             // routine saved broken fails silently every morning.
             let test = try await scheduler.testRun(id: saved.id, now: now)
-            if test.status == .failed {
+            if test.status == .failed || test.status == .stopped {
                 try? await scheduler.remove(id: saved.id)
                 throw ScheduleError.invalid("The test run failed: \(test.text) I removed the \(saved.kind.rawValue); nothing was saved.")
             }
@@ -232,7 +232,7 @@ enum ScheduleToolExecutor {
             case .skipped: saved.kind == .trigger
                 ? "The test run was skipped (\(test.text)); the trigger is saved and will run at its next event."
                 : "The test run was skipped (\(test.text)); the routine is saved and will try at its time."
-            case .failed: ""
+            case .failed, .stopped: ""
             }
             let confirmed = confirmation("Saved", saved, store: store, zone: timeZone)
             var summary = confirmed.summary + " " + tested

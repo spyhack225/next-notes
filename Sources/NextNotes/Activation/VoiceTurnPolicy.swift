@@ -39,6 +39,41 @@ enum VoiceTurnPolicy {
         ]).contains(normalized)
     }
 
+    /// Exact additive signatures; other questions still reach the model.
+    static let statusQuestionSignatures: Set<String> = [
+        "how s it going",
+        "how is it going",
+        "hows it going",
+        "how s that going",
+        "how is that going",
+        "is it done",
+        "is it done yet",
+        "are you done",
+        "are you done yet",
+        "is that done",
+        "any update",
+        "any updates",
+        "any news",
+        "what s the status",
+        "what is the status",
+        "status",
+        "how far along are you",
+        "is it finished",
+        "are you finished",
+        "what are you working on",
+        "are you still working on it",
+        "still working on it",
+        "how long will it take",
+        "how is that task going",
+        "hows that task going",
+        "how s that task going",
+        "whats the status",
+        "what is the status of that task",
+        "whats the status of that task",
+        "what s the status of that task"
+    ]
+    static func isStatusQuestion(_ text: String) -> Bool { statusQuestionSignatures.contains(normalizedKey(text)) }
+
     // MARK: - Known noise (P0-3, producer-level)
 
     /// Exact ASR-noise signatures observed in live logs: lowercase, punctuation

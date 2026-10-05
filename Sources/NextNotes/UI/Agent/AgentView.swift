@@ -293,7 +293,7 @@ struct AgentView: View {
                             if task.status == .running || task.status == .queued
                                 || task.status == .waitingForPermission {
                                 AgentWorkingCard(task: task, stop: { tasks.cancel(task.id) },
-                                                 animatesActivity: !agent.isThinking && task.id == activeTasks.first?.id)
+                                                 animatesActivity: !agent.isThinking && task.id == activeTasks.first?.id, taskManager: tasks)
                             } else {
                                 taskRow(task)
                             }
@@ -301,13 +301,13 @@ struct AgentView: View {
                     }
                     if let latest = recentTasks.first {
                         Text("Latest result").font(DS.Font.sectionLabel)
-                        AgentWorkingCard(task: latest) { tasks.cancel(latest.id) }
+                        AgentWorkingCard(task: latest, stop: { tasks.cancel(latest.id) }, taskManager: tasks)
                     }
                     if recentTasks.count > 1 {
                         DisclosureGroup("Earlier activity (\(recentTasks.count - 1))", isExpanded: $showsRecentTasks) {
                             VStack(alignment: .leading, spacing: DS.Space.s) {
                                 ForEach(Array(recentTasks.dropFirst())) { task in
-                                    AgentWorkingCard(task: task) { tasks.cancel(task.id) }
+                                    AgentWorkingCard(task: task, stop: { tasks.cancel(task.id) }, taskManager: tasks)
                                 }
                             }
                             .padding(.top, DS.Space.s)

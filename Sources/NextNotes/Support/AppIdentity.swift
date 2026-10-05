@@ -15,6 +15,12 @@ enum AppIdentity {
     /// launch can't undo settings the user has changed since.
     private static let defaultsMigratedKey = "migratedFromPreviousBundleIdentifier"
 
+    /// Location only: diagnostics must not create a folder or trigger legacy migration.
+    static var applicationSupportDirectoryURL: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent(supportDirectoryName, isDirectory: true)
+    }
+
     static var applicationSupportDirectory: URL {
         let root = FileManager.default.urls(
             for: .applicationSupportDirectory,

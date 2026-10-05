@@ -398,6 +398,8 @@ struct ActionReceiptCurrentSourceObservation: Equatable, Sendable {
 @MainActor
 final class ActionReceiptStore {
     static let shared = ActionReceiptStore()
+    /// Observe the SAME already-created singleton; never initialize it from a card redraw.
+    private(set) static weak var sharedIfLoaded: ActionReceiptStore?
 
     private(set) var receipts: [ActionReceipt]
     /// The file this store owns. An instance rather than a static constant, so a self-test can
@@ -430,6 +432,7 @@ final class ActionReceiptStore {
             sourceFingerprint = loaded.fingerprint
             sourceObservationValue = loaded.observation
         }
+        Self.sharedIfLoaded = self
     }
 
     /// A store over its own file. The only way to construct one outside `shared`, and it never

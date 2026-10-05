@@ -67,13 +67,27 @@ struct LocalVoiceRoute {
         case startExternalTask
         case reviseRunningTask
         case cancelRunningTask
+        case checkTaskStatus
+        case answerApproval
+        case notAddressedToMe
     }
 
-    @Guide(description: "Choose answerQuestion for an ordinary question, a specific feature question, or a status question about already-running work. Choose describeCapabilities for an overview of supported features. Choose startExternalTask only for a NEW requested external action or information retrieval, including requests phrased as questions. Choose reviseRunningTask for a correction to an active task, or cancelRunningTask for its explicit cancellation.")
+    @Guide(description: "Choose answerQuestion for an ordinary question or a specific feature question. Choose describeCapabilities for an overview of supported features. Choose startExternalTask only for a NEW requested external action or information retrieval, including requests phrased as questions. Choose reviseRunningTask for a correction to an active task, cancelRunningTask for its explicit cancellation, or checkTaskStatus for a question about running or recent work. Choose answerApproval only for an actual current offered approval; carry its explicit approve/deny answer and any requested correction, never invent a proposal. Choose notAddressedToMe only when the latest speech is plainly people talking to each other or to someone else.")
     var intent: Intent
 
-    @Guide(description: "The exact 1-based active task number, only for reviseRunningTask or cancelRunningTask. Leave empty for every other intent.")
+    @Guide(description: "The exact 1-based supplied task number for reviseRunningTask, a selected cancelRunningTask, or an explicitly referenced checkTaskStatus. Leave empty for cancelRunningTask when cancelling the newest running task, for all-task status, and for every other intent.")
     var taskNumber: Int?
+
+    @Guide(description: "Only for startExternalTask or reviseRunningTask: one faithful self-contained instruction, resolving pronouns from the supplied conversation while preserving every name, date, number and condition. Empty otherwise.")
+    var objective: String
+
+    @Guide(description: "Only for startExternalTask: one short natural clause of at most eight words saying what you are doing, without waiting filler or claiming completion. Empty otherwise.")
+    var acknowledgement: String
+
+    @Guide(description: "Only for answerApproval with an actual offered approval: approve or deny. Explicit yes only; yes plus a change is deny. Empty otherwise.")
+    var approvalDecision: String
+    @Guide(description: "Only for answerApproval when the person changes the proposal: the requested change. Empty otherwise.")
+    var approvalChange: String
 }
 
 enum LocalVoiceSplitResponse {
@@ -127,13 +141,27 @@ enum LocalVoiceSplitResponse {
         request phrased as a question can still ask for action. Asking the
         application to remember, change or forget something about the person is
         startExternalTask. A question about
-        the progress or purpose of an already running task is answerQuestion;
+        how running or recent work is going, whether it is done, or what is being worked on is checkTaskStatus;
         it must not start the same task again. Choose
         reviseRunningTask for a correction to a referenced active task, and
         cancelRunningTask only for an explicit request to cancel one. Preserve
         the exact active task number for reviseRunningTask or
-        cancelRunningTask. Leave taskNumber empty for every other route. Do not
+        cancelRunningTask. For checkTaskStatus preserve a referenced task number, otherwise leave taskNumber empty. Leave taskNumber empty for every other route. Do not
         invent task numbers or perform any action.
+        Choose notAddressedToMe only when the latest speech is clearly people talking to each other or to someone else, not to you: it asks you nothing, asks you to do nothing, and does not reply to anything you said. Half of a conversation about an unrelated subject is notAddressedToMe. If it could be meant for you — a question, a greeting, a thank-you, a request, or a reply to what you just said — choose one of the other routes.
+        For startExternalTask and reviseRunningTask, supply one self-contained objective.
+        Resolve it, that, him and there from the supplied conversation. Preserve every name,
+        date, time, number and condition; do not add steps or details the person did not ask for.
+        For startExternalTask, supply one short acknowledgement of at most eight words saying
+        what you are doing. Do not ask them to wait, promise speed or claim it is finished.
+        Leave objective and acknowledgement empty for every other route.
+        The supplied frontend control schemas are application-owned controls, not grants
+        to run mail, calendar, files or writes yourself. All external work is startExternalTask.
+        Choose answerApproval only when Approval offered is yes and the person answers
+        that current proposal. Preserve their actual approve or deny choice. Explicit yes
+        only may approve; yes plus a requested change is deny plus that change. Never invent
+        an offer or turn unrelated speech into approval. Leave approvalDecision and
+        approvalChange empty for every other route.
         """
 
     /// The spoken answer: the persona's short card, then these rules, then (from the
@@ -155,5 +183,5 @@ enum LocalVoiceSplitResponse {
         labels, markdown, tool calls, routing discussion, or promises to perform work.
         """
 
-    static let routeMaximumResponseTokens = 64
+    static let routeMaximumResponseTokens = 128
 }

@@ -64,13 +64,13 @@ enum MeetingResourceLiveProbe {
                     let systemCalls = NativeCallCounter()
                     let mic = ChunkedTranscriber(source: .mic, transcribe: { samples in
                         await micCalls.enter()
-                        let result = try await TranscriptionQueue.shared.transcribe(samples, lane: .realtimeASR)
+                        let result = try await TranscriptionQueue.shared.transcribeWithLaneWait(samples, lane: .realtimeASR)
                         await micCalls.complete()
                         return result
                     }, onSegment: { _ in })
                     let system = ChunkedTranscriber(source: .system, transcribe: { samples in
                         await systemCalls.enter()
-                        let result = try await TranscriptionQueue.shared.transcribe(samples, lane: .realtimeASR)
+                        let result = try await TranscriptionQueue.shared.transcribeWithLaneWait(samples, lane: .realtimeASR)
                         await systemCalls.complete()
                         return result
                     }, onSegment: { _ in })

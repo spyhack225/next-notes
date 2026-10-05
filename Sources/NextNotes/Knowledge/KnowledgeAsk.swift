@@ -11,7 +11,7 @@ import Foundation
 // model was actually shown; a citation to anything else is dropped and reported.
 
 /// One passage an answer may cite, resolvable to where it was said.
-struct KnowledgeCitation: Identifiable, Equatable, Sendable {
+struct KnowledgeCitation: Identifiable, Equatable, Sendable, Codable {
     let chunkID: Int64
     let kind: KnowledgeSourceKind
     let sourceID: String
@@ -37,6 +37,24 @@ struct KnowledgeCitation: Identifiable, Equatable, Sendable {
         speaker = hit.speaker
         heading = hit.heading
         text = hit.text
+    }
+
+    // A saved conversation needs the source identity and label, never another copy of its passage.
+    private enum CodingKeys: String, CodingKey {
+        case chunkID, kind, sourceID, sourceTitle, startTime, occurredAt, speaker, heading
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        chunkID = try values.decode(Int64.self, forKey: .chunkID)
+        kind = try values.decode(KnowledgeSourceKind.self, forKey: .kind)
+        sourceID = try values.decode(String.self, forKey: .sourceID)
+        sourceTitle = try values.decodeIfPresent(String.self, forKey: .sourceTitle)
+        startTime = try values.decodeIfPresent(Double.self, forKey: .startTime)
+        occurredAt = try values.decode(Date.self, forKey: .occurredAt)
+        speaker = try values.decodeIfPresent(String.self, forKey: .speaker)
+        heading = try values.decodeIfPresent(String.self, forKey: .heading)
+        text = ""
     }
 
     /// Where a click on the chip goes. A transcript passage is a meeting and a second.
@@ -74,7 +92,7 @@ enum KnowledgeCitationTarget: Equatable, Sendable {
 }
 
 /// One sentence of an answer and the passages it cites.
-struct KnowledgeClaim: Equatable, Sendable {
+struct KnowledgeClaim: Equatable, Sendable, Codable {
     var text: String
     /// Citations that name a passage the model was shown, in the order written.
     var chunkIDs: [Int64]
@@ -142,7 +160,15 @@ enum KnowledgeAskError: LocalizedError {
 
 struct ProviderKnowledgeAnswerModel: KnowledgeAnswerModel {
     let provider: any LLMProvider
-    var contextTokens: Int { provider.contextTokens }
+    /// The same provider-owned snapshot used when assembling this answer's system.
+    private let resolvedContextTokens: Int?
+
+    init(provider: any LLMProvider, contextTokens: Int? = nil) {
+        self.provider = provider
+        self.resolvedContextTokens = contextTokens
+    }
+
+    var contextTokens: Int { resolvedContextTokens ?? provider.contextTokens }
 
     func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
         // P0-20a: one `knowledge.ask` row per pass. The provider's own task is created

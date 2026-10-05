@@ -150,7 +150,7 @@ enum ContentionSelfTests {
         }
 
         session.begin()
-        session.speak("I found three files.")
+        session.speak(OutputScheduler.tokenForTesting(), "I found three files.")
         if !session.isSpeaking || session.phase != .speaking {
             failures.append("C: speak did not enter speaking phase")
         }
@@ -182,7 +182,7 @@ enum ContentionSelfTests {
         }
 
         recorder.reset()
-        session.speak("Still listening.")
+        session.speak(OutputScheduler.tokenForTesting(), "Still listening.")
         RealtimeAgent.shared.interrupt()
         if !synth.didStop || recorder.stopCount == 0 {
             failures.append("C: RealtimeAgent.interrupt did not stop synthesizer")

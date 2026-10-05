@@ -178,6 +178,27 @@ final class IslandState {
 
         var isHidden: Bool { self == .hidden }
 
+        /// Public logging is presentation metadata; associated text/IDs stay private.
+        var noticeLogKind: String {
+            switch self {
+            case .hidden: "hidden"
+            case .dictating: "dictating"
+            case .meetingArmed: "meetingArmed"
+            case .callQuestion: "callQuestion"
+            case .meetingRecording: "meetingRecording"
+            case .transcribing: "transcribing"
+            case .diarizing: "diarizing"
+            case .summarizing: "summarizing"
+            case .notesReady: "notesReady"
+            case .agentProposal: "agentProposal"
+            case .pendingApproval: "pendingApproval"
+            case .agentListening: "agentListening"
+            case .agentWorking: "agentWorking"
+            case .agentReply: "agentReply"
+            case .problem: "problem"
+            }
+        }
+
         /// The one-line title, with the step numbers left out. What the card leads with.
         var agentWorkingTitle: String {
             guard case .agentWorking(let steps, _, _) = self else { return "" }
@@ -841,6 +862,22 @@ final class IslandState {
         refresh()
     }
 
+    @ObservationIgnored private var noticeLogForTesting: ((String) -> Void)?
+
+    /// Default nil capture of the exact existing public logger operand, only
+    /// for an authored diagnostic in its own canonical system-temp UUID root.
+    func installNoticeLogForTesting(_ observer: ((String) -> Void)?, root: URL) -> Bool {
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let canonical = root.resolvingSymlinksInPath().standardizedFileURL
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-delivery",
+              root.standardizedFileURL.path == canonical.path,
+              canonical.deletingLastPathComponent().path == temporary.path,
+              UUID(uuidString: canonical.lastPathComponent) != nil,
+              (try? FileManager.default.attributesOfItem(atPath: canonical.path)[.type]) as? FileAttributeType == .typeDirectory else { return false }
+        noticeLogForTesting = observer
+        return true
+    }
+
     // MARK: - Notice plumbing
 
     private func push(_ kind: Kind, for duration: TimeInterval) {
@@ -850,7 +887,9 @@ final class IslandState {
         )
         refresh()
         rearmNotice()
-        Log.island.info("island notice: \(String(describing: kind), privacy: .public)")
+        let noticeLogValue = kind.noticeLogKind
+        if SelfTest.isRunning, SelfTest.requested == "--selftest-voice-delivery" { noticeLogForTesting?(noticeLogValue) }
+        Log.island.info("island notice: \(noticeLogValue, privacy: .public)")
     }
 
     private func clearNotice() {

@@ -120,9 +120,11 @@ final class InstalledModelLibrary {
     /// — so a test can never be handed whatever the owner of this Mac has selected.
     /// `--selftest-agent-answers` and `--selftest-llm-metal` are the two flags that read
     /// the real selection on purpose (read-only).
-    static let shared = InstalledModelLibrary(
-        defaults: sharedDefaults,
-        runtimeAdopter: sharedRuntimeAdopter
+    private(set) static weak var sharedIfLoaded: InstalledModelLibrary?
+    static let shared: InstalledModelLibrary = {
+        let library = InstalledModelLibrary(
+            defaults: sharedDefaults,
+            runtimeAdopter: sharedRuntimeAdopter
         )
         sharedIfLoaded = library
         return library
@@ -232,6 +234,14 @@ final class InstalledModelLibrary {
         runtimeAdopter: (@Sendable (InstalledLocalModel?) async -> Void)? = nil,
         isolatesBuiltInForTerminationTesting: Bool = false
     ) {
+        if isolatesBuiltInForTerminationTesting {
+            guard NativeOtherLlamaQuitSelfTest.isRequested, let manifestURL,
+                  NativeOtherLlamaQuitSelfTest.isConfinedManifest(manifestURL),
+                  defaults === SelfTestHarnessDefaults.shared, runtimeAdopter == nil else {
+                preconditionFailure("Native model library fixture unavailable")
+            }
+        }
+        self.isolatesBuiltInForTerminationTesting = isolatesBuiltInForTerminationTesting
         self.manifestURL = manifestURL
             ?? ModelSpec.directory.appendingPathComponent("library.json")
         self.defaults = defaults

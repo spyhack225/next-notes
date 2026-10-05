@@ -6,6 +6,12 @@ enum ConcurrentVoiceSelfTest {
         let shadow = VoiceSession.shared
         shadow.resetDiagnosticsForTesting()
         let conversation = VoiceConversationCoordinator.shared
+        let bridge = conversation.taskBridge
+        let existingIDs = Set(bridge.cachedTasks.map(\.id))
+        func rows() -> [AgentTask] {
+            bridge.cachedTasks.filter { !existingIDs.contains($0.id) && $0.source == "voice" }
+                .sorted { $0.createdAt < $1.createdAt }
+        }
         let agent = RealtimeAgent.shared
         let capture = AgentCaptureController.shared
         let synth = AgentSpeechSynthesizer.shared
@@ -58,29 +64,29 @@ enum ConcurrentVoiceSelfTest {
             if await probe.count == 1 { break }
             try? await Task.sleep(for: .milliseconds(10))
         }
-        let first = conversation.jobs.first
+        let first = rows().first.flatMap { row in UUID(uuidString: row.id).flatMap { conversation.captureVoiceWorkerForTesting(id: $0) } }
         check(first != nil && conversation.hasActiveWork && !agent.isThinking,
               "work still owns the conversational response lane")
         let side = await speak("What is a haiku?")
         check(side.reply == "A haiku is a short poem.", "side conversation waited for or lost the worker")
-        check(first?.work.revision == 0 && conversation.jobs.first?.status == "running",
+        check(first?.work.revision == 0 && rows().first?.status == .running,
               "side question revised/cancelled the worker")
         _ = await speak("Actually check tomorrow instead.")
         check(first?.work.revision == 1 && first?.work.prompt.contains("Check my calendar.") == true
               && first?.work.prompt.contains("tomorrow") == true,
               "correction lost original objective or worker identity")
         _ = await speak("Also inspect the active app.")
-        check(conversation.jobs.count == 2 && conversation.jobs.allSatisfy { $0.status == "running" },
+        check(rows().count == 2 && rows().allSatisfy { $0.status == .running },
               "a second independent task replaced the first")
 
         agent.userSpeechStarted()
         if let id = first?.id { await probe.release(id) }
         try? await Task.sleep(for: .milliseconds(50))
-        check(conversation.jobs.first?.status == "finished", "background completion waited on the user's speech")
+        check(rows().first?.status == .completed, "background completion waited on the user's speech")
         check(!VoiceAnnouncementQueue.shared.flush(userHasFloor: true), "result spoke over the user")
         agent.userSpeechEnded()
         _ = await agent.handle("Cancel that", source: .voice)
-        check(conversation.jobs.last?.status == "cancelled" && conversation.jobs.first?.status == "finished",
+        check(rows().last?.status == .cancelled && rows().first?.status == .completed,
               "cancellation affected the wrong independent task")
 
         _ = await speak("Unclear instruction.")

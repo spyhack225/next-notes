@@ -75,6 +75,12 @@ enum VoiceConversationSelfTest {
             agent.localModelProviderForTesting = nil
             staleEffects = 0
             recorder.reset()
+            let bridge = conversation.taskBridge
+            let priorIDs = Set(bridge.cachedTasks.map(\.id))
+            func rows() -> [AgentTask] {
+                bridge.cachedTasks.filter { !priorIDs.contains($0.id) && $0.source == "voice" }
+                    .sorted { $0.createdAt < $1.createdAt }
+            }
             let state = VoiceConversationProbeState(afterRead: afterRead)
             conversation.workerProviderForTesting = VoiceConversationProbeProvider(state: state)
             conversation.streamForTesting = { _, messages in
@@ -90,12 +96,12 @@ enum VoiceConversationSelfTest {
                 try? await Task.sleep(for: .milliseconds(10))
             }
             check("producer never reached the suspended boundary", await state.parked)
-            let original = conversation.jobs.first
+            let original = rows().first.flatMap { row in UUID(uuidString: row.id).flatMap { conversation.captureVoiceWorkerForTesting(id: $0) } }
             let workID = original?.id
             // The frontend acknowledgement precedes the held-floor interval.
             recorder.reset()
             agent.userSpeechStarted()
-            check("starting speech cancelled work", conversation.jobs.first?.status == "running" && conversation.jobs.first?.id == workID && original?.work.revision == 0)
+            check("starting speech cancelled work", rows().first?.status == .running && rows().first?.id == workID?.uuidString && original?.work.revision == 0)
             check("starting speech failed to stop playback", AgentSpeechSynthesizer.shared.didStop)
 
             // Let the old model finish while the user still holds the floor.
@@ -108,25 +114,25 @@ enum VoiceConversationSelfTest {
             check("obsolete write never reached the actual post-approval input gate",
                   conversation.barrierWaiterCountForTesting > 0)
             check("obsolete write fired while the correction was unfinished", staleEffects == 0)
-            print("VOICE_CONVERSATION_HELD: after_read=\(afterRead) status=\(conversation.jobs.first?.status ?? "absent") revision=\(original?.work.revision ?? -1) effects=\(staleEffects)")
+            print("VOICE_CONVERSATION_HELD: after_read=\(afterRead) status=\(rows().first?.status.rawValue ?? "absent") revision=\(original?.work.revision ?? -1) effects=\(staleEffects)")
             check("a completed response spoke over unfinished input", recorder.spoken.isEmpty)
-            check("speech onset revised or cancelled the job", conversation.jobs.first?.id == workID
-                  && conversation.jobs.first?.status != "cancelled" && original?.work.revision == 0)
+            check("speech onset revised or cancelled the job", rows().first?.id == workID?.uuidString
+                  && rows().first?.status != .cancelled && original?.work.revision == 0)
 
             capture.simulateSpeech("No, Claude Code. C L A U D E. Check Claude instead.")
             capture.simulateSilence()
             let ended = await capture.considerEndpoint()
             check("follow-up was not committed", ended)
-            check("follow-up replaced the work item", workID != nil && conversation.jobs.count == 1 && conversation.jobs.first?.id == workID)
+            check("follow-up replaced the work item", workID != nil && rows().count == 1 && rows().first?.id == workID?.uuidString)
             await capture.waitForActiveTurnForTesting()
             for _ in 0..<300 {
-                if conversation.jobs.first?.status == "finished" { break }
+                if rows().first?.status == .completed { break }
                 try? await Task.sleep(for: .milliseconds(10))
             }
             check("stale write reached final fire after correction", staleEffects == 0)
             check("correction did not advance the same work revision", original?.work.revision == 1)
             check("original objective or correction was lost", await state.sawAmendedObjective)
-            check("stale plan executed or correction was lost", conversation.jobs.first?.result == "I retained the request and applied your correction.")
+            check("stale plan executed or correction was lost", rows().first?.result == "I retained the request and applied your correction.")
             if afterRead {
                 check("completed read was lost after correction", await state.sawRetainedResult)
                 check("completed read was requested again", await state.readRequests == 1)

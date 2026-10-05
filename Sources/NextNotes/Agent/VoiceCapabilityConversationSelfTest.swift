@@ -63,7 +63,15 @@ enum VoiceCapabilityConversationSelfTest {
 
         let harnessFailureBefore = SelfTest.failed
         let coordinator = VoiceConversationCoordinator.shared
-        coordinator.resetForTesting()
+        var precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
+        func scopedVoiceRows() -> [AgentTask] {
+            coordinator.taskBridge.cachedTasks.filter { $0.source == "voice" && !precedingTaskIDs.contains($0.id) }
+        }
+        func currentCapture() -> VoiceWorkerTestCapture? {
+            guard let raw = scopedVoiceRows().first?.id, let id = UUID(uuidString: raw) else { return nil }
+            return coordinator.captureVoiceWorkerForTesting(id: id)
+        }
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let plannerIDs = Set(RealtimeAgent.plannableTools().map(\.id))
         let requiredIDs = [
@@ -143,7 +151,7 @@ enum VoiceCapabilityConversationSelfTest {
         if await probe.historyTurnsObserved < capabilityQuestions.count - 1 {
             failures.append("coordinator did not preserve prior capability turns in history")
         }
-        if coordinator.hasActiveWork || !coordinator.jobs.isEmpty {
+        if coordinator.hasActiveWork || !scopedVoiceRows().isEmpty {
             failures.append("describing capabilities created a background objective")
         }
         if AgentSession.shared.messages.contains(where: {
@@ -155,7 +163,7 @@ enum VoiceCapabilityConversationSelfTest {
         // Keep response-contract failures distinct from an ambiguous user request. The
         // healthy capability assertions above must never accidentally accept these cases.
         for fixture in [VoiceCapabilityProbe.Mode.modelError, .malformed, .ambiguous] {
-            coordinator.resetForTesting()
+            coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
             let errorProbe = VoiceCapabilityProbe(requiredIDs: requiredIDs, mode: fixture)
             coordinator.streamForTesting = { system, messages in
                 await errorProbe.stream(system: system, messages: messages)
@@ -179,7 +187,7 @@ enum VoiceCapabilityConversationSelfTest {
             } else if capabilityAnswerCheck(reply, groundedIDs: requiredIDs, minimumCategories: 1).ok {
                 failures.append(label + ": failure was accepted as a capability answer")
             }
-            if coordinator.hasActiveWork || !coordinator.jobs.isEmpty {
+            if coordinator.hasActiveWork || !scopedVoiceRows().isEmpty {
                 failures.append(label + ": response-contract failure created background work")
             }
             // P0-07: a failed turn is unclassified. It releases the read/planning
@@ -237,7 +245,7 @@ enum VoiceCapabilityConversationSelfTest {
 
         // A typed capability control is answered from the authoritative snapshot and
         // must never enter the worker path merely because the user asked for a list.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         let capabilitiesProbe = VoiceCapabilityProbe(requiredIDs: requiredIDs, mode: .capabilities)
         coordinator.streamForTesting = { system, messages in
             await capabilitiesProbe.stream(system: system, messages: messages)
@@ -254,7 +262,7 @@ enum VoiceCapabilityConversationSelfTest {
         if coordinator.lastFailure != nil || coordinator.inputPending {
             failures.append("typed capability control left a failure or input barrier")
         }
-        if workerCalls != 0 || coordinator.hasActiveWork || !coordinator.jobs.isEmpty {
+        if workerCalls != 0 || coordinator.hasActiveWork || !scopedVoiceRows().isEmpty {
             failures.append("typed capability control dispatched tool work")
         }
 
@@ -271,17 +279,25 @@ enum VoiceCapabilityConversationSelfTest {
         }
         let okay = failures.isEmpty && !SelfTest.failed
         print(okay ? "VOICE_CAPABILITY_OK" : "VOICE_CAPABILITY_FAILED")
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         return okay
     }
 
     @MainActor
     private static func failureLifecycleFailures() async -> [String] {
         let coordinator = VoiceConversationCoordinator.shared
+        var precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
+        func scopedVoiceRows() -> [AgentTask] {
+            coordinator.taskBridge.cachedTasks.filter { $0.source == "voice" && !precedingTaskIDs.contains($0.id) }
+        }
+        func currentCapture() -> VoiceWorkerTestCapture? {
+            guard let raw = scopedVoiceRows().first?.id, let id = UUID(uuidString: raw) else { return nil }
+            return coordinator.captureVoiceWorkerForTesting(id: id)
+        }
         let capture = AgentCaptureController.shared
         let agent = RealtimeAgent.shared
         let speech = AgentSpeechSynthesizer.shared
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         await capture.beginSession(captureAudio: false)
         speech.useTestingBacking(RecordingSpeechBacking())
         var queued: [String] = []
@@ -319,7 +335,7 @@ enum VoiceCapabilityConversationSelfTest {
         if !coordinator.inputPending {
             failures.append("old response released the newer hesitation input barrier")
         }
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         coordinator.responseDeadlineForTesting = .milliseconds(50)
         coordinator.streamForTesting = { _, _ in
             AsyncThrowingStream { continuation in
@@ -366,7 +382,7 @@ enum VoiceCapabilityConversationSelfTest {
             failures.append("discarding an acoustic-only candidate cleared a valid response")
         }
         agent.waitForVoiceContinuation()
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         await capture.endSession(source: .done)
         speech.restoreSystemBacking()
         return failures
@@ -385,7 +401,15 @@ enum VoiceCapabilityConversationSelfTest {
 
         let harnessFailureBefore = SelfTest.failed
         let coordinator = VoiceConversationCoordinator.shared
-        coordinator.resetForTesting()
+        var precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
+        func scopedVoiceRows() -> [AgentTask] {
+            coordinator.taskBridge.cachedTasks.filter { $0.source == "voice" && !precedingTaskIDs.contains($0.id) }
+        }
+        func currentCapture() -> VoiceWorkerTestCapture? {
+            guard let raw = scopedVoiceRows().first?.id, let id = UUID(uuidString: raw) else { return nil }
+            return coordinator.captureVoiceWorkerForTesting(id: id)
+        }
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let pollutedHistory = CommandLine.arguments.contains("--voice-polluted-history")
         if pollutedHistory {
@@ -415,7 +439,7 @@ enum VoiceCapabilityConversationSelfTest {
         let backing = RecordingSpeechBacking()
         AgentSpeechSynthesizer.shared.useTestingBacking(backing)
         defer {
-            coordinator.resetForTesting()
+            coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
             AgentSpeechSynthesizer.shared.restoreSystemBacking()
         }
 
@@ -489,7 +513,7 @@ enum VoiceCapabilityConversationSelfTest {
         if !backing.spoken.isEmpty {
             failures.append("live capability probe reached the speech backing")
         }
-        if coordinator.hasActiveWork || !coordinator.jobs.isEmpty {
+        if coordinator.hasActiveWork || !scopedVoiceRows().isEmpty {
             failures.append("live capability probe created a background objective")
         }
         let recorded = AgentSession.shared.messages.count - startedMessageCount
@@ -713,10 +737,27 @@ enum VoiceCapabilityConversationSelfTest {
         let harnessFailureBefore = SelfTest.failed
         var failures: [String] = []
         var outputs: [(String, String)] = []
+        let controlSchemas = await FrontendControlSchemaSelfTest.run()
+        failures += controlSchemas.failures
+        print("FRONTEND_SCHEMA_CHECKS count=\(controlSchemas.checks) problems=\(controlSchemas.failures.count)")
+        let receiptContract = await FrontendReceiptSelfTest.run()
+        failures += receiptContract.failures
+        print("FRONTEND_RECEIPT_CHECKS count=\(receiptContract.checks) problems=\(receiptContract.failures.count)")
+        let revisionContract = await FrontendRevisionSelfTest.run()
+        failures += revisionContract.failures
+        print("FRONTEND_REVISION_CHECKS count=\(revisionContract.checks) problems=\(revisionContract.failures.count)")
         let coordinator = VoiceConversationCoordinator.shared
+        var precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
+        func scopedVoiceRows() -> [AgentTask] {
+            coordinator.taskBridge.cachedTasks.filter { $0.source == "voice" && !precedingTaskIDs.contains($0.id) }
+        }
+        func currentCapture() -> VoiceWorkerTestCapture? {
+            guard let raw = scopedVoiceRows().first?.id, let id = UUID(uuidString: raw) else { return nil }
+            return coordinator.captureVoiceWorkerForTesting(id: id)
+        }
 
         // MARK: P0-3 — eight real garbled utterances; none reaches frontend inference.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let garbleProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
@@ -749,7 +790,7 @@ enum VoiceCapabilityConversationSelfTest {
         if clarifiers.count < 6 {
             failures.append("only \(clarifiers.count) garble_clarifier audit entries for eight garbled turns")
         }
-        if coordinator.jobs.isEmpty {
+        if scopedVoiceRows().isEmpty {
             failures.append("the parsable folder sentence was never submitted")
         }
 
@@ -759,7 +800,7 @@ enum VoiceCapabilityConversationSelfTest {
         // five turns in a row. The gate is now an exact noise list plus a positive corpus
         // here — every ordinary utterance must reach the model — and suppression is
         // single-shot per session, so repeating noise escalates instead of looping.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let corpusProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
@@ -806,7 +847,7 @@ enum VoiceCapabilityConversationSelfTest {
         // Could you repeat your question?" for a complete question. This pins the
         // producer contract: the utterance is in the final message, never a history
         // duplicate, and a repair turn is not carried into the next prompt.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         AgentSession.shared.recordUser("said, can you hear me?", source: .voice)
         _ = AgentSession.shared.recordAssistant(
@@ -886,7 +927,7 @@ enum VoiceCapabilityConversationSelfTest {
         // turn in "The local voice model failed while preparing that response." — a
         // generic dead end for a state the person can see and fix. The reason must
         // reach the reply, and it must not be recorded as a model failure.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         coordinator.frontendUnavailableReasonForTesting =
             "Apple Intelligence is turned off in System Settings."
@@ -905,7 +946,7 @@ enum VoiceCapabilityConversationSelfTest {
         coordinator.frontendUnavailableReasonForTesting = nil
 
         // A session that already ended must not record a spoken stop line.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         await AgentCaptureController.shared.beginSession(captureAudio: false)
         _ = RealtimeAgent.shared.beginVoiceFrontend()
@@ -917,7 +958,7 @@ enum VoiceCapabilityConversationSelfTest {
         }
 
         // MARK: P0-4 — the 20:45:00Z browser command through the live coordinator path.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let browserProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
@@ -956,7 +997,7 @@ enum VoiceCapabilityConversationSelfTest {
         // commanding one and gets the honest limit, which is spoken whole and left
         // pending. T4 resolves it. T5 confirms with nothing pending, which the shared
         // acknowledgment vocabulary must NOT swallow.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let loopProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
@@ -1032,7 +1073,7 @@ enum VoiceCapabilityConversationSelfTest {
         // tasks" with `get_agenda` in the roster. The roster is pinned by an override here,
         // because the subject of this case is the routing rule and not whatever this Mac
         // happens to have connected.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(
             tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
@@ -1100,7 +1141,7 @@ enum VoiceCapabilityConversationSelfTest {
         // have done. With no tools at all, the same questions are the model's to answer —
         // and the denials it gives back are then *true*, which is the point: the gate is
         // not a denial machine.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs(
             tools: [], switches: .init(memory: false, schedules: false, knowledgeTools: false, skills: false),
@@ -1162,46 +1203,144 @@ enum VoiceCapabilityConversationSelfTest {
         // and the user's "okay" was read as noise — "Sorry — I didn't catch that." — so the
         // reminder was never created. P1-14 keeps the "okay" alive through the echo filter;
         // this is where it lands.
-        for phrase in ["okay", "yes please", "yeah sure", "go for it", "sure go ahead", "yes do it"] {
-            coordinator.resetForTesting()
-            AgentSession.shared.forgetAllConversations()
-            let workerProbe = TurnRoutingProbe()
-            coordinator.streamForTesting = { system, messages in
-                await workerProbe.stream(system: system, messages: messages)
+        // Mount the real current capture/input owner for the prescribed SAME-job
+        // continuation. The old sessionless new-job/confirmed-prefix expectation
+        // predates the canonical needsInput contract and cannot authorize an answer.
+        let capture = AgentCaptureController.shared
+        let priorBridge = coordinator.taskBridgeOverrideForTesting
+        let oldRemember = coordinator.rememberExplicit
+        let temp = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let questionRoot = temp.appendingPathComponent(UUID().uuidString, isDirectory: true)
+        var questionRootCreated = false
+        var questionBridgeMounted = false
+        var ownsQuestionSession = false
+        var questionProbe: TurnRoutingProbe?
+        var questionTask: Task<Void, Never>?
+        func questionReached(_ predicate: @MainActor () async -> Bool) async -> Bool {
+            let deadline = ContinuousClock.now.advanced(by: .seconds(5))
+            while ContinuousClock.now < deadline {
+                if await predicate() { return true }
+                await Task.yield()
             }
-            coordinator.workerForTesting = { work in await workerProbe.ranWorker(work.original) }
-            await workerProbe.enqueueWorkerReply("Shall I set it for 10 pm?")
-            let asked = await coordinator.handle("set an alarm for 10 pm tonight")
-            outputs.append(("worker-question:\(phrase)-ask", asked.reply))
-            if asked.reply != "I'm on it." {
-                failures.append("the alarm request did not route to work: " + bounded(asked.reply))
-            }
-            try? await Task.sleep(for: .milliseconds(150))
-            if coordinator.pendingAction?.origin != .workerQuestion {
-                failures.append("a worker's question was not kept as a pending action (\(phrase))")
-            }
-            let answered = await coordinator.handle(phrase)
-            outputs.append(("worker-question:\(phrase)-ack", answered.reply))
-            if answered.reply != "I'm on it." {
-                failures.append("\"\(phrase)\" was clarified instead of answering the worker: "
-                    + bounded(answered.reply))
-            }
-            try? await Task.sleep(for: .milliseconds(150))
-            if await workerProbe.workerPrompts.count != 2 {
-                failures.append("\"\(phrase)\" did not start a second worker turn "
-                    + "\(await workerProbe.workerPrompts.count)/2")
-            }
-            if !(await workerProbe.workerPrompts.last ?? "").contains("The user answered: \(phrase)") {
-                failures.append("\"\(phrase)\" did not reach the confirmed prompt: "
-                    + bounded(await workerProbe.workerPrompts.last ?? ""))
-            }
-            if coordinator.pendingAction != nil {
-                failures.append("the confirmed pending action was not cleared (\(phrase))")
-            }
+            return await predicate()
         }
+        func mountedQuestionInput(_ text: String) async -> AgentTurn {
+            RealtimeAgent.shared.userSpeechStarted(); RealtimeAgent.shared.userSpeechEnded()
+            return await RealtimeAgent.shared.handle(text, source: .voice)
+        }
+        do {
+            guard SelfTest.requested == "--selftest-voice-turn-routing", AgentSession.shared.fileURL == nil,
+                  !capture.isSessionActive, PermissionGate.shared.pending == nil,
+                  questionRoot.standardizedFileURL.path == questionRoot.resolvingSymlinksInPath().standardizedFileURL.path,
+                  questionRoot.deletingLastPathComponent().path == temp.path,
+                  !FileManager.default.fileExists(atPath: questionRoot.path) else { throw QuestionRoutingFixtureError.unsafe }
+            try FileManager.default.createDirectory(at: questionRoot, withIntermediateDirectories: false)
+            questionRootCreated = true
+            for phrase in ["okay", "yes please", "yeah sure", "go for it", "sure go ahead", "yes do it"] {
+                coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
+                AgentSession.shared.forgetAllConversations()
+                let directory = questionRoot.appendingPathComponent(UUID().uuidString, isDirectory: true)
+                try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
+                let sql = TaskStore(root: directory); defer { sql.close() }
+                let store = AgentTaskStore(fileURL: directory.appendingPathComponent("agent-tasks.json"), mirror: sql)
+                guard store.allowsHarnessPersistence, store.save([]).primaryCommitted else { throw QuestionRoutingFixtureError.unsafe }
+                let manager = AgentTaskManager(store: store)
+                let bridge = TaskBridge(manager: manager)
+                guard coordinator.installTaskBridgeForTesting(bridge) else { throw QuestionRoutingFixtureError.unsafe }
+                questionBridgeMounted = true
+                await capture.beginSession(captureAudio: false)
+                guard let session = capture.sessionID else { throw QuestionRoutingFixtureError.owner }
+                ownsQuestionSession = true
+                let workerProbe = TurnRoutingProbe(); questionProbe = workerProbe
+                coordinator.streamForTesting = { system, messages in
+                    await workerProbe.stream(system: system, messages: messages)
+                }
+                coordinator.rememberExplicit = { _ in }
+                coordinator.prewarmObserverForTesting = {}
+                coordinator.workerForTesting = { work in await workerProbe.ranWorker(work.prompt) }
+                await workerProbe.enqueueWorkerReply("Shall I set it for 10 pm?")
+                await workerProbe.parkNextWorker()
+                let asked = await mountedQuestionInput("set an alarm for 10 pm tonight")
+                questionTask = currentCapture()?.task
+                outputs.append(("worker-question:\(phrase)-ask", asked.reply))
+                if asked.reply != "I'm on it." {
+                    failures.append("the alarm request did not route to work: " + bounded(asked.reply))
+                }
+                guard await questionReached({ await workerProbe.workerIsHeld }),
+                      let first = currentCapture(), let firstTask = first.task else { throw QuestionRoutingFixtureError.owner }
+                questionTask = firstTask
+                await workerProbe.releaseWorker(); await firstTask.value; questionTask = nil
+                if coordinator.pendingAction?.origin != .workerQuestion {
+                    failures.append("a worker's question was not kept as a pending action (\(phrase))")
+                }
+                let before = try sql.load()
+                let request = bridge.voiceInputRequest(TaskID(first.id))
+                if before.count != 1 || before.first?.id != first.id.uuidString
+                    || before.first?.status != .waitingForInput || request?.question != "Shall I set it for 10 pm?"
+                    || request?.taskID != first.id.uuidString {
+                    failures.append("worker question was not retained on the exact same primary job (\(phrase))")
+                }
+                if case .voice(let owned, _)? = before.first?.origin {
+                    if owned != session { failures.append("worker question current capture origin changed (\(phrase))") }
+                } else { failures.append("worker question has no positive current capture origin (\(phrase))") }
+                await workerProbe.parkNextWorker()
+                let answered = await mountedQuestionInput(phrase)
+                let resumedCapture = coordinator.captureVoiceWorkerForTesting(id: first.id)
+                questionTask = resumedCapture?.task
+                outputs.append(("worker-question:\(phrase)-ack", answered.reply))
+                if answered.reply != "Got it. I'll continue that task." {
+                    failures.append("\"\(phrase)\" did not continue the exact waiting worker: " + bounded(answered.reply))
+                }
+                guard await questionReached({ await workerProbe.workerIsHeld }),
+                      let resumedTask = questionTask else { throw QuestionRoutingFixtureError.owner }
+                questionTask = resumedTask
+                let resumed = try sql.load()
+                if scopedVoiceRows().count != 1 || scopedVoiceRows().first?.id != first.id.uuidString
+                    || resumedCapture?.worker !== first.worker || resumedCapture?.work !== first.work
+                    || first.work.followUps != [phrase] || first.work.revision != 1
+                    || resumed.count != 1 || resumed.first?.id != first.id.uuidString
+                    || resumed.first?.status != .running || resumed.first?.pendingInteraction != nil
+                    || resumed.first?.userWords != phrase || resumed.first?.startedAt != before.first?.startedAt {
+                    failures.append("\"\(phrase)\" replaced the worker or failed primary-before-second-run continuation")
+                }
+                if await workerProbe.workerPrompts.count != 2 {
+                    failures.append("\"\(phrase)\" did not start a second worker turn \(await workerProbe.workerPrompts.count)/2")
+                }
+                let prompt = await workerProbe.workerPrompts.last ?? ""
+                if prompt != first.work.prompt || !prompt.contains("Original user request (retain unfinished parts):\nset an alarm for 10 pm tonight")
+                    || !prompt.contains("Subsequent user speech, in order:\n1. " + phrase) {
+                    failures.append("\"\(phrase)\" did not reach the actual same-work follow-up prompt")
+                }
+                if coordinator.pendingAction != nil {
+                    failures.append("the confirmed pending action was not cleared (\(phrase))")
+                }
+                await workerProbe.releaseWorker(); await resumedTask.value; questionTask = nil
+                let ended = try sql.load()
+                if ended.count != 1 || ended.first?.id != first.id.uuidString || ended.first?.status != .completed {
+                    failures.append("the exact answered job did not complete without a second primary row (\(phrase))")
+                }
+                print("VOICE_QUESTION_ROUTING_CASE phrase=\(phrase) primaryQuestion=\(request != nil) rows=\(ended.count) sameJob=\(scopedVoiceRows().count == 1 && scopedVoiceRows().first?.id == first.id.uuidString) workerRuns=\(await workerProbe.workerPrompts.count)")
+                await capture.endSession(source: .done); ownsQuestionSession = false
+                coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id)); questionProbe = nil
+            }
+        } catch {
+            failures.append("worker question: INVALID actual mounted continuation \(error)")
+            await questionProbe?.releaseWorker()
+            if questionBridgeMounted {
+                for row in scopedVoiceRows() { if let id = UUID(uuidString: row.id) { _ = coordinator.cancel(id) } }
+            }
+            if let questionTask { await questionTask.value }
+            if ownsQuestionSession { await capture.endSession(source: .done) }
+        }
+        if questionBridgeMounted {
+            coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
+            _ = coordinator.installTaskBridgeForTesting(priorBridge)
+            coordinator.rememberExplicit = oldRemember
+        }
+        if questionRootCreated { try? FileManager.default.removeItem(at: questionRoot) }
         // With nothing pending, "okay" is still the exact known-noise fragment it always
         // was: the clarifier once, and the model on the repeat.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let noiseProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
@@ -1227,7 +1366,7 @@ enum VoiceCapabilityConversationSelfTest {
         // of a tool, and the mail class *is* ready on this Mac. Speaking it is the correct
         // answer; a correction would be a lie told to fix a policy. The trailing question
         // is what keeps the offer pending, which is the same rule a real answer follows.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let honestProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
@@ -1316,7 +1455,7 @@ enum VoiceCapabilityConversationSelfTest {
             failures.append("a missing helper CLI still claimed workspace tools silently")
         }
         // A coordinator failure reply passes through the same renderer.
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         AgentSession.shared.forgetAllConversations()
         let failureProbe = TurnRoutingProbe()
         coordinator.streamForTesting = { system, messages in
@@ -1347,7 +1486,7 @@ enum VoiceCapabilityConversationSelfTest {
         }
         let okay = failures.isEmpty && !SelfTest.failed
         print(okay ? "VOICE_TURN_ROUTING_OK" : "VOICE_TURN_ROUTING_FAILED")
-        coordinator.resetForTesting()
+        coordinator.resetForTesting(); precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         return okay
     }
 }
@@ -1463,6 +1602,11 @@ private actor TurnRoutingProbe {
     private var queued: [String] = []
     private var workerReplies: [String] = []
     private var throwNext = false
+    private var holdNextWorker = false
+    private var workerContinuation: CheckedContinuation<Void, Never>?
+    var workerIsHeld: Bool { workerContinuation != nil }
+    func parkNextWorker() { holdNextWorker = true }
+    func releaseWorker() { let held = workerContinuation; workerContinuation = nil; held?.resume() }
 
     func enqueueAnswer(_ body: String) { queued.append(body) }
     func enqueueThrow() { throwNext = true }
@@ -1486,8 +1630,12 @@ private actor TurnRoutingProbe {
         }
     }
 
-    func ranWorker(_ original: String) -> String {
+    func ranWorker(_ original: String) async -> String {
         workerPrompts.append(original)
+        if holdNextWorker {
+            holdNextWorker = false
+            await withCheckedContinuation { workerContinuation = $0 }
+        }
         return workerReplies.isEmpty
             ? "test worker; no external effect"
             : workerReplies.removeFirst()
@@ -1497,3 +1645,5 @@ private actor TurnRoutingProbe {
         case generation
     }
 }
+
+private enum QuestionRoutingFixtureError: Error { case unsafe, owner }

@@ -80,7 +80,8 @@ final class SystemAudioCapture: @unchecked Sendable {
     /// is set by a test and cleared after; production reads nil and takes the
     /// Core Audio path.
     nonisolated(unsafe) static var startCallOverrideForTesting:
-        (@Sendable (AVAudioFormat, @Sendable (AudioChunk) -> Void, @Sendable (Float) -> Void) async throws -> Void)?
+        (@Sendable (AVAudioFormat, @escaping @Sendable (AudioChunk) -> Void,
+                    @escaping @Sendable (Float) -> Void) async throws -> Void)?
 
     private func withStateLock<T>(_ body: () -> T) -> T {
         stateLock.lock()

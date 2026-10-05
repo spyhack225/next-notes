@@ -86,8 +86,8 @@ enum VoicePlaybackResumeReceiptSelfTest {
             }
             audio.beginSpokenReply(OutputScheduler.tokenForTesting())
             speech.utteranceVolume = 0
-            audio.appendSpokenReply(clause)
-            audio.finalizeSpokenReply()
+            audio.appendSpokenReply(OutputScheduler.currentTokenForTesting(), clause)
+            audio.finalizeSpokenReply(OutputScheduler.currentTokenForTesting())
             let output = shadow.state.output?.id
             let token = speech.currentPlaybackToken
             let generation = speech.outputGeneration

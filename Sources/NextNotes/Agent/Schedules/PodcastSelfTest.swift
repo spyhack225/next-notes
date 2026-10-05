@@ -574,9 +574,9 @@ enum PodcastSelfTest {
         var finished: [(String, AgentTaskStatus, String?)] = []
         var audits: [UUID] = []
 
-        func begin(_ task: AgentTask) {
+        func begin(_ task: AgentTask) -> Bool {
             begun.append(task)
-            AgentTaskManager.shared.beginScheduledRun(task)
+            return AgentTaskManager.shared.beginScheduledRun(task)
         }
 
         func finish(taskID: String, status: AgentTaskStatus, result: String?, failure: String?) {

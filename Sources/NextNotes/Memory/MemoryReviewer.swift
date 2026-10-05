@@ -316,6 +316,7 @@ struct MemoryReviewJob: Identifiable, Sendable {
 /// self-test, so the review is measured without a model.
 protocol MemoryReviewModel: Sendable {
     var label: String { get }
+    @MainActor var contextTokens: Int { get }
     func complete(system: String, user: String) async throws -> String
     /// The recorder this pass writes, when the model is provider-backed (P0-20a). A
     /// scripted model has no provider, so it writes nothing.
@@ -323,11 +324,16 @@ protocol MemoryReviewModel: Sendable {
 }
 
 extension MemoryReviewModel {
+    var contextTokens: Int { 8_192 }
     func usageRecorder() -> ModelPassRecorder? { nil }
 }
 
 struct ProviderMemoryReviewModel: MemoryReviewModel {
     let provider: any LLMProvider
+    /// Captured at this model's existing async resolution; nil preserves callers
+    /// that have only the provider's advertised metadata.
+    var resolvedContextTokens: Int? = nil
+    var contextTokens: Int { resolvedContextTokens ?? provider.contextTokens }
     var maxTokens = 512
     /// Which usage feature this pass belongs to. A routine overrides it to `.agentRoutine`;
     /// the memory review keeps the default.

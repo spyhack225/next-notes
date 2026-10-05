@@ -105,7 +105,14 @@ enum RealtimeAgentLocalModelSelfTest {
         // typed provider tests above, this runs the real coordinator speech bridge.
         agent.localModelProviderForTesting = nil
         let conversation = VoiceConversationCoordinator.shared
+        let bridge = conversation.taskBridge
+        var priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
+        func rows() -> [AgentTask] {
+            bridge.cachedTasks.filter { !priorTaskIDs.contains($0.id) && $0.source == "voice" }
+                .sorted { $0.createdAt < $1.createdAt }
+        }
         conversation.resetForTesting()
+        priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
         defer { conversation.resetForTesting() }
         let voiceState = LocalAnswerTestState()
         conversation.streamForTesting = { _, messages in
@@ -131,7 +138,7 @@ enum RealtimeAgentLocalModelSelfTest {
         try? await Task.sleep(for: .milliseconds(100))
         check("voice frontend did not speak its first clause during generation", recorder.spoken == ["The first answer."])
         check("voice frontend completed before first clause", !(await voiceState.completed))
-        check("voice explicit prefix created an unexpected planner job", conversation.jobs.isEmpty)
+        check("voice explicit prefix created an unexpected planner job", rows().isEmpty)
         check("voice explicit prefix never reached frontend", (await voiceState.lastPrompt).contains("ask the local model explain the test"))
         agent.userSpeechStarted()
         _ = await spokenTurn.value
@@ -139,11 +146,13 @@ enum RealtimeAgentLocalModelSelfTest {
         agent.discardVoiceInput()
         await AgentCaptureController.shared.endSession(source: .done)
         conversation.resetForTesting()
+        priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
 
         // Unsafe answers must remain visible and silent on the real voice path,
         // independently of typed turns being silent by construction.
         for unsafe in ["https://example.com/private", "```swift\nlet answer = 1\n```"] {
             conversation.resetForTesting()
+            priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
             conversation.streamForTesting = { _, _ in
                 AsyncThrowingStream { $0.yield("<answer/>" + unsafe); $0.finish() }
             }
@@ -153,10 +162,11 @@ enum RealtimeAgentLocalModelSelfTest {
             let kind = unsafe.hasPrefix("http") ? "URL" : "code"
             check("unsafe voice \(kind) reached the speaker", recorder.spoken.isEmpty)
             check("unsafe voice \(kind) lost its visible answer", answer.reply.contains(unsafe))
-            check("unsafe voice answer created work", conversation.jobs.isEmpty)
+            check("unsafe voice answer created work", rows().isEmpty)
             await AgentCaptureController.shared.endSession(source: .done)
         }
         conversation.resetForTesting()
+        priorTaskIDs = Set(bridge.cachedTasks.map(\.id))
 
         let recognized = AgentTurnIntent.resolve(
             "ask the local model what is two plus two?",

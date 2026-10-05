@@ -52,7 +52,7 @@ final class UsageLog: @unchecked Sendable {
         self.maxBytes = max(1, maxBytes)
         self.maxAgeDays = max(1, maxAgeDays)
         self.now = now
-        try? FileManager.default.createDirectory(at: inputRoot, withIntermediateDirectories: true)
+        try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         // Age compaction is the only rewrite this store ever performs, and it happens once,
         // off the main actor, on the rotated file only.
         queue.async { [weak self] in self?.compactLocked() }

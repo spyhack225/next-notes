@@ -16,6 +16,8 @@ struct AgentWorkingCard: View {
     let task: AgentTask
     let stop: () -> Void
     var animatesActivity = true
+    /// Parent-owned manager; explicit injection keeps the fixture off owner history.
+    var taskManager: AgentTaskManager? = nil
 
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var store = AgentActivityStore.shared
@@ -47,8 +49,20 @@ struct AgentWorkingCard: View {
         Self.currentStep(taskID: task.id, in: store)
     }
 
+    private var typedControl: TaskControlObservation {
+        guard let taskManager, let id = UUID(uuidString: task.id) else { return .unobserved }
+        return taskManager.typedControlObservation(id: id)
+    }
+
     private var isRunning: Bool {
-        task.status == .running || task.status == .queued || task.status == .waitingForPermission
+        typedControl == .cancelled || task.status == .running || task.status == .queued || task.status == .waitingForPermission
+    }
+
+    /// The existing card's exact status operand, shared with its confined fixture.
+    static func statusLabel(task: AgentTask, isRunning: Bool, paused: Bool,
+                            control: TaskControlObservation = .unobserved) -> String {
+        if control == .cancelled { return "Stopping · " + task.objective }
+        return isRunning ? "\(paused ? "Paused" : "Working") · \(task.objective)" : task.status.humanState
     }
 
     /// A persisted task may name a direct tool, or a multi-step backend with no single
@@ -122,7 +136,8 @@ struct AgentWorkingCard: View {
                     .fill(DS.Color.textSecondary)
                     .frame(width: DS.Size.orbBadge * 0.35, height: DS.Size.orbBadge * 0.35)
             }
-            Text(isRunning ? "\(currentPreview?.isYielded == true ? "Paused" : "Working") · \(task.objective)" : task.status.humanState)
+            Text(Self.statusLabel(task: task, isRunning: isRunning,
+                paused: currentPreview?.isYielded == true, control: typedControl))
                 .font(DS.Font.headline)
                 .lineLimit(1)
             Spacer(minLength: 0)
@@ -136,6 +151,7 @@ struct AgentWorkingCard: View {
             if isRunning {
                 Button("Stop", action: stop)
                     .controlSize(.small)
+                    .disabled(typedControl == .cancelled)
             }
         }
     }

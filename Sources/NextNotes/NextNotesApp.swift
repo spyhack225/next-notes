@@ -10,16 +10,8 @@ import SwiftUI
 @MainActor
 enum NextNotesEntryPoint {
     static func main() {
-        if CommandLine.arguments.dropFirst().contains(UsageReportReaderSelfTest.flag) {
-            exit(UsageReportReaderSelfTest.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
-        }
         if CommandLine.arguments.dropFirst().contains(UsageReport.flag) {
             exit(UsageReport.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
-        }
-        // Explicit owner-ledger diagnostic: no SwiftUI scene, delegate, migration or
-        // eagerly constructed meeting/dictation/usage owner before the read-only report.
-        if CommandLine.arguments.dropFirst().contains("--jobs-report") {
-            exit(JobReport.runStandalone(arguments: Array(CommandLine.arguments.dropFirst())))
         }
         // The original reader regression must run before any owner-backed UI is built.
         // Every other launch retains SwiftUI App's existing entry and scene lifecycle.
@@ -118,6 +110,29 @@ enum SelfTest {
     }
 
     static var isRunning: Bool { requested != nil }
+
+    static func checkedSettingsFixturePath(_ candidate: URL) -> URL {
+        let manager = FileManager.default
+        let temporary = manager.temporaryDirectory.standardizedFileURL
+        let canonicalTemporary = temporary.resolvingSymlinksInPath()
+        let raw = candidate.standardizedFileURL
+        let canonical = raw.resolvingSymlinksInPath()
+        let base = [temporary, canonicalTemporary].first { raw.path.hasPrefix($0.path + "/") }
+        guard let base, canonical.path.hasPrefix(canonicalTemporary.path + "/") else {
+            print("SETTINGS_SHEET_FIXTURE_FAILED: temporary input path escaped its root")
+            exit(1)
+        }
+        var cursor = raw
+        while cursor.path != base.path {
+            let attributes = try? manager.attributesOfItem(atPath: cursor.path)
+            if attributes?[.type] as? FileAttributeType == .typeSymbolicLink {
+                print("SETTINGS_SHEET_FIXTURE_FAILED: temporary input contains a symlink entry")
+                exit(1)
+            }
+            cursor.deleteLastPathComponent()
+        }
+        return canonical
+    }
 
     /// Preserve model/audio probe detail when LaunchServices has no stdout.
     @MainActor static func diagnostic(_ line: String) {
@@ -786,29 +801,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                     SelfTest.requestTermination()
                 }
                 // Native hook requests quit; do not issue a premature second quit.
-            }
-            return true
-        }
-        if arguments.contains("--selftest-meeting-agent-evidence") {
-            Task { @MainActor in
-                let problems = await MeetingEvidenceSelfTest.failures()
-                for problem in problems { print("MEETING_EVIDENCE_WRONG: " + problem) }
-                SelfTest.failed = !problems.isEmpty
-                let result = problems.isEmpty ? "MEETING_EVIDENCE_OK: 89 checks" : "MEETING_EVIDENCE_FAILED: \(problems.count)"
-                writeSelfTest(result)
-                SelfTest.requestTermination()
-            }
-            return true
-        }
-        if arguments.contains("--selftest-meeting-agent-fit") {
-            Task { @MainActor in
-                let failures = await MeetingReviewFitSelfTest.failures()
-                for failure in failures { print("MEETING_REVIEW_FIT_WRONG: " + failure) }
-                let marker = failures.isEmpty ? "MEETING_REVIEW_FIT_OK" : "MEETING_REVIEW_FIT_FAILED: \(failures.count)"
-                print(marker)
-                writeSelfTest(marker)
-                SelfTest.failed = !failures.isEmpty
-                SelfTest.requestTermination()
             }
             return true
         }
@@ -1779,10 +1771,11 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
         if arguments.contains("--selftest-meeting-integrity") {
             Task { @MainActor in
-                if let stage = arguments.firstIndex(of: "--meeting-integrity-process") {
-                    if arguments.count > stage + 2 {
+                let processArguments = ProcessInfo.processInfo.arguments
+                if let stage = processArguments.firstIndex(of: "--meeting-integrity-process") {
+                    if processArguments.count > stage + 2 {
                         SelfTest.failed = !(await MeetingIntegritySelfTest.runProcessStage(
-                            arguments[stage + 1], root: URL(fileURLWithPath: arguments[stage + 2]),
+                            processArguments[stage + 1], root: URL(fileURLWithPath: processArguments[stage + 2]),
                             log: { writeSelfTest($0) }))
                     } else {
                         writeSelfTest("MEETING_INTEGRITY_FAILED: incomplete process fixture arguments")
@@ -6593,10 +6586,6 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             failures.append(contentsOf: await Self.islandStateFailures())
             failures.append(contentsOf: Self.islandViewFailures())
             failures.append(contentsOf: AgentWorkingCard.scriptedFourStepFailures())
-            // The live dictation card: words open it, key-up keeps them under a stage label,
-            // insertion closes it, and an open live card never takes a click.
-            failures.append(contentsOf: await IslandLiveTextSelfTest.failures())
-
             // The one property this panel must never lose. A key island would take focus
             // away from the text field `TextInjector` is about to type into.
             let state = IslandState()

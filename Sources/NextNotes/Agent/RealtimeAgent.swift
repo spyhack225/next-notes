@@ -356,8 +356,7 @@ final class RealtimeAgent {
         let owner = currentGeneration
         let readerWindow = await AgentAnswerBudget.readerContextTokens(for: provider)
         let asker = KnowledgeAsker(context: context,
-            model: ProviderKnowledgeAnswerModel(provider: provider, contextTokens: readerWindow),
-            contextTokens: readerWindow)
+            model: ProviderKnowledgeAnswerModel(provider: provider, contextTokens: readerWindow))
         do {
             let answer = try await KnowledgeGraphScope.$reader.withValue(provider.id) {
                 try await ModelPassRecorder.$correlation.withValue(
