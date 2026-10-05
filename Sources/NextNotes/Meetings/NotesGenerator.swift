@@ -50,6 +50,12 @@ struct NotesGenerator: Sendable {
     /// prompt overhead (M-12): the single-pass decision's reserve, and the floor the
     /// answer keeps.
     private static let reservedTokens = 1_536
+    /// The same file keeps its full visible budget; hidden thinking gets separate room.
+    private var thinkingAllowance: Int {
+        provider.id == .appLLM && provider.displayModelName.localizedCaseInsensitiveContains("MiniCPM5")
+            ? LocalThinkingRole.notes.tokenLimit : 0
+    }
+
     /// Slack over the counted system prompt and header (M-12): the chat template and
     /// the scaffolding between the counted strings. An estimate.
     private static let templateSlackTokens = 64
@@ -129,7 +135,7 @@ struct NotesGenerator: Sendable {
         let overhead = try await countedOverhead(
             system: NotesPrompts.notesSystem,
             user: NotesPrompts.notesUser(meeting: meeting, transcript: ""))
-        let budget = provider.contextTokens - Self.reservedTokens
+        let budget = provider.contextTokens - Self.reservedTokens - thinkingAllowance
         guard budget > 0 else { throw NotesError.contextTooSmall }
 
         if transcriptTokens + briefTokens + overhead <= budget {
@@ -284,7 +290,7 @@ struct NotesGenerator: Sendable {
         // The chunk size derived from the reader's window (M-12), scaled by the
         // caller's factor on a retry.
         let chunkSize = Self.chunkSize(
-            contextTokens: provider.contextTokens,
+            contextTokens: provider.contextTokens - thinkingAllowance,
             mapOverheadTokens: try await countedOverhead(
                 system: NotesPrompts.mapSystem,
                 user: NotesPrompts.mapUser(meeting: meeting, part: 1, of: 1, transcript: "")))
@@ -530,7 +536,9 @@ struct NotesGenerator: Sendable {
         if !counts.isEmpty { recorder.noteCounts(counts) }
         do {
             let completion = try await ModelPassRecorder.$current.withValue(recorder) {
-                try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+                try await LocalThinkingRole.$current.withValue(.notes) {
+                    try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+                }
             }
             recorder.report(
                 promptTokens: nil,
@@ -598,6 +606,7 @@ struct NotesGenerator: Sendable {
             - promptTokens
             - overhead
             - Self.runtimeHeadroomTokens
+            - thinkingAllowance
         return max(Self.minNotesTokens, min(cap, remaining))
     }
 

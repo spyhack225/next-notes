@@ -813,7 +813,8 @@ actor NotesModelRuntime {
     func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar?) async throws -> LLMCompletion {
         try await withBackgroundLane { jobID in
             try await completeWhileScheduled(
-                jobID: jobID, system: system, user: user, maxTokens: maxTokens, grammar: grammar)
+                jobID: jobID, system: system, user: user, maxTokens: maxTokens, grammar: grammar,
+                thinking: LocalThinkingRole.current ?? .off)
         }
     }
 
@@ -831,8 +832,7 @@ actor NotesModelRuntime {
         streamPrompt(
             system: system,
             messages: [.init(role: .user, content: user)],
-            maxTokens: maxTokens,
-            renderSpecial: true
+            maxTokens: maxTokens
         )
     }
 
@@ -846,7 +846,6 @@ actor NotesModelRuntime {
             system: system,
             messages: messages,
             maxTokens: maxTokens,
-            renderSpecial: true,
             grammar: grammar
         )
     }
@@ -862,7 +861,7 @@ actor NotesModelRuntime {
             messages: messages,
             maxTokens: maxTokens,
             workClass: .realtimeAgent,
-            renderSpecial: true,
+            thinking: .off,
             grammar: grammar
         )
     }
@@ -872,10 +871,11 @@ actor NotesModelRuntime {
         messages: [LLMChatMessage],
         maxTokens: Int,
         workClass: WorkClass = .background,
-        renderSpecial: Bool = false,
+        thinking: LocalThinkingRole = .agent,
         grammar: GBNFGrammar? = nil
     ) -> AsyncThrowingStream<String, Error> {
-        AsyncThrowingStream { continuation in
+        let role = LocalThinkingRole.current ?? thinking
+        return AsyncThrowingStream { continuation in
             let task = Task {
                 do {
                     try await self.withLane(workClass) { jobID in
@@ -884,7 +884,7 @@ actor NotesModelRuntime {
                             system: system,
                             messages: messages,
                             maxTokens: maxTokens,
-                            renderSpecial: renderSpecial,
+                            thinking: role,
                             grammar: grammar,
                             yield: { piece in continuation.yield(piece) }
                         )
@@ -984,7 +984,8 @@ actor NotesModelRuntime {
         system: String,
         user: String,
         maxTokens: Int,
-        grammar: GBNFGrammar? = nil
+        grammar: GBNFGrammar? = nil,
+        thinking: LocalThinkingRole = .off
     ) async throws -> LLMCompletion {
         let wasLoaded = model != nil && vocabulary != nil
         let loadBegan = ContinuousClock.now
@@ -1002,35 +1003,49 @@ actor NotesModelRuntime {
         let prompt = Self.render(
             forFamily: family,
             system: system,
-            messages: [.init(role: .user, content: user)])
+            messages: [.init(role: .user, content: user)], thinking: thinking)
+        let thinkingLimit = family == .minicpm5 ? thinking.tokenLimit : 0
+        let generationBudget = maxTokens + thinkingLimit
         let promptTokens = try tokenizePrompt(prompt, vocabulary: vocabulary)
-        guard promptTokens.count + maxTokens + Self.contextHeadroom <= contextTokens else {
+        guard promptTokens.count + generationBudget + Self.contextHeadroom <= contextTokens else {
             throw LlamaError.inputTooLong
         }
 
-        let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
+        let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: generationBudget)
         // Built before the prefill, so a grammar the native parser refuses costs nothing.
-        guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: grammar) else {
+        guard let answerSampler = try makeSampler(
+            vocabulary: vocabulary, grammar: grammar, thinking: thinking) else {
             throw LlamaError.samplerFailed
         }
-        defer { llama_sampler_free(sampler) }
+        defer { llama_sampler_free(answerSampler) }
+        let reasoningSampler = thinkingLimit > 0
+            ? try makeSampler(vocabulary: vocabulary, grammar: nil, thinking: thinking, allowThinking: true)
+            : nil
+        if thinkingLimit > 0, reasoningSampler == nil { throw LlamaError.samplerFailed }
+        defer { if let reasoningSampler { llama_sampler_free(reasoningSampler) } }
+        var visibleOutput = ChatTemplateOutput(family: family, thinkingLimit: thinkingLimit)
 
         _ = try await preparePrefix(promptTokens, context: context, jobID: jobID)
 
         let began = Date()
         var output = ""
         var generated = 0
+        let reused = lastPrefillStats?.reused
+        // Count hidden tokens even if cancellation or decode failure ends this pass.
+        // Only numbers enter the existing usage row.
+        defer {
+            ModelPassRecorder.current?.report(
+                promptTokens: promptTokens.count, cachedTokens: reused,
+                completionTokens: generated, reasoningTokens: visibleOutput.reasoningTokens,
+                finishReason: nil, estimated: false)
+        }
         var position = llama_pos(promptTokens.count)
-        // The family's own turn boundary, not ChatML's: some GGUF conversions emit the
-        // terminator as text rather than as an end-of-generation token, and without this
-        // the model keeps writing a second turn.
-        let turnEnd = ChatTemplate.stopMarker(family)
 
         var batch = llama_batch_init(1, 0, 1)
         defer { llama_batch_free(batch) }
 
         do {
-            while generated < maxTokens {
+            while visibleOutput.visibleTokens < maxTokens && generated < generationBudget {
                 // Cancellation matters here in a way it doesn't for dictation cleanup: this loop
                 // can run for minutes, and a user who deleted the meeting shouldn't have to wait
                 // for the notes to finish being written for it.
@@ -1040,14 +1055,13 @@ actor NotesModelRuntime {
                 try checkTerminationAdmission()
 
 
+                let sampler = visibleOutput.isThinking ? (reasoningSampler ?? answerSampler) : answerSampler
                 let token = llama_sampler_sample(sampler, context, -1)
                 if llama_vocab_is_eog(vocabulary, token) { break }
-                output += LlamaHelpers.piece(token, vocabulary: vocabulary)
+                output += visibleOutput.consume(Self.completionPiece(
+                    token, vocabulary: vocabulary, family: family, thinking: thinking))
                 generated += 1
-                if !turnEnd.isEmpty, output.hasSuffix(turnEnd) {
-                    output.removeLast(turnEnd.count)
-                    break
-                }
+                if visibleOutput.stopped { break }
 
                 batch.n_tokens = 0
                 LlamaHelpers.add(token, position: position, logits: true, to: &batch)
@@ -1055,6 +1069,11 @@ actor NotesModelRuntime {
                 // P0-18: this token's KV entry is at `position`, so the ledger grows with it.
                 kvTokens.append(token)
                 position += 1
+                if family == .minicpm5, visibleOutput.needsThinkingClosure {
+                    try decodeThinkingClosure(
+                        vocabulary: vocabulary, context: context, batch: &batch, position: &position)
+                    visibleOutput.closeThinking()
+                }
             }
         } catch {
             // A failed decode or a cancellation mid-generation leaves the native context in
@@ -1064,21 +1083,7 @@ actor NotesModelRuntime {
             throw error
         }
 
-        // Control markers never reach the notes text: MiniCPM5's `<function …>` and every
-        // family's turn markers are vocabulary tokens, not words anyone wrote.
-        var text = output.trimmingCharacters(in: .whitespacesAndNewlines)
-        for marker in ChatTemplate.controlMarkers(family) {
-            text = text.replacingOccurrences(of: marker, with: "")
-        }
-        // P0-20a: exact counts from the in-process tokenizer, after the pass, never
-        // blocking the stream.
-        ModelPassRecorder.current?.report(
-            promptTokens: promptTokens.count,
-            cachedTokens: lastPrefillStats?.reused,
-            completionTokens: generated,
-            reasoningTokens: nil,
-            finishReason: nil,
-            estimated: false)
+        let text = (output + visibleOutput.finish()).trimmingCharacters(in: .whitespacesAndNewlines)
         return LLMCompletion(
             text: text,
             generatedTokens: generated,
@@ -1087,7 +1092,8 @@ actor NotesModelRuntime {
             // token, the family's turn marker, or the allowance running out — and the
             // third is the one a caller cannot see in the text. A model that happened to
             // stop at exactly maxTokens is counted as cut, which costs one retry.
-            finishedByLimit: generated >= maxTokens
+            finishedByLimit: !visibleOutput.stopped
+                && (visibleOutput.visibleTokens >= maxTokens || generated >= generationBudget)
         )
     }
 
@@ -1098,7 +1104,7 @@ actor NotesModelRuntime {
         system: String,
         messages: [LLMChatMessage],
         maxTokens: Int,
-        renderSpecial: Bool = false,
+        thinking: LocalThinkingRole = .off,
         grammar: GBNFGrammar? = nil,
         yield: @escaping @Sendable (String) -> Void
     ) async throws {
@@ -1115,23 +1121,32 @@ actor NotesModelRuntime {
 
         // Rendered here, after the load: the family is only known once the file is open,
         // and a prompt rendered before that would use the wrong template on a cold start.
-        let prompt = Self.render(forFamily: family, system: system, messages: messages)
+        let prompt = Self.render(forFamily: family, system: system, messages: messages, thinking: thinking)
+        let thinkingLimit = family == .minicpm5 ? thinking.tokenLimit : 0
+        let generationBudget = maxTokens + thinkingLimit
         let promptTokens = try tokenizePrompt(prompt, vocabulary: vocabulary)
-        guard promptTokens.count + maxTokens + Self.contextHeadroom <= contextTokens else {
+        guard promptTokens.count + generationBudget + Self.contextHeadroom <= contextTokens else {
             throw LlamaError.inputTooLong
         }
 
         // Built before the prefill, so a grammar the native parser refuses costs nothing —
         // the same rule `completeWhileScheduled` follows, and the reason it matters more here:
         // this path is the one a user's turn waits on.
-        guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: grammar) else {
+        guard let answerSampler = try makeSampler(
+            vocabulary: vocabulary, grammar: grammar, thinking: thinking) else {
             throw LlamaError.samplerFailed
         }
-        defer { llama_sampler_free(sampler) }
+        defer { llama_sampler_free(answerSampler) }
+        let reasoningSampler = thinkingLimit > 0
+            ? try makeSampler(vocabulary: vocabulary, grammar: nil, thinking: thinking, allowThinking: true)
+            : nil
+        if thinkingLimit > 0, reasoningSampler == nil { throw LlamaError.samplerFailed }
+        defer { if let reasoningSampler { llama_sampler_free(reasoningSampler) } }
+        var visibleOutput = ChatTemplateOutput(family: family, thinkingLimit: thinkingLimit)
 
         let contextTrace = LatencyTrace.start(.modelContext)
         let hadContext = context != nil
-        let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
+        let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: generationBudget)
         contextTrace.end(note: "app_llm had_context=\(hadContext) tokens=\(contextSize)")
         let prefillTrace = LatencyTrace.start(.modelPrefill)
         _ = try await preparePrefix(promptTokens, context: context, jobID: jobID)
@@ -1140,61 +1155,41 @@ actor NotesModelRuntime {
             note: "app_llm prompt_tokens=\(promptTokens.count) reused=\(reused) "
                 + "decoded=\(promptTokens.count - reused)")
 
-        var output = ""
-        var pending = ""
         var generated = 0
+        // Count hidden tokens even if cancellation or decode failure ends this pass.
+        // Only numbers enter the existing usage row.
+        defer {
+            ModelPassRecorder.current?.report(
+                promptTokens: promptTokens.count, cachedTokens: reused,
+                completionTokens: generated, reasoningTokens: visibleOutput.reasoningTokens,
+                finishReason: nil, estimated: false)
+        }
         var reportedFirstToken = false
         var position = llama_pos(promptTokens.count)
         var batch = llama_batch_init(1, 0, 1)
         defer { llama_batch_free(batch) }
-        // The family's own turn boundary, not ChatML's. With `renderSpecial` on, a control
-        // token that is not the vocabulary's EOG arrives as text and is held back here.
-        let turnEnd = ChatTemplate.stopMarker(family)
 
         do {
-            while generated < maxTokens {
+            while visibleOutput.visibleTokens < maxTokens && generated < generationBudget {
                 try Task.checkCancellation()
                 await ComputeScheduler.shared.checkpoint(jobID)
                 try checkTerminationAdmission()
 
+                let sampler = visibleOutput.isThinking ? (reasoningSampler ?? answerSampler) : answerSampler
                 let token = llama_sampler_sample(sampler, context, -1)
                 if llama_vocab_is_eog(vocabulary, token) { break }
-                var piece = LlamaHelpers.piece(
-                    token, vocabulary: vocabulary, renderSpecial: renderSpecial)
-                if renderSpecial {
-                    // A plain answer must not speak a family's turn or thinking markers. The
-                    // stop marker is excluded: the holdback below needs it to end the turn.
-                    for marker in ChatTemplate.controlMarkers(family) where marker != turnEnd {
-                        piece = piece.replacingOccurrences(of: marker, with: "")
+                let rawPiece = LlamaHelpers.piece(
+                    token, vocabulary: vocabulary, renderSpecial: true)
+                let piece = visibleOutput.consume(rawPiece)
+                if !piece.isEmpty {
+                    if !reportedFirstToken {
+                        reportedFirstToken = true
+                        firstTokenTrace.end(note: "app_llm")
                     }
+                    yield(piece)
                 }
-                if !reportedFirstToken {
-                    reportedFirstToken = true
-                    firstTokenTrace.end(note: "app_llm")
-                }
-                output += piece
                 generated += 1
-                pending += piece
-                // Hold a suffix that could still become the family's terminator. This avoids
-                // sending its fragments into the spoken-reply bridge.
-                let maxHeld = min(turnEnd.count, pending.count)
-                let held: Int
-                if maxHeld == 0 {
-                    held = 0
-                } else {
-                    held = (1...maxHeld).reversed().first {
-                        String(pending.suffix($0)) == String(turnEnd.prefix($0))
-                    } ?? 0
-                }
-                let safeCount = pending.count - held
-                if safeCount > 0 {
-                    yield(String(pending.prefix(safeCount)))
-                    pending.removeFirst(safeCount)
-                }
-                if !turnEnd.isEmpty, pending == turnEnd {
-                    pending = ""
-                    break
-                }
+                if visibleOutput.stopped { break }
 
                 batch.n_tokens = 0
                 LlamaHelpers.add(token, position: position, logits: true, to: &batch)
@@ -1202,6 +1197,11 @@ actor NotesModelRuntime {
                 // P0-18: this token's KV entry is at `position`, so the ledger grows with it.
                 kvTokens.append(token)
                 position += 1
+                if family == .minicpm5, visibleOutput.needsThinkingClosure {
+                    try decodeThinkingClosure(
+                        vocabulary: vocabulary, context: context, batch: &batch, position: &position)
+                    visibleOutput.closeThinking()
+                }
             }
         } catch {
             // A failed decode or a cancellation mid-generation leaves the native context in
@@ -1210,16 +1210,26 @@ actor NotesModelRuntime {
             kvTokens = []
             throw error
         }
-        if !pending.isEmpty, turnEnd.isEmpty || !pending.hasPrefix(turnEnd) { yield(pending) }
-        // P0-20a: exact prompt, reused-prefix and generated counts, measured after the
-        // stream ended so the pass is never held up by bookkeeping.
-        ModelPassRecorder.current?.report(
-            promptTokens: promptTokens.count,
-            cachedTokens: reused,
-            completionTokens: generated,
-            reasoningTokens: nil,
-            finishReason: nil,
-            estimated: false)
+        _ = visibleOutput.finish()
+
+    }
+
+    /// Force the end of thinking at its allowance, then sample with the answer grammar.
+    /// These tokens are context scaffolding, not visible or reasoning output. Every native
+    /// KV write extends the existing ledger; the enclosing loop clears both on failure.
+    private func decodeThinkingClosure(
+        vocabulary: OpaquePointer, context: OpaquePointer,
+        batch: inout llama_batch, position: inout llama_pos
+    ) throws {
+        let closing = try LlamaHelpers.tokenize(
+            "\n</think>\n\n", vocabulary: vocabulary, addSpecial: false)
+        for token in closing {
+            batch.n_tokens = 0
+            LlamaHelpers.add(token, position: position, logits: true, to: &batch)
+            guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
+            kvTokens.append(token)
+            position += 1
+        }
     }
 
     /// P0-20a: report whether this pass paid the model load, and how long it took. Shared
@@ -1850,14 +1860,28 @@ actor NotesModelRuntime {
     // MARK: - Prompt
 
     /// The prompt renderer the runtime's call sites use (P0-04). The family table lives in
-    /// `ChatTemplate`, one renderer per family, including the already-closed empty think
-    /// block a hybrid reasoning model needs to start answering immediately.
+    /// `ChatTemplate`, one renderer per family. Only MiniCPM work/notes opens thinking;
+    /// cleanup and conversational voice keep the closed empty block.
     static func render(
         forFamily family: ChatTemplateFamily,
         system: String,
-        messages: [LLMChatMessage]
+        messages: [LLMChatMessage],
+        thinking: LocalThinkingRole = .off
     ) -> String {
-        ChatTemplate.render(family, system: system, messages: messages)
+        ChatTemplate.render(family, system: system, messages: messages, thinking: thinking)
+    }
+
+    /// Keep thinking/turn markers available to the strip boundary. Agent work also
+    /// needs native tool delimiters; other completions retain their original handling
+    /// of special tokens, including cleanup and meeting notes.
+    static func completionPiece(
+        _ token: llama_token, vocabulary: OpaquePointer,
+        family: ChatTemplateFamily, thinking: LocalThinkingRole
+    ) -> String {
+        let raw = LlamaHelpers.piece(token, vocabulary: vocabulary, renderSpecial: true)
+        if case .agent = thinking { return raw }
+        if ChatTemplate.controlMarkers(family).contains(raw) { return raw }
+        return LlamaHelpers.piece(token, vocabulary: vocabulary, renderSpecial: false)
     }
 
     /// The planner decode path's piece renderer (P0-04). Control tokens — MiniCPM5's
@@ -1901,39 +1925,69 @@ actor NotesModelRuntime {
     /// and the samplers after it choose among what is left. The chain accepts each sampled
     /// token into the grammar's state, so no separate bookkeeping is needed here.
     private func makeSampler(
-        vocabulary: OpaquePointer, grammar: GBNFGrammar?
+        vocabulary: OpaquePointer, grammar: GBNFGrammar?,
+        thinking: LocalThinkingRole = .off, allowThinking: Bool = false
     ) throws -> UnsafeMutablePointer<llama_sampler>? {
         var parameters = llama_sampler_chain_default_params()
         parameters.no_perf = true
         guard let chain = llama_sampler_chain_init(parameters) else { return nil }
+        var ready = false
+        defer { if !ready { llama_sampler_free(chain) } }
         if let grammar {
             guard let constrained = llama_sampler_init_grammar(vocabulary, grammar.text, grammar.root) else {
-                llama_sampler_free(chain)
                 throw LlamaError.grammarInvalid
             }
             llama_sampler_chain_add(chain, constrained)
         }
+        // MiniCPM's opening tag is one vocabulary token. Once answering, it cannot
+        // reopen thinking and spend the visible allowance on another hidden block.
+        if family == .minicpm5, !allowThinking {
+            let opening = try LlamaHelpers.tokenize(
+                "<think>", vocabulary: vocabulary, addSpecial: false)
+            guard opening.count == 1 else {
+                throw LlamaError.decodeFailed
+            }
+            var bias = llama_logit_bias(token: opening[0], bias: -Float.infinity)
+            guard let mask = llama_sampler_init_logit_bias(llama_vocab_n_tokens(vocabulary), 1, &bias) else {
+                throw LlamaError.samplerFailed
+            }
+            llama_sampler_chain_add(chain, mask)
+        }
+        let profile = Self.samplerProfile(for: family, thinking: thinking)
         llama_sampler_chain_add(
             chain,
             llama_sampler_init_penalties(
                 llama_vocab_n_tokens(vocabulary),
                 Self.penaltyWindow,
-                Self.repeatPenalty,
+                profile.repeatPenalty,
                 0,
                 0
             )
         )
-        llama_sampler_chain_add(chain, llama_sampler_init_min_p(Self.minP, 1))
-        llama_sampler_chain_add(chain, llama_sampler_init_top_p(Self.topP, 1))
-        llama_sampler_chain_add(chain, llama_sampler_init_temp(Self.temperature))
+        llama_sampler_chain_add(chain, llama_sampler_init_min_p(profile.minP, 1))
+        llama_sampler_chain_add(chain, llama_sampler_init_top_p(profile.topP, 1))
+        llama_sampler_chain_add(chain, llama_sampler_init_temp(profile.temperature))
         llama_sampler_chain_add(chain, llama_sampler_init_dist(Self.seed))
+        ready = true
         return chain
     }
 
-    private static let temperature: Float = 0.6
-    private static let topP: Float = 0.9
-    private static let minP: Float = 0.05
-    private static let repeatPenalty: Float = 1.05
+    struct SamplerProfile: Equatable, Sendable {
+        let temperature: Float
+        let topP: Float
+        let minP: Float
+        let repeatPenalty: Float
+    }
+
+    static func samplerProfile(
+        for family: ChatTemplateFamily, thinking: LocalThinkingRole
+    ) -> SamplerProfile {
+        if family == .minicpm5, thinking.tokenLimit > 0 {
+            return SamplerProfile(temperature: 1, topP: 0.95, minP: 0, repeatPenalty: 1.05)
+        }
+        return SamplerProfile(temperature: 0.6, topP: 0.9, minP: 0.05, repeatPenalty: 1.05)
+    }
+
     private static let penaltyWindow: Int32 = 256
     private static let seed: UInt32 = 0x5EED
 

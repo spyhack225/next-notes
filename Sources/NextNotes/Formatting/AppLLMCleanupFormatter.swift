@@ -131,20 +131,22 @@ struct AppLLMCleanupFormatter: TextFormatter {
         target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
         context: ScreenContext = .empty
     ) async throws -> String {
-        let completion = try await NotesModelRuntime.shared.complete(
-            system: CleanupInstructions.system(
-                for: preferences,
-                fixesGrammar: fixesGrammar,
-                target: target,
-                context: context
-            ),
-            user: CleanupInstructions.user(text, fixesGrammar: fixesGrammar),
-            // Cleanup is never much longer than what was said. Budgeted from the input
-            // rather than fixed, so a five-word utterance can't spend a thousand tokens
-            // wandering — and clamped, because the guard's length rule would throw away
-            // anything that ran that far anyway.
-            maxTokens: maxTokens(for: text)
-        )
+        let completion = try await LocalThinkingRole.$current.withValue(.off) {
+            try await NotesModelRuntime.shared.complete(
+                system: CleanupInstructions.system(
+                    for: preferences,
+                    fixesGrammar: fixesGrammar,
+                    target: target,
+                    context: context
+                ),
+                user: CleanupInstructions.user(text, fixesGrammar: fixesGrammar),
+                // Cleanup is never much longer than what was said. Budgeted from the input
+                // rather than fixed, so a five-word utterance can't spend a thousand tokens
+                // wandering — and clamped, because the guard's length rule would throw away
+                // anything that ran that far anyway.
+                maxTokens: maxTokens(for: text)
+            )
+        }
         return completion.text.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

@@ -26,6 +26,8 @@ enum ChatTemplateSelfTest {
         failures += detectionFailures()
         failures += renderingFailures()
         failures += runtimeFamilyFailures()
+        failures += thinkingOutputFailures()
+        failures += thinkingPolicyFailures()
         let s1Mini = await s1MiniControlTokenFailures()
         failures += s1Mini
         let miniCPM5 = await miniCPM5Failures()
@@ -38,12 +40,131 @@ enum ChatTemplateSelfTest {
         for failure in failures { SelfTest.diagnostic("chat-template · \(failure)") }
         SelfTest.diagnostic(
             failures.isEmpty
-                ? "CHAT_TEMPLATE_OK: 6 families detected and rendered; control tokens survive planner decode"
+                ? "CHAT_TEMPLATE_OK: 6 families; thinking strip/caps, role profiles, prefixes and native control tokens"
                 : "CHAT_TEMPLATE_FAILED: \(failures.count) problem(s)")
         return failures.isEmpty
     }
 
     // MARK: - Detection
+
+    /// Original producer regression: stripping the tags left their contents visible, and
+    /// tags split across token pieces leaked. This is the same boundary used by the runtime.
+    private static func thinkingOutputFailures() -> [String] {
+        var failures: [String] = []
+        let hidden = "private reasoning"
+        let source = "<think>\(hidden)</think>Answer"
+        for split in 0...source.count {
+            var output = ChatTemplateOutput(family: .minicpm5, thinkingLimit: 0)
+            let text = output.consume(String(source.prefix(split)))
+                + output.consume(String(source.dropFirst(split))) + output.finish()
+            if text != "Answer" {
+                failures.append("thinking split \(split): emitted \(quoted(text)), expected “Answer”")
+            }
+        }
+        var capped = ChatTemplateOutput(family: .minicpm5, thinkingLimit: 2)
+        let first = capped.consume("private")
+        let second = capped.consume(" reasoning")
+        if !first.isEmpty || !second.isEmpty || !capped.needsThinkingClosure {
+            failures.append("thinking cap: emitted \(quoted(first + second)); closure=\(capped.needsThinkingClosure), expected empty and true")
+        }
+        capped.closeThinking()
+        let answer = capped.consume("Answer") + capped.finish()
+        if answer != "Answer" || capped.reasoningTokens != 2 || capped.visibleTokens != 1 {
+            failures.append("thinking spent the visible answer budget or its count was lost")
+        }
+        var early = ChatTemplateOutput(family: .minicpm5, thinkingLimit: 512)
+        if early.consume("private</think>Answer") + early.finish() != "Answer" {
+            failures.append("naturally closed thinking did not yield only the answer")
+        }
+        var unfinished = ChatTemplateOutput(family: .minicpm5, thinkingLimit: 0)
+        if unfinished.consume("<thi") + unfinished.finish() != "" {
+            failures.append("partial opening tag reached the consumer at end of stream")
+        }
+        var plain = ChatTemplateOutput(family: .minicpm5, thinkingLimit: 0)
+        if plain.consume("<function name=\"x\"><param name=\"k\">v</param></function>")
+            + plain.finish() != "<function name=\"x\"><param name=\"k\">v</param></function>" {
+            failures.append("thinking boundary destroyed native tool markup")
+        }
+        var incremental = ChatTemplateOutput(family: .minicpm5, thinkingLimit: 0)
+        var received = ""
+        for character in source {
+            let chunk = incremental.consume(String(character))
+            received += chunk
+            if !"Answer".hasPrefix(received) {
+                failures.append("a streaming callback received thinking or partial markup")
+                break
+            }
+        }
+        if received + incremental.finish() != "Answer" {
+            failures.append("character-by-character thinking stripping lost the answer")
+        }
+        for limit in [512, 1_024] {
+            var bounded = ChatTemplateOutput(family: .minicpm5, thinkingLimit: limit)
+            for index in 1...limit {
+                if !bounded.consume("private").isEmpty
+                    || bounded.needsThinkingClosure != (index == limit) {
+                    failures.append("hard thinking cap \(limit) closed at the wrong token")
+                    break
+                }
+            }
+            bounded.closeThinking()
+            for _ in 0..<7 { _ = bounded.consume("a") }
+            if bounded.reasoningTokens != limit || bounded.visibleTokens != 7 {
+                failures.append("cap \(limit) did not leave the whole visible budget")
+            }
+        }
+        let stoppedSource = "Answer<|im_end|>second turn"
+        for split in 0...stoppedSource.count {
+            var output = ChatTemplateOutput(family: .minicpm5, thinkingLimit: 0)
+            let text = output.consume(String(stoppedSource.prefix(split)))
+                + output.consume(String(stoppedSource.dropFirst(split))) + output.finish()
+            if text != "Answer" || !output.stopped {
+                failures.append("turn terminator split \(split) leaked to the consumer")
+            }
+        }
+        return failures
+    }
+
+    private static func thinkingPolicyFailures() -> [String] {
+        var failures: [String] = []
+        let standard = NotesModelRuntime.SamplerProfile(
+            temperature: 0.6, topP: 0.9, minP: 0.05, repeatPenalty: 1.05)
+        let vendor = NotesModelRuntime.SamplerProfile(
+            temperature: 1, topP: 0.95, minP: 0, repeatPenalty: 1.05)
+        let families: [ChatTemplateFamily] = [
+            .chatmlThinking, .chatml, .llama3, .gemma, .gemma4, .minicpm5,
+        ]
+        for family in families {
+            for role in [LocalThinkingRole.off, .agent, .notes] {
+                let enabled = family == .minicpm5 && role.tokenLimit > 0
+                let prompt = NotesModelRuntime.render(
+                    forFamily: family, system: "S", messages: probeMessages, thinking: role)
+                let off = NotesModelRuntime.render(
+                    forFamily: family, system: "S", messages: probeMessages)
+                if enabled {
+                    if !prompt.hasSuffix("<|im_start|>assistant\n<think>\n") {
+                        failures.append("MiniCPM work/notes prompt did not open thinking")
+                    }
+                } else if prompt != off {
+                    failures.append("thinking policy changed an off or non-MiniCPM prompt")
+                }
+                if !prompt.hasPrefix(ChatTemplate.renderPrefix(family, system: "S"))
+                    || !prompt.hasPrefix(ChatTemplate.renderHistory(
+                        family, system: "S", messages: probeMessages)) {
+                    failures.append("thinking policy invalidated the \(family.rawValue) prefix")
+                }
+                if NotesModelRuntime.samplerProfile(for: family, thinking: role)
+                    != (enabled ? vendor : standard) {
+                    failures.append("wrong per-role/model sampler profile")
+                }
+            }
+        }
+        if LocalThinkingRole.agent.tokenLimit != 512 || LocalThinkingRole.notes.tokenLimit != 1_024
+            || LocalThinkingRole.off.tokenLimit != 0 {
+            failures.append("wrong role thinking allowances")
+        }
+        return failures
+    }
 
     private static func detectionFailures() -> [String] {
         let cases: [(template: String, architecture: String?, expected: ChatTemplateFamily)] = [
@@ -202,11 +323,59 @@ enum ChatTemplateSelfTest {
     }
 
     private static func miniCPM5LiveFailures(vocabulary: OpaquePointer) -> [String] {
+        var thinkingFailures: [String] = []
+        if let opening = try? LlamaHelpers.tokenize(
+            "<think>", vocabulary: vocabulary, addSpecial: false), opening.count == 1 {
+            if NotesModelRuntime.plannerPiece(opening[0], vocabulary: vocabulary) != "<think>" {
+                thinkingFailures.append("MiniCPM5: answer-phase thinking mask does not name the opening token")
+            }
+        } else {
+            thinkingFailures.append("MiniCPM5: opening thinking tag is not one maskable token")
+        }
+        if let closing = try? LlamaHelpers.tokenize(
+            "\n</think>\n\n", vocabulary: vocabulary, addSpecial: false) {
+            let decoded = closing.map {
+                NotesModelRuntime.plannerPiece($0, vocabulary: vocabulary)
+            }.joined()
+            if decoded != "\n</think>\n\n" {
+                thinkingFailures.append("MiniCPM5: forced closing tokens do not round-trip")
+            }
+        } else {
+            thinkingFailures.append("MiniCPM5: forced thinking closure could not be tokenized")
+        }
+        if let hiddenTurn = try? LlamaHelpers.tokenize(
+            "<think>private reasoning</think>Answer", vocabulary: vocabulary, addSpecial: false) {
+            var output = ChatTemplateOutput(family: .minicpm5, thinkingLimit: 0)
+            let received = hiddenTurn.map {
+                output.consume(NotesModelRuntime.plannerPiece($0, vocabulary: vocabulary))
+            }.joined() + output.finish()
+            if received != "Answer" || output.reasoningTokens == 0 {
+                thinkingFailures.append("MiniCPM5: real vocabulary pieces leaked thinking or lost its count")
+            }
+        } else {
+            thinkingFailures.append("MiniCPM5: hidden-turn fixture could not be tokenized")
+        }
+        for role in [LocalThinkingRole.off, .notes] {
+            if !NotesModelRuntime.completionPiece(
+                18, vocabulary: vocabulary, family: .minicpm5, thinking: role).isEmpty {
+                thinkingFailures.append("non-Agent completion exposed native tool delimiter")
+            }
+        }
+        if NotesModelRuntime.completionPiece(
+            18, vocabulary: vocabulary, family: .minicpm5, thinking: .agent) != "<function" {
+            thinkingFailures.append("Agent completion lost native tool delimiter")
+        }
+        if let opening = try? LlamaHelpers.tokenize(
+            "<think>", vocabulary: vocabulary, addSpecial: false), opening.count == 1,
+           NotesModelRuntime.completionPiece(
+               opening[0], vocabulary: vocabulary, family: .minicpm5, thinking: .off) != "<think>" {
+            thinkingFailures.append("completion renderer hid thinking tag from the strip producer")
+        }
         let call = "<function name=\"x\"><param name=\"k\">v</param></function>"
         guard let tokens = try? LlamaHelpers.tokenize(call, vocabulary: vocabulary) else {
-            return ["MiniCPM5: the native call could not be tokenized"]
+            return thinkingFailures + ["MiniCPM5: the native call could not be tokenized"]
         }
-        var failures: [String] = []
+        var failures = thinkingFailures
         let delimiters: [(id: llama_token, marker: String)] = [
             (18, "<function"),
             (20, "<param"),

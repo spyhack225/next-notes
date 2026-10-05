@@ -118,15 +118,17 @@ extension AgentPlannerBackend {
     func stream(
         system: String, messages: [LLMChatMessage], maxTokens: Int, interactive: Bool
     ) async -> AsyncThrowingStream<String, Error> {
-        if messages.count == 1, messages[0].role == .user, !interactive {
-            return await provider.stream(
-                system: system, user: messages[0].content, maxTokens: maxTokens)
+        await LocalThinkingRole.$current.withValue(.agent) {
+            if messages.count == 1, messages[0].role == .user, !interactive {
+                return await provider.stream(
+                    system: system, user: messages[0].content, maxTokens: maxTokens)
+            }
+            return interactive
+                ? await provider.streamInteractiveConversation(
+                    system: system, messages: messages, maxTokens: maxTokens)
+                : await provider.streamConversation(
+                    system: system, messages: messages, maxTokens: maxTokens)
         }
-        return interactive
-            ? await provider.streamInteractiveConversation(
-                system: system, messages: messages, maxTokens: maxTokens)
-            : await provider.streamConversation(
-                system: system, messages: messages, maxTokens: maxTokens)
     }
 
     /// The same, with decoding constrained. Only the in-process runtime takes a grammar; the
@@ -136,15 +138,17 @@ extension AgentPlannerBackend {
         system: String, messages: [LLMChatMessage], maxTokens: Int, interactive: Bool,
         grammar: GBNFGrammar
     ) async -> AsyncThrowingStream<String, Error> {
-        if messages.count == 1, messages[0].role == .user, !interactive {
-            return await provider.stream(
-                system: system, user: messages[0].content, maxTokens: maxTokens, grammar: grammar)
+        await LocalThinkingRole.$current.withValue(.agent) {
+            if messages.count == 1, messages[0].role == .user, !interactive {
+                return await provider.stream(
+                    system: system, user: messages[0].content, maxTokens: maxTokens, grammar: grammar)
+            }
+            return interactive
+                ? await provider.streamInteractiveConversation(
+                    system: system, messages: messages, maxTokens: maxTokens, grammar: grammar)
+                : await provider.streamConversation(
+                    system: system, messages: messages, maxTokens: maxTokens, grammar: grammar)
         }
-        return interactive
-            ? await provider.streamInteractiveConversation(
-                system: system, messages: messages, maxTokens: maxTokens, grammar: grammar)
-            : await provider.streamConversation(
-                system: system, messages: messages, maxTokens: maxTokens, grammar: grammar)
     }
 }
 

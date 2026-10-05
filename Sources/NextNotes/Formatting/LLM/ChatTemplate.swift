@@ -1,5 +1,105 @@
 import Foundation
 
+/// Per request, carried across the existing provider hop, never stored on the shared model.
+enum LocalThinkingRole: Sendable {
+    case off, agent, notes
+
+    @TaskLocal static var current: LocalThinkingRole?
+
+    var tokenLimit: Int {
+        switch self {
+        case .off: 0
+        case .agent: 512
+        case .notes: 1_024
+        }
+    }
+}
+
+/// The generation producer's output boundary, shared by completion and streaming.
+struct ChatTemplateOutput {
+    let family: ChatTemplateFamily
+    let thinkingLimit: Int
+    private(set) var isThinking: Bool
+    private(set) var reasoningTokens = 0
+    private(set) var visibleTokens = 0
+    private(set) var stopped = false
+    private var pending = ""
+
+    var needsThinkingClosure: Bool { isThinking && reasoningTokens >= thinkingLimit }
+
+    init(family: ChatTemplateFamily, thinkingLimit: Int) {
+        self.family = family
+        self.thinkingLimit = thinkingLimit
+        isThinking = thinkingLimit > 0
+    }
+
+    /// Hold only possible marker prefixes. Hidden text is discarded immediately, never
+    /// accumulated in a transcript or passed to a callback, even at a split tag boundary.
+    mutating func consume(_ piece: String) -> String {
+        guard !stopped else { return "" }
+        let wasThinking = isThinking
+        var enteredThinking = false
+        var visible = ""
+        pending += piece
+        if !pending.contains("<") {
+            let text = isThinking ? "" : pending
+            pending = ""
+            if wasThinking { reasoningTokens += 1 }
+            else { visibleTokens += 1 }
+            return text
+        }
+        let markers = ChatTemplate.controlMarkers(family)
+        while !pending.isEmpty {
+            let match = markers.compactMap { marker -> (String, Range<String.Index>)? in
+                pending.range(of: marker).map { (marker, $0) }
+            }.min { $0.1.lowerBound < $1.1.lowerBound }
+            if let (marker, range) = match {
+                if !isThinking { visible += pending[..<range.lowerBound] }
+                pending = String(pending[range.upperBound...])
+                if marker == ChatTemplate.stopMarker(family) {
+                    stopped = true
+                    pending = ""
+                    break
+                }
+                if marker == "<think>" || marker == "<|think|>" {
+                    isThinking = true
+                    enteredThinking = true
+                } else if marker == "</think>" {
+                    isThinking = false
+                }
+            } else {
+                let held = markers.map { marker in
+                    let limit = min(marker.count - 1, pending.count)
+                    guard limit > 0 else { return 0 }
+                    return (1...limit).reversed().first {
+                        pending.hasSuffix(String(marker.prefix($0)))
+                    } ?? 0
+                }.max() ?? 0
+                let safeCount = pending.count - held
+                if !isThinking { visible += pending.prefix(safeCount) }
+                pending.removeFirst(safeCount)
+                break
+            }
+        }
+        if wasThinking || enteredThinking { reasoningTokens += 1 }
+        else { visibleTokens += 1 }
+        return visible
+    }
+
+    /// Called only after the runtime decoded the forced closing tokens into the SAME KV
+    /// context. A dangling partial marker belongs to thinking and is discarded too.
+    mutating func closeThinking() {
+        pending = ""
+        isThinking = false
+    }
+
+    mutating func finish() -> String {
+        // Any retained suffix can still be a control marker. Never release it on EOF.
+        pending = ""
+        return ""
+    }
+}
+
 /// How one model family marks its turns (P0-04).
 enum ChatTemplateFamily: String, Codable, Sendable {
     case chatmlThinking
@@ -69,18 +169,19 @@ enum ChatTemplate {
         return normalized.hasPrefix("{{bos_token")
     }
 
-    /// The prompt for `family`, ending in the generation prompt with thinking already
-    /// closed where the family has it. An unsupported family renders nothing: the runtime
+    /// The prompt for `family`, with thinking closed unless MiniCPM work or notes requested
+    /// it. An unsupported family renders nothing: the runtime
     /// refuses the model before this can be called in production.
     static func render(
         _ family: ChatTemplateFamily,
         system: String,
-        messages: [LLMChatMessage]
+        messages: [LLMChatMessage],
+        thinking: LocalThinkingRole = .off
     ) -> String {
         switch family {
         case .chatmlThinking, .chatml, .minicpm5, .llama3, .gemma, .gemma4:
             return renderHistory(family, system: system, messages: messages)
-                + generationPrompt(family)
+                + generationPrompt(family, thinking: thinking)
         case .unsupported:
             return ""
         }
@@ -131,7 +232,12 @@ enum ChatTemplate {
     }
 
     /// The trailing text that opens the model's turn. `render` is `renderHistory` plus this.
-    private static func generationPrompt(_ family: ChatTemplateFamily) -> String {
+    private static func generationPrompt(
+        _ family: ChatTemplateFamily, thinking: LocalThinkingRole
+    ) -> String {
+        if family == .minicpm5, thinking.tokenLimit > 0 {
+            return "<|im_start|>assistant\n<think>\n"
+        }
         switch family {
         case .chatmlThinking, .minicpm5:
             // Left to themselves, hybrid models open `<think>` and deliberate for hundreds of
