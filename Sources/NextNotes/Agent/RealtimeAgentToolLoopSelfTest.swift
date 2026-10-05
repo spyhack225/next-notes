@@ -1083,6 +1083,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
+        failures.append(contentsOf: runDraftSubjectContractCases(check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
         failures.append(contentsOf: await ExplicitMemorySaveSelfTest.run())
 
@@ -1422,6 +1423,34 @@ enum RealtimeAgentToolLoopSelfTest {
         check("P1 consumer changed an offer whose meeting default is unavailable",
               unavailable.reply == meetingOffer && unavailableLog.calls.count == 1)
         print("  TOOLLOOP_PRODUCTION_OFFERED_READ: actual typed consumer, fixture reads")
+        return []
+    }
+
+    @MainActor
+    static func runDraftSubjectContractCases(check: (String, Bool) -> Void) -> [String] {
+        let inputs = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+        let mail = AgentCapabilityManifestBuilder.build(inputs, request: "Draft an email to ana@example.com saying I'll send the deck Friday")
+        let subject = mail.entry(named: "draft_email")?.parameters.first { $0.name == "subject" }
+        check("P5 draft subject lost its required approval field", subject?.isRequired == true)
+        check("P5 draft subject does not tell the agent to compose missing prose",
+              subject?.description.contains("Write a short subject from the request") == true)
+        let wire = mail.toolWireDefinitions().first { $0.name == "draft_email" }
+        check("P5 structured draft schema lost the subject contract",
+              wire?.parametersJSON.contains("Write a short subject from the request") == true)
+        for compact in [false, true] {
+            check("P5 selected draft catalogue lost the subject contract (compact=\(compact))",
+                  AgentCapabilityManifest.renderCatalogue(mail.selected, compact: compact)
+                    .contains("Write a short subject from the request"))
+        }
+        let noDraft = mail.copy(selected: mail.selected.filter { $0.id != "draft_email" },
+                                selectedIntents: mail.selectedIntents)
+        check("P5 unselected draft contract leaked into the catalogue",
+              !noDraft.plannerCatalogue(compact: true).contains("Write a short subject from the request"))
+        let preview = AgentToolRegistry.shared.tool(named: "draft_email")?.preview(
+            for: ["to": "ana@example.com", "subject": "Friday deck", "body": "I'll send the deck Friday."])
+        check("P5 draft preview lost its composed subject", preview?.contains("Subject: Friday deck") == true)
+        print("  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT: schema + wire + selected catalogue + review preview")
         return []
     }
 

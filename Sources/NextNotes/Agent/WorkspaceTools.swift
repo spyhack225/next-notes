@@ -252,7 +252,7 @@ enum WorkspaceTools {
             risk: .write,
             parameters: [
                 .init(name: "to", description: "Recipient addresses.", kind: .list),
-                .init(name: "subject", description: "The subject line."),
+                .init(name: "subject", description: "Write a short subject from the request when none is given. The user can edit it before approving."),
                 .init(name: "body", description: "The message, in plain text.", kind: .multiline),
             ],
             titleBuilder: { "Draft an email to \($0["to"] ?? "")" },

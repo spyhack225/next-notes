@@ -190,10 +190,16 @@ struct AgentCapabilityManifest: Sendable, Equatable {
     /// to measure a fit before it has decided one; there is no second rendering rule.
     static func renderCatalogue(_ entries: [Entry], compact: Bool) -> String {
         entries.map { entry in
+            // The draft's subject is prose the agent composes. Carry its SAME
+            // schema contract even when the selected catalogue is compact.
+            let subjectContract = entry.id == "draft_email"
+                ? entry.parameters.first(where: { $0.name == "subject" })
+                    .map { "; subject: " + $0.description } ?? ""
+                : ""
             if compact {
                 let required = entry.parameters.filter(\.isRequired).map(\.name)
                 let tail = required.isEmpty ? "" : "; needs " + required.joined(separator: ", ")
-                return "- \(entry.id): \(String(entry.modelDescription.prefix(compactDescriptionWidth)))\(tail)"
+                return "- \(entry.id): \(String(entry.modelDescription.prefix(compactDescriptionWidth)))\(tail)\(subjectContract)"
             }
             let arguments = entry.parameters.map { parameter in
                 parameter.isRequired
@@ -202,7 +208,7 @@ struct AgentCapabilityManifest: Sendable, Equatable {
             }.joined(separator: "; ")
             return "- \(entry.id) [\(entry.risk.rawValue)]: "
                 + String(entry.modelDescription.prefix(85))
-                + (arguments.isEmpty ? "" : "; " + arguments)
+                + (arguments.isEmpty ? "" : "; " + arguments) + subjectContract
         }.joined(separator: "\n")
     }
 
