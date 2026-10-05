@@ -2,6 +2,7 @@ import AVFoundation
 import AppKit
 import Darwin
 import FluidAudio
+import IOKit.ps
 import NextNotesDictionary
 import os
 import SwiftUI
@@ -4095,7 +4096,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     /// the same `ChunkedTranscriber` — so the windowing and silence detection are exercised
     /// rather than bypassed. Shared by `--selftest-transcribe` and `--selftest-notes`.
     private static func transcribeFile(
-        at path: String, realtime: Bool = false,
+        at path: String, realtime: Bool = false, loop: Bool = false,
         transcribe: @escaping ChunkedTranscriber.Transcribe = {
             try await TranscriptionQueue.shared.transcribeWithLaneWait($0)
         }
@@ -4106,6 +4107,9 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             sampleRate: ChunkedTranscriber.sampleRate
         )
         let audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
+        guard !loop || (realtime && !samples.isEmpty) else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
 
         let collector = SelfTestSegments()
         let transcriber = ChunkedTranscriber(source: .system, transcribe: transcribe) { segment in
@@ -4115,6 +4119,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let began = Date()
         let step = Int(ChunkedTranscriber.sampleRate)
         var index = 0
+        var completedSamples = 0
         let clock = ContinuousClock()
         let feedBegan = clock.now
         do {
@@ -4122,11 +4127,15 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let end = min(index + step, samples.count)
                 if realtime {
                     try await clock.sleep(until: feedBegan.advanced(by: .seconds(
-                        Double(end) / ChunkedTranscriber.sampleRate)))
+                        Double(completedSamples + end) / ChunkedTranscriber.sampleRate)))
                     try Task.checkCancellation()
                 }
                 await transcriber.append(Array(samples[index..<end]))
                 index = end
+                if loop && index == samples.count {
+                    completedSamples += samples.count
+                    index = 0
+                }
             }
         } catch {
             await transcriber.flush()
@@ -4184,13 +4193,14 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             }
             // Cancel both before the first packet and from the actual ASR entry seam.
             // Awaiting the SAME feeder Task must settle after the transcriber drain joins.
-            for afterWindow in [false, true] {
+            for (caseIndex, afterWindow) in [false, true, true].enumerated() {
+                let looping = caseIndex == 2
                 let completed = LockedBox<Int>(0)
                 let owner = LockedBox<Task<Void, Error>?>(nil)
                 let task: Task<Void, Error> = Task {
-                    _ = try await transcribeFile(at: url.path, realtime: true, transcribe: { samples in
-                        if afterWindow { owner.value?.cancel() }
+                    _ = try await transcribeFile(at: url.path, realtime: true, loop: looping, transcribe: { samples in
                         completed.value += 1
+                        if afterWindow && (!looping || completed.value >= 2) { owner.value?.cancel() }
                         return (ASRResult(text: "Fixture speech.", confidence: 1,
                             duration: Double(samples.count) / ChunkedTranscriber.sampleRate,
                             processingTime: 0, tokenTimings: nil), 0, 0)
@@ -4205,8 +4215,65 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 check("cancelled paced feeder returned success", cancelled)
                 check("cancelled feeder did not settle its expected ASR work",
                       afterWindow ? completed.value > 0 : completed.value == 0)
+                check("looped feeder never crossed its fixture boundary", !looping || completed.value >= 2)
                 owner.value = nil
             }
+            do {
+                _ = try await transcribeFile(at: url.path, realtime: false, loop: true)
+                failures.append("looping unpaced file was admitted")
+            } catch is CocoaError { }
+            let turn = UUID()
+            let fixture = """
+                {"v":1,"id":"\(UUID().uuidString)","ts":0,"feature":"agent.typed","pass":"floor","round":0,"provider":"app-llm","modelID":"fixture","locality":"local","completionTokens":256,"countsEstimated":false,"ttftMs":100,"totalMs":10100,"tokensPerSec":25.6,"turnID":"\(turn.uuidString)"}
+                """
+            let row = try JSONDecoder().decode(UsageRecord.self, from: Data(fixture.utf8))
+            check("measured fixed256 usage row rejected", floorUsageProblems(rows: [row], turnIDs: [turn], expectedRuns: 1).isEmpty)
+            var short = row
+            short.completionTokens = 32
+            check("short generation accepted as fixed256", !floorUsageProblems(rows: [short], turnIDs: [turn], expectedRuns: 1).isEmpty)
+            var zero = row
+            zero.completionTokens = 0
+            check("zero tokens accepted", !floorUsageProblems(rows: [zero], turnIDs: [turn], expectedRuns: 1).isEmpty)
+            var estimated = row
+            estimated.countsEstimated = true
+            check("estimated counters accepted", !floorUsageProblems(rows: [estimated], turnIDs: [turn], expectedRuns: 1).isEmpty)
+            check("duplicate joined rows accepted", !floorUsageProblems(rows: [row, row], turnIDs: [turn], expectedRuns: 1).isEmpty)
+            check("wrong turn row accepted", !floorUsageProblems(rows: [row], turnIDs: [UUID()], expectedRuns: 1).isEmpty)
+            let secondTurn = UUID()
+            var secondRow = row
+            secondRow.id = UUID()
+            secondRow.round = 1
+            secondRow.turnID = secondTurn
+            check("correct per-round turns rejected", floorUsageProblems(rows: [row, secondRow], turnIDs: [turn, secondTurn], expectedRuns: 2).isEmpty)
+            var crossedFirst = row
+            crossedFirst.turnID = secondTurn
+            secondRow.turnID = turn
+            check("crossed round/turn identity accepted", !floorUsageProblems(rows: [crossedFirst, secondRow], turnIDs: [turn, secondTurn], expectedRuns: 2).isEmpty)
+            // Exact vector retained from fixed-C0.log's rounded native row output.
+            // Original report chose the upper middle 52.24; the median is 52.085.
+            let observedRates = [52.90, 52.89, 52.24, 45.46, 45.01, 51.93, 53.07, 52.47, 43.80, 43.73]
+            check("even native-rate vector reports upper middle instead of median",
+                  floorMedian(sorted: observedRates.sorted()).map { abs($0 - 52.085) < 1e-9 } == true)
+            check("odd median changed", floorMedian(sorted: [1, 3, 9]) == 3)
+            check("empty median manufactured a measurement", floorMedian(sorted: []) == nil)
+            // Retained actual C1: ten measured passes, 13 successful native calls,
+            // 983725 frames, eight per-pass intersections. The paced series was live.
+            check("successful paced ASR series with eight of ten overlaps rejected",
+                  floorASRLoadProblems(returned: 13, successful: 13, frames: 983725,
+                      overlaps: 8, expectedRuns: 10, feederCancelled: true).isEmpty)
+            check("ASR with zero frames qualified", !floorASRLoadProblems(returned: 13,
+                successful: 13, frames: 0, overlaps: 8, expectedRuns: 10, feederCancelled: true).isEmpty)
+            check("ASR with zero native successes qualified", !floorASRLoadProblems(returned: 0,
+                successful: 0, frames: 0, overlaps: 0, expectedRuns: 10, feederCancelled: true).isEmpty)
+            check("ASR with no successful native overlap qualified", !floorASRLoadProblems(returned: 13,
+                successful: 13, frames: 983725, overlaps: 0, expectedRuns: 10, feederCancelled: true).isEmpty)
+            check("failed native ASR qualified", !floorASRLoadProblems(returned: 14,
+                successful: 13, frames: 983725, overlaps: 10, expectedRuns: 10, feederCancelled: true).isEmpty)
+            check("unexpected successful early feeder exit qualified", !floorASRLoadProblems(returned: 13,
+                successful: 13, frames: 983725, overlaps: 10, expectedRuns: 10, feederCancelled: false).isEmpty)
+            var noTTFT = row
+            noTTFT.ttftMs = nil
+            check("missing TTFT accepted", !floorUsageProblems(rows: [noTTFT], turnIDs: [turn], expectedRuns: 1).isEmpty)
             return failures
         } catch { return ["fixture producer error: " + error.localizedDescription] }
     }
@@ -4668,6 +4735,11 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 let failures = await Self.floorFileFeedProblems()
                 writeSelfTest(failures.isEmpty ? "LLM_FLOOR_FEED_OK" : "LLM_FLOOR_FEED_FAILED: " + failures.joined(separator: "; "))
                 SelfTest.failed = !failures.isEmpty
+                SelfTest.requestTermination()
+                return
+            }
+            if CommandLine.arguments.contains("--floor") {
+                await runMetalFloor()
                 SelfTest.requestTermination()
                 return
             }
@@ -7522,6 +7594,258 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     private static let metalProbeTokens = 32
     /// How much of the probe's answer is echoed, so a garbled GPU decode is visible.
     private static let metalProbeEcho = 80
+
+    /// PL-01 diagnostic modifiers on the existing Metal flag. Uses one private runtime,
+    /// the production usage recorder and (C1) the existing paced meeting file feeder.
+    /// Fixed-count decode observations are not sustained, prefill or complete floor proof.
+    @MainActor
+    private func runMetalFloor() async {
+        let runs = SelfTest.value(after: "--floor-runs").flatMap(Int.init) ?? 10
+        guard runs > 0,
+              let id = SelfTest.value(after: "--floor-model"),
+              let model = InstalledModelLibrary.shared.usableModels.first(where: { $0.id == id }),
+              model.fileIsPresent else {
+            writeSelfTest("LLM_FLOOR_ABSENT: positive --floor-runs and a present usable --floor-model required")
+            SelfTest.failed = true
+            return
+        }
+        let asrPath = SelfTest.value(after: "--floor-asr")
+        let condition = asrPath == nil ? "C0" : "C1"
+        let before = HardwareProfile.current()
+        let swapBefore = MeetingResourceHealth.swapBytes().used
+        var load = [Double](repeating: 0, count: 3)
+        let loadKnown = getloadavg(&load, 3) == 3
+        let power = IOPSCopyPowerSourcesInfo().map {
+            IOPSGetProvidingPowerSourceType($0.takeRetainedValue()).takeUnretainedValue() as String
+        } ?? "UNKNOWN"
+        var contention: [String] = []
+        if before.thermalState != .nominal { contention.append("thermal") }
+        if before.isLowPowerModeEnabled { contention.append("low-power") }
+        if power != kIOPSACPowerValue { contention.append("power") }
+        let apps = NSWorkspace.shared.runningApplications
+            .filter { $0.activationPolicy == .regular }
+            .compactMap(\.bundleIdentifier).sorted().joined(separator: ",")
+        ModelResidencyPolicy.installPressureObserver()
+        var pressureWorstObserved = ModelResidencyPolicy.pressureSnapshot.level
+        var pressureGeneration = ModelResidencyPolicy.pressureSnapshot.generation
+        var pressureHistoryGap = false
+        var thermalSamples = ["0:\(before.thermalState.rawValue)"]
+        let measurementBegan = ContinuousClock.now
+        var lastThermal = measurementBegan
+        func observe() {
+            let pressure = ModelResidencyPolicy.pressureSnapshot
+            if pressure.generation > pressureGeneration + 1 { pressureHistoryGap = true }
+            pressureGeneration = pressure.generation
+            if pressure.level == .critical ||
+                (pressure.level == .warning && pressureWorstObserved == .normal) {
+                pressureWorstObserved = pressure.level
+            }
+            let now = ContinuousClock.now
+            if lastThermal.duration(to: now) >= .seconds(10) {
+                thermalSamples.append("\(Self.floorSeconds(measurementBegan.duration(to: now))):\(ProcessInfo.processInfo.thermalState.rawValue)")
+                lastThermal = now
+            }
+        }
+        // Existing artifact proof is cheap; a legacy usable row is hashed once for this
+        // diagnostic without registering it or changing a saved role/selection.
+        let artifactDigest: String
+        let artifactProof: String
+        let artifactStamp: VerifiedModelArtifact.FileStamp
+        let executableDigest: String
+        do {
+            artifactStamp = try VerifiedModelArtifact.FileStamp.read(model.fileURL)
+            if let proof = model.verifiedArtifact, proof.isCurrent(at: model.fileURL) {
+                artifactDigest = proof.sha256
+                artifactProof = "current"
+            } else {
+                artifactDigest = try ModelDownloader.sha256(of: model.fileURL)
+                artifactProof = "diagnostic-hash-file-cache-unqualified"
+            }
+            guard artifactStamp == (try VerifiedModelArtifact.FileStamp.read(model.fileURL)),
+                  artifactStamp.bytes == model.bytes,
+                  let executable = Bundle.main.executableURL else {
+                throw CocoaError(.fileReadCorruptFile)
+            }
+            executableDigest = try ModelDownloader.sha256(of: executable)
+            if let path = asrPath {
+                guard FileManager.default.fileExists(atPath: (path as NSString).expandingTildeInPath),
+                      ParakeetModels.isDownloaded else { throw CocoaError(.fileNoSuchFile) }
+                try await TranscriptionQueue.shared.warmUp()
+            }
+        } catch {
+            writeSelfTest("LLM_METAL_FAILED: floor input unavailable: \(error.localizedDescription)")
+            SelfTest.failed = true
+            return
+        }
+        let runtime = NotesModelRuntime(spec: NotesModelRuntime.spec(for: model),
+                                       gpuLayers: NotesModelRuntime.allGPULayers)
+        // This flag may read the saved model; explicit floor choice must outrank it.
+        await runtime.select(model)
+        let selectedSpec = await runtime.activeSpec()
+        guard selectedSpec.fileURL.standardizedFileURL == model.fileURL.standardizedFileURL else {
+            _ = await runtime.finishTermination()
+            SelfTest.failed = true
+            writeSelfTest("LLM_METAL_FAILED: requested floor artifact was not selected")
+            return
+        }
+        let provider = LlamaLLMProvider(modelName: model.id, runtime: runtime)
+        let nativeASR = LockedBox<[(start: ContinuousClock.Instant, end: ContinuousClock.Instant, frames: Int, ok: Bool)]>([])
+        let asrOwner: Task<Void, Error>? = asrPath.map { path in
+            Task {
+                _ = try await Self.transcribeFile(at: path, realtime: true, loop: true,
+                    transcribe: { samples in
+                        try await TranscriptionQueue.shared.transcribeWithLaneWait(samples,
+                            nativeObservation: { start, end, ok in
+                                // One serial TranscriptionQueue writer; inspect only after join.
+                                nativeASR.value = nativeASR.value + [(start, end, samples.count, ok)]
+                            })
+                    })
+            }
+        }
+        var turnIDs: [UUID] = []
+        var decodeWindows: [(start: ContinuousClock.Instant, end: ContinuousClock.Instant)] = []
+        var failures: [String] = []
+        do {
+            for index in 0..<runs {
+                try Task.checkCancellation()
+                let turnID = UUID()
+                turnIDs.append(turnID)
+                let recorder = ModelPassRecorder(feature: .agentTyped, pass: "floor", provider: provider,
+                    round: index, ids: UsageCorrelation(turnID: turnID), requestedRole: .agent)
+                var firstText: ContinuousClock.Instant?
+                do {
+                    let stream = await ModelPassRecorder.$current.withValue(recorder) {
+                        await provider.stream(system: "You are a thorough writer.",
+                            user: "Describe, in many detailed paragraphs, a busy restaurant kitchen during "
+                                + "a full dinner service. Keep writing; do not summarise or stop early.",
+                            maxTokens: 256)
+                    }
+                    // The runtime child inherits the recorder during stream creation;
+                    // iteration stays on MainActor and does not transfer local telemetry.
+                    for try await piece in stream where !piece.isEmpty {
+                        if firstText == nil { firstText = .now; recorder.noteFirstToken() }
+                        observe()
+                    }
+                    recorder.noteModelEnd()
+                    if let start = firstText { decodeWindows.append((start, .now)) }
+                    recorder.finish(reason: "stop")
+                } catch {
+                    recorder.noteModelEnd()
+                    recorder.fail(error)
+                    recorder.finish(reason: "error")
+                    throw error
+                }
+            }
+        } catch { failures.append("model: \(error.localizedDescription)") }
+        // The feeder's cancellation path flushes/join its one native tail. The private
+        // model uses its existing termination join; shutdown alone only refuses busy work.
+        asrOwner?.cancel()
+        var feederCancelled = false
+        if let result = await asrOwner?.result, case .failure(let error) = result {
+            feederCancelled = error is CancellationError
+            if !feederCancelled { failures.append("ASR: \(error.localizedDescription)") }
+        }
+        let modelJoined = await runtime.finishTermination()
+        if !modelJoined { failures.append("private model did not join") }
+        observe()
+        UsageLog.shared.flush()
+        let rows = UsageLog.shared.load().filter {
+            $0.pass == "floor" && $0.turnID.map { turnIDs.contains($0) } == true
+        }.sorted { ($0.round ?? -1) < ($1.round ?? -1) }
+        let sampleProblems = Self.floorUsageProblems(rows: rows, turnIDs: turnIDs, expectedRuns: runs)
+        failures += sampleProblems
+        let calls = nativeASR.value
+        let successful = calls.filter(\.ok)
+        let overlaps = decodeWindows.filter { model in
+            successful.contains { $0.start < model.end && $0.end > model.start }
+        }.count
+        let asrFrames = successful.reduce(0) { $0 + $1.frames }
+        let asrProblems = asrPath == nil ? [] : Self.floorASRLoadProblems(returned: calls.count,
+            successful: successful.count, frames: asrFrames, overlaps: overlaps,
+            expectedRuns: runs, feederCancelled: feederCancelled)
+        let asrWorkloadQualified = asrProblems.isEmpty
+        failures += asrProblems
+        if (try? VerifiedModelArtifact.FileStamp.read(model.fileURL)) != artifactStamp {
+            failures.append("artifact changed")
+        }
+        let swapAfter = MeetingResourceHealth.swapBytes().used
+        let swapGrowth = swapBefore.flatMap { first in swapAfter.map { Int64(clamping: $0) - Int64(clamping: first) } }
+        let after = HardwareProfile.current()
+        if pressureWorstObserved != .normal { contention.append("pressure") }
+        if after.thermalState != .nominal { contention.append("thermal-end") }
+        // Preserve the actual joined metadata rows before harness cleanup removes
+        // its isolated log. No second log/file/store, and no rounded counter rebuild.
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            encoder.outputFormatting = [.sortedKeys]
+            writeSelfTest("LLM_FLOOR_USAGE: " + String(decoding: try encoder.encode(rows), as: UTF8.self))
+        } catch { failures.append("joined usage encoding failed: " + error.localizedDescription) }
+        let rates = (failures.isEmpty ? rows : []).compactMap(\.tokensPerSec).filter { $0.isFinite && $0 > 0 }.sorted()
+        let median = Self.floorMedian(sorted: rates).map { String(format: "%.2f", $0) } ?? "NA"
+        let p10 = rates.isEmpty ? "NA" : String(format: "%.2f", rates[Int((Double(rates.count - 1) * 0.1).rounded(.down))])
+        let status = !contention.isEmpty ? "CONTENDED" : (failures.isEmpty ? "MEASURED" : "UNQUALIFIED")
+        for row in rows {
+            writeSelfTest("LLM_FLOOR_ROUND: condition=\(condition) status=\(status) row=\(row.id) turn=\(row.turnID?.uuidString ?? "NA") round=\(row.round ?? -1) model=\(row.modelID) tokens=\(row.completionTokens ?? -1) estimated=\(row.countsEstimated.map { String($0) } ?? "NA") ttft_ms=\(row.ttftMs.map(String.init) ?? "NA") total_ms=\(row.totalMs) decode_tps=\(row.tokensPerSec.map { String(format: "%.2f", $0) } ?? "NA") warm=\(row.warm.map { String($0) } ?? "NA") load_ms=\(row.loadMs.map(String.init) ?? "NA") cached=\(row.cachedTokens.map(String.init) ?? "NA")")
+        }
+        writeSelfTest("LLM_FLOOR: status=\(status) condition=\(condition) model=\(model.id) artifact_sha256=\(artifactDigest) artifact_proof=\(artifactProof) artifact_bytes=\(model.bytes) executable_sha256=\(executableDigest) chip=\(before.chipName) hardware=\(before.modelIdentifier) memory_bytes=\(before.memoryBytes) free_disk_start=\(before.freeDiskBytes) free_disk_end=\(after.freeDiskBytes) power=\(power) low_power=\(before.isLowPowerModeEnabled) load=\(loadKnown ? load.map { String(format: "%.2f", $0) }.joined(separator: ",") : "NA") runs=\(runs) fixed256_10=\(runs == 10 && sampleProblems.isEmpty) fixed_tokens=256 decode_median=\(median) decode_p10=\(p10) peak_rss_bytes=\(Self.peakResidentBytes()) pressure_worst_observed=\(pressureWorstObserved.rawValue) pressure_history_gap=\(pressureHistoryGap) pressure_continuous=UNMEASURED swap_start=\(swapBefore.map(String.init) ?? "NA") swap_end=\(swapAfter.map(String.init) ?? "NA") swap_growth=\(swapGrowth.map(String.init) ?? "NA") thermal_samples=\(thermalSamples.joined(separator: ",")) asr_workload_qualified=\(asrWorkloadQualified) asr_native_returned=\(calls.count) asr_native_success=\(successful.count) asr_native_failed=\(calls.count - successful.count) asr_frames=\(asrFrames) decode_overlap_runs=\(overlaps) model_joined=\(modelJoined) prefill=UNMEASURED sustain=UNMEASURED C2=UNMEASURED thermal_sampling=on_text_10s external_contention=UNKNOWN_REQUIRES_AUDIT open_apps=\(apps) contention=\(contention.joined(separator: ","))")
+        if failures.isEmpty {
+            writeSelfTest("LLM_METAL_OK: \(status) floor execution diagnostic only; full floor acceptance remains open")
+        } else {
+            SelfTest.failed = true
+            writeSelfTest("LLM_METAL_FAILED: \(status) " + failures.joined(separator: "; "))
+        }
+    }
+
+    private static func floorSeconds(_ duration: Duration) -> String {
+        let parts = duration.components
+        return String(format: "%.2f", Double(parts.seconds) + Double(parts.attoseconds) / 1e18)
+    }
+
+    /// Workload admission is separate from native fixed-count token validity.
+    private static func floorASRLoadProblems(returned: Int, successful: Int, frames: Int,
+                                              overlaps: Int, expectedRuns: Int,
+                                              feederCancelled: Bool) -> [String] {
+        var failures: [String] = []
+        if successful == 0 || frames == 0 || returned != successful {
+            failures.append("missing or failed native ASR load")
+        }
+        // The existing five-second ASR batches must intersect the measured model
+        // series, not every fast individual decode. Preserve the per-pass count.
+        if overlaps == 0 { failures.append("native ASR did not overlap the model series") }
+        if !feederCancelled { failures.append("ASR feeder did not settle by expected cancellation") }
+        return failures
+    }
+
+    private static func floorMedian(sorted: [Double]) -> Double? {
+        guard !sorted.isEmpty else { return nil }
+        let middle = sorted.count / 2
+        return sorted.count.isMultiple(of: 2)
+            ? (sorted[middle - 1] + sorted[middle]) / 2 : sorted[middle]
+    }
+
+    /// Qualified fixed-count observations, not numerical speed/quality thresholds.
+    private static func floorUsageProblems(rows: [UsageRecord], turnIDs: [UUID], expectedRuns: Int) -> [String] {
+        var failures: [String] = []
+        if rows.count != expectedRuns || Set(rows.compactMap(\.turnID)) != Set(turnIDs) {
+            failures.append("missing or duplicate joined usage rows")
+        }
+        if Set(rows.compactMap(\.round)) != Set(0..<expectedRuns) {
+            failures.append("missing or duplicate round identity")
+        }
+        for row in rows {
+            if let round = row.round, turnIDs.indices.contains(round), row.turnID == turnIDs[round] {
+                // Each row must bind the turn allocated for its exact round.
+            } else { failures.append("crossed or absent round/turn binding") }
+            if row.completionTokens == 0 { failures.append("zero generated tokens") }
+            else if row.completionTokens != 256 { failures.append("SHORT or missing fixed256 count") }
+            if row.countsEstimated != false || row.ttftMs == nil || row.errorClass != nil ||
+                row.tokensPerSec.map({ $0.isFinite && $0 > 0 }) != true {
+                failures.append("unmeasured or failed usage row")
+            }
+        }
+        return failures
+    }
 
     /// A prompt the loaded model will actually answer.
     ///

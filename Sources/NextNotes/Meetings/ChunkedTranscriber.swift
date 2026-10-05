@@ -702,7 +702,8 @@ actor TranscriptionQueue {
     /// on that window's own note. Only the `acquire` call is lane contention.
     func transcribeWithLaneWait(
         _ samples: [Float],
-        lane: WorkClass = .realtimeASR
+        lane: WorkClass = .realtimeASR,
+        nativeObservation: (@Sendable (ContinuousClock.Instant, ContinuousClock.Instant, Bool) -> Void)? = nil
     ) async throws -> (result: ASRResult, laneWait: TimeInterval, compute: TimeInterval) {
         try checkTerminationAdmission()
         let previous = tail
@@ -736,8 +737,12 @@ actor TranscriptionQueue {
                 let result: ASRResult
                 do {
                     terminationFixtureTrace?.nativeEntered()
+                    let nativeBegan = nativeObservation.map { _ in ContinuousClock.now }
                     var succeeded = false
-                    defer { terminationFixtureTrace?.nativeReturned(succeeded: succeeded) }
+                    defer {
+                        terminationFixtureTrace?.nativeReturned(succeeded: succeeded)
+                        if let began = nativeBegan { nativeObservation?(began, .now, succeeded) }
+                    }
                     result = try await manager.transcribe(samples, decoderState: &decoderState)
                     succeeded = true
                 }
