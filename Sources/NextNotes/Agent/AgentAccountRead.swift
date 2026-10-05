@@ -146,6 +146,7 @@ enum AgentAccountRead {
             guard (intent == .memory && requestsMemoryRead(request))
                 || (intent != .files && presents(intent, reply))
                 || (intent == .meetings && presentsRequestedMeetingContents(reply, request: request))
+                || (intent == .meetings && presentsRequestedMeetingAbsence(reply, request: request))
                 || (intent == .files && presentsRequestedFileAbsence(reply, request: request))
             else { continue }
             guard let read = defaultRead(for: intent, request: request, now: now) else { continue }
@@ -229,11 +230,7 @@ enum AgentAccountRead {
     /// even when a generic closing question follows it. Advice/writes do not bind
     /// this floor; reuse the existing meeting question routes, not a new intent map.
     private static func presentsRequestedMeetingContents(_ reply: String, request: String) -> Bool {
-        let query = AgentDirectIntent.questionForm(request)
-        guard let route = AgentDirectIntent.questionRoutes.first(where: { $0.intent == .meetings }),
-              route.patterns.contains(where: {
-                  query.range(of: $0, options: .regularExpression)?.lowerBound == query.startIndex
-              }) else { return false }
+        guard requestsMeetingRead(request) else { return false }
         for statement in reply.components(separatedBy: CharacterSet(charactersIn: ".!")) {
             // A question is not an assertion, including "We decided?".
             guard !statement.contains("?") else { continue }
@@ -242,6 +239,25 @@ enum AgentAccountRead {
                           options: .regularExpression) != nil { return true }
         }
         return false
+    }
+
+    private static func requestsMeetingRead(_ request: String) -> Bool {
+        let query = AgentDirectIntent.questionForm(request)
+        guard let route = AgentDirectIntent.questionRoutes.first(where: { $0.intent == .meetings })
+        else { return false }
+        return route.patterns.contains {
+            query.range(of: $0, options: .regularExpression)?.lowerBound == query.startIndex
+        }
+    }
+
+    /// An explicit past-meeting question already authorizes its selected read. No-information
+    /// prose cannot replace it merely because it repeats the named person/topic, not "meeting".
+    private static func presentsRequestedMeetingAbsence(_ reply: String, request: String) -> Bool {
+        guard requestsMeetingRead(request) else { return false }
+        let first = reply.components(separatedBy: CharacterSet(charactersIn: ".!?")).first ?? ""
+        let text = AgentDirectIntent.questionForm(first)
+        return text.range(of: #"^i (?:don't|do not) have (?:any )?information about\b"#,
+                          options: .regularExpression) != nil
     }
 
     /// Account contents, entry lists, or the exact offered read the person already asked for.

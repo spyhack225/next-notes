@@ -159,6 +159,7 @@ enum AgentCapabilityManifestSelfTest {
             ("what's on my to-do list", AgentIntentClass.reminders),
             ("what did we decide last meeting", AgentIntentClass.meetings),
             ("Sarah said the budget is ten percent", AgentIntentClass.meetings),
+            ("What did Sarah say about the budget?", AgentIntentClass.meetings),
             ("any new mail from Marcus?", AgentIntentClass.mail),
             ("what did we decide in the last meeting", AgentIntentClass.knowledge),
         ] {

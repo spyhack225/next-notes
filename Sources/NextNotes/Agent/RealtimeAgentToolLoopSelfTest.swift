@@ -1645,6 +1645,137 @@ enum RealtimeAgentToolLoopSelfTest {
         check("P1 consumer ran an unavailable meeting default", unavailableReads.toolIDs.isEmpty)
         check("P1 consumer changed an offer whose meeting default is unavailable",
               unavailable.reply == meetingOffer && unavailableLog.calls.count == 1)
+        // K03 original consumer block
+        // Paste inside existing runOfferedReadConsumerCases before final hook restoration.
+        // COMMON before both producers; no new repository harness or sibling whole-file patch.
+        // Existing suite's safe SelfTest setup and actual RealtimeAgent are required.
+        do {
+            let request = "What did Sarah say about the budget?"
+            let raw = "I don't have any information about what Sarah said regarding the budget. If you'd like, I can look it up — just let me know how you'd like to find out."
+            let grounded = "Sarah said the budget needs a 10% buffer for ads."
+            let inputs = AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+            let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+            let qualified = SelfTest.isRunning && manifest.entry(named: "meeting.recent_context")?.isReady == true
+                && manifest.entry(named: "meeting.recent_context")?.intent == .meetings
+                && manifest.entry(named: "meeting.recent_context").map { $0.risk <= .read } == true
+            check("K03 requested meeting-read descriptor unavailable", qualified)
+            if !qualified {
+                SelfTest.diagnostic("TOOLLOOP_PRODUCTION_K03_INPUT_INVALID: missing allowed ready read")
+            } else {
+                let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+                let priorFake = AgentToolExecutor.fakeForTesting
+                let priorProvider = agent.localModelProviderForTesting
+                let priorTrace = agent.plannerTraceForTesting
+                defer {
+                    AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+                    AgentToolExecutor.fakeForTesting = priorFake
+                    agent.localModelProviderForTesting = priorProvider
+                    agent.plannerTraceForTesting = priorTrace
+                    agent.setTypedPendingForTesting(nil)
+                    AgentSession.shared.forgetAllConversations()
+                }
+                func pending(_ reply: String, request: String, using selected: AgentCapabilityManifest,
+                             turn: [String] = [], session: Set<String> = [])
+                    -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+                    AgentAccountRead.pendingRead(
+                        reply: reply, selectedIntents: selected.selectedIntents,
+                        completedThisTurn: turn, completedThisSession: session,
+                        toolIDFor: { AccountReadTools.toolID(for: $0, manifest: selected, request: request) },
+                        request: request, manifest: selected)
+                }
+                check("K03 existing named-speaker question route missing",
+                      AgentDirectIntent.questionRoute(in: request, readyIntents: [.meetings]) == .meetings)
+                check("K03 manifest omitted meeting/knowledge selection for requested named speaker",
+                      manifest.selectedIntents.contains(.meetings) && manifest.selectedIntents.contains(.knowledge)
+                        && manifest.selectedIDs.contains("meeting.recent_context")
+                        && !manifest.selectedIntents.contains(.mail))
+                for explicitSource in ["What did Sarah say in her email about the budget?",
+                                       "What did Sarah say in the document about the budget?"] {
+                    let selected = AgentCapabilityManifestBuilder.build(inputs, request: explicitSource)
+                    check("K03 source fallback overrode explicit email/document source: \(explicitSource)",
+                          !selected.selectedIntents.contains(.meetings)
+                            && pending(raw, request: explicitSource, using: selected) == nil)
+                }
+                check("K03 information absence replaced the selected requested read",
+                      pending(raw, request: request, using: manifest)?.toolID == "meeting.recent_context"
+                        && pending(raw, request: request, using: manifest)?.arguments.isEmpty == true)
+                check("K03 repeated a completed current-turn meeting read",
+                      pending(raw, request: request, using: manifest, turn: ["meeting.recent_context"]) == nil)
+                check("K03 repeated a completed same-session meeting read",
+                      pending(raw, request: request, using: manifest, session: ["meeting.recent_context"]) == nil)
+                for (question, reply) in [
+                    (request, "Which Sarah do you mean?"),
+                    (request, "Which budget should I look at?"),
+                    (request, "How should I find that information?"),
+                    (request, "I haven't looked at that meeting yet."),
+                    (request, "You could ask Sarah about the budget."),
+                    ("How should I ask Sarah about the budget?", raw),
+                    ("Email Sarah about the budget", raw),
+                    ("If Sarah speaks, what might she say about the budget?", raw),
+                ] {
+                    let selected = AgentCapabilityManifestBuilder.build(inputs, request: question)
+                    check("K03 absence floor changed clarification/advice/write/hypothetical: \(question)",
+                          pending(reply, request: question, using: selected) == nil)
+                }
+                @MainActor
+                func run(_ reply: String, using fixtureInputs: AgentCapabilityInputs,
+                         script: [String]? = nil)
+                    async -> (reply: String, calls: [PlannerScriptLog.Call], tools: [LiveEvalLoggedCall], result: String, rounds: [String]) {
+                    let fixtures = LiveEvalFixtures()
+                    let log = PlannerScriptLog()
+                    var rounds: [String] = []
+                    AgentCapabilityManifestBuilder.inputsOverrideForTesting = fixtureInputs
+                    AgentToolExecutor.fakeForTesting = { tool, arguments in try await fixtures.run(tool, arguments) }
+                    agent.plannerTraceForTesting = { event in
+                        if case .round(_, _, _, _, let text, _) = event { rounds.append(text) }
+                    }
+                    agent.localModelProviderForTesting = PlannerScriptProvider(
+                        id: .localServer, window: 4_096, promptTokens: 2_000,
+                        script: script ?? [reply, grounded], log: log)
+                    AgentSession.shared.forgetAllConversations()
+                    agent.setTypedPendingForTesting(nil)
+                    let operation = Task { @MainActor in await agent.handle(request, source: .text) }
+                    let turn = await operation.value
+                    return (turn.reply, log.calls, fixtures.log.calls,
+                            fixtures.summary(for: "meeting.recent_context", arguments: [:]), rounds)
+                }
+                let actual = await run(raw, using: inputs)
+                check("K03 actual consumer omitted requested read or entered write backing",
+                      actual.tools.map(\.toolID) == ["meeting.recent_context"]
+                        && actual.tools.first?.arguments.isEmpty == true
+                        && actual.tools.allSatisfy { $0.risk <= .read })
+                check("K03 actual final provider lost original request or returned meeting evidence",
+                      actual.calls.count == 2 && actual.rounds.first == raw
+                        && actual.calls[1].user.contains("Current user request:\n" + request)
+                        && actual.calls[1].user.contains(actual.result)
+                        && actual.calls[1].user.contains("Sarah said the budget needs a 10% buffer")
+                        && actual.calls[1].grammar == nil)
+                check("K03 actual consumer lost grounded budget answer", actual.reply == grounded)
+                print("TOOLLOOP_PRODUCTION_K03 calls=\(actual.calls.count) reads=\(actual.tools.count)")
+                for reply in ["Which Sarah do you mean?", "Which budget should I look at?",
+                              "You could ask Sarah about the budget.", "I haven't looked at that meeting yet."] {
+                    let unchanged = await run(reply, using: inputs, script: [reply])
+                    check("K03 actual consumer altered clarification/advice: \(reply)",
+                          unchanged.tools.isEmpty && unchanged.calls.count == 1 && unchanged.reply == reply)
+                }
+                var unavailableInputs = inputs
+                unavailableInputs.tools.removeAll { $0.id == "meeting.recent_context" }
+                let unavailableManifest = AgentCapabilityManifestBuilder.build(unavailableInputs, request: request)
+                check("K03 unavailable descriptor fixture still selected default read",
+                      unavailableManifest.entry(named: "meeting.recent_context") == nil)
+                let unavailable = await run(raw, using: unavailableInputs, script: [raw])
+                check("K03 actual consumer invented an unavailable read",
+                      unavailable.tools.isEmpty && unavailable.calls.count == 1 && unavailable.reply == raw)
+                let completed = await run(raw, using: inputs, script: [
+                    #"<tool_call>{"name":"meeting.recent_context","arguments":{}}</tool_call>"#, raw,
+                ])
+                check("K03 actual completed read was repeated by floor",
+                      completed.tools.map(\.toolID) == ["meeting.recent_context"]
+                        && completed.calls.count == 2 && completed.reply == raw)
+            }
+        }
+        // K03 end original consumer block
         print("  TOOLLOOP_PRODUCTION_OFFERED_READ: actual typed consumer, fixture reads")
         return []
     }
