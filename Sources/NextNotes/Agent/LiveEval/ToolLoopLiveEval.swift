@@ -33,6 +33,7 @@ enum ToolLoopLiveEval {
 
     struct Options {
         var model: String?
+        var samplerArm: String?
         var fixtureNow: String?
         var contextTokens: Int?
         var only: [String]?
@@ -86,8 +87,28 @@ enum ToolLoopLiveEval {
         return nil
     }
 
+    private static func samplerFailure(options: Options, arguments: [String]) -> String? {
+        let indices = arguments.indices.filter { arguments[$0] == "--sampler-arm" }
+        guard !indices.isEmpty else { return nil }
+        guard indices.count == 1, let index = indices.first, index + 1 < arguments.count,
+              ["baseline", "minicpm-vendor"].contains(arguments[index + 1]),
+              options.samplerArm == arguments[index + 1] else {
+            return "--sampler-arm requires one baseline or minicpm-vendor value"
+        }
+        guard let model = options.model, !model.isEmpty, !model.hasPrefix("--"),
+              model != "agent", model != "apple",
+              !model.hasPrefix("openrouter:") else {
+            return "--sampler-arm requires an explicit local GGUF --model"
+        }
+        return nil
+    }
+
     static func runSelfTest() async -> Bool {
         let options = parseOptions()
+        if let failure = samplerFailure(options: options, arguments: CommandLine.arguments) {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: \(failure)")
+            return false
+        }
         if let failure = clockFailure(
             options: options, clockRequested: CommandLine.arguments.contains("--fixture-now")) {
             SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: \(failure)")
@@ -140,6 +161,18 @@ enum ToolLoopLiveEval {
         do {
             if resolved.provider.id == .appLLM {
                 try await NotesModelRuntime.shared.prepareForConversation()
+            }
+            if let arm = options.samplerArm {
+                let sampling = NotesModelRuntime.samplerParametersForProcess(
+                    arguments: CommandLine.arguments, requested: SelfTest.requested)
+                let family = await NotesModelRuntime.shared.family
+                guard resolved.provider.id == .appLLM, resolved.artifact != nil, !resolved.isFallback,
+                      sampling.arm == arm,
+                      arm != "minicpm-vendor" || family == .minicpm5 else {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: requested sampler arm is unavailable for this model")
+                    return false
+                }
+                SelfTest.diagnostic("TOOLLOOP_LIVE_SAMPLER: " + sampling.receipt)
             }
             _ = try await resolved.provider.complete(
                 system: "Reply with the single word OK.", user: "Ready?", maxTokens: 4)
@@ -235,6 +268,7 @@ enum ToolLoopLiveEval {
     private static func parseOptions() -> Options {
         var options = Options()
         options.model = SelfTest.value(after: "--model")
+        options.samplerArm = SelfTest.value(after: "--sampler-arm")
         options.fixtureNow = SelfTest.value(after: "--fixture-now")
         options.contextTokens = SelfTest.value(after: "--context-tokens")
             .flatMap(Int.init).flatMap { $0 > 0 ? $0 : nil }
@@ -719,6 +753,7 @@ enum ToolLoopLiveEval {
         var lastRaw: String?
         var rawRounds: [RawRound]
         var modelPin: String?
+        var samplerArm: String?
         var fixtureNow: String?
         var usagePasses: [String]
         var timing: [TurnTiming]
@@ -778,7 +813,7 @@ enum ToolLoopLiveEval {
                     return RawRound(index: index, systemCharacters: system, userCharacters: user,
                         maxTokens: maxTokens, raw: raw, seconds: seconds)
                 },
-                modelPin: options.model, fixtureNow: options.fixtureNow,
+                modelPin: options.model, samplerArm: options.samplerArm, fixtureNow: options.fixtureNow,
                 usagePasses: usage, timing: result.timing, needle: result.needle,
                 process: result.process)
         }
@@ -805,7 +840,50 @@ enum ToolLoopLiveEval {
         if clockFailure(options: options, clockRequested: true) == nil {
             failures.append("unpinned model passed clock preflight")
         }
-        options.model = "apple"
+        options.model = "file:/fixture/MiniCPM5-2B-Q4_K_M.gguf"
+        options.samplerArm = "minicpm-vendor"
+        let requested = "--selftest-toolloop-live"
+        let vendorArgs = [requested, "--sampler-arm", "minicpm-vendor"]
+        let vendor = NotesModelRuntime.samplerParametersForProcess(arguments: vendorArgs, requested: requested)
+        if vendor.arm != "minicpm-vendor" || vendor.temperature != 1 || vendor.topP != 0.95
+            || vendor.minP != 0 || vendor.repeatPenalty != 1.05 || vendor.seed != 0x5EED
+            || vendor.penaltyWindow != 256 {
+            failures.append("explicit vendor process arm did not reach native sampler parameters")
+        }
+        if !vendor.receipt.hasPrefix("arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05 ") {
+            failures.append("vendor receipt differed from actual native sampler parameters")
+        }
+        let baseline = NotesModelRuntime.samplerParametersForProcess(
+            arguments: [requested, "--sampler-arm", "baseline"], requested: requested)
+        if baseline.arm != "baseline" || baseline.temperature != 0.6 || baseline.topP != 0.9
+            || baseline.minP != 0.05 || baseline.repeatPenalty != 1.05
+            || baseline.seed != vendor.seed || baseline.penaltyWindow != vendor.penaltyWindow {
+            failures.append("explicit baseline process arm changed its actual parameters")
+        }
+        for flag in [Optional<String>.none, "--selftest-notes", "--selftest-native-tools"] {
+            let ordinary = NotesModelRuntime.samplerParametersForProcess(arguments: vendorArgs, requested: flag)
+            if ordinary.arm != nil || ordinary.temperature != 0.6 || ordinary.topP != 0.9
+                || ordinary.minP != 0.05 || ordinary.repeatPenalty != 1.05 {
+                failures.append("sampler benchmark arm escaped its explicit live-eval process")
+            }
+        }
+        if samplerFailure(options: options, arguments: vendorArgs) != nil {
+            failures.append("explicit GGUF sampler arm failed preflight")
+        }
+        for (model, arm, args) in [
+            (Optional<String>.none, "minicpm-vendor", vendorArgs),
+            ("agent", "minicpm-vendor", vendorArgs),
+            ("apple", "minicpm-vendor", vendorArgs),
+            ("openrouter:model", "minicpm-vendor", vendorArgs),
+            (options.model, "invalid", [requested, "--sampler-arm", "invalid"]),
+            (options.model, Optional<String>.none, [requested, "--sampler-arm"]),
+            (options.model, "baseline", [requested, "--sampler-arm", "baseline", "--sampler-arm", "baseline"]),
+        ] {
+            var bad = options; bad.model = model; bad.samplerArm = arm
+            if samplerFailure(options: bad, arguments: args) == nil {
+                failures.append("invalid or unpinned sampler modifier passed resolver preflight")
+            }
+        }
         guard let evalCase = LiveEvalCases.caseWithID(id: "C01") else {
             return failures + ["report fixture C01 absent"]
         }
@@ -828,7 +906,8 @@ enum ToolLoopLiveEval {
                 || decoded.rawRounds.map(\.userCharacters) != [45, 78]
                 || decoded.rawRounds.map(\.maxTokens) != [512, 1024]
                 || decoded.rawRounds.map(\.seconds) != [0.25, 0.5]
-                || decoded.modelPin != options.model || decoded.fixtureNow != options.fixtureNow {
+                || decoded.modelPin != options.model || decoded.fixtureNow != options.fixtureNow
+                || decoded.samplerArm != options.samplerArm {
                 failures.append("multi-round Unicode report lost full trace or pins")
             }
             var shortcut = row
@@ -875,6 +954,10 @@ enum ToolLoopLiveEval {
         lines.append("- Mode: \(tag); pass bar \(bar)/\(plannedScored); elapsed "
             + "\(String(format: "%.1f", elapsed))s")
         lines.append("- Needle first: \(options.needleFirst ? "yes" : "no")")
+        if options.samplerArm != nil {
+            lines.append("- Process sampler: `" + NotesModelRuntime.samplerParametersForProcess(
+                arguments: CommandLine.arguments, requested: SelfTest.requested).receipt + "`.")
+        }
         lines.append("- Model pin: `\(options.model ?? "Agent role (unpinned)")`; fixture clock: "
             + "`\(options.fixtureNow ?? "live clock")`; time zone: `\(TimeZone.current.identifier)`.")
         lines.append("- JSONL rawRounds preserves every planner round and its full completion; "

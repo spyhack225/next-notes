@@ -1892,6 +1892,37 @@ actor NotesModelRuntime {
 
     // MARK: - Sampling
 
+    /// Same native sampler values, with an explicit benchmark receipt. No role,
+    /// Settings key or normal-launch override is introduced.
+    struct SamplingParameters: Sendable {
+        let arm: String?
+        let temperature: Float
+        let topP: Float
+        let minP: Float
+        let repeatPenalty: Float
+        let penaltyWindow: Int32
+        let seed: UInt32
+        var receipt: String {
+            String(format: "arm=%@ temperature=%g top_p=%g min_p=%g repeat_penalty=%g seed=%u penalty_window=%d",
+                   arm ?? "none", Double(temperature), Double(topP), Double(minP),
+                   Double(repeatPenalty), seed, penaltyWindow)
+        }
+    }
+
+    static func samplerParametersForProcess(arguments: [String], requested: String?) -> SamplingParameters {
+        let baseline = SamplingParameters(arm: nil, temperature: temperature, topP: topP, minP: minP,
+                                          repeatPenalty: repeatPenalty, penaltyWindow: penaltyWindow, seed: seed)
+        guard requested == "--selftest-toolloop-live",
+              arguments.filter({ $0 == "--sampler-arm" }).count == 1,
+              let index = arguments.firstIndex(of: "--sampler-arm"), index + 1 < arguments.count,
+              ["baseline", "minicpm-vendor"].contains(arguments[index + 1]) else { return baseline }
+        let arm = arguments[index + 1]
+        return SamplingParameters(arm: arm, temperature: arm == "baseline" ? temperature : 1,
+                                  topP: arm == "baseline" ? topP : 0.95,
+                                  minP: arm == "baseline" ? minP : 0,
+                                  repeatPenalty: repeatPenalty, penaltyWindow: penaltyWindow, seed: seed)
+    }
+
     /// Slightly stochastic on purpose. Pure greedy decoding on a 4B model loops on list
     /// items — "Action items" repeating one bullet until the token budget runs out — and the
     /// repetition penalty alone doesn't break the loop. The seed is fixed so that pressing
@@ -1903,6 +1934,11 @@ actor NotesModelRuntime {
     private func makeSampler(
         vocabulary: OpaquePointer, grammar: GBNFGrammar?
     ) throws -> UnsafeMutablePointer<llama_sampler>? {
+        let sampling = Self.samplerParametersForProcess(
+            arguments: CommandLine.arguments, requested: SelfTest.requested)
+        guard sampling.arm != "minicpm-vendor" || family == .minicpm5 else {
+            throw LlamaError.samplerFailed
+        }
         var parameters = llama_sampler_chain_default_params()
         parameters.no_perf = true
         guard let chain = llama_sampler_chain_init(parameters) else { return nil }
@@ -1917,16 +1953,16 @@ actor NotesModelRuntime {
             chain,
             llama_sampler_init_penalties(
                 llama_vocab_n_tokens(vocabulary),
-                Self.penaltyWindow,
-                Self.repeatPenalty,
+                sampling.penaltyWindow,
+                sampling.repeatPenalty,
                 0,
                 0
             )
         )
-        llama_sampler_chain_add(chain, llama_sampler_init_min_p(Self.minP, 1))
-        llama_sampler_chain_add(chain, llama_sampler_init_top_p(Self.topP, 1))
-        llama_sampler_chain_add(chain, llama_sampler_init_temp(Self.temperature))
-        llama_sampler_chain_add(chain, llama_sampler_init_dist(Self.seed))
+        llama_sampler_chain_add(chain, llama_sampler_init_min_p(sampling.minP, 1))
+        llama_sampler_chain_add(chain, llama_sampler_init_top_p(sampling.topP, 1))
+        llama_sampler_chain_add(chain, llama_sampler_init_temp(sampling.temperature))
+        llama_sampler_chain_add(chain, llama_sampler_init_dist(sampling.seed))
         return chain
     }
 

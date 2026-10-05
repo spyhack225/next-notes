@@ -1,0 +1,9 @@
+# Explicit sampler comparison — 2026-10-05
+
+The quick runner already forwarded --sampler-arm, but the native sampler ignored it. The existing sampler now accepts one explicit baseline or minicpm-vendor arm only in the live-eval self-test process. Baseline remains temperature .6/top_p .9/min_p .05; vendor is 1/.95/0. Grammar order, repetition penalty, seed and window are retained. Actual family validation refuses the vendor arm for other models. Thinking remains OFF in both comparison arms; this does not test the withheld role-thinking candidate. Ordinary launches, other tests and saved model/role choices are unchanged.
+
+Focused original eleven ignored-option/preflight/report assertions fail; the byte-identical assertion function passes after the producer repair. Chat-template, model-fit, model-roles and store-isolation pass. Five native negatives reject missing, invalid, duplicate, Apple and loaded non-Mini vendor use; no case runs or sampler receipt on refusal. The corrected reminder assertion was committed separately (be89c65). Initial assertion separator and whole-file fixture-pin wrapper mistakes are retained; no case verdict or threshold changed.
+
+Same tested binary, MiniCPM5-2B-Q4_K_M file, Oct5 09:00 fixture clock and timezone, three runs per arm: baseline **9,10,10/10**, vendor **5,5,4/10**. Every run records one matching native sampler receipt and all ten full raw-round/model/clock/arm rows. This is an experimental comparison, not a default or thinking promotion. F03 wrong file wording, actual video playback, full/owner and voice latency remain open.
+
+Logs, inputs and metadata: `~/Library/Caches/NextNotesBuild/integration/sampler-arm/native-dispatch/`; raw rounds: `~/Library/Caches/NextNotesBuild/quick/minicpm-sampler-{baseline,minicpm-vendor}-20261005/`. Bulk evidence stays outside iCloud.
