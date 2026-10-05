@@ -12,6 +12,8 @@ enum ACPStdioTerminationSelfTest {
         var reply: String?
         var error = ""
         var cancelled = false
+        var cancelReturned = false
+        var notifications = 0
     }
 
     private static func reached(_ condition: @MainActor () -> Bool) async -> Bool {
@@ -31,12 +33,13 @@ enum ACPStdioTerminationSelfTest {
         let script = safeRoot.appendingPathComponent("stdio-terminal-peer.py")
         try peer.write(to: script, atomically: true, encoding: .utf8)
         let ownerBefore = SelfTestStoreGuard.take()
-        for mode in ["final-exit", "pending-exit", "explicit-close", "cancel"] {
+        for mode in ["final-exit", "pending-exit", "explicit-close", "cancel", "task-cancel"] {
             let marker = safeRoot.appendingPathComponent(mode + "-consumed.txt")
             let session = ACPSession()
             let result = Result()
             var prompt: Task<Void, Never>?
             var caught: Error?
+            var requestedTaskCancellation = false
             do {
                 try await session.start(command: AgentStdioFixtures.python,
                     arguments: [script.path, mode, marker.path], directory: safeRoot.path,
@@ -49,7 +52,10 @@ enum ACPStdioTerminationSelfTest {
                     do {
                         let reply = try await withTaskCancellationHandler(operation: {
                             try await session.prompt("Owned fixture: no tools or external effects")
-                        }, onCancel: { Task { await session.cancel() } })
+                        }, onCancel: { Task {
+                            await session.cancel()
+                            if mode == "task-cancel" { await MainActor.run { result.cancelReturned = true } }
+                        } })
                         result.reply = reply
                     } catch {
                         result.error = error.localizedDescription
@@ -61,12 +67,32 @@ enum ACPStdioTerminationSelfTest {
                 guard await reached({ FileManager.default.fileExists(atPath: marker.path) }) else {
                     throw FixtureError.timeout
                 }
+                if mode == "task-cancel" {
+                    let beforeCancel = await session.currentRuntimeObservation()
+                    check(beforeCancel?.pendingRequestCount == 1 && beforeCancel?.transportClosed == false
+                        && beforeCancel?.outputEOF == false && (beforeCancel?.processID ?? 0) > 0,
+                        "ACP task cancellation C01: actual consumed prompt was not pending on the owned peer")
+                }
                 if mode == "explicit-close" {
                     await session.close()
-                } else if mode == "cancel" {
+                } else if mode == "cancel" || mode == "task-cancel" {
+                    requestedTaskCancellation = mode == "task-cancel"
                     prompt?.cancel() // Same cancellation-handler shape as actual backend.
                 }
-                let promptlyFinished = await reached { result.finished }
+                if mode == "task-cancel" {
+                    let acknowledgement = marker.appendingPathExtension("cancel-ack")
+                    guard await reached({ FileManager.default.fileExists(atPath: acknowledgement.path) }) else {
+                        throw FixtureError.timeout
+                    }
+                }
+                let promptlyFinished = await reached { result.finished && (mode != "task-cancel" || result.cancelReturned) }
+                if mode == "task-cancel" {
+                    let afterCancel = await session.currentRuntimeObservation()
+                    check(afterCancel?.pendingRequestCount == 0 && afterCancel?.transportClosed == false
+                        && afterCancel?.outputEOF == false,
+                        "ACP task cancellation F01: cancel acknowledgement left the original prompt pending")
+                    SelfTest.diagnostic("ACP_TASK_CANCEL_TRACE: consumed=true ack=true promptFinished=\(promptlyFinished) completions=\(result.completions) cancelled=\(result.cancelled) pending=\(afterCancel?.pendingRequestCount ?? -1) closed=\(afterCancel?.transportClosed ?? true) eof=\(afterCancel?.outputEOF ?? true)")
+                }
                 if mode == "pending-exit" {
                     // Original transport waits its 90s prompt timeout. Cleanup below
                     // closes that SAME owned client; it never replaces this scenario.
@@ -86,6 +112,11 @@ enum ACPStdioTerminationSelfTest {
             } catch { caught = error }
             await session.close()
             await session.close()
+            if requestedTaskCancellation {
+                // Closing settles the cancel request too. Drain the SAME existing
+                // cancellation callback even when its acknowledgement guard threw.
+                guard await reached({ result.cancelReturned }) else { throw FixtureError.timeout }
+            }
             let joined = await reached { result.finished || prompt == nil }
             check(joined && (prompt == nil || result.completions == 1),
                 "ACP terminal: same owned prompt did not join exactly once after cleanup (\(mode))")
@@ -96,6 +127,86 @@ enum ACPStdioTerminationSelfTest {
             catch { rejectedAfterClose = error.localizedDescription == "ACP session never started." }
             check(rejectedAfterClose && result.completions == 1,
                 "ACP terminal: closed session reused historical handshake as live authority (\(mode))")
+        }
+
+        // SAME shared client, two genuinely pending request IDs. Cancelling one must
+        // not close the transport or settle its unrelated sibling.
+        let siblingMarker = safeRoot.appendingPathComponent("rpc-sibling-consumed.txt")
+        let siblingClient = try JSONRPCStdioClient(command: AgentStdioFixtures.python,
+            arguments: [script.path, "rpc-sibling", siblingMarker.path], directory: safeRoot.path)
+        let cancelledResult = Result(), siblingResult = Result(), preCancelledResult = Result()
+        var siblingOperations: [Task<Void, Never>] = []
+        siblingClient.onNotification { message in
+            if message["method"] == "fixture/notice" {
+                await MainActor.run { siblingResult.notifications += 1 }
+            }
+        }
+        do {
+            let cancelled = Task { @MainActor in
+                do {
+                    _ = try await siblingClient.request(method: "fixture/held")
+                    cancelledResult.reply = "unexpected response"
+                } catch { cancelledResult.cancelled = error is CancellationError; cancelledResult.error = error.localizedDescription }
+                cancelledResult.completions += 1; cancelledResult.finished = true
+            }
+            siblingOperations.append(cancelled) // Before every qualification guard.
+            guard await reached({ FileManager.default.fileExists(atPath: siblingMarker.path) }) else { throw FixtureError.timeout }
+            let sibling = Task { @MainActor in
+                do {
+                    let data = try await siblingClient.request(method: "fixture/sibling")
+                    let payload = try JSONSerialization.jsonObject(with: data) as? [String: Bool]
+                    siblingResult.reply = payload?["ok"] == true ? "ok" : "wrong payload"
+                } catch { siblingResult.error = error.localizedDescription }
+                siblingResult.completions += 1; siblingResult.finished = true
+            }
+            siblingOperations.append(sibling)
+            guard await reached({ FileManager.default.fileExists(atPath: siblingMarker.appendingPathExtension("sibling").path) }) else { throw FixtureError.timeout }
+            let beforeCancel = siblingClient.currentRuntimeObservation()
+            check(beforeCancel?.pendingRequestCount == 2 && beforeCancel?.transportClosed == false,
+                "ACP task cancellation C02: SAME owned transport did not hold distinct prompt and sibling IDs")
+            cancelled.cancel()
+            let finishedAfterCancel = await reached { cancelledResult.finished }
+            let afterCancel = siblingClient.currentRuntimeObservation()
+            check(finishedAfterCancel && cancelledResult.cancelled && cancelledResult.reply == nil
+                && cancelledResult.completions == 1 && afterCancel?.pendingRequestCount == 1,
+                "ACP task cancellation F02: exact cancelled request remained pending")
+            check(!siblingResult.finished && afterCancel?.processID == beforeCancel?.processID
+                && afterCancel?.transportClosed == false && afterCancel?.outputEOF == false,
+                "ACP task cancellation C03: cancelling one ID settled or closed its pending sibling")
+            try siblingClient.notify(method: "fixture/release-sibling")
+            guard await reached({ siblingResult.finished }) else { throw FixtureError.timeout }
+            await sibling.value
+            check(siblingResult.reply == "ok" && siblingResult.error.isEmpty
+                && siblingResult.notifications == 1 && siblingResult.completions == 1,
+                "ACP task cancellation C04: SAME sibling lost its preceding final notification or response")
+
+            // Explicit actor scheduling cancels this SAME operation before its body starts.
+            // The production lock guard separately handles cancellation after the early check.
+            let preCancelled = Task { @MainActor in
+                do {
+                    _ = try await siblingClient.request(method: "fixture/pre-cancel")
+                    preCancelledResult.reply = "unexpected response"
+                } catch { preCancelledResult.cancelled = error is CancellationError }
+                preCancelledResult.completions += 1; preCancelledResult.finished = true
+            }
+            siblingOperations.append(preCancelled); preCancelled.cancel()
+            guard await reached({ preCancelledResult.finished }) else { throw FixtureError.timeout }
+            await preCancelled.value
+            check(preCancelledResult.cancelled && preCancelledResult.completions == 1
+                && !FileManager.default.fileExists(atPath: siblingMarker.appendingPathExtension("pre-cancel").path),
+                "ACP task cancellation F03: pre-cancelled operation registered or wrote a request")
+            siblingClient.close(); siblingClient.close()
+            for operation in siblingOperations { await operation.value }
+            check(cancelledResult.completions == 1 && siblingResult.completions == 1
+                && preCancelledResult.completions == 1 && siblingClient.currentRuntimeObservation()?.pendingRequestCount == 0,
+                "ACP task cancellation C05: close/response/cancel settled an owned request twice")
+            SelfTest.diagnostic("ACP_PENDING_CANCEL_TRACE: before=\(beforeCancel?.pendingRequestCount ?? -1) after=\(afterCancel?.pendingRequestCount ?? -1) cancelled=\(cancelledResult.cancelled) siblingCompletions=\(siblingResult.completions) notifications=\(siblingResult.notifications) preCancelled=\(preCancelledResult.cancelled)")
+        } catch {
+            // No returned tuple/root removal while a retained actual request remains unjoined.
+            for operation in siblingOperations { operation.cancel() }
+            siblingClient.close()
+            for operation in siblingOperations { await operation.value }
+            throw error
         }
 
         // Shared producer's final-response/EOF/explicit-close/short-timeout race.
@@ -114,13 +225,26 @@ enum ACPStdioTerminationSelfTest {
             result.completions += 1
             result.finished = true
         }
+        func traceFinalRPC(_ stage: String) {
+            let errorKind: String
+            switch result.error {
+            case "": errorKind = "none"
+            case "JSON-RPC fixture/request timed out.": errorKind = "timeout"
+            case "The connection ended before a reply arrived.": errorKind = "eof"
+            case "Session closed.": errorKind = "closed"
+            default: errorKind = "other"
+            }
+            SelfTest.diagnostic("ACP_FINAL_RPC_TRACE: stage=\(stage) finished=\(result.finished) completions=\(result.completions) replyPresent=\(result.reply != nil) replyOK=\(result.reply == "ok") errorKind=\(errorKind)")
+        }
         let finished = await reached { result.finished }
+        traceFinalRPC("before-check")
         check(finished && result.reply == "ok" && result.error.isEmpty,
             "ACP terminal: shared transport lost final response/EOF control")
         client.close()
         client.close()
         if await reached({ result.finished }) { await request.value }
         try await Task.sleep(for: .milliseconds(300))
+        traceFinalRPC("after-cleanup")
         check(result.completions == 1 && result.reply == "ok",
             "ACP terminal: late timeout/EOF/close completed the same request twice")
         var closedRefused = false
@@ -136,6 +260,7 @@ enum ACPStdioTerminationSelfTest {
         import json, pathlib, sys
         mode, marker = sys.argv[1:]
         waiting = None
+        sibling = None
         def send(value):
             sys.stdout.write(json.dumps(value) + "\\n")
             sys.stdout.flush()
@@ -159,9 +284,25 @@ enum ACPStdioTerminationSelfTest {
                 waiting = mid
             elif method == "session/cancel":
                 send({"jsonrpc":"2.0","id":mid,"result":{}})
-                if waiting is not None:
+                if mode == "task-cancel":
+                    pathlib.Path(marker + ".cancel-ack").write_text("cancel acknowledged")
+                elif waiting is not None:
                     send({"jsonrpc":"2.0","id":waiting,"result":{"stopReason":"cancelled"}})
                     waiting = None
+            elif method == "fixture/held":
+                waiting = mid
+                pathlib.Path(marker).write_text("consumed held request")
+            elif method == "fixture/sibling":
+                sibling = mid
+                pathlib.Path(marker + ".sibling").write_text("consumed sibling request")
+            elif method == "fixture/release-sibling":
+                assert sibling is not None
+                send({"jsonrpc":"2.0","method":"fixture/notice","params":{"text":"Owned sibling notice"}})
+                send({"jsonrpc":"2.0","id":sibling,"result":{"ok":True}})
+                sibling = None
+            elif method == "fixture/pre-cancel":
+                pathlib.Path(marker + ".pre-cancel").write_text("consumed pre-cancel request")
+                send({"jsonrpc":"2.0","id":mid,"result":{}})
             elif method == "fixture/request":
                 pathlib.Path(marker).write_text("consumed request")
                 send({"jsonrpc":"2.0","id":mid,"result":{"ok":True}})

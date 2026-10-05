@@ -110,34 +110,44 @@ final class JSONRPCStdioClient: @unchecked Sendable {
             nextID += 1
             return value
         }
-        return try await withCheckedThrowingContinuation { continuation in
-            lock.lock()
-            guard !closed else {
+        return try await withTaskCancellationHandler(operation: {
+            try Task.checkCancellation()
+            return try await withCheckedThrowingContinuation { continuation in
+                lock.lock()
+                guard !Task.isCancelled else {
+                    lock.unlock()
+                    continuation.resume(throwing: CancellationError())
+                    return
+                }
+                guard !closed else {
+                    lock.unlock()
+                    continuation.resume(throwing: JSONRPCError(message: "Session closed."))
+                    return
+                }
+                pending[id] = continuation
                 lock.unlock()
-                continuation.resume(throwing: JSONRPCError(message: "Session closed."))
-                return
+                do {
+                    // Register before writing. A local stdio peer can answer synchronously;
+                    // writing first lets its response race the pending-table insertion and
+                    // leaves the request waiting for the timeout despite a valid reply.
+                    try write([
+                        "jsonrpc": "2.0",
+                        "id": id,
+                        "method": method,
+                        "params": params,
+                    ])
+                } catch {
+                    let failed = lock.withLock { pending.removeValue(forKey: id) }
+                    failed?.resume(throwing: error)
+                    return
+                }
+                DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { [weak self] in
+                    self?.fail(id, JSONRPCError(message: "JSON-RPC \(method) timed out."))
+                }
             }
-            pending[id] = continuation
-            lock.unlock()
-            do {
-                // Register before writing. A local stdio peer can answer synchronously;
-                // writing first lets its response race the pending-table insertion and
-                // leaves the request waiting for the timeout despite a valid reply.
-                try write([
-                    "jsonrpc": "2.0",
-                    "id": id,
-                    "method": method,
-                    "params": params,
-                ])
-            } catch {
-                let failed = lock.withLock { pending.removeValue(forKey: id) }
-                failed?.resume(throwing: error)
-                return
-            }
-            DispatchQueue.global().asyncAfter(deadline: .now() + timeout) { [weak self] in
-                self?.fail(id, JSONRPCError(message: "JSON-RPC \(method) timed out."))
-            }
-        }
+        }, onCancel: {
+            self.fail(id, CancellationError())
+        })
     }
 
     func notify(method: String, params: [String: Any] = [:]) throws {
