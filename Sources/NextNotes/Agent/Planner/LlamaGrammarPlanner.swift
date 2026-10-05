@@ -38,7 +38,8 @@ struct LlamaGrammarPlanner: AgentPlannerBackend {
     /// Built with `GBNFSchema` so the shape the sampler enforces and the shape the loop decodes
     /// cannot drift; the only part composed here is the tag wrapper, which is not JSON at all.
     static func grammar(
-        for manifest: AgentCapabilityManifest, maxCalls: Int = 3, maxTokens: Int = 256
+        for manifest: AgentCapabilityManifest, maxCalls: Int = 3, maxTokens: Int = 256,
+        requireCall: Bool = false
     ) -> GBNFGrammar {
         let entries = manifest.selected
         return GBNFGrammar.composed { builder in
@@ -57,7 +58,7 @@ struct LlamaGrammarPlanner: AgentPlannerBackend {
             builder.add("call", "\(open) ws \(body) ws \(close)")
             let more = max(0, maxCalls - 1)
             builder.add("calls", "call\(more > 0 ? " (ws call){0,\(more)}" : "")")
-            return "\(answer) | calls"
+            return requireCall ? "calls" : "\(answer) | calls"
         }
     }
 

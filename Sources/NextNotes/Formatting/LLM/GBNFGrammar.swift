@@ -153,7 +153,8 @@ struct GBNFBuilder {
         switch schema {
         case .string(let maxLength):
             let rule = "str\(max(1, maxLength))"
-            add(rule, "\"\\\"\" char{0,\(max(1, maxLength))} \"\\\"\"")
+            let content = Self.finiteRepetition("char", maximum: max(1, maxLength))
+            add(rule, "\"\\\"\" \(content) \"\\\"\"")
             return rule
         case .integer:
             return "int"
@@ -203,9 +204,25 @@ struct GBNFBuilder {
             // the JSON the rest of this file describes.
             let limit = max(1, maxCharacters)
             let rule = sanitized(name) + "-free"
-            add(rule, "[^<{\\[\\x00-\\x20] [^\\x00]{0,\(limit - 1)}")
+            let tail = Self.finiteRepetition("[^\\x00]", maximum: limit - 1)
+            add(rule, "[^<{\\[\\x00-\\x20] \(tail)")
             return rule
         }
+    }
+
+    /// b10621 rejects repetitions at 2,000 and makes larger maxima unbounded.
+    /// A longer branch consumes an exact prefix before its bounded tail. Adjacent
+    /// optional ranges would create many equivalent splits for the same content.
+    private static func finiteRepetition(_ atom: String, maximum: Int) -> String {
+        let chunk = 1_999
+        var remaining = maximum
+        while remaining > chunk { remaining -= chunk }
+        var bounded = "\(atom){0,\(remaining)}"
+        while remaining < maximum {
+            bounded = "(\(atom){0,\(chunk)} | \(atom){\(chunk)} \(bounded))"
+            remaining += chunk
+        }
+        return bounded
     }
 
     private mutating func addTerminals() {

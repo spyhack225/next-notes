@@ -79,6 +79,14 @@ struct LlamaLLMProvider: LLMProvider {
         )
     }
 
+    func stream(
+        system: String, user: String, maxTokens: Int, grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error> {
+        await runtime.streamConversation(
+            system: system, messages: [.init(role: .user, content: user)],
+            maxTokens: maxTokens, grammar: grammar)
+    }
+
     func streamConversation(
         system: String,
         messages: [LLMChatMessage],

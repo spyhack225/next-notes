@@ -120,6 +120,20 @@ protocol LLMProvider: Sendable {
         maxTokens: Int
     ) async -> AsyncThrowingStream<String, Error>
 
+    /// Grammar streams must be protocol requirements: the planner holds an existential
+    /// provider, so extension-only overloads would silently choose the unconstrained defaults.
+    func stream(
+        system: String, user: String, maxTokens: Int, grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error>
+
+    func streamConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int, grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error>
+
+    func streamInteractiveConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int, grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error>
+
     /// Whether this provider can take a structured `tools` array and return calls as calls.
     ///
     /// A provider that cannot has to be asked for a call in prose instead, so this is a

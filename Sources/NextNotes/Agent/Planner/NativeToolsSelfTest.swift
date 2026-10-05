@@ -1,4 +1,7 @@
 import Foundation
+#if canImport(LlamaFramework)
+import LlamaFramework
+#endif
 
 /// Constrained tool calling, checked.
 ///
@@ -396,6 +399,114 @@ enum NativeToolsSelfTest {
         }
         #endif
 
+        // The real planner retains any LLMProvider. All three existing request shapes
+        // must dispatch to its grammar witness, not an extension default that drops it.
+        let dispatchPrompt = "what's on my calendar tomorrow"
+        let dispatchSystem = "Fixture grammar forwarding"
+        let observedXML = "<function name=\"get_agenda\"><param name=\"date\">2026-10-06</param></function>"
+        check("observed XML is outside the requested grammar", !grammar.matches(observedXML),
+              "the observed unconstrained calendar form unexpectedly matched Hermes grammar")
+        let dispatchCases: [(String, [LLMChatMessage], Bool)] = [
+            ("single", [.init(role: .user, content: dispatchPrompt)], false),
+            ("conversation", [.init(role: .user, content: dispatchPrompt),
+                              .init(role: .assistant, content: "Which date?")], false),
+            ("interactive", [.init(role: .user, content: dispatchPrompt)], true),
+        ]
+        for (route, messages, interactive) in dispatchCases {
+            let probe = GrammarDispatchProbe()
+            let provider: any LLMProvider = GrammarDispatchProvider(probe: probe, unconstrained: observedXML)
+            do {
+                let round = try await LlamaGrammarPlanner(provider: provider, grammar: grammar).round(
+                    system: dispatchSystem, messages: messages, manifest: manifest,
+                    maxTokens: 128, interactive: interactive) { _ in }
+                let captured = await probe.calls
+                check("grammar dispatch \(route)", captured.count == 1
+                        && captured.first?.route == "grammar." + route
+                        && captured.first?.grammar == grammar
+                        && captured.first?.system == dispatchSystem
+                        && captured.first?.messages.map(\.content) == messages.map(\.content)
+                        && captured.first?.messages.map { $0.role.rawValue } == messages.map { $0.role.rawValue }
+                        && captured.first?.maxTokens == 128,
+                      "the actual planner did not forward its exact grammar/request to the provider witness")
+                check("grammar dispatch round \(route)", round.raw == "Constrained fixture."
+                        && !round.cutOff && grammar.matches(round.raw),
+                      "the consumer received the unconstrained extension result")
+            } catch {
+                check("grammar dispatch \(route)", false, error.localizedDescription)
+            }
+        }
+
+        // Finite schema bounds must survive the native parser as well as the matcher.
+        for limit in [240, 1_999, 2_000, 2_001] {
+            let bounded = GBNFGrammar.json(.string(maxLength: limit))
+            func quoted(_ text: String) -> String {
+                String(decoding: try! JSONEncoder().encode(text), as: UTF8.self)
+            }
+            check("string empty \(limit)", bounded.matches(quoted("")),
+                  "the original string schema must still allow empty content")
+            check("string exact bound \(limit)",
+                  bounded.matches(quoted(String(repeating: "a", count: limit))),
+                  "the schema's exact maximum must remain permitted")
+            check("string over bound \(limit)",
+                  !bounded.matches(quoted(String(repeating: "a", count: limit + 1))),
+                  "the finite maximum must not become unbounded")
+            let escaped = String(repeating: "a", count: limit - 2) + "\\\""
+            check("string escaped exact bound \(limit)", bounded.matches(quoted(escaped)),
+                  "backslash and quote remain two characters at the original exact bound")
+            check("string escaped over bound \(limit)", !bounded.matches(quoted(escaped + "b")),
+                  "escaped characters must not bypass the finite maximum")
+            check("string incomplete \(limit)", !bounded.matches("\"unfinished"),
+                  "a partial quoted string must remain incomplete")
+            #if canImport(LlamaFramework)
+            let nativeParser = llama_sampler_init_grammar(nil, bounded.text, bounded.root)
+            check("native bounded string parse \(limit)", nativeParser != nil,
+                  "the emitted string grammar is rejected by the bundled parser")
+            if let nativeParser { llama_sampler_free(nativeParser) }
+            #endif
+        }
+
+        func losesNativeFiniteBound(_ node: GBNFNode) -> Bool {
+            switch node {
+            case .repetition(let inner, _, let high):
+                return high == nil || high! >= 2_000 || losesNativeFiniteBound(inner)
+            case .sequence(let items), .alternation(let items):
+                return items.contains(where: losesNativeFiniteBound)
+            default: return false
+            }
+        }
+        for limit in [1, 2_048, 4_096] {
+            let prose = GBNFGrammar.composed { builder in
+                builder.rule(for: .freeText(maxCharacters: limit), name: "answer")
+            }
+            let parsed = try? GBNFParser.parse(prose.text)
+            check("free text native finite bound \(limit)", parsed != nil
+                && !parsed!.rules.values.contains(where: losesNativeFiniteBound),
+                "b10621 must not reject the repetition or silently discard its upper bound")
+            check("free text nonempty \(limit)", !prose.matches(""),
+                  "empty text must not become an answer")
+            let exact = String(repeating: "a", count: limit)
+            check("free text exact bound \(limit)", prose.matches(exact),
+                  "the declared character maximum must remain allowed")
+            check("free text over bound \(limit)", !prose.matches(exact + "b"),
+                  "the declared character maximum must remain finite")
+            for prefix in ["<", "{", "[", " ", "\n", "\u{0000}"] {
+                check("free text first character \(limit)", !prose.matches(prefix + "a"),
+                      "a call prefix, whitespace or NUL must not start an answer")
+            }
+            if limit > 1 {
+                check("free text interior characters \(limit)", prose.matches("a\n"),
+                      "the existing free tail must continue accepting non-NUL characters")
+                check("free text interior NUL \(limit)", !prose.matches("a\u{0000}"),
+                      "NUL must remain excluded from the tail")
+            }
+            #if canImport(LlamaFramework)
+            let nativeParser = llama_sampler_init_grammar(nil, prose.text, prose.root)
+            check("native free text parse \(limit)", nativeParser != nil,
+                  "the bounded free-text grammar must initialize through the bundled parser")
+            if let nativeParser { llama_sampler_free(nativeParser) }
+            #endif
+        }
+
         // MARK: 7 — the live halves
         await liveCases(manifest: manifest, inputs: inputs, outcome: &outcome)
         return outcome
@@ -417,7 +528,24 @@ enum NativeToolsSelfTest {
         ]
         // llama first: it is the reader the Agent role resolves to on this Mac, and a
         // constraint that has never been run against a real sampler is a comment.
-        let llama = LlamaLLMProvider(modelName: InstalledModelLibrary.shared.activeModel?.displayName)
+        let llama: LlamaLLMProvider
+        if let pin = SelfTest.value(after: "--model") {
+            guard let resolved = await ToolLoopLiveEval.resolveModel(argument: pin, allowCloud: false),
+                  !resolved.isFallback, let local = resolved.provider as? LlamaLLMProvider else {
+                outcome.problems.append("llama: explicit local model pin could not be resolved")
+                return
+            }
+            let actual = await local.runtime.activeSpec()
+            guard let artifact = resolved.artifact, actual.fileURL == artifact.fileURL else {
+                outcome.problems.append("llama: explicit pin differs from the runtime's actual model")
+                return
+            }
+            llama = local
+        } else {
+            llama = LlamaLLMProvider(modelName: InstalledModelLibrary.shared.activeModel?.displayName)
+        }
+        let actualSpec = await llama.runtime.activeSpec()
+        SelfTest.diagnostic("NATIVE_TOOLS_LOCAL_MODEL: \(actualSpec.displayName) file=\(actualSpec.fileURL.path)")
         if await llama.unavailableReason == nil {
             // One manifest per prompt, built the way a real turn builds it: the request ranks
             // the catalogue, so "remind me at 9" is a turn whose schema carries `schedule.*`
@@ -479,6 +607,22 @@ enum NativeToolsSelfTest {
                 } catch {
                     unoffered.append("\(prompt.prefix(18)) threw \(error.localizedDescription)")
                 }
+            }
+            let requiredManifest = AgentCapabilityManifestBuilder.build(
+                inputs, request: prompts[0].0, previousRequest: nil, maxRisk: .send)
+            let requiredGrammar = LlamaGrammarPlanner.grammar(
+                for: requiredManifest, maxCalls: 1, maxTokens: 128, requireCall: true)
+            do {
+                let required = try await LlamaGrammarPlanner(provider: llama, grammar: requiredGrammar).round(
+                    system: RealtimeAgent.plannerSystem(manifest: requiredManifest, voice: false, request: prompts[0].0),
+                    messages: [.init(role: .user, content: prompts[0].0)],
+                    manifest: requiredManifest, maxTokens: 128, interactive: false) { _ in }
+                let positive = requiredGrammar.matches(required.raw) && required.calls.count == 1
+                    && required.calls.allSatisfy { requiredManifest.selectedIDs.contains($0.name) }
+                SelfTest.diagnostic("NATIVE_TOOLS_REQUIRED_CALL: \(positive ? "PASS" : "FAILED") raw=\(required.raw)")
+                if !positive { outcome.problems.append("llama: mandatory-call mode did not emit one selected valid call") }
+            } catch {
+                outcome.problems.append("llama: mandatory-call mode threw \(error.localizedDescription)")
             }
             SelfTest.diagnostic(
                 "NATIVE_TOOLS_LLAMA: \(valid)/\(prompts.count) grammar-valid, "
@@ -571,6 +715,63 @@ enum NativeToolsSelfTest {
     }
 
     // MARK: - Fixtures and helpers
+
+    private struct GrammarDispatchCall: Sendable {
+        let route: String
+        let system: String
+        let messages: [LLMChatMessage]
+        let maxTokens: Int
+        let grammar: GBNFGrammar?
+    }
+
+    private actor GrammarDispatchProbe {
+        private(set) var calls: [GrammarDispatchCall] = []
+        func record(_ call: GrammarDispatchCall) { calls.append(call) }
+    }
+
+    /// Only records the actual planner's provider hop. It never loads a model or tool.
+    private struct GrammarDispatchProvider: LLMProvider {
+        let probe: GrammarDispatchProbe
+        let unconstrained: String
+        let id = LLMProviderID.appLLM
+        var contextTokens: Int { 4_096 }
+        var unavailableReason: String? { get async { nil } }
+        var enforcesGrammar: Bool { true }
+        func countTokens(_ text: String) async throws -> Int { text.count }
+        func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+            throw CancellationError() // This regression must enter the existing stream path.
+        }
+        private func recorded(
+            _ route: String, system: String, messages: [LLMChatMessage], maxTokens: Int,
+            grammar: GBNFGrammar? = nil
+        ) async -> AsyncThrowingStream<String, Error> {
+            await probe.record(.init(route: route, system: system, messages: messages,
+                                     maxTokens: maxTokens, grammar: grammar))
+            let text = grammar == nil ? unconstrained : "Constrained fixture."
+            return AsyncThrowingStream { continuation in
+                continuation.yield(text)
+                continuation.finish()
+            }
+        }
+        func stream(system: String, user: String, maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
+            await recorded("plain.single", system: system, messages: [.init(role: .user, content: user)], maxTokens: maxTokens)
+        }
+        func streamConversation(system: String, messages: [LLMChatMessage], maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
+            await recorded("plain.conversation", system: system, messages: messages, maxTokens: maxTokens)
+        }
+        func streamInteractiveConversation(system: String, messages: [LLMChatMessage], maxTokens: Int) async -> AsyncThrowingStream<String, Error> {
+            await recorded("plain.interactive", system: system, messages: messages, maxTokens: maxTokens)
+        }
+        func stream(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async -> AsyncThrowingStream<String, Error> {
+            await recorded("grammar.single", system: system, messages: [.init(role: .user, content: user)], maxTokens: maxTokens, grammar: grammar)
+        }
+        func streamConversation(system: String, messages: [LLMChatMessage], maxTokens: Int, grammar: GBNFGrammar) async -> AsyncThrowingStream<String, Error> {
+            await recorded("grammar.conversation", system: system, messages: messages, maxTokens: maxTokens, grammar: grammar)
+        }
+        func streamInteractiveConversation(system: String, messages: [LLMChatMessage], maxTokens: Int, grammar: GBNFGrammar) async -> AsyncThrowingStream<String, Error> {
+            await recorded("grammar.interactive", system: system, messages: messages, maxTokens: maxTokens, grammar: grammar)
+        }
+    }
 
     /// A `ToolStepExecuting` that records what it was asked and runs nothing.
     ///
