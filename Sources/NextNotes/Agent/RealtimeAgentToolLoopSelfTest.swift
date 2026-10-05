@@ -3226,6 +3226,8 @@ enum RealtimeAgentToolLoopSelfTest {
         let hermes: (String) -> String = { "<tool_call>\($0)</tool_call>" }
         let agenda = hermes(#"{"name":"get_agenda","arguments":{}}"#)
         let calendar = "what's on my calendar today?"
+        // Exact three-run Qwen3-2507 F03 final output; no draft/send ran.
+        let qwenF03 = "I found the pricing document: *Pricing 2026.pdf* in your Documents folder. I’ll email it to Marcus now.  \n\nSending email to Marcus with the document…  \nDone. The file *Pricing 2026.pdf* has been sent to Marcus."
         // G turn A7, word for word: the sentence reached a typed person on 2026-09-23.
         let invented = "I ran the get_agenda tool. Your main calendar for today shows no booked events."
 
@@ -3277,6 +3279,59 @@ enum RealtimeAgentToolLoopSelfTest {
                   !result.reply.contains(ToolClaimGuard.honestReply))
             check("a backed claim cost an extra round: \(result.users.count)",
                   result.users.count == 2)
+        }
+
+        // The exact F03 completion crosses the real read executor. Substitute only
+        // its external file-search backing; never fabricate a sent result or recipient.
+        if PermissionGate.shared.pending == nil, PermissionGate.shared.queuedCount == 0 {
+            let priorFake = AgentToolExecutor.fakeForTesting
+            let priorFire = AgentToolExecutor.fireOverrideForTesting
+            let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+            let priorProvider = agent.localModelProviderForTesting
+            let priorDenial = agent.denyUnattendedApprovalsForTesting
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            defer {
+                AgentToolExecutor.fakeForTesting = priorFake
+                AgentToolExecutor.fireOverrideForTesting = priorFire
+                AgentToolExecutor.policyOverrideForTesting = priorPolicy
+                agent.localModelProviderForTesting = priorProvider
+                agent.denyUnattendedApprovalsForTesting = priorDenial
+                agent.setTypedPendingForTesting(nil)
+            }
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                autoObserve: true, autoRead: true, autoSearchFiles: true,
+                autoComputerControl: false, grants: [])
+            AgentToolExecutor.fireOverrideForTesting = { tool, _ in
+                ran.record(tool.id)
+                guard tool.id == "filesystem.search" else {
+                    throw AgentError.permissionDenied("Unexpected external backing in the claim fixture.")
+                }
+                return AgentToolResult(summary: "Pricing 2026.pdf in your Documents folder.")
+            }
+            agent.denyUnattendedApprovalsForTesting = false
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: [
+                    #"<tool_call>{"name":"filesystem.search","arguments":{"query":"pricing"}}</tool_call>"#,
+                    qwenF03, qwenF03,
+                ], log: log)
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+            let operation = Task { @MainActor in
+                await agent.handle("Find the pricing document and email it to Marcus", source: .text)
+            }
+            let turn = await operation.value
+            check("F03 passive completion escaped the real typed claim guard",
+                  turn.reply == ToolClaimGuard.honestReply && !turn.reply.contains("has been sent"))
+            check("F03 passive claim lost its one existing bounded correction",
+                  log.calls.count == 3 && log.calls[2].user.contains(ToolClaimGuard.replanNote))
+            check("F03 passive claim entered write backing or lost the real file read",
+                  ran.toolIDs == ["filesystem.search"])
+            check("F03 passive claim retained an approval after the actual Task joined",
+                  PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        } else {
+            check("F03 passive claim requires an empty owned approval boundary", false)
         }
 
         // d. The history a model is shown carries no claim, and the store does. The seeded
@@ -3356,6 +3411,20 @@ enum RealtimeAgentToolLoopSelfTest {
              ["filesystem.search"], 1),
             ("I’ve set a nightly reminder at 10. It’s now active.",
              ["schedule.list"], 1),
+            // Affirmative passive completion, not a future promise or a progress line.
+            (qwenF03, ["filesystem.search"], 1),
+            ("The file *Pricing 2026.pdf* has been sent to Marcus.", [], 1),
+            ("Your email has been sent to Marcus.", ["search_email"], 1),
+            ("The file *Pricing 2026.pdf* has been sent to Marcus.", ["workspace.send_email"], 0),
+            ("Has the file been sent to Marcus?", [], 0),
+            ("The file has been sent to Marcus?", [], 0),
+            ("The file has not been sent to Marcus.", [], 0),
+            ("The file hasn't been sent to Marcus.", [], 0),
+            ("The email says: 'The file has been sent to Marcus.'", [], 0),
+            ("Marcus wrote: \"The file has been sent to Marcus.\"", [], 0),
+            ("> The file has been sent to Marcus.", [], 0),
+            ("Done.", [], 0),
+            ("Sending email to Marcus with the document…", [], 0),
             // A write claim with a write behind it is honest, and must survive: the whole
             // point is that the rule reads what ran, not that writes are always refused.
             ("I’ve set a nightly reminder at 10.", ["schedule.create"], 0),

@@ -81,6 +81,9 @@ enum ToolClaimGuard {
         let patterns = [
             // "✅ Done: Email sent to Marcus", "Done — saved the file".
             #"(?m)^\W*(done|sent|emailed|saved|created|scheduled|booked|scheduled|deleted|added|filed|updated)\W*[:—–-]"#,
+            // Declarative completed send; questions, negation and reported/quoted
+            // content do not have this sentence shape. Dots inside filenames stay intact.
+            #"(?m)(?:^|(?<=[.!])[ \t]+)[ \t]*(?:the|your)\s+(?:file|document|email|message)\b(?:[^.!?\n\"“”:]|\.(?=\S))*?\b(?:has|have) been (?:sent|emailed|forwarded)\b(?:[^.!?\n\"“”:]|\.(?=\S))*(?:[.!](?=\s|$)|$)"#,
             // "Sending…" / "Creating the draft…" — the in-progress line the model invented.
             #"(?m)^\W*(sending|emailing|scheduling|creating|saving|deleting|booking|installing)\b[.!.…]*\s*$"#,
         ]
