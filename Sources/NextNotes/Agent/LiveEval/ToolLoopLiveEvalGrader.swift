@@ -533,7 +533,10 @@ enum LiveEvalGrader {
                reply: reminderOffer, request: reminder.turns[0],
                allowedIDs: ["schedule.create"], origin: .typedOffer, sessionID: nil) {
             let confirmed = pending.confirmedPrompt(acknowledgment: "okay")
-            if !confirmed.contains(reminder.turns[0]) || !confirmed.contains(reminderOffer)
+            let reminderQuestion = "Should I set it every night at 10 PM to remind you to put the book out?"
+            if pending.question != reminderQuestion || !confirmed.contains(reminder.turns[0])
+                || !confirmed.contains("You then asked: " + reminderQuestion)
+                || confirmed.contains("You then asked: " + reminderOffer)
                 || !confirmed.contains("The user answered: okay") {
                 SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: reminder confirmation lost the offer or request")
                 misclassified += 1
