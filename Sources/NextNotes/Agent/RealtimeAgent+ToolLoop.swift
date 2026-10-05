@@ -1736,6 +1736,12 @@ extension RealtimeAgent {
                 try? await finalProvider.complete(
                     system: finalSystem, user: finalUser, maxTokens: visible)
             } ?? nil
+            if let completion {
+                plannerTraceForTesting?(.round(
+                    index: rounds + 1, systemCharacters: finalSystem.count,
+                    userCharacters: finalUser.count, maxTokens: visible,
+                    raw: completion.text, seconds: completion.duration))
+            }
             let cutOff = completion?.finishedByLimit == true
             // A model that emits a call anyway keeps its prose and loses the call.
             let prose = completion.map { AgentToolCallParser.parse($0.text, knownNames: []).prose } ?? ""

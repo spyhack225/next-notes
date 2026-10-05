@@ -1,0 +1,3 @@
+# Live evaluation completion trace
+
+The existing final-answer round omitted its provider completion from plannerTraceForTesting. The unchanged actual offered-read consumer regression fails four trace assertions before repair and passes after the existing callback records the same raw completion and provider duration. No new timer, model pass or owner data capture. Native malformed-round metadata also preserves exact raw output; cutOff is not labeled a native token-cap reason. Focused production-toolloop, capability-manifest, tool-review and store-isolation pass. External logs: ~/Library/Caches/NextNotesBuild/integration/promise/draft-{red,fixed-*}.log. Full quick quality and native grammar sampling remain open.

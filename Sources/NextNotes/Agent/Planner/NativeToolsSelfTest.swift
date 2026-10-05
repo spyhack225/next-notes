@@ -449,7 +449,22 @@ enum NativeToolsSelfTest {
                             manifest: turnManifest, voice: false, request: prompt),
                         messages: [.init(role: .user, content: prompt)],
                         manifest: turnManifest, maxTokens: 128, interactive: false) { _ in }
-                    if grammar.matches(round.raw) { valid += 1 }
+                    if grammar.matches(round.raw) {
+                        valid += 1
+                    } else {
+                        // The stream API exposes no native stop reason. cutOff is the
+                        // planner's grammar-derived flag, not proof of a token-cap hit.
+                        let diagnostic: [String: Any] = [
+                            "prompt": prompt, "raw": round.raw, "maxTokens": 128,
+                            "cutOff": round.cutOff, "calls": round.calls.map(\.name),
+                            "reason": "grammar_mismatch_after_stream_return",
+                            "nativeStopReason": "not_exposed_by_stream",
+                        ]
+                        if let data = try? JSONSerialization.data(withJSONObject: diagnostic, options: [.sortedKeys]),
+                           let json = String(data: data, encoding: .utf8) {
+                            SelfTest.diagnostic("NATIVE_TOOLS_LLAMA_MALFORMED: \(json)")
+                        }
+                    }
                     let names = round.calls.map(\.name)
                     if !names.isEmpty { called += 1 }
                     for name in names where !turnManifest.selectedIDs.contains(name) {
