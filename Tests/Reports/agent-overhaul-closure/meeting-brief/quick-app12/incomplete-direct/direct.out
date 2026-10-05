@@ -1,5 +1,0 @@
-TOOLLOOP_LIVE_MODEL: appLLM "Gemma 4 E4B" ctx=32768 role=cloud FALLBACK
-TOOLLOOP_LIVE_CASE C01 PASS 15.8s turns=1 tools=get_agenda(date=2026-10-01) reply="You have Standup at 9:30, Budget review with Ana at 2:00 PM, and a call with Marcus about pricing at 4:30 PM today."
-TOOLLOOP_LIVE_CASE C04 PASS 20.5s turns=1 tools=search_email(maxResults=5) get_agenda(date=2026-10-02) reply="This takes a few steps on this Mac.  I see you want a summary of your recent emails and what's on your calendar for tomorrow.  Your last emails mention a dinner"
-TOOLLOOP_LIVE_CASE M03 REFUSAL 3.3s turns=1 tools=- reply="I can check your last emails for you. Should I just show you the most recent ones?"
-TOOLLOOP_LIVE_CASE M04 MISSED_TOOL 4.4s turns=1 tools=- reply="I can draft that email for you. What should the subject line be?"

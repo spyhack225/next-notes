@@ -1,3 +1,0 @@
-The mutable off-source Source draft preserves the existing executor, permission and task boundaries and fixes the two identified harness/API defects. New approval evidence excludes old raw transcript/schedule descriptors while retaining their original intent/receipt/trigger behavior. The author still needs actual legacy canary proof and malformed date controls.
-
-There is no frozen fixture or native verdict yet. This review supports continued preparation, not Source mounting or P6-02b completion. Actual Workspace calls must run through the existing executor and CLI injection; tests must distinguish authorized old read output from new metadata privacy. Based on UI and normal typed Manager-to-Runner ownership remain open.

@@ -1,6 +1,0 @@
-{
-  "Sources/NextNotes/Agent/Tasks/Durable/TaskDurability.swift": "e4d3144fe43fe51012b3bba0303a3223f7c808d019084855b7efdd5d50d4e872",
-  "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift": "961644e8a7689a1f4d8004e64d0b3d12a567136653dff32bd7192786b26d18da",
-  "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "8e7c619ae5de83bb3add8ec41726550b83f90d9890f2dd254205cb1302562e09",
-  "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "520270e020ae2dd4571cc1b366deb85549522322e51778acb32adfdf06bb971b"
-}

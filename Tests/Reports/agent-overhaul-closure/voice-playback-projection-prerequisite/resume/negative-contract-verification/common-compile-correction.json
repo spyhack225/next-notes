@@ -1,8 +1,0 @@
-{
-  "originalBuildExit": 2,
-  "nativeRun": false,
-  "cause": "COMMON fixture enum argument requires count: label",
-  "change": "deliveryQueued(1) -> deliveryQueued(count: 1)",
-  "beforeBothProducerVersions": true,
-  "correctedFixtureSHA256": "5c04f0ab1f12be809f99e3b2ddb96e4132c2530a5a4fcbaf39676263e27ec35b"
-}

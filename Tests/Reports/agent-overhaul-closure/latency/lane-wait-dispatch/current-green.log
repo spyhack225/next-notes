@@ -1,5 +1,0 @@
-LANE_WAIT_CASE actor-concrete-after-finish actual=1.25 expected=1.25
-LANE_WAIT_CASE actual-optional-existential-after-finish actual=1.25 expected=1.25
-LANE_WAIT_CASE extension-default-engine actual=0.0 expected=0.0
-LANE_WAIT_CASE absent-engine actual=0.0 expected=0.0
-LANE_WAIT_DISPATCH_OK: 4 cases

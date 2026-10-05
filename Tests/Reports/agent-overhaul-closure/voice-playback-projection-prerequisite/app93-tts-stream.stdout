@@ -1,3 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-tts-stream --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-93-2d_44c89/tts-stream.log
-TTS_STREAM_OK
-TTS_TOKEN_STREAM_OK

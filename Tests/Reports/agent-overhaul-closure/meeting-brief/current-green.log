@@ -1,4 +1,0 @@
-BRIEF_READER_DRIVER_PREPARED: /private/tmp/nextnotes-p4-04a-prepared/driver-current
-BRIEF_READER_INPUT window=32768 memory=8 decisions=20 nodes=30 passages=50 files=25
-BRIEF_READER_MEASURED defaultChars=2491 readerChars=7894 defaultFetch=10 readerFetch=40 fileRequest=20
-BRIEF_READER_DRIVER_OK

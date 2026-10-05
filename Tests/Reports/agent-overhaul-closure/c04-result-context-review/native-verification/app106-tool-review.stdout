@@ -1,3 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-tool-review --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-c04-result-context-106-qal2g31k/tool-review.log
-2026-10-02 18:54:42.149 NextNotes[18122:163004] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
-TOOL_REVIEW_OK

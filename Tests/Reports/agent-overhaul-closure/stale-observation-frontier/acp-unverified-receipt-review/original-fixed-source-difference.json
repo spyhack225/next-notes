@@ -1,7 +1,0 @@
-{
-  "changed": [
-    "Sources/NextNotes/Agent/ActionRuntime.swift"
-  ],
-  "fixtureSHA256": "a2f2b3a02f563da86d0c2c62ec96a73434dc62ad9312819703c5f1865e675d5f",
-  "claim": "Only final receipt record Bool guard changed; original/fixed inputs/fixture identical."
-}

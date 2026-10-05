@@ -1,6 +1,0 @@
-                var permissionResultChecks = 0
-                try await ACPSessionPermissionResultSelfTest.originalCases(root: terminalRoot) { condition, name in
-                    permissionResultChecks += 1
-                    check(name, condition)
-                }
-                SelfTest.diagnostic("ACP_PERMISSION_RESULT_CHECKS: \(permissionResultChecks)")

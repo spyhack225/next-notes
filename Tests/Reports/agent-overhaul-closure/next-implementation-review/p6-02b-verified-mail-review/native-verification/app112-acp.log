@@ -1,6 +1,0 @@
-ACP_ORIGIN_CHECKS: 68
-ACP_PERMISSION_RESULT_TRACE: mode=allow result={"outcome": {"optionId": "allow-once", "outcome": "selected"}}
-ACP_PERMISSION_RESULT_TRACE: mode=decline result={"outcome": {"optionId": "reject-once", "outcome": "selected"}}
-ACP_PERMISSION_RESULT_TRACE: mode=cancel result={"outcome": {"outcome": "cancelled"}}
-ACP_PERMISSION_RESULT_CHECKS: 22
-ACP_OK: initialize, session, subscribe and permission relay hold

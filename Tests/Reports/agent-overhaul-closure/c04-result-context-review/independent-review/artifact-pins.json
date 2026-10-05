@@ -1,9 +1,0 @@
-{
-  "reports": {
-    "minimum-contract-review.json": "5776b1bf0da858baf9ffbf6db656126d82f9c934b6e38b304ff8cc438f93e7e1",
-    "minimum-contract-review.md": "cc34cc02d108be39ada2f72a249c1ea33ad8fe8ca542e1e3c86da838fc8a4b2a"
-  },
-  "reviewedFixture": "0598be7a4e128680648ce780fceee9648cff6b39b513cfbebff3a479d29bc8da",
-  "producerPatch": "aad720c1f02e9bc28b9c81999ff4f7fe4ecfebc3a880f42aec19c90f28277e2d",
-  "commonScaffold": "6163296b8d79ae605c80b718b2b295b1b13e2c3c2a2e22fa110a8f5862646686"
-}

@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-usage-log --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/authoritative-observation/app43-related/usage-log.log
-USAGE_LOG_OK: 26 cases

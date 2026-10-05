@@ -1,4 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-assemble --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-95-nlil_gqj/assemble.log
-ASSEMBLE_PAGE /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-assembled-25010/pricing-2026-10-02-1626.md
-ASSEMBLE_SOURCES 4 · owed 4 · without model true
-ASSEMBLE_OK

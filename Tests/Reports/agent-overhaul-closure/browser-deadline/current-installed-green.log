@@ -1,2 +1,0 @@
-run-selftest: open -n /Applications/Next Notes.app --args --selftest-browser --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-browser-compat/selftest-browser.out
-BROWSER_OK: target binding, stale IDs, debugger deadline and AX safety hold

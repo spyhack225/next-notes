@@ -1,9 +1,0 @@
-{
-  "binary_sha256": "f9b4c0195df1c117b5bae35095a8be5e8fdc4b79c79a9a9bf05d5629042e2a2e",
-  "scope": "Installed app9; UI 8/8, experience 72 images. Rendering is not native interaction proof. Source manifest predates uncompiled P4/P2 followups.",
-  "files": {
-    "ui9-summary.log": "91f0c1ea5c485072e5bf2f5248b408ae04172720577cd3593b2f8bd538a7870b",
-    "experience9.out": "1293fcb665e2288a45f6d822bc34565c5647efc0cedf09f547fd9c42b65e289c",
-    "experience9-launch.log": "f6d38dd3716ae9deddecee8365f3cef5994745ff2b6772881cb2d77d7bf01b90"
-  }
-}

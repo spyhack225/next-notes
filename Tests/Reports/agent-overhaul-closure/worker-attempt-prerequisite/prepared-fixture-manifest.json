@@ -1,6 +1,0 @@
-{
-  "status": "prepare-only; no application source edit, compile or functional verdict",
-  "fixture": "proposed-TaskWorkerAttemptSelfTest.swift.txt",
-  "fixture_sha256": "609a9c674895494f5249e59adfd725b8e75a155c19a70590e71c8fad4494d03e",
-  "scope": "Actual isolated Manager/LocalBackend/Executor producer fixtures; no registration or application patch applied."
-}

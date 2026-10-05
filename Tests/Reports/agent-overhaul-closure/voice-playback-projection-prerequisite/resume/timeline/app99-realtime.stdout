@@ -1,6 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-realtime --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-99-lfe0vz6n/realtime.log
-REALTIME_OK
-VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#2) legacy=nil
-VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#3) legacy=nil
-VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#4) legacy=nil
-VOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#4) legacy=nil

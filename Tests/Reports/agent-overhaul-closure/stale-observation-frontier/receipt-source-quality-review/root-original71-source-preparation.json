@@ -1,8 +1,0 @@
-{
-  "taskID": "P6-05h",
-  "originalProducer": "unchanged writer + nil observation getter only",
-  "fixtureSHA256": "8695a14cca885b587c33f02610673d159070dc2e0e85d6d5649e724f1fce67e4",
-  "typesSHA256": "31105f089ceecff54f25be5a6b8eb328b65678440a6c6cca09b4326c1f7a1c3c",
-  "commonOriginalFixed": true,
-  "existingFunctionalInputsUnchanged": true
-}

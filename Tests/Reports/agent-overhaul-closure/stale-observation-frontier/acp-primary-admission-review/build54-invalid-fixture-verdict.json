@@ -1,9 +1,0 @@
-{
-  "verdict": "INVALID_FOR_PRODUCT_COMPARISON",
-  "nativeResult": "TASK_WORKER_ATTEMPT_FAILED: 11 assertions; fixture timeout before all controls",
-  "confirmedHarnessCause": "Foundation JSONSerialization escaped slash paths used directly as Python string literals; Python retained backslashes, so own SQL/marker paths were wrong",
-  "producerRepair": "String-only literal helper + withoutEscapingSlashes; protocol/SQL/user-flow inputs unchanged",
-  "beforeSHA": "71b79322adaa573ba4c267dfefa4efa26a5e233041573e73865d85d790448236",
-  "afterSHA": "e80bc7dd5211d93df59e18cbba5274756424e744344fee07e967a04c037d38b2",
-  "plannedComparison": "original55 / fixed56"
-}

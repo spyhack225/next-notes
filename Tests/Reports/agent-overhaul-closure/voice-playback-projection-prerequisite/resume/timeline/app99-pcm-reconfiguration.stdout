@@ -1,4 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-pcm-reconfiguration --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-99-u8r31iof/pcm-reconfiguration.log
-2026-10-02 17:13:23.978 NextNotes[92092:2103814] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
-PCM_RECONFIGURATION_OK
-PCM_RECONFIGURATION_RECEIPTS first=[1, 2] failures=[(1, "The voice output graph changed configuration during playback.")] drained=[2]

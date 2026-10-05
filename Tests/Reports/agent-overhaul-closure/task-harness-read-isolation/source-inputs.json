@@ -1,8 +1,0 @@
-{
-  "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "3feb83337ef10c1c897a50ed6584c1fd907b6314eea090b42afbccdd93d16a4a",
-  "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift": "2007c757cc3713c397413c89b9dd82153f232c106bfce45749eb2d4ca15aeaea",
-  "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "3c0930a221820cb97f9df4a5769379f67dfb0eecbe6285ca51948441df03eafa",
-  "Sources/NextNotes/Agent/Tasks/AgentTask.swift": "e4f84014066d7b6179e0e4bc497293b8a7b64d0bd92c232b56c9ad84e05cc6b2",
-  "Sources/NextNotes/UI/Agent/AgentView.swift": "7e7eed666368a2ea260548de5071b8bdae1243f1cc364c0b1fb6efbe2c29f7c2",
-  "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift": "4123adc33be02ddbc525509a6180996eb482c0b2b44314d2e918f4fdbb9cae48"
-}

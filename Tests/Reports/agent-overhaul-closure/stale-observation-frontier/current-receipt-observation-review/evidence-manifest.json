@@ -1,6 +1,0 @@
-{
-  "original-scaffold-ActionRuntime.swift.txt": "5a5fa7d7950884d8319df2520aad449cb98ac3857dcb94fe4511dcbfdfda23b2",
-  "proposed-ActionRuntime.swift.txt": "759d84650b1cadd0d873c56ee7357f2db9d892a42a102000c5ef5e041cdb3546",
-  "TaskReceiptObservationSelfTest.swift.txt": "e9bbd67e8fc04f8908e56c1dc932454a9f0681035e77fe20befa4f5f94e3bf3a",
-  "producer.patch": "5716ce6dc9fd356cc416229b7c9d557907176dc1ef0e2ebc29b821dcb7fe7992"
-}

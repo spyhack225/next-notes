@@ -1,3 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-tasks --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-verified-mail-112-jlvhrxlm/tasks.log
-2026-10-02 20:30:54.776 NextNotes[32391:294386] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
-TASKS_OK: submit, run and cancel hold

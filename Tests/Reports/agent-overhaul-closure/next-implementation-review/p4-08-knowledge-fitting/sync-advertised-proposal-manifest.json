@@ -1,6 +1,0 @@
-{
-  "proposed-sync-advertised-KnowledgeAsk.swift.txt": "f548ff18ae9a9b6e510d71743a81056c547527f71d6d6fc055071a620a6c0003",
-  "sync-advertised-producer.patch": "de36368f346edeed55cc33ddb11d0bac33a00979a0cff3e1cfcc4d3672bee6b6",
-  "common-registration.patch": "270bbc23c8f3fcbf738a605883a8ca932194e09fad72b07c25d31b086a49cd0b",
-  "fixed-scripted-conformer.patch": "7debc6e68972622d58fd480c623a0f3f20d9f9f36bd505ad9fe707339d58024d"
-}

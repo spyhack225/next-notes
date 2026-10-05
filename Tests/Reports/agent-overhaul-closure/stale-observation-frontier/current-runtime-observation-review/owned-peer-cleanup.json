@@ -1,6 +1,0 @@
-{
-  "matchingOwnedPeerPIDs": [],
-  "matchScope": "exact fixture-only ACP runtime directory/script suffixes; no process killed",
-  "verdict": "No remaining matching owned fixture process after worker1132 completed",
-  "limitations": "No descendant/effect cessation or general process health proof"
-}

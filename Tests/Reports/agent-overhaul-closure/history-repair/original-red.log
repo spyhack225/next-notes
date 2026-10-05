@@ -1,3 +1,0 @@
-compile_exit=0
-TASK_HISTORY_REPAIR_FAILED: explicit prepared schema-zero repair is unavailable: Task storage has an unsupported schema version (0).
-run_exit=1

@@ -1,7 +1,0 @@
-{
-  "Sources/NextNotes/Agent/Backend/JSONRPCStdioClient.swift": "7427289b63a229125544edb3ffd939a614249ebd8d7be969e500b8eda4e92fb3",
-  "Sources/NextNotes/Agent/Backend/ACPSession.swift": "7e8c8ba5424671171b1647c32d601821bc0e4f4ae00b43431afa4cedb13ed788",
-  "Sources/NextNotes/Agent/Backend/ACPAgentBackend.swift": "1d61580a7d09fde47e9f2949b059c86b67a541ff578cb39482e979f8a5e2118b",
-  "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "f8a01b9c8e555cc10f39c60649bdc039333448d681674fa4c67fb038bace15eb",
-  "Sources/NextNotes/Agent/Tasks/Durable/TaskEventJournal.swift": "3fb1f09112779ed8343f2d807676e81165f003d53848ac8c5a6f03544dab656f"
-}

@@ -1,8 +1,0 @@
-{
-  "fixtureSHA256": "f9d64dae23d85779e97c7f8e7bfd54ebd081cbb792c2b47e1abe9042b92a3ee5",
-  "peerSHA256": "04a79331a2ef40c768cca3b3baeb6de62a16892cf4220c43969538d893b79998",
-  "sourceManifestCount": 1030,
-  "predictedExtension": 55,
-  "originalScaffoldOnly": "Unused Session.start optional context + common real captured backend argument; no change in permission decision",
-  "fixturesCommonOriginalFixed": true
-}

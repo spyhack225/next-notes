@@ -1,5 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-conversation --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-99-lfe0vz6n/voice-conversation.log
-VOICE_CONVERSATION_OK
-VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
-VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
-VOICE_CONVERSATION_OK

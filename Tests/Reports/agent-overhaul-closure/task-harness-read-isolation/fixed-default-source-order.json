@@ -1,6 +1,0 @@
-{
-  "deniedReturnBeforeCompatibilityReadAndSQL": true,
-  "defaultNilInjectionRejectedBeforeOwnerPathOrLazyMirror": true,
-  "productionAndAdmittedReaderRemainderByteIdentical": true,
-  "proof": "reviewed final actual source order; mutation guards alone do not prove no reads"
-}

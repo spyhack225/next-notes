@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-suspend --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-93-2d_44c89/voice-suspend.log
-VOICE_SUSPEND_OK

@@ -1,5 +1,0 @@
-// Root-only future call inside existing runACPSelfTest do after origin fixture.
-// Reuse existing canonical unique terminalRoot; existing check has name/Bool order.
-try await ACPSessionPermissionResultSelfTest.originalCases(root: terminalRoot) { condition, name in
-    check(name, condition)
-}

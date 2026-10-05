@@ -1,5 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-receipt-persistence --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-c04-final-context-110-2o12t09i/receipt-persistence.log
-2026-10-02 20:00:21.658 NextNotes[26630:248952] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
-RECEIPT_RUNTIME_OK: 5 cases
-RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable
-RECEIPT_SOURCE_DIAGNOSTIC: load=missing writeCheck=unavailable

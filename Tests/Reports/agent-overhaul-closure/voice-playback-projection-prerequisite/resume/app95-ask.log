@@ -1,3 +1,0 @@
-KNOWLEDGE_WINDOW_TRACE: window=4096 modelCalls=2 maxEstimatedWithOutputAndHeadroom=3057 retrieved=10 refused=false
-KNOWLEDGE_WINDOW_TRACE: window=32768 modelCalls=3 maxEstimatedWithOutputAndHeadroom=4974 retrieved=20 refused=false
-KNOWLEDGE_WINDOW_TRACE: window=512 modelCalls=0 maxEstimatedWithOutputAndHeadroom=0 retrieved=0 refused=true

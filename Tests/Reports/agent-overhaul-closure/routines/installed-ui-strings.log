@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-ui-strings --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-targeted/selftest-ui-strings.out
-UI_STRINGS_OK

@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-harness-read --selftest-task-worker-attempt
-TASK_HARNESS_READ_FAILED: conflicting diagnostic modifier

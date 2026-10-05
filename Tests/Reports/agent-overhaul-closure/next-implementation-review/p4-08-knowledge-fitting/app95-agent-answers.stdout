@@ -1,5 +1,0 @@
-METADATA_ONLY: this existing diagnostic intentionally reads the granted calendar. Raw replies excluded from repository artifacts.
-AGENT_ANSWERS_PREFILL turn=1 reused=0 decoded=1116
-AGENT_ANSWERS_PREFILL turn=2 reused=1036 decoded=50
-AGENT_ANSWERS_PREFILL turn=3 reused=0 decoded=1354
-AGENT_ANSWERS_OK: 3/3 answered by MiniCPM5-2B

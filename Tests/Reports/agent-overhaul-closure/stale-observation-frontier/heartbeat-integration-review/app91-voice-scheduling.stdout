@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-scheduling --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-heartbeat-integration-91-4gxrm9l3/voice-scheduling.log
-VOICE_SCHEDULING_OK

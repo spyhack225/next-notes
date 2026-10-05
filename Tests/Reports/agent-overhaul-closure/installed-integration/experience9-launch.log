@@ -1,3 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-experience-sheet /tmp/sheets/experience-app9 --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-experience-9.out
-2026-10-01 22:01:53.099 NextNotes[64091:777662] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
-EXPERIENCE_SHEET_OK: 72 isolated layout images; /tmp/sheets/experience-app9

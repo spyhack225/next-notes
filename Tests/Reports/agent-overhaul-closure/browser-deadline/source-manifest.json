@@ -1,9 +1,0 @@
-{
-  "state": "frozen; installed build3 BROWSER_OK with unchanged deadline and explicit protocol fixtures; root reports CDP_OK",
-  "original_client_sha256": "a35f846b2063c497e4e66e64bf3fe29ccf33b3b02d5320e77668cfb8a02437f2",
-  "sources": {
-    "Sources/NextNotes/Computer/BrowserCDPClient.swift": "ecb1213693ccb24daa3b93cfc5f9120de28be440f5b694ef727c84ed55937b3e",
-    "Sources/NextNotes/Agent/Backend/AgentStdioFixtures.swift": "7545f24570999adba51ab93a6ce378e99e53299830af3377040ed2a134e3840f"
-  },
-  "browser_selftest_section_sha256": "1a7c85585fcaba57d930cf471c6247db3730ed18a8a07e3522f54bbfcb50a005"
-}

@@ -1,3 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-latency --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-playback-extra-93-6_n42dho/latency-file-gate.log
-VOICE_LATENCY_ABSENT: fixture haiku16k.wav is missing — run Scripts/make-voice-fixtures.sh
-VOICE_LATENCY_ABSENT: fixture haiku16k.wav is missing — run Scripts/make-voice-fixtures.sh

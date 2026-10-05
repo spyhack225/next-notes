@@ -1,3 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-playback-ledger --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-voice-projection-101-yvkcsztf/playback-ledger.log
-2026-10-02 17:51:41.349 NextNotes[8521:70178] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
-PLAYBACK_LEDGER_OK

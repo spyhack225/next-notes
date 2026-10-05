@@ -1,6 +1,0 @@
-{
-  "file": "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
-  "anchor": "            try await TaskACPUnverifiedReceiptSelfTest.originalCases(root: root, check: check)",
-  "append": "            try await TaskACPReceiptStartSelfTest.originalCases(root: root, check: check)",
-  "producer": "No existing case predicate or input changes; insert directly after unique anchor."
-}

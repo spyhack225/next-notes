@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-voice-scheduling --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-checks-22/selftest-voice-scheduling.out
-VOICE_SCHEDULING_OK

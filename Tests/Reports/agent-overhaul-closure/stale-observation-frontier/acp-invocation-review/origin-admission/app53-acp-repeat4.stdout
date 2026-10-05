@@ -1,3 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-acp-origin-53-repeat-y6hks259/repeat4.log
-ACP_OK: initialize, session, subscribe and permission relay hold
-ACP_ORIGIN_CHECKS: 68

@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp-confirm --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/app49-fixed/acp-confirm.log
-ACP_CONFIRM_OK

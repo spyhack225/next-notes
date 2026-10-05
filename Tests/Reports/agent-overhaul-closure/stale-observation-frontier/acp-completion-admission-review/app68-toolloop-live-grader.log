@@ -1,5 +1,0 @@
-TOOLLOOP_LIVE_MAIL_QUERY: "recent" -> 1 row(s)
-TOOLLOOP_LIVE_MAIL_QUERY: "from:productflo.com" -> 1 row(s)
-TOOLLOOP_LIVE_MAIL_QUERY: "subject:'ProductFlo'" -> 1 row(s)
-TOOLLOOP_LIVE_MAIL: 6 rows, 0 problem(s)
-TOOLLOOP_LIVE_GRADER_OK

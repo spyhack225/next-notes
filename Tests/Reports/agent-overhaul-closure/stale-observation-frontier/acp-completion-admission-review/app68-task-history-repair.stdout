@@ -1,5 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-task-history-repair --selftest-out /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/nextnotes-acp-origin-68-kbbpw3vb/task-history-repair.log
-TASK_HISTORY_REPAIR_OK: 58 cases
-TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
-TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.
-TASK_HISTORY_DIAGNOSTIC: Task history could not be read. Your saved history was kept, and new work has not started.

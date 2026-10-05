@@ -1,5 +1,0 @@
-{
-  "scope": "Only nil-default SelfTest+injected-temp observers; original worker semantics unchanged",
-  "manager_sha256": "6e6331bc939bbe8fbf19a165f66b7e68f49462a1aa80d9657851c060965071e1",
-  "prepared_fixture_extension_sha256": "f054f40e892dabf13ebb96a8e1f5685d17dbafb2d23ff3a3a042a410a61c773e"
-}

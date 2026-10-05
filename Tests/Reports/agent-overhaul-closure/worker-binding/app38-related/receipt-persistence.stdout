@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-receipt-persistence --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/worker-binding/app38-related/receipt-persistence.log
-RECEIPT_RUNTIME_OK: 5 cases

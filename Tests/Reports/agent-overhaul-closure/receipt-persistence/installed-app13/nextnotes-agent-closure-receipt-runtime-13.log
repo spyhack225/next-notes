@@ -1,3 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-receipt-persistence --selftest-timeout 300 --selftest-out /tmp/nextnotes-agent-closure-receipt-runtime-13.out
-2026-10-01 22:43:46.081 NextNotes[73568:875789] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
-RECEIPT_RUNTIME_OK: 5 cases

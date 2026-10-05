@@ -1,7 +1,0 @@
-Original109 is valid **7/122 feature RED** with115 controls passing. Exactly the four note-bearing mailbox-admission targets, CRLF history removal and two irreducible-envelope targets fail; printed checks and failure-summary labels agree. The app log holds the final marker; stdout carries the complete assertions and route evidence.
-
-The real guard-driven calendar read enters the answer-only production caller. Note-bearing prompts lose the already-capped mailbox body before measurement, while the no-note control retains it and raw session evidence remains. The original final caller also keeps measured-overflow history and calls the model even for an irreducible full-window envelope. These are producer failures, not missing fixture backing or bad final reply grading.
-
-All17 retained preparation pins match, the actual1050-source build includes the frozen common fixture, and the cached executable hash independently matches the installed record. Signed bundle maps before/after match; launch records show no Source/binary drift. Controlled temporary memory, no-memory prompt, permission/read arguments, budgets and cancellation controls all pass.
-
-Fixed110 and prior84/related checks were pending at save. Provider/tokenizer/answer are scripted; this establishes actual native call-site behavior, not native model quality, real account reads or trained capacity. Temporary grounding is not all-owner read isolation. Scheduled/default fitting, other final reasons and cancellation/work revision during token-count/final awaits remain open.

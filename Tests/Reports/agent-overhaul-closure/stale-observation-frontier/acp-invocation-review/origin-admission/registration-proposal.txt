@@ -1,6 +1,0 @@
-// Add ONLY this call inside existing runACPSelfTest do, immediately after
-// ACPStdioTerminationSelfTest.originalCases and before writeACP. Reuse the
-// already-created unique temporary terminalRoot; no additional source state.
-try await ACPSessionOriginSelfTest.originalCases(root: terminalRoot) { condition, name in
-    check(name, condition)
-}

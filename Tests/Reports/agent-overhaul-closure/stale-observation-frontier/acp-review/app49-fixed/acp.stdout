@@ -1,2 +1,0 @@
-run-selftest: direct /Applications/Next Notes.app/Contents/MacOS/NextNotes --selftest-acp --selftest-out /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/agent-overhaul-closure/stale-observation-frontier/acp-review/app49-fixed/acp.log
-ACP_OK: initialize, session, subscribe and permission relay hold

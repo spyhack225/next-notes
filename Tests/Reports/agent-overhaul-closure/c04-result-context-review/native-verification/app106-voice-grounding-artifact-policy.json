@@ -1,9 +1,0 @@
-{
-  "rawSHA256": "10fb9bcd619ad358c1adf6cb307b3c131c081339e05a4f03dc4ea19d8c768715",
-  "rawRetention": "private system temp, excluded from repository",
-  "shareableSHA256": "d9c19105d34e53a176a1e5cdb912d66ce9b832d6a6c71d4c65ffaefb6219d668",
-  "nativeVerdict": "VOICE_GROUNDING_FAILED",
-  "failure": "speaking path still does not know the user",
-  "otherPromptChecks": "GROUNDING_OK",
-  "causalAttribution": "independent source/callsite audit pending; no rerun"
-}

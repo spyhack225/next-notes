@@ -1,6 +1,0 @@
-{
-  "reason": "Root supplied marker name receipt-runtime as a flag; valid existing flag is receipt-persistence. Existing app refused the unknown flag promptly, exit1; no feature test executed for that invocation.",
-  "rawRecord": "app110-checks.json retains rejected invocation and every prior successful check.",
-  "interruptionAttempt": "Target PID26453 had already exited normally; SIGTERM failed with ProcessLookupError. No process was interrupted; store-isolation completed PASS.",
-  "correction": "Run existing receipt-persistence plus remaining flags unchanged; no Source/assertion changes."
-}
