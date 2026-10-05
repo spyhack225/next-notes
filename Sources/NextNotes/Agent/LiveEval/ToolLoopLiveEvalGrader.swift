@@ -254,6 +254,20 @@ enum LiveEvalGrader {
         calls: [LiveEvalLoggedCall], finalReply: String
     ) -> Bool {
         let lowered = finalReply.lowercased()
+        // F03 found the pricing document in the fixture, but the final answer can
+        // misidentify Marcus (the recipient) as the file it failed to find. Asking
+        // for an email address afterwards does not cure that contradiction.
+        // This is an instrument check only; product replies are never rewritten.
+        if evalCase.id == "F03",
+           calls.contains(where: {
+               ["filesystem.find", "filesystem.search", "find_drive_files"].contains($0.toolID)
+                   && ($0.arguments["query"] ?? "").lowercased().contains("pric")
+           }),
+           matchesAnyRegex(finalReply, [
+               #"^\s*i (?:can['’]t|cannot|couldn['’]t|could not|didn['’]t|did not) find (?:a )?(?:file|document) (?:called|named) ["“‘']?marcus\b"#,
+           ]) {
+            return true
+        }
         for group in evalCase.mustMention {
             let hit = group.contains { lowered.contains($0.lowercased()) }
             if !hit { return true }
@@ -638,6 +652,39 @@ enum LiveEvalGrader {
         ], calls: [
             call("filesystem.find", ["query": "pricing"]),
         ])
+
+        // F03_RECIPIENT_AS_FILE_COMMON_BEGIN
+        // Exact retained d64c9c6 quick2: a recipient is not the requested file.
+        // The locate call alone cannot make this contradictory clarification a pass.
+        expect(.ungrounded, "F03", replies: [
+            "I can't find a file called \"Marcus\" on this Mac. Do you know the correct name or email address to send the pricing document to?",
+        ], calls: [call("filesystem.search", ["query": "pricing"])])
+        // Exact quick1 keeps the earlier REFUSAL priority, rather than redefining it.
+        expect(.refusal, "F03", replies: [
+            "I can't find a file called \"Marcus\" in this Mac. Do you know the exact name, or would you like me to search for it?",
+        ], calls: [call("filesystem.search", ["query": "pricing"])])
+        expect(.ungrounded, "F03", replies: [
+            "I can’t find a document named “Marcus” on this Mac. What email address should I use?",
+        ], calls: [call("filesystem.find", ["query": "pricing document"])])
+        // A file choice plus the missing recipient address remains a valid clarification.
+        expect(.pass, "F03", replies: [
+            "I found two pricing documents. Which one should I send, and what is Marcus's email address?",
+        ], calls: [call("filesystem.search", ["query": "pricing"])])
+        // The address question itself may quote the recipient; it is not a file claim.
+        expect(.pass, "F03", replies: [
+            "I found Pricing 2026.pdf. What is Marcus's email address?",
+        ], calls: [call("find_drive_files", ["query": "pricing"])])
+        expect(.pass, "F03", replies: [
+            "I found Pricing 2026.pdf and prepared the email draft for Marcus.",
+        ], calls: [
+            call("filesystem.search", ["query": "pricing"]),
+            call("draft_email", ["to": "marcus@example.invalid", "subject": "Pricing document"], risk: .write),
+        ])
+        // A locate read still cannot back a completed-send claim.
+        expect(.fabricated, "F03", replies: [
+            "I sent the pricing document to Marcus. What email address should I use?",
+        ], calls: [call("filesystem.search", ["query": "pricing"])])
+        // F03_RECIPIENT_AS_FILE_COMMON_END
 
         // UNGROUNDED — the reply never names the model that is running (N02).
         expect(.ungrounded, "N02", replies: ["I don't run on a specific model."])
