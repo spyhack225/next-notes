@@ -4271,6 +4271,36 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 successful: 13, frames: 983725, overlaps: 10, expectedRuns: 10, feederCancelled: true).isEmpty)
             check("unexpected successful early feeder exit qualified", !floorASRLoadProblems(returned: 13,
                 successful: 13, frames: 983725, overlaps: 10, expectedRuns: 10, feederCancelled: false).isEmpty)
+            let selectedArtifact = URL(fileURLWithPath: "/tmp/floor-selected.gguf")
+            check("explicit selected artifact rejected", floorArtifactSelected(requested: selectedArtifact,
+                active: URL(fileURLWithPath: "/tmp/unused/../floor-selected.gguf")))
+            check("saved different artifact displaced explicit floor choice", !floorArtifactSelected(
+                requested: selectedArtifact, active: URL(fileURLWithPath: "/tmp/floor-saved-other.gguf")))
+            var prefill = row
+            prefill.pass = "floor-prefill"
+            prefill.promptTokens = 2_000
+            prefill.cachedTokens = 0
+            prefill.warm = false
+            prefill.completionTokens = 1
+            check("exact2000 cold native prefill rejected", floorPrefillQualified(row: prefill, turnID: turn))
+            var wrongPrefill = prefill
+            wrongPrefill.promptTokens = 1_999
+            check("raw or short prompt count accepted", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
+            wrongPrefill.promptTokens = 2_001
+            check("template or BOS overflow accepted", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
+            wrongPrefill = prefill; wrongPrefill.cachedTokens = 1
+            check("reused prompt qualified cold", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
+            wrongPrefill = prefill; wrongPrefill.warm = true
+            check("warm model qualified cold", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
+            wrongPrefill = prefill; wrongPrefill.countsEstimated = true
+            check("estimated prefill counts accepted", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
+            wrongPrefill = prefill; wrongPrefill.completionTokens = 0
+            check("empty first output qualified prefill", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
+            wrongPrefill = prefill; wrongPrefill.ttftMs = nil
+            check("missing first-visible-token timing accepted", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
+            wrongPrefill = prefill; wrongPrefill.errorClass = "other"
+            check("failed prefill accepted", !floorPrefillQualified(row: wrongPrefill, turnID: turn))
+            check("foreign turn qualified prefill", !floorPrefillQualified(row: prefill, turnID: UUID()))
             var noTTFT = row
             noTTFT.ttftMs = nil
             check("missing TTFT accepted", !floorUsageProblems(rows: [noTTFT], turnIDs: [turn], expectedRuns: 1).isEmpty)
@@ -7609,6 +7639,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             SelfTest.failed = true
             return
         }
+        let sustainArgument = SelfTest.value(after: "--floor-sustain")
+        let sustainSeconds = sustainArgument.flatMap(Double.init)
+        guard sustainArgument == nil || sustainSeconds.map({ $0.isFinite && $0 > 0 }) == true else {
+            SelfTest.failed = true
+            writeSelfTest("LLM_FLOOR_ABSENT: positive finite --floor-sustain seconds required")
+            return
+        }
         let asrPath = SelfTest.value(after: "--floor-asr")
         let condition = asrPath == nil ? "C0" : "C1"
         let before = HardwareProfile.current()
@@ -7682,13 +7719,31 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         // This flag may read the saved model; explicit floor choice must outrank it.
         await runtime.select(model)
         let selectedSpec = await runtime.activeSpec()
-        guard selectedSpec.fileURL.standardizedFileURL == model.fileURL.standardizedFileURL else {
+        guard Self.floorArtifactSelected(requested: model.fileURL, active: selectedSpec.fileURL) else {
             _ = await runtime.finishTermination()
             SelfTest.failed = true
             writeSelfTest("LLM_METAL_FAILED: requested floor artifact was not selected")
             return
         }
         let provider = LlamaLLMProvider(modelName: model.id, runtime: runtime)
+        let floorSystem = "You are a thorough writer."
+        let floorUser = "Describe, in many detailed paragraphs, a busy restaurant kitchen during "
+            + "a full dinner service. Keep writing; do not summarise or stop early."
+        let prefillUser: String
+        do {
+            prefillUser = try await Self.floorPrefillUser(runtime: runtime, system: floorSystem, seed: floorUser)
+            // Preparation uses only the vocabulary. Its awaited call has released the
+            // native reservation, so this existing private reset can make the pass cold.
+            let reset = await runtime.shutdown()
+            let unloaded = await !runtime.isLoaded
+            guard reset && unloaded else { throw LlamaError.notLoaded }
+        } catch {
+            _ = await runtime.finishTermination()
+            SelfTest.failed = true
+            writeSelfTest("LLM_METAL_FAILED: exact2000 preparation/cold reset: " + error.localizedDescription)
+            return
+        }
+        let prefillTurnID = UUID()
         let nativeASR = LockedBox<[(start: ContinuousClock.Instant, end: ContinuousClock.Instant, frames: Int, ok: Bool)]>([])
         let asrOwner: Task<Void, Error>? = asrPath.map { path in
             Task {
@@ -7705,8 +7760,33 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         var turnIDs: [UUID] = []
         var decodeWindows: [(start: ContinuousClock.Instant, end: ContinuousClock.Instant)] = []
         var failures: [String] = []
+        var sustainBegan = ContinuousClock.now
+        var sustainStarted = false
         do {
-            for index in 0..<runs {
+            let recorder = ModelPassRecorder(feature: .agentTyped, pass: "floor-prefill", provider: provider,
+                ids: UsageCorrelation(turnID: prefillTurnID), requestedRole: .agent)
+            do {
+                let stream = await ModelPassRecorder.$current.withValue(recorder) {
+                    await provider.stream(system: floorSystem, user: prefillUser, maxTokens: 1)
+                }
+                var firstText = false
+                for try await piece in stream where !piece.isEmpty {
+                    if !firstText { recorder.noteFirstToken(); firstText = true }
+                    observe()
+                }
+                recorder.noteModelEnd()
+                if !firstText { throw LlamaError.decodeFailed }
+                recorder.finish(reason: "length")
+            } catch {
+                recorder.noteModelEnd()
+                recorder.fail(error)
+                recorder.finish(reason: "error")
+                throw error
+            }
+            sustainBegan = .now
+            sustainStarted = true
+            var index = 0
+            while index < runs || sustainSeconds.map({ Self.floorDurationSeconds(sustainBegan.duration(to: .now)) < $0 }) == true {
                 try Task.checkCancellation()
                 let turnID = UUID()
                 turnIDs.append(turnID)
@@ -7715,10 +7795,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 var firstText: ContinuousClock.Instant?
                 do {
                     let stream = await ModelPassRecorder.$current.withValue(recorder) {
-                        await provider.stream(system: "You are a thorough writer.",
-                            user: "Describe, in many detailed paragraphs, a busy restaurant kitchen during "
-                                + "a full dinner service. Keep writing; do not summarise or stop early.",
-                            maxTokens: 256)
+                        await provider.stream(system: floorSystem, user: floorUser, maxTokens: 256)
                     }
                     // The runtime child inherits the recorder during stream creation;
                     // iteration stays on MainActor and does not transfer local telemetry.
@@ -7727,8 +7804,23 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                         observe()
                     }
                     recorder.noteModelEnd()
-                    if let start = firstText { decodeWindows.append((start, .now)) }
+                    guard let start = firstText else { throw LlamaError.decodeFailed }
+                    decodeWindows.append((start, .now))
                     recorder.finish(reason: "stop")
+                    index += 1
+                    if sustainSeconds != nil {
+                        // Only sustained runs inspect the existing sink per round, so
+                        // zero/short/failed output cannot spin for ten minutes unnoticed.
+                        UsageLog.shared.flush()
+                        let measured = UsageLog.shared.load().filter {
+                            $0.pass == "floor" && $0.turnID.map { turnIDs.contains($0) } == true
+                        }
+                        let problems = Self.floorUsageProblems(rows: measured, turnIDs: turnIDs, expectedRuns: turnIDs.count)
+                        if !problems.isEmpty {
+                            failures += problems
+                            break
+                        }
+                    }
                 } catch {
                     recorder.noteModelEnd()
                     recorder.fail(error)
@@ -7737,6 +7829,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 }
             }
         } catch { failures.append("model: \(error.localizedDescription)") }
+        let sustainElapsed = sustainStarted ? sustainBegan.duration(to: .now) : .zero
         // The feeder's cancellation path flushes/join its one native tail. The private
         // model uses its existing termination join; shutdown alone only refuses busy work.
         asrOwner?.cancel()
@@ -7752,8 +7845,22 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let rows = UsageLog.shared.load().filter {
             $0.pass == "floor" && $0.turnID.map { turnIDs.contains($0) } == true
         }.sorted { ($0.round ?? -1) < ($1.round ?? -1) }
-        let sampleProblems = Self.floorUsageProblems(rows: rows, turnIDs: turnIDs, expectedRuns: runs)
+        let sampleProblems = Self.floorUsageProblems(rows: rows, turnIDs: turnIDs, expectedRuns: turnIDs.count)
         failures += sampleProblems
+        let prefillRows = UsageLog.shared.load().filter {
+            $0.pass == "floor-prefill" && $0.turnID == prefillTurnID
+        }
+        var prefillRate = "NA"
+        if prefillRows.count == 1, let row = prefillRows.first,
+           Self.floorPrefillQualified(row: row, turnID: prefillTurnID), let ttft = row.ttftMs {
+            prefillRate = String(format: "%.2f", 2_000.0 / (Double(ttft) / 1_000))
+        } else { failures.append("cold prefill is not one exact2000 uncached native usage row") }
+        for row in prefillRows {
+            writeSelfTest("LLM_FLOOR_PREFILL: row=\(row.id) turn=\(prefillTurnID) prompt_tokens=\(row.promptTokens ?? -1) cached=\(row.cachedTokens ?? -1) completion_tokens=\(row.completionTokens ?? -1) estimated=\(row.countsEstimated.map { String($0) } ?? "NA") warm=\(row.warm.map { String($0) } ?? "NA") load_ms=\(row.loadMs.map(String.init) ?? "NA") ttft_ms=\(row.ttftMs.map(String.init) ?? "NA") prefill_tps_ttft=\(prefillRate) file_cache=UNQUALIFIED")
+        }
+        if let seconds = sustainSeconds, Self.floorDurationSeconds(sustainElapsed) < seconds {
+            failures.append("sustain did not reach its requested clock duration")
+        }
         let calls = nativeASR.value
         let successful = calls.filter(\.ok)
         let overlaps = decodeWindows.filter { model in
@@ -7762,7 +7869,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let asrFrames = successful.reduce(0) { $0 + $1.frames }
         let asrProblems = asrPath == nil ? [] : Self.floorASRLoadProblems(returned: calls.count,
             successful: successful.count, frames: asrFrames, overlaps: overlaps,
-            expectedRuns: runs, feederCancelled: feederCancelled)
+            expectedRuns: turnIDs.count, feederCancelled: feederCancelled)
         let asrWorkloadQualified = asrProblems.isEmpty
         failures += asrProblems
         if (try? VerifiedModelArtifact.FileStamp.read(model.fileURL)) != artifactStamp {
@@ -7779,16 +7886,32 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601
             encoder.outputFormatting = [.sortedKeys]
-            writeSelfTest("LLM_FLOOR_USAGE: " + String(decoding: try encoder.encode(rows), as: UTF8.self))
+            writeSelfTest("LLM_FLOOR_USAGE: " + String(decoding: try encoder.encode(rows + prefillRows), as: UTF8.self))
         } catch { failures.append("joined usage encoding failed: " + error.localizedDescription) }
-        let rates = (failures.isEmpty ? rows : []).compactMap(\.tokensPerSec).filter { $0.isFinite && $0 > 0 }.sorted()
+        let rates = (failures.isEmpty ? Array(rows.prefix(runs)) : []).compactMap(\.tokensPerSec).filter { $0.isFinite && $0 > 0 }.sorted()
         let median = Self.floorMedian(sorted: rates).map { String(format: "%.2f", $0) } ?? "NA"
         let p10 = rates.isEmpty ? "NA" : String(format: "%.2f", rates[Int((Double(rates.count - 1) * 0.1).rounded(.down))])
         let status = !contention.isEmpty ? "CONTENDED" : (failures.isEmpty ? "MEASURED" : "UNQUALIFIED")
+        if let seconds = sustainSeconds {
+            for (name, lower, upper) in [("minute1", 0.0, min(60, seconds)),
+                                         ("last_requested_minute", max(0, seconds - 60), seconds)] {
+                let indices = decodeWindows.indices.filter {
+                    let start = Self.floorDurationSeconds(sustainBegan.duration(to: decodeWindows[$0].start))
+                    let end = Self.floorDurationSeconds(sustainBegan.duration(to: decodeWindows[$0].end))
+                    return start >= lower && end <= upper
+                }
+                let minuteRows = rows.filter { $0.round.map { indices.contains($0) } == true }
+                let qualified = failures.isEmpty && !minuteRows.isEmpty
+                let tokens = minuteRows.reduce(0) { $0 + ($1.completionTokens ?? 0) }
+                let decodeMs = minuteRows.reduce(0) { $0 + $1.totalMs - ($1.ttftMs ?? $1.totalMs) }
+                let rate = qualified && decodeMs > 0 ? String(format: "%.2f", Double(tokens) / (Double(decodeMs) / 1_000)) : "NA"
+                writeSelfTest("LLM_FLOOR_SUSTAIN: condition=\(condition) status=\(status) interval=\(name) lower_s=\(lower) upper_s=\(upper) full_passes=\(minuteRows.count) tokens=\(tokens) decode_ms=\(decodeMs) decode_tps=\(rate) requested_s=\(seconds) actual_s=\(Self.floorSeconds(sustainElapsed)) ten_minutes=\(seconds >= 600 && sustainElapsed >= .seconds(600)) clock=ContinuousClock boundaries=full_passes_only")
+            }
+        }
         for row in rows {
             writeSelfTest("LLM_FLOOR_ROUND: condition=\(condition) status=\(status) row=\(row.id) turn=\(row.turnID?.uuidString ?? "NA") round=\(row.round ?? -1) model=\(row.modelID) tokens=\(row.completionTokens ?? -1) estimated=\(row.countsEstimated.map { String($0) } ?? "NA") ttft_ms=\(row.ttftMs.map(String.init) ?? "NA") total_ms=\(row.totalMs) decode_tps=\(row.tokensPerSec.map { String(format: "%.2f", $0) } ?? "NA") warm=\(row.warm.map { String($0) } ?? "NA") load_ms=\(row.loadMs.map(String.init) ?? "NA") cached=\(row.cachedTokens.map(String.init) ?? "NA")")
         }
-        writeSelfTest("LLM_FLOOR: status=\(status) condition=\(condition) model=\(model.id) artifact_sha256=\(artifactDigest) artifact_proof=\(artifactProof) artifact_bytes=\(model.bytes) executable_sha256=\(executableDigest) chip=\(before.chipName) hardware=\(before.modelIdentifier) memory_bytes=\(before.memoryBytes) free_disk_start=\(before.freeDiskBytes) free_disk_end=\(after.freeDiskBytes) power=\(power) low_power=\(before.isLowPowerModeEnabled) load=\(loadKnown ? load.map { String(format: "%.2f", $0) }.joined(separator: ",") : "NA") runs=\(runs) fixed256_10=\(runs == 10 && sampleProblems.isEmpty) fixed_tokens=256 decode_median=\(median) decode_p10=\(p10) peak_rss_bytes=\(Self.peakResidentBytes()) pressure_worst_observed=\(pressureWorstObserved.rawValue) pressure_history_gap=\(pressureHistoryGap) pressure_continuous=UNMEASURED swap_start=\(swapBefore.map(String.init) ?? "NA") swap_end=\(swapAfter.map(String.init) ?? "NA") swap_growth=\(swapGrowth.map(String.init) ?? "NA") thermal_samples=\(thermalSamples.joined(separator: ",")) asr_workload_qualified=\(asrWorkloadQualified) asr_native_returned=\(calls.count) asr_native_success=\(successful.count) asr_native_failed=\(calls.count - successful.count) asr_frames=\(asrFrames) decode_overlap_runs=\(overlaps) model_joined=\(modelJoined) prefill=UNMEASURED sustain=UNMEASURED C2=UNMEASURED thermal_sampling=on_text_10s external_contention=UNKNOWN_REQUIRES_AUDIT open_apps=\(apps) contention=\(contention.joined(separator: ","))")
+        writeSelfTest("LLM_FLOOR: status=\(status) condition=\(condition) model=\(model.id) artifact_sha256=\(artifactDigest) artifact_proof=\(artifactProof) artifact_bytes=\(model.bytes) executable_sha256=\(executableDigest) chip=\(before.chipName) hardware=\(before.modelIdentifier) memory_bytes=\(before.memoryBytes) free_disk_start=\(before.freeDiskBytes) free_disk_end=\(after.freeDiskBytes) power=\(power) low_power=\(before.isLowPowerModeEnabled) load=\(loadKnown ? load.map { String(format: "%.2f", $0) }.joined(separator: ",") : "NA") requested_runs=\(runs) actual_rounds=\(turnIDs.count) fixed256_10=\(runs == 10 && turnIDs.count >= 10 && sampleProblems.isEmpty) fixed_tokens=256 decode_median=\(median) decode_p10=\(p10) peak_rss_bytes=\(Self.peakResidentBytes()) pressure_worst_observed=\(pressureWorstObserved.rawValue) pressure_history_gap=\(pressureHistoryGap) pressure_continuous=UNMEASURED swap_start=\(swapBefore.map(String.init) ?? "NA") swap_end=\(swapAfter.map(String.init) ?? "NA") swap_growth=\(swapGrowth.map(String.init) ?? "NA") thermal_samples=\(thermalSamples.joined(separator: ",")) asr_workload_qualified=\(asrWorkloadQualified) asr_native_returned=\(calls.count) asr_native_success=\(successful.count) asr_native_failed=\(calls.count - successful.count) asr_frames=\(asrFrames) decode_overlap_runs=\(overlaps) model_joined=\(modelJoined) prefill_tps_ttft=\(prefillRate) sustain_requested_s=\(sustainSeconds.map { String($0) } ?? "NA") sustain_actual_s=\(Self.floorSeconds(sustainElapsed)) C2=UNMEASURED thermal_sampling=on_text_10s external_contention=UNKNOWN_REQUIRES_AUDIT open_apps=\(apps) contention=\(contention.joined(separator: ","))")
         if failures.isEmpty {
             writeSelfTest("LLM_METAL_OK: \(status) floor execution diagnostic only; full floor acceptance remains open")
         } else {
@@ -7797,9 +7920,32 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
     }
 
-    private static func floorSeconds(_ duration: Duration) -> String {
+    /// A fixed actual rendered-token budget, prepared without generating an answer.
+    /// A model that cannot reach exactly 2,000 is refused rather than rounded or estimated.
+    @MainActor
+    private static func floorPrefillUser(runtime: NotesModelRuntime, system: String, seed: String) async throws -> String {
+        for filler in [" kitchen", " pan", " a", " recipe"] {
+            var lower = 0
+            var upper = 4_096
+            while lower <= upper {
+                try Task.checkCancellation()
+                let middle = lower + (upper - lower) / 2
+                let user = seed + "\nIngredients:" + String(repeating: filler, count: middle)
+                let count = try await runtime.floorPromptTokenCount(system: system, user: user)
+                if count == 2_000 { return user }
+                if count < 2_000 { lower = middle + 1 } else { upper = middle - 1 }
+            }
+        }
+        throw LlamaError.tokenizationFailed
+    }
+
+    private static func floorDurationSeconds(_ duration: Duration) -> Double {
         let parts = duration.components
-        return String(format: "%.2f", Double(parts.seconds) + Double(parts.attoseconds) / 1e18)
+        return Double(parts.seconds) + Double(parts.attoseconds) / 1e18
+    }
+
+    private static func floorSeconds(_ duration: Duration) -> String {
+        String(format: "%.2f", floorDurationSeconds(duration))
     }
 
     /// Workload admission is separate from native fixed-count token validity.
@@ -7815,6 +7961,17 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if overlaps == 0 { failures.append("native ASR did not overlap the model series") }
         if !feederCancelled { failures.append("ASR feeder did not settle by expected cancellation") }
         return failures
+    }
+
+    private static func floorArtifactSelected(requested: URL, active: URL) -> Bool {
+        requested.standardizedFileURL == active.standardizedFileURL
+    }
+
+    private static func floorPrefillQualified(row: UsageRecord, turnID: UUID) -> Bool {
+        row.pass == "floor-prefill" && row.turnID == turnID && row.promptTokens == 2_000 &&
+            row.cachedTokens == 0 && row.warm == false && row.countsEstimated == false &&
+            row.errorClass == nil && row.completionTokens == 1 &&
+            (row.ttftMs ?? 0) > 0 && row.totalMs >= (row.ttftMs ?? Int.max)
     }
 
     private static func floorMedian(sorted: [Double]) -> Double? {

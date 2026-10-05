@@ -801,6 +801,20 @@ actor NotesModelRuntime {
         }
     }
 
+    /// Floor-only vocabulary preparation, through the exact native prompt renderer
+    /// and BOS rule used by streamWhileScheduled. Does not prefill or generate.
+    func floorPromptTokenCount(system: String, user: String) async throws -> Int {
+        guard SelfTest.requested == "--selftest-llm-metal",
+              CommandLine.arguments.contains("--floor") else { throw LlamaError.tokenizationFailed }
+        return try await withBackgroundLane { jobID in
+            try await loadIfNeeded(schedulerJobID: jobID)
+            guard let vocabulary else { throw LlamaError.notLoaded }
+            let prompt = Self.render(forFamily: family, system: system,
+                                     messages: [.init(role: .user, content: user)])
+            return try tokenizePrompt(prompt, vocabulary: vocabulary).count
+        }
+    }
+
     /// One ChatML turn, generated greedily-but-not-quite (see the sampler below).
     func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
         try await complete(system: system, user: user, maxTokens: maxTokens, grammar: nil)
