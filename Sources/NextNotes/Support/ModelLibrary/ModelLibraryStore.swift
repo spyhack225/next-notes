@@ -153,7 +153,9 @@ final class ModelLibraryStore {
     var postDownloadPolicy: PostDownloadPolicy {
         didSet {
             guard oldValue != postDownloadPolicy else { return }
-            UserDefaults.standard.set(postDownloadPolicy.rawValue, forKey: Self.policyDefaultsKey)
+            let defaults = NativeOtherLlamaQuitSelfTest.isRequested
+                ? SelfTestHarnessDefaults.shared : UserDefaults.standard
+            defaults.set(postDownloadPolicy.rawValue, forKey: Self.policyDefaultsKey)
         }
     }
 
@@ -247,8 +249,10 @@ final class ModelLibraryStore {
             }
         }
         self.library = library
-        hardware = HardwareProfile.current()
-        postDownloadPolicy = UserDefaults.standard.string(forKey: Self.policyDefaultsKey)
+        hardware = hardwareForTesting ?? HardwareProfile.current()
+        let defaults = NativeOtherLlamaQuitSelfTest.isRequested
+            ? SelfTestHarnessDefaults.shared : UserDefaults.standard
+        postDownloadPolicy = defaults.string(forKey: Self.policyDefaultsKey)
             .flatMap(PostDownloadPolicy.init(rawValue:)) ?? .switchKeepOld
     }
 
