@@ -341,6 +341,8 @@ actor NotesModelRuntime {
     /// `(pendingSpec ?? spec).fileURL` is the chosen model's — applied when nothing was
     /// running, recorded as pending behind the work in flight otherwise.
     func select(_ model: InstalledLocalModel?) async {
+        // An explicit per-role or benchmark choice outranks the startup saved default.
+        didAdoptSavedSelection = true
         useInstalledModel(model)
     }
 
