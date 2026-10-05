@@ -1092,7 +1092,7 @@ extension RealtimeAgent {
             \(halves.stable)
             """ : ""
         let earned = catalogue
-            ? plannerRuleLines(manifest: manifest, extraCatalogue: halves.extra)
+            ? plannerRuleLines(manifest: manifest, extraCatalogue: halves.extra, request: request)
             : ""
         return AgentPromptContext.assemble(
             .toolLoop, rules: plannerRules(manifest: manifest, voice: voice, catalogue: catalogue),
@@ -1105,7 +1105,7 @@ extension RealtimeAgent {
     /// values rather than one string with a seam inside it. `plannerRules` keeps returning both
     /// for every other caller, so nothing else changes shape.
     static func plannerRuleLines(
-        manifest: AgentCapabilityManifest, extraCatalogue: String
+        manifest: AgentCapabilityManifest, extraCatalogue: String, request: String = ""
     ) -> String {
         let catalogueRules = """
             For a tool step, emit exactly one Hermes call as
@@ -1118,6 +1118,15 @@ extension RealtimeAgent {
             : catalogueRules + "\n" + extraCatalogue
         let lines = manifest.ruleLines()
         if lines.isEmpty == false { out += "\n" + lines }
+        // Keep the existing asked-model rule in this volatile tail, beside the same
+        // request predicate that earns the resolved model fact in plannerSystem.
+        if Self.asksAboutTheModel(request) {
+            out += "\n" + """
+
+            Which model this is, is not one of the things never to expose: if you are asked,
+            say the name given above plainly, and never claim you have no model.
+            """
+        }
         return out
     }
 
@@ -1165,8 +1174,7 @@ extension RealtimeAgent {
     /// answer-only round is that prompt, and a round that has nothing it may run must not be
     /// told how to run something.
     static func plannerRules(
-        manifest: AgentCapabilityManifest, voice: Bool, catalogue: Bool = true,
-        request: String = ""
+        manifest: AgentCapabilityManifest, voice: Bool, catalogue: Bool = true
     ) -> String {
         let base = """
             You are a personal agent that can use tools. Understand the latest user request
@@ -1204,15 +1212,6 @@ extension RealtimeAgent {
             answer under 220 characters and use no markup. Never omit a failure or
             uncertainty. The detailed tool result remains visible in the feed.
             """ : "")
-        // The same predicate as the fact in `plannerSystem`, so the two cannot appear on
-        // different turns.
-        if Self.asksAboutTheModel(request) {
-            return base + """
-
-            Which model this is, is not one of the things never to expose: if you are asked,
-            say the name given above plainly, and never claim you have no model.
-            """
-        }
         // P1-28: **no tail here.** The call format and the per-request rule lines are the
         // volatile tail now, assembled by `plannerRuleLines` and joined last of all, so that a
         // turn which selects a different class does not invalidate the cache from section 3

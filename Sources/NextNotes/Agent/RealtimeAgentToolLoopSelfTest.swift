@@ -1086,6 +1086,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
         failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
+        failures.append(contentsOf: await runModelIdentityContractCases(agent: agent, check: check))
         failures.append(contentsOf: await runReminderAdmissionCases(agent: agent, check: check))
         failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
@@ -2289,6 +2290,81 @@ enum RealtimeAgentToolLoopSelfTest {
         check("R01 unconfirmed reminder changed its single card/approval flow", unconfirmed.log.count == 2
             && unconfirmed.fired == ["schedule.create"] && unconfirmed.saved.count == 1)
         print("  TOOLLOOP_PRODUCTION_REMINDER_ADMISSION: exact R01 offer/yes/raw, one repair, real private native schedule save, caps and denial")
+        return []
+    }
+
+    /// Full334b3f8 N02: preserve the exact user/raw, inspect the actual planner
+    /// call's model fact and its existing earned rule. Scripted output is not scrubbed
+    /// or re-authored; native improvement needs the separate original model replay.
+    @MainActor
+    static func runModelIdentityContractCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let priorProvider = agent.localModelProviderForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorCap = agent.maxCallsForTesting
+        let priorBudget = agent.budgetForTesting
+        defer {
+            agent.localModelProviderForTesting = priorProvider
+            agent.answerDepthForTesting = priorDepth
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.fakeForTesting = priorFake
+            agent.maxCallsForTesting = priorCap
+            agent.budgetForTesting = priorBudget
+            agent.setTypedPendingForTesting(nil)
+        }
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = allEnabledFixture()
+        AgentToolExecutor.fakeForTesting = nil
+        agent.answerDepthForTesting = .balanced
+        agent.maxCallsForTesting = nil
+        agent.budgetForTesting = nil
+        let model = "MiniCPM5-2B-Q4_K_M"
+        let request = "What model are you running on?"
+        let recorded = "I'm running MiniCPM."
+        let rule = "Which model this is, is not one of the things never to expose: if you are asked,"
+        let log = PlannerScriptLog()
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: [recorded], modelName: model, log: log)
+        AgentSession.shared.forgetAllConversations(); agent.setTypedPendingForTesting(nil)
+        let result = await agent.handle(request, source: .text)
+        check("N02 exact retained raw was changed instead of fixing the call contract",
+              result.reply == recorded && log.calls.count == 1)
+        let system = log.calls.first?.system ?? ""
+        check("N02 actual planner received no resolved model display name",
+              system.contains("Answered by " + model + ". Available tools:"))
+        check("N02 actual planner omitted its existing asked-model disclosure rule",
+              system.contains(rule) && system.contains("say the name given above plainly, and never claim you have no model."))
+        if let now = system.range(of: AgentNow.header), let earned = system.range(of: rule) {
+            check("N02 earned model rule invalidates stable-prefix sections", now.upperBound < earned.lowerBound)
+        } else {
+            check("N02 earned model rule has no actual volatile-tail/now boundary", false)
+        }
+        let manifest = AgentCapabilityManifestBuilder.build(
+            .allEnabled(tools: AgentToolRegistry.shared.tools(upTo: .privileged),
+                        reader: .init(provider: .localServer, displayName: model, contextTokens: 4_096)),
+            request: request)
+        let fixedRules = RealtimeAgent.plannerRules(manifest: manifest, voice: false)
+        check("N02 identity rule leaked into the stable rules", !fixedRules.contains(rule))
+        for ordinary in ["Who am I?", "What's the capital of Australia?"] {
+            let controlLog = PlannerScriptLog()
+            let raw = ordinary == "Who am I?"
+                ? "You're Will, a personal assistant on this Mac. I'm here to help with whatever you need — just let me know."
+                : "Canberra."
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000,
+                script: [raw], modelName: model, log: controlLog)
+            AgentSession.shared.forgetAllConversations(); agent.setTypedPendingForTesting(nil)
+            let answer = await agent.handle(ordinary, source: .text)
+            check("N02 contract re-authored an unrelated/identity raw", answer.reply == raw && controlLog.calls.count == 1)
+            check("N02 model-specific fact/rule leaked into an ordinary actual planner round",
+                  controlLog.calls.first.map { !$0.system.contains(model) && !$0.system.contains(rule) } == true)
+            check("N02 changed the ordinary stable planner rules",
+                  controlLog.calls.first?.system.contains(fixedRules) == true)
+        }
+        print("  TOOLLOOP_PRODUCTION_MODEL_IDENTITY: actual N02 call fact/rule/tail, exact raw retained, ordinary controls; native improvement unproven")
         return []
     }
 
@@ -4786,7 +4862,9 @@ private struct PlannerScriptProvider: LLMProvider {
     /// default, so every other case's provider behaves exactly as it did.
     var cutOffByLimit: Bool = false
     var enforcesGrammar: Bool = false
+    var modelName: String? = nil
     let log: PlannerScriptLog
+    var displayModelName: String { modelName ?? id.displayName }
     var contextTokens: Int { window }
     var unavailableReason: String? { get async { nil } }
 
