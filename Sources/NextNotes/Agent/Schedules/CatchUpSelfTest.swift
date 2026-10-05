@@ -782,6 +782,96 @@ enum CatchUpSelfTest {
                         && record?.hasHandled(occurrence.key) == true)
             }
         }
+        // Reverse cooldown: the real return path at 05:30 must suppress the due 06:00
+        // routine, advance its slot, and let it run the next morning. Silence must not
+        // suppress it. Keep the original timings so this fails on the one-way packet.
+        for reported in [true, false] {
+            let reverse = rig()
+            let returnAt = ScheduleSelfTest.date(2026, 10, 5, 5, 30)
+            let morningAt = ScheduleSelfTest.date(2026, 10, 5, 6, 0)
+            let nextMorning = ScheduleSelfTest.date(2026, 10, 6, 6, 0)
+            let morning = catchUp()
+            let back = catchUp(title: "While you were out", kind: .trigger, trigger: .returned, delivery: .notify)
+            guard let added = try? await reverse.scheduler.add(
+                morning, now: ScheduleSelfTest.date(2026, 10, 4, 12, 0)),
+                  (try? await reverse.scheduler.add(back, now: created)) != nil else {
+                failures.append("trigger: the reverse-cooldown rig could not be built")
+                continue
+            }
+            reverse.runner.outcome = ScheduledRunOutcome(
+                status: reported ? .reported : .nothingToReport, text: reported ? sampleText : "")
+            await reverse.scheduler.handleTriggerEvents(
+                [.returned(awayFrom: friday, at: returnAt)], now: returnAt)
+            check("the 05:30 return did not run once", reverse.runner.runs.count == 1)
+            check("the 05:30 return did not retain its real outcome",
+                  reverse.store.schedule(id: back.id)?.lastRun?.outcome == (reported ? .completed : .nothingToReport))
+            reverse.runner.outcome = ScheduledRunOutcome(status: .reported, text: sampleText)
+            await reverse.scheduler.runOnce(now: morningAt)
+            check("the 06:00 catch-up \(reported ? "ran after" : "did not run after") the 05:30 return",
+                  reverse.runner.runs.count == (reported ? 1 : 2))
+            check("the 06:00 catch-up delivered a duplicate or lost the silence control",
+                  reverse.deliverer.deliveries.count == 1)
+            let saved = reverse.store.schedule(id: added.id)
+            check("the 06:00 slot was not advanced without a retry",
+                  saved?.nextRunAt == nextMorning && saved?.pendingDeliveries.isEmpty == true)
+            if reported {
+                check("the reverse-cooldown skip was not recorded",
+                      saved?.lastRun?.outcome == .skipped && saved?.lastRun?.detail.contains("caught up") == true)
+                await reverse.scheduler.runOnce(now: morningAt.addingTimeInterval(30))
+                check("the suppressed 06:00 catch-up ran on the next pass", reverse.runner.runs.count == 1)
+            }
+            await reverse.scheduler.runOnce(now: nextMorning)
+            check("the next morning stayed suppressed after the cooldown expired",
+                  reverse.runner.runs.count == (reported ? 2 : 3)
+                    && reverse.deliverer.deliveries.count == 2)
+        }
+
+        // The same admission rule applies to scheduled retries and held results. An
+        // explicit snooze and an ordinary routine retain their requested delivery.
+        for text in [nil, sampleText] as [String?] {
+            for control in ["catch-up", "snooze", "ordinary", "reminder"] {
+                let retry = rig()
+                let returnAt = ScheduleSelfTest.date(2026, 10, 5, 5, 30)
+                let morningAt = ScheduleSelfTest.date(2026, 10, 5, 6, 0)
+                let nextMorning = ScheduleSelfTest.date(2026, 10, 6, 6, 0)
+                guard var morning = try? await retry.scheduler.add(
+                    catchUp(), now: ScheduleSelfTest.date(2026, 10, 4, 12, 0)),
+                      (try? await retry.scheduler.add(
+                        catchUp(title: "While you were out", kind: .trigger, trigger: .returned, delivery: .notify),
+                        now: created)) != nil else {
+                    failures.append("trigger: the scheduled retry cooldown rig could not be built")
+                    continue
+                }
+                // The local `created` is Thursday: adding then would leave Friday overdue,
+                // which correctly reserves a morning catch-up and suppresses the return.
+                check("the retry rig did not begin with Monday's future morning slot", morning.nextRunAt == morningAt)
+                check("the earlier fixture date did not produce the confirmed overdue slot",
+                      morning.when.flatMap(RecurrenceRule.init)?.next(after: created) == ScheduleSelfTest.date(2026, 10, 2, 6, 0))
+                await retry.scheduler.handleTriggerEvents([.returned(awayFrom: friday, at: returnAt)], now: returnAt)
+                check("the retry rig's return did not reach the person", retry.deliverer.deliveries.count == 1)
+                // Retained pending work is the input to the actual scheduled consumer.
+                morning.nextRunAt = nextMorning
+                morning.pendingDelivery = SchedulePendingDelivery(
+                    slot: morningAt, notBefore: morningAt, missed: false,
+                    reason: control == "snooze" ? AgentScheduler.snoozeReason : "retry", text: text)
+                if control == "ordinary" { morning.templateID = nil; morning.title = "Inbox check" }
+                if control == "reminder" { morning.templateID = nil; morning.kind = .reminder }
+                check("the scheduled retry fixture did not save", retry.store.save(morning))
+                await retry.scheduler.runOnce(now: morningAt)
+                let suppressed = control == "catch-up"
+                check("scheduled pending \(control) lost its cooldown or explicit control (text=\(text != nil))",
+                      retry.runner.runs.count == (suppressed || text != nil || control == "reminder" ? 1 : 2)
+                        && retry.deliverer.deliveries.count == (suppressed ? 1 : 2))
+                let saved = retry.store.schedule(id: morning.id)
+                check("scheduled pending \(control) did not clear without changing its next slot",
+                      saved?.pendingDelivery == nil && saved?.nextRunAt == nextMorning)
+                if suppressed {
+                    check("scheduled pending cooldown did not record its skip",
+                          saved?.lastRun?.outcome == .skipped && saved?.lastRun?.detail.contains("caught up") == true)
+                }
+            }
+        }
+
         // A catch-up that is running, due, or waiting to retry counts as having reached them.
         let due = ScheduleSelfTest.date(2026, 10, 5, 6, 0, 10)
         let sunday = ScheduleSelfTest.date(2026, 10, 4, 12, 0)

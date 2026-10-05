@@ -486,7 +486,12 @@ final class AgentScheduler {
             // Quiet hours hold what would be shown — a reminder, or a routine's finished
             // result — never a routine's retry, which only runs.
             let holdsDelivery = schedule.kind == .reminder || pending.text != nil
-            if settings.isQuiet(now, zone: zoneProvider()), pending.reason != Self.snoozeReason, holdsDelivery {
+            if schedule.kind == .routine, schedule.isCatchUp, pending.reason != Self.snoozeReason,
+               recentCatchUp(excluding: schedule.id, now: now) != nil {
+                schedule.pendingDelivery = nil
+                record(&schedule, slot: pending.slot, at: now, outcome: .skipped,
+                       detail: "Skipped — you were caught up a little while ago.", skippedSlots: 1)
+            } else if settings.isQuiet(now, zone: zoneProvider()), pending.reason != Self.snoozeReason, holdsDelivery {
                 schedule.pendingDelivery?.notBefore = settings.quietEnd(after: now, zone: zoneProvider())
                 store.save(schedule)
             } else {
@@ -553,6 +558,12 @@ final class AgentScheduler {
 
         // Claim: advance and save before anything is delivered.
         schedule.nextRunAt = bounded(rule.next(after: now), by: schedule.endsAt)
+        if schedule.kind == .routine, schedule.isCatchUp, recentCatchUp(excluding: schedule.id, now: now) != nil {
+            record(&schedule, slot: deliveredSlot, at: now, outcome: .skipped,
+                   detail: "Skipped — you were caught up a little while ago.", skippedSlots: slots.count)
+            store.save(schedule)
+            return
+        }
         schedule.lastRun = ScheduleRunSummary(at: now, outcome: .started, detail: "Delivering")
         if schedule.systemRegisteredSlot != nil {
             // The app delivers this one itself; macOS must not show it as well.
@@ -884,7 +895,7 @@ final class AgentScheduler {
                       trigger.event == occurrence.event, !schedule.hasHandled(occurrence.key) else { return false }
                 switch Self.triggerDecision(
                     trigger, occurrence: occurrence, createdAt: schedule.createdAt, now: checkedAt,
-                    recentCatchUpAt: recentCatchUp(for: occurrence, excluding: schedule.id, now: checkedAt)) {
+                    recentCatchUpAt: occurrence.event == .returned ? recentCatchUp(excluding: schedule.id, now: checkedAt) : nil) {
                 case .ignore, .notYet: return false
                 case .run, .tooLate: return true
                 }
@@ -905,17 +916,17 @@ final class AgentScheduler {
         case tooLate(String)
     }
 
-    /// How long after one catch-up reached the person another is not worth making: a morning
-    /// catch-up already told them what changed overnight.
+    /// How long after one catch-up reached the person another is not worth making,
+    /// whether a return or a scheduled slot came first.
     nonisolated static let catchUpCooldown: TimeInterval = 8 * 3_600
 
-    /// When another catch-up last reached the person, or is on its way, within the cooldown, for
-    /// the one event it matters to. Delivered, run on request and held for quiet hours count; so
+    /// When another catch-up last reached the person, or is on its way, within the cooldown.
+    /// Scheduled slots, retries and return events share this check. Delivered, run on request
+    /// and held for quiet hours count; so
     /// does one that is running right now (`.started`), one that is due and not yet claimed (the
     /// Mac woke up and this pass has not got to it), and one waiting to deliver or retry. A run
     /// that had nothing to say does not.
-    private func recentCatchUp(for occurrence: ScheduleTriggerOccurrence, excluding id: UUID, now: Date) -> Date? {
-        guard occurrence.event == .returned else { return nil }
+    private func recentCatchUp(excluding id: UUID, now: Date) -> Date? {
         let told: Set<ScheduleRunRecord.Outcome> = [.completed, .ranNow, .delivered, .deferred, .started]
         return store.schedules.compactMap { other -> Date? in
             guard other.id != id, other.isCatchUp else { return nil }
@@ -985,7 +996,7 @@ final class AgentScheduler {
                 if let ends = schedule.endsAt, ends <= now { continue }
                 switch Self.triggerDecision(
                     trigger, occurrence: occurrence, createdAt: schedule.createdAt, now: now,
-                    recentCatchUpAt: recentCatchUp(for: occurrence, excluding: schedule.id, now: now)) {
+                    recentCatchUpAt: occurrence.event == .returned ? recentCatchUp(excluding: schedule.id, now: now) : nil) {
                 case .ignore, .notYet:
                     continue
                 case .tooLate(let reason):
@@ -1032,7 +1043,7 @@ final class AgentScheduler {
                 record(&schedule, slot: nil, at: now, outcome: .skipped,
                        detail: "Not retried for “\(occurrence.title)” — it was too late to be useful.", skippedSlots: 1)
             } else if pending.text == nil, let occurrence = pending.occurrence, occurrence.event == .returned,
-                      recentCatchUp(for: occurrence, excluding: schedule.id, now: now) != nil {
+                      recentCatchUp(excluding: schedule.id, now: now) != nil {
                 // A retry is a new decision: another catch-up reached the person meanwhile.
                 record(&schedule, slot: nil, at: now, outcome: .skipped,
                        detail: "Skipped — you were caught up a little while ago.", skippedSlots: 1)
