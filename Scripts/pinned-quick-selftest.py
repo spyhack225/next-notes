@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import os
 import unittest
 from unittest.mock import patch
 
@@ -66,6 +67,67 @@ class QuickInstrumentTests(unittest.TestCase):
 
     def test_clock_receipt_is_required(self):
         with self.assertRaises(RuntimeError): self.score(self.output.replace(NOW, 'changed'))
+
+    def arm_score(self, arm='minicpm-vendor'):
+        Path(str(self.report) + '.jsonl').write_text('\n'.join(json.dumps(row) for row in self.rows))
+        return quick.read_score(self.report, self.output, 1, PIN, NOW, sampler_arm=arm)
+
+    def test_explicit_sampler_receipt_and_rows_are_required(self):
+        for row in self.rows: row['samplerArm'] = 'minicpm-vendor'
+        self.output += 'TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05\n'
+        self.assertEqual(self.arm_score()[0], 7)
+
+    def test_missing_sampler_receipt_is_unscored(self):
+        for row in self.rows: row['samplerArm'] = 'minicpm-vendor'
+        with self.assertRaises(RuntimeError): self.arm_score()
+
+    def test_wrong_or_missing_row_sampler_is_unscored(self):
+        self.output += 'TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05\n'
+        for row in self.rows: row['samplerArm'] = 'minicpm-vendor'
+        for changed in ('baseline', None):
+            self.rows[0]['samplerArm'] = changed
+            with self.assertRaises(RuntimeError): self.arm_score()
+
+    def test_conflicting_or_duplicate_sampler_receipt_is_unscored(self):
+        for row in self.rows: row['samplerArm'] = 'minicpm-vendor'
+        receipt = 'TOOLLOOP_LIVE_SAMPLER: arm=baseline temperature=0.6 top_p=0.9 min_p=0.05 repeat_penalty=1.05\n'
+        self.output += receipt
+        with self.assertRaises(RuntimeError): self.arm_score()
+        self.output = self.output.replace('arm=baseline', 'arm=minicpm-vendor') + receipt
+        with self.assertRaises(RuntimeError): self.arm_score()
+
+    def test_main_forwards_sampler_on_each_existing_pinned_run(self):
+        app = Path(self.temp.name) / 'Fixture.app'
+        binary = app / 'Contents/MacOS/NextNotes'
+        binary.parent.mkdir(parents=True)
+        binary.write_bytes(b'synthetic identity only; never executed')
+        output = Path(self.temp.name) / 'runs'
+        commands = []
+        for row in self.rows: row['samplerArm'] = 'minicpm-vendor'
+        log = self.output + 'TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05\n'
+        def fake_process(command, **kwargs):
+            commands.append(command)
+            report = Path(command[command.index('--report') + 1])
+            Path(str(report) + '.jsonl').write_text('\n'.join(json.dumps(row) for row in self.rows))
+            class Completed:
+                stdout = log.splitlines(keepends=True)
+                def wait(self): return 1
+                def poll(self): return 1
+            return Completed()
+        with patch.object(quick.sys, 'argv', ['pinned-quick.py', '--under-lock', '--model', PIN,
+                '--fixture-now', NOW, '--sampler-arm', 'minicpm-vendor', '--output', str(output)]), \
+             patch.dict(os.environ, {'NEXTNOTES_APP': str(app)}), \
+             patch.object(quick, 'machine_state', return_value={'load': 0, 'swapGiB': 0, 'freeGiB': 20}), \
+             patch.object(quick.subprocess, 'Popen', side_effect=fake_process):
+            self.assertEqual(quick.main(), 1)
+        self.assertEqual(len(commands), 3)
+        for command in commands:
+            self.assertEqual(command[command.index('--sampler-arm') + 1], 'minicpm-vendor')
+            self.assertEqual(command[command.index('--model') + 1], PIN)
+            self.assertEqual(command[command.index('--fixture-now') + 1], NOW)
+        summary = json.loads((output / 'summary.json').read_text())
+        self.assertEqual(summary['samplerArm'], 'minicpm-vendor')
+        self.assertEqual(summary['minimum'], 7)
 
     def test_binary_replacement_is_detected(self):
         binary = Path(self.temp.name) / 'NextNotes'

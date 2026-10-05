@@ -28,7 +28,7 @@ def machine_state(directory):
     return state
 
 
-def read_score(report, output, returncode, model_pin, fixture_now):
+def read_score(report, output, returncode, model_pin, fixture_now, sampler_arm=None):
     rows = [json.loads(line) for line in Path(str(report) + '.jsonl').read_text().splitlines() if line.strip()]
     if len(rows) != 10 or len({row['id'] for row in rows}) != 10:
         raise RuntimeError('Incomplete or duplicate quick rows; this run is unscored.')
@@ -36,6 +36,12 @@ def read_score(report, output, returncode, model_pin, fixture_now):
         raise RuntimeError('The application lacks complete raw-round instrumentation.')
     if any(row.get('modelPin') != model_pin or row.get('fixtureNow') != fixture_now for row in rows):
         raise RuntimeError('The report used a different model or fixture clock; this run is unscored.')
+    if sampler_arm is not None:
+        if any(row.get('samplerArm') != sampler_arm for row in rows):
+            raise RuntimeError('The report used a different or missing sampler arm; this run is unscored.')
+        samplers = re.findall(r'^TOOLLOOP_LIVE_SAMPLER: arm=(\S+)(?: .*)?$', output, re.M)
+        if samplers != [sampler_arm]:
+            raise RuntimeError('Missing, ambiguous or mismatched sampler receipt; this run is unscored.')
     clocks = re.findall(r'^TOOLLOOP_LIVE_CLOCK: (.+) timezone=(.+)$', output, re.M)
     if len(clocks) != 1 or clocks[0][0] != fixture_now:
         raise RuntimeError('Missing or mismatched fixture clock; this run is unscored.')
@@ -61,6 +67,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--model', required=True, help='explicit installed model id or file pin')
     parser.add_argument('--fixture-now', required=True, help='fixed ISO8601 instant, including timezone')
+    parser.add_argument('--sampler-arm', choices=('baseline', 'minicpm-vendor'),
+                        help='explicit process-only GGUF sampler comparison')
     parser.add_argument('--runs', type=int, default=3)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--under-lock', action='store_true', help=argparse.SUPPRESS)
@@ -89,6 +97,8 @@ def main():
     identity = binary_identity(binary)
     output.mkdir(exist_ok=False)
     summary = {'modelPin': args.model, 'fixtureNow': args.fixture_now, 'timezone': os.environ.get('TZ', 'system'), 'runs': []}
+    if args.sampler_arm is not None:
+        summary['samplerArm'] = args.sampler_arm
     resolved_model = None
     timezone = None
     for index in range(1, args.runs + 1):
@@ -99,6 +109,8 @@ def main():
         command = [str(root / 'Scripts/run-selftest.sh'), '--under-lock', '--selftest-toolloop-live', '--quick',
                    '--model', args.model, '--fixture-now', args.fixture_now, '--report', str(report),
                    '--selftest-timeout', '1800']
+        if args.sampler_arm is not None:
+            command += ['--sampler-arm', args.sampler_arm]
         print(f'Run {index}/{args.runs}: model={args.model}, clock={args.fixture_now}', flush=True)
         with (output / f'run{index}.log').open('w') as log:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)
@@ -116,7 +128,7 @@ def main():
                     except subprocess.TimeoutExpired: process.kill(); process.wait()
         if binary_identity(binary) != identity:
             raise RuntimeError('Installed binary changed during evaluation; this run is unscored.')
-        score, model, run_timezone = read_score(report, ''.join(lines), code, args.model, args.fixture_now)
+        score, model, run_timezone = read_score(report, ''.join(lines), code, args.model, args.fixture_now, args.sampler_arm)
         if resolved_model is not None and model != resolved_model:
             raise RuntimeError('Resolved model changed between runs; no aggregate score.')
         if timezone is not None and timezone != run_timezone:
