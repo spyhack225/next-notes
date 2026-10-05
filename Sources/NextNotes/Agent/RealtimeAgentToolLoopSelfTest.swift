@@ -1084,6 +1084,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
+        failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
         failures.append(contentsOf: await ExplicitMemorySaveSelfTest.run())
 
@@ -1452,6 +1453,182 @@ enum RealtimeAgentToolLoopSelfTest {
         check("P5 draft preview lost its composed subject", preview?.contains("Subject: Friday deck") == true)
         print("  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT: schema + wire + selected catalogue + review preview")
         return []
+    }
+
+    /// P5: the real typed loop, scripted at model and external backing boundaries.
+    @MainActor
+    static func runPromiseContinuationCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let priorDepth = agent.answerDepthForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorApprovalFacts = AgentToolExecutor.recordedReadApprovalsForTesting
+        agent.answerDepthForTesting = .deep
+        agent.readApprovalOverrideForTesting = true
+        defer {
+            agent.answerDepthForTesting = priorDepth
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.localModelProviderForTesting = nil
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.recordedReadApprovalsForTesting = priorApprovalFacts
+            agent.setTypedPendingForTesting(nil)
+        }
+        @MainActor
+        func run(_ request: String, _ script: [String]) async
+            -> (reply: String, tools: [String], calls: [PlannerScriptLog.Call]) {
+            let log = PlannerScriptLog()
+            let ran = ScriptedToolLog()
+            AgentToolExecutor.fakeForTesting = { tool, _ in
+                ran.record(tool.id)
+                return AgentToolResult(summary: "Pricing 2026.pdf in your Documents folder.")
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            agent.budgetForTesting = nil
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+            let result = await agent.handle(request, source: .text)
+            return (result.reply, ran.toolIDs, log.calls)
+        }
+        // A full-executor fake cannot prove recipient review. Keep the exact request,
+        // promise and invented address at the real card/gate/fire boundary instead.
+        await runPromiseRecipientReviewCase(agent: agent, check: check)
+
+        AgentToolExecutor.recordedReadApprovalsForTesting = []
+        let m04 = await run("Draft an email to ana@example.com saying I'll send the deck Friday", [
+            "Got it. I'll draft that email for you right away.",
+            #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","subject":"Friday deck","body":"I'll send the deck Friday."}}</tool_call>"#,
+            "The draft is ready.",
+        ])
+        check("P5 M04 stopped at its promised draft", m04.tools == ["draft_email"] && m04.calls.count == 3)
+        check("P5 promised draft became an automatically approved write",
+              AgentToolExecutor.recordedReadApprovalsForTesting.contains { $0.tool == "draft_email" && !$0.autoApproved })
+
+
+        let repeated = await run("Draft an email to ana@example.com about Friday's deck", [
+            "I'll draft the email now.", "I'll draft the email now.", "This third round must not run.",
+        ])
+        check("P5 repeated promise was delivered as success or spent another continuation",
+              repeated.tools.isEmpty && repeated.calls.count == 2
+                && repeated.reply == "I haven't done that yet.")
+        let negated = "I'll not email it now."
+        let negative = await run("Email ana@example.com about the deck", [negated])
+        check("P5 negated promise continued", negative.tools.isEmpty && negative.calls.count == 1 && negative.reply == negated)
+
+        let done = "The draft is ready. I'll draft another email."
+        let completed = await run("Draft an email to ana@example.com about Friday's deck", [
+            #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","subject":"Friday deck","body":"The deck goes out Friday."}}</tool_call>"#,
+            done, "This extra round must not run.",
+        ])
+        check("P5 continued after a completed write of the promised class",
+              completed.tools == ["draft_email"] && completed.calls.count == 2 && completed.reply == done)
+        let leaving = "I'll leave the email for now."
+        let noAction = await run("Email ana@example.com about the deck", [leaving])
+        check("P5 no-action future sentence continued",
+              noAction.tools.isEmpty && noAction.calls.count == 1 && noAction.reply == leaving)
+        // Literal P5 class contract: navigate already ran browser class. The exact
+        // Qwen A02 promise remains a limitation; no action-level inference is invented.
+        let a02Promise = "I'll look for the latest Cortech video on YouTube. Let me search for that."
+        let a02 = await run("Open YouTube and play the latest Cortech video", [
+            #"<tool_call>{"name":"browser.navigate","arguments":{"url":"https://www.youtube.com"}}</tool_call>"#,
+            a02Promise,
+            #"<tool_call>{"name":"browser.snapshot","arguments":{}}</tool_call>"#,
+        ])
+        check("P5 re-ran a class completed by the original A02 navigate",
+              a02.tools == ["browser.navigate"] && a02.calls.count == 2 && a02.reply == a02Promise)
+        print("  TOOLLOOP_PRODUCTION_PROMISE: actual typed promise continuation; Qwen A02 remains")
+        return []
+    }
+
+    /// The exact F03 promise crosses the actual approval/review consumer. The old
+    /// full-executor fake is retained in external RED evidence as an invalid test seam.
+    @MainActor
+    static func runPromiseRecipientReviewCase(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async {
+        guard PermissionGate.shared.pending == nil, PermissionGate.shared.queuedCount == 0 else {
+            check("P5 real F03 requires an empty owned approval boundary", false)
+            return
+        }
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let log = PlannerScriptLog()
+        let ran = ScriptedToolLog()
+        let request = "Find the pricing document and email it to Marcus"
+        let promise = "I found the pricing document: Pricing 2026.pdf in your Documents folder. I'll email it to Marcus now."
+        let proposed = ["to": "marcus@productflo.example", "subject": "Pricing document",
+                        "body": "Here is the pricing document."]
+        AgentToolExecutor.fakeForTesting = nil
+        AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+            autoObserve: true, autoRead: true, autoSearchFiles: true,
+            autoComputerControl: false, grants: [])
+        AgentToolExecutor.fireOverrideForTesting = { tool, _ in
+            // This is the existing post-approval external backing substitution only.
+            ran.record(tool.id)
+            guard tool.id == "filesystem.search" else {
+                throw AgentError.permissionDenied("Unexpected external backing in the review fixture.")
+            }
+            return AgentToolResult(summary: "Pricing 2026.pdf in your Documents folder.")
+        }
+        agent.denyUnattendedApprovalsForTesting = false
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000, script: [
+                #"<tool_call>{"name":"filesystem.search","arguments":{"query":"pricing"}}</tool_call>"#,
+                promise,
+                #"<tool_call>{"name":"draft_email","arguments":{"to":"marcus@productflo.example","subject":"Pricing document","body":"Here is the pricing document."}}</tool_call>"#,
+                "What is Marcus's email address?",
+            ], log: log)
+        agent.setTypedPendingForTesting(nil)
+        AgentSession.shared.forgetAllConversations()
+        defer {
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.localModelProviderForTesting = priorProvider
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.setTypedPendingForTesting(nil)
+        }
+        let operation = Task { @MainActor in await agent.handle(request, source: .text) }
+        var shown: PermissionRequest?
+        // Same existing review self-test wait seam; no production wait or budget change.
+        for _ in 0..<200 {
+            if let pending = PermissionGate.shared.pending, pending.toolID == "draft_email" {
+                shown = pending; break
+            }
+            try? await Task.sleep(for: .milliseconds(10))
+        }
+        check("P5 real F03 never reached the actual draft card", shown != nil)
+        if let shown {
+            let review = ToolCallReviewStore.shared.review(for: shown)
+            let card = PermissionGate.shared.islandProposal(for: shown)
+            check("P5 real F03 altered the exact proposed arguments", shown.arguments == proposed)
+            check("P5 real F03 confirmed an address no source supplied",
+                  review.field("to")?.problem == .notConfirmed
+                    && review.field("to")?.unverified == ["marcus@productflo.example"])
+            check("P5 real F03 offered to execute the unknown recipient",
+                  !review.isReadyToRun && !card.canExecute && card.needsReview)
+            check("P5 real F03 lost the actual recipient question",
+                  review.field("to")?.kind == .email
+                    && review.field("to")?.prompt == "Who should this go to?")
+            check("P5 real F03 approved the unconfirmed address",
+                  !PermissionGate.shared.respond(id: shown.id, approved: true)
+                    && PermissionGate.shared.pending?.id == shown.id)
+            PermissionGate.shared.cancelPending(id: shown.id)
+        } else {
+            operation.cancel()
+        }
+        // Join the SAME entered handle before restoring the backing and review scope.
+        _ = await operation.value
+        if let shown { ToolCallReviewStore.shared.remove(id: shown.id) }
+        check("P5 real F03 entered invented-recipient backing", ran.toolIDs == ["filesystem.search"])
+        check("P5 real F03 lost its exact bounded promise continuation",
+              log.calls.count == 3 && log.calls[2].user.contains(promise))
+        check("P5 real F03 retained an approval after actual operation returned",
+              PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        print("  TOOLLOOP_PRODUCTION_PROMISE_REVIEW: actual F03 card/refused approval/zero draft backing/join")
     }
 
     /// P1-17: "Look things up without asking" said one thing and did another.

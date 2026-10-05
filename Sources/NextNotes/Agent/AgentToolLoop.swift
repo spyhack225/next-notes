@@ -62,6 +62,34 @@ enum AgentToolLoop {
             """
     }
 
+    /// An exact future-action promise, limited to a class selected by this turn.
+    /// This admits one planner continuation; it does not choose or execute a tool.
+    static func promisedIntent(
+        in reply: String, manifest: AgentCapabilityManifest
+    ) -> AgentIntentClass? {
+        let trimmed = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.hasSuffix("?") else { return nil }
+        let sentence = trimmed.split(whereSeparator: { ".!?".contains($0) })
+            .last.map(String.init)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased().replacingOccurrences(of: "\u{2019}", with: "'") ?? ""
+        guard let prefix = ["i'll ", "i will ", "let me "].first(where: { sentence.hasPrefix($0) })
+        else { return nil }
+        let words = AgentAccountRead.words(of: sentence)
+        guard !words.contains(where: { word in
+            AgentAccountRead.denialStems.contains { stem in
+                stem.count <= 3 ? word == stem : word.hasPrefix(stem)
+            }
+        }) else { return nil }
+        let verbs = AgentDirectIntent.actionVerbs.union(AgentAccountRead.readVerbStems).union(["set", "click"])
+        // The promised verb owns the action; a later noun such as "email" does not.
+        guard let action = AgentAccountRead.words(of: String(sentence.dropFirst(prefix.count))).first,
+              verbs.contains(action) else { return nil }
+        return AgentCapabilityManifestBuilder.intents(in: sentence)
+            .intersection(manifest.selectedIntents)
+            .sorted { $0.rawValue < $1.rawValue }
+            .first { intent in manifest.selected.contains { $0.intent == intent } }
+    }
+
     /// Strips argument values the model invented to fill a slot it did not know.
     ///
     /// The loop is where a call stops being text and starts being an action, so it is the

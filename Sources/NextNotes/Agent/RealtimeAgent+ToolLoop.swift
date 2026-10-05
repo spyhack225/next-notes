@@ -1491,6 +1491,8 @@ extension RealtimeAgent {
         // P1-11's own budget, for the same reason and independently of the one above: one
         // claim correction, then the honest sentence rather than the text.
         var claimCorrected = false
+        var continuedPromise = false
+        var requirePromisedCall = false
         // P1-04: repairs and repeats are the two ways a turn costs itself another round, and
         // both are capped inside the runner. The cap is what makes the tolerant parser safe to
         // have: a model that keeps writing the same wrong call spends two rounds learning it,
@@ -2049,11 +2051,23 @@ extension RealtimeAgent {
             // Apple's native tools, on an OpenAI-style `tools` array, or on the prompt
             // convention. `interactive` is the only difference between the two lanes, and it
             // is the voice frontend's own round.
+            let callRequiredRound = requirePromisedCall
+            let executingBackend: any AgentPlannerBackend
+            if callRequiredRound, let llama = roundBackend as? LlamaGrammarPlanner {
+                let grammar = LlamaGrammarPlanner.grammar(
+                    for: roundManifest, maxTokens: roundMaxTokens, requireCall: true)
+                guard grammar.structuralProblems().isEmpty else {
+                    return failed("I couldn't carry out that next step.")
+                }
+                executingBackend = LlamaGrammarPlanner(provider: llama.provider, grammar: grammar)
+            } else {
+                executingBackend = roundBackend
+            }
             let completion: Result<PlannerRound, PlannerRoundError>? = await withBoundedWait(roundLimit, joinCancelledWork: requiresVoiceChildJoin) {
                 do {
                     return .success(try await ModelPassRecorder.$current.withValue(roundRecorder) {
                         try await LatencyCorrelation.$current.withValue(correlation) {
-                            try await roundBackend.round(
+                            try await executingBackend.round(
                                 system: system, messages: [.init(role: .user, content: user)],
                                 manifest: roundManifest, maxTokens: roundMaxTokens,
                                 interactive: voice && !background
@@ -2158,6 +2172,7 @@ extension RealtimeAgent {
             // native round's `malformed` is always empty; that is what the constraint buys,
             // and the repair legs below stay for a model that is not under one.
             let parsedCalls = round.calls
+            requirePromisedCall = false
             plannerTraceForTesting?(.round(
                 index: rounds, systemCharacters: system.count, userCharacters: user.count,
                 maxTokens: roundMaxTokens, raw: round.raw,
@@ -2212,6 +2227,10 @@ extension RealtimeAgent {
             }
             if parsedCalls.isEmpty {
                 let reply = round.text
+                if callRequiredRound {
+                    speech?.cancel()
+                    return failed("I haven't done that yet.")
+                }
                 if reply.isEmpty, !runner.memoryConfirmations.isEmpty {
                     return planned(runner.memoryConfirmations.joined(separator: " "))
                 }
@@ -2356,6 +2375,24 @@ extension RealtimeAgent {
                         beginWork(title: Self.composingTitle)
                         return await finalAnswerRound(reason: .accountRead)
                     }
+                }
+                // One future-action continuation inside the SAME calls, repair and
+                // ceiling budgets. Completed class work stays untouched (P1-14).
+                if !continuedPromise, rounds < maxRounds, runner.canRepair,
+                   runner.callsUsed + runner.repairs + 1 < maxCalls,
+                   runner.ceilingRemaining > .zero,
+                   let intent = AgentToolLoop.promisedIntent(in: reply, manifest: manifest),
+                   !runner.completedToolIDs.contains(where: {
+                       manifest.entry(named: $0)?.intent == intent
+                   }) {
+                    continuedPromise = true
+                    requirePromisedCall = true
+                    runner.chargeRepairs(1)
+                    speech?.cancel()
+                    results.append("You said: " + reply + "\nThat promised action has not run. "
+                        + "Call a selected tool for that action now; do not answer with another promise. "
+                        + "If a required address or id is missing, leave it missing; never invent it.")
+                    continue
                 }
                 return reply.isEmpty ? failed("The tool plan did not produce an answer.") : planned(confirmed(reply))
             }

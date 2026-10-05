@@ -134,6 +134,7 @@ final class ToolStepRunner: ToolStepExecuting {
     /// No calls and no repairs left means the plan cannot do anything this round, so it does
     /// not spend one asking. The loop asks this before sending a round (P1-06 step 9).
     var canRunAnother: Bool { callsUsed + repairs < maxCalls }
+    var canRepair: Bool { repairs < maxRepairs }
 
     init(
         agent: RealtimeAgent, owner: Int, work: VoiceConversationWork?, provider: any LLMProvider,
