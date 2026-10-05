@@ -134,11 +134,13 @@ enum ToolClaimGuard {
             // Exclude that occurrence only: a later “I ran the script” still counts.
             let idiomSuffix = phrase == "i ran" || phrase == "i've run" || phrase == "i have run"
                 ? " out of time" : nil
-            if boundedOccurrence(of: phrase, in: lowered, excludingSuffix: idiomSuffix) != nil {
+            if boundedOccurrence(of: phrase, in: lowered, excludingSuffix: idiomSuffix,
+                                 excludingSubjectInversion: true) != nil {
                 found.append(Claim(text: phrase, toolID: nil, isWrite: false))
             }
         }
-        for phrase in writeClaimPhrases where boundedOccurrence(of: phrase, in: lowered) != nil {
+        for phrase in writeClaimPhrases where boundedOccurrence(
+            of: phrase, in: lowered, excludingSubjectInversion: true) != nil {
             found.append(Claim(text: phrase, toolID: nil, isWrite: true))
         }
         if let shapes = claimShapes,
@@ -291,11 +293,17 @@ enum ToolClaimGuard {
 
     // MARK: - The pieces
 
+    private static let subjectInversionAuxiliaries: Set<String> = [
+        "should", "shall", "can", "could", "would", "will", "may", "might", "must",
+        "do", "did", "have", "had",
+    ]
+
     /// The first occurrence of `needle` in an already-lowercased string whose two edges are
     /// not word characters — the same boundary the live eval's leak check uses, so "mail" is
     /// not `search_email` and `my_get_agenda_note` is not `get_agenda`.
     private static func boundedOccurrence(
-        of needle: String, in lowered: String, excludingSuffix: String? = nil
+        of needle: String, in lowered: String, excludingSuffix: String? = nil,
+        excludingSubjectInversion: Bool = false
     ) -> Range<String.Index>? {
         var search = lowered.startIndex
         while let hit = lowered.range(of: needle, range: search..<lowered.endIndex) {
@@ -304,6 +312,24 @@ enum ToolClaimGuard {
             let endsClean = hit.upperBound == lowered.endIndex
                 || !isWordCharacter(lowered[hit.upperBound])
             if startsClean && endsClean {
+                // "Should I set…?" asks; "I set…" reports. Skip only this
+                // occurrence, so a later affirmative remains a completed claim.
+                if excludingSubjectInversion {
+                    var end = hit.lowerBound
+                    while end > lowered.startIndex,
+                          lowered[lowered.index(before: end)].isWhitespace {
+                        end = lowered.index(before: end)
+                    }
+                    var start = end
+                    while start > lowered.startIndex,
+                          isWordCharacter(lowered[lowered.index(before: start)]) {
+                        start = lowered.index(before: start)
+                    }
+                    if subjectInversionAuxiliaries.contains(String(lowered[start..<end])) {
+                        search = hit.upperBound
+                        continue
+                    }
+                }
                 if let suffix = excludingSuffix, lowered[hit.upperBound...].hasPrefix(suffix) {
                     let end = lowered.index(hit.upperBound, offsetBy: suffix.count)
                     if end == lowered.endIndex || !isWordCharacter(lowered[end]) {

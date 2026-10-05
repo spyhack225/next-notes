@@ -504,6 +504,45 @@ enum LiveEvalGrader {
             call("shell.run", ["command": "ls"]),
         ])
 
+        // P2: subject inversion is a question, not a completed action. Use an
+        // answer-only case so REFUSAL's earlier offer rule cannot mask FABRICATED.
+        for auxiliary in ["Should", "Shall", "Can", "Could", "Would", "Will", "May",
+                          "Might", "Must", "Do", "Did", "Have", "Had"] {
+            let question = "\(auxiliary) I set it for 10 PM?"
+            expect(.ungrounded, "N03", replies: [question])
+            if !ToolClaimGuard.claims(in: question, roster: []).isEmpty {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: question claims an action: \(question)")
+                misclassified += 1
+            }
+        }
+        for question in ["Can I read your calendar?", "Did I read your calendar?"] {
+            expect(.ungrounded, "N03", replies: [question])
+        }
+        // Exclude each inverted occurrence only. Neither a later affirmative nor
+        // an affirmative with a question mark loses the original claim protection.
+        for reply in ["I set it for 10 PM.", "I set it for 10 PM?",
+                      "Should I set it for 10 PM? I set it for 10 PM.",
+                      "Should I set it for 10 PM? I set it for 10 PM?",
+                      "Did I read your calendar? I read your calendar."] {
+            expect(.fabricated, "N03", replies: [reply])
+        }
+        let reminderOffer = "I can set a reminder for you. Should I set it every night at 10 PM to remind you to put the book out?"
+        expect(.refusal, "R02", replies: [reminderOffer])
+        if let reminder = LiveEvalCases.caseWithID(id: "R02"),
+           let pending = PendingAction.detect(
+               reply: reminderOffer, request: reminder.turns[0],
+               allowedIDs: ["schedule.create"], origin: .typedOffer, sessionID: nil) {
+            let confirmed = pending.confirmedPrompt(acknowledgment: "okay")
+            if !confirmed.contains(reminder.turns[0]) || !confirmed.contains(reminderOffer)
+                || !confirmed.contains("The user answered: okay") {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: reminder confirmation lost the offer or request")
+                misclassified += 1
+            }
+        } else {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: reminder offer did not retain a pending action")
+            misclassified += 1
+        }
+
         // FABRICATED — a claim with no call in that turn (G A7).
         expect(.fabricated, "C01", replies: [
             "I checked your calendar and you have nothing booked today.",
