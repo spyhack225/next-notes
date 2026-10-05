@@ -162,6 +162,8 @@ enum OutputSchedulerPhraseSelfTest {
             }
             let race = try await generationRace(root: root, recorder: recorder)
             checks += race.checks; failures += race.failures
+            let cancelledDrain = await cancelledGenerationDrain(root: root)
+            checks += cancelledDrain.checks; failures += cancelledDrain.failures
             check(SelfTestStoreGuard.diff(owner, SelfTestStoreGuard.take()).isEmpty, "C08 owner store/default invariant")
         } catch {
             failures.append("phrase: INVALID \(error)")
@@ -267,6 +269,72 @@ enum OutputSchedulerPhraseSelfTest {
             throw error
         }
         _ = await frontend.setGenerationForTesting(nil); output.setPhraseForTesting(nil)
+        return (checks, failures)
+    }
+    /// Cancel an actual request while it drains a retained entered owner. The
+    /// existing scripted native boundary is held; no FM/kernel claim is made.
+    private static func cancelledGenerationDrain(root: URL) async -> (checks: Int, failures: [String]) {
+        let frontend = FrontendResponder(); let probe = DeliveryGenerationRaceProbe()
+        var checks = 0; var failures: [String] = []
+        func check(_ value: Bool, _ label: String) {
+            checks += 1; if !value { failures.append("cancelled frontend drain: " + label) }
+        }
+        guard await frontend.setGenerationForTesting({ system, messages, tokens in
+            probe.stream(system: system, messages: messages, tokens: tokens)
+        }, retainingTaskOwner: true, fixtureRoot: root,
+            onGenerationCapture: { probe.captured($0) }) else {
+            return (0, ["cancelled frontend drain: INVALID fixture admission"])
+        }
+        let priorStream = await frontend.stream(system: "Owned prior request",
+            messages: [.init(role: .user, content: "Owned prior input")], maxTokens: 24)
+        let priorOwner = await frontend.ownedGenerationForTesting()
+        var cancelledCall: Task<Void, Error>?
+        var liveCall: Task<String, Error>?
+        do {
+            guard let priorOwner, await reached({ probe.snapshot().held }) else { throw Invalid.row }
+            check(probe.snapshot().calls == 1 && probe.snapshot().requestCaptures == 1,
+                  "actual prior generation was not held before cancellation")
+            cancelledCall = Task {
+                let stream = await frontend.stream(system: "Owned cancelled request",
+                    messages: [.init(role: .user, content: "Owned cancelled input")], maxTokens: 24)
+                for try await _ in stream { }
+            }
+            guard await reached({ probe.snapshot().requestCaptures == 2 }),
+                  let cancelledCall else { throw Invalid.row }
+            cancelledCall.cancel()
+            _ = await cancelledCall.result
+            let ownerAfterCancellation = await frontend.ownedGenerationForTesting()
+            check(ownerAfterCancellation == priorOwner && !priorOwner.isCancelled,
+                  "cancelled waiting request replaced or cancelled the entered native owner")
+            check(probe.snapshot().calls == 1 && probe.snapshot().held,
+                  "cancelled waiting request entered a new generation")
+            liveCall = Task {
+                let stream = await frontend.stream(system: "Owned newer request",
+                    messages: [.init(role: .user, content: "Owned newer input")], maxTokens: 24)
+                var reply = ""; for try await piece in stream { reply += piece }; return reply
+            }
+            guard await reached({ probe.snapshot().requestCaptures == 3 }),
+                  let liveCall else { throw Invalid.row }
+            check(probe.snapshot().held && probe.snapshot().calls == 1,
+                  "next live request failed to retain the actual prior drain")
+            probe.releasePrior(); await priorOwner.value
+            let reply = try await liveCall.value
+            guard let latestOwner = await frontend.ownedGenerationForTesting() else { throw Invalid.row }
+            await latestOwner.value
+            check(reply == DeliveryGenerationRaceProbe.newReply && probe.snapshot().calls == 2,
+                  "next live request lost its reply or ran cancelled inference")
+            check(probe.snapshot().terminated == 2 && !probe.snapshot().held,
+                  "actual retained generation owners did not finish")
+        } catch {
+            failures.append("cancelled frontend drain: INVALID owned fixture")
+        }
+        probe.releasePrior(); cancelledCall?.cancel(); liveCall?.cancel()
+        _ = await cancelledCall?.result; _ = await liveCall?.result
+        await priorOwner?.value
+        if let owner = await frontend.ownedGenerationForTesting() { owner.cancel(); await owner.value }
+        await frontend.setGenerationForTesting(nil)
+        withExtendedLifetime(priorStream) { }
+        print("VOICE_CANCELLED_DRAIN checks=\(checks) failures=\(failures.count) nativeKernelEvidence=false")
         return (checks, failures)
     }
     private static func drain(_ speech: AgentSpeechSynthesizer, _ recorder: RecordingSpeechBacking) {

@@ -426,7 +426,13 @@ actor FrontendResponder {
         deliveryPhrase: Bool = false
     ) async -> AsyncThrowingStream<String, Error> {
         let barrierStarted = ContinuousClock.now
-        if await Self.waitForPriorInference(drain) {
+        let drained = await Self.waitForPriorInference(drain)
+        // Cancellation is not a drain timeout: retain the actual entered owner
+        // and do not create inference for a request whose consumer has gone.
+        guard !Task.isCancelled else {
+            return AsyncThrowingStream { $0.finish(throwing: CancellationError()) }
+        }
+        if drained {
             if drain != nil {
                 Self.emitTiming(timing, "drain_barrier_done", durationFrom: barrierStarted)
             }
