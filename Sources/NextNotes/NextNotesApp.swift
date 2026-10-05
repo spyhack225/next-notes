@@ -4095,7 +4095,10 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     /// the same `ChunkedTranscriber` — so the windowing and silence detection are exercised
     /// rather than bypassed. Shared by `--selftest-transcribe` and `--selftest-notes`.
     private static func transcribeFile(
-        at path: String
+        at path: String, realtime: Bool = false,
+        transcribe: @escaping ChunkedTranscriber.Transcribe = {
+            try await TranscriptionQueue.shared.transcribeWithLaneWait($0)
+        }
     ) async throws -> (segments: [TranscriptSegment], audioSeconds: Double, elapsed: TimeInterval) {
         let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
         let samples = try AudioConversion.monoSamples(
@@ -4105,20 +4108,107 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
 
         let collector = SelfTestSegments()
-        let transcriber = ChunkedTranscriber(source: .system) { segment in
+        let transcriber = ChunkedTranscriber(source: .system, transcribe: transcribe) { segment in
             await collector.add(segment)
         }
 
         let began = Date()
         let step = Int(ChunkedTranscriber.sampleRate)
         var index = 0
-        while index < samples.count {
-            let end = min(index + step, samples.count)
-            await transcriber.append(Array(samples[index..<end]))
-            index = end
+        let clock = ContinuousClock()
+        let feedBegan = clock.now
+        do {
+            while index < samples.count {
+                let end = min(index + step, samples.count)
+                if realtime {
+                    try await clock.sleep(until: feedBegan.advanced(by: .seconds(
+                        Double(end) / ChunkedTranscriber.sampleRate)))
+                    try Task.checkCancellation()
+                }
+                await transcriber.append(Array(samples[index..<end]))
+                index = end
+            }
+        } catch {
+            await transcriber.flush()
+            throw error
         }
         await transcriber.flush()
         return (await collector.all(), audioSeconds, Date().timeIntervalSince(began))
+    }
+
+    /// Pure harness prerequisite: actual file conversion and ChunkedTranscriber,
+    /// with its existing injected ASR seam. No native model, owner audio or C1 gate claim.
+    private static func floorFileFeedProblems() async -> [String] {
+        guard SelfTest.isRunning else { return ["isolated harness required"] }
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "NextNotesFloorFeed-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: root) }
+        do {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            let url = root.appendingPathComponent("speech.caf")
+            let seconds = 5.25
+            let frames = Int(seconds * ChunkedTranscriber.sampleRate)
+            guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
+                      sampleRate: ChunkedTranscriber.sampleRate, channels: 1, interleaved: false),
+                  let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(frames)),
+                  let channel = buffer.floatChannelData?[0] else { return ["fixture PCM unavailable"] }
+            buffer.frameLength = AVAudioFrameCount(frames)
+            for index in 0..<frames { channel[index] = index.isMultiple(of: 2) ? 0.1 : -0.1 }
+            do {
+                let file = try AVAudioFile(forWriting: url, settings: format.settings)
+                try file.write(from: buffer)
+            }
+            var failures: [String] = []
+            func check(_ name: String, _ condition: Bool) { if !condition { failures.append(name) } }
+            for paced in [false, true] {
+                let entered = LockedBox<[Double]>([])
+                let began = ContinuousClock.now
+                let result = try await transcribeFile(at: url.path, realtime: paced, transcribe: { samples in
+                    let elapsed = began.duration(to: .now)
+                    let parts = elapsed.components
+                    entered.value = entered.value + [Double(parts.seconds) + Double(parts.attoseconds) / 1e18]
+                    return (ASRResult(text: "Fixture speech.", confidence: 1,
+                        duration: Double(samples.count) / ChunkedTranscriber.sampleRate,
+                        processingTime: 0, tokenTimings: nil), 0, 0)
+                })
+                check("fixture frames changed", abs(result.audioSeconds - seconds) < 0.001)
+                check("actual transcriber consumer absent", !entered.value.isEmpty && !result.segments.isEmpty)
+                if !paced {
+                    check("ordinary unpaced feeder acquired the real-time wait", result.elapsed < seconds - 0.020)
+                }
+                if paced {
+                    check("paced fixture completed ahead of its audio clock", result.elapsed >= seconds - 0.020)
+                    check("ASR received the five-second window before its real-time frames",
+                          (entered.value.first ?? 0) >= ChunkedTranscriber.WindowConfig.default.maxWindowSeconds - 0.020)
+                }
+            }
+            // Cancel both before the first packet and from the actual ASR entry seam.
+            // Awaiting the SAME feeder Task must settle after the transcriber drain joins.
+            for afterWindow in [false, true] {
+                let completed = LockedBox<Int>(0)
+                let owner = LockedBox<Task<Void, Error>?>(nil)
+                let task: Task<Void, Error> = Task {
+                    _ = try await transcribeFile(at: url.path, realtime: true, transcribe: { samples in
+                        if afterWindow { owner.value?.cancel() }
+                        completed.value += 1
+                        return (ASRResult(text: "Fixture speech.", confidence: 1,
+                            duration: Double(samples.count) / ChunkedTranscriber.sampleRate,
+                            processingTime: 0, tokenTimings: nil), 0, 0)
+                    })
+                }
+                owner.value = task
+                if !afterWindow { task.cancel() }
+                var cancelled = false
+                do { try await task.value }
+                catch is CancellationError { cancelled = true }
+                catch { failures.append("cancelled feeder changed refusal: " + error.localizedDescription) }
+                check("cancelled paced feeder returned success", cancelled)
+                check("cancelled feeder did not settle its expected ASR work",
+                      afterWindow ? completed.value > 0 : completed.value == 0)
+                owner.value = nil
+            }
+            return failures
+        } catch { return ["fixture producer error: " + error.localizedDescription] }
     }
 
     /// Transcribes a WAV and writes notes from it, printing the markdown and what it cost.
@@ -4574,6 +4664,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     /// multi-gigabyte download is not a precondition for answering that question.
     private func runMetalSelfTest() {
         Task { @MainActor in
+            if CommandLine.arguments.contains("--floor-feed-proof") {
+                let failures = await Self.floorFileFeedProblems()
+                writeSelfTest(failures.isEmpty ? "LLM_FLOOR_FEED_OK" : "LLM_FLOOR_FEED_FAILED: " + failures.joined(separator: "; "))
+                SelfTest.failed = !failures.isEmpty
+                SelfTest.requestTermination()
+                return
+            }
             let usingNotesModel = NotesModels.isDownloaded
             let spec = usingNotesModel ? NotesModels.spec : S1MiniModels.spec
             guard spec.isDownloaded else {
