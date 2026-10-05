@@ -1,0 +1,7 @@
+# Browser navigation follow-through — 2026-10-05
+
+The promise handler treated any completed browser tool as completing the browser request. After navigation alone, the exact native “I'll open YouTube and find the latest Cortech video there” therefore stopped before its promised find. The existing completion check now admits the same single bounded continuation only for an explicitly requested compound open, navigation-only history, selected ready page inspection and an explicit find/search promise.
+
+Original/fixed `--selftest-toolloop-production`: **RED3 → GREEN**, unchanged exact native refusal/navigation/promise, actual typed consumer and runner-backed fixture snapshot. Single opens retain the direct shortcut; completed inspection, unavailable inspection, questions, negation and completed mail remain suppressed. Voice routing, tool review and store isolation pass. Initial COMMON incorrectly expected planner calls for the single-open shortcut; the same input now asserts the actual direct browser call, zero model calls and exact reply in both variants. Initial failed results are retained.
+
+Evidence: `~/Library/Caches/NextNotesBuild/integration/a02-browser-follow-through/`. Latest preceding Mini quick is **9/9/9**; fresh continuation quality, latest-video playback, F03 wording, full/owner and latency remain open. No new pass owner, store, timeout or call budget is added; existing bounded repair/call/permission policy is reused. Concurrent canonical tool-loop context/recovered-read edits are preserved outside this commit.

@@ -100,6 +100,31 @@ enum AgentToolLoop {
             .first { intent in manifest.selected.contains { $0.intent == intent } }
     }
 
+    /// Completion is checked from the same turn's actual canonical tool ids.
+    /// The default class contract is retained for the original contrast.
+    static func promiseIsCompleted(
+        intent: AgentIntentClass, reply: String, request: String,
+        manifest: AgentCapabilityManifest, completedToolIDs: [String]
+    ) -> Bool {
+        let completed = completedToolIDs.filter { manifest.entry(named: $0)?.intent == intent }
+        guard !completed.isEmpty else { return false }
+        // navigate opens a URL, not the explicit second step of an open-and-find
+        // request. Keep every other completed-class suppression unchanged. This
+        // only admits the existing bounded continuation; it selects no action.
+        if intent == .browser, Set(completed) == ["browser.navigate"],
+           explicitlyRequests("open", in: request),
+           MultiStepPlanRouting.likelyMultiStep(request),
+           manifest.selected.contains(where: {
+               $0.intent == .browser && $0.risk <= .read
+                 && ($0.id == "browser.snapshot" || $0.id == "browser.read_page")
+           }),
+           reply.range(of: #"\b(?:and|then)\s+(?:find|search|look)\b"#,
+                       options: [.regularExpression, .caseInsensitive]) != nil {
+            return false
+        }
+        return true
+    }
+
     /// The first-only subject question asks the person for prose the draft contract
     /// assigns to the model. It shares the existing single repair and call-required round.
     static func draftSubjectRepair(

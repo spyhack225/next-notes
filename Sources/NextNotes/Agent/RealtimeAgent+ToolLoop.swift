@@ -2387,9 +2387,9 @@ extension RealtimeAgent {
                    let intent = subjectRepair != nil ? AgentIntentClass.mail
                        : AgentToolLoop.promisedIntent(in: reply, manifest: manifest, request: currentRequest,
                            repairsUsed: runner.repairs),
-                   !runner.completedToolIDs.contains(where: {
-                       manifest.entry(named: $0)?.intent == intent
-                   }) {
+                   !AgentToolLoop.promiseIsCompleted(
+                       intent: intent, reply: reply, request: currentRequest,
+                       manifest: manifest, completedToolIDs: runner.completedToolIDs) {
                     continuedPromise = true
                     requirePromisedCall = true
                     runner.chargeRepairs(1)

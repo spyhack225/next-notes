@@ -2075,6 +2075,84 @@ enum RealtimeAgentToolLoopSelfTest {
         let noAction = await run("Email ana@example.com about the deck", [leaving])
         check("P5 no-action future sentence continued",
               noAction.tools.isEmpty && noAction.calls.count == 1 && noAction.reply == leaving)
+        // Exact installed Mini after the browser refusal correction: navigation
+        // completed, but its explicit promised find step has not been performed.
+        let browserFollowThroughRequest = "Open youtube and play the latest Cortech video"
+        let browserFollowThroughPromise = "I'll open YouTube and find the latest Cortech video there."
+        let followManifest = AgentCapabilityManifestBuilder.build(
+            allEnabledFixture(), request: browserFollowThroughRequest)
+        check("A02 explicit navigation-only follow-through still counts as completed",
+              !AgentToolLoop.promiseIsCompleted(
+                intent: .browser, reply: browserFollowThroughPromise,
+                request: browserFollowThroughRequest, manifest: followManifest,
+                completedToolIDs: ["browser.navigate"]))
+        for (request, completed) in [
+            ("Open youtube", ["browser.navigate"]),
+            ("Explain how to open youtube and find a video", ["browser.navigate"]),
+            (browserFollowThroughRequest, ["browser.navigate", "browser.snapshot"]),
+            (browserFollowThroughRequest, ["browser.navigate", "browser.fill"]),
+        ] {
+            check("A02 follow-through exception weakened ordinary/completed browser suppression",
+                  AgentToolLoop.promiseIsCompleted(
+                    intent: .browser, reply: browserFollowThroughPromise, request: request,
+                    manifest: followManifest, completedToolIDs: completed))
+        }
+        let nativeFollowLog = PlannerScriptLog()
+        let nativeFollowFixtures = LiveEvalFixtures()
+        AgentToolExecutor.fakeForTesting = { tool, arguments in
+            try await nativeFollowFixtures.run(tool, arguments)
+        }
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: ["I can't browse the web from here, but I don't have a way to find or play videos on YouTube. Want me to help with something else?", "I'll open YouTube and find the latest Cortech video.\n<function name=\"browser.navigate\"><param name=\"url\">https://www.youtube.com</param></function>", browserFollowThroughPromise,
+                     #"<tool_call>{"name":"browser.snapshot","arguments":{}}</tool_call>"#,
+                     "The page lists Cortech's newest upload from two days ago."], log: nativeFollowLog)
+        agent.setTypedPendingForTesting(nil)
+        AgentSession.shared.forgetAllConversations()
+        let nativeFollow = await agent.handle(browserFollowThroughRequest, source: .text)
+        check("A02 partial navigation promise did not use the SAME bounded continuation",
+              nativeFollowLog.calls.count == 5
+                && nativeFollowLog.calls[3].user.contains("That promised action has not run."))
+        check("A02 follow-through did not reach actual runner page inspection",
+              nativeFollowFixtures.calls.map(\.toolID) == ["browser.navigate", "browser.snapshot"]
+                && nativeFollowFixtures.calls.first?.arguments["url"] == "https://www.youtube.com"
+                && nativeFollowLog.calls.last?.user.contains("Cortech — newest upload") == true
+                && nativeFollow.reply == "The page lists Cortech's newest upload from two days ago.")
+        // This proves promised page inspection, not playback/full native A02 quality.
+        let nav = #"<tool_call>{"name":"browser.navigate","arguments":{"url":"https://www.youtube.com"}}</tool_call>"#
+        for (request, response) in [
+            (browserFollowThroughRequest, "The YouTube page is open."),
+            (browserFollowThroughRequest, "Should I find the latest Cortech video?"),
+            (browserFollowThroughRequest, "I'll not find the latest Cortech video there."),
+        ] {
+            let ordinary = await run(request, [nav, response, "This extra pass must not run."])
+            check("A02 follow-through continued single-open/completed/clarification/negation",
+                  ordinary.tools == ["browser.navigate"] && ordinary.calls.count == 2 && ordinary.reply == response)
+        }
+        let singleOpen = await run("Open youtube", [nav, browserFollowThroughPromise,
+            "This extra pass must not run."])
+        print("A02_SINGLE_OPEN_ROUTE tools=\(singleOpen.tools.joined(separator: ",")) plannerCalls=\(singleOpen.calls.count) exactReply=\(singleOpen.reply == "Opened youtube.com.")")
+        check("A02 single-open direct shortcut entered the planner or promised follow-through",
+              singleOpen.tools == ["browser.navigate"] && singleOpen.calls.isEmpty
+                && singleOpen.reply == "Opened youtube.com.")
+        let inspectedFollow = await run(browserFollowThroughRequest, [
+            nav, #"<tool_call>{"name":"browser.snapshot","arguments":{}}</tool_call>"#,
+            browserFollowThroughPromise, "This extra pass must not run.",
+        ])
+        check("A02 follow-through recontinued after actual completed page inspection",
+              inspectedFollow.tools == ["browser.navigate", "browser.snapshot"]
+                && inspectedFollow.calls.count == 3 && inspectedFollow.reply == browserFollowThroughPromise)
+        let priorFollowInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged).filter {
+                $0.id != "browser.snapshot" && $0.id != "browser.read_page"
+            }, reader: .voiceFrontend)
+        let unavailableFollow = await run(browserFollowThroughRequest,
+            [nav, browserFollowThroughPromise, "This extra pass must not run."])
+        check("A02 follow-through continued without selected ready inspection",
+              unavailableFollow.tools == ["browser.navigate"] && unavailableFollow.calls.count == 2
+                && unavailableFollow.reply == browserFollowThroughPromise)
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorFollowInputs
         // Literal P5 class contract: navigate already ran browser class. The exact
         // Qwen A02 promise remains a limitation; no action-level inference is invented.
         let a02Promise = "I'll look for the latest Cortech video on YouTube. Let me search for that."
