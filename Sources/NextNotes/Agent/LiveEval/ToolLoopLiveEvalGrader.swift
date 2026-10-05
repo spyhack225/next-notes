@@ -835,6 +835,7 @@ enum LiveEvalGrader {
 
         var instrumentFailures = ToolLoopLiveEval.instrumentSelfTestFailures()
         instrumentFailures += await fixtureArgumentFailures()
+        instrumentFailures += await fixtureClickVerificationFailures()
         if let fixed = SelfTest.parseFixtureClock("2026-10-04T12:34:56.789Z") {
             let fixtures = LiveEvalFixtures(now: fixed)
             let day = dayString(now: fixed)
@@ -862,6 +863,67 @@ enum LiveEvalGrader {
         }
         SelfTest.diagnostic("TOOLLOOP_LIVE_INSTRUMENT: \(instrumentFailures.count) problem(s)")
         return misclassified == 0 && mailboxProblems == 0 && instrumentFailures.isEmpty
+    }
+
+    /// The recorded A02 click supplied its postcondition. Exercise the SAME
+    /// validation at the live fixture executor before its success log, without
+    /// entering a browser or approving an action on the owner's machine.
+    private static func fixtureClickVerificationFailures() async -> [String] {
+        guard SelfTest.isRunning else { return ["click verification requires SelfTest"] }
+        var failures: [String] = []
+        func check(_ label: String, _ condition: Bool) {
+            if !condition { failures.append("click verification: " + label) }
+        }
+        let fixtures = LiveEvalFixtures()
+        let oldFake = AgentToolExecutor.fakeForTesting
+        let oldApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
+        AgentToolExecutor.fakeForTesting = fixtures.run
+        defer {
+            AgentToolExecutor.fakeForTesting = oldFake
+            AgentToolExecutor.recordedReadApprovalsForTesting = oldApprovals
+        }
+        let cases: [(String, [String: String], Bool)] = [
+            // Exact retained Gemma/Qwen A02 arguments, copied from the snapshot.
+            ("browser.click", ["id": "2", "expectedText": "Cortech — newest upload (2 days ago)"], true),
+            ("browser.click", ["id": "2", "expectedURL": "https://www.youtube.com/"], true),
+            ("browser.click", ["id": "2", "expectedText": "Cortech — newest upload (2 days ago)",
+                               "expectedURL": "https://www.youtube.com/"], true),
+            ("computer.click", ["id": "2", "expectedText": "Completed"], true),
+            ("browser.click", ["id": "2"], false),
+            ("computer.click", ["id": "2"], false),
+            ("browser.click", ["id": "2", "expectedText": "  ", "expectedURL": "\n"], false),
+            ("computer.click", ["id": "2", "expectedText": "  "], false),
+            // Existing self-verifying operations need no extra postcondition.
+            ("browser.navigate", ["url": "https://www.youtube.com"], true),
+            ("browser.fill", ["id": "1", "text": "Cortech"], true),
+        ]
+        for (id, arguments, runnable) in cases {
+            guard let tool = AgentToolRegistry.shared.tool(named: id) else {
+                failures.append("click verification: missing " + id)
+                continue
+            }
+            let label = id + ":" + arguments.keys.sorted().joined(separator: ",")
+            fixtures.beginCase()
+            let problem = ToolCallValidation.problem(tool: tool, arguments: arguments)
+            check(label + " production postcondition admission", (problem == nil) == runnable)
+            do {
+                let result = try await AgentToolExecutor.run(id, arguments: arguments,
+                    policy: .denyMutations, promptIfNeeded: false)
+                check(label + " accepted an unverified click", runnable)
+                check(label + " changed actual fixture result", result.summary == fixtures.summary(
+                    for: id, arguments: arguments))
+                check(label + " lost exact accepted call", fixtures.calls == [LiveEvalLoggedCall(
+                    turn: 0, toolID: id, arguments: arguments, risk: tool.risk)])
+                check(label + " lost accepted result", fixtures.log.firstResult(for: 0) != nil)
+            } catch AgentError.permissionDenied(let message) {
+                check(label + " refused supplied verification", !runnable && message == problem)
+                check(label + " recorded refused work", fixtures.calls.isEmpty)
+                check(label + " recorded refused result", fixtures.log.firstResult(for: 0) == nil)
+            } catch {
+                failures.append("click verification: " + label + " unexpected error " + error.localizedDescription)
+            }
+        }
+        return failures
     }
 
     /// Replay the recorded M04 arguments through the actual live-eval executor seam.

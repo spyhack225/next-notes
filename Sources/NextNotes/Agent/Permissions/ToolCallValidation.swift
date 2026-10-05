@@ -111,7 +111,7 @@ enum ToolCallValidation {
         guard tool.id == "computer.click" || tool.id == "browser.click" else { return nil }
         let stated = !(arguments["expectedText"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             || !(arguments["expectedURL"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
-        guard !stated else {
+        guard stated else {
             return "Either \u{201c}Expected text\u{201d} or \u{201c}Expected URL\u{201d} "
                 + "is needed so the effect can be verified. Supply expectedText or expectedURL. "
                 + "Nothing was run."
