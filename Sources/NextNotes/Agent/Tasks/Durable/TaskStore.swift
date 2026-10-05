@@ -489,8 +489,10 @@ final class TaskStore: @unchecked Sendable {
                                   let request = worker.voiceInputRequestID, !request.isEmpty,
                                   next.pendingInteraction == nil, next.revision >= revision,
                                   let words = next.userWords, !words.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                                  events.count == 2,
-                                  Set(events.map(\.kind)) == [.inputProvided, .workerStarted],
+                                  (events.count == 2 && Set(events.map(\.kind)) == [.inputProvided, .workerStarted])
+                                    || (next.revision > revision && next.revision - revision == 1 && events.count == 3
+                                        && Set(events.prefix(2).map(\.kind)) == [.inputProvided, .workerStarted]
+                                        && events.last?.kind == .revisionRecorded && events.last?.detail == words),
                                   events.allSatisfy({ $0.taskID == worker.taskID && $0.attempt == 0 }) else {
                                 throw TaskStoreError.authorityConflict
                             }

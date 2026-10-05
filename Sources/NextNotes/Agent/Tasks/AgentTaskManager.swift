@@ -1260,7 +1260,12 @@ final class AgentTaskManager {
         let expected = TaskWorkerWriteCondition(taskID: current.id, attempt: 0, leaseOwner: nil,
             status: current.status, voiceOrigin: current.origin, voiceRevision: current.revision,
             voiceInputRequestID: request.id)
-        let saved = update(id.uuidString, kinds: [.inputProvided], worker: expected) { task in
+        // The exact accepted answer advances one instruction before the Bridge
+        // appends it to retained Work. Required facts share this primary commit.
+        // Nil/jump compatibility revisions keep their existing metadata contract.
+        let revisions: [TaskJournalEventDraft] = revision.map({ $0 > current.revision && $0 - current.revision == 1 }) == true
+            ? [.init(taskID: current.id, kind: .revisionRecorded, detail: answer, attempt: 0)] : []
+        let saved = update(id.uuidString, kinds: [.inputProvided], events: revisions, worker: expected) { task in
             task.status = .running; task.progress = "Working locally"
             task.pendingInteraction = nil; task.result = nil; task.failure = nil
             task.userWords = answer

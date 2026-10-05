@@ -86,7 +86,7 @@ enum TaskVoiceRevisionSelfTest {
             AgentCapabilityManifestBuilder.inputsOverrideForTesting = RealtimeAgentToolLoopSelfTest.allEnabledFixture()
             PlannerBackends.wholeTurnOverrideForTesting = nil
             ToolLoopLiveEval.needleFirstForTesting = false
-            for mode in ["accepted-parsed", "refused-parsed", "refused-naming", "question-answer", "running-journal"] {
+            for mode in ["accepted-parsed", "refused-parsed", "refused-naming", "question-answer", "running-journal", "question-refused-journal", "question-restart-held"] {
                 let start = checks
                 let directory = root.appendingPathComponent(mode, isDirectory: true)
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: false)
@@ -101,8 +101,8 @@ enum TaskVoiceRevisionSelfTest {
                 await capture.beginSession(captureAudio: false)
                 guard let session = capture.sessionID else { throw Invalid.owner }
                 let request = "Inspect the current window and press escape for the owned revision case."
-                let correction = mode == "question-answer" ? "Use the tab key." : (mode == "refused-naming" ? "The key is called tab." : "Actually, press tab instead of escape.")
-                let state = VoiceRevisionProbe(request: request, correction: correction, question: mode == "question-answer"); probe = state
+                let correction = mode.hasPrefix("question-") ? "Use the tab key." : (mode == "refused-naming" ? "The key is called tab." : "Actually, press tab instead of escape.")
+                let state = VoiceRevisionProbe(request: request, correction: correction, question: mode.hasPrefix("question-")); probe = state
                 c.rememberExplicit = { _ in }; c.prewarmObserverForTesting = {}
                 c.workerForTesting = nil; c.workerProviderForTesting = VoiceRevisionProvider(probe: state)
                 c.streamForTesting = { _, messages in await state.frontend(messages) }
@@ -174,7 +174,7 @@ enum TaskVoiceRevisionSelfTest {
                     c.resetForTesting(); _ = c.installTaskBridgeForTesting(nil); probe = nil
                     continue
                 }
-                if mode == "question-answer" {
+                if mode.hasPrefix("question-") {
                     await state.releaseAll(); await task.value; owned = nil
                     guard let question = job.bridge.voiceInputRequest(TaskID(job.id)),
                           manager.task(id: job.id.uuidString)?.status == .waitingForInput,
@@ -182,6 +182,29 @@ enum TaskVoiceRevisionSelfTest {
                     check(question.question == VoiceRevisionProbe.questionText && question.taskID == job.id.uuidString
                         && fired.isEmpty && job.work.revision == 0,
                         "C12 actual typed question retains exact request before any effect")
+                    if mode == "question-refused-journal" {
+                        let beforeQuestionCache = bridge.cachedTasks.compactMap { manager.task(id: $0.id) }
+                        let beforeQuestion = try sql.load(), beforeQuestionEvents = try sql.journal(taskID: job.id.uuidString)
+                        let beforeQuestionExport = try Data(contentsOf: file), beforeFollowUps = job.work.followUps
+                        try sql.withConnection { try TaskStore.exec($0,
+                            "CREATE TRIGGER refuse_answer_revision BEFORE INSERT ON task_event WHEN NEW.kind='revisionRecorded' BEGIN SELECT RAISE(ABORT,'owned answer journal refusal'); END") }
+                        let refused = await input(correction)
+                        owned = c.captureVoiceWorkerForTesting(id: job.id)?.task // Capture before any refusal assertion.
+                        let afterQuestion = try sql.load(), afterQuestionEvents = try sql.journal(taskID: job.id.uuidString)
+                        let afterQuestionExport = try Data(contentsOf: file)
+                        check(refused.reply == "I couldn't save your answer. The task is still waiting."
+                            && owned == nil && job.work.revision == 0 && job.work.followUps == beforeFollowUps
+                            && job.bridge.voiceInputRequest(TaskID(job.id)) == question,
+                            "RJ03 required answer journal refusal cannot resume or append retained Work")
+                        check(bridge.cachedTasks.compactMap { manager.task(id: $0.id) } == beforeQuestionCache && afterQuestion == beforeQuestion
+                            && afterQuestionEvents == beforeQuestionEvents && afterQuestionExport == beforeQuestionExport
+                            && fired.isEmpty && gate.pending == nil && gate.queuedCount == 0,
+                            "C22 refused answer journal preserves exact cache SQL export question and effects")
+                        try sql.withConnection { try TaskStore.exec($0, "DROP TRIGGER refuse_answer_revision") }
+                    }
+                    // This is a new explicit user answer after a refused admission,
+                    // never an automatic repeat. Original wrong admission remains
+                    // observable; its real operation is retained before this turn.
                     let answered = await input(correction)
                     owned = c.captureVoiceWorkerForTesting(id: job.id)?.task
                     guard let successor = owned, let resumedCapture = c.captureVoiceWorkerForTesting(id: job.id),
@@ -193,7 +216,46 @@ enum TaskVoiceRevisionSelfTest {
                     let resumed = try sql.load().first
                     check(resumed?.revision == 1 && resumed?.status == .running,
                         "F07 actual answer commits its exact work revision in SAME primary transition")
-                    await state.releaseAll()
+                    let answerEvents = try sql.journal(taskID: job.id.uuidString)
+                    let answerFacts = answerEvents.filter { $0.draft.kind == .revisionRecorded }
+                    check(answerFacts.count == 1 && answerFacts.first?.draft.detail == correction
+                        && answerFacts.first?.draft.taskID == job.id.uuidString && answerFacts.first?.draft.attempt == 0
+                        && (answerFacts.first?.seq ?? 0) > 0 && resumed?.revision == 1,
+                        "RJ04 exact accepted answer instruction shares the resumed primary transaction (\(mode))")
+                    if mode == "question-restart-held" {
+                        // Fresh production Manager holds voice restart as failed;
+                        // no recovered worker or effect is synthesized.
+                        let fresh = AgentTaskManager(store: AgentTaskStore(fileURL: file, mirror: sql))
+                        let held = try sql.load().first { $0.id == job.id.uuidString }
+                        let heldEvents = try sql.journal(taskID: job.id.uuidString), heldExport = try Data(contentsOf: file)
+                        check(held?.status == .failed && held?.revision == 1 && held?.userWords == correction
+                            && fresh.task(id: job.id.uuidString) == held && fresh.backendStartsForTesting == 0
+                            && fresh.voiceWorkerSnapshot(id: job.id) == nil && fired.isEmpty,
+                            "C23 fresh Manager commits interrupted voice hold without replay or effect")
+                        let freshBridge = TaskBridge(manager: fresh)
+                        let freshResume = freshBridge.resumeVoiceObjective(id: job.id, requestID: question.id, answer: correction,
+                            sessionID: session, revision: 2)
+                        let afterFreshResumeEvents = try sql.journal(taskID: job.id.uuidString)
+                        check(!freshResume && fresh.task(id: job.id.uuidString) == held && afterFreshResumeEvents == heldEvents,
+                            "C24 saved failed voice row and old question cannot borrow a live continuation")
+                        _ = c.cancel(job.id) // Existing cancellation seam; SQL refusal does not permit work.
+                        await state.releaseForCompletion(); await successor.value; owned = nil
+                        let afterReturn = try sql.load().first { $0.id == job.id.uuidString }
+                        let afterReturnEvents = try sql.journal(taskID: job.id.uuidString), afterReturnExport = try Data(contentsOf: file)
+                        check(successor.isCancelled && c.captureVoiceWorkerForTesting(id: job.id) == nil
+                            && afterReturn == held && afterReturnEvents == heldEvents
+                            && afterReturnExport == heldExport && fired.isEmpty
+                            && gate.pending == nil && gate.queuedCount == 0,
+                            "C25 exact stale Task return preserves fresh held instructions and unknown effects")
+                        await capture.endSession(source: .done)
+                        check(!capture.isSessionActive && c.barrierWaiterCountForTesting == 0,
+                            "C26 actual interrupted answer Task and session drain")
+                        print("VOICE_ANSWER_JOURNAL_TRACE mode=\(mode) checks=\(checks-start) revision=\(held?.revision ?? -1) effects=\(fired.count) replay=false")
+                        c.resetForTesting(); _ = c.installTaskBridgeForTesting(nil); probe = nil
+                        continue
+                    }
+                    if mode == "question-refused-journal" { await state.releaseForCompletion() }
+                    else { await state.releaseAll() }
                     guard await reached({ gate.pending?.taskID == job.id.uuidString && gate.pending?.arguments["key"] == "tab" }),
                           let answerGate = gate.pending, gate.pendingReview?.isReadyToRun == true else { throw Invalid.boundary }
                     check(fired.isEmpty && answerGate.toolID == "computer.press_key",
@@ -205,6 +267,14 @@ enum TaskVoiceRevisionSelfTest {
                     check(fired == ["tab"] && result?.status == .completed && resumedCapture.worker === job.worker,
                         "C15 legitimate resumed write reaches SAME authorized backing once")
                     check(result?.revision == 1, "F08 actual resumed completion retains admitted revision")
+                    let completedAnswerJournal = try sql.journal(taskID: job.id.uuidString)
+                    let fresh = AgentTaskManager(store: AgentTaskStore(fileURL: file, mirror: sql))
+                    let afterFreshCompletedJournal = try sql.journal(taskID: job.id.uuidString)
+                    check(result?.status == .completed && result?.result?.isEmpty == false
+                        && fresh.task(id: job.id.uuidString) == result && fresh.backendStartsForTesting == 0
+                        && fresh.voiceWorkerSnapshot(id: job.id) == nil
+                        && afterFreshCompletedJournal == completedAnswerJournal && fired == ["tab"],
+                        "C27 completed answer result and instructions survive fresh reader without replay (\(mode))")
                     await capture.endSession(source: .done)
                     check(gate.pending == nil && gate.queuedCount == 0 && c.barrierWaiterCountForTesting == 0,
                         "C16 actual question/answer/effect cleanup")
