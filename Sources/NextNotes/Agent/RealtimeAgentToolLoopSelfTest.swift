@@ -1776,6 +1776,111 @@ enum RealtimeAgentToolLoopSelfTest {
             }
         }
         // K03 end original consumer block
+        // M02 begin original consumer block
+        // Paste in existing runOfferedReadConsumerCases before final hook restoration.
+        // COMMON before both producers: request/raw from retained full334b M02.
+        do {
+            let request = "Any new emails from Marcus?"
+            let raw = "Let me check your email for any new messages from Marcus."
+            let grounded = "Marcus sent the updated pricing sheet this morning; his older contract renewal message is also there."
+            let inputs = AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+            let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+            let qualified = SelfTest.isRunning && manifest.selectedIntents.contains(.mail)
+                && manifest.selectedIDs.contains("search_email")
+                && manifest.entry(named: "search_email")?.isReady == true
+                && manifest.entry(named: "search_email").map { $0.risk <= .read } == true
+            check("M02 selected ready mail read fixture unavailable", qualified)
+            if !qualified {
+                SelfTest.diagnostic("TOOLLOOP_PRODUCTION_M02_INPUT_INVALID: missing selected ready read")
+            } else {
+                let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+                let priorFake = AgentToolExecutor.fakeForTesting
+                let priorProvider = agent.localModelProviderForTesting
+                let priorTrace = agent.plannerTraceForTesting
+                defer {
+                    AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+                    AgentToolExecutor.fakeForTesting = priorFake
+                    agent.localModelProviderForTesting = priorProvider
+                    agent.plannerTraceForTesting = priorTrace
+                    agent.setTypedPendingForTesting(nil)
+                    AgentSession.shared.forgetAllConversations()
+                }
+                let expectedQuery = #"from:"Marcus""#
+                let floor = AgentAccountRead.defaultRead(for: .mail, request: request)
+                check("M02 default producer discarded request-authored sender",
+                      floor?.toolID == "search_email" && floor?.arguments["query"] == expectedQuery)
+                let groundedArguments = floor.map {
+                    AgentToolLoop.groundedArguments(for: $0.toolID, proposed: $0.arguments, request: request)
+                }
+                check("M02 actual argument grounder lost explicit sender or introduced unread/age",
+                      groundedArguments == ["query": expectedQuery])
+                for (question, expected) in [
+                    ("Any new emails from Ana?", #"from:"Ana""#),
+                    ("Any messages from Marcus Lee?", #"from:"Marcus Lee""#),
+                    ("Did I get an email from O’Brien?", #"from:"O'Brien""#),
+                ] {
+                    check("M02 sender was guessed instead of copied from the requested name: \(question)",
+                          AgentAccountRead.defaultRead(for: .mail, request: question)?.arguments["query"] == expected)
+                }
+                for question in ["Summarize my last 5 emails", "Any new emails?",
+                                 "Email Marcus the pricing sheet", "Any emails from Marcus and Ana?",
+                                 "Any emails from Marcus about pricing?", "Any emails from Marcus yesterday?",
+                                 "Any emails from Marcus then email them to Ana?", "Find the document to email to Marcus"] {
+                    check("M02 simple sender floor absorbed a recipient/topic/time/compound or changed general read: \(question)",
+                          AgentAccountRead.defaultRead(for: .mail, request: question)?.arguments == ["query": "in:inbox"])
+                }
+                @MainActor
+                func run(_ reply: String, script: [String]? = nil)
+                    async -> (reply: String, calls: [PlannerScriptLog.Call], tools: [LiveEvalLoggedCall], result: String, rounds: [String]) {
+                    let fixtures = LiveEvalFixtures()
+                    let log = PlannerScriptLog()
+                    var rounds: [String] = []
+                    AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+                    AgentToolExecutor.fakeForTesting = { tool, arguments in try await fixtures.run(tool, arguments) }
+                    agent.plannerTraceForTesting = { event in
+                        if case .round(_, _, _, _, let text, _) = event { rounds.append(text) }
+                    }
+                    agent.localModelProviderForTesting = PlannerScriptProvider(
+                        id: .localServer, window: 4_096, promptTokens: 2_000,
+                        script: script ?? [reply, grounded], log: log)
+                    AgentSession.shared.forgetAllConversations()
+                    agent.setTypedPendingForTesting(nil)
+                    let operation = Task { @MainActor in await agent.handle(request, source: .text) }
+                    let turn = await operation.value
+                    return (turn.reply, log.calls, fixtures.log.calls,
+                            fixtures.mailSearch(expectedQuery), rounds)
+                }
+                let actual = await run(raw)
+                check("M02 actual consumer lost sender at executor boundary or entered a write",
+                      actual.tools.count == 1 && actual.tools.first?.toolID == "search_email"
+                        && actual.tools.first?.arguments == ["query": expectedQuery]
+                        && actual.tools.first.map { $0.risk <= .read } == true)
+                check("M02 actual final provider got the wrong corpus or omitted requested sender evidence",
+                      actual.calls.count == 2 && actual.rounds.first == raw
+                        && actual.calls[1].user.contains("Current user request:\n" + request)
+                        && actual.calls[1].user.contains(actual.result)
+                        && actual.result.contains("Pricing sheet v3") && actual.result.contains("Re: contract renewal")
+                        && !actual.calls[1].user.contains("Dinner tomorrow?")
+                        && !actual.calls[1].user.contains("Deck for Friday")
+                        && !actual.calls[1].user.contains("Your invoice for September")
+                        && actual.calls[1].grammar == nil)
+                check("M02 consumer lost actual grounded reply", actual.reply == grounded)
+                print("TOOLLOOP_PRODUCTION_M02 calls=\(actual.calls.count) reads=\(actual.tools.count)")
+                for reply in ["Which Marcus do you mean?", "What time range should I check?"] {
+                    let unchanged = await run(reply, script: [reply])
+                    check("M02 sender floor overrode a clarification: \(reply)",
+                          unchanged.tools.isEmpty && unchanged.calls.count == 1 && unchanged.reply == reply)
+                }
+                let completed = await run(raw, script: [
+                    #"<tool_call>{"name":"search_email","arguments":{"query":"from:Marcus"}}</tool_call>"#, raw,
+                ])
+                check("M02 sender floor repeated a completed model-authored mail read",
+                      completed.tools.count == 1 && completed.tools.first?.arguments["query"] == "from:Marcus"
+                        && completed.calls.count == 2 && completed.reply == raw)
+            }
+        }
+        // M02 end original consumer block
         print("  TOOLLOOP_PRODUCTION_OFFERED_READ: actual typed consumer, fixture reads")
         return []
     }

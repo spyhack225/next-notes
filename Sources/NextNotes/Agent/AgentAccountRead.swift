@@ -68,6 +68,9 @@ enum AgentAccountRead {
             // Empty query uses the existing bounded retained-fact recall.
             return ("memory.recall", [:])
         case .mail:
+            if let sender = requestedMailSender(request) {
+                return ("search_email", ["query": "from:\"\(sender)\""])
+            }
             // P1-09's own default: the newest messages, which is what "summarise my emails"
             // means and what the empty query means. A query is the *model's* to write; this is
             // the floor that answers when the model wrote none.
@@ -194,6 +197,23 @@ enum AgentAccountRead {
                               options: .regularExpression) != nil
                 && name.allSatisfy { words(of: text).contains($0) }
         }
+    }
+
+    /// An explicit sender question supplies its own literal name, not a guessed address.
+    /// A source/topic/time compound stays with the planner; "new" supplies no invented age.
+    private static func requestedMailSender(_ request: String) -> String? {
+        guard requestsMailRead(request) else { return nil }
+        let text = request.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: "\u{2019}", with: "'")
+        let pattern = #"^(?:any (?:new )?(?:e-?mails?|mail|messages)|did i get (?:an? )?(?:e-?mail|message)) from ([\p{L}\p{N}'-]+(?: [\p{L}\p{N}'-]+)*)[?!]?$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern, options: .caseInsensitive),
+              let match = regex.firstMatch(in: text, range: NSRange(text.startIndex..., in: text)),
+              let range = Range(match.range(at: 1), in: text) else { return nil }
+        let sender = String(text[range])
+        let boundaries: Set<String> = ["and", "then", "also", "about", "regarding", "since",
+                                       "before", "after", "today", "yesterday", "this", "last", "to"]
+        guard !words(of: sender).contains(where: { boundaries.contains($0) }) else { return nil }
+        return sender
     }
 
     /// Bind the existing default mail read to a requested read clause. A separate
