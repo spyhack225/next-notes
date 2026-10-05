@@ -65,10 +65,30 @@ enum AgentToolLoop {
     /// A future-action promise or explicit requested-action offer, limited to this turn's class.
     /// This admits one planner continuation; it does not choose or execute a tool.
     static func promisedIntent(
-        in reply: String, manifest: AgentCapabilityManifest, request: String = "", repairsUsed: Int = 0
+        in reply: String, manifest: AgentCapabilityManifest, request: String = "", repairsUsed: Int = 0,
+        acknowledgedReply: String? = nil
     ) -> AgentIntentClass? {
-        let trimmed = reply.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.hasSuffix("?") else { return nil }
+        var trimmed = reply.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.hasSuffix("?") {
+            // Only an exact repeat of the offer the user just answered qualifies.
+            // The existing conversation supplies it; a changed proposal or a new
+            // factual/capability question retains the ordinary pending path.
+            let question = PendingAction.lastSentence(trimmed)
+            let lines = request.split(separator: "\n").map(String.init)
+            guard repairsUsed == 0, request.hasPrefix(PendingAction.confirmedPrefix),
+                  PendingAction.offerPhrases.contains(where: { question.lowercased().contains($0) }),
+                  lines.contains("You then asked: " + question),
+                  let answer = lines.first(where: { $0.hasPrefix("The user answered: ") }),
+                  PendingAction.isConfirmation(String(answer.dropFirst("The user answered: ".count))),
+                  let acknowledgedReply,
+                  trimmed.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+                    == acknowledgedReply.split(whereSeparator: \.isWhitespace).joined(separator: " "),
+                  let questionRange = trimmed.range(of: question, options: .backwards)
+            else { return nil }
+            trimmed = String(trimmed[..<questionRange.lowerBound])
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !trimmed.contains("?") else { return nil }
+        }
         let sentence = trimmed.split(whereSeparator: { ".!?".contains($0) })
             .last.map(String.init)?.trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased().replacingOccurrences(of: "\u{2019}", with: "'") ?? ""

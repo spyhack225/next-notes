@@ -2385,7 +2385,9 @@ extension RealtimeAgent {
                    runner.ceilingRemaining > .zero,
                    let intent = subjectRepair != nil ? AgentIntentClass.mail
                        : AgentToolLoop.promisedIntent(in: reply, manifest: manifest, request: currentRequest,
-                           repairsUsed: runner.repairs),
+                           repairsUsed: runner.repairs,
+                           acknowledgedReply: voice || background ? nil
+                               : AgentSession.shared.recentAssistantTexts(limit: 1).last),
                    !AgentToolLoop.promiseIsCompleted(
                        intent: intent, reply: reply, request: currentRequest,
                        manifest: manifest, completedToolIDs: runner.completedToolIDs) {

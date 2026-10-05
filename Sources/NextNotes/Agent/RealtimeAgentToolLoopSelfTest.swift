@@ -2420,6 +2420,44 @@ enum RealtimeAgentToolLoopSelfTest {
         let unconfirmed = await run([complete, "Reminder set for tomorrow at 9 AM to call the bank."], unconfirmed: true)
         check("R01 unconfirmed reminder changed its single card/approval flow", unconfirmed.log.count == 2
             && unconfirmed.fired == ["schedule.create"] && unconfirmed.saved.count == 1)
+        // R01's next native failure: the original question was answered, but
+        // the planner emits the exact same offer again rather than a call.
+        let repeatedOffer = "I'll set a reminder to call the bank at 9 AM tomorrow. Is that okay?"
+        let confirmed = await run([offer, repeatedOffer, complete,
+                                   "Reminder set for tomorrow at 9 AM to call the bank."])
+        check("R01 answered confirmation was rearmed instead of entering its existing call round",
+              confirmed.log.count == 4
+                && confirmed.log[1].user.contains("The user answered: yes")
+                && confirmed.log[2].user.contains("That promised action has not run")
+                && confirmed.fired == ["schedule.create"] && confirmed.saved.count == 1)
+        check("R01 confirmed repeated offer lost real saved timing or result evidence",
+              confirmed.saved.first?.nextRunAt == expectedAt
+                && confirmed.saved.first?.prompt == expected["text"]
+                && confirmed.log.last?.user.contains("Saved") == true
+                && confirmed.reply.contains("bank") && !confirmed.reply.contains("Is that okay?"))
+        let liveConfirmed = await run([offer, repeatedOffer, complete,
+                                       "Reminder set for tomorrow at 9 AM to call the bank."], liveFixture: true)
+        check("R01 confirmed repeat did not reach the SAME live validator exactly once",
+              liveConfirmed.log.count == 4 && liveConfirmed.fired == ["schedule.create"]
+                && liveConfirmed.log[2].user.contains("That promised action has not run"))
+        let repeatedAgain = await run([offer, repeatedOffer, repeatedOffer, complete])
+        check("R01 repeated answered offer spent a second continuation or executed",
+              repeatedAgain.log.count == 3 && repeatedAgain.fired.isEmpty
+                && repeatedAgain.saved.isEmpty && repeatedAgain.reply == "I haven't done that yet.")
+        let confirmationCap = await run([offer, repeatedOffer, complete], cap: 1)
+        check("R01 answered offer bypassed the existing call cap", confirmationCap.log.count == 2
+            && confirmationCap.fired.isEmpty && confirmationCap.saved.isEmpty)
+        for question in [
+            "I'll set a reminder to call the bank at 10 AM tomorrow. Is that okay?",
+            "What time should I remind you?",
+            "Should I set a reminder?",
+            "Can I set reminders?",
+        ] {
+            let clarification = await run([offer, question, complete])
+            check("R01 changed or factual question became a forced call: \(question)",
+                  clarification.log.count == 2 && clarification.fired.isEmpty
+                    && clarification.saved.isEmpty && clarification.reply == question)
+        }
         print("  TOOLLOOP_PRODUCTION_REMINDER_ADMISSION: exact R01 offer/yes/raw, one repair, real private native schedule save, caps and denial")
         return []
     }
