@@ -848,12 +848,17 @@ final class AgentTaskManager {
         // A refused earlier primary leaves those local follow-ups pending here.
         let instructions = live.work.followUps.dropFirst(row.revision)
         guard instructions.count == live.work.revision - row.revision else { return false }
+        // A new admitted instruction refreshes activity in this SAME transaction.
+        // The installed attempt start remains the exact worker binding identity.
+        let revisionAt = max(progressDate(), max(row.durability?.heartbeatAt ?? .distantPast,
+                                                row.durability?.lastProgressAt ?? .distantPast))
         let revisions = instructions.map {
-            TaskJournalEventDraft(taskID: row.id, kind: .revisionRecorded,
+            TaskJournalEventDraft(taskID: row.id, kind: .revisionRecorded, at: revisionAt,
                 detail: $0, attempt: row.durability?.attempt ?? 0)
         }
         let saved = update(row.id, kinds: question == nil ? [] : [.inputProvided], events: revisions, worker: expected) {
             $0.revision = live.work.revision; $0.userWords = correction
+            $0.durability?.heartbeatAt = revisionAt; $0.durability?.lastProgressAt = revisionAt
             if row.status != .running { $0.status = .running; $0.pendingInteraction = nil; $0.result = nil; $0.progress = "Working" }
         }.primaryCommitted
         if saved {

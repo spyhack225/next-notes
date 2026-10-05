@@ -142,6 +142,10 @@ enum TypedDuringWorkSelfTest {
                 guard store.allowsHarnessPersistence, store.save([]).primaryCommitted else { throw Invalid.store }
                 let receipts = ActionReceiptStore(fileURL: directory.appendingPathComponent("receipts.json"))
                 let manager = AgentTaskManager(store: store, receiptStore: receipts), bridge = TaskBridge(manager: manager)
+                let windowMode = ["revise", "restart-held", "revision-refused"].contains(mode)
+                let windowStart = Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970))
+                let revisionWindowAt = windowStart.addingTimeInterval(3600)
+                if windowMode { manager.progressDateForTesting = { windowStart } }
                 contextManager = manager; agent.typedTaskBridgeForTesting = bridge
                 if !dictionaryInstalled {
                     guard DictionaryStore.installRootForTesting(root, bridge: bridge) else { throw Invalid.context }
@@ -229,6 +233,8 @@ enum TypedDuringWorkSelfTest {
                       LlamaGrammarPlanner.grammar(for: manifest).matches(writeCall) else { throw Invalid.grammar }
                 check(reads == 1 && events.isEmpty && !contextRejected, "C01 actual read and held planner before effects (\(mode))")
                 let initialPrimary = try sql.load().first { $0.id == firstRow?.id }
+                let initialBinding = firstRow.flatMap { manager.workerBinding(taskID: $0.id) }
+                if windowMode { manager.progressDateForTesting = { revisionWindowAt } }
                 check(retained != nil && firstRow?.source == "text" && firstRow?.origin == .typed
                     && firstRow?.status == .running && initialPrimary?.id == retained?.id.uuidString
                     && initialPrimary?.source == "text" && initialPrimary?.origin == .typed
@@ -271,6 +277,13 @@ enum TypedDuringWorkSelfTest {
                             && revisedPrimary?.revision == 1 && revisedPrimary?.userWords == raw
                             && revisedPrimary?.durability?.attempt == 1,
                             "T1 accepted exact typed revision")
+                        let windowFacts = try sql.journal(taskID: retained.id.uuidString).filter { $0.draft.kind == .revisionRecorded }
+                        check(revisedPrimary?.durability?.heartbeatAt == revisionWindowAt
+                            && revisedPrimary?.durability?.lastProgressAt == revisionWindowAt
+                            && revisedPrimary?.durability?.attemptStartedAt == initialPrimary?.durability?.attemptStartedAt
+                            && manager.workerBinding(taskID: retained.id.uuidString) == initialBinding
+                            && windowFacts.count == 1 && windowFacts.first?.draft.at == revisionWindowAt,
+                            "RW01 admitted instruction refreshes SAME transaction activity window; attempt binding stays exact (\(mode))")
                         await Task.yield()
                         let revised = eventBoundary.revised.dropFirst(revisedBefore).filter { $0.0 == TaskID(retained.id) && $0.1 == 1 }
                         check(revised.count == 1, "T1 exactly one admitted same-ID revised event")
@@ -283,6 +296,12 @@ enum TypedDuringWorkSelfTest {
                             && afterJournal == rejectionBefore.journal && afterExport == rejectionBefore.export
                             && retained.work.revision == 1 && held == 1 && events.isEmpty,
                             "RJ03 rejected revision journal rolls back same cache primary export and facts")
+                        let refusedWindow = afterRows.first { $0.id == retained.id.uuidString }
+                        check(refusedWindow?.durability?.heartbeatAt == initialPrimary?.durability?.heartbeatAt
+                            && refusedWindow?.durability?.lastProgressAt == initialPrimary?.durability?.lastProgressAt
+                            && refusedWindow?.durability?.attemptStartedAt == initialPrimary?.durability?.attemptStartedAt
+                            && manager.workerBinding(taskID: retained.id.uuidString) == initialBinding,
+                            "RW02 required journal refusal preserves original activity window and SAME binding")
                         try sql.withConnection { db in try TaskStore.exec(db, "DROP TRIGGER reject_revision_journal") }
                         // An explicit new user follow-up, not an automatic retry.
                         let retry = agent.submitTypedMessage(raw, onInterrupted: { boundary.interrupts += 1 },
@@ -294,6 +313,13 @@ enum TypedDuringWorkSelfTest {
                             && retried?.durability?.attempt == initialPrimary?.durability?.attempt
                             && operations.count == 1 && operations.first == retained.task && !retained.task.isCancelled,
                             "R05 explicit new followup admits pending instructions on SAME positive attempt Task")
+                        let retryWindowFacts = try sql.journal(taskID: retained.id.uuidString).filter { $0.draft.kind == .revisionRecorded }
+                        check(retried?.durability?.heartbeatAt == revisionWindowAt
+                            && retried?.durability?.lastProgressAt == revisionWindowAt
+                            && retried?.durability?.attemptStartedAt == initialPrimary?.durability?.attemptStartedAt
+                            && manager.workerBinding(taskID: retained.id.uuidString) == initialBinding
+                            && retryWindowFacts.count == 2 && retryWindowFacts.allSatisfy { $0.draft.at == revisionWindowAt },
+                            "RW03 explicit followup admits pending instruction window once without replacing actual attempt")
                     } else if mode == "cancel" {
                         check(retained.task.isCancelled && manager.task(id: retained.id.uuidString)?.status == .cancelled,
                             "T2 explicit typed cancellation stops SAME operation")
@@ -325,6 +351,13 @@ enum TypedDuringWorkSelfTest {
                         && heldAfterRestart?.userWords == raw && fresh.backendStartsForTesting == 0
                         && fresh.typedWorkerSnapshot(id: retained.id) == nil,
                         "R01 actual fresh Manager holds revised work without replay")
+                    check(heldAfterRestart?.durability?.heartbeatAt == revisionWindowAt
+                        && heldAfterRestart?.durability?.lastProgressAt == revisionWindowAt
+                        && heldAfterRestart?.durability?.attemptStartedAt == initialPrimary?.durability?.attemptStartedAt
+                        && heldAfterRestart?.durability?.attempt == initialPrimary?.durability?.attempt
+                        && heldAfterRestart?.durability?.receiptIDs == manager.task(id: retained.id.uuidString)?.durability?.receiptIDs
+                        && fresh.backendStartsForTesting == 0 && fresh.typedWorkerSnapshot(id: retained.id) == nil,
+                        "RW04 fresh restart retains admitted instruction window without a recovered worker or effect")
                 }
                 await state.releaseAll()
                 // These are real cards produced by the planner/Orchestrator. Only
