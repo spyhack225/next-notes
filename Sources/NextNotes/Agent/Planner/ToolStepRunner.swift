@@ -284,7 +284,7 @@ final class ToolStepRunner: ToolStepExecuting {
                     kind: .missingArgument, toolID: canonicalID,
                     message: "The draft is missing its subject. " + subject.description
                         + " Send the complete draft call again. Leave unknown addresses or ids "
-                        + "missing; never invent them.").modelText))
+                        + "missing; never invent them.").modelText), requiresNextCall: true)
         }
         // P1-25: an id has to come from something the person was shown or something they said.
         // This sits **before** the repeated-call signature and before the executor, and that
@@ -568,10 +568,13 @@ struct ToolStepResult: Sendable {
     var memoryConfirmation: String?
     /// Whether this step's output counts as untrusted for memory provenance.
     var readToolOutput: Bool = false
+    /// This repair needs a call on the next existing planner round, not a user question.
+    var requiresNextCall: Bool = false
 
     init(
         canonicalID: String, disposition: ToolStepDisposition, usage: UsageToolRun? = nil,
-        output: String? = nil, memoryConfirmation: String? = nil, readToolOutput: Bool = false
+        output: String? = nil, memoryConfirmation: String? = nil, readToolOutput: Bool = false,
+        requiresNextCall: Bool = false
     ) {
         self.canonicalID = canonicalID
         self.disposition = disposition
@@ -579,6 +582,7 @@ struct ToolStepResult: Sendable {
         self.output = output
         self.memoryConfirmation = memoryConfirmation
         self.readToolOutput = readToolOutput
+        self.requiresNextCall = requiresNextCall
     }
 }
 

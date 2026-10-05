@@ -1489,23 +1489,26 @@ enum RealtimeAgentToolLoopSelfTest {
         let recorded = "I can draft that email for you.\n\n"
             + #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","body":"I'll send the deck on Friday."}}</tool_call>"#
         let complete = #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","subject":"Deck for Friday","body":"I'll send the deck on Friday."}}</tool_call>"#
+        let constrainedComplete = #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","subject":"Deck for Friday","body":"I'll send the deck on Friday."},"rationale":"requested draft"}</tool_call>"#
         let expected = ["to": "ana@example.com", "subject": "Deck for Friday",
                         "body": "I'll send the deck on Friday."]
 
         @MainActor
-        func run(_ script: [String], cap: Int? = nil) async
+        func run(_ script: [String], cap: Int? = nil, providerID: LLMProviderID = .localServer,
+                 requestOverride: String? = nil) async
             -> (reply: String, calls: [LiveEvalLoggedCall], model: [PlannerScriptLog.Call]) {
             let fixtures = LiveEvalFixtures()
             fixtures.beginCase()
             let log = PlannerScriptLog()
             AgentToolExecutor.fakeForTesting = fixtures.run
             agent.localModelProviderForTesting = PlannerScriptProvider(
-                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+                id: providerID, window: 4_096, promptTokens: 2_000, script: script,
+                enforcesGrammar: providerID == .appLLM, log: log)
             agent.denyUnattendedApprovalsForTesting = true
             agent.maxCallsForTesting = cap
             agent.setTypedPendingForTesting(nil)
             AgentSession.shared.forgetAllConversations()
-            let turn = await agent.handle(request, source: .text)
+            let turn = await agent.handle(requestOverride ?? request, source: .text)
             return (turn.reply, fixtures.calls, log.calls)
         }
         let repaired = await run([recorded, complete, "The draft is ready for review."])
@@ -1521,6 +1524,26 @@ enum RealtimeAgentToolLoopSelfTest {
             let result = await run([raw, complete, "The draft is ready for review."])
             check("M04 blank subject did not receive one repair", result.model.count == 3
                 && result.calls.count == 1 && result.calls.first?.arguments == expected)
+        }
+        // Actual cb6d700 Gemma M04: omission spent the sole creative repair;
+        // that SAME second round asked the person to supply model-authored prose.
+        let gemmaQuestion = "I can draft that email for you. What should the subject line be?"
+        let actualGemma = await run([recorded, gemmaQuestion, complete], providerID: .appLLM)
+        check("M04 actual Gemma spent another round or accepted the subject question", actualGemma.model.count == 2
+            && actualGemma.calls.isEmpty && actualGemma.reply == "I haven't done that yet."
+            && actualGemma.model[1].user.contains("ERROR missing_argument")
+            && actualGemma.model[1].user.contains("Write a short subject from the request"))
+        if actualGemma.model.count >= 2 {
+            check("M04 actual Gemma repair lacked a calls-only sampler grammar", actualGemma.model[0].grammar == nil
+                && actualGemma.model[1].grammar?.structuralProblems().isEmpty == true
+                && actualGemma.model[1].grammar?.matches(gemmaQuestion) == false)
+        }
+        for question in ["I can draft that email for you. Who should this go to?",
+                         "I can draft that email for you. What should the body say?",
+                         "Which email should I draft?"] {
+            let control = await run([question])
+            check("M04 unrelated/unrepaired clarification was overridden: \(question)", control.model.count == 1
+                && control.calls.isEmpty && control.reply == question)
         }
         let repeated = await run([recorded, recorded, complete])
         check("M04 missing subject received a second repair", repeated.model.count == 2 && repeated.calls.isEmpty)
@@ -1538,7 +1561,8 @@ enum RealtimeAgentToolLoopSelfTest {
         // Keep the actual executor/orchestrator/review/gate/fire path. Substitute only the
         // external write backing, and join the real entered operation before restoring it.
         @MainActor
-        func review(_ text: String, script: [String], missingRecipient: Bool) async {
+        func review(_ text: String, script: [String], missingRecipient: Bool,
+                    continuationNote: String? = nil, providerID: LLMProviderID = .localServer) async {
             let log = PlannerScriptLog()
             let ran = ScriptedToolLog()
             AgentToolExecutor.fakeForTesting = nil
@@ -1555,7 +1579,8 @@ enum RealtimeAgentToolLoopSelfTest {
             agent.denyUnattendedApprovalsForTesting = false
             agent.maxCallsForTesting = nil
             agent.localModelProviderForTesting = PlannerScriptProvider(
-                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+                id: providerID, window: 4_096, promptTokens: 2_000, script: script,
+                enforcesGrammar: providerID == .appLLM, log: log)
             agent.setTypedPendingForTesting(nil)
             AgentSession.shared.forgetAllConversations()
             let operation = Task { @MainActor in await agent.handle(text, source: .text) }
@@ -1572,11 +1597,16 @@ enum RealtimeAgentToolLoopSelfTest {
                 let card = ToolCallReviewStore.shared.review(for: shown)
                 let proposal = PermissionGate.shared.islandProposal(for: shown)
                 check("M04 wrote before approval", ran.toolIDs.isEmpty)
+                if providerID == .appLLM, log.calls.count >= 2 {
+                    check("M04 card was reached without the same calls-only repair grammar", log.calls[0].grammar == nil
+                        && log.calls[1].grammar?.matches(script[1]) == true
+                        && log.calls[1].grammar?.matches("What should the subject line be?") == false)
+                }
                 if missingRecipient {
                     check("M04 missing recipient lost its question", card.field("to")?.problem == .missing
                         && card.field("to")?.prompt == "Who should this go to?"
                         && !card.isReadyToRun && !proposal.canExecute)
-                    check("M04 missing recipient triggered subject repair", log.calls.count == 1
+                    check("M04 missing recipient triggered subject repair", log.calls.count == (continuationNote == nil ? 1 : 2)
                         && shown.arguments["subject"] == "Deck for Friday")
                     check("M04 missing recipient allowed approval", !PermissionGate.shared.respond(id: shown.id, approved: true))
                     PermissionGate.shared.cancelPending(id: shown.id)
@@ -1584,7 +1614,7 @@ enum RealtimeAgentToolLoopSelfTest {
                     check("M04 actual card did not receive the corrected model subject", shown.arguments == expected
                         && card.field("subject")?.problem == nil && card.isReadyToRun && proposal.canExecute)
                     check("M04 incomplete draft reached a card before repair", log.calls.count == 2
-                        && log.calls[1].user.contains("ERROR missing_argument"))
+                        && log.calls[1].user.contains(continuationNote ?? "ERROR missing_argument"))
                     let approved = PermissionGate.shared.respond(id: shown.id, approved: true)
                     check("M04 corrected draft could not be approved once", approved)
                     if !approved { PermissionGate.shared.cancelPending(id: shown.id) }
@@ -1600,6 +1630,77 @@ enum RealtimeAgentToolLoopSelfTest {
         await review(request, script: [recorded, complete, "The draft is ready."], missingRecipient: false)
         let unknown = #"<tool_call>{"name":"draft_email","arguments":{"subject":"Deck for Friday","body":"I'll send the deck on Friday."}}</tool_call>"#
         await review("Draft an email saying I'll send the deck on Friday", script: [unknown], missingRecipient: true)
+        // Original first-only creative subject question; no prior repair was spent.
+        let firstSubjectQuestion = "What should the subject line be?"
+        let firstQuestion = await run([firstSubjectQuestion, constrainedComplete, "The draft is ready for review."],
+                                      providerID: .appLLM)
+        check("M04 first subject question did not reach its one repair call", firstQuestion.model.count == 3
+            && firstQuestion.calls.count == 1 && firstQuestion.calls.first?.arguments == expected)
+        if firstQuestion.model.count >= 2 {
+            check("M04 first subject question repair lost original request or descriptor", firstQuestion.model[1].user.contains(request)
+                && firstQuestion.model[1].user.contains("ERROR missing_argument")
+                && firstQuestion.model[1].user.contains("Write a short subject from the request"))
+            check("M04 first subject question repair was not grammar-bound", firstQuestion.model[0].grammar == nil
+                && firstQuestion.model[1].grammar?.matches(constrainedComplete) == true
+                && firstQuestion.model[1].grammar?.matches(firstSubjectQuestion) == false)
+        }
+        let repeatedQuestion = await run([firstSubjectQuestion, firstSubjectQuestion, constrainedComplete], providerID: .appLLM)
+        check("M04 first subject question received a second repair", repeatedQuestion.model.count == 2
+            && repeatedQuestion.calls.isEmpty && repeatedQuestion.reply == "I haven't done that yet.")
+        let spentSubjectQuestion = await run([recorded, firstSubjectQuestion, constrainedComplete], providerID: .appLLM)
+        check("M04 parsed omission then subject question spent another repair", spentSubjectQuestion.model.count == 2
+            && spentSubjectQuestion.calls.isEmpty && spentSubjectQuestion.reply == "I haven't done that yet.")
+        let subjectQuestionCap = await run([firstSubjectQuestion, constrainedComplete], cap: 1, providerID: .appLLM)
+        check("M04 first subject question exceeded call cap", subjectQuestionCap.model.count == 1 && subjectQuestionCap.calls.isEmpty)
+        let completedQuestion = await run([constrainedComplete, firstSubjectQuestion, constrainedComplete], providerID: .appLLM)
+        check("M04 first subject question repeated completed mail work", completedQuestion.model.count == 2 && completedQuestion.calls.count == 1)
+        for original in ["What subject line should I use for an email?", "Explain how to choose an email subject.",
+                         "Can you draft emails?", "Which email should I draft?"] {
+            let control = await run([firstSubjectQuestion], providerID: .appLLM, requestOverride: original)
+            check("M04 subject question overrode ambiguous/non-draft/capability request: \(original)",
+                  control.model.count == 1 && control.calls.isEmpty && control.reply == firstSubjectQuestion)
+        }
+        let boundSubject = await run([recorded, constrainedComplete, "The draft is ready for review."], providerID: .appLLM)
+        check("M04 subject repair failed the same bound round", boundSubject.model.count == 3 && boundSubject.calls.count == 1)
+        if boundSubject.model.count >= 2 {
+            check("M04 subject repair sampler did not admit a valid corrected draft", boundSubject.model[0].grammar == nil
+                && boundSubject.model[1].grammar?.matches(constrainedComplete) == true
+                && boundSubject.model[1].grammar?.matches(gemmaQuestion) == false)
+        }
+        // A single response can contain the incomplete proposal and its complete
+        // replacement. Actual completion resolves that batch's creative repair.
+        let sameBatch = await run([recorded + "\n" + constrainedComplete,
+                                   "The draft is ready for review."], providerID: .appLLM)
+        check("M04 same-batch corrected draft forced another call or lost its final reply",
+              sameBatch.model.count == 2 && sameBatch.calls.count == 1
+                && sameBatch.calls.first?.toolID == "draft_email"
+                && sameBatch.calls.first?.arguments == expected
+                && sameBatch.reply == "The draft is ready for review.")
+        check("M04 same-batch completed draft retained a calls-only repair grammar",
+              sameBatch.model.count == 2 && sameBatch.model.allSatisfy { $0.grammar == nil })
+        let offered = "I can help draft that email for you."
+        let boundOffer = await run([offered, constrainedComplete, "The draft is ready for review."], providerID: .appLLM)
+        check("M04 exact MiniCPM offer missed the bound draft round", boundOffer.model.count == 3 && boundOffer.calls.count == 1)
+        if boundOffer.model.count >= 2 {
+            check("M04 offered draft sampler grammar missing or allowed another offer", boundOffer.model[0].grammar == nil
+                && boundOffer.model[1].grammar?.matches(constrainedComplete) == true
+                && boundOffer.model[1].grammar?.matches(offered) == false)
+        }
+        await review(request, script: [firstSubjectQuestion, constrainedComplete, "The draft is ready."],
+                     missingRecipient: false, continuationNote: "ERROR missing_argument", providerID: .appLLM)
+        await review(request, script: [recorded, constrainedComplete, "The draft is ready."], missingRecipient: false,
+                     providerID: .appLLM)
+        await review(request, script: [offered, constrainedComplete, "The draft is ready."], missingRecipient: false,
+                     continuationNote: "That promised action has not run.", providerID: .appLLM)
+        let unknownBound = #"<tool_call>{"name":"draft_email","arguments":{"to":"","subject":"Deck for Friday","body":"I'll send the deck on Friday."},"rationale":"requested draft; recipient unknown"}</tool_call>"#
+        await review("Draft an email saying I'll send the deck on Friday", script: [firstSubjectQuestion, unknownBound],
+                     missingRecipient: true, continuationNote: "ERROR missing_argument", providerID: .appLLM)
+        await review("Draft an email saying I'll send the deck on Friday", script: [offered, unknownBound],
+                     missingRecipient: true, continuationNote: "That promised action has not run.", providerID: .appLLM)
+        let offerCapped = await run([offered, complete], cap: 1)
+        check("M04 offer exceeded the existing call cap", offerCapped.model.count == 1 && offerCapped.calls.isEmpty)
+        let offerAfterRepair = await run([recorded, offered, complete])
+        check("M04 offer spent a second draft repair", offerAfterRepair.model.count == 2 && offerAfterRepair.calls.isEmpty)
         print("  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT_REPAIR: actual omitted/blank subject, one repair, caps, exact card/approval/backing, missing recipient")
         return []
     }
@@ -1653,6 +1754,51 @@ enum RealtimeAgentToolLoopSelfTest {
         check("P5 promised draft became an automatically approved write",
               AgentToolExecutor.recordedReadApprovalsForTesting.contains { $0.tool == "draft_email" && !$0.autoApproved })
 
+
+        // Exact first/only raw in all three retained MiniCPM M04 runs.
+        let offered = "I can help draft that email for you."
+        let offeredM04 = await run("Draft an email to ana@example.com saying I'll send the deck on Friday", [
+            offered,
+            #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","subject":"Deck for Friday","body":"I'll send the deck on Friday."}}</tool_call>"#,
+            "The draft is ready for review.",
+        ])
+        check("M04 exact MiniCPM offer never reached a draft", offeredM04.tools == ["draft_email"]
+            && offeredM04.calls.count == 3 && offeredM04.calls[1].user.contains(offered))
+        let plainOffer = await run("Could you please draft an email to ana@example.com saying I'll send the deck on Friday", [
+            "I can draft that email for you.",
+            #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","subject":"Deck for Friday","body":"I'll send the deck on Friday."}}</tool_call>"#,
+            "The draft is ready for review.",
+        ])
+        check("M04 plain offer lost the explicit polite request", plainOffer.tools == ["draft_email"]
+            && plainOffer.calls.count == 3)
+        let repeatOffer = await run("Draft an email to ana@example.com about Friday's deck", [
+            offered, offered, "This third round must not run.",
+        ])
+        check("M04 repeated offer exceeded one continuation", repeatOffer.tools.isEmpty
+            && repeatOffer.calls.count == 2 && repeatOffer.reply == "I haven't done that yet.")
+        let completeOffer = await run("Draft an email to ana@example.com about Friday's deck", [
+            #"<tool_call>{"name":"draft_email","arguments":{"to":"ana@example.com","subject":"Friday deck","body":"The deck goes out Friday."}}</tool_call>"#,
+            offered, "This extra round must not run.",
+        ])
+        check("M04 offer re-ran completed mail class", completeOffer.tools == ["draft_email"]
+            && completeOffer.calls.count == 2 && completeOffer.reply == offered)
+        for reply in ["I can draft that email for you?", "Can I draft that email for you?",
+                      "I can not draft that email for you.", "I can help with that email for you.",
+                      "I can draft emails.", "I can help draft emails for you."] {
+            let control = await run("Draft an email to ana@example.com about Friday's deck", [reply])
+            // An existing false-capability refusal may use its own rebuttal round;
+            // it must not be mistaken for this requested-action offer continuation.
+            let denied = reply == "I can not draft that email for you."
+            check("M04 capability/question/negative continued: \(reply)", control.tools.isEmpty
+                && control.calls.count == (denied ? 2 : 1)
+                && !control.calls.dropFirst().contains { $0.user.contains("That promised action has not run.") }
+                && (!denied || control.calls[1].user.contains("denies something this Mac can do")))
+        }
+        for request in ["What can you help me draft?", "Explain what an email draft is.",
+                        "Could I draft an email?", "Please do not draft an email."] {
+            let control = await run(request, [offered])
+            check("M04 unrequested draft continued: \(request)", control.tools.isEmpty && control.calls.count == 1)
+        }
 
         let repeated = await run("Draft an email to ana@example.com about Friday's deck", [
             "I'll draft the email now.", "I'll draft the email now.", "This third round must not run.",
@@ -3838,6 +3984,7 @@ private final class PlannerScriptLog: @unchecked Sendable {
         let system: String
         let user: String
         let maxTokens: Int
+        var grammar: GBNFGrammar? = nil
     }
 
     private let lock = NSLock()
@@ -3868,6 +4015,7 @@ private struct PlannerScriptProvider: LLMProvider {
     /// P1-10b / J L8: answer every completion as one the model ran out of allowance on. Off by
     /// default, so every other case's provider behaves exactly as it did.
     var cutOffByLimit: Bool = false
+    var enforcesGrammar: Bool = false
     let log: PlannerScriptLog
     var contextTokens: Int { window }
     var unavailableReason: String? { get async { nil } }
@@ -3899,9 +4047,22 @@ private struct PlannerScriptProvider: LLMProvider {
         return await stream(system: system, user: user, maxTokens: maxTokens)
     }
 
-    private func next(system: String, user: String, maxTokens: Int) async -> String {
+    func stream(
+        system: String, user: String, maxTokens: Int, grammar: GBNFGrammar
+    ) async -> AsyncThrowingStream<String, Error> {
+        AsyncThrowingStream { continuation in
+            let task = Task {
+                let text = await next(system: system, user: user, maxTokens: maxTokens, grammar: grammar)
+                continuation.yield(text)
+                continuation.finish()
+            }
+            continuation.onTermination = { @Sendable _ in task.cancel() }
+        }
+    }
+
+    private func next(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar? = nil) async -> String {
         let index = log.calls.count
-        log.record(.init(system: system, user: user, maxTokens: maxTokens))
+        log.record(.init(system: system, user: user, maxTokens: maxTokens, grammar: grammar))
         return index < script.count ? script[index] : "There is nothing more to add."
     }
 }

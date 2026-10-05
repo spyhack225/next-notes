@@ -1789,6 +1789,7 @@ extension RealtimeAgent {
                         // A compound request may need another tool using this result. Resume
                         // the ordinary planner with the verified output already in `results`.
                     case .repaired(let toolID, let note):
+                        requirePromisedCall = requirePromisedCall || step.requiresNextCall
                         results.append(carried(toolID, note))
                     case .skipped:
                         break
@@ -2053,13 +2054,13 @@ extension RealtimeAgent {
             // is the voice frontend's own round.
             let callRequiredRound = requirePromisedCall
             let executingBackend: any AgentPlannerBackend
-            if callRequiredRound, let llama = roundBackend as? LlamaGrammarPlanner {
+            if callRequiredRound, roundBackend.provider.enforcesGrammar {
                 let grammar = LlamaGrammarPlanner.grammar(
                     for: roundManifest, maxTokens: roundMaxTokens, requireCall: true)
                 guard grammar.structuralProblems().isEmpty else {
                     return failed("I couldn't carry out that next step.")
                 }
-                executingBackend = LlamaGrammarPlanner(provider: llama.provider, grammar: grammar)
+                executingBackend = LlamaGrammarPlanner(provider: roundBackend.provider, grammar: grammar)
             } else {
                 executingBackend = roundBackend
             }
@@ -2376,12 +2377,16 @@ extension RealtimeAgent {
                         return await finalAnswerRound(reason: .accountRead)
                     }
                 }
+                let subjectRepair = AgentToolLoop.draftSubjectRepair(
+                    in: reply, request: currentRequest, manifest: manifest, repairsUsed: runner.repairs)
                 // One future-action continuation inside the SAME calls, repair and
                 // ceiling budgets. Completed class work stays untouched (P1-14).
                 if !continuedPromise, rounds < maxRounds, runner.canRepair,
                    runner.callsUsed + runner.repairs + 1 < maxCalls,
                    runner.ceilingRemaining > .zero,
-                   let intent = AgentToolLoop.promisedIntent(in: reply, manifest: manifest),
+                   let intent = subjectRepair != nil ? AgentIntentClass.mail
+                       : AgentToolLoop.promisedIntent(in: reply, manifest: manifest, request: currentRequest,
+                           repairsUsed: runner.repairs),
                    !runner.completedToolIDs.contains(where: {
                        manifest.entry(named: $0)?.intent == intent
                    }) {
@@ -2389,9 +2394,9 @@ extension RealtimeAgent {
                     requirePromisedCall = true
                     runner.chargeRepairs(1)
                     speech?.cancel()
-                    results.append("You said: " + reply + "\nThat promised action has not run. "
+                    results.append(subjectRepair ?? ("You said: " + reply + "\nThat promised action has not run. "
                         + "Call a selected tool for that action now; do not answer with another promise. "
-                        + "If a required address or id is missing, leave it missing; never invent it.")
+                        + "If a required address or id is missing, leave it missing; never invent it."))
                     continue
                 }
                 return reply.isEmpty ? failed("The tool plan did not produce an answer.") : planned(confirmed(reply))
@@ -2430,8 +2435,11 @@ extension RealtimeAgent {
                 if revision != (work?.revision ?? 0) { break }
                 switch step.disposition {
                 case .completed:
+                    // Only the missing draft subject sets this flag inside a call batch.
+                    if step.canonicalID == "draft_email" { requirePromisedCall = false }
                     continue
                 case .repaired(let toolID, let note):
+                    requirePromisedCall = requirePromisedCall || step.requiresNextCall
                     results.append(carried(toolID, note))
                     continue
                 case .skipped:

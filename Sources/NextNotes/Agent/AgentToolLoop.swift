@@ -62,17 +62,17 @@ enum AgentToolLoop {
             """
     }
 
-    /// An exact future-action promise, limited to a class selected by this turn.
+    /// A future-action promise or explicit requested-action offer, limited to this turn's class.
     /// This admits one planner continuation; it does not choose or execute a tool.
     static func promisedIntent(
-        in reply: String, manifest: AgentCapabilityManifest
+        in reply: String, manifest: AgentCapabilityManifest, request: String = "", repairsUsed: Int = 0
     ) -> AgentIntentClass? {
         let trimmed = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.hasSuffix("?") else { return nil }
         let sentence = trimmed.split(whereSeparator: { ".!?".contains($0) })
             .last.map(String.init)?.trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased().replacingOccurrences(of: "\u{2019}", with: "'") ?? ""
-        guard let prefix = ["i'll ", "i will ", "let me "].first(where: { sentence.hasPrefix($0) })
+        guard let prefix = ["i'll ", "i will ", "let me ", "i can help ", "i can "].first(where: { sentence.hasPrefix($0) })
         else { return nil }
         let words = AgentAccountRead.words(of: sentence)
         guard !words.contains(where: { word in
@@ -84,10 +84,45 @@ enum AgentToolLoop {
         // The promised verb owns the action; a later noun such as "email" does not.
         guard let action = AgentAccountRead.words(of: String(sentence.dropFirst(prefix.count))).first,
               verbs.contains(action) else { return nil }
+        if prefix.hasPrefix("i can ") {
+            // A capability statement is not a requested action. Only this-turn offers
+            // referring back to the person's explicit matching imperative continue.
+            let offered = AgentAccountRead.words(of: String(sentence.dropFirst(prefix.count)))
+            guard repairsUsed == 0, offered.contains(where: { ["that", "this", "it"].contains($0) }),
+                  explicitlyRequests(action, in: request)
+            else { return nil }
+        }
         return AgentCapabilityManifestBuilder.intents(in: sentence)
             .intersection(manifest.selectedIntents)
+            .intersection(prefix.hasPrefix("i can ")
+                ? AgentCapabilityManifestBuilder.intents(in: request) : manifest.selectedIntents)
             .sorted { $0.rawValue < $1.rawValue }
             .first { intent in manifest.selected.contains { $0.intent == intent } }
+    }
+
+    /// The first-only subject question asks the person for prose the draft contract
+    /// assigns to the model. It shares the existing single repair and call-required round.
+    static func draftSubjectRepair(
+        in reply: String, request: String, manifest: AgentCapabilityManifest, repairsUsed: Int
+    ) -> String? {
+        guard repairsUsed == 0,
+              reply.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == "what should the subject line be?",
+              explicitlyRequests("draft", in: request),
+              AgentAccountRead.words(of: AgentCapabilityManifestBuilder.normalized(request)).contains("email"),
+              manifest.selectedIDs.contains("draft_email"),
+              let entry = manifest.entry(named: "draft_email"),
+              let subject = entry.parameters.first(where: { $0.name == "subject" && $0.isRequired })
+        else { return nil }
+        return ToolRepair(kind: .missingArgument, toolID: entry.id,
+            message: "The draft is missing its subject. " + subject.description
+                + " Send the complete draft call again. Leave unknown addresses or ids "
+                + "missing; never invent them.").modelText
+    }
+
+    private static func explicitlyRequests(_ action: String, in request: String) -> Bool {
+        let pattern = "^\\s*(?:please\\s+)?(?:(?:can|could|would|will)\\s+you\\s+)?"
+            + "(?:please\\s+)?" + NSRegularExpression.escapedPattern(for: action) + "\\b"
+        return request.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil
     }
 
     /// Strips argument values the model invented to fill a slot it did not know.
