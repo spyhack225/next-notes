@@ -63,10 +63,18 @@ final class SherpaKeywordSpotter: @unchecked Sendable {
         return String(cString: nn_wake_keyword(raw))
     }
 
-    func reset() {
+    @discardableResult
+    func reset(independentAudio: Bool = false) -> Bool {
         lock.lock()
+        defer { lock.unlock() }
+        if independentAudio { return nn_wake_reset_independent_audio(raw) != 0 }
         nn_wake_reset(raw)
-        lock.unlock()
+        return true
+    }
+
+    static func independentAudioResetFailuresForTesting() -> Int32 {
+        guard SelfTest.isRunning else { return 1 }
+        return nn_wake_independent_audio_failures_for_testing()
     }
 
     /// Feed a WAV through the spotter. Used by `--selftest-wake` so "loaded" is not a claim.

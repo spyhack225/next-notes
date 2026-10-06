@@ -245,7 +245,7 @@ int32_t nn_wake_accept(
     int32_t n,
     int32_t sample_rate
 ) {
-    if (!spotter || !samples || n <= 0) {
+    if (!spotter || !spotter->stream || !samples || n <= 0) {
         return 0;
     }
     spotter->keyword[0] = 0;
@@ -267,7 +267,7 @@ int32_t nn_wake_accept(
 }
 
 int32_t nn_wake_finish(NNWakeSpotter *spotter) {
-    if (!spotter) {
+    if (!spotter || !spotter->stream) {
         return 0;
     }
     spotter->input_finished(spotter->stream);
@@ -296,6 +296,101 @@ void nn_wake_reset(NNWakeSpotter *spotter) {
     }
     spotter->reset(spotter->spotter, spotter->stream);
     spotter->keyword[0] = 0;
+}
+
+int32_t nn_wake_reset_independent_audio(NNWakeSpotter *spotter) {
+    if (!spotter) return 0;
+    const SherpaOnnxOnlineStream *old = spotter->stream;
+    spotter->stream = spotter->create_stream(spotter->spotter);
+    if (old) spotter->destroy_stream(old);
+    spotter->keyword[0] = 0;
+    if (!spotter->stream) {
+        set_error("SherpaOnnxCreateKeywordStream returned NULL");
+        return 0;
+    }
+    return 1;
+}
+
+/* Local callback fixture exercises the adapter, not sherpa accuracy. */
+typedef struct WakeResetFixture WakeResetFixture;
+typedef struct {
+    WakeResetFixture *owner;
+    int queued_frames;
+    int finished;
+} WakeResetFixtureStream;
+struct WakeResetFixture {
+    WakeResetFixtureStream streams[4];
+    int next_stream, created, destroyed, reset, accepted, finished, refuse;
+};
+static const SherpaOnnxOnlineStream *wake_fixture_create(const SherpaOnnxKeywordSpotter *model) {
+    WakeResetFixture *f = (WakeResetFixture *)model;
+    ++f->created;
+    if (f->refuse) return NULL;
+    WakeResetFixtureStream *s = &f->streams[f->next_stream++];
+    s->owner = f;
+    return (const SherpaOnnxOnlineStream *)s;
+}
+static void wake_fixture_destroy(const SherpaOnnxOnlineStream *stream) {
+    ++((WakeResetFixtureStream *)stream)->owner->destroyed;
+}
+static void wake_fixture_reset(const SherpaOnnxKeywordSpotter *model, const SherpaOnnxOnlineStream *stream) {
+    (void)stream; /* v1.13.8 keyword reset retains feature/input-finished state. */
+    ++((WakeResetFixture *)model)->reset;
+}
+static void wake_fixture_accept(const SherpaOnnxOnlineStream *stream, int32_t rate, const float *pcm, int32_t n) {
+    (void)rate; (void)pcm; (void)n;
+    ++((WakeResetFixtureStream *)stream)->owner->accepted;
+}
+static void wake_fixture_finished(const SherpaOnnxOnlineStream *stream) {
+    ++((WakeResetFixtureStream *)stream)->owner->finished;
+}
+static int32_t wake_fixture_ready(const SherpaOnnxKeywordSpotter *model, const SherpaOnnxOnlineStream *stream) {
+    (void)model; (void)stream; return 0;
+}
+static const SherpaOnnxKeywordResult *wake_fixture_result(const SherpaOnnxKeywordSpotter *model, const SherpaOnnxOnlineStream *stream) {
+    (void)model; (void)stream; return NULL;
+}
+int32_t nn_wake_independent_audio_failures_for_testing(void) {
+    char previous_error[sizeof(g_error)];
+    memcpy(previous_error, g_error, sizeof(g_error));
+    WakeResetFixture f = {0};
+    f.next_stream = 1;
+    f.streams[0] = (WakeResetFixtureStream){.owner=&f, .queued_frames=17, .finished=1};
+    NNWakeSpotter s = {0};
+    s.spotter = (const SherpaOnnxKeywordSpotter *)&f;
+    s.stream = (const SherpaOnnxOnlineStream *)&f.streams[0];
+    s.create_stream = wake_fixture_create; s.destroy_stream = wake_fixture_destroy;
+    s.reset = wake_fixture_reset; s.accept = wake_fixture_accept;
+    s.input_finished = wake_fixture_finished; s.is_ready = wake_fixture_ready;
+    s.get_result = wake_fixture_result;
+    int32_t failures = 0;
+    const SherpaOnnxOnlineStream *old = s.stream;
+    nn_wake_reset(&s);
+    if (s.stream != old || f.created || f.destroyed || f.reset != 1 ||
+        f.streams[0].queued_frames != 17 || !f.streams[0].finished) failures |= 1;
+    strcpy(s.keyword, "old clip");
+    if (!nn_wake_reset_independent_audio(&s)) failures |= 2;
+    if (f.created != 1 || f.destroyed != 1) failures |= 4;
+    WakeResetFixtureStream *fresh = (WakeResetFixtureStream *)s.stream;
+    if (!fresh || s.stream == old || fresh->queued_frames || fresh->finished) failures |= 8;
+    if (s.spotter != (const SherpaOnnxKeywordSpotter *)&f || s.keyword[0]) failures |= 16;
+    old = s.stream;
+    if (!nn_wake_reset_independent_audio(&s) || s.stream == old ||
+        f.created != 2 || f.destroyed != 2) failures |= 32;
+    f.refuse = 1;
+    strcpy(s.keyword, "old clip");
+    if (nn_wake_reset_independent_audio(&s)) failures |= 64;
+    if (s.stream || s.keyword[0] || f.created != 3 || f.destroyed != 3) failures |= 128;
+    float pcm = 0;
+    if (nn_wake_accept(&s, &pcm, 1, 16000) || nn_wake_finish(&s) ||
+        f.accepted || f.finished) failures |= 256;
+    f.refuse = 0;
+    if (!nn_wake_reset_independent_audio(&s) || !s.stream ||
+        f.created != 4 || f.destroyed != 3) failures |= 512;
+    if (nn_wake_reset_independent_audio(NULL)) failures |= 1024;
+    if (s.stream) s.destroy_stream(s.stream);
+    memcpy(g_error, previous_error, sizeof(g_error));
+    return failures;
 }
 
 void nn_wake_destroy(NNWakeSpotter *spotter) {

@@ -68,6 +68,10 @@ int32_t nn_wake_accept(
 const char *nn_wake_keyword(NNWakeSpotter *spotter);
 
 void nn_wake_reset(NNWakeSpotter *spotter);
+/// Independent diagnostic clips only. Reuses the model; returns 0 without a usable stream.
+int32_t nn_wake_reset_independent_audio(NNWakeSpotter *spotter);
+/// Adapter regression fixture; called only by the isolated wake self-test.
+int32_t nn_wake_independent_audio_failures_for_testing(void);
 void nn_wake_destroy(NNWakeSpotter *spotter);
 
 #ifdef __cplusplus

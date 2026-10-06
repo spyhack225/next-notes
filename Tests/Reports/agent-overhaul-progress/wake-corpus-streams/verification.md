@@ -1,0 +1,13 @@
+# Independent wake-corpus audio streams — 2026-10-05
+
+The corpus reused native streams after keyword reset, which resets decoder/encoder state but retains acoustic features and input-finished state in pinned sherpa1.13.8. Independent authored clips therefore were not independent measurements. The diagnostic now recreates only the audio stream per grid/attribution clip through the existing locked spotter; the loaded model and continuous live reset are retained. Allocation failure discards stale audio and refuses accept/finish; later explicit reset may recover.
+
+Same actual C-adapter regression: original seven failures(mask1004) -> fixed eleven checks pass(mask0), covering independent identity/state/disposal, same model, repeated reset, allocation refusal and recovery, and unchanged continuous reset. Both original/fixed run the same56 authored clips, installed resident ASR, tuning and thresholds; no owner recordings or model download. Actual final grids are below. Wake, voice-turns and voice-scheduling pass; each temporary root removed after joins. This fixes sampling, not phonetics or live wake sensitivity.
+
+Bulk original/fixed clips/measurements, patches, artifact IDs and logs: ~/Library/Caches/NextNotesBuild/integration/wake-corpus-stream-isolation/.
+
+Pinned upstream contracts: [keyword reset](https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.8/sherpa-onnx/csrc/keyword-spotter-transducer-impl.h#L316-L324), [stream features](https://github.com/k2-fsa/sherpa-onnx/blob/v1.13.8/sherpa-onnx/csrc/online-stream.cc#L16-L49). Product first-display/room/audio and parent gates stay open.
+
+Original measured: WAKE_HIT 13/24; WAKE_FALSE 1/32; WAKE_HIT_RATE 0.54; WAKE_CONFIRMATION_UNAVAILABLE 0; WAKE_LIVE_FAILED: 13/24 hits, 1/32 false at sens 0.6 — WAKE_STREAM_ISOLATION_FAILED: independent reset creates only a stream and disposes the old stream; WAKE_STREAM_ISOLATION_FAILED: independent reset clears queued audio and input-finished state; WAKE_STREAM_ISOLATION_FAILED: each independent clip receives another fresh stream; WAKE_STREAM_ISOLATION_FAILED: stream allocation failure is refused; WAKE_STREAM_ISOLATION_FAILED: allocation failure disposes stale audio; WAKE_STREAM_ISOLATION_FAILED: allocation failure admits no audio or finish call; WAKE_STREAM_ISOLATION_FAILED: an explicit later reset can recover; hit rate 0.54 under 0.8 at sensitivity 0.6
+
+Fixed measured: WAKE_HIT 16/24; WAKE_FALSE 3/32; WAKE_HIT_RATE 0.67; WAKE_CONFIRMATION_UNAVAILABLE 0; WAKE_LIVE_FAILED: 16/24 hits, 3/32 false at sens 0.6 — hit rate 0.67 under 0.8 at sensitivity 0.6; 3 false accepts over 2 at sensitivity 0.6

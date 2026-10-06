@@ -108,6 +108,29 @@ enum WakeWordLiveSelfTest {
             reasons.append(line)
         }
 
+        let resetFailures = SherpaKeywordSpotter.independentAudioResetFailuresForTesting()
+        let resetChecks: [(Int32, String)] = [
+            (1, "continuous reset preserves stream/audio state"),
+            (2, "independent reset succeeds"),
+            (4, "independent reset creates only a stream and disposes the old stream"),
+            (8, "independent reset clears queued audio and input-finished state"),
+            (16, "independent reset retains the model and clears the keyword"),
+            (32, "each independent clip receives another fresh stream"),
+            (64, "stream allocation failure is refused"),
+            (128, "allocation failure disposes stale audio"),
+            (256, "allocation failure admits no audio or finish call"),
+            (512, "an explicit later reset can recover"),
+            (1024, "missing spotter is refused")
+        ]
+        for (bit, name) in resetChecks where resetFailures & bit != 0 {
+            fail("WAKE_STREAM_ISOLATION_FAILED: \(name)", &failures)
+        }
+        SelfTest.diagnostic("WAKE_STREAM_ISOLATION_CHECKS: \(resetChecks.count) failuresMask=\(resetFailures)")
+        if CommandLine.arguments.contains("--wake-stream-isolation-only") {
+            return Outcome(summary: [], headline: "independent audio adapter",
+                passed: failures.isEmpty)
+        }
+
         guard let directory = resolveFixtureDirectory(explicit: fixtureDirectory) else {
             let hint = "WAKE_LIVE_FIXTURES_MISSING: no manifest.json under Tests/Fixtures/wake "
                 + "(run from the repo root, or pass a fixture directory: --selftest-wake-live <dir>)"
@@ -228,7 +251,10 @@ enum WakeWordLiveSelfTest {
             }
             var fired: [Double] = []
             for (sensitivity, spotter) in spotters {
-                spotter.reset()
+                guard spotter.reset(independentAudio: true) else {
+                    fail("WAKE_LIVE_FAILED: fresh stream unavailable for \(clip.file) @\(sensitivity)", &failures)
+                    continue
+                }
                 let judged = try? await WakeWordAudioMonitor.confirmationForCorpus(
                     wav: url, spotter: spotter, phrase: manifest.phrase)
                 if judged != nil { stageOneHits[sensitivity, default: 0] += 1 }
@@ -240,7 +266,10 @@ enum WakeWordLiveSelfTest {
             }
             var rule = generousRules.isEmpty ? "as written" : "unattributed"
             if let explainer = generous {
-                explainer.reset()
+                guard explainer.reset(independentAudio: true) else {
+                    fail("WAKE_LIVE_FAILED: fresh attribution stream unavailable for \(clip.file)", &failures)
+                    continue
+                }
                 if let tag = try? explainer.spot(wav: url) {
                     rule = generousRules[tag] ?? "as written"
                     if fired.contains(1.0) { variantCounts[rule, default: 0] += 1 }
@@ -260,7 +289,10 @@ enum WakeWordLiveSelfTest {
                 continue
             }
             for (sensitivity, spotter) in spotters {
-                spotter.reset()
+                guard spotter.reset(independentAudio: true) else {
+                    fail("WAKE_LIVE_FAILED: fresh stream unavailable for \(clip.file) @\(sensitivity)", &failures)
+                    continue
+                }
                 let judged = try? await WakeWordAudioMonitor.confirmationForCorpus(
                     wav: url, spotter: spotter, phrase: manifest.phrase)
                 if judged != nil { stageOneFalse[sensitivity, default: 0] += 1 }
@@ -269,7 +301,10 @@ enum WakeWordLiveSelfTest {
                     falsePerSensitivity[sensitivity, default: 0] += 1
                     var rule = ""
                     if let explainer = generous, sensitivity == headlineSensitivity {
-                        explainer.reset()
+                        guard explainer.reset(independentAudio: true) else {
+                            fail("WAKE_LIVE_FAILED: fresh attribution stream unavailable for \(clip.file)", &failures)
+                            continue
+                        }
                         if let tag = try? explainer.spot(wav: url) {
                             rule = " as \"\(generousRules[tag] ?? tag)\""
                         }
