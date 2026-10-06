@@ -295,8 +295,24 @@ enum LiveEvalGrader {
                .contains(String(finalReply[speakerRange]).lowercased()) {
             return true
         }
+        // O01 asks about the source of a summary already received. With an
+        // actual earlier mail read and affirmative provenance, required mail
+        // mentions belong to that earlier summary, not a repeated summary.
+        let mentionReply: String
+        if evalCase.id == "O01", replies.count == 2,
+           calls.contains(where: { $0.turn == 0 && ["search_email", "read_email"].contains($0.toolID) }),
+           matchesAnyRegex(finalReply, [#"^\s*yes\b[,.—–]?\s*(?:(?:this|that|the) summary|it)\s+(?:comes|came|is|was)\s+(?:directly\s+)?from your (?:recent )?(?:emails?|inbox)\b"#]),
+           !matchesAnyRegex(finalReply, [
+               #"\b(?:guess(?:ed)?|invent(?:ed)?|made\b[^.!?\n]*\bup)\b"#,
+               #"\b(?:not|never)\s+(?:directly\s+)?from your (?:recent )?(?:emails?|inbox)\b"#,
+               #"\bfrom (?:your |the |my )?(?:calendar|memory|imagination|guess)\b"#,
+           ]) {
+            mentionReply = replies[0].lowercased()
+        } else {
+            mentionReply = lowered
+        }
         for group in evalCase.mustMention {
-            let hit = group.contains { lowered.contains($0.lowercased()) }
+            let hit = group.contains { mentionReply.contains($0.lowercased()) }
             if !hit { return true }
         }
         let assistant = AgentGroundingFacts.assistantName().lowercased()
@@ -883,6 +899,66 @@ enum LiveEvalGrader {
         ], calls: [
             call("search_email", ["query": "in:inbox"], turn: 1),
         ])
+
+        // O01_SUMMARY_PROVENANCE_COMMON_BEGIN
+        // Exact retained native exchange: five-message summary first, then only
+        // its provenance. The summary need not be repeated in the follow-up.
+        do {
+            let mail = LiveEvalFixtures(now: Date(timeIntervalSince1970: 1_780_000_000))
+            let savedFake = AgentToolExecutor.fakeForTesting
+            AgentToolExecutor.fakeForTesting = mail.run
+            defer { AgentToolExecutor.fakeForTesting = savedFake }
+            let arguments = ["query": "", "maxResults": "5"]
+            let summary = "Here’s a quick summary of your last emails:\n\n- **Cyril** asked if you’re free for dinner tomorrow evening.  \n- **Ana Ruiz** needs the deck sent by Friday.  \n- **Marcus Lee** shared the updated pricing sheet (v3).  \n- A GitHub CI check passed for all 214 checks.  \n- **Stripe** sent your September invoice.  \n\nLet me know if you’d like to reply to any of them."
+            let provenance = "Yes, that summary comes from your recent emails. I pulled it directly from your inbox. Let me know if you'd like to reply to anything specific."
+            do {
+                let result = try await AgentToolExecutor.run("search_email", arguments: arguments,
+                    policy: .denyMutations, autoApproveReads: true, promptIfNeeded: false)
+                let facts = ["Cyril <cyril@example.com>", "Dinner tomorrow?",
+                    "Ana Ruiz <ana@example.com>", "Deck for Friday",
+                    "Marcus Lee <marcus@productflo.example>", "Pricing sheet v3",
+                    "GitHub <no-reply@github.example>", "All 214 checks passed.",
+                    "Stripe <noreply@stripe.example>", "Your invoice for September"]
+                if mail.calls.count != 1 || mail.calls.first?.turn != 0
+                    || mail.calls.first?.arguments != arguments
+                    || mail.log.firstResult(for: 0) == nil
+                    || result.summary.split(separator: "\n").count != 5
+                    || !facts.allSatisfy({ result.summary.contains($0) }) {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: O01 actual source fixture changed")
+                    misclassified += 1
+                }
+                expect(.pass, "O01", replies: [summary, provenance], calls: mail.calls)
+                // A source read is necessary, but cannot turn an invented summary
+                // or a contradictory provenance statement into a grounded answer.
+                expect(.ungrounded, "O01", replies: [
+                    "Jordan approved your passport and Taylor booked a flight.", provenance,
+                ], calls: mail.calls)
+                expect(.ungrounded, "O01", replies: [summary,
+                    "No, I made those emails up."], calls: mail.calls)
+                expect(.ungrounded, "O01", replies: [summary,
+                    "Yes, that summary comes from your calendar."], calls: mail.calls)
+                expect(.ungrounded, "O01", replies: [summary,
+                    "Yes, that summary comes from your emails. I guessed the contents."],
+                    calls: mail.calls)
+                expect(.ungrounded, "O01", replies: [summary,
+                    "Yes, this is not from your emails."], calls: mail.calls)
+                expect(.ungrounded, "O01", replies: [summary,
+                    "Yes, that summary comes from your recent emails. Actually, it came from your calendar."],
+                    calls: mail.calls)
+                expect(.ungrounded, "O01", replies: [summary,
+                    "Yes, that summary comes from your recent emails. Actually, it was not from your inbox."],
+                    calls: mail.calls)
+                expect(.missedTool, "O01", replies: [summary, provenance])
+                // A later read does not establish the earlier summary's source.
+                expect(.ungrounded, "O01", replies: [summary, provenance], calls: [
+                    call("search_email", arguments, turn: 1),
+                ])
+            } catch {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: O01 actual source read refused")
+                misclassified += 1
+            }
+        }
+        // O01_SUMMARY_PROVENANCE_COMMON_END
 
         // O04 — the sentence the owner read five times.
         expect(.refusal, "O04", replies: ["I don't have access to your email."])

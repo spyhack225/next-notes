@@ -1,0 +1,9 @@
+# Summary provenance grading — 2026-10-05
+
+O01’s actual first summary matches all five fixture messages returned by the earlier read. Its second reply confirms that source without repeating the summary. `LiveEvalGrader` tested required sender/content mentions only against that last reply, incorrectly reporting UNGROUNDED. The grader now checks the earlier summary only when an actual turn0 mail read and explicit affirmative email provenance establish its source. Missing reads, invented summaries, negated or contradictory source statements, guessing and later-only reads stay red; the existing late-read repair remains green. No production reply or underlying model behavior is changed.
+
+Original one misclassification → identical fixed grader PASS, including the exact retained native exchange and false-provenance controls. This is an instrument correction, not a product repair or retrospective score promotion.
+
+Shared actual qualification: original combined COMMON production regression has six O04 failures and grader has one O01 misclassification. Fixed production, live grader, capability manifest and owner-store isolation all PASS. Pinned Qwen native O01/O04 both PASS on binary `b44f51a11b76b7178e264fa2501384e6085e0e84956608187b6f66ca86cd26ea`; fixture clock2026-10-05T09:00:00-04:00, America/New_York, baseline sampler, unchanged Qwen artifact SHA3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597. No owner mailbox is read. All task-owned TMP roots are deleted after child joins. Logs/paired apps metadata and raw rounds live outside iCloud at `~/Library/Caches/NextNotesBuild/integration/o04-requested-inbox-read/` and grader patches at `integration/o01-summary-provenance-grader/`.
+
+The original847c1b7 full reports remain28/30 and owner7/10 both; they used the earlier instrument. New targeted O01/O04 results do not qualify two full runs or close the owner gate. O08 remains open.
