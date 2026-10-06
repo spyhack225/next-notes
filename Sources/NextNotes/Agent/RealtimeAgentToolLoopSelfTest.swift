@@ -565,6 +565,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--r02-daily-grounding") {
+            failures += await runReminderAdmissionCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         // This scripted loop has no person to complete an approval card. Missing
         // mutation arguments must exercise the executor's unattended rejection,
         // regardless of the owner's standing computer-control preference.
@@ -2650,7 +2656,7 @@ enum RealtimeAgentToolLoopSelfTest {
                  requestOverride: String? = nil, unconfirmed: Bool = false, liveFixture: Bool = false,
                  expectedOverride: [String: String]? = nil,
                  originalNativeArguments: [String: String]? = nil,
-                 expectApproval: Bool = true)
+                 expectApproval: Bool = true, acknowledgment: String = "yes")
             async -> (reply: String, log: [PlannerScriptLog.Call], fired: [String], saved: [AgentSchedule]) {
             caseIndex += 1
             let requested = requestOverride ?? request
@@ -2700,7 +2706,7 @@ enum RealtimeAgentToolLoopSelfTest {
             }
             var finished = false
             let operation = Task { @MainActor in
-                let result = await agent.handle(unconfirmed ? requested : "yes", source: .text)
+                let result = await agent.handle(unconfirmed ? requested : acknowledgment, source: .text)
                 finished = true
                 return result
             }
@@ -2730,7 +2736,7 @@ enum RealtimeAgentToolLoopSelfTest {
             if !unconfirmed {
                 check("R01 confirmed request lost original request/acknowledgment",
                       log.calls.dropFirst().first?.user.contains(requested) == true
-                        && log.calls.dropFirst().first?.user.contains("The user answered: yes") == true)
+                        && log.calls.dropFirst().first?.user.contains("The user answered: " + acknowledgment) == true)
             } else {
                 check("R01 unconfirmed schedule approval count disagreed with the admitted call",
                       (shown != nil) == expectApproval)
@@ -2740,6 +2746,73 @@ enum RealtimeAgentToolLoopSelfTest {
             let saved = ScheduleStore(directory: store.directory).schedules
             return (result.reply, log.calls, liveFixture ? fixtures.calls.map(\.toolID) : fired.toolIDs, saved)
         }
+        // Current quiet quick R02: preserve actual model call, not the claimed daily prose.
+        let dailyRequest = "Every night at 10, remind me to put the book out"
+        let dailyOffer = "I can set that reminder for you, but I need a few details first. What would you like the reminder to say? And should it go off every night at 10 specifically, or on certain days of the week?"
+        let dailyRaw = #"<function name="schedule.create"><param name="id">every-night-10-reminder</param><param name="title">Put the book out</param><param name="text">Remind to put the book out every night at 10</param><param name="kind">reminder</param><param name="time">22:00</param><param name="days">7</param></function>"#
+        let dailyParsed = AgentToolCallParser.parse(dailyRaw, knownNames: ["schedule.create"])
+        if dailyParsed.calls.count == 1, let emitted = dailyParsed.calls.first {
+            var expectedDaily = emitted.arguments; expectedDaily["repeat"] = "daily"
+            let actualGrounding = AgentToolLoop.groundedArguments(for: emitted.name,
+                proposed: emitted.arguments, request: dailyRequest, now: now, calendar: calendar)
+            check("R02_DAILY explicit nightly producer leaves omitted recurrence once", actualGrounding == expectedDaily)
+            let dailyConsumer = await run([dailyOffer, dailyRaw,
+                "The reminder to put the book out every night at 10 is set. It will go off each day at 10 p.m."],
+                requestOverride: dailyRequest, expectedOverride: expectedDaily,
+                originalNativeArguments: emitted.arguments, acknowledgment: "okay")
+            check("R02_DAILY exact confirmed handle adds a pass or loses saved result",
+                dailyConsumer.log.count == 3 && dailyConsumer.fired == ["schedule.create"]
+                    && dailyConsumer.saved.count == 1 && dailyConsumer.log.last?.user.contains("Saved") == true
+                    && dailyConsumer.log[1].user.contains("The user answered: okay"))
+            check("R02_DAILY exact confirmed native store persists once instead of daily",
+                dailyConsumer.saved.first?.when?.repeatRule == .daily
+                    && dailyConsumer.saved.first?.when?.time == ScheduleLocalTime(hour: 22, minute: 0)
+                    && dailyConsumer.saved.first?.prompt == emitted.arguments["text"])
+            let directConsumer = await run([dailyRaw, "I'll remind you every night at 10 to put the book out."],
+                requestOverride: dailyRequest, unconfirmed: true, expectedOverride: expectedDaily,
+                originalNativeArguments: emitted.arguments)
+            check("R02_DAILY direct native store persists once instead of daily",
+                directConsumer.log.count == 2 && directConsumer.fired == ["schedule.create"]
+                    && directConsumer.saved.count == 1 && directConsumer.saved.first?.when?.repeatRule == .daily)
+            for (name, changed) in [
+                ("explicit once", ["repeat": "once"]), ("explicit weekly", ["repeat": "weekly", "days": "monday"]),
+                ("explicit daily", ["repeat": "daily"]), ("routine", ["kind": "routine"]),
+                ("trigger", ["kind": "trigger", "on": "call_started"]), ("date", ["date": dateText]),
+                ("offset", ["inMinutes": "60"]), ("different clock", ["time": "10:00"]),
+                ("invalid clock", ["time": "Tomorrow 22:00"]),
+            ] {
+                let payload = emitted.arguments.merging(changed) { _, new in new }
+                check("R02_DAILY overrides authored field: \(name)",
+                    AgentToolLoop.groundedArguments(for: emitted.name, proposed: payload,
+                        request: dailyRequest, now: now, calendar: calendar) == payload)
+            }
+            for unchanged in [
+                "Every night at 10 or 11, remind me to put the book out",
+                "Every night at 10 except weekends, remind me to put the book out",
+                "Every night at 10, remind me to put the book out and email Marcus",
+                "What does every night at 10 mean?", "Every Monday at 10, remind me to put the book out",
+            ] {
+                check("R02_DAILY grounds ambiguous/advice/compound request: \(unchanged)",
+                    AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                        request: unchanged, now: now, calendar: calendar) == emitted.arguments)
+            }
+            let noTiming = PendingAction(requestText: "Remind me to put the book out",
+                question: "Should I remind you every night at 10?", capabilityID: "schedule.create",
+                origin: .typedQuestion, sessionID: nil, at: now)
+            check("R02_DAILY question donates recurrence absent from original request",
+                AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                    request: noTiming.confirmedPrompt(acknowledgment: "okay"), now: now, calendar: calendar)
+                    == emitted.arguments)
+            let changedAnswer = PendingAction(requestText: dailyRequest, question: dailyOffer,
+                capabilityID: "schedule.create", origin: .typedQuestion, sessionID: nil, at: now)
+            check("R02_DAILY confirmation changes clock but borrows old recurrence",
+                AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                    request: changedAnswer.confirmedPrompt(acknowledgment: "actually at 11"), now: now, calendar: calendar)
+                    == emitted.arguments)
+        } else { check("R02_DAILY exact original XML call unavailable", false) }
+
+        if CommandLine.arguments.contains("--r02-daily-grounding") { return [] }
+
         let measured = await run([offer, recorded, complete, "Reminder set for tomorrow at 9 AM to call the bank."], liveFixture: true)
         check("R01 exact retained live fixture ended at Title empty without its repair", measured.log.count == 4
             && measured.log[1].user.contains("The user answered: yes")

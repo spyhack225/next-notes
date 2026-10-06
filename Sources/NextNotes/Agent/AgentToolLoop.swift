@@ -253,11 +253,29 @@ enum AgentToolLoop {
             }
             let kind = proposed["kind"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
             let repeatWord = proposed["repeat"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
-            guard ["", "reminder"].contains(kind), ["", "once"].contains(repeatWord),
+            guard ["", "reminder"].contains(kind),
                   proposed["inMinutes"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true,
-                  explicitlyRequests("remind", in: objective),
                   !MultiStepPlanRouting.likelyMultiStep(objective),
                   !objective.contains(where: { ";\n\r".contains($0) }) else { return proposed }
+            // A single explicit nightly reminder owns its omitted recurrence. Keep the
+            // authored clock: a different/ambiguous clock or explicit repeat is not ours.
+            if repeatWord.isEmpty,
+               let pattern = try? NSRegularExpression(pattern:
+                    #"^\s*(?:please\s+)?every night at (\d{1,2}(?::\d{2})?\s*(?:pm)?)\s*,?\s*remind me to .+$"#,
+                    options: .caseInsensitive),
+               let match = pattern.firstMatch(in: objective, range: NSRange(objective.startIndex..., in: objective)),
+               let clockRange = Range(match.range(at: 1), in: objective) {
+                let clock = String(objective[clockRange]).trimmingCharacters(in: .whitespaces).lowercased()
+                let nightClock = clock.hasSuffix("pm") || (ScheduleLocalTime.parse(clock)?.hour ?? 0) > 12
+                    ? clock : clock + "pm"
+                if let timing = ScheduleLocalTime.parse(nightClock), (18...23).contains(timing.hour),
+                   let authored = proposed["time"].flatMap(ScheduleLocalTime.parse), authored == timing {
+                    var grounded = proposed; grounded["repeat"] = "daily"
+                    return grounded
+                }
+            }
+            guard ["", "once"].contains(repeatWord), explicitlyRequests("remind", in: objective)
+            else { return proposed }
             // Bind timing before the reminder's "to ..." body, never borrow a date
             // from the words it will say later. The existing single-day rule stays shared.
             let timing = objective.lowercased().components(separatedBy: " to ").first ?? objective

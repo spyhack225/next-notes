@@ -1,0 +1,9 @@
+# Nightly reminder recurrence — 2026-10-05
+
+Cause: the native schedule parser defaults an omitted repeat to once even when the original accepted objective explicitly asks every night. The existing request-grounding seam now supplies only that missing daily recurrence for a single explicit nightly reminder whose authored clock matches the request. Changed answers, dates, offsets, explicit recurrence, different/ambiguous clocks and other kinds stay unchanged; time/body/title/approval are preserved. No new pass, prompt, store or confirmation.
+
+The exact retained days7/omitted-repeat raw fails3 originally: grounding, confirmed real private schedule store, direct real store. Same cases pass fixed through typed handle, one approval and actual saved daily22:00/text. Full production loop (including prior one-shot date/model priority), schedule, grader, routine authority and isolation21files32defaults pass. Authored temporary roots are deleted after joins.
+
+Pinned native MiniCPM5-2B Q4_K_M baseline quick: min/median/max9/9/9 across3 runs, with fixed2026-10-05T09:00:00-04:00/New York clock and raw rounds retained. All3 R02 actual calls parse as daily22:00. Run2 repeats the original unchanged XML with days7/no repeat; its executed call adds repeat=daily through the real producer, passing the corrected native-parser-backed grader. F03 still fails all3, treating Marcus as a missing file. A02 current quick contract admits navigation; actual latest-video playback remains unverified. Quick does not complete full/owner/privacy/latency/default/Agent phase gates.
+
+The stricter weekly-days parser proposal was withheld after it broke the prior one-shot qualification; it is not shipped. Bulk original/fixed logs and source: ~/Library/Caches/NextNotesBuild/integration/r02-requested-daily-grounding/. Native3 raw reports: ~/Library/Caches/NextNotesBuild/quick/minicpm-requested-daily-20261005/.
