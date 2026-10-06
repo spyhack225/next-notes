@@ -223,6 +223,36 @@ actor LocalVoiceTurnDetector {
         return granted ? [] : ["EOU queued reset did not acquire after process completion"]
     }
 
+    /// Optional preparation reads complete installed files only, never the SDK downloader.
+    nonisolated static func cachedModelDirectory(root: URL? = nil) -> URL? {
+        guard let support = root ?? FileManager.default.urls(
+            for: .applicationSupportDirectory, in: .userDomainMask).first else { return nil }
+        let models = support.appendingPathComponent("FluidAudio/Models/parakeet-eou-streaming")
+        let candidates = [models.appendingPathComponent(Repo.parakeetEou160.folderName),
+                          models.appendingPathComponent("parakeet-eou-streaming/160ms")]
+        return candidates.first { directory in
+            ModelNames.ParakeetEOU.requiredModels.allSatisfy {
+                FileManager.default.fileExists(atPath: directory.appendingPathComponent($0).path)
+            }
+        }
+    }
+
+    /// Called only by the capture-owned background handle. No session/callback reset
+    /// when ready: live attachment continues to belong to prepare().
+    func prepareCachedModels(from directory: URL,
+        producerProbeForTesting probe: VoiceInputProducerProbe? = nil) async throws {
+        guard await acquireOperation() else { throw CancellationError() }
+        defer { releaseOperation() }
+        guard !ready else { return }
+        guard ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork else { return }
+        if SelfTest.isRunning, let probe { producerProbeForTesting = probe }
+        await setCallbacks({ _ in }, onPartial: { _ in })
+        try await loadAndPrime(from: directory)
+        try Task.checkCancellation()
+        ready = true
+        producerProbeForTesting?.record("prepare.ready")
+    }
+
     func prepare(
         onEndOfUtterance: @escaping @Sendable (String) -> Void,
         onPartial: @escaping @Sendable (String) -> Void,
@@ -243,8 +273,16 @@ actor LocalVoiceTurnDetector {
             producerProbeForTesting?.record("prepare.ready")
             return
         }
+        try await loadAndPrime()
+        await setCallbacks(onEndOfUtterance, onPartial: onPartial)
+        ready = true
+        producerProbeForTesting?.record("prepare.ready")
+    }
+
+    private func loadAndPrime(from directory: URL? = nil) async throws {
         producerProbeForTesting?.record("prepare.load")
-        try await manager.loadModels()
+        if let directory { try await manager.loadModels(from: directory) }
+        else { try await manager.loadModels() }
         producerProbeForTesting?.record("prepare.loaded")
         // Core ML can defer its first encoder/decoder compilation until
         // process(), after loadModels returns. Prime that path before capture
@@ -264,9 +302,6 @@ actor LocalVoiceTurnDetector {
             // This is the cold-backlog/reset ordering, without variable load time.
             await producerProbeForTesting.holdPreparedDecoder()
         }
-        await setCallbacks(onEndOfUtterance, onPartial: onPartial)
-        ready = true
-        producerProbeForTesting?.record("prepare.ready")
     }
 
     func process(_ chunk: AudioChunk,

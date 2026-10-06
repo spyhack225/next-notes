@@ -237,10 +237,12 @@ final class WakeWordAudioMonitor {
         // watchdog rather than a cache.
         if isListening, loadedSignature == wanted, AudioCaptureHub.shared.isSubscribed(.wake) {
             status = .listening(phrase: phrase)
+            AgentCaptureController.shared.prepareResidentEOU()
             return
         }
         if isListening { stopCapture() }
         start(configuration: configuration, phrase: phrase)
+        if isListening { AgentCaptureController.shared.prepareResidentEOU() }
     }
 
     private func shutDown(_ reason: Status) {

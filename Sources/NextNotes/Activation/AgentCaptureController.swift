@@ -457,6 +457,7 @@ final class AgentCaptureController {
     @ObservationIgnored private var inputProducerProbeForTesting: VoiceInputProducerProbe?
     // The latest task also retains/joins its retiring predecessor off the input path.
     private var turnDetectorTask: Task<Void, Never>?
+    private var eouPreparationPending = false
     private var eouTerminationRequested = false
     private var turnAudioBacklog: TurnAudioBacklog?
     private var turnDetectorReady = false
@@ -1378,6 +1379,44 @@ final class AgentCaptureController {
         }
     }
 
+    /// Wake/activation intent, never a microphone wait. The existing decoder handle
+    /// owns the optional load and is joined by capture reopen, pressure release and quit.
+    @discardableResult
+    func prepareResidentEOU() -> Bool {
+        guard !eouTerminationRequested, !isSessionActive, !eouPreparationPending,
+              !SelfTest.isRunning || (SelfTest.requested == "--selftest-voice-eou"
+                && CommandLine.arguments.contains("--voice-eou-reuse")),
+              ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork,
+              ProcessInfo.processInfo.thermalState == .nominal,
+              let directory = LocalVoiceTurnDetector.cachedModelDirectory() else { return false }
+        let detector = turnDetector ?? LocalVoiceTurnDetector(
+            producerProbeForTesting: inputProducerProbeForTesting)
+        turnDetector = detector
+        let retiring = turnDetectorTask
+        let probe = SelfTest.isRunning ? inputProducerProbeForTesting : nil
+        eouPreparationPending = true
+        turnDetectorTask = Task.detached(priority: .utility) {
+            await retiring?.value
+            let quiet = await ComputeScheduler.shared.occupancy().busy.isEmpty
+            let admitted = await MainActor.run {
+                !Task.isCancelled && !self.eouTerminationRequested && !self.isSessionActive
+                    && self.turnDetector === detector
+                    && ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork
+                    && ProcessInfo.processInfo.thermalState == .nominal
+            }
+            if quiet && admitted {
+                do { try await detector.prepareCachedModels(from: directory, producerProbeForTesting: probe) }
+                catch { await detector.close() }
+                let release = await MainActor.run {
+                    !self.isSessionActive && !ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork
+                }
+                if release { await detector.close() }
+            }
+            await MainActor.run { self.eouPreparationPending = false }
+        }
+        return true
+    }
+
     // EOU_REUSE_COMMON_BEGIN
     func releaseIdleEOUUnderPressure() async {
         guard !isSessionActive, let detector = turnDetector else { return }
@@ -1450,11 +1489,40 @@ final class AgentCaptureController {
             return predicate()
         }
         do {
+            // Same actual owner, native load/prime and handle before any PCM/capture.
+            await capture.releaseIdleEOUUnderPressure()
+            if LocalVoiceTurnDetector.cachedModelDirectory() == nil {
+                throw AgentError.backendUnavailable("EOU resident fixture needs its installed model files.")
+            }
+            let missing = FileManager.default.temporaryDirectory
+                .appendingPathComponent("EOUResidentMissing-\(UUID().uuidString)")
+            if LocalVoiceTurnDetector.cachedModelDirectory(root: missing) != nil {
+                failures.append("missing EOU cache admitted optional preparation")
+            }
+            if !capture.prepareResidentEOU() {
+                failures.append("EOU arm did not admit callback-free resident preparation")
+            }
+            await capture.turnDetectorTask?.value
+            let resident = capture.turnDetector
+            let prepared = await resident?.modelsPreparedForTesting() ?? false
+            if !prepared || count("prepare.loaded", in: probe) != 1 {
+                failures.append("EOU arm did not load and prime its actual decoder before first capture")
+            }
+            if capture.isSessionActive || capture.captureSessionID != nil || !records.isEmpty
+                || probe.snapshot().contains(where: { $0.kind == "captured" || $0.kind == "native.eou" }) {
+                failures.append("resident preparation opened capture or admitted a user turn")
+            }
             var sessionIDs: [UUID] = []
             for index in 0..<2 {
                 try await capture.beginFileSession(wav: wav, prepareResources: false)
                 guard let id = capture.captureSessionID else { throw TranscriptionError.notRunning }
                 sessionIDs.append(id)
+                if capture.prepareResidentEOU() {
+                    failures.append("optional resident preparation was admitted during active capture")
+                }
+                if let resident, capture.turnDetector !== resident {
+                    failures.append("first capture replaced its prepared EOU owner")
+                }
                 await capture.fileFeedTask?.value
                 if !(await waitFor({ records.count > index })) {
                     failures.append("session \(index): native EOU did not commit its authored file")
@@ -1500,6 +1568,30 @@ final class AgentCaptureController {
             // Cold reload after pressure, held inside the SAME real preparation operation.
             let held = VoiceInputProducerProbe(holdPrepare: true, holdFirstCommit: false)
             capture.inputProducerProbeForTesting = held
+            var warmPressureJoined = false
+            let warmPressure: Task<Void, Never>?
+            if capture.prepareResidentEOU() {
+                if !(await waitFor({ count("prepare.held", in: held) == 1 })) {
+                    failures.append("idle resident preparation never reached its owned native load/prime")
+                }
+                if capture.prepareResidentEOU() {
+                    failures.append("held resident preparation admitted a second warm task")
+                }
+                warmPressure = Task { @MainActor in
+                    await capture.releaseIdleEOUUnderPressure()
+                    warmPressureJoined = true
+                }
+                for _ in 0..<20 { await Task.yield() }
+                if warmPressureJoined {
+                    failures.append("idle pressure returned before its held native preparation joined")
+                }
+                if capture.prepareResidentEOU() {
+                    failures.append("pressure handle replacement lost pending warm admission")
+                }
+            } else {
+                warmPressure = nil
+                failures.append("pressure restart did not admit optional EOU preparation before capture")
+            }
             try await capture.beginFileSession(wav: wav, deferFeed: true, prepareResources: false)
             let decoder = capture.turnDetectorTask
             if !(await waitFor({ count("prepare.held", in: held) == 1 })) {
@@ -1523,6 +1615,10 @@ final class AgentCaptureController {
             if quit == nil || joined { failures.append("quit did not join its held native preparation") }
             held.releaseAll()
             await observeQuit.value
+            await warmPressure?.value
+            if capture.eouPreparationPending {
+                failures.append("joined quit retained stale resident preparation admission")
+            }
             if let decoder { decoder.cancel(); await decoder.value }
             if quit == nil { await capture.endSession(source: .done) }
             await capture.beginSession(captureAudio: false)

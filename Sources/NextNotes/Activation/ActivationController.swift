@@ -63,6 +63,7 @@ final class ActivationController {
         // was drawn. Feedback now costs a paint; the monitor idles itself afterwards
         // and keeps its seat, so no engine is stopped on the wake path at all.
         IslandState.shared.showAgentListening(transcript: utterance ?? "")
+        AgentCaptureController.shared.prepareResidentEOU()
         // The person is about to speak a turn, so the on-device model warms while they do.
         // A no-op when it is already warm, when the assistant role is on another model, or
         // when the model is not on this Mac; why not at launch is on `prewarm`.
