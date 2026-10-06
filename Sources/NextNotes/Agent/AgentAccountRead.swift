@@ -16,7 +16,7 @@ enum AccountReadTools {
         case .files:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
-        case .meetings, .memory, .screen:
+        case .meetings, .memory, .screen, .reminders:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
         default: return nil
@@ -56,13 +56,16 @@ enum AccountReadTools {
 /// Everything here is pure. The loop owns when to ask, and the executor owns what runs.
 enum AgentAccountRead {
     /// Account/meeting reads and an explicit named-file lookup, selected by the manifest.
-    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings, .files, .memory, .screen]
+    static let classes: Set<AgentIntentClass> = [.mail, .calendar, .drive, .meetings, .files, .memory, .screen, .reminders]
 
     /// The read each class gets when the person asked about it in general, and the tool that
     /// performs it. `nil` for a class with no default read.
     static func defaultRead(for intent: AgentIntentClass, request: String,
                             now: Date = Date()) -> (toolID: String, arguments: [String: String])? {
         switch intent {
+        case .reminders:
+            guard requestsReminderListRead(request) else { return nil }
+            return ("schedule.list", [:])
         case .screen:
             guard requestsActiveAppRead(request) else { return nil }
             return ("computer.active_app", [:])
@@ -137,6 +140,7 @@ enum AgentAccountRead {
             if intent == .mail, !requestsMailRead(request) { continue }
             if intent == .memory, !requestsMemoryRead(request) { continue }
             if intent == .screen, !requestsActiveAppRead(request) { continue }
+            if intent == .reminders, !requestsReminderListRead(request) { continue }
             guard let toolID = toolIDFor(intent) else { continue }
             if completedThisTurn.contains(toolID) { continue }
             // The frontmost app is live state: yesterday's or the prior turn's
@@ -155,6 +159,7 @@ enum AgentAccountRead {
             // 4. The reply presents contents or offers/promises the requested read.
             guard (intent == .screen && requestsActiveAppRead(request))
                 || (intent == .memory && requestsMemoryRead(request))
+                || (intent == .reminders && requestsReminderListRead(request))
                 || (intent != .files && presents(intent, reply))
                 || (intent == .meetings && presentsRequestedMeetingContents(reply, request: request))
                 || (intent == .meetings && presentsRequestedMeetingAbsence(reply, request: request))
@@ -168,6 +173,19 @@ enum AgentAccountRead {
             return (intent, read.toolID, read.arguments)
         }
         return nil
+    }
+
+    /// The existing own-to-do question route asks for saved reminders. Only a
+    /// complete own-list question qualifies; writes, advice and unresolved dates
+    /// stay with the planner. Native list carries dates; no task-store inference.
+    private static func requestsReminderListRead(_ request: String) -> Bool {
+        guard !request.contains(where: { "\n\r\"“”`".contains($0) }) else { return false }
+        let question = AgentDirectIntent.questionForm(request)
+        guard AgentDirectIntent.questionRoute(in: question, readyIntents: [.reminders]) == .reminders
+        else { return false }
+        return question.range(of:
+            #"^(?:what's|what is) on my (?:to-do|todo) list(?: for today)?$"#,
+            options: .regularExpression) != nil
     }
 
     /// A single observation of the current app, never general screen contents,
@@ -553,6 +571,7 @@ enum AgentAccountRead {
         case .drive: "I haven't looked at your Drive yet."
         case .meetings: "I haven't looked at your meetings yet."
         case .files: "I haven't looked for that file yet."
+        case .reminders: "I haven't looked at your reminders yet."
         default: "I haven't looked yet."
         }
     }

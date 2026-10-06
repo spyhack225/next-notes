@@ -583,6 +583,12 @@ enum RealtimeAgentToolLoopSelfTest {
             print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
             return failures.isEmpty
         }
+        if CommandLine.arguments.contains("--requested-todo-read") {
+            failures += await runRequestedTodoReadCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         // This scripted loop has no person to complete an approval card. Missing
         // mutation arguments must exercise the executor's unattended rejection,
         // regardless of the owner's standing computer-control preference.
@@ -1103,6 +1109,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runA04ActiveAppReadCases(agent: agent, check: check))
+        failures.append(contentsOf: await runRequestedTodoReadCases(agent: agent, check: check))
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
         failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
         failures.append(contentsOf: await runModelIdentityContractCases(agent: agent, check: check))
@@ -1117,6 +1124,179 @@ enum RealtimeAgentToolLoopSelfTest {
         for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
         print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
         return failures.isEmpty
+    }
+
+
+    /// The retained full0/full1 R03 no-call replies, through the ordinary selected
+    /// manifest, read admission, actual PRIVATE schedule list and final-answer consumer.
+    @MainActor
+    static func runRequestedTodoReadCases(
+        agent: RealtimeAgent, check: (String, Bool) -> Void
+    ) async -> [String] {
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorCap = agent.maxCallsForTesting
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesR03-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            AgentToolExecutor.recordedReadApprovalsForTesting = priorApprovals
+            agent.localModelProviderForTesting = priorProvider
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.answerDepthForTesting = priorDepth
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.budgetForTesting = priorBudget
+            agent.maxCallsForTesting = priorCap
+            agent.setTypedPendingForTesting(nil)
+            try? FileManager.default.removeItem(at: root)
+        }
+        let request = "What's on my to-do list for today?"
+        let raws = [
+            "I don't have a personal to-do list for you, Serge — I can only see things you've told me. If you'd like me to check your calendar or set something up, just let me know.",
+            "I don't have a personal to-do list for you, Serge — I can only see things you've told me. If you'd like, I can check your calendar for today's meetings or remind you of anything you've set up. What would be most helpful?",
+        ]
+        let grounded = "Your saved reminder today is Budget review at 10 AM."
+        let now = ISO8601DateFormatter().date(from: "2026-10-05T09:00:00-04:00")!
+        let zone = TimeZone(identifier: "America/New_York")!
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let entry = manifest.entry(named: "schedule.list")
+        check("R03 INPUT_INVALID: exact request does not select ready native reminder list",
+              manifest.selectedIntents.contains(.reminders) && entry?.intent == .reminders
+                && entry?.risk == .read && entry?.parameters.contains(where: \.isRequired) == false
+                && manifest.selected.contains { $0.id == "schedule.list" })
+        guard manifest.selectedIntents.contains(.reminders), entry?.intent == .reminders,
+              entry?.risk == .read else { return ["R03 INPUT_INVALID"] }
+        func pending(_ question: String, raw: String? = nil, turn: [String] = [],
+                     session: Set<String> = [], using value: AgentCapabilityManifest? = nil) -> String? {
+            let value = value ?? manifest
+            return AgentAccountRead.pendingRead(reply: raw ?? raws[0], selectedIntents: value.selectedIntents,
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: value, request: question) },
+                request: question, now: now, manifest: value)?.toolID
+        }
+        for (i, raw) in raws.enumerated() {
+            check("R03 original full\(i) final absence has no requested reminder read",
+                  pending(request, raw: raw) == "schedule.list")
+        }
+        check("R03 explicit own-list equivalent missed",
+              pending("What is on my todo list?") == "schedule.list")
+        check("R03 completed current-turn list was repeated", pending(request, turn: ["schedule.list"]) == nil)
+        check("R03 completed session list was repeated", pending(request, session: ["schedule.list"]) == nil)
+        var disabled = inputs; disabled.switches.schedules = false
+        let disabledManifest = AgentCapabilityManifestBuilder.build(disabled, request: request)
+        check("R03 disabled reminders acquired a read", pending(request, using: disabledManifest) == nil)
+        var missing = inputs; missing.tools.removeAll { $0.id == "schedule.list" }
+        let missingManifest = AgentCapabilityManifestBuilder.build(missing, request: request)
+        check("R03 absent native descriptor was invented", pending(request, using: missingManifest) == nil)
+        let negatives = [
+            "What's on Sarah's to-do list for today?", "Should I use a to-do list?",
+            "How should I organize my to-do list?", "Remind me to check my to-do list",
+            "What's on my to-do list for today or tomorrow?", "What's on my to-do list for tomorrow?",
+            "What's on my to-do list for today? Then email it to Sarah",
+            "He asked \"What's on my to-do list for today?\"",
+        ]
+        for question in negatives {
+            check("R03 third-party/advice/write/ambiguous/compound request acquired a read: \(question)",
+                  pending(question) == nil)
+        }
+        AgentToolExecutor.fakeForTesting = nil
+        agent.answerDepthForTesting = .balanced
+        agent.denyUnattendedApprovalsForTesting = true
+        agent.budgetForTesting = nil
+        agent.maxCallsForTesting = nil
+        var caseIndex = 0
+        @MainActor
+        func run(_ question: String, raw: String, empty: Bool = false, allow: Bool = true,
+                 using value: AgentCapabilityInputs? = nil, completed: Bool = false) async
+            -> (reply: String, calls: [PlannerScriptLog.Call], fired: [String], output: String) {
+            caseIndex += 1
+            let store = ScheduleStore(directory: root.appendingPathComponent("case-\(caseIndex)"))
+            if !empty {
+                do {
+                    let reminder = try ScheduleToolExecutor.parseCreate(
+                        ["title": "Budget review", "text": "Review the budget", "kind": "reminder",
+                         "date": "2026-10-05", "time": "10:00"], now: now, timeZone: zone)
+                    check("R03 private seed save refused", store.save(reminder))
+                } catch { check("R03 private native reminder seed unavailable: \(error)", false) }
+            }
+            let scheduler = AgentScheduler(store: store, system: RoutineAuthoritySelfTest.NoSystem(),
+                deliverer: RoutineAuthoritySelfTest.QuietDeliverer(),
+                environment: RoutineAuthoritySelfTest.AbsentEnvironment(),
+                settings: { ScheduleSettingsSnapshot(enabled: true, quietStart: nil, quietEnd: nil, speech: .never) },
+                timeZone: { zone })
+            let file = store.directory.appendingPathComponent(ScheduleStore.fileName)
+            let before = try? Data(contentsOf: file)
+            var fired: [String] = []
+            var output = ""
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = value ?? inputs
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(autoObserve: true,
+                autoRead: allow, autoSearchFiles: true, autoComputerControl: false, grants: [])
+            agent.readApprovalOverrideForTesting = allow
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                guard tool.id == "schedule.list", arguments.isEmpty else {
+                    throw AgentError.permissionDenied("Unexpected action in the reminder-read fixture.")
+                }
+                fired.append(tool.id)
+                let result = try await ScheduleToolExecutor.run(tool, arguments: arguments,
+                    scheduler: scheduler, now: now, timeZone: zone)
+                output = result.summary
+                return result
+            }
+            let log = PlannerScriptLog()
+            let answer = empty ? "No reminders are saved." : grounded
+            let script = completed
+                ? [#"<tool_call>{"name":"schedule.list","arguments":{}}</tool_call>"#, raw]
+                : [raw, answer]
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                window: 4_096, promptTokens: 2_000, script: script, log: log)
+            AgentSession.shared.forgetAllConversations(); agent.setTypedPendingForTesting(nil)
+            let result = await agent.handle(question, source: .text)
+            check("R03 read mutated saved reminder bytes", (try? Data(contentsOf: file)) == before)
+            check("R03 read left a permission card or queued write",
+                  PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+            return (result.reply, log.calls, fired, output)
+        }
+        for (i, raw) in raws.enumerated() {
+            let result = await run(request, raw: raw)
+            check("R03 full\(i) actual handle omitted native no-argument list", result.fired == ["schedule.list"])
+            check("R03 full\(i) real private list did not reach final-answer consumer",
+                  result.output.contains("Budget review") && result.calls.count == 2
+                    && result.calls.last?.user.contains(result.output) == true && result.reply == grounded)
+        }
+        let empty = await run(request, raw: raws[0], empty: true)
+        check("R03 empty native list was replaced with an invented reminder or broad task absence",
+              empty.fired == ["schedule.list"] && empty.output.contains("No reminders yet.")
+                && empty.calls.count == 2 && empty.calls.last?.user.contains(empty.output) == true
+                && empty.reply == "No reminders are saved.")
+        let denied = await run(request, raw: raws[0], allow: false)
+        check("R03 denied read entered backing or another model round", denied.fired.isEmpty
+            && denied.calls.count == 1 && denied.reply == "I haven't looked at your reminders yet.")
+        let already = await run(request, raw: raws[0], completed: true)
+        check("R03 actual completed native read was repeated", already.fired == ["schedule.list"]
+            && already.calls.count == 2 && already.reply == raws[0])
+        for value in [disabled, missing] {
+            let result = await run(request, raw: raws[0], using: value)
+            check("R03 actual unavailable read bypassed the manifest", result.fired.isEmpty && result.calls.count == 1)
+        }
+        for question in [negatives[0], negatives[1], negatives[2], negatives[4], negatives[5]] {
+            let result = await run(question, raw: raws[0])
+            check("R03 actual third-party/advice/ambiguous-date request acquired reminder backing", result.fired.isEmpty
+                && result.calls.count == 1 && result.reply == raws[0])
+        }
+        print("  TOOLLOOP_PRODUCTION_R03: retained no-call raws -> actual private schedule.list -> final answer; bounded admission and no writes")
+        return []
     }
 
     /// P1-24's table. Pure: no model, no provider, no store, no executor.
