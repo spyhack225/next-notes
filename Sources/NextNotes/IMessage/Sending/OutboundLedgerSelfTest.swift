@@ -97,9 +97,119 @@ enum MessagesLedgerSelfTest {
         "watermark", "probe", "signature", "ledger",
     ]
 
+    /// The actual single sender boundary with a held native stand-in. A main-queue
+    /// acknowledgement releases the stand-in; the old main-actor implementation can
+    /// only be released by the bounded fixture timeout, making the original failure
+    /// observable without leaving a stuck worker behind. This is not a latency score.
+    private static func runNonblockingSendCases() async -> String {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesSelfTest-message-send-" + UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: root) }
+        var failures: [String] = []
+        var count = 0
+        func check(_ name: String, _ condition: Bool) {
+            count += 1
+            if !condition { failures.append(name) }
+        }
+        do {
+            try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+            var configuration = IMessageConfiguration()
+            configuration.enabled = true
+            configuration.pairedChatGUID = pairedChatGUID
+            configuration.chatHandleCache = "+15550000001"
+            try JSONEncoder().encode(configuration).write(
+                to: root.appendingPathComponent(RemoteIdentityStore.fileName), options: .atomic)
+            let store = IMessageOutboundStore(root: root)
+            let ledger = OutboundMessageLedger(store: store, nowNanos: { dispatchInstant })
+            let sender = MessagesSender(ledger: ledger, store: RemoteIdentityStore(directory: root))
+            let held = HeldSendExecution()
+            let body = "Offline fixture: a quote \" and slash \\ plus\nnext line."
+            let expectedBody = AgentMessageFormat.prefixed(body, name: AgentGroundingFacts.assistantName())
+            let expectedSource = """
+            with timeout of 30 seconds
+            tell application "Messages" to send "\(MessagesAppleEvent.literal(expectedBody))" to participant "+15550000001"
+            end timeout
+            """
+            let outcome = await MessagesAppleEvent.$fixtureDirectoryForTesting.withValue(root) {
+                await MessagesAppleEvent.$executeForTesting.withValue({ source in held.execute(source) }) {
+                    await sender.sendText(body, toHandle: "+15550000001")
+                }
+            }
+            await held.joinHeartbeat()
+            let observation = held.snapshot()
+            check("main actor acknowledges while actual sender remains held", observation.heartbeatDuringHold)
+            check("native send execution is off main thread", !observation.mainThread)
+            check("exact body and BY-NAME participant reach executor once",
+                  observation.calls == 1 && observation.source == expectedSource)
+            check("uncertain native failure stays failed instead of sent", {
+                if case .sendFailed = outcome { return true }; return false
+            }())
+            let rows = try store.allRows()
+            check("uncertain send retains one pending receipt without resend",
+                  rows.count == 1 && rows.first?.state == .pending
+                  && rows.first?.textDigest == OutboundDigest.text(expectedBody))
+            store.close()
+
+            // Harmless actual OSA compile/execute; no target application or Apple event.
+            let native = SendExecutionObservation()
+            let nativeOutcome = await MessagesAppleEvent.$fixtureDirectoryForTesting.withValue(root) {
+                await MessagesAppleEvent.$sourceForTesting.withValue("return 7") {
+                    await MessagesAppleEvent.$observeForTesting.withValue({ main, privateInstance in
+                        native.record(main: main, privateInstance: privateInstance)
+                    }) {
+                        await MessagesAppleEvent.send(text: "unused", toHandle: "+15550000001")
+                    }
+                }
+            }
+            let actualNative = native.snapshot()
+            check("harmless native OSA returns actual success", nativeOutcome == .sent)
+            check("actual native executor stays off main thread", actualNative.count == 1 && !actualNative.main)
+            check("actual native script owns a private component", actualNative.privateInstance)
+            let invalid = await MessagesAppleEvent.$fixtureDirectoryForTesting.withValue(root) {
+                await MessagesAppleEvent.$sourceForTesting.withValue("return (") {
+                    await MessagesAppleEvent.send(text: "unused", toHandle: "+15550000001")
+                }
+            }
+            check("actual native compile failure remains failure", invalid != .sent)
+
+            let refused = await MessagesAppleEvent.$fixtureDirectoryForTesting.withValue(root) {
+                await MessagesAppleEvent.$executeForTesting.withValue({ _ in -1743 }) {
+                    await MessagesAppleEvent.send(text: "unused", toHandle: "+15550000001")
+                }
+            }
+            if case .failed(let reason) = refused {
+                check("Automation refusal preserves existing permission copy", reason.contains("can't reply yet"))
+            } else { check("Automation refusal remains failure", false) }
+            let cancelledCalls = SendExecutionObservation()
+            let cancelled = Task { @MainActor in
+                await MessagesAppleEvent.$fixtureDirectoryForTesting.withValue(root) {
+                    await MessagesAppleEvent.$executeForTesting.withValue({ _ in
+                        cancelledCalls.record(main: Thread.isMainThread, privateInstance: false)
+                        return nil
+                    }) {
+                        await MessagesAppleEvent.send(text: "unused", toHandle: "+15550000001")
+                    }
+                }
+            }
+            cancelled.cancel()
+            let cancelledOutcome = await cancelled.value
+            check("already cancelled sender dispatches nothing", cancelledCalls.snapshot().count == 0)
+            check("already cancelled sender does not report sent", cancelledOutcome != .sent)
+        } catch {
+            failures.append("isolated sender fixture setup failed")
+        }
+        var lines = failures.map { "IMESSAGE_LOOP_WRONG: \($0)" }
+        lines.append(failures.isEmpty ? "IMESSAGE_LOOP_OK: \(count) sender checks"
+                     : "IMESSAGE_LOOP_FAILED: \(failures.count) of \(count) sender checks; \(failures[0])")
+        return lines.joined(separator: "\n")
+    }
+
     // MARK: - The run
 
     static func run() async -> String {
+        if CommandLine.arguments.contains("--imessage-nonblocking-send") {
+            return await runNonblockingSendCases()
+        }
         var failures: [String] = []
         let blocked: [String] = []
         var caseCount = 0
@@ -1018,5 +1128,68 @@ enum MessagesLedgerSelfTest {
             throw IMessageOutboundStoreError.read("strings(1) exited \(process.terminationStatus)")
         }
         return String(decoding: data, as: UTF8.self)
+    }
+}
+
+private final class HeldSendExecution: @unchecked Sendable {
+    private let condition = NSCondition()
+    private var calls = 0
+    private var mainThread = false
+    private var source = ""
+    private var holding = false
+    private var heartbeatDuringHold = false
+    private var heartbeatDone = false
+    private var heartbeatWaiter: CheckedContinuation<Void, Never>?
+
+    func execute(_ source: String) -> Int? {
+        condition.lock()
+        calls += 1
+        self.source = source
+        mainThread = Thread.isMainThread
+        holding = true
+        DispatchQueue.main.async { self.heartbeat() }
+        let deadline = Date().addingTimeInterval(1)
+        while holding, condition.wait(until: deadline) {}
+        holding = false
+        condition.unlock()
+        return -1712 // uncertain send timeout, never automatically replayed
+    }
+    private func heartbeat() {
+        condition.lock()
+        heartbeatDuringHold = holding
+        holding = false
+        heartbeatDone = true
+        let waiter = heartbeatWaiter
+        heartbeatWaiter = nil
+        condition.broadcast()
+        condition.unlock()
+        waiter?.resume()
+    }
+    func joinHeartbeat() async {
+        await withCheckedContinuation { continuation in
+            condition.lock()
+            if heartbeatDone { condition.unlock(); continuation.resume() }
+            else { heartbeatWaiter = continuation; condition.unlock() }
+        }
+    }
+    func snapshot() -> (calls: Int, mainThread: Bool, source: String, heartbeatDuringHold: Bool) {
+        condition.lock(); defer { condition.unlock() }
+        return (calls, mainThread, source, heartbeatDuringHold)
+    }
+}
+private final class SendExecutionObservation: @unchecked Sendable {
+    private let lock = NSLock()
+    private var count = 0
+    private var main = false
+    private var privateInstance = false
+    func record(main: Bool, privateInstance: Bool) {
+        lock.lock(); defer { lock.unlock() }
+        count += 1
+        self.main = main
+        self.privateInstance = privateInstance
+    }
+    func snapshot() -> (count: Int, main: Bool, privateInstance: Bool) {
+        lock.lock(); defer { lock.unlock() }
+        return (count, main, privateInstance)
     }
 }
