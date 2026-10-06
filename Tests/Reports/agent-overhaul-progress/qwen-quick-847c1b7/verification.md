@@ -1,0 +1,9 @@
+# Pinned Qwen quick quality — 2026-10-05
+
+Installed source commit `847c1b75b32ae3abe5ab3ed9bcac8d219f41b75a` scores **10/10,10/10,10/10**: minimum10, median10, maximum10. All30 actual handle/planner/tool-fixture/final-consumer rows PASS, with no ERROR, LEAK or FABRICATED verdict. The unchanged nine-pass quick threshold is met for this candidate; this does not complete Agent Overhaul, qualify a silent default, prove live account effects, or meet voice/wake/latency/floor requirements.
+
+Model `unsloth--Qwen3-4B-Instruct-2507-Q4_K_M.gguf`,2,497,281,120bytes, SHA `3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597`. Binary SHA `8fae385ecf08c52683476777a6babcbd85487f4272eb0151ff3d213e99c806d4`. All runs pin `2026-10-05T09:00:00-04:00`, America/New_York, baseline sampler(.6/.9/.05,repeat1.05,seed24301,window256). Run elapsed137.4/177.3/178.9s; start loads2.72/3.37/2.86, swap5.43/5.42/5.41GiB, free11.17/11.15/11.15GiB. Task-owned temporary root is removed after all child runs join; model claim released.
+
+Same corrected instrument predecessor `f2c6f1d` scored8/8/9. New producer commits `72c4121` restrict the requested latest-email read to the actual newest row and `847c1b7` grounds the authored nightly22:00 before approval. `b3d4202` promised-draft continuation remains green. Latest-email fixture grading was corrected separately in `f2c6f1d`: older pricing is not the newest email. Earlier scores from the old grading expectation are not directly comparable.
+
+Two consecutive full≥25/30, zeroLEAK/ERROR and individual O01–O09 green in both are still pending on this build. O10 is recorded separately. Apple full, COREwake, voice/floor and live journeys remain open. Raw rounds, machine readings, reports and logs live outside iCloud at `~/Library/Caches/NextNotesBuild/toolloop-live/qwen-visible-847c1b7-20261005/`. No saved model choice or default changed.
