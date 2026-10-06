@@ -69,6 +69,8 @@ def main():
     parser.add_argument('--fixture-now', required=True, help='fixed ISO8601 instant, including timezone')
     parser.add_argument('--sampler-arm', choices=('baseline', 'minicpm-vendor'),
                         help='explicit process-only GGUF sampler comparison')
+    parser.add_argument('--planner', choices=('prompt', 'native'),
+                        help='explicit process-only planner comparison')
     parser.add_argument('--runs', type=int, default=3)
     parser.add_argument('--output', type=Path)
     parser.add_argument('--under-lock', action='store_true', help=argparse.SUPPRESS)
@@ -99,6 +101,8 @@ def main():
     summary = {'modelPin': args.model, 'fixtureNow': args.fixture_now, 'timezone': os.environ.get('TZ', 'system'), 'runs': []}
     if args.sampler_arm is not None:
         summary['samplerArm'] = args.sampler_arm
+    if args.planner is not None:
+        summary['planner'] = args.planner
     resolved_model = None
     timezone = None
     for index in range(1, args.runs + 1):
@@ -111,6 +115,8 @@ def main():
                    '--selftest-timeout', '1800']
         if args.sampler_arm is not None:
             command += ['--sampler-arm', args.sampler_arm]
+        if args.planner is not None:
+            command += ['--planner', args.planner]
         print(f'Run {index}/{args.runs}: model={args.model}, clock={args.fixture_now}', flush=True)
         with (output / f'run{index}.log').open('w') as log:
             process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True)

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """Exercise scoring and machine admission without launching a model or native app."""
 import importlib.util
+import contextlib
+import io
 import json
 from pathlib import Path
 import tempfile
@@ -96,12 +98,12 @@ class QuickInstrumentTests(unittest.TestCase):
         self.output = self.output.replace('arm=baseline', 'arm=minicpm-vendor') + receipt
         with self.assertRaises(RuntimeError): self.arm_score()
 
-    def test_main_forwards_sampler_on_each_existing_pinned_run(self):
-        app = Path(self.temp.name) / 'Fixture.app'
+    def run_transport(self, planner=None):
+        app = Path(self.temp.name) / f'Fixture-{planner}.app'
         binary = app / 'Contents/MacOS/NextNotes'
         binary.parent.mkdir(parents=True)
         binary.write_bytes(b'synthetic identity only; never executed')
-        output = Path(self.temp.name) / 'runs'
+        output = Path(self.temp.name) / f'runs-{planner}'
         commands = []
         for row in self.rows: row['samplerArm'] = 'minicpm-vendor'
         log = self.output + 'TOOLLOOP_LIVE_SAMPLER: arm=minicpm-vendor temperature=1 top_p=0.95 min_p=0 repeat_penalty=1.05\n'
@@ -114,8 +116,10 @@ class QuickInstrumentTests(unittest.TestCase):
                 def wait(self): return 1
                 def poll(self): return 1
             return Completed()
-        with patch.object(quick.sys, 'argv', ['pinned-quick.py', '--under-lock', '--model', PIN,
-                '--fixture-now', NOW, '--sampler-arm', 'minicpm-vendor', '--output', str(output)]), \
+        argv = ['pinned-quick.py', '--under-lock', '--model', PIN,
+                '--fixture-now', NOW, '--sampler-arm', 'minicpm-vendor', '--output', str(output)]
+        if planner is not None: argv += ['--planner', planner]
+        with patch.object(quick.sys, 'argv', argv), \
              patch.dict(os.environ, {'NEXTNOTES_APP': str(app)}), \
              patch.object(quick, 'machine_state', return_value={'load': 0, 'swapGiB': 0, 'freeGiB': 20}), \
              patch.object(quick.subprocess, 'Popen', side_effect=fake_process):
@@ -128,6 +132,33 @@ class QuickInstrumentTests(unittest.TestCase):
         summary = json.loads((output / 'summary.json').read_text())
         self.assertEqual(summary['samplerArm'], 'minicpm-vendor')
         self.assertEqual(summary['minimum'], 7)
+        return commands, summary
+
+    def test_main_forwards_sampler_on_each_existing_pinned_run(self):
+        self.run_transport()
+
+    def test_main_forwards_explicit_planner_on_each_existing_pinned_run(self):
+        for planner in ('prompt', 'native'):
+            with self.subTest(planner=planner):
+                commands, summary = self.run_transport(planner)
+                for command in commands:
+                    self.assertEqual(command[command.index('--planner') + 1], planner)
+                self.assertEqual(summary['planner'], planner)
+
+    def test_default_planner_selection_is_unchanged(self):
+        commands, summary = self.run_transport()
+        for command in commands: self.assertNotIn('--planner', command)
+        self.assertNotIn('planner', summary)
+
+    def test_invalid_planner_never_launches(self):
+        with patch.object(quick.sys, 'argv', ['pinned-quick.py', '--model', PIN,
+                '--fixture-now', NOW, '--planner', 'guessed']), \
+             patch.object(quick, 'machine_state') as machine, \
+             patch.object(quick.subprocess, 'Popen') as launch, contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(SystemExit) as result: quick.main()
+        self.assertEqual(result.exception.code, 2)
+        machine.assert_not_called()
+        launch.assert_not_called()
 
     def test_binary_replacement_is_detected(self):
         binary = Path(self.temp.name) / 'NextNotes'
