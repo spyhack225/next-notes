@@ -99,7 +99,7 @@ enum LiveEvalGrader {
 
         // 4. REFUSAL — a needed tool did not run and the reply denies or offers instead.
         let satisfied = isSatisfied(requirement, evalCase: evalCase, calls: calls,
-                                    finalReply: finalReply)
+                                    finalReply: finalReply, finalTurn: max(0, replies.count - 1))
         if requirement.needsTool, !satisfied {
             let denies = matchesAny(finalReply, refusalPatterns)
             let offers = matchesAny(finalReply, offerPatterns)
@@ -179,7 +179,7 @@ enum LiveEvalGrader {
 
     private static func isSatisfied(
         _ requirement: Requirement, evalCase: LiveEvalCase,
-        calls: [LiveEvalLoggedCall], finalReply: String
+        calls: [LiveEvalLoggedCall], finalReply: String, finalTurn: Int
     ) -> Bool {
         let calledIDs = Set(calls.map(\.toolID))
         if requirement.isCompound {
@@ -187,7 +187,9 @@ enum LiveEvalGrader {
             let thenHit = !requirement.then.isDisjoint(with: calledIDs)
             let question = compoundQuestionMentions(
                 requirement.orQuestionMentioning, finalReply: finalReply)
-            return firstHit && (thenHit || question)
+            let documentChoice = evalCase.id == "F03"
+                && f03DocumentChoice(calls: calls, finalReply: finalReply, turn: finalTurn)
+            return firstHit && (thenHit || question || documentChoice)
         }
         let anySatisfied = requirement.anyOf.isEmpty
             || !requirement.anyOf.isDisjoint(with: calledIDs)
@@ -200,7 +202,10 @@ enum LiveEvalGrader {
     ) -> Bool {
         if requirement.isAnswerOnly {
             if calls.contains(where: { !requirement.permitted.contains($0.toolID) }) { return true }
-        } else if calls.contains(where: { !requirement.permitted.contains($0.toolID) }) {
+        } else if calls.contains(where: {
+            !requirement.permitted.contains($0.toolID)
+                && !(evalCase.id == "F03" && $0.toolID == "search_email" && $0.risk == .read)
+        }) {
             return true
         }
         if !requirement.forbidden.isDisjoint(with: calledIDs) { return true }
@@ -208,6 +213,67 @@ enum LiveEvalGrader {
             return true
         }
         return false
+    }
+
+    /// F03's fixture is ambiguous between two pricing documents. A grounded file
+    /// choice is a legitimate missing-input question before the requested email.
+    private static func f03DocumentChoice(calls: [LiveEvalLoggedCall], finalReply: String, turn: Int) -> Bool {
+        guard matchesAnyRegex(finalReply, [
+            #"(?:^|[.!]\s+)which (?:one|(?:pricing )?(?:document|file)) should i (?:send|email)\b[^?]*\?\s*$"#,
+        ]) else { return false }
+        let fixture = LiveEvalFixtures()
+        return calls.contains { call in
+            guard call.turn == turn, call.risk == .read,
+                  ["filesystem.search", "find_drive_files"].contains(call.toolID),
+                  (call.arguments["query"] ?? "").lowercased().contains("pric") else { return false }
+            let result = fixture.summary(for: call.toolID, arguments: call.arguments)
+            return result.contains("Pricing 2026.pdf") && result.contains("Pricing sheet v3")
+        }
+    }
+
+    /// Only authored recipient input or an earlier same-turn successful fixture mail
+    /// read can support F03's selected address. A generated body/reply or a lucky guess
+    /// of an unread fixture address is not evidence. No product-mail policy is changed.
+    private static func f03RecipientsGrounded(_ evalCase: LiveEvalCase,
+                                              calls: [LiveEvalLoggedCall]) -> Bool {
+        let address = #"[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}"#
+        guard let recipient = try? NSRegularExpression(
+            pattern: "^(?:Marcus(?: Lee)?\\s*<)?(" + address + ")>?$",
+            options: .caseInsensitive),
+              let authored = try? NSRegularExpression(
+                pattern: "(?:\\b(?:email|send)(?:\\s+it)?\\s+to\\s+|\\bmarcus(?:\\s+lee)?(?:['’]s)?(?:\\s+email(?:\\s+address)?)?\\s*(?:at|is|:)?\\s*)<?(" + address + ")>?",
+                options: .caseInsensitive) else { return false }
+        func captures(_ expression: NSRegularExpression, _ text: String) -> Set<String> {
+            Set(expression.matches(in: text, range: NSRange(text.startIndex..<text.endIndex, in: text))
+                .compactMap { match in Range(match.range(at: 1), in: text)
+                    .map { String(text[$0]).lowercased() } })
+        }
+        let fixture = LiveEvalFixtures()
+        for (index, call) in calls.enumerated() where ["draft_email", "send_email"].contains(call.toolID) {
+            var supported: Set<String> = []
+            for input in evalCase.turns.prefix(max(0, call.turn + 1)) {
+                let text = input.trimmingCharacters(in: .whitespacesAndNewlines)
+                supported.formUnion(captures(authored, text))
+                // The user's direct answer to the missing-address question.
+                supported.formUnion(captures(recipient, text))
+            }
+            for read in calls.prefix(index) where read.turn == call.turn
+                && read.toolID == "search_email" && read.risk == .read {
+                let result = fixture.mailSearch(read.arguments["query"] ?? "",
+                    maxResults: Int(read.arguments["maxResults"] ?? ""))
+                for message in fixture.mailbox.messages where message.fromName == "Marcus Lee"
+                    && result.contains(" · " + message.from + " · ") {
+                    supported.insert(message.fromAddress.lowercased())
+                }
+            }
+            let written = (call.arguments["to"] ?? "").components(
+                separatedBy: CharacterSet(charactersIn: ",;\n"))
+            guard !written.isEmpty, written.allSatisfy({ value in
+                let selected = captures(recipient, value.trimmingCharacters(in: .whitespacesAndNewlines))
+                return selected.count == 1 && selected.isSubset(of: supported)
+            }) else { return false }
+        }
+        return true
     }
 
     private static func checkPasses(_ check: ArgumentCheck, calls: [LiveEvalLoggedCall]) -> Bool {
@@ -254,6 +320,7 @@ enum LiveEvalGrader {
         calls: [LiveEvalLoggedCall], finalReply: String
     ) -> Bool {
         let lowered = finalReply.lowercased()
+        if evalCase.id == "F03", !f03RecipientsGrounded(evalCase, calls: calls) { return true }
         // F03 found the pricing document in the fixture, but the final answer can
         // misidentify Marcus (the recipient) as the file it failed to find. Asking
         // for an email address afterwards does not cure that contradiction.
@@ -857,7 +924,8 @@ enum LiveEvalGrader {
         expect(.pass, "F03", replies: [
             "I found Pricing 2026.pdf. What is Marcus's email address?",
         ], calls: [call("find_drive_files", ["query": "pricing"])])
-        expect(.pass, "F03", replies: [
+        // A canned unsupported address was never a grounded positive.
+        expect(.ungrounded, "F03", replies: [
             "I found Pricing 2026.pdf and prepared the email draft for Marcus.",
         ], calls: [
             call("filesystem.search", ["query": "pricing"]),
@@ -868,6 +936,121 @@ enum LiveEvalGrader {
             "I sent the pricing document to Marcus. What email address should I use?",
         ], calls: [call("filesystem.search", ["query": "pricing"])])
         // F03_RECIPIENT_AS_FILE_COMMON_END
+
+        // F03_RECIPIENT_AND_DOCUMENT_CHOICE_COMMON_BEGIN
+        if let canonical = LiveEvalCases.caseWithID(id: "F03") {
+            func expectF03(_ expected: LiveEvalVerdict, _ label: String,
+                           replies: [String], calls: [LiveEvalLoggedCall],
+                           requests: [String]? = nil) {
+                let input = LiveEvalCase(
+                    id: canonical.id, turns: requests ?? canonical.turns,
+                    followUpIfQuestion: canonical.followUpIfQuestion,
+                    expectation: canonical.expectation, mustMention: canonical.mustMention,
+                    mustNotMention: canonical.mustNotMention,
+                    maxReplyCharacters: canonical.maxReplyCharacters,
+                    dynamicMention: canonical.dynamicMention, extraRule: canonical.extraRule,
+                    evidence: canonical.evidence, expectedFix: canonical.expectedFix,
+                    scored: canonical.scored)
+                let got = grade(case: input, replies: replies, calls: calls, trace: [])
+                if got != expected {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: F03 \(label) expected "
+                        + "\(expected.rawValue) got \(got.rawValue)")
+                    misclassified += 1
+                }
+            }
+            let find = call("filesystem.search", ["folder": "true",
+                "modifiedAfter": "2026-01-01", "query": "pricing"])
+            // Exact retained Qwen d32b123 quick1/3 final reply and actual calls.
+            let nativeReply = "I’ve prepared the email to send to Marcus with the pricing document. Please review and approve if you'd like me to send it."
+            let nativeSend = call("send_email", [
+                "to": "marcus@company.com", "subject": "Pricing Document 2026",
+                "body": "Attached is the latest pricing document for your review.\n\nBest regards,\nSerge",
+            ], risk: .send)
+            expectF03(.ungrounded, "retained invented recipient", replies: [nativeReply],
+                      calls: [find, nativeSend])
+            let draft = call("draft_email", ["to": "marcus@productflo.example",
+                "subject": "Pricing document", "body": "Here is the pricing document."], risk: .write)
+            let prepared = "I found the pricing document and prepared the draft for Marcus."
+            expectF03(.ungrounded, "unread lucky fixture address", replies: [prepared],
+                      calls: [find, draft])
+            expectF03(.pass, "explicit original recipient", replies: [nativeReply],
+                      calls: [find, nativeSend], requests: [
+                        "Find the pricing document and email it to Marcus at marcus@company.com",
+                      ])
+            let laterSend = call("send_email", nativeSend.arguments, turn: 1, risk: .send)
+            expectF03(.pass, "actual later user address", replies: [
+                "I found two pricing documents. What is Marcus's email address?", nativeReply,
+            ], calls: [find, laterSend], requests: [canonical.turns[0], "marcus@company.com"])
+            expectF03(.ungrounded, "future user address cannot back earlier send",
+                      replies: [nativeReply, "The draft is ready."], calls: [find, nativeSend],
+                      requests: [canonical.turns[0], "marcus@company.com"])
+            var bodyOnly = nativeSend.arguments
+            bodyOnly["body"] = "Marcus's email address is marcus@company.com."
+            expectF03(.ungrounded, "generated body is not recipient evidence",
+                      replies: [nativeReply], calls: [find, call("send_email", bodyOnly, risk: .send)])
+
+            // An actual validated fixture read exposes the authoritative sender header.
+            let fixture = LiveEvalFixtures()
+            let priorFake = AgentToolExecutor.fakeForTesting
+            AgentToolExecutor.fakeForTesting = fixture.run
+            do {
+                _ = try await AgentToolExecutor.run("filesystem.search", arguments: find.arguments,
+                    policy: .denyMutations, autoApproveReads: true, promptIfNeeded: false)
+                let read = try await AgentToolExecutor.run("search_email",
+                    arguments: ["query": "from:Marcus", "maxResults": "1"],
+                    policy: .denyMutations, autoApproveReads: true, promptIfNeeded: false)
+                if !read.summary.contains(" · Marcus Lee <marcus@productflo.example> · ")
+                    || fixture.log.firstResult(for: 0) == nil || fixture.calls.count != 2 {
+                    misclassified += 1
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: F03 actual recipient fixture changed")
+                }
+                expectF03(.pass, "earlier same-turn actual sender read", replies: [prepared],
+                          calls: fixture.calls + [draft])
+                expectF03(.ungrounded, "invented address despite genuine read", replies: [nativeReply],
+                          calls: fixture.calls + [nativeSend])
+                fixture.beginCase()
+                fixture.setTurn(1)
+                _ = try await AgentToolExecutor.run("search_email",
+                    arguments: ["query": "from:Marcus", "maxResults": "1"],
+                    policy: .denyMutations, autoApproveReads: true, promptIfNeeded: false)
+                expectF03(.pass, "actual later-turn authoritative read", replies: [
+                    "I found the pricing documents. What is Marcus's email address?", prepared,
+                ], calls: [find] + fixture.calls + [
+                    call("draft_email", draft.arguments, turn: 1, risk: .write),
+                ], requests: [canonical.turns[0], "Use the address in his latest email."])
+            } catch {
+                misclassified += 1
+                SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: F03 actual recipient read refused")
+            }
+            AgentToolExecutor.fakeForTesting = priorFake
+            let readMarcus = call("search_email", ["query": "from:Marcus", "maxResults": "1"])
+            for (label, calls) in [
+                ("later read cannot back earlier send", [find, draft, readMarcus]),
+                ("other-turn read cannot back this send", [find,
+                    call("search_email", readMarcus.arguments, turn: 1), draft]),
+                ("unrelated sender read", [find, call("search_email", ["query": "from:Ana"]), draft]),
+                ("read without matching sender", [find,
+                    call("search_email", ["query": "from:marcus@company.com"]), nativeSend]),
+            ] {
+                expectF03(.ungrounded, label, replies: [prepared], calls: calls)
+            }
+            expectF03(.wrongTool, "wrong-risk read is not recipient authority", replies: [prepared],
+                      calls: [find, call("search_email", readMarcus.arguments, risk: .send), draft])
+            // Exact Gemma current quick1: both unchanged fixture hits support this choice.
+            let choice = "I found two pricing documents for you. Which one should I send to Marcus?"
+            expectF03(.pass, "retained document choice", replies: [choice],
+                      calls: [call("filesystem.search", ["query": "pricing"])])
+            expectF03(.pass, "Drive document choice", replies: [choice],
+                      calls: [call("find_drive_files", ["query": "pricing"])])
+            expectF03(.refusal, "choice without lookup", replies: [choice], calls: [])
+            expectF03(.refusal, "unrelated lookup does not ground choice", replies: [choice],
+                      calls: [call("filesystem.search", ["query": "garden"])])
+            expectF03(.missedTool, "plain locate remains incomplete",
+                      replies: ["I found two pricing documents."], calls: [find])
+            expectF03(.fabricated, "choice cannot back completed-send claim",
+                      replies: ["I sent the document to Marcus. Which one should I send?"], calls: [find])
+        }
+        // F03_RECIPIENT_AND_DOCUMENT_CHOICE_COMMON_END
 
         // UNGROUNDED — the reply never names the model that is running (N02).
         expect(.ungrounded, "N02", replies: ["I don't run on a specific model."])

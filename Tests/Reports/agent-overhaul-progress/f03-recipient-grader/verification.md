@@ -1,0 +1,9 @@
+# F03 grader correction — 2026-10-06
+
+The grading producer accepted a send/draft recipient invented by the model and rejected a grounded question choosing between the fixture's two pricing documents. The existing F03 branch now requires an authored recipient or an earlier same-turn actual successful sender lookup; a grounded document-choice question is a legitimate missing-input response. This changes evaluation correctness, not product email permission or model output.
+
+Compiled original COMMON fails 15 assertions. Identical fixed COMMON and all prior grader cases pass, including exact retained Qwen/Gemma originals, actual executor→fixture recipient lookup, ordering/turn/risk/unknown-recipient negatives and unsupported-send claims. Toolloop-production, capability-manifest and store-isolation pass once; 21 files/32 defaults unchanged. All processes joined and disposable test roots removed. Verified packaged binary SHA256: 91db14b8e289e50551eca77178994b9cc54db00c5b1f7e117b80c480bebf2d39.
+
+Pinned d32b123 native comparison: Mini reported 10/10 ×3; Qwen reported 9/10 ×3; Gemma reported 7/10 once, then stopped below the bar. Applying only the qualified retained F03 correction gives Qwen 8/10 ×3 (M05 still ungrounded), Gemma 8/10 once (M03 ungrounded/M05 timeout retained). Mini remains 10/10 ×3. This is an F03-only instrument delta, not a full historical replay: the report export omits per-call turns/risks and full multi-turn replies. Historical raw reports remain unchanged. No candidate/default is promoted; Gemma's pinned 4.98GB artifact also exceeds the decided 3GB ceiling.
+
+Original/fixed logs, comparison note and raw pinned reports remain outside the repo at ~/Library/Caches/NextNotesBuild/integration/f03-recipient-and-document-choice-grader/ and ~/Library/Caches/NextNotesBuild/toolloop-live/*-native-d32b123-20261006/. Broader quality, voice, thermal, latency and owner gates remain open.
