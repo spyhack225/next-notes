@@ -1,4 +1,5 @@
 import Foundation
+import FluidAudio
 
 /// `--selftest-wake-live`: the wake word made measurable (roadmap P0-1, demo D7).
 ///
@@ -139,6 +140,33 @@ enum WakeWordLiveSelfTest {
             )
         }
 
+        let residentBefore = await ParakeetModels.shared.residentManager() != nil
+        SelfTest.diagnostic("  WAKE_ASR_RESIDENT_BEFORE: \(residentBefore)")
+        // This diagnostic starts before ordinary app warmup. Prepare the SAME
+        // installed owner once here; actual wake hits remain resident-only.
+        if !residentBefore {
+            guard ParakeetModels.isDownloaded else {
+                SelfTest.diagnostic("WAKE_LIVE_ASR_UNAVAILABLE: installed ASR artifacts are incomplete; no download attempted")
+                return Outcome(summary: [], headline: "ASR is not installed", passed: false)
+            }
+            // manager() reuses FluidAudio's loader. Its existing offline switch
+            // also refuses load-error redownload/cache deletion, not just requests.
+            let previousOffline = ModelHub.offlineMode
+            ModelHub.offlineMode = true
+            defer { ModelHub.offlineMode = previousOffline }
+            do {
+                _ = try await ParakeetModels.shared.manager()
+            } catch {
+                SelfTest.diagnostic("WAKE_LIVE_ASR_UNAVAILABLE: \(error.localizedDescription)")
+                return Outcome(summary: [], headline: "installed ASR could not load", passed: false)
+            }
+        }
+        guard await ParakeetModels.shared.residentManager() != nil else {
+            SelfTest.diagnostic("WAKE_LIVE_ASR_UNAVAILABLE: preparation did not retain a resident manager")
+            return Outcome(summary: [], headline: "ASR is not resident", passed: false)
+        }
+        SelfTest.diagnostic("  WAKE_ASR_RESIDENT_READY: true")
+
         let scratch = FileManager.default.temporaryDirectory
             .appendingPathComponent("nextnotes-wake-live-\(UUID().uuidString)", isDirectory: true)
         defer { try? FileManager.default.removeItem(at: scratch) }
@@ -269,7 +297,9 @@ enum WakeWordLiveSelfTest {
         }
 
         // MARK: Local microphone captures (stage-one informational only)
-        reportLiveCaptures(generous: generous, generousRules: generousRules)
+        if !CommandLine.arguments.contains("--wake-corpus-only") {
+            reportLiveCaptures(generous: generous, generousRules: generousRules)
+        }
 
         let headlineHits = hitsPerSensitivity[headlineSensitivity] ?? 0
         let headlineFalse = falsePerSensitivity[headlineSensitivity] ?? 0

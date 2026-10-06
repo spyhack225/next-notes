@@ -1,0 +1,7 @@
+# Resident wake-confirmation diagnostic setup — 2026-10-05
+
+Wake-live returns through the requested-test entry point before normal ASR warmup. Its resident-only production confirmation therefore had no model, although the assets were installed. The diagnostic now prepares that same retained Parakeet owner once, guarded by existing installed-file admission and FluidAudio offline mode (including load-error redownload/cache-deletion refusal). Product wake acknowledgement, audio callbacks, confirmation implementation and thresholds are unchanged. A corpus-only modifier skips optional owner recordings before enumeration, identically in both comparison runs.
+
+Unchanged56 authored clips: original fresh process resident=false and15 unavailable confirmation candidates at shipped0.6; fixed resident=false -> ready=true and zero unavailable candidates. Stage-one grids are identical. Actual acoustic verdict and original failed run remain in cache; preparation success does not satisfy the hit-rate bar. Related wake, voice-turns and voice-scheduling pass. All scoped temporary roots are removed after awaited processes join; no new engine/store/clock or download.
+
+Bulk original/fixed logs, unchanged corpus hashes, patches and exact artifact/result metadata: ~/Library/Caches/NextNotesBuild/integration/wake-live-resident-setup/. Real-room wake, accents, first displayed acknowledgement, voice latency and parent roadmap gates remain open.
