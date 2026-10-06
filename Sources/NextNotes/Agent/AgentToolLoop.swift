@@ -235,7 +235,11 @@ enum AgentToolLoop {
         case "get_agenda": return groundCalendarDay(proposed, request: request, now: now, calendar: calendar)
         case "search_email": return groundMailFilter(proposed, request)
         case "schedule.create":
-            guard proposed["date"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true
+            let dateText = proposed["date"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
+            // This relative expression means tomorrow, but is not native schedule syntax.
+            // Bind it only to matching authored timing below; other nonempty dates retain
+            // their existing native validation/repair and never become a different choice.
+            guard dateText.isEmpty || dateText == "today+1d"
             else { return proposed }
             var objective = request
             if request.hasPrefix(PendingAction.confirmedPrefix) {
@@ -259,7 +263,7 @@ enum AgentToolLoop {
                   !objective.contains(where: { ";\n\r".contains($0) }) else { return proposed }
             // A single explicit nightly reminder owns its omitted recurrence. Keep the
             // authored clock: a different/ambiguous clock or explicit repeat is not ours.
-            if repeatWord.isEmpty,
+            if dateText.isEmpty, repeatWord.isEmpty,
                let pattern = try? NSRegularExpression(pattern:
                     #"^\s*(?:please\s+)?every night at (\d{1,2}(?::\d{2})?\s*(?:pm)?)\s*,?\s*remind me to .+$"#,
                     options: .caseInsensitive),
@@ -279,6 +283,16 @@ enum AgentToolLoop {
             // Bind timing before the reminder's "to ..." body, never borrow a date
             // from the words it will say later. The existing single-day rule stays shared.
             let timing = objective.lowercased().components(separatedBy: " to ").first ?? objective
+            if !dateText.isEmpty {
+                guard let pattern = try? NSRegularExpression(pattern:
+                    #"^\s*(?:please\s+)?remind me at (\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+tomorrow\s*$"#,
+                    options: .caseInsensitive),
+                      let match = pattern.firstMatch(in: timing, range: NSRange(timing.startIndex..., in: timing)),
+                      let clockRange = Range(match.range(at: 1), in: timing),
+                      let requestedTime = ScheduleLocalTime.parse(String(timing[clockRange])),
+                      proposed["time"].flatMap(ScheduleLocalTime.parse) == requestedTime
+                else { return proposed }
+            }
             return groundCalendarDay(proposed, request: timing, now: now, calendar: calendar)
         default: return proposed
         }

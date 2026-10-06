@@ -3311,6 +3311,84 @@ enum RealtimeAgentToolLoopSelfTest {
             print("TOOLLOOP_PRODUCTION_R01_DATE morning=07:00 expected=tomorrow09:00 actualSaved=\(dateConsumer.saved.count)")
         }
         // R01_DATE_END_COMMON
+        // R01_INVALID_DATE_COMMON: exact corrected5c7 full1 R01 request/yes/native rounds.
+        let invalidDateOffer = "Got it, Serge. I'll remind you at 9 tomorrow to call the bank.\n\nWant me to set that reminder now?"
+        let invalidDateFirst = #"<function name="schedule.create">[{"id":"reminder_id","title":"Call the bank","text":"Remind me at 9 tomorrow to call the bank","time":"21:00","date":"today"}]</param></function>"#
+        let invalidDateRepair = #"<function name="schedule.create"><param name="title">Call the bank</param><param name="text">Remind me to call the bank at 9 tomorrow</param><param name="kind">reminder</param><param name="time">09:00</param><param name="date">today+1d</param></function>"#
+        let invalidDateParsed = AgentToolCallParser.parse(invalidDateRepair, knownNames: ["schedule.create"])
+        check("R01_INVALID_DATE exact repair did not parse as one actual schedule call",
+              invalidDateParsed.calls.count == 1 && invalidDateParsed.malformed.isEmpty)
+        if let emitted = invalidDateParsed.calls.first,
+           let tool = AgentToolRegistry.shared.tool(named: "schedule.create") {
+            let pinned = calendar.date(from: DateComponents(year: 2026, month: 10, day: 5, hour: 9))!
+            let intended = calendar.date(from: DateComponents(year: 2026, month: 10, day: 6, hour: 9))!
+            do {
+                _ = try ScheduleToolExecutor.parseWhen(emitted.arguments, base: nil, now: pinned, timeZone: zone)
+                check("R01_INVALID_DATE native parser accepted the original invalid day", false)
+            } catch {
+                check("R01_INVALID_DATE original parser refused a different field",
+                      error.localizedDescription.contains("today+1d"))
+            }
+            let pending = PendingAction(requestText: request, question: "Want me to set that reminder now?",
+                capabilityID: "schedule.create", origin: .typedQuestion, sessionID: nil, at: pinned)
+            let wrapped = pending.confirmedPrompt(acknowledgment: "yes")
+            var accepted = emitted.arguments; accepted["date"] = "2026-10-06"
+            let grounded = AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                request: wrapped, now: pinned, calendar: calendar)
+            check("R01_INVALID_DATE actual grounder kept invalid day or changed authored fields", grounded == accepted)
+            let dateStore = ScheduleStore(directory: root.appendingPathComponent("invalid-date-native-proof"))
+            let dateScheduler = AgentScheduler(store: dateStore,
+                system: RoutineAuthoritySelfTest.NoSystem(), deliverer: RoutineAuthoritySelfTest.QuietDeliverer(),
+                environment: RoutineAuthoritySelfTest.AbsentEnvironment(),
+                settings: { ScheduleSettingsSnapshot(enabled: true, quietStart: nil, quietEnd: nil, speech: .never) },
+                timeZone: { zone })
+            do {
+                let result = try await ScheduleToolExecutor.run(tool, arguments: grounded,
+                    scheduler: dateScheduler, now: pinned, timeZone: zone)
+                let readBack = ScheduleStore(directory: dateStore.directory).schedules
+                check("R01_INVALID_DATE actual private-store consumer lost tomorrow09 or payload",
+                      readBack.count == 1 && readBack.first?.nextRunAt == intended
+                        && readBack.first?.prompt == emitted.arguments["text"]
+                        && result.verification == "Schedule read back from agent-schedules.json")
+            } catch { check("R01_INVALID_DATE actual private-store consumer still refuses the original repair: \(error)", false) }
+            for date in ["today", "tomorrow", "2026-10-07", "2026-10-04", "2026-10-6"] {
+                var payload = emitted.arguments; payload["date"] = date
+                check("R01_INVALID_DATE overwrote a native-recognized day: \(date)",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: payload,
+                        request: wrapped, now: pinned, calendar: calendar) == payload)
+            }
+            for objective in ["Remind me at 10 tomorrow to call the bank",
+                "Remind me at 9 PM tomorrow to call the bank", "Remind me tomorrow to call the bank",
+                "Remind me at 9 today or tomorrow to call the bank", "Remind me at 9 or 10 tomorrow to call the bank",
+                "Remind me at 9 tomorrow and email Marcus", "Remind me at 9 to say tomorrow to Sarah",
+                "Remind me at 9 on 2026-10-07 to call the bank"] {
+                check("R01_INVALID_DATE corrected an ambiguous/changed/body/explicit timing: \(objective)",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                        request: objective, now: pinned, calendar: calendar) == emitted.arguments)
+            }
+            for answer in ["yes at 10", "yes tomorrow afternoon", "which time?", "no"] {
+                check("R01_INVALID_DATE rewrote changed or unconfirmed timing: \(answer)",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                        request: pending.confirmedPrompt(acknowledgment: answer), now: pinned, calendar: calendar) == emitted.arguments)
+            }
+            for change in [["kind":"routine"], ["kind":"trigger","on":"call_started"],
+                           ["repeat":"daily"], ["inMinutes":"120"], ["time":"21:00"], ["time":"unknown"]] {
+                let payload = emitted.arguments.merging(change) { _, new in new }
+                check("R01_INVALID_DATE modified recurrence/offset/clock choices: \(change)",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: payload,
+                        request: wrapped, now: pinned, calendar: calendar) == payload)
+            }
+            var acceptedNow = emitted.arguments; acceptedNow["date"] = dateText
+            let consumer = await run([invalidDateOffer, invalidDateFirst, invalidDateRepair,
+                "The reminder to call the bank tomorrow at 9 is saved."], expectedOverride: acceptedNow)
+            check("R01_INVALID_DATE exact typed continuation failed its existing one repair/call budget",
+                  consumer.log.count == 4 && consumer.fired == ["schedule.create"]
+                    && consumer.saved.count == 1 && consumer.saved.first?.nextRunAt == expectedAt
+                    && consumer.saved.first?.prompt == emitted.arguments["text"]
+                    && consumer.log.last?.user.contains("Saved") == true)
+            print("TOOLLOOP_PRODUCTION_R01_INVALID_DATE original=today+1d authored=tomorrow09 saved=\(consumer.saved.count)")
+        }
+        // R01_INVALID_DATE_END_COMMON
 
         print("  TOOLLOOP_PRODUCTION_REMINDER_ADMISSION: exact R01 offer/yes/raw, one repair, real private native schedule save, caps and denial")
         return []

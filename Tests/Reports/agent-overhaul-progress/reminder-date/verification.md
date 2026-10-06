@@ -1,0 +1,7 @@
+# Invalid reminder date — 2026-10-05
+
+Exact native R01 retained three rounds: “Remind me at9 tomorrow to call the bank”, yes, one existing repair producing date=today+1d/time09:00. The first broken contract was the grounder's unconditional acceptance of nonempty dates; the native scheduler then refused that invalid day and saved nothing. The grounder preserves every valid or arbitrary malformed nonempty date. Only the retained model relative expression today+1d can use the unambiguous confirmed authored timing, preserving clock/body/recurrence. Reuses the existing relative-day rule; no parser grammar change, retry, prompt or pass is added. An initial overly broad candidate failed the old not-a-date control and was narrowed before commit/install.
+
+Original3 failed assertions become green in unchanged full production: actual grounder, native private scheduler/fresh reader, and typed continuation/one approval/existing repair. Valid dates, altered clocks, body dates, ambiguous/unconfirmed requests, recurrence and offsets remain negatives. Earlier r02-daily focus did not reach this block and is not counted as original proof. Shared schedule, capability manifest, tool review and isolation pass once. Scripted native-consumer proof does not establish a fresh model full/owner result.
+
+Bulk original/fixed raw logs, patches and combined build results are outside iCloud: ~/Library/Caches/NextNotesBuild/integration/catch-up-google-integration/.
