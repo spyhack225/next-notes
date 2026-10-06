@@ -3872,6 +3872,46 @@ enum RealtimeAgentToolLoopSelfTest {
         // Current quiet quick R02: preserve actual model call, not the claimed daily prose.
         let dailyRequest = "Every night at 10, remind me to put the book out"
         let dailyOffer = "I can set that reminder for you, but I need a few details first. What would you like the reminder to say? And should it go off every night at 10 specifically, or on certain days of the week?"
+        // Retained native planner R02: the agreed request says ten at night,
+        // while the selected call writes 21:00 plus a relative date.
+        let wrongNightRaw = #"<tool_call>{"name":"schedule.create","arguments":{"title":"Put the book out","text":"Remind me to put the book out every night at 10","kind":"reminder","model":"auto","repeat":"daily","time":"21:00","date":"today","days":"all"},"rationale":"User wants a reminder every night at 10."}</tool_call>"#
+        let wrongNightParsed = AgentToolCallParser.parse(wrongNightRaw, knownNames: ["schedule.create"])
+        check("R02_NIGHT INPUT_INVALID: retained selected call", wrongNightParsed.calls.count == 1)
+        if let emitted = wrongNightParsed.calls.first {
+            var accepted = emitted.arguments; accepted["time"] = "22:00"
+            accepted.removeValue(forKey: "date") // Daily rules have no once-only date.
+            let pending = PendingAction(requestText: dailyRequest, question: dailyOffer,
+                capabilityID: nil, origin: .typedQuestion, sessionID: nil, at: now)
+            let wrapped = pending.confirmedPrompt(acknowledgment: "okay")
+            check("R02_NIGHT agreed nightly clock was replaced by the model clock",
+                  AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                    request: wrapped, now: now, calendar: calendar) == accepted)
+            let consumer = await run([dailyOffer, wrongNightRaw, "The book reminder is saved for every night at 10."],
+                requestOverride: dailyRequest, expectedOverride: accepted,
+                originalNativeArguments: emitted.arguments, acknowledgment: "okay")
+            print("TOOLLOOP_PRODUCTION_R02_NIGHT calls=\(consumer.log.count) fired=\(consumer.fired) saved=\(consumer.saved.count) card=\(consumer.cardArguments ?? [:]) clock=\(consumer.saved.first?.when?.time.formatted ?? "none") body=\(consumer.saved.first?.prompt ?? "none") reply=\(consumer.reply)")
+            check("R02_NIGHT actual approval and native store used a different hour",
+                  consumer.cardArguments == accepted && consumer.saved.count == 1
+                    && consumer.saved.first?.when?.time == ScheduleLocalTime(hour: 22, minute: 0)
+                    && consumer.saved.first?.when?.repeatRule == .daily)
+            check("R02_NIGHT exact consumer repeated a pass or changed the reminder body",
+                  consumer.log.count == 3 && consumer.fired == ["schedule.create"]
+                    && consumer.saved.first?.prompt == emitted.arguments["text"])
+            for question in ["Should it go off at 11 pm instead?", "Should I use 10 am?",
+                             "Should it be in the morning?", "What time should I use?",
+                             "Should it go off every night at 10 or 11?"] {
+                let changed = PendingAction(requestText: dailyRequest, question: question,
+                    capabilityID: nil, origin: .typedQuestion, sessionID: nil, at: now)
+                check("R02_NIGHT rewrote unresolved or changed accepted timing: \(question)",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                        request: changed.confirmedPrompt(acknowledgment: "okay"), now: now,
+                        calendar: calendar) == emitted.arguments)
+            }
+            check("R02_NIGHT substantive timing amendment borrowed the original clock",
+                  AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                    request: pending.confirmedPrompt(acknowledgment: "actually at 11"), now: now,
+                    calendar: calendar) == emitted.arguments)
+        }
         let dailyRaw = #"<function name="schedule.create"><param name="id">every-night-10-reminder</param><param name="title">Put the book out</param><param name="text">Remind to put the book out every night at 10</param><param name="kind">reminder</param><param name="time">22:00</param><param name="days">7</param></function>"#
         let dailyParsed = AgentToolCallParser.parse(dailyRaw, knownNames: ["schedule.create"])
         if dailyParsed.calls.count == 1, let emitted = dailyParsed.calls.first {

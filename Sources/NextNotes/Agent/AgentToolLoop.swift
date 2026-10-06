@@ -270,9 +270,8 @@ enum AgentToolLoop {
             // This relative expression means tomorrow, but is not native schedule syntax.
             // Bind it only to matching authored timing below; other nonempty dates retain
             // their existing native validation/repair and never become a different choice.
-            guard dateText.isEmpty || dateText == "today+1d"
-            else { return proposed }
             var objective = request
+            var confirmedQuestion: String?
             if request.hasPrefix(PendingAction.confirmedPrefix) {
                 let lines = request.components(separatedBy: "\n")
                 guard lines.count == 4, lines[1].hasPrefix("You then asked: "),
@@ -285,6 +284,7 @@ enum AgentToolLoop {
                     question: String(lines[1].dropFirst("You then asked: ".count)),
                     capabilityID: nil, origin: .typedQuestion, sessionID: nil, at: now)
                 guard pending.confirmedPrompt(acknowledgment: answer) == request else { return proposed }
+                confirmedQuestion = pending.question
             }
             let kind = proposed["kind"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
             let repeatWord = proposed["repeat"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
@@ -294,8 +294,7 @@ enum AgentToolLoop {
                   !objective.contains(where: { ";\n\r".contains($0) }) else { return proposed }
             // The single explicit nightly objective supplies only known timing.
             // Preserve existing fields outside the narrow omissions below.
-            if dateText.isEmpty,
-               let pattern = try? NSRegularExpression(pattern:
+            if let pattern = try? NSRegularExpression(pattern:
                     #"^\s*(?:please\s+)?every night at (\d{1,2}(?::\d{2})?\s*(?:pm)?)\s*,?\s*remind me to .+$"#,
                     options: .caseInsensitive),
                let match = pattern.firstMatch(in: objective, range: NSRange(objective.startIndex..., in: objective)),
@@ -304,6 +303,33 @@ enum AgentToolLoop {
                 let nightClock = clock.hasSuffix("pm") || (ScheduleLocalTime.parse(clock)?.hour ?? 0) > 12
                     ? clock : clock + "pm"
                 if let timing = ScheduleLocalTime.parse(nightClock), (18...23).contains(timing.hour) {
+                    // Validate the model's clock against the person's original nightly
+                    // request only when the accepted question repeats that same timing.
+                    // A redundant once-only date must not bypass this daily-clock check.
+                    if kind == "reminder", repeatWord == "daily", ["", "today"].contains(dateText),
+                       proposed["time"].flatMap(ScheduleLocalTime.parse) != nil,
+                       let question = confirmedQuestion,
+                       question.range(of: #"\bevery night at\s+\d"#, options: [.regularExpression, .caseInsensitive]) != nil,
+                       question.range(of: #"\b(?:morning|am)\b"#, options: [.regularExpression, .caseInsensitive]) == nil,
+                       let clocks = try? NSRegularExpression(pattern:
+                            #"\b(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\b"#, options: .caseInsensitive) {
+                        let matches = clocks.matches(in: question, range: NSRange(question.startIndex..., in: question))
+                        let agreed = !matches.isEmpty && matches.allSatisfy { match in
+                            guard let range = Range(match.range(at: 1), in: question) else { return false }
+                            let clock = String(question[range]).trimmingCharacters(in: .whitespaces).lowercased()
+                            let nightClock = clock.hasSuffix("pm") || (ScheduleLocalTime.parse(clock)?.hour ?? 0) > 12
+                                ? clock : clock + "pm"
+                            return ScheduleLocalTime.parse(nightClock) == timing
+                        }
+                        if agreed {
+                            var grounded = proposed; grounded["time"] = timing.formatted
+                            // Native daily rules ignore date. The model's redundant
+                            // "today" otherwise asks the person to confirm an unused day.
+                            if dateText == "today" { grounded.removeValue(forKey: "date") }
+                            return grounded
+                        }
+                    }
+                    guard dateText.isEmpty else { return proposed }
                     // External-model mitigation: this selected daily reminder placed a
                     // clock in trigger-only `on` and omitted time. Use only the person's
                     // explicit nightly clock, preserving one exact approval payload.
@@ -323,6 +349,7 @@ enum AgentToolLoop {
                     }
                 }
             }
+            guard dateText.isEmpty || dateText == "today+1d" else { return proposed }
             guard ["", "once"].contains(repeatWord), explicitlyRequests("remind", in: objective)
             else { return proposed }
             // Bind timing before the reminder's "to ..." body, never borrow a date
