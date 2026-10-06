@@ -1,0 +1,7 @@
+# Installed native quick qualification — 2026-10-06
+
+App source14cdd36, installed/tested binary535717f8635ece069119bed201ccf25b7bb050b437fdee8da89ae8759f4aa705. Same MiniCPM5-2B Q4_K_M pin/SHA, native planner, baseline sampler and pinned2026-10-05/America-New_York clock as the previous7da quick series. Three complete joined runs:9/10,10/10,10/10; minimum9,median10,maximum10. Corpus elapsed104.3/93.9/102.3seconds. Raw rounds, command, model identity, native marker/exit and all ten authored IDs qualify. Load2.48–3.84,swap5.25GiB,free11.28–11.30GiB; quiet process audit empty. Owned TMP removed after each join; model claim released.
+
+Run1 R02 remains MISSED_TOOL, with no schedule backing: malformed first proposal, real question/confirmation, then a daily reminder proposal omitting time. The other two R02 runs pass22:00. This failure is retained and under source-level investigation, not erased by the aggregate. No graded ERROR/TIMEOUT/LEAK/FABRICATED. The native O08 lookup-only fix still ends REFUSAL/owner0/1 despite the correct read; its user flow remains OPEN.
+
+Raw reports/usage stay outside iCloud at ~/Library/Caches/NextNotesBuild/toolloop-live/mini-native-14cdd36-20261006/. The bar remains9/10. Current aggregate meets it; full two-run/owner/default/voice/wake/floor/latency and overall roadmap acceptance remain open. No unchanged full rerun is used to hide O08. Runner-only31b8bf5 adds an explicit planner CLI pin and does not rebuild/change this artifact.
