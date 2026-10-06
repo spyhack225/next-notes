@@ -646,7 +646,8 @@ enum RealtimeAgentToolLoopSelfTest {
             print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
             return failures.isEmpty
         }
-        if CommandLine.arguments.contains("--r02-daily-grounding") {
+        if CommandLine.arguments.contains("--r02-daily-grounding")
+            || CommandLine.arguments.contains("--r01-timestamp-time") {
             failures += await runReminderAdmissionCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
             print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
@@ -4331,6 +4332,128 @@ enum RealtimeAgentToolLoopSelfTest {
             return (result.reply, log.calls, liveFixture ? fixtures.calls.map(\.toolID) : fired.toolIDs, saved,
                     PermissionGate.shared.askCount - beforeAsks, shown?.arguments)
         }
+        // R01_TIMESTAMP_COMMON_BEGIN: retained ae5af51 native call, no new repair budget.
+        let timestampOffer = "Got it, Serge. I'll remind you at 9 tomorrow to call the bank.\n\nWant me to set that reminder now?"
+        let timestampPromise = "I'll set that reminder for you now."
+        let timestampRaw = "<tool_call>{\"name\":\"schedule.create\",\"arguments\":{\"title\":\"Call the bank\",\"text\":\"Remind me at 9 tomorrow to call the bank\",\"kind\":\"reminder\",\"tools\":null,\"model\":\"auto\",\"plainEnglish\":null,\"on\":null,\"leadMinutes\":null,\"filter\":null,\"repeat\":\"once\",\"time\":\"2026-10-06T09:00\",\"date\":null,\"inMinutes\":null,\"days\":null,\"day\":null,\"endsOn\":null,\"speak\":null},\"rationale\":\"The user confirmed earlier they wanted a reminder set for 9 tomorrow to call the bank, so I create it now.\"}</tool_call>"
+        let timestampParsed = AgentToolCallParser.parse(timestampRaw, knownNames: ["schedule.create"])
+        check("R01_TIMESTAMP INPUT_INVALID: original native selected call",
+              timestampParsed.calls.count == 1 && timestampParsed.malformed.isEmpty)
+        if let emitted = timestampParsed.calls.first,
+           let tool = AgentToolRegistry.shared.tool(named: "schedule.create"),
+           let originalClock = SelfTest.parseFixtureClock("2026-10-05T09:00:00-04:00") {
+            let pending = PendingAction(requestText: request,
+                question: PendingAction.lastSentence(timestampOffer), capabilityID: "schedule.create",
+                origin: .typedQuestion, sessionID: nil, at: originalClock)
+            let wrapped = pending.confirmedPrompt(acknowledgment: "yes")
+            var accepted = emitted.arguments
+            accepted["time"] = "09:00"; accepted["date"] = "2026-10-06"
+            do {
+                _ = try ScheduleToolExecutor.parseCreate(emitted.arguments,
+                    now: originalClock, timeZone: zone)
+                check("R01_TIMESTAMP original invalid time syntax stopped failing", false)
+            } catch {
+                check("R01_TIMESTAMP original rejection did not identify actual HH:mm contract",
+                      error.localizedDescription.contains("time")
+                        && error.localizedDescription.contains("2026-10-06T09:00"))
+            }
+            let grounded = AgentToolLoop.groundedArguments(for: emitted.name,
+                proposed: emitted.arguments, request: wrapped, now: originalClock, calendar: calendar)
+            check("R01_TIMESTAMP original confirmed fields were not separated verbatim",
+                  grounded == accepted)
+            check("R01_TIMESTAMP actual selected descriptor refused grounded fields",
+                  ToolCallValidation.problem(tool: tool, arguments: grounded) == nil)
+            do {
+                let timestampStore = ScheduleStore(directory: root.appendingPathComponent("original-timestamp"))
+                let timestampScheduler = AgentScheduler(
+                    store: timestampStore, system: RoutineAuthoritySelfTest.NoSystem(),
+                    deliverer: RoutineAuthoritySelfTest.QuietDeliverer(),
+                    environment: RoutineAuthoritySelfTest.AbsentEnvironment(),
+                    settings: { ScheduleSettingsSnapshot(enabled: true, quietStart: nil,
+                        quietEnd: nil, speech: .never) }, timeZone: { zone })
+                let result = try await ScheduleToolExecutor.run(tool, arguments: grounded,
+                    scheduler: timestampScheduler, now: originalClock, timeZone: zone)
+                let reread = ScheduleStore(directory: timestampStore.directory).schedules
+                let intended = SelfTest.parseFixtureClock("2026-10-06T09:00:00-04:00")!
+                check("R01_TIMESTAMP unchanged original clock/payload failed actual native consumer",
+                      reread.count == 1 && reread.first?.nextRunAt == intended
+                        && reread.first?.prompt == emitted.arguments["text"]
+                        && result.verification == "Schedule read back from agent-schedules.json")
+            } catch { check("R01_TIMESTAMP original actual native consumer threw: \(error)", false) }
+            for changed in [
+                ["time": "2026-10-07T09:00"], ["time": "2026-10-06T10:00"],
+                ["time": "2026-10-06T09:00Z"], ["time": "2026-10-06T09:00:00"],
+                ["time": "not-a-time"], ["kind": "routine"], ["repeat": "daily"],
+                ["inMinutes": "60"], ["on": "call_started"], ["date": "2026-10-07"],
+                ["plainEnglish": "Remind me at 9 PM tomorrow to call the bank"],
+            ] {
+                let payload = emitted.arguments.merging(changed) { _, new in new }
+                let refused = AgentToolLoop.groundedArguments(for: emitted.name, proposed: payload,
+                    request: wrapped, now: originalClock, calendar: calendar)
+                check("R01_TIMESTAMP changed/unknown fields were normalized: \(changed)",
+                      refused["time"] == payload["time"]
+                        && changed.allSatisfy { refused[$0.key] == $0.value })
+            }
+            for question in ["Want me to remind you at 10 AM tomorrow?", "Should I use 9 PM?",
+                             "What time should I use?", "Should I remind you today?",
+                             "Should it be tomorrow at 9 or 10?", "Should it be in the afternoon?"] {
+                let changed = PendingAction(requestText: request, question: question,
+                    capabilityID: "schedule.create", origin: .typedQuestion, sessionID: nil, at: originalClock)
+                let refused = AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                    request: changed.confirmedPrompt(acknowledgment: "yes"),
+                    now: originalClock, calendar: calendar)
+                check("R01_TIMESTAMP changed pending timing was rewritten: \(question)",
+                      refused["time"] == emitted.arguments["time"])
+            }
+            for objective in ["Remind me at 10 tomorrow to call the bank",
+                              "Remind me at 9 PM tomorrow to call the bank",
+                              "Remind me tomorrow to call the bank",
+                              "Remind me at 9 today or tomorrow to call the bank"] {
+                let changed = PendingAction(requestText: objective,
+                    question: PendingAction.lastSentence(timestampOffer), capabilityID: "schedule.create",
+                    origin: .typedQuestion, sessionID: nil, at: originalClock)
+                check("R01_TIMESTAMP mismatching authored clock was rewritten: \(objective)",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                        request: changed.confirmedPrompt(acknowledgment: "yes"),
+                        now: originalClock, calendar: calendar)["time"] == emitted.arguments["time"])
+            }
+            for answer in ["no", "yes at 10", "which time?"] {
+                check("R01_TIMESTAMP changed answer borrowed the original timing: \(answer)",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                        request: pending.confirmedPrompt(acknowledgment: answer),
+                        now: originalClock, calendar: calendar)["time"] == emitted.arguments["time"])
+            }
+            var validLate = emitted.arguments; validLate["time"] = "21:00"
+            let validLateGrounded = AgentToolLoop.groundedArguments(for: emitted.name,
+                proposed: validLate, request: wrapped, now: originalClock, calendar: calendar)
+            check("R01_TIMESTAMP valid selected 21:00 was overwritten as invented 9AM",
+                  validLateGrounded["time"] == "21:00")
+            check("R01_TIMESTAMP unconfirmed instruction was normalized",
+                  AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                    request: request, now: originalClock, calendar: calendar)["time"] == emitted.arguments["time"])
+            // The ordinary production self-test keeps its live clock. Only the calendar
+            // prefix advances with that existing fixture clock; time syntax, utterances,
+            // promise, approvals and all original other fields are identical in both builds.
+            let currentRaw = timestampRaw.replacingOccurrences(of: "2026-10-06T09:00", with: dateText + "T09:00")
+            var currentAccepted = accepted; currentAccepted["date"] = dateText
+            let consumer = await run([timestampOffer, timestampPromise, currentRaw,
+                "Reminder set for tomorrow at 9 to call the bank."], expectedOverride: currentAccepted)
+            check("R01_TIMESTAMP actual runner/card used a second repair or wrong payload",
+                  consumer.log.count == 4 && consumer.cardArguments == currentAccepted
+                    && consumer.asks == 1 && consumer.fired == ["schedule.create"])
+            check("R01_TIMESTAMP actual accepted native store lost selected clock/body/day",
+                  consumer.saved.count == 1 && consumer.saved.first?.nextRunAt == expectedAt
+                    && consumer.saved.first?.prompt == emitted.arguments["text"]
+                    && consumer.log.last?.user.contains("Saved") == true)
+            let denied = await run([timestampOffer, timestampPromise, currentRaw,
+                "Nothing saved."], expectedOverride: currentAccepted, approveCard: false)
+            check("R01_TIMESTAMP refusal started backing or saved a reminder",
+                  denied.fired.isEmpty && denied.saved.isEmpty && denied.asks == 1)
+            print("TOOLLOOP_PRODUCTION_R01_TIMESTAMP calls=\(consumer.log.count) asks=\(consumer.asks) saved=\(consumer.saved.count) deniedSaved=\(denied.saved.count)")
+        } else { check("R01_TIMESTAMP INPUT_INVALID: registered schedule or original clock missing", false) }
+        // R01_TIMESTAMP_COMMON_END
+        if CommandLine.arguments.contains("--r01-timestamp-time") { return [] }
+
         // Current quiet quick R02: preserve actual model call, not the claimed daily prose.
         let dailyRequest = "Every night at 10, remind me to put the book out"
         let dailyOffer = "I can set that reminder for you, but I need a few details first. What would you like the reminder to say? And should it go off every night at 10 specifically, or on certain days of the week?"

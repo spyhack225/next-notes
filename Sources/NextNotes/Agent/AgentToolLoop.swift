@@ -357,6 +357,40 @@ enum AgentToolLoop {
             // Bind timing before the reminder's "to ..." body, never borrow a date
             // from the words it will say later. The existing single-day rule stays shared.
             let timing = objective.lowercased().components(separatedBy: " to ").first ?? objective
+            // External-model field placement: preserve the selected clock, separating
+            // only an exact unzoned timestamp whose day/hour match the authored objective.
+            // Native schedule time remains HH:mm; this does not add parser syntax or retry.
+            if dateText.isEmpty, kind == "reminder", ["", "once"].contains(repeatWord),
+               confirmedQuestion != nil,
+               proposed["on"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true,
+               proposed["plainEnglish"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true,
+               let timestamp = proposed["time"],
+               timestamp.range(of: #"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$"#, options: .regularExpression) != nil,
+               let pattern = try? NSRegularExpression(pattern:
+                    #"^\s*(?:please\s+)?remind me at (\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+tomorrow\s*$"#,
+                    options: .caseInsensitive),
+               let match = pattern.firstMatch(in: timing, range: NSRange(timing.startIndex..., in: timing)),
+               let clockRange = Range(match.range(at: 1), in: timing),
+               let chosen = ScheduleLocalTime.parse(String(timestamp.suffix(5))),
+               let requested = ScheduleLocalTime.parse(String(timing[clockRange])) {
+                let authoredClock = String(timing[clockRange]).trimmingCharacters(in: .whitespaces)
+                let hasDaypart = authoredClock.range(of: #"(?:am|pm)$"#, options: .regularExpression) != nil
+                let sameClock = chosen.minute == requested.minute
+                    && (chosen.hour == requested.hour
+                        || (!hasDaypart && requested.hour < 12 && chosen.hour == requested.hour + 12))
+                let groundedDay = groundCalendarDay(proposed, request: timing, now: now, calendar: calendar)["date"]
+                // The observed confirmation asks only whether to set the reminder.
+                // A time/day-selection question retains native validation unchanged.
+                let questionMatches = confirmedQuestion?.range(of:
+                    #"^\s*(?:want me to|do you want me to|would you like me to|shall i|should i)\s+(?:set|create)\s+(?:that|this|the)\s+reminder(?:\s+now)?\?\s*$"#,
+                    options: [.regularExpression, .caseInsensitive]) != nil
+                if sameClock && questionMatches && groundedDay == String(timestamp.prefix(10)) {
+                    var grounded = proposed
+                    grounded["date"] = String(timestamp.prefix(10))
+                    grounded["time"] = String(timestamp.suffix(5))
+                    return grounded
+                }
+            }
             if !dateText.isEmpty {
                 guard let pattern = try? NSRegularExpression(pattern:
                     #"^\s*(?:please\s+)?remind me at (\d{1,2}(?::\d{2})?\s*(?:am|pm)?)\s+tomorrow\s*$"#,
