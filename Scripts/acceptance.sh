@@ -436,7 +436,7 @@ classify() {
   fi
 
   local line_no=0 last_ok=0 last_fail=0 last_absence=0
-  local ok_line="" fail_line="" absence_line="" last_line=""
+  local ok_line="" fail_line="" absence_line="" last_line="" real_fail_line=""
   local line trimmed marker ch i len
   while IFS= read -r line || [[ -n "$line" ]]; do
     line_no=$((line_no + 1))
@@ -462,12 +462,19 @@ classify() {
       *_SILENT) last_fail=$line_no; fail_line=$trimmed ;;
       *_MISSING) last_fail=$line_no; fail_line=$trimmed ;;
     esac
+    if (( last_fail == line_no )) && ! is_precondition_absence "$marker"; then
+      real_fail_line=$trimmed
+    fi
     if is_precondition_absence "$marker"; then
       last_absence=$line_no; absence_line=$trimmed
     fi
   done < <(cat ${files[@]+"${files[@]}"} 2>/dev/null)
 
-  if (( last_absence > 0 )) && { (( last_ok == 0 )) || (( last_absence > last_ok )); }; then
+  if [[ -n "$real_fail_line" ]]; then
+    # An optional absent backend cannot hide an actual failure in another path.
+    VERDICT=FAIL
+    REASON=$real_fail_line
+  elif (( last_absence > 0 )) && { (( last_ok == 0 )) || (( last_absence > last_ok )); }; then
     # The thing this test names was not on the machine; the absence is the verdict.
     VERDICT=SKIP
     REASON=$absence_line

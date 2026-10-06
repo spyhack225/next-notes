@@ -1,0 +1,8 @@
+NATIVE_TOOLS_FIXTURE: 14 selected, browser.navigate, computer.active_app, computer.open_app, create_event, draft_email, filesystem.find…
+NATIVE_TOOLS_GRAMMAR: 40 rules
+NATIVE_TOOLS_REQUIRED_CALL: PASS raw=<tool_call>{"name":"get_agenda","arguments":{"date":"2026-10-07"},"rationale":"Check the user's calendar for tomorrow to see what's booked."}</tool_call>
+NATIVE_TOOLS_LLAMA: 5/5 grammar-valid, 0/4 tool prompts called something, greeting answered: true · what's on my calen= summarise my last = remind me at 9 to = open youtube= hi=
+NATIVE_TOOLS_APPLE: answered 5/5, reached computer.open_app,create_event,get_agenda,read_email,search_email
+NATIVE_TOOLS_CLOUD_ABSENT: no --allow-cloud, nothing was sent
+NATIVE_TOOLS_WRONG: llama: no tool prompt produced a call, so the channel never ran end to end
+NATIVE_TOOLS_FAILED: 1 problem(s)
