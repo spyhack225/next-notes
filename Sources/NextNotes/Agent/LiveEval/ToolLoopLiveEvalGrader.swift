@@ -335,6 +335,20 @@ enum LiveEvalGrader {
            ]) {
             return true
         }
+        // M03's actual empty search exposes newest-first mail. A later mention
+        // of that sender cannot ground an explicit contradictory latest assertion.
+        if evalCase.id == "M03",
+           let newest = LiveEvalFixtures().mailbox.messages.max(by: { $0.stamp < $1.stamp }),
+           let expression = try? NSRegularExpression(
+               pattern: #"(?:^|[.!?]\s+)\s*(?:the|your)\s+(?:last|latest|most\s+recent)\s+(?:email|message)(?:\s+you\s+have)?\s+(?:is|was)\s+(?:from\s+)?(?!not\b)([\p{L}][\p{L}-]*(?:\s+[\p{L}][\p{L}-]*)*?)(?:['’]s\b|\s+(?:about|asking)\b|[,.])"#,
+               options: .caseInsensitive) {
+            for match in expression.matches(in: finalReply, range: NSRange(finalReply.startIndex..., in: finalReply)) {
+                guard let range = Range(match.range(at: 1), in: finalReply) else { continue }
+                let sender = String(finalReply[range]).lowercased()
+                if sender != newest.fromName.lowercased()
+                    && sender != newest.fromName.split(separator: " ").first?.lowercased() { return true }
+            }
+        }
         // R02 asks for a reminder every night at 22:00. Reuse the actual native
         // create parser: days=7 without repeat is once, not daily. No store,
         // execution, role lookup or owner identity is involved in this parse.
@@ -744,6 +758,42 @@ enum LiveEvalGrader {
                 // A broader summary may include earlier mail after the actual latest message.
                 expect(.pass, "M03", replies: ["The latest email is from Cyril about dinner tomorrow. Earlier, Ana asked for the deck and Marcus sent the pricing sheet."],
                        calls: latestMail.calls)
+                // Current direct empty search returns all six, newest first. Mentioning
+                // Cyril later cannot rescue an explicit false latest-sender assertion.
+                latestMail.beginCase()
+                let broadResult = try await AgentToolExecutor.run("search_email", arguments: [:],
+                    policy: .denyMutations, autoApproveReads: true, promptIfNeeded: false)
+                let lines = broadResult.summary.components(separatedBy: "\n")
+                if latestMail.calls.count != 1 || latestMail.calls.first?.arguments.isEmpty != true
+                    || lines.count != 6 || lines.first?.contains("Cyril <cyril@example.com>") != true
+                    || lines[1].contains("Ana Ruiz <ana@example.com>") != true {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: M03 original broad-read chronology changed")
+                    misclassified += 1
+                }
+                let actualReadContext = AgentToolLoop.userMessage(
+                    original: LiveEvalCases.caseWithID(id: "M03")!.turns[0],
+                    results: [AgentPrompts.toolResult(name: "search_email", output: broadResult.summary)],
+                    readerContextTokens: 32_768, foldOlderResults: false)
+                let firstSender = broadResult.summary.range(of: "Cyril")
+                let secondSender = broadResult.summary.range(of: "Ana Ruiz")
+                if !actualReadContext.contains(broadResult.summary) || firstSender == nil || secondSender == nil
+                    || firstSender!.lowerBound >= secondSender!.lowerBound {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: M03 actual result wrapper lost chronology")
+                    misclassified += 1
+                }
+                let captured = """
+                The last email you have is Ana Ruiz's about sending a deck by Friday. The next one is Marcus Lee's about the pricing sheet v3. The third is Cyril's asking if you're free for dinner tomorrow. The fourth is GitHub's note that CI passed, the fifth is Stripe's invoice reminder, and the sixth is Marcus's contract renewal message.
+
+                Want me to help with any of these, or would you like a different summary?
+                """
+                expect(.ungrounded, "M03", replies: [captured], calls: latestMail.calls)
+                expect(.ungrounded, "M03", replies: ["Your latest email is Ana's request for the deck. Cyril asked about dinner tomorrow earlier."], calls: latestMail.calls)
+                expect(.ungrounded, "M03", replies: ["The latest email is from Marcus Lee about pricing. Cyril asked about dinner tomorrow earlier."], calls: latestMail.calls)
+                expect(.ungrounded, "M03", replies: ["Cyril asked about dinner tomorrow. The last message was from Ana Ruiz about the deck."], calls: latestMail.calls)
+                expect(.pass, "M03", replies: ["The last email you have is Cyril's asking if you're free for dinner tomorrow. The next one is Ana Ruiz's about the deck. Earlier Marcus sent the pricing sheet."], calls: latestMail.calls)
+                expect(.pass, "M03", replies: ["Your most recent email is from Cyril, asking about dinner tomorrow. Earlier Ana asked for the deck."], calls: latestMail.calls)
+                expect(.pass, "M03", replies: ["Cyril asked about dinner tomorrow. Your latest email is not from Ana."], calls: latestMail.calls)
+                expect(.pass, "M03", replies: ["Cyril asked about dinner tomorrow. \"Your latest email is Ana's request for the deck\" is incorrect."], calls: latestMail.calls)
                 // Preserve tool/claim/format verdicts; correct words alone are insufficient.
                 expect(.missedTool, "M03", replies: ["Cyril asks about dinner tomorrow."])
                 expect(.fabricated, "M03", replies: ["I checked your email. The last message was from Cyril about dinner tomorrow evening. They’re asking if you’re free tomorrow night. Let me know if you want to reply or keep it as is."])
