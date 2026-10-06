@@ -133,13 +133,18 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         return pressure
     }
 
+    static func isFloorPressureDiagnostic(requested: String?, arguments: [String]) -> Bool {
+        (requested == "--selftest-llm-metal" && arguments.contains("--floor"))
+            || (requested == "--selftest-voice-latency" && arguments.contains("--voice-latency-floor"))
+    }
+
     /// One floor-only observation, seeded/disposed under the existing state lock.
     /// Callback is synchronous local metadata only: never reenter this guardian.
     func beginFloorPressureObservation(
         _ observer: @escaping @Sendable (ModelResidencyPolicy.PressureSnapshot) -> Void
     ) -> Bool {
-        guard releaseForTesting != nil ||
-            (SelfTest.requested == "--selftest-llm-metal" && CommandLine.arguments.contains("--floor")) else { return false }
+        guard releaseForTesting != nil || Self.isFloorPressureDiagnostic(
+            requested: SelfTest.requested, arguments: CommandLine.arguments) else { return false }
         lock.lock()
         defer { lock.unlock() }
         guard floorPressureObservation == nil else { return false }

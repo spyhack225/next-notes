@@ -178,6 +178,17 @@ enum VoiceLatencySelfTest {
         MainActorStallProbe.shared.start()
         defer { MainActorStallProbe.shared.stop() }
 
+        let pressureHistory = floor ? LockedBox<FloorPressureHistory>((nil, 0, nil, false)) : nil
+        let swapBefore = floor ? MeetingResourceHealth.swapBytes().used : nil
+        var pressureStarted = false
+        if let pressureHistory {
+            ModelResidencyPolicy.installPressureObserver()
+            pressureStarted = ModelResidencyGuardian.shared.beginFloorPressureObservation { snapshot in
+                pressureHistory.value = Self.floorPressureUpdating(pressureHistory.value, snapshot: snapshot)
+            }
+        }
+        defer { if pressureStarted { ModelResidencyGuardian.shared.endFloorPressureObservation() } }
+
         var counted: [VoiceClosedTurn] = []
         for index in 0...runs {
             let outcome = await oneRun(index: index, fixture: fixture)
@@ -187,6 +198,12 @@ enum VoiceLatencySelfTest {
         }
         MainActorStallProbe.shared.stop()
         await capture.endSession(source: .done)
+        if pressureStarted {
+            ModelResidencyGuardian.shared.endFloorPressureObservation()
+            pressureStarted = false
+        }
+        let swapAfter = floor ? MeetingResourceHealth.swapBytes().used : nil
+        let peak = floor ? ProcessSnapshot.current().peakResidentMemoryBytes : nil
 
         if counted.isEmpty, wrong.isEmpty {
             wrong.append("no measured run produced a closed turn")
@@ -220,8 +237,107 @@ enum VoiceLatencySelfTest {
             wrong.append(String(format: "median speech_end_to_first_audio %.3fs > budget %.3fs",
                 headline, budget))
         }
-        if floor { wrong += reportFixedAnswerFloor(turns: counted, expectedRuns: runs) }
+        if floor {
+            wrong += reportFixedAnswerFloor(turns: counted, expectedRuns: runs)
+            if let report = floorResourceReport(peak: peak, swapStart: swapBefore, swapEnd: swapAfter,
+                pressure: pressureHistory?.value ?? (nil, 0, nil, false), turnIDs: counted.compactMap(\.turnID)) {
+                SelfTest.diagnostic(report.line)
+                wrong += report.problems
+            }
+        }
         return finish(wrong)
+    }
+
+    private typealias FloorPressureHistory = (worst: ModelResidencyPolicy.PressureLevel?,
+        observations: Int, generation: UInt64?, gap: Bool)
+
+    /// Called only by the guardian's synchronous local callback; never reenter it.
+    nonisolated private static func floorPressureUpdating(_ history: FloorPressureHistory,
+        snapshot: ModelResidencyPolicy.PressureSnapshot) -> FloorPressureHistory {
+        var next = history
+        if let previous = next.generation, snapshot.generation != previous,
+           snapshot.generation != (previous &+ 1) { next.gap = true }
+        if next.worst == nil || snapshot.level == .critical
+            || (snapshot.level == .warning && next.worst == .normal) { next.worst = snapshot.level }
+        next.observations += 1
+        next.generation = snapshot.generation
+        return next
+    }
+
+    nonisolated private static func floorResourceReport(peak: UInt64?, swapStart: UInt64?,
+        swapEnd: UInt64?, pressure: FloorPressureHistory, turnIDs: [UUID])
+        -> (line: String, problems: [String])? {
+        var problems: [String] = []
+        if peak == nil || peak == 0 { problems.append("C2 peak RSS unavailable") }
+        if swapStart == nil || swapEnd == nil { problems.append("C2 swap observations unavailable") }
+        if pressure.observations == 0 || pressure.worst == nil { problems.append("C2 pressure observer unavailable") }
+        if pressure.gap { problems.append("C2 pressure history gap") }
+        let growth = swapStart.flatMap { start in swapEnd.map { Int64(clamping: $0) - Int64(clamping: start) } }
+        let status = !problems.isEmpty ? "UNQUALIFIED" : (pressure.worst == .normal ? "MEASURED" : "CONTENDED")
+        let line = "VOICE_LATENCY_FLOOR_RESOURCES condition=C2 status=\(status) scope=warmup-and-counted-turns "
+            + "peak_rss_bytes=\(peak.flatMap { $0 > 0 ? String($0) : nil } ?? "NA") peak_rss_scope=process-high-water "
+            + "pressure_worst_observed=\(pressure.worst?.rawValue ?? "NA") pressure_history_gap=\(pressure.gap) "
+            + "pressure_observations=\(pressure.observations) pressure_source=\(pressure.observations > 0 ? "GUARDIAN_EVENTS" : "UNAVAILABLE") "
+            + "swap_start_bytes=\(swapStart.map(String.init) ?? "NA") swap_end_bytes=\(swapEnd.map(String.init) ?? "NA") "
+            + "swap_growth_bytes=\(growth.map(String.init) ?? "NA") turn_ids=\(turnIDs.map(\.uuidString).joined(separator: ",")) gate=UNASSESSED"
+        return (line, problems)
+    }
+
+    private static func selfTestFloorResources() -> [String] {
+        var wrong: [String] = []
+        func check(_ condition: Bool, _ label: String) {
+            if !condition { wrong.append("C2 resources: " + label) }
+        }
+        check(ModelResidencyGuardian.isFloorPressureDiagnostic(
+            requested: "--selftest-voice-latency", arguments: ["--voice-latency-floor"]),
+            "exact diagnostic observation refused")
+        check(ModelResidencyGuardian.isFloorPressureDiagnostic(
+            requested: "--selftest-llm-metal", arguments: ["--floor"]), "existing metal admission changed")
+        for (requested, arguments) in [("--selftest-voice-latency", [String]()),
+            ("--selftest-voice-latency", ["--floor"]), ("--selftest-llm-metal", ["--voice-latency-floor"]),
+            ("--selftest-voice-frontend", ["--voice-latency-floor"])] {
+            check(!ModelResidencyGuardian.isFloorPressureDiagnostic(requested: requested, arguments: arguments),
+                "ordinary/unrelated diagnostic acquired an observation")
+        }
+        let id = UUID()
+        var history: FloorPressureHistory = (nil, 0, nil, false)
+        history = floorPressureUpdating(history, snapshot: .init(level: .normal, generation: 7, changedAt: Date()))
+        let valid = floorResourceReport(peak: 1_000, swapStart: 500, swapEnd: 550, pressure: history, turnIDs: [id])
+        check(valid?.problems.isEmpty == true && valid?.line.contains("status=MEASURED") == true
+            && valid?.line.contains("peak_rss_bytes=1000") == true
+            && valid?.line.contains("swap_growth_bytes=50") == true
+            && valid?.line.contains(id.uuidString) == true, "available same-run fields absent or lost turn binding")
+        history = floorPressureUpdating(history, snapshot: .init(level: .warning, generation: 8, changedAt: Date()))
+        history = floorPressureUpdating(history, snapshot: .init(level: .normal, generation: 9, changedAt: Date()))
+        let transient = floorResourceReport(peak: 1_000, swapStart: 500, swapEnd: 490, pressure: history, turnIDs: [id])
+        check(transient?.line.contains("status=CONTENDED") == true
+            && transient?.line.contains("pressure_worst_observed=warning") == true
+            && transient?.line.contains("swap_growth_bytes=-10") == true, "transient warning or signed swap change lost")
+        history = floorPressureUpdating(history, snapshot: .init(level: .normal, generation: 11, changedAt: Date()))
+        let gap = floorResourceReport(peak: 1_000, swapStart: 500, swapEnd: 550, pressure: history, turnIDs: [id])
+        check(gap?.problems.isEmpty == false && gap?.line.contains("status=UNQUALIFIED") == true
+            && gap?.line.contains("pressure_history_gap=true") == true, "pressure history gap appeared complete")
+        let availablePressure: FloorPressureHistory = (.normal, 1, 7, false)
+        let missing: [(UInt64?, UInt64?, UInt64?, FloorPressureHistory)] = [
+            (nil, 500, 550, availablePressure), (0, 500, 550, availablePressure),
+            (1_000, nil, 550, availablePressure), (1_000, 500, nil, availablePressure),
+            (1_000, 500, 550, (nil, 0, nil, false))]
+        for (peak, before, after, pressure) in missing {
+            let refused = floorResourceReport(peak: peak, swapStart: before, swapEnd: after,
+                pressure: pressure, turnIDs: [id])
+            check(refused?.problems.isEmpty == false && refused?.line.contains("status=UNQUALIFIED") == true,
+                "missing/zero resource measurement was qualified")
+        }
+        // Actual registration/disposal seam, with no dispatch source or release/model work.
+        if SelfTest.requested == "--selftest-voice-latency", CommandLine.arguments.contains("--voice-latency-floor") {
+            let guardian = ModelResidencyGuardian()
+            let seeds = LockedBox<Int>(0)
+            let admitted = guardian.beginFloorPressureObservation { _ in seeds.value += 1 }
+            check(admitted && seeds.value == 1, "actual C2 guardian registration did not seed")
+            check(!guardian.beginFloorPressureObservation { _ in }, "active C2 observer was replaced")
+            if admitted { guardian.endFloorPressureObservation() }
+        }
+        return wrong
     }
 
     // MARK: - One measured run
@@ -525,6 +641,7 @@ enum VoiceLatencySelfTest {
         wrong += selfTestDiscard()
         wrong += selfTestUsageRow()
         wrong += selfTestJoinedModelPassOutput()
+        wrong += selfTestFloorResources()
         wrong += await MainActorStallProbeSelfTest.run()
         return wrong
     }
