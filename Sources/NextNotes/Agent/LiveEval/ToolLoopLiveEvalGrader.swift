@@ -301,10 +301,14 @@ enum LiveEvalGrader {
         let mentionReply: String
         if evalCase.id == "O01", replies.count == 2,
            calls.contains(where: { $0.turn == 0 && ["search_email", "read_email"].contains($0.toolID) }),
-           matchesAnyRegex(finalReply, [#"^\s*yes\b[,.—–]?\s*(?:(?:this|that|the) summary|it)\s+(?:comes|came|is|was)\s+(?:directly\s+)?from your (?:recent )?(?:emails?|inbox)\b"#]),
+           matchesAnyRegex(finalReply, [
+               #"^\s*yes\b[,.—–]?\s*(?:(?:this|that|the) summary|it)\s+(?:comes|came|is|was)\s+(?:directly\s+)?from your (?:recent )?(?:emails?|inbox)\b"#,
+               #"^\s*(?:(?:that['’]s|that is) just how the summary came together\s*[—–]\s*)?(?:it['’]s|it is) pulling from your email history(?:[.!](?:\s|$)|$)"#,
+           ]),
            !matchesAnyRegex(finalReply, [
                #"\b(?:guess(?:ed)?|invent(?:ed)?|made\b[^.!?\n]*\bup)\b"#,
-               #"\b(?:not|never)\s+(?:directly\s+)?from your (?:recent )?(?:emails?|inbox)\b"#,
+               #"\b(?:not|never)\s+(?:pulling\s+)?(?:directly\s+)?from your (?:recent )?(?:emails?|inbox)\b"#,
+               #"\b(?:didn['’]t|did not|haven['’]t|have not|never)\s+(?:read|check|look at)\s+your (?:emails?|inbox)\b"#,
                #"\bfrom (?:your |the |my )?(?:calendar|memory|imagination|guess)\b"#,
            ]) {
             mentionReply = replies[0].lowercased()
@@ -959,6 +963,52 @@ enum LiveEvalGrader {
             }
         }
         // O01_SUMMARY_PROVENANCE_COMMON_END
+
+        // O01_EMAIL_HISTORY_COMMON_BEGIN: exact native two-reply consumer, actual six-message read.
+        do {
+            let mail = LiveEvalFixtures(now: ISO8601DateFormatter().date(from: "2026-10-05T09:00:00-04:00")!)
+            let savedFake = AgentToolExecutor.fakeForTesting
+            AgentToolExecutor.fakeForTesting = mail.run
+            defer { AgentToolExecutor.fakeForTesting = savedFake }
+            let summary = "Here's a quick summary of your last emails:\n\n1.  **Cyril** asked about dinner tomorrow.\n2.  **Ana Ruiz** needs the deck sent by Friday.\n3.  **Marcus Lee** shared an updated pricing sheet.\n4.  A GitHub note confirmed CI passed on main.\n5.  **Stripe** notified you about a September invoice.\n6.  **Marcus Lee** discussed contract renewal terms.\n\nWant me to help with any of these?"
+            let provenance = "That's just how the summary came together — it's pulling from your email history. If you'd like me to look at something specific in your emails, I can help with that."
+            do {
+                let result = try await AgentToolExecutor.run("search_email", arguments: [:],
+                    policy: .denyMutations, autoApproveReads: true, promptIfNeeded: false)
+                if mail.calls.count != 1 || mail.calls.first?.turn != 0
+                    || mail.calls.first?.arguments != [:] || mail.log.firstResult(for: 0) == nil
+                    || result.summary.split(separator: "\n").count != 6
+                    || !["Cyril", "Ana Ruiz", "Marcus Lee", "GitHub", "Stripe", "contract renewal"].allSatisfy({ result.summary.contains($0) }) {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: O01 exact six-message source fixture changed")
+                    misclassified += 1
+                }
+                expect(.pass, "O01", replies: [summary, provenance], calls: mail.calls)
+                expect(.pass, "O01", replies: [summary,
+                    "It’s pulling from your email history."], calls: mail.calls)
+                for rejected in [
+                    "No, that summary isn't from your email history.",
+                    "I don't have access to your emails.",
+                    "It's pulling from your calendar history.",
+                    "If it's pulling from your email history, I can confirm it.",
+                    "It's pulling from your email history?",
+                    "It's not pulling from your email history.",
+                    "It's pulling from your email history. I invented the summary.",
+                    "It's pulling from your email history. Actually, it came from memory.",
+                    "It's pulling from your email history. Actually, it's not pulling from your email history.",
+                    "It's pulling from your email history. I never read your emails.",
+                ] {
+                    expect(.ungrounded, "O01", replies: [summary, rejected], calls: mail.calls)
+                }
+                expect(.ungrounded, "O01", replies: ["Jordan approved your passport and Taylor booked a flight.", provenance], calls: mail.calls)
+                expect(.missedTool, "O01", replies: [summary, provenance])
+                expect(.missedTool, "O01", replies: [summary, provenance], calls: [call("memory.recall", [:])])
+                expect(.ungrounded, "O01", replies: [summary, provenance], calls: [call("search_email", [:], turn: 1)])
+            } catch {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: O01 exact source fixture refused")
+                misclassified += 1
+            }
+        }
+        // O01_EMAIL_HISTORY_COMMON_END
 
         // O04 — the sentence the owner read five times.
         expect(.refusal, "O04", replies: ["I don't have access to your email."])
