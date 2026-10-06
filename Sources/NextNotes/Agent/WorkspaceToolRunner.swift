@@ -155,6 +155,7 @@ enum WorkspaceToolRunner {
             line += " · \(mail.from)"
             line += " · \(mail.subject)"
             if !mail.snippet.isEmpty { line += " — \(mail.snippet)" }
+            if let isUnread = mail.isUnread { line += isUnread ? " · Unread" : " · Read" }
             lines.append(line)
         }
         lines.append("To read one in full, call read_email with its number.")
@@ -207,7 +208,8 @@ enum WorkspaceToolRunner {
             // whole base64 body — 71,698 bytes against metadata's 601 for the same message.
             // Read when one is there, never at that price.
             snippet: snippet(from: string(fields, "snippet")),
-            contextReference: mailContextReference(id: id, fields: fields))
+            contextReference: mailContextReference(id: id, fields: fields),
+            isUnread: (fields["labelIds"] as? [String]).map { $0.contains("UNREAD") })
     }
 
     /// One message in full, by the number the last search printed.
@@ -1135,6 +1137,8 @@ struct WorkspaceMailSummary: Sendable {
     let subject: String
     let snippet: String
     var contextReference: ActionContextReference? = nil
+    /// Nil when metadata supplies no valid labels; never infer READ from absence.
+    var isUnread: Bool? = nil
 }
 
 // MARK: - The fixture half of `--selftest-gws`
@@ -1168,6 +1172,50 @@ extension WorkspaceToolRunner {
     static func selfTestFailures() async -> [String] {
         var failures: [String] = []
         func wrong(_ message: String) { failures.append(message) }
+
+        // M02: the same sender search must carry already-fetched read status.
+        // This invokes the REAL list/get JSON reader and formatter, not LiveEvalFixtures.
+        let marcus = [
+            WorkspaceSelfTestMail(id: "m02-pricing", internalDate: "1791194400000",
+                fromName: "Marcus Lee", fromAddress: "marcus@productflo.example",
+                subject: "Pricing sheet v3", body: "Here is the updated pricing sheet…",
+                labelsJSON: #"["INBOX"]"#),
+            WorkspaceSelfTestMail(id: "m02-contract", internalDate: "1790416800000",
+                fromName: "Marcus Lee", fromAddress: "marcus@productflo.example",
+                subject: "Re: contract renewal", body: "The renewal terms are attached.",
+                labelsJSON: #"["INBOX","UNREAD"]"#),
+        ]
+        let statusCLI = FakeWorkspaceCLI(messages: marcus)
+        do {
+            let result = try await run(AgentProposal(meetingID: UUID(), tool: "search_email",
+                arguments: ["query": "Marcus", "maxResults": ""], rationale: ""), cli: statusCLI)
+            let lines = result.summary.split(separator: "\n").map(String.init)
+            if !lines.contains(where: { $0.contains("Pricing sheet v3") && $0.hasSuffix(" · Read") }) {
+                wrong("M02 actual Gmail metadata reader omitted known READ pricing status")
+            }
+            if !lines.contains(where: { $0.contains("Re: contract renewal") && $0.hasSuffix(" · Unread") }) {
+                wrong("M02 actual Gmail metadata reader omitted known UNREAD contract status")
+            }
+            if statusCLI.listQuery != "Marcus" || statusCLI.listMaxResults != defaultSearchResults
+                || Set(statusCLI.readIDs) != Set(marcus.map(\.id)) || statusCLI.readID != nil {
+                wrong("M02 read-status observation changed query/count or fetched message bodies")
+            }
+        } catch { wrong("M02 read-status metadata pipeline failed: \(error.localizedDescription)") }
+        // Missing/invalid labels provide no READ assertion; valid empty labels do.
+        for (json, knownRead) in [("", false), ("null", false), (#""UNREAD""#, false),
+                                  (#"["INBOX",5]"#, false), ("[]", true)] {
+            let mail = WorkspaceSelfTestMail(id: "m02-label-control", internalDate: "1791194400000",
+                fromName: "Marcus Lee", fromAddress: "marcus@productflo.example",
+                subject: "Status control", body: "", labelsJSON: json)
+            do {
+                let result = try await run(AgentProposal(meetingID: UUID(), tool: "search_email",
+                    arguments: ["query": "Marcus"], rationale: ""), cli: FakeWorkspaceCLI(messages: [mail]))
+                let line = result.summary.split(separator: "\n").first.map(String.init) ?? ""
+                if line.hasSuffix(" · Read") != knownRead || line.hasSuffix(" · Unread") {
+                    wrong("M02 absent/malformed labels acquired a known status, or valid empty labels lost READ")
+                }
+            } catch { wrong("M02 label control metadata pipeline failed: \(error.localizedDescription)") }
+        }
 
         // MARK: 1 — an empty query means the inbox, and ten is the answer
         let defaults = FakeWorkspaceCLI()
@@ -1669,10 +1717,12 @@ struct WorkspaceSelfTestMail {
     let fromAddress: String
     let subject: String
     let body: String
+    /// Authored JSON labels only. Nil keeps the existing fixture; empty omits the key.
+    var labelsJSON: String? = nil
 
     /// `gmail users messages get --format metadata`, measured.
     var metadataFixture: [String: Any] {
-        [
+        var fields: [String: Any] = [
             "id": id, "threadId": "t-\(id)", "internalDate": internalDate,
             "labelIds": ["INBOX", "UNREAD"],
             "sizeEstimate": 2_048,
@@ -1685,6 +1735,14 @@ struct WorkspaceSelfTestMail {
                 ],
             ] as [String: Any],
         ]
+        if let labelsJSON {
+            fields.removeValue(forKey: "labelIds")
+            if !labelsJSON.isEmpty, let data = labelsJSON.data(using: .utf8),
+               let value = try? JSONSerialization.jsonObject(with: data, options: .fragmentsAllowed) {
+                fields["labelIds"] = value
+            }
+        }
+        return fields
     }
 
     /// `gmail +read --headers --format json`, measured. `from` is an object, not a string,
