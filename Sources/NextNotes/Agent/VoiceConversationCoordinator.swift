@@ -236,6 +236,7 @@ final class VoiceConversationCoordinator {
     /// end-of-utterance. This path records no turn and has no speech/tool sink.
     /// The frontend reuses it only for an exact final request/context match.
     func prepareResponseIfUseful(_ partial: String) {
+        guard !(SelfTest.isRunning && CommandLine.arguments.contains("--voice-no-speculation")) else { return }
         guard streamForTesting == nil else { return }
         let text = Self.corrected(partial, audit: false).trimmingCharacters(in: .whitespacesAndNewlines)
         guard VoiceTranscriptCanonical.key(text) != VoiceTranscriptCanonical.key(provisionalText) else { return }

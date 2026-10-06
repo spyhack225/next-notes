@@ -22,6 +22,33 @@ enum VoicePreparationSelfTest {
         var speech = 0
         coordinator.answerSpeechObserverForTesting = { _ in speech += 1 }
         let historyCount = AgentSession.shared.messages.count
+        if CommandLine.arguments.contains("--voice-no-speculation") {
+            let speechBacking = RecordingSpeechBacking()
+            AgentSpeechSynthesizer.shared.useTestingBacking(speechBacking)
+            let words = "Hello there friend again"
+            coordinator.prepareResponseIfUseful(words)
+            if await source.waitForCount(1, within: .milliseconds(150)) {
+                problems.append("no-speculation partial started model inference before commit")
+            }
+            if speech != 0 || !speechBacking.spoken.isEmpty
+                || AgentSession.shared.messages.count != historyCount {
+                problems.append("no-speculation partial spoke or stored a conversation before commit")
+            }
+            source.finishFutureRequests()
+            source.finishLast()
+            let turn = await coordinator.handle(words)
+            let expected = "Prepared \(words)."
+            if source.count != 1 || turn.delegated || turn.reply != expected
+                || speechBacking.spoken.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines) != expected {
+                problems.append("no-speculation committed turn did not produce exactly one fresh answer and speech")
+            }
+            await capture.endSession(source: .done)
+            coordinator.resetForTesting()
+            await frontend.clearStagedTurn()
+            await frontend.setGenerationForTesting(nil)
+            AgentSpeechSynthesizer.shared.restoreSystemBacking()
+            return problems
+        }
         problems += await AgentCaptureController.earlyLexicalPreparationSelfTestFailures(source: source)
         // Every revision gets its own observable producer. Four words separately
         // detects the old fixed delay, even if the short-partial gate is removed alone.
