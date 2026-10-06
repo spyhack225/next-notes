@@ -38,23 +38,35 @@ final class RemoteIdentityStore: @unchecked Sendable {
         return stored
     }
 
+    /// Only the isolated pairing regression may inspect the actual lock without
+    /// waiting: the old failure leaves it held, so a normal read would hang the test.
+    func configurationWithoutBlockingForTesting() -> IMessageConfiguration? {
+        let temporaryRoot = FileManager.default.temporaryDirectory
+            .standardizedFileURL.resolvingSymlinksInPath().path + "/"
+        guard SelfTest.requested == "--selftest-imessage-pairing",
+              directory.standardizedFileURL.resolvingSymlinksInPath().path.hasPrefix(temporaryRoot),
+              lock.try() else { return nil }
+        defer { lock.unlock() }
+        return stored
+    }
+
     /// Merges a change and writes atomically. The merge is a closure so the caller
     /// cannot read-modify-write without the lock, and the write is atomic so a crash
     /// cannot leave a half-written file.
     func update(_ change: (inout IMessageConfiguration) -> Void) throws {
         lock.lock()
+        defer { lock.unlock() }
         var next = stored
         change(&next)
-        guard next != stored else { return lock.unlock() }
+        guard next != stored else { return }
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         let data = try encoder.encode(next)
-        let temp = fileURL.appendingPathExtension("tmp")
-        try data.write(to: temp, options: .atomic)
-        try FileManager.default.replaceItemAt(fileURL, withItemAt: temp)
+        // Foundation atomically replaces an existing destination or creates the
+        // first one. Publish memory only after that same write succeeds.
+        try data.write(to: fileURL, options: .atomic)
         stored = next
-        lock.unlock()
     }
 
     /// The paired chat's GUID, or `nil` when unpaired. The one read the watcher makes.

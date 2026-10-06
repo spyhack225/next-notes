@@ -25,7 +25,19 @@ enum SelfChannelSelfTest {
             if !condition { failures.append("\(name): \(detail)") }
         }
 
+        let persistence = storePersistenceProblems()
+        failures += persistence.failures
+        caseCount += persistence.cases
+        if !failures.isEmpty || CommandLine.arguments.contains("--imessage-store-persistence") {
+            var lines = failures.map { "IMESSAGE_PAIRING_WRONG: \($0)" }
+            lines.append(failures.isEmpty
+                ? "IMESSAGE_PAIRING_OK: \(caseCount) cases"
+                : "IMESSAGE_PAIRING_FAILED: \(failures.count) persistence checks; \(failures[0])")
+            return lines.joined(separator: "\n")
+        }
+
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: directory) }
 
         // MARK: - The pure decision
 
@@ -150,6 +162,110 @@ enum SelfChannelSelfTest {
         return failures.isEmpty
             ? "IMESSAGE_PAIRING_OK: \(caseCount) cases"
             : "IMESSAGE_PAIRING_FAILED: \(failures[0])"
+    }
+
+    /// Real store writes on isolated authored fixtures. Failure checks never start a
+    /// thread that could remain stuck on the original leaked lock.
+    private static func storePersistenceProblems() -> (cases: Int, failures: [String]) {
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotesSelfTest-imessage-store-" + UUID().uuidString,
+                                    isDirectory: true)
+        let fm = FileManager.default
+        defer { try? fm.removeItem(at: root) }
+        var cases = 0
+        var failures: [String] = []
+        func check(_ name: String, _ condition: Bool) {
+            cases += 1
+            if !condition { failures.append(name) }
+        }
+        var baseline = IMessageConfiguration()
+        baseline.enabled = true
+        baseline.pairedChatGUID = "iMessage;-;+15551234567"
+        baseline.localIdentity = "+15551234567"
+        baseline.chatHandleCache = "+15551234567"
+        baseline.lastProcessedRowID = 42
+        baseline.pairedAt = 1_700_000_000
+        do {
+            try fm.createDirectory(at: root, withIntermediateDirectories: true)
+            let firstDirectory = root.appendingPathComponent("first")
+            let first = RemoteIdentityStore(directory: firstDirectory)
+            var firstThrew = false
+            do { try first.update { $0 = baseline } } catch { firstThrew = true }
+            check("first save succeeds without an existing settings file", !firstThrew)
+            let firstSnapshot = first.configurationWithoutBlockingForTesting()
+            check("first save releases its actual lock", firstSnapshot != nil)
+            check("first save publishes exact settings in memory", firstSnapshot == baseline)
+            check("fresh reader consumes exact first-save settings",
+                  RemoteIdentityStore(directory: firstDirectory).configuration == baseline)
+            if firstSnapshot != nil {
+                check("ordinary configuration consumer receives first-save settings",
+                      first.configuration == baseline)
+                try first.update { _ in }
+                check("unchanged update releases its actual lock",
+                      first.configurationWithoutBlockingForTesting() == baseline)
+            }
+
+            // Seed valid prior bytes without relying on the broken first-write path.
+            for failure in ["encoding", "directory", "destination"] {
+                let fixture = root.appendingPathComponent(failure, isDirectory: true)
+                try fm.createDirectory(at: fixture, withIntermediateDirectories: true)
+                let file = fixture.appendingPathComponent(RemoteIdentityStore.fileName)
+                let bytes = try JSONEncoder().encode(baseline)
+                try bytes.write(to: file, options: .atomic)
+                let store = RemoteIdentityStore(directory: fixture)
+                var retainedFile = file
+                if failure == "directory" {
+                    let retainedDirectory = root.appendingPathComponent("retained-directory")
+                    try fm.moveItem(at: fixture, to: retainedDirectory)
+                    try Data("blocked directory".utf8).write(to: fixture)
+                    retainedFile = retainedDirectory.appendingPathComponent(RemoteIdentityStore.fileName)
+                } else if failure == "destination" {
+                    retainedFile = fixture.appendingPathComponent("retained-settings.json")
+                    try fm.moveItem(at: file, to: retainedFile)
+                    try fm.createDirectory(at: file, withIntermediateDirectories: true)
+                    try Data("occupied destination".utf8).write(to: file.appendingPathComponent("child"))
+                }
+                var threw = false
+                do {
+                    try store.update {
+                        $0.remoteAccessSuspended = true
+                        if failure == "encoding" { $0.pairedAt = Double.nan }
+                    }
+                } catch { threw = true }
+                check("\(failure) failure is reported", threw)
+                let snapshot = store.configurationWithoutBlockingForTesting()
+                check("\(failure) failure releases the same store lock", snapshot != nil)
+                check("\(failure) failure retains exact in-memory settings", snapshot == baseline)
+                check("\(failure) failure retains exact prior disk bytes",
+                      (try? Data(contentsOf: retainedFile)) == bytes)
+                // Recover the authored filesystem obstacle. Never retry a locked old
+                // store: its missing unlock is already an explicit failed assertion.
+                if failure == "directory" {
+                    try fm.removeItem(at: fixture)
+                    try fm.moveItem(at: retainedFile.deletingLastPathComponent(), to: fixture)
+                } else if failure == "destination" {
+                    try fm.removeItem(at: file)
+                    try fm.moveItem(at: retainedFile, to: file)
+                }
+                if snapshot != nil {
+                    check("\(failure) ordinary reader preserves the previous configuration",
+                          store.configuration == baseline)
+                    var updated = baseline
+                    updated.remoteAccessSuspended = true
+                    try store.suspendRemoteAccess()
+                    check("\(failure) same-store retry publishes the requested change",
+                          store.configurationWithoutBlockingForTesting() == updated)
+                    check("\(failure) retry reaches the normal fresh-reader consumer",
+                          RemoteIdentityStore(directory: fixture).configuration == updated)
+                    try store.resumeRemoteAccessLocally()
+                    check("\(failure) later local resume retains all other settings",
+                          store.configurationWithoutBlockingForTesting() == baseline)
+                }
+            }
+        } catch {
+            failures.append("isolated persistence fixture setup or recovery failed")
+        }
+        return (cases, failures)
     }
 }
 
