@@ -4,6 +4,7 @@ import Foundation
 /// It exercises the same frontend slot without starting Foundation Models.
 enum LocalVoiceFrontendSpeculationSelfTest {
     static func run() async -> Bool {
+        if CommandLine.arguments.contains("--voice-speculation-courtesy") { return await courtesyTailCases() }
         let frontend = LocalVoiceFrontend()
         let source = Source()
         await frontend.setGenerationForTesting { _, messages, _ in
@@ -82,12 +83,74 @@ enum LocalVoiceFrontendSpeculationSelfTest {
                 return fail("stale cancel erased newer turn")
             }
             await frontend.clearStagedTurn()
+            guard await courtesyTailCases() else { return false }
             guard try await correlatedRecorderCases() else { return false }
             print("VOICE_SPECULATION_OK")
             return true
         } catch {
             return fail(error.localizedDescription)
         }
+    }
+
+    /// One existing speculative buffer through the real committed stream take.
+    /// Only the external generator is scripted; no model, speech or tool sink.
+    private static func courtesyTailCases() async -> Bool {
+        let system = "Use the envelope."
+        let context = "Work status:\nNo tasks.\n\nLatest user speech:\n"
+        let spoken = "Explain a haiku briefly"
+        let ids = UsageCorrelation(turnID: UUID(), conversationID: UUID())
+        let changedIDs = UsageCorrelation(turnID: UUID(), conversationID: ids.conversationID)
+        let cases: [(String, String, String, String, Int, UsageCorrelation, Bool, Bool)] = [
+            ("please", " please", context, system, 64, ids, false, true),
+            ("thanks", " thanks", context, system, 64, ids, false, true),
+            ("thank you", " thank you", context, system, 64, ids, false, true),
+            ("exact", "", context, system, 64, ids, false, true),
+            ("negation", " not", context, system, 64, ids, false, false),
+            ("action tail", " cancel", context, system, 64, ids, false, false),
+            ("capability tail", " emails", context, system, 64, ids, false, false),
+            ("noncourtesy tail", " is", context, system, 64, ids, false, false),
+            ("too many words", " please thank you", context, system, 64, ids, false, false),
+            ("quoted tail", " \"please\"", context, system, 64, ids, false, false),
+            ("changed context", " please", "Work status:\nTask 1 running.\n\nLatest user speech:\n", system, 64, ids, false, false),
+            ("changed instructions", " please", context, "Other instructions.", 64, ids, false, false),
+            ("changed budget", " please", context, system, 128, ids, false, false),
+            ("changed correlation", " please", context, system, 64, changedIDs, false, false),
+            ("cancelled slot", " please", context, system, 64, ids, true, false)
+        ]
+        var passed = true
+        for (name, tail, finalContext, finalSystem, limit, committedIDs, cancel, reuse) in cases {
+            let frontend = LocalVoiceFrontend()
+            let source = Source()
+            await frontend.setGenerationForTesting { _, messages, _ in
+                let label = messages.last?.content ?? ""
+                return source.makeStream(label: label, immediateReply: "<answer/> Authored \(label)")
+            }
+            let initial = [LLMChatMessage(role: .user, content: context + spoken)]
+            let final = [LLMChatMessage(role: .user, content: finalContext + spoken + tail)]
+            await ModelPassRecorder.$correlation.withValue(ids) {
+                await frontend.speculate(system: system, messages: initial, maxTokens: 64, revision: 1)
+            }
+            guard await source.waitForCount(1) else { return fail("\(name): courtesy fixture producer did not start") }
+            if cancel { await frontend.cancelSpeculation(through: 1) }
+            let stream = await ModelPassRecorder.$correlation.withValue(committedIDs) {
+                await frontend.stream(system: finalSystem, messages: final, maxTokens: limit, commitRevision: 2)
+            }
+            do {
+                let actual = try await collect(stream)
+                let expected = "<answer/> Authored " + (reuse ? initial[0].content : final[0].content)
+                let expectedCount = reuse ? 1 : 2
+                if !reuse, !(await source.waitForCount(expectedCount)) {
+                    passed = fail("\(name): changed request did not enter its fresh producer") && passed
+                }
+                let actualCount = await source.count
+                if actual != expected || actualCount != expectedCount {
+                    passed = fail("\(name): committed courtesy stream reused the wrong buffer or restarted inference") && passed
+                }
+            } catch { passed = fail("\(name): courtesy stream failed: \(error.localizedDescription)") && passed }
+            await frontend.clearStagedTurn()
+        }
+        if passed { print("VOICE_SPECULATION_COURTESY_OK: 15 actual buffer/consumer cases; scripted generation") }
+        return passed
     }
 
     /// Actual speculative slot and task-local propagation, with scripted model
@@ -217,7 +280,7 @@ enum LocalVoiceFrontendSpeculationSelfTest {
         init(log: UsageLog? = nil) { self.log = log }
         var count: Int { continuations.count }
 
-        nonisolated func makeStream(label: String) -> AsyncThrowingStream<String, Error> {
+        nonisolated func makeStream(label: String, immediateReply: String? = nil) -> AsyncThrowingStream<String, Error> {
             let (stream, continuation) = AsyncThrowingStream<String, Error>.makeStream()
             let recorder = log.map { ModelPassRecorder(feature: .agentVoice, pass: "frontend-answer",
                 provider: FoundationModelLLMProvider(),
@@ -225,6 +288,10 @@ enum LocalVoiceFrontendSpeculationSelfTest {
             continuation.onTermination = { termination in
                 if case .cancelled = termination { recorder?.finish(reason: "cancelled") }
                 else { recorder?.finish(reason: "stop") }
+            }
+            if let immediateReply {
+                continuation.yield(immediateReply)
+                continuation.finish()
             }
             Task { await self.register(continuation, recorder: recorder) }
             return stream

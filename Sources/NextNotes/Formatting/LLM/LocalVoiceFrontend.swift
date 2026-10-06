@@ -142,6 +142,21 @@ actor FrontendResponder {
             self.typedResponse = LocalVoiceTypedResponse.isEnabled
             self.splitDecision = LocalVoiceSplitResponse.isEnabled
         }
+
+        /// The entire request remains exact except for a terminal courtesy.
+        /// This reuses the existing complete buffer, never a route-only result.
+        func matchesCommitted(_ final: RequestKey) -> Bool {
+            if self == final { return true }
+            guard system == final.system, roles == final.roles,
+                  maxTokens == final.maxTokens, nativeHistory == final.nativeHistory,
+                  typedResponse == final.typedResponse, splitDecision == final.splitDecision,
+                  roles.last == LLMChatMessage.Role.user.rawValue,
+                  contents.dropLast().elementsEqual(final.contents.dropLast()),
+                  let before = contents.last, let after = final.contents.last,
+                  before.contains("Latest user speech:\n"), after.hasPrefix(before + " ") else { return false }
+            let tail = String(after.dropFirst(before.count + 1)).split(separator: " ").map(String.init)
+            return tail == ["please"] || tail == ["thanks"] || tail == ["thank", "you"]
+        }
     }
     private struct Speculation {
         let key: RequestKey
@@ -479,7 +494,7 @@ actor FrontendResponder {
     ) async -> AsyncThrowingStream<String, Error> {
         if let commitRevision { sealSpeculation(through: commitRevision) }
         let key = RequestKey(system: system, messages: messages, maxTokens: maxTokens)
-        if let speculation, speculation.key == key,
+        if let speculation, speculation.key.matchesCommitted(key),
            speculation.correlation == ModelPassRecorder.correlation {
             self.speculation = nil
             let previous = drainBarrier
