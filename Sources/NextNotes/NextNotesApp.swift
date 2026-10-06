@@ -1770,7 +1770,11 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             return true
         }
         if arguments.contains("--selftest-metrics") {
-            SelfTest.failed = !LatencyTrace.runSelfTest()
+            let thermalFailures = Self.floorThermalAdmissionProblems()
+            for failure in thermalFailures { writeSelfTest("METRICS_WRONG: " + failure) }
+            let metricsPassed = LatencyTrace.runSelfTest()
+            if !thermalFailures.isEmpty { print("METRICS_FAILED: floor thermal admission") }
+            SelfTest.failed = !metricsPassed || !thermalFailures.isEmpty
             SelfTest.requestTermination()
             return true
         }
@@ -7687,7 +7691,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             IOPSGetProvidingPowerSourceType($0.takeRetainedValue()).takeUnretainedValue() as String
         } ?? "UNKNOWN"
         var contention: [String] = []
-        if before.thermalState != .nominal { contention.append("thermal") }
+        if Self.floorThermalIsContended(before.thermalState, atStart: true) { contention.append("thermal") }
         if before.isLowPowerModeEnabled { contention.append("low-power") }
         if power != kIOPSACPowerValue { contention.append("power") }
         let apps = NSWorkspace.shared.runningApplications
@@ -7949,7 +7953,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let swapGrowth = swapBefore.flatMap { first in swapAfter.map { Int64(clamping: $0) - Int64(clamping: first) } }
         let after = HardwareProfile.current()
         if pressureWorstObserved != .normal { contention.append("pressure") }
-        if after.thermalState != .nominal { contention.append("thermal-end") }
+        if Self.floorThermalIsContended(after.thermalState, atStart: false) { contention.append("thermal-end") }
         for sample in thermalSamples {
             writeSelfTest("LLM_FLOOR_THERMAL: scheduled_s=\(sample.tick * 10) actual_s=\(String(format: "%.4f", sample.actual)) state=\(sample.state) lateness_s=\(String(format: "%.4f", sample.lateness)) skipped_deadlines=\(sample.skipped) clock=ContinuousClock")
         }
@@ -8010,6 +8014,33 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             }
         }
         throw LlamaError.tokenizationFailed
+    }
+
+    /// Thermal admission used by the actual start/end report predicates.
+    private nonisolated static func floorThermalIsContended(
+        _ state: ProcessInfo.ThermalState, atStart: Bool
+    ) -> Bool {
+        // PL-01 requires a nominal start; heating during sustain is recorded, not gated.
+        atStart && state != .nominal
+    }
+
+    private nonisolated static func floorThermalAdmissionProblems() -> [String] {
+        var failures: [String] = []
+        // Exact mini-9c5db1b-600s recording: start0/nominal, end1/fair.
+        if floorThermalIsContended(.nominal, atStart: true)
+            || floorThermalIsContended(.fair, atStart: false) {
+            failures.append("recorded nominal-start/fair-end sustain classified as contended")
+        }
+        for state in [ProcessInfo.ThermalState.fair, .serious, .critical] {
+            if !floorThermalIsContended(state, atStart: true) {
+                failures.append("nonnominal start admitted: " + String(state.rawValue))
+            }
+        }
+        if floorThermalIsContended(.nominal, atStart: true)
+            || floorThermalIsContended(.nominal, atStart: false) {
+            failures.append("nominal start/end classified as contended")
+        }
+        return failures
     }
 
     /// Next future anchored ten-second deadline; no retroactive synthetic samples.
