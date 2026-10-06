@@ -160,6 +160,8 @@ enum OutputSchedulerPhraseSelfTest {
                 await frontend.setGenerationForTesting(nil)
                 await capture.endSession(source: .done)
             }
+            let independent = await independentSplitRouteAdmission(root: root)
+            checks += independent.checks; failures += independent.failures
             let race = try await generationRace(root: root, recorder: recorder)
             checks += race.checks; failures += race.failures
             let cancelledDrain = await cancelledGenerationDrain(root: root)
@@ -185,6 +187,77 @@ enum OutputSchedulerPhraseSelfTest {
         while ContinuousClock.now < until { if await predicate() { return true }; await Task.yield() }
         return await predicate()
     }
+    /// Actual owned frontend over an authored held external generator. The
+    /// unrelated job exercises real scheduler admission, not native decode speed.
+    private static func independentSplitRouteAdmission(root: URL) async -> (checks: Int, failures: [String]) {
+        let frontend = FrontendResponder()
+        let probe = DeliveryGenerationRaceProbe()
+        let scheduler = ComputeScheduler.shared
+        var checks = 0
+        var failures: [String] = []
+        func check(_ value: Bool, _ label: String) {
+            checks += 1
+            if !value { failures.append("independent Apple route: " + label) }
+        }
+        let configured = await frontend.setGenerationForTesting({ system, messages, tokens in
+            probe.stream(system: system, messages: messages, tokens: tokens)
+        }, retainingTaskOwner: true, fixtureRoot: root)
+        guard configured else { return (checks, ["independent Apple route: INVALID guarded external fixture"]) }
+        let before = await scheduler.occupancy()
+        guard before.busy.isEmpty else {
+            await frontend.setGenerationForTesting(nil)
+            return (checks, ["independent Apple route: INVALID scheduler not idle before fixture"])
+        }
+        let stream = await frontend.stream(system: "Owned prior request",
+            messages: [.init(role: .user, content: "Owned prior input")], maxTokens: 24)
+        let consumer = Task {
+            var result = ""
+            do { for try await delta in stream { result += delta } } catch { }
+            return result
+        }
+        let owner = await frontend.ownedGenerationForTesting()
+        let entered = await reached { probe.snapshot().held }
+        check(entered && owner != nil && owner?.isCancelled == false,
+            "actual retained frontend never entered the held external generator")
+        if entered {
+            let nativeJob = ComputeJob(workClass: .realtimeAgent)
+            let count = await scheduler.recordedOrder.count
+            await scheduler.submit(nativeJob)
+            let started = await scheduler.recordedOrder.count
+            check(started == count + 1 && probe.snapshot().held && owner?.isCancelled == false,
+                "held external Apple routing serialized the independent local compute job")
+            let secondLocalJob = ComputeJob(workClass: .realtimeAgent)
+            await scheduler.submit(secondLocalJob)
+            check((await scheduler.recordedOrder.count) == started,
+                "independent Apple admission bypassed local same-class exclusion")
+            // Release only the exact authored jobs, whether admitted or queued.
+            await scheduler.release(nativeJob.id)
+            await scheduler.release(secondLocalJob.id)
+        }
+        consumer.cancel()
+        _ = await consumer.value
+        owner?.cancel()
+        await owner?.value
+        check(probe.snapshot().terminated == 1,
+            "same external frontend cancellation did not terminate its actual stream")
+        probe.releasePrior()
+        check((await scheduler.occupancy()).busy.isEmpty,
+            "joined external frontend left its local scheduler ticket behind")
+        let next = await frontend.stream(system: "Owned newer request",
+            messages: [.init(role: .user, content: "Owned newer input")], maxTokens: 24)
+        var answer = ""
+        do { for try await delta in next { answer += delta } }
+        catch { failures.append("independent Apple route: successor failed " + error.localizedDescription) }
+        if let nextOwner = await frontend.ownedGenerationForTesting() { await nextOwner.value }
+        check(answer == DeliveryGenerationRaceProbe.newReply && probe.snapshot().calls == 2,
+            "joined successor lost the same external answer or repeated inference")
+        check((await scheduler.occupancy()).busy.isEmpty,
+            "completed successor leaked a local compute ticket")
+        await frontend.setGenerationForTesting(nil)
+        print("OUTPUT_APPLE_ROUTE_OWNERSHIP checks=\(checks) externalCalls=\(probe.snapshot().calls) nativeKernelEvidence=false")
+        return (checks, failures)
+    }
+
     /// Actual frontend request/phrase Tasks over an authored external stream, not C.
     private static func generationRace(root: URL, recorder: RecordingSpeechBacking) async throws -> (checks: Int, failures: [String]) {
         let directory = root.appendingPathComponent("generation-race", isDirectory: true)

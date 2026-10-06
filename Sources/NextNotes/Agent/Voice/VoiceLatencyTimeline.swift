@@ -21,6 +21,7 @@ enum VoiceMark: String, CaseIterable, Sendable {
     case endpoint = "endpoint"
     case frontendRequest = "frontend_request"
     case schedulerAcquired = "scheduler_acquired"
+    case routeStarted = "route_started"
     case routeDone = "route_done"
     case frontendFirstToken = "frontend_first_token"
     case firstClauseEnqueued = "first_clause_enqueued"
@@ -70,7 +71,7 @@ struct VoiceStageSpan: Sendable {
         VoiceStageSpan(span: .voiceRequestToLane,
             kind: .interval(from: .frontendRequest, to: .schedulerAcquired), required: false, inTurnSummary: false),
         VoiceStageSpan(span: .voiceRoute,
-            kind: .interval(from: .schedulerAcquired, to: .routeDone), required: false, inTurnSummary: false),
+            kind: .interval(from: .routeStarted, to: .routeDone), required: false, inTurnSummary: false),
         VoiceStageSpan(span: .voiceRouteToFirstToken,
             kind: .interval(from: .routeDone, to: .frontendFirstToken), required: false, inTurnSummary: false),
         VoiceStageSpan(span: .voiceTranscriptToFirstToken,
@@ -94,7 +95,9 @@ struct VoiceStageSpan: Sendable {
         if required { return true }
         guard !turn.speculationHit else { return false }
         switch span {
-        case .voiceRequestToLane: return true
+        // Independent split Apple routing has no local compute ticket. Do not
+        // invent an acquired mark; its interval uses the actual external route start.
+        case .voiceRequestToLane: return !separateRoute
         case .voiceRoute, .voiceRouteToFirstToken: return separateRoute
         default: return false
         }
@@ -290,6 +293,11 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
                         <= Self.bargeAttachmentWindow {
                 bargeTarget = recent
             }
+        case .routeStarted:
+            // A revised speculative route replaces the previous route pair. Its
+            // actual start may precede the committed frontend request.
+            open?.marks.removeValue(forKey: .routeDone)
+            if !setLocked(mark, instant, overwrite: true) { noteOrphan(mark) }
         case .lastVoice:
             // Speech can resume inside one utterance. Once the endpoint exists the turn is
             // committed and further audio belongs to nothing.

@@ -519,6 +519,7 @@ enum VoiceLatencySelfTest {
         var wrong = selfTestEmission()
         wrong += selfTestZeroStall()
         wrong += selfTestRequiredStagesAndCount()
+        wrong += selfTestRevisedRouteInterval()
         wrong += selfTestStoreTurnIdentity()
         wrong += selfTestAbsentStages()
         wrong += selfTestDiscard()
@@ -537,6 +538,9 @@ enum VoiceLatencySelfTest {
             ([.schedulerAcquired, .routeDone], false, true, 1, true),
             ([.schedulerAcquired, .routeDone], true, true, 1, false),
             ([.routeDone], false, false, 1, false),
+            ([.schedulerAcquired], false, true, 1, false),
+            ([.schedulerAcquired], false, false, 1, true),
+            ([.routeStarted], false, true, 1, true),
             ([], false, true, 0, true),
             ([], false, true, 2, true),
         ]
@@ -557,6 +561,46 @@ enum VoiceLatencySelfTest {
             }
         }
         return wrong
+    }
+
+    /// Two actual speculative revisions precede commit. The persisted route span
+    /// uses the adopted route's own boundaries, never a committed request or lane.
+    private static func selfTestRevisedRouteInterval() -> [String] {
+        let timeline = VoiceLatencyTimeline()
+        timeline.beginSession(UUID())
+        let at = VoiceLatencyTimeline.nowNanos()
+        timeline.mark(.voiceOnset, at: at)
+        timeline.attachTurnIDs(turnID: UUID(), conversationID: UUID())
+        timeline.mark(.schedulerAcquired, at: at + 10_000_000)
+        timeline.mark(.routeStarted, at: at + 20_000_000)
+        timeline.mark(.routeDone, at: at + 40_000_000)
+        timeline.mark(.routeStarted, at: at + 50_000_000)
+        timeline.mark(.endpoint, at: at + 100_000_000)
+        timeline.mark(.frontendRequest, at: at + 110_000_000)
+        timeline.mark(.firstAudible, at: at + 120_000_000)
+        guard let unfinished = timeline.closedTurnsForTesting().last,
+              unfinished.marks[.routeDone] == nil,
+              unfinished.seconds(.voiceRoute) == nil else {
+            return ["route revision: unfinished route borrowed previous completion"]
+        }
+        timeline.beginSession(UUID())
+        stampCompleteTurn(timeline, omitting: [.schedulerAcquired, .routeStarted, .routeDone])
+        // Authored instants test the metadata contract, not hardware latency.
+        timeline.mark(.routeStarted, at: at + 50_000_000)
+        timeline.mark(.routeDone, at: at + 90_000_000)
+        timeline.mark(.firstAudible, at: at + 2_000_000_000)
+        MetricsStore.shared.flushForTesting()
+        guard let turn = timeline.closedTurnsForTesting().last,
+              turn.seconds(.voiceRoute) == 0.04 else {
+            return ["route revision: actual precommit route interval was lost or relabelled"]
+        }
+        let rows = MetricsStore.load(from: MetricsStore.shared.fileURL).filter {
+            $0.name == .voiceRoute && $0.source == "voice"
+                && $0.correlation?.sessionID == turn.sessionID
+                && $0.correlation?.revision == turn.number
+        }
+        return rows.count == 1 && rows.first?.durationSeconds == 0.04
+            ? [] : ["route revision: actual interval did not reach persisted metrics"]
     }
 
     /// Rows from an earlier turn in the same session are not evidence this turn was
@@ -936,6 +980,7 @@ enum VoiceLatencySelfTest {
         step(1_000_000)
         if !omitting.contains(.schedulerAcquired) { timeline.mark(.schedulerAcquired, at: at) }
         timeline.note("speculation", speculation)
+        if !omitting.contains(.routeStarted) { timeline.mark(.routeStarted, at: at) }
         step(600_000_000)
         if !omitting.contains(.routeDone) { timeline.mark(.routeDone, at: at) }
         step(400_000_000)

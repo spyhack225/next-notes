@@ -475,24 +475,16 @@ actor FrontendResponder {
                     Self.emitTiming(timing, "native_task_end", durationFrom: timing.cancelledAt)
                 }
                 do {
-                    // Substitute only the external generator inside the SAME owned
-                    // Task; scripted callbacks are never native kernel evidence.
-                    if let ownedTestingGenerator {
-                        for try await delta in ownedTestingGenerator(system, messages, maxTokens) {
-                            try Task.checkCancellation()
-                            if mayDeliver(timing) { continuation.yield(delta) }
-                        }
-                        continuation.finish()
-                        return
-                    }
                     // A live turn cannot race an unfinished warmup in Foundation
                     // Models. Both operations share one local inference service.
                     let warmupStarted = ContinuousClock.now
-                    if deliveryPhrase {
-                        // Join an already-owned warmup, but do not add a discarded
-                        // preparation inference to a delivery phrase.
-                        try await self.prepareTask?.value
-                    } else { try await self.prepare() }
+                    if ownedTestingGenerator == nil {
+                        if deliveryPhrase {
+                            // Join an already-owned warmup, but do not add a discarded
+                            // preparation inference to a delivery phrase.
+                            try await self.prepareTask?.value
+                        } else { try await self.prepare() }
+                    }
                     Self.emitTiming(timing, "native_warmup_done", durationFrom: warmupStarted)
                     try Task.checkCancellation()
                     if deliveryPhrase, timing.id != nextGenerationTimingID { throw CancellationError() }
@@ -509,18 +501,42 @@ actor FrontendResponder {
                         staged = self.takeStagedSession()
                     }
                     let schedulerStarted = ContinuousClock.now
-                    guard let jobID = await ComputeScheduler.shared.acquireCancellable(.realtimeAgent) else {
-                        throw CancellationError()
+                    // Split routing is an independent Apple session. It owns no
+                    // llama context and must not park local work while Apple collects.
+                    // Legacy/phrase modes keep their existing compute policy.
+                    let jobID: UUID?
+                    if useSplitDecision {
+                        jobID = nil
+                    } else {
+                        guard let acquired = await ComputeScheduler.shared.acquireCancellable(.realtimeAgent) else {
+                            throw CancellationError()
+                        }
+                        jobID = acquired
+                        Self.emitTiming(timing, "scheduler_acquire_done", durationFrom: schedulerStarted)
+                        VoiceLatencyTimeline.shared.mark(.schedulerAcquired)
+                        acquiredObserver?()
                     }
-                    Self.emitTiming(timing, "scheduler_acquire_done", durationFrom: schedulerStarted)
-                    // P2-01: the compute lane is held, so the request→lane wait is over.
-                    // A speculative generation stamps it too, and the timeline's first-wins
-                    // rule plus its negative-duration rule keep that honest.
-                    VoiceLatencyTimeline.shared.mark(.schedulerAcquired)
-                    acquiredObserver?()
                     do {
                         try Task.checkCancellation()
                         if deliveryPhrase, timing.id != nextGenerationTimingID { throw CancellationError() }
+                        // Replace only the external generator AFTER the actual
+                        // frontend admission, inside its retained/cancelable Task.
+                        // Authored streams are not Apple kernel or timing evidence.
+                        if let ownedTestingGenerator {
+                            if useSplitDecision, timing.id == nextGenerationTimingID {
+                                VoiceLatencyTimeline.shared.mark(.routeStarted)
+                            }
+                            for try await delta in ownedTestingGenerator(system, messages, maxTokens) {
+                                try Task.checkCancellation()
+                                if mayDeliver(timing) { continuation.yield(delta) }
+                            }
+                            if let jobID { await ComputeScheduler.shared.release(jobID) }
+                            if useSplitDecision, timing.id == nextGenerationTimingID {
+                                VoiceLatencyTimeline.shared.mark(.routeDone)
+                            }
+                            continuation.finish()
+                            return
+                        }
                         if let reason = FoundationModelFormatter.unavailableReason {
                             throw FrontendError.unavailable(reason)
                         }
@@ -591,10 +607,10 @@ actor FrontendResponder {
                         guard produced else {
                             throw FrontendError.emptyResponse
                         }
-                        await ComputeScheduler.shared.release(jobID)
+                        if let jobID { await ComputeScheduler.shared.release(jobID) }
                         continuation.finish()
                     } catch {
-                        await ComputeScheduler.shared.release(jobID)
+                        if let jobID { await ComputeScheduler.shared.release(jobID) }
                         continuation.finish(throwing: error)
                     }
                 } catch {
@@ -618,7 +634,7 @@ actor FrontendResponder {
         messages: [LLMChatMessage],
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
-        timing: GenerationTiming, schedulerJob: UUID
+        timing: GenerationTiming, schedulerJob: UUID?
     ) async throws -> Bool {
         let recorder = ModelPassRecorder(
             feature: .agentVoice, pass: "frontend-route",
@@ -643,12 +659,15 @@ actor FrontendResponder {
         messages: [LLMChatMessage],
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
-        timing: GenerationTiming, schedulerJob: UUID
+        timing: GenerationTiming, schedulerJob: UUID?
     ) async throws -> Bool {
         guard let routePlan = LocalVoiceSplitResponse.routePlan(messages: messages) else {
             throw FrontendError.unavailable("split_route_missing_latest_user")
         }
         let routeSession = LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: routePlan))
+        if timing.id == nextGenerationTimingID {
+            VoiceLatencyTimeline.shared.mark(.routeStarted)
+        }
         let routeStream = routeSession.streamResponse(
             to: routePlan.latestUser,
             generating: LocalVoiceRoute.self,
@@ -662,8 +681,10 @@ actor FrontendResponder {
         let routeCollectStarted = ContinuousClock.now
         let routeResponse = try await routeStream.collect()
         Self.emitTiming(timing, "typed_route_collect_done", durationFrom: routeCollectStarted)
-        VoiceLatencyTimeline.shared.mark(.routeDone)
         try Task.checkCancellation()
+        if timing.id == nextGenerationTimingID {
+            VoiceLatencyTimeline.shared.mark(.routeDone)
+        }
         let route = routeResponse.content
         // Log the decision boundary, not private conversation content. A live
         // routing failure must be distinguishable from an answer-stage failure.
@@ -705,10 +726,9 @@ actor FrontendResponder {
             ) else {
                 throw FrontendError.unavailable("split_answer_missing_latest_user")
             }
-            if latencyAnswerProvider is LlamaLLMProvider {
-                // Apple routing is complete. Llama owns its existing reservation/lane;
-                // holding this job across its acquire would deadlock the same lane.
-                // The outer release is idempotent for this already-ended job.
+            if latencyAnswerProvider is LlamaLLMProvider, let schedulerJob {
+                // Defensive for a caller retaining a legacy ticket: native answers
+                // acquire their own existing context reservation and compute lane.
                 await ComputeScheduler.shared.release(schedulerJob)
             }
             let answerSession = latencyAnswerProvider is LlamaLLMProvider ? nil
