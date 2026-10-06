@@ -2147,6 +2147,77 @@ enum RealtimeAgentToolLoopSelfTest {
             }
         }
         // K03 end original consumer block
+        // O04_REQUESTED_INBOX_COMMON_BEGIN
+        do {
+            let request = "Can you look at my inbox?"
+            let raw = "Sure, I'll check your inbox for you. Let me see what's new."
+            let grounded = "Cyril asked about dinner tomorrow; Ana needs the deck by Friday; Marcus shared the pricing sheet."
+            let inputs = AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+            let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+            let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+            let priorProvider = agent.localModelProviderForTesting
+            let priorFake = AgentToolExecutor.fakeForTesting
+            defer {
+                AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+                agent.localModelProviderForTesting = priorProvider
+                AgentToolExecutor.fakeForTesting = priorFake
+                agent.setTypedPendingForTesting(nil)
+                AgentSession.shared.forgetAllConversations()
+            }
+            func pending(_ question: String, reply: String = raw,
+                         completed: [String] = [], catalogue: AgentCapabilityManifest? = nil)
+                -> String? {
+                let selected = catalogue ?? manifest
+                return AgentAccountRead.pendingRead(reply: reply, selectedIntents: selected.selectedIntents,
+                    completedThisTurn: completed, completedThisSession: [], toolIDFor: {
+                        AccountReadTools.toolID(for: $0, manifest: selected, request: question)
+                    }, request: question, manifest: selected)?.toolID
+            }
+            check("O04 exact request lacks ready read admission",
+                  manifest.selectedIntents.contains(.mail)
+                    && manifest.entry(named: "search_email")?.isReady == true
+                    && manifest.entry(named: "search_email").map { $0.risk <= .read } == true)
+            for question in [request, "Look at my inbox", "Could you please look at my email?"] {
+                check("O04 explicit own-account request lost its promised read: \(question)",
+                      pending(question) == "search_email")
+            }
+            for question in ["Should I look at my inbox?", "Can I look at my inbox?",
+                             "How can you look at my inbox?", "Explain how to look at my inbox",
+                             "If you look at my inbox, what happens?", "Look at my inbox settings",
+                             "Look at my inbox to send an email to Ana",
+                             "Quote \"Can you look at my inbox?\" exactly",
+                             "Quote 'Can you look at my inbox?' exactly"] {
+                check("O04 advice/quoted/self-directed/other action acquired a read: \(question)",
+                      pending(question) == nil)
+            }
+            check("O04 completed exact read was repeated", pending(request, completed: ["search_email"]) == nil)
+            check("O04 clarification was treated as an offered read",
+                  pending(request, reply: "Which account should I check?") == nil)
+            let noRead = AgentCapabilityManifestBuilder.build(AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged).filter { $0.id != "search_email" },
+                reader: .voiceFrontend), request: request)
+            check("O04 unavailable read was invented", pending(request, catalogue: noRead) == nil)
+            let fixtures = LiveEvalFixtures()
+            let log = PlannerScriptLog()
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+            AgentToolExecutor.fakeForTesting = { tool, arguments in try await fixtures.run(tool, arguments) }
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: [raw, grounded], log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let actual = await agent.handle(request, source: .text)
+            let evidence = fixtures.summary(for: "search_email", arguments: fixtures.calls.first?.arguments ?? [:])
+            check("O04 actual runner did not enter one read-only fixture executor",
+                  fixtures.calls.count == 1 && fixtures.calls.first?.toolID == "search_email"
+                    && fixtures.calls.first.map { $0.risk <= .read } == true)
+            check("O04 exact request and actual inbox result did not reach final provider",
+                  log.calls.count == 2 && log.calls[1].user.contains("Current user request:\n" + request)
+                    && log.calls[1].user.contains(evidence) && evidence.contains("Dinner tomorrow?")
+                    && evidence.contains("Deck for Friday") && evidence.contains("Pricing sheet v3"))
+            check("O04 delivered the unexecuted promise instead of the final consumer", actual.reply == grounded)
+        }
+        // O04_REQUESTED_INBOX_COMMON_END
         // REQUESTED_LATEST_MAIL_READ_COMMON_BEGIN
         do {
             let request = "Check my email, check the last email and then do a summary"

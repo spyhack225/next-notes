@@ -1,0 +1,9 @@
+# Requested inbox look — 2026-10-05
+
+The actual request “Can you look at my inbox?” was excluded by `AgentAccountRead.requestsMailRead`; the recognized promise therefore returned without its read. The existing producer now admits complete, unquoted own-mail “look at” clauses using the registered mail nouns. It reuses the same manifest/runner/read/result/final-answer seam. Quoted instructions, advice, capability questions, unrelated actions, unavailable tools and completed read replies remain unchanged.
+
+Original six failures → identical fixed production regression PASS. Actual requested read executes once and its result reaches the final consumer; an unexecuted promise is not delivered. This is the product repair, separately committed from O01 instrument correction.
+
+Shared actual qualification: original combined COMMON production regression has six O04 failures and grader has one O01 misclassification. Fixed production, live grader, capability manifest and owner-store isolation all PASS. Pinned Qwen native O01/O04 both PASS on binary `b44f51a11b76b7178e264fa2501384e6085e0e84956608187b6f66ca86cd26ea`; fixture clock2026-10-05T09:00:00-04:00, America/New_York, baseline sampler, unchanged Qwen artifact SHA3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597. No owner mailbox is read. All task-owned TMP roots are deleted after child joins. Logs/paired apps metadata and raw rounds live outside iCloud at `~/Library/Caches/NextNotesBuild/integration/o04-requested-inbox-read/` and grader patches at `integration/o01-summary-provenance-grader/`.
+
+Predecessor847c1b7 quick10/10 three times and full28/30 twice are retained; owner7/10 with O01/O04/O08 red. The two targeted fixed owner cases are not a new full score. O08 document identification, full/owner acceptance, voice/wake/floor/default and parent gates remain open.

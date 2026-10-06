@@ -284,6 +284,13 @@ enum AgentAccountRead {
             of: #"\b(?:and|then|also)\b"#, with: "\n", options: [.regularExpression, .caseInsensitive])
         for clause in separated.components(separatedBy: CharacterSet(charactersIn: ".!?;\n")) {
             let text = AgentDirectIntent.questionForm(clause)
+            // O04: “look at my inbox” requests the same existing read. Bind the
+            // whole own-account clause, never quoted prose, advice or another action.
+            if !request.contains(where: { "\n\r\"“”‘`".contains($0) }),
+               request.range(of: #"(?:^|[^\p{L}\p{N}])'"#, options: .regularExpression) == nil,
+               text.range(of: #"^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?look\s+at\s+my\s+(?:"#
+                    + read.nouns.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+                    + #")$"#, options: .regularExpression) != nil { return true }
             // A requested presentation can wrap the same existing inbox question.
             let question = text.replacingOccurrences(
                 of: #"^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?tell\s+me\s+"#,
