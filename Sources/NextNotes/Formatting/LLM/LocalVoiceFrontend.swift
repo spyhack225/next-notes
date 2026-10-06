@@ -345,9 +345,15 @@ actor FrontendResponder {
 
     func cancelSpeculation() {
         if let speculation {
-            // An answer not yet consumed belongs to this cancelled generation.
-            // A later stage with no admitted generation must survive this old cancel.
-            if stagedSplitTurn?.generation == speculation.timing.id { stagedSplitTurn = nil }
+            // The cancelled route was used with provisional speech. Its independent
+            // answer has only been prewarmed, unless it was actually taken. Retain
+            // that untouched session; the final take still checks exact context,
+            // epoch and age. Never reuse a session whose answer inference started.
+            if var staged = stagedSplitTurn, staged.generation == speculation.timing.id {
+                staged.route = nil
+                staged.generation = nil
+                stagedSplitTurn = staged.answer == nil ? nil : staged
+            }
             traceSpeculation("canceled revision=\(speculation.epoch)")
             let canceledAt = ContinuousClock.now
             speculation.timing.markCancellation()

@@ -82,6 +82,74 @@ enum LocalVoiceFrontendSelfTest {
             if await take(.answer, generation: 3) != nil {
                 problems.append("a successor generation borrowed the prior route's staged answer")
             }
+            // Retained eac production flow: first partial takes its staged route,
+            // then ASR revises before the route can take the independent answer.
+            // The actual cancellation owner must retain only that untouched SDK
+            // session for exact final context. No re-stage or answer pass occurs.
+            for scenario in ["exact", "consumed-answer", "history", "playback", "work", "approval", "instructions", "expiry", "close", "uncancelled-successor"] {
+                let partialFrontend = LocalVoiceFrontend()
+                let partialProbe = StagingProbe()
+                guard await partialFrontend.setStagingObserverForTesting({ partialProbe.record($0) }) else {
+                    problems.append("partial-stage observer refused"); break
+                }
+                await partialFrontend.setGenerationForTesting { _, _, _ in AsyncThrowingStream { $0.finish() } }
+                do {
+                    try await partialFrontend.stageNextTurn(system: system, messages: stage)
+                    let originalAnswer = partialProbe.createdSession(.answer)
+                    let partial = Array(stage.dropLast()) + [.init(role: .user, content: prefix + "Hello")]
+                    await partialFrontend.speculate(system: system, messages: partial, maxTokens: 64, revision: 1)
+                    // This isolated frontend's first real speculation is generation1.
+                    // The same production take used by SDK route collection binds it.
+                    if await partialFrontend.takeStagedSplitSessionForTesting(.route,
+                        system: system, messages: partial, generation: 1) == nil {
+                        problems.append("\(scenario): actual first partial could not take its staged route")
+                    }
+                    if scenario == "consumed-answer" {
+                        _ = await partialFrontend.takeStagedSplitSessionForTesting(.answer,
+                            system: system, messages: partial, generation: 1)
+                    }
+                    if scenario != "uncancelled-successor" { await partialFrontend.cancelSpeculation() }
+                    var selected = final
+                    var instructions = system
+                    switch scenario {
+                    case "history": selected[1] = .init(role: .assistant, content: "A different authored answer.")
+                    case "playback": selected[0] = .init(role: .system, content: "Fixture capability and playback context: paused.")
+                    case "work": selected[2] = .init(role: .user, content: (prefix + "What is a haiku?").replacingOccurrences(of: "No active jobs.", with: "Task 1 [running]: An authored task."))
+                    case "approval": selected[2] = .init(role: .user, content: (prefix + "What is a haiku?").replacingOccurrences(of: "Approval offered: no", with: "Approval offered: yes"))
+                    case "instructions": instructions = "Different answer instructions."
+                    case "close": await partialFrontend.clearStagedTurn()
+                    default: break
+                    }
+                    let retained = await partialFrontend.takeStagedSplitSessionForTesting(.answer,
+                        system: instructions, messages: selected, generation: 2,
+                        advancingBy: scenario == "expiry" ? .seconds(61) : .zero)
+                    if scenario == "exact" {
+                        if retained == nil || retained != originalAnswer {
+                            problems.append("cancelled partial discarded its still-unconsumed exact answer SDK session")
+                        }
+                        if partialProbe.prewarmed(.answer) != 1 || partialProbe.consumed(.answer) != 1 {
+                            problems.append("retaining a partial's answer re-staged or consumed it more than once")
+                        }
+                    } else if retained != nil {
+                        problems.append("\(scenario): cancelled-partial answer violated existing context/lifetime/ownership refusal")
+                    }
+                    let again = await partialFrontend.takeStagedSplitSessionForTesting(.answer,
+                        system: system, messages: final, generation: 2)
+                    if again != nil { problems.append("\(scenario): an already taken/refused answer survived for replay") }
+                    let spentRoute = await partialFrontend.takeStagedSplitSessionForTesting(.route,
+                        system: system, messages: final, generation: 2)
+                    if spentRoute != nil { problems.append("\(scenario): a cancelled partial's already used route session was reused") }
+                } catch { problems.append("partial-stage fixture: \(error.localizedDescription)") }
+                await partialFrontend.clearStagedTurn()
+                // Join the same finite fake external producer through the existing
+                // frontend drain; this is owner mechanism, never SDK inference proof.
+                do {
+                    let drained = await partialFrontend.stream(system: system, messages: final, maxTokens: 64)
+                    for try await _ in drained { }
+                } catch { problems.append("partial-stage fixture did not join its producer: \(error.localizedDescription)") }
+                await partialFrontend.setGenerationForTesting(nil)
+                _ = await partialFrontend.setStagingObserverForTesting(nil)
+            }
             // Cancellation of prior partial work cannot erase a newly staged turn.
             // Only the external generator is finite/scripted; session construction
             // and the cancellation/staging owner are the real production path.
@@ -125,6 +193,9 @@ enum LocalVoiceFrontendSelfTest {
         func reset() { lock.withLock { rows.removeAll() } }
         func prewarmed(_ kind: LocalVoiceFrontend.StagedSessionKind) -> Int {
             lock.withLock { rows.filter { $0.kind == kind && !$0.consumed }.count }
+        }
+        func createdSession(_ kind: LocalVoiceFrontend.StagedSessionKind) -> ObjectIdentifier? {
+            lock.withLock { rows.first { $0.kind == kind && !$0.consumed }?.session }
         }
         func consumed(_ kind: LocalVoiceFrontend.StagedSessionKind) -> Int {
             lock.withLock { rows.filter { $0.kind == kind && $0.consumed }.count }
