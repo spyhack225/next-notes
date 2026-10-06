@@ -494,9 +494,20 @@ enum LiveEvalGrader {
                 $0.toolID == "browser.click"
                     && ($0.arguments["expectedText"] ?? "").lowercased().contains(needle)
             }
-            let navigated = calls.contains {
-                $0.toolID == "browser.navigate"
-                    && ($0.arguments["url"] ?? "").lowercased().contains(needle)
+            let navigated = calls.contains { call in
+                guard call.toolID == "browser.navigate",
+                      let rawURL = call.arguments["url"], rawURL.lowercased().contains(needle),
+                      let url = URLComponents(string: rawURL),
+                      let scheme = url.scheme?.lowercased(), ["http", "https"].contains(scheme)
+                else { return false }
+                let host = url.host?.lowercased() ?? ""
+                let path = url.path.lowercased()
+                if host == "youtu.be" { return path.split(separator: "/").count == 1 }
+                guard host == "youtube.com" || host == "www.youtube.com" || host == "m.youtube.com"
+                else { return false }
+                return (path == "/watch" && url.queryItems?.contains(where: {
+                    $0.name == "v" && $0.value?.isEmpty == false
+                }) == true) || (path.hasPrefix("/shorts/") && path.split(separator: "/").count == 2)
             }
             return clicked || navigated
         case .noToolFromSecondTurn:
@@ -881,6 +892,40 @@ enum LiveEvalGrader {
             call("browser.snapshot"),
             call("browser.click", ["expectedText": "Cortech — newest upload"]),
         ])
+        // A02_VIDEO_TARGET_COMMON_BEGIN
+        // Exact retained native search-only replies/calls are not a video target.
+        expect(.ungrounded, "A02", replies: ["I've opened YouTube and searched for the latest Cortech videos. Would you like me to show you what's available, or is there something specific you'd like help with?"], calls: [
+            call("browser.navigate", ["url": "https://www.youtube.com"]),
+            call("browser.navigate", ["url": "https://www.youtube.com/results?search_query=Cortech&sort=date"]),
+        ])
+        expect(.ungrounded, "A02", replies: ["I've opened YouTube and searched for the latest Cortech videos. Would you like me to show you what's available, or is there something specific you'd like help with?"], calls: [
+            call("browser.navigate", ["url": "https://www.youtube.com"]),
+            call("browser.navigate", ["url": "https://www.youtube.com/results?search_query=Cortech&sort=date"]),
+        ])
+        expect(.ungrounded, "A02", replies: ["I've opened YouTube and searched for Cortech videos. Play the latest one when you're ready."], calls: [
+            call("browser.navigate", ["url": "https://www.youtube.com/results?search_query=cortech"]),
+        ])
+        // Authored classifier controls, not measured video or playback effects.
+        for target in ["https://www.youtube.com/watch?v=cortech-latest",
+                       "https://www.youtube.com/shorts/cortech-latest",
+                       "https://youtu.be/cortech-latest"] {
+            expect(.pass, "A02", replies: ["Opened the latest Cortech video."], calls: [
+                call("browser.navigate", ["url": target]),
+            ])
+        }
+        for target in ["https://youtube.com.evil/watch?v=cortech",
+                       "https://www.youtube.com/watch?v=&search_query=cortech",
+                       "https://youtu.be/?search_query=cortech",
+                       "javascript://www.youtube.com/watch?v=cortech"] {
+            expect(.ungrounded, "A02", replies: ["Opened the latest Cortech video."], calls: [
+                call("browser.navigate", ["url": target]),
+            ])
+        }
+        // Search-only A01 keeps its distinct search-term contract.
+        expect(.pass, "A01", replies: ["Searched YouTube for cats."], calls: [
+            call("browser.navigate", ["url": "https://www.youtube.com/results?search_query=cats"]),
+        ])
+        // A02_VIDEO_TARGET_COMMON_END
         // UNGROUNDED — identical replies across turns.
         expect(.ungrounded, "M05", replies: ["You have six messages.", "You have six messages."], calls: [
             call("search_email", ["query": "in:inbox"], turn: 0),
