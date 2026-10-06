@@ -1,0 +1,13 @@
+# Pocket inter-clause metrics — 2026-10-06
+
+Cause: the existing voice.inter_clause_gap span had no production emitter. The prior Pocket reply producer played all clauses but left no boundary timings in the existing metrics store.
+
+The existing Pocket backing now captures native played timestamps before MainActor delivery. Existing Clause metadata retains the first head and maximum drained tail timestamp; sealing and playback completion recheck each boundary once. The existing MetricsStore writer builds and appends each span off the audio/actor path. No new clock owner, store, audio gate, timer, model pass or settings change. Optional correlation is captured at reply start; absent identity stays absent rather than borrowing another turn.
+
+Unchanged actual native regression: three authored clauses, alba, muted output, actual Pocket session/player, exact ordered receipts and controlled TaskLocal identity. Original fails three assertions: no two correlated spans and neither boundary has its exact native value. Fixed saves exactly two spans whose durations match the same native callbacks within 1ns. Signed software estimates are retained and explicitly labeled; they are not acoustic silence measurements. Fixed first head acknowledgement41.871ms, one engine, boundary estimates12.096ms and10.674ms. Original playback itself remained green (39.576ms; -9.986ms /10.767ms), so this repair claims missing measurement, not a fresh gap-speed improvement.
+
+Focused native pipeline, metrics, playback-ledger, voice-delivery and store-isolation all exit0. Isolation preserves21 files/32defaults. Its later nested A02 fixture-admission failures are unchanged from the prior qualified build and were logged there; this invariant check does not promote that unrelated production suite. All processes joined, owned temporary roots removed, and the model-evaluation claim released. The original staged app was deleted after retaining source/fixture pins and logs. The prior installed reply build additionally passed realtime, acoustic-replay and duplex once.
+
+Qualified binary SHA256: `8ef635ab3cffa0997f209ed01ce09540d82012ade75b3e588d138aef111ff933`. Raw commands, same original/fixed fixtures, per-buffer native timestamps, results and cleanup: `~/Library/Caches/NextNotesBuild/integration/p2-pocket-gap-spans/`.
+
+Open: ordinary per-turn attribution (RealtimeAudioSession does not supply this TaskLocal identity), prescribed five-turn latency/barge/native acceptance, physical prosody/acoustic full-duplex proof, demonstrated spare-session need, full/owner model gates, C2 and default qualification. P2-06 and AGENT-OVERHAUL are not fully closed.

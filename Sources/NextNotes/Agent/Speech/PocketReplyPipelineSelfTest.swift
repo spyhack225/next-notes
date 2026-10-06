@@ -42,10 +42,11 @@ enum PocketReplyPipelineSelfTest {
             events.append(event)
             if event == .completed(clauses[2]) { finished = true }
         }
+        let gapIdentity = LatencyCorrelation(sessionID: UUID(), turnID: UUID())
         let buffer = StreamingSpeechBuffer(synthesizer: synth)
         buffer.begin()
         for clause in clauses {
-            buffer.append(clause + " ")
+            LatencyCorrelation.$current.withValue(gapIdentity) { buffer.append(clause + " ") }
             // Authored token cadence only; never used by the product path.
             try? await Task.sleep(for: .milliseconds(50))
         }
@@ -77,6 +78,10 @@ enum PocketReplyPipelineSelfTest {
         var order: [UInt64] = []
         for notice in recorded where !order.contains(notice.token) { order.append(notice.token) }
         check(order.count == 3, "not all three clauses produced native played buffers")
+        MetricsStore.shared.flushForTesting()
+        let gapSpans = MetricsStore.shared.spans(named: .voiceInterClauseGap)
+            .filter { $0.correlation == gapIdentity }
+        check(gapSpans.count == 2, "same reply did not persist exactly two correlated production gap spans")
         var timebase = mach_timebase_info_data_t()
         mach_timebase_info(&timebase)
         func seconds(_ ticks: UInt64) -> Double {
@@ -100,6 +105,10 @@ enum PocketReplyPipelineSelfTest {
                 let gap = seconds(head.playedHostTime - tail.playedHostTime) - Double(head.samples) / 24_000
                 print(String(format: "POCKET_PIPELINE_GAP boundary=%d seconds=%.6f", index, gap))
                 check(gap <= 0.050, "boundary \(index) software playback gap exceeded 50ms")
+                let spans = gapSpans.filter { $0.note == "boundary=\(index) software_playback_estimate" }
+                check(spans.count == 1 && spans.allSatisfy {
+                    $0.source == "voice" && abs($0.durationSeconds - gap) <= 1e-9
+                }, "boundary \(index) production span differs from same raw native software gap")
             } else if index > 0 {
                 check(false, "boundary \(index) missing ordered native callbacks")
             }

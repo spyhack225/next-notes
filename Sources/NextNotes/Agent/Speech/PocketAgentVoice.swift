@@ -304,10 +304,17 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
         var sealed = false
         var firstPlayed = false
         var startReported = false
+        var firstPlayedHostTime: UInt64?
+        var firstPlayedSamples = 0
+        var lastPlayedHostTime: UInt64 = 0
+        var gapReported = false
     }
     private var clauses: [Clause] = []
     private var completed = 0
     private var lastProducedIndex: Int?
+    private var replyCorrelation: LatencyCorrelation?
+    private var replyStartedAt = Date()
+    private var replyStartedHostTime: UInt64 = 0
     private var generation: UInt64 = 0
     private var task: Task<Void, Never>?
     private var nativeSession: PocketTtsSession?
@@ -352,6 +359,9 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
         inputFinished = false
         nativeInputFinished = false
         let reply = generation
+        replyCorrelation = LatencyCorrelation.current
+        replyStartedAt = Date()
+        replyStartedHostTime = mach_absolute_time()
         let voice = voiceForTesting ?? Settings.shared.agentPocketVoice
         task = voiceOwner.startReplyPlayback(self) { [weak self] in
             guard let self, generation == reply else { return }
@@ -505,10 +515,12 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
             let nonzero = observer != nil && frame[range].contains { abs($0) > 0.0001 }
             let scheduledHostTime = observer == nil ? 0 : mach_absolute_time()
             player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
+                let playedHostTime = mach_absolute_time()
                 observer?(.init(token: token, ordinal: ordinal, samples: count,
                     nonzero: nonzero, scheduledHostTime: scheduledHostTime,
-                    playedHostTime: mach_absolute_time()))
-                Task { @MainActor in self?.framePlayed(reply: reply, index: index, samples: count) }
+                    playedHostTime: playedHostTime))
+                Task { @MainActor in self?.framePlayed(reply: reply, index: index, samples: count,
+                                                     ordinal: ordinal, playedHostTime: playedHostTime) }
             }
             if !pausedForListening && !player.isPlaying { player.play() }
         }
@@ -527,6 +539,8 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
         clauses.removeAll()
         completed = 0
         lastProducedIndex = nil
+        replyCorrelation = nil
+        replyStartedHostTime = 0
         nativeSession = nil
         pendingSamples = 0
         inputFinished = true
@@ -558,11 +572,17 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
         flushSubmittedText()
     }
 
-    private func framePlayed(reply: UInt64, index: Int, samples: Int) {
+    private func framePlayed(reply: UInt64, index: Int, samples: Int,
+                             ordinal: Int, playedHostTime: UInt64) {
         MainActorSection.run("tts.played") {
             guard generation == reply, speaking, clauses.indices.contains(index),
                   clauses[index].pendingFrames > 0 else { return }
             clauses[index].pendingFrames -= 1
+            if ordinal == 0 {
+                clauses[index].firstPlayedHostTime = playedHostTime
+                clauses[index].firstPlayedSamples = samples
+            }
+            clauses[index].lastPlayedHostTime = max(clauses[index].lastPlayedHostTime, playedHostTime)
             if !clauses[index].firstPlayed {
                 clauses[index].firstPlayed = true
                 let playedAt = Date()
@@ -582,7 +602,34 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
         }
     }
 
+    /// Same native callback formula as the playback probe. Negative values are
+    /// retained software estimates, not evidence of physical overlap or silence.
+    private func recordPlayedGaps(reply: UInt64) {
+        guard generation == reply, speaking, clauses.count > 1 else { return }
+        for index in 1..<clauses.count {
+            guard !clauses[index].gapReported,
+                  clauses[index - 1].sealed, clauses[index - 1].pendingFrames == 0,
+                  let head = clauses[index].firstPlayedHostTime else { continue }
+            let tail = clauses[index - 1].lastPlayedHostTime
+            guard tail > 0, head >= tail, head >= replyStartedHostTime else { continue }
+            let seconds = AVAudioTime.seconds(forHostTime: head - tail)
+                - Double(clauses[index].firstPlayedSamples) / 24_000
+            let endedAt = replyStartedAt.addingTimeInterval(
+                AVAudioTime.seconds(forHostTime: head - replyStartedHostTime))
+            let correlation = replyCorrelation
+            clauses[index].gapReported = true
+            MetricsStore.shared.recordAsync {
+                LatencySpan(name: .voiceInterClauseGap,
+                    startedAt: endedAt.addingTimeInterval(-seconds), endedAt: endedAt,
+                    durationSeconds: seconds,
+                    note: "boundary=\(index) software_playback_estimate",
+                    correlation: correlation, source: "voice")
+            }
+        }
+    }
+
     private func publishPlayedClauses(reply: UInt64) {
+        recordPlayedGaps(reply: reply)
         while generation == reply, speaking, clauses.indices.contains(completed) {
             let index = completed
             if clauses[index].firstPlayed && !clauses[index].startReported {
