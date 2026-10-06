@@ -2342,6 +2342,11 @@ extension RealtimeAgent {
                     if revision != (work?.revision ?? 0) { continue }
                     if case .completed = step.disposition, step.output != nil {
                         beginWork(title: Self.composingTitle)
+                        // This forced read completes only one step of a compound
+                        // request. Keep its verified result in the same bounded
+                        // planner so the remaining action can reach normal approval.
+                        if ModelRoleStore.likelyMultiStep(currentRequest), (rounds < maxRounds),
+                           runner.canRunAnother, runner.ceilingRemaining > .zero { continue }
                         return await finalAnswerRound(reason: .accountRead)
                     }
                     // The read did not complete. The honest sentence is the answer, and it is a

@@ -1957,6 +1957,7 @@ enum RealtimeAgentToolLoopSelfTest {
     static func runRequestedFileReadCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
         guard SelfTest.isRunning else { return ["F03 requested-file fixture requires SelfTest"] }
         let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
         let priorFake = AgentToolExecutor.fakeForTesting
         let priorFire = AgentToolExecutor.fireOverrideForTesting
         let priorPolicy = AgentToolExecutor.policyOverrideForTesting
@@ -1968,6 +1969,7 @@ enum RealtimeAgentToolLoopSelfTest {
         let priorBudget = agent.budgetForTesting
         defer {
             AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.recordedReadApprovalsForTesting = priorApprovals
             AgentToolExecutor.fakeForTesting = priorFake
             AgentToolExecutor.fireOverrideForTesting = priorFire
             AgentToolExecutor.policyOverrideForTesting = priorPolicy
@@ -2091,6 +2093,81 @@ enum RealtimeAgentToolLoopSelfTest {
             let denied = await run([deniedRaw], allow: false)
             check("F03 denied lookup reached backing, another model pass or false success",
                   denied.2.isEmpty && denied.1.count == 1 && denied.0.contains(AgentAccountRead.notReadYet(.files)))
+        }
+        // New coverage, NOT the retained native F03: this request supplies the address.
+        // Normal authored search is the control; forced read must preserve the same card.
+        let specified = "Find the pricing document and email it to Marcus at marcus@productflo.example"
+        let draftArguments = ["to": "marcus@productflo.example", "subject": "Pricing document",
+                              "body": "Here is Pricing 2026.pdf."]
+        let draftCall = #"<tool_call>{"name":"draft_email","arguments":{"to":"marcus@productflo.example","subject":"Pricing document","body":"Here is Pricing 2026.pdf."}}</tool_call>"#
+        let forced = "I can't find the pricing document on this Mac, so I can't email it."
+        let authoredSearch = #"<tool_call>{"name":"filesystem.search","arguments":{"query":"pricing"}}</tool_call>"#
+        let specifiedManifest = AgentCapabilityManifestBuilder.build(inputs, request: specified)
+        let specifiedReady = specifiedManifest.selectedIDs.contains("filesystem.search")
+            && specifiedManifest.selectedIDs.contains("draft_email")
+            && specifiedManifest.entry(named: "draft_email")?.risk == .write
+        check("F03 SPECIFIED_INPUT_INVALID: ready lookup/draft plus explicit recipient", specifiedReady)
+        if specifiedReady, PermissionGate.shared.pending == nil {
+            for (label, first) in [("authored read control", authoredSearch), ("forced read", forced)] {
+                let fixture = LiveEvalFixtures()
+                fixture.beginCase()
+                let log = PlannerScriptLog()
+                AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+                AgentToolExecutor.fakeForTesting = nil
+                AgentToolExecutor.fireOverrideForTesting = fixture.run
+                AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                    autoObserve: true, autoRead: true, autoSearchFiles: true,
+                    autoComputerControl: false, grants: [])
+                AgentToolExecutor.recordedReadApprovalsForTesting = []
+                agent.fileRetrievalForTesting = fixture.files
+                agent.readApprovalOverrideForTesting = true
+                agent.denyUnattendedApprovalsForTesting = false
+                agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                    window: 4_096, promptTokens: 2_000,
+                    script: [first, draftCall, "The draft is ready for review."], log: log)
+                AgentSession.shared.forgetAllConversations()
+                agent.setTypedPendingForTesting(nil)
+                var finished = false
+                let operation = Task { @MainActor in
+                    let result = await agent.handle(specified, source: .text)
+                    finished = true
+                    return result
+                }
+                var shown: PermissionRequest?
+                // Existing bounded review fixture wait; no production wait or model run.
+                for _ in 0..<200 {
+                    if let pending = PermissionGate.shared.pending, pending.toolID == "draft_email" {
+                        shown = pending; break
+                    }
+                    if finished { break }
+                    try? await Task.sleep(for: .milliseconds(10))
+                }
+                check("F03 specified \(label) lost actual pricing result/request before next decision",
+                      log.calls.count >= 2 && log.calls[1].user.contains("Pricing 2026.pdf")
+                        && log.calls[1].user.contains(specified))
+                check("F03 specified \(label) made the requested draft unreachable", shown != nil)
+                if let shown {
+                    let card = ToolCallReviewStore.shared.review(for: shown)
+                    check("F03 specified \(label) wrote before approval or changed recipient/body",
+                          fixture.calls.map(\.toolID) == ["filesystem.search"]
+                            && shown.arguments == draftArguments && card.isReadyToRun)
+                    let approved = PermissionGate.shared.respond(id: shown.id, approved: true)
+                    check("F03 specified \(label) could not approve the exact draft once", approved)
+                    if !approved { PermissionGate.shared.cancelPending(id: shown.id) }
+                } else { operation.cancel() }
+                _ = await operation.value
+                if let shown { ToolCallReviewStore.shared.remove(id: shown.id) }
+                check("F03 specified \(label) failed exact searched-file to approved-draft backing",
+                      fixture.calls.map(\.toolID) == ["filesystem.search", "draft_email"]
+                        && fixture.calls.last?.arguments == draftArguments)
+                check("F03 specified \(label) auto-approved write or retained pending review",
+                      AgentToolExecutor.recordedReadApprovalsForTesting.contains {
+                          $0.tool == "draft_email" && !$0.autoApproved
+                      } && PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+                print("  F03_SPECIFIED_FLOOR: \(label) model=\(log.calls.count) tools=\(fixture.calls.map(\.toolID)) card=\(shown != nil)")
+            }
+        } else {
+            check("F03 specified coverage has unrelated pending permission", PermissionGate.shared.pending == nil)
         }
         print("  TOOLLOOP_PRODUCTION_F03_FILE: rounds=\(actual.1.count) tools=\(actual.2.map(\.toolID)) reply=\(actual.0)")
         return []
