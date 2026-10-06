@@ -21,6 +21,7 @@ enum VoicePreparationSelfTest {
         var speech = 0
         coordinator.answerSpeechObserverForTesting = { _ in speech += 1 }
         let historyCount = AgentSession.shared.messages.count
+        problems += await AgentCaptureController.earlyLexicalPreparationSelfTestFailures(source: source)
         // Every revision gets its own observable producer. Four words separately
         // detects the old fixed delay, even if the short-partial gate is removed alone.
         for words in ["Hello", "Hello there", "Hello there friend", "Hello there friend again"] {
@@ -80,7 +81,7 @@ enum VoicePreparationSelfTest {
         return problems
     }
 
-    private final class Source: @unchecked Sendable {
+    final class Source: @unchecked Sendable {
         struct Request {
             let continuation: AsyncThrowingStream<String, Error>.Continuation
             let correlation: UsageCorrelation?

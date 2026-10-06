@@ -226,7 +226,10 @@ final class AgentCaptureController {
     var voiceShadowCurrentTurn: TurnID? { voiceShadowTurn }
     var heardSpeechForTesting: Bool { heardSpeech }
     var voiceShadowHasFloor: Bool {
-        isSessionActive && ((heardSpeech && (acousticFloorHeldForTurn || !lastPreparedPartial.isEmpty))
+        isSessionActive && ((heardSpeech && (acousticFloorHeldForTurn
+            || (!lastPreparedPartial.isEmpty && speechBeganAt.map {
+                Date().timeIntervalSince($0) >= Limits.minSpeech
+            } == true)))
             || VoiceTurnPolicy.isHesitation(lastEmittedRequest))
             && VoiceConversationCoordinator.shared.inputPending
     }
@@ -1544,9 +1547,9 @@ final class AgentCaptureController {
         }
     }
 
-    /// A partial is useful only after the same acoustic/lexical floor checks
-    /// used for a real turn. Preparation has no speech or tool sink; a revised
-    /// or empty partial cancels its pending debounce. Do not clear the final
+    /// Useful lexical input may start cancelable speculative inference before
+    /// the acoustic floor. Stable floor publication keeps its duration gate;
+    /// an empty revision cancels preparation. Do not clear the final
     /// partial in resetTurn: handle() compares the exact committed request.
     private func prepareResponseForRecognizedSpeech(_ userTurn: String) {
         guard isSessionActive, !wakeConfirmationPending, captureSessionID != nil,
@@ -1555,19 +1558,24 @@ final class AgentCaptureController {
         let beganLongEnough = speechBeganAt.map {
             Date().timeIntervalSince($0) >= Limits.minSpeech
         } ?? false
-        let candidate = beganLongEnough && trimmed.count >= Limits.minCharacters
+        let candidate = trimmed.count >= Limits.minCharacters
             && !Self.isInFlightRepeat(trimmed, previous: lastEmittedRequest)
             && !Self.isCommittedTranscriptRevision(trimmed, committed: committedPrefix)
             && !VoiceTurnPolicy.isHesitation(trimmed)
             && !VoiceTurnPolicy.isBackchannel(trimmed,
                 whileAssistantSpeaking: overlappedAssistantSpeech)
             ? trimmed : ""
-        guard candidate != lastPreparedPartial else { return }
-        lastPreparedPartial = candidate
-        if !candidate.isEmpty {
-            VoiceSession.shared.noteFloorProducer()
-            VoiceSession.shared.send(.partial(shadowTurnIfNeeded(), text: candidate, stable: true))
+        let changed = candidate != lastPreparedPartial
+        if changed { lastPreparedPartial = candidate }
+        if !candidate.isEmpty, beganLongEnough {
+            let shadow = VoiceSession.shared
+            let turn = shadowTurnIfNeeded()
+            if changed || shadow.state.floor != .userProvisional(turn) {
+                shadow.noteFloorProducer()
+                shadow.send(.partial(turn, text: candidate, stable: true))
+            }
         }
+        guard changed else { return }
         VoiceConversationCoordinator.shared.prepareResponseIfUseful(candidate)
     }
 
@@ -2831,9 +2839,10 @@ final class AgentCaptureController {
             failures.append("a standalone hesitation started response preparation")
         }
         capture.speechBeganAt = Date()
+        let beforeEarlyPartialEvents = VoiceSession.shared.eventCount
         capture.prepareResponseForRecognizedSpeech("Open Safari now")
-        if !capture.lastPreparedPartial.isEmpty {
-            failures.append("an early partial started response preparation before the speech floor")
+        if VoiceSession.shared.eventCount != beforeEarlyPartialEvents {
+            failures.append("an early speculative partial published a stable speech floor")
         }
         capture.speechBeganAt = Date().addingTimeInterval(-Limits.minSpeech - 0.05)
         capture.prepareResponseForRecognizedSpeech("Open Safari now")
@@ -2898,6 +2907,116 @@ final class AgentCaptureController {
         }
         coordinator.streamForTesting = priorStream
         await capture.endSession(source: .done)
+        return failures
+    }
+
+    /// Same local partial consumer and coordinator/frontend as capture. The
+    /// authored onset controls eligibility; it does not measure native ASR latency.
+    static func earlyLexicalPreparationSelfTestFailures(
+        source: VoicePreparationSelfTest.Source
+    ) async -> [String] {
+        guard SelfTest.requested == "--selftest-voice-latency",
+              CommandLine.arguments.contains("--voice-latency-partials") else {
+            return ["early lexical preparation fixture was not explicitly requested"]
+        }
+        let capture = AgentCaptureController.shared
+        let coordinator = VoiceConversationCoordinator.shared
+        let frontend = FrontendResponder.shared
+        let speech = AgentSpeechSynthesizer.shared
+        let shadow = VoiceSession.shared
+        var failures: [String] = []
+        capture.localDecoderCaughtUp = true
+        capture.turnDetectorReady = true
+        let messagesBefore = AgentSession.shared.messages.count
+        let workBefore = RealtimeAgent.shared.voiceWork?.id
+        let playbackBefore = speech.currentPlaybackToken
+        let queueBefore = speech.pendingClauseCount
+        let pauseBefore = speech.isPausedForListening
+        let eventsBefore = shadow.eventCount
+        let sourceBefore = source.count
+        capture.speechBeganAt = Date().addingTimeInterval(-0.160)
+        capture.noteModelPartial("How does rain form")
+        if shadow.eventCount != eventsBefore || capture.voiceShadowHasFloor
+            || capture.activeTurnTask != nil || coordinator.inputPending
+            || speech.currentPlaybackToken != playbackBefore
+            || speech.pendingClauseCount != queueBefore
+            || speech.isPausedForListening != pauseBefore {
+            failures.append("160 ms speculative input published a floor, changed playback, or submitted a turn")
+        }
+        if !(await source.waitForCount(sourceBefore + 1, within: .milliseconds(150))) {
+            failures.append("160 ms capture partial did not reach the actual speculative generator")
+        }
+        let firstCount = source.count
+        capture.speechBeganAt = Date().addingTimeInterval(-0.199)
+        capture.noteModelPartial("How does rain form in clouds")
+        if shadow.eventCount != eventsBefore || capture.voiceShadowHasFloor {
+            failures.append("199 ms local revision published an early stable floor")
+        }
+        if !(await source.waitForCount(firstCount + 1, within: .milliseconds(150))) {
+            failures.append("199 ms capture revision did not replace the actual speculative generator")
+        }
+        if firstCount > sourceBefore,
+           !(await source.waitForCancellation(firstCount - 1)) {
+            failures.append("actual revised capture input did not cancel the old speculative generator")
+        }
+        let revisedCount = source.count
+        capture.speechBeganAt = Date().addingTimeInterval(-Limits.minSpeech - 0.05)
+        capture.considerSpeechInterruption(capture.transcript, source: .local)
+        let lateEvents = shadow.eventCount
+        if lateEvents != eventsBefore + 1 {
+            failures.append("unchanged early words did not publish their stable floor after minSpeech")
+        }
+        capture.considerSpeechInterruption(capture.transcript, source: .local)
+        if shadow.eventCount != lateEvents || source.count != revisedCount {
+            failures.append("repeated eligible words duplicated stable publication or inference")
+        }
+        capture.speechBeganAt = Date().addingTimeInterval(-0.199)
+        capture.noteModelPartial("Uh")
+        if revisedCount > sourceBefore,
+           !(await source.waitForCancellation(revisedCount - 1)) {
+            failures.append("capture hesitation revision did not cancel the actual speculative generator")
+        }
+        coordinator.discardInput()
+        capture.resetTurn()
+        // An already-pending barrier must not turn early speculative words into
+        // a captured acoustic floor. Preserve its existing reducer state exactly.
+        coordinator.inputActivityStarted()
+        let pendingEvents = shadow.eventCount
+        let pendingFloor = shadow.state.floor
+        let pendingHeld = shadow.state.effectsHeld
+        let final = "How does rain form in the sky"
+        let finalBefore = source.count
+        capture.speechBeganAt = Date().addingTimeInterval(-0.199)
+        capture.noteModelPartial(final)
+        if capture.voiceShadowHasFloor || shadow.eventCount != pendingEvents
+            || shadow.state.floor != pendingFloor || shadow.state.effectsHeld != pendingHeld {
+            failures.append("199 ms preparation acquired or republished an already-pending shadow floor")
+        }
+        if await source.waitForCount(finalBefore + 1, within: .milliseconds(150)),
+           let request = source.last {
+            source.finishLast()
+            do {
+                let stream = await ModelPassRecorder.$correlation.withValue(request.correlation) {
+                    await frontend.stream(system: VoiceConversationCoordinator.systemPrompt,
+                        messages: request.messages, maxTokens: 256)
+                }
+                var answer = ""
+                for try await delta in stream { answer += delta }
+                if answer != "<answer/> Prepared \(final)." || source.count != finalBefore + 1 {
+                    failures.append("exact committed stream did not consume the early capture preparation once")
+                }
+            } catch { failures.append("early capture preparation adoption failed: \(error.localizedDescription)") }
+        } else { failures.append("pending-input early capture partial did not reach the actual frontend") }
+        if AgentSession.shared.messages.count != messagesBefore
+            || RealtimeAgent.shared.voiceWork?.id != workBefore
+            || capture.activeTurnTask != nil
+            || speech.currentPlaybackToken != playbackBefore
+            || speech.pendingClauseCount != queueBefore
+            || speech.isPausedForListening != pauseBefore {
+            failures.append("speculative capture/cancellation/adoption changed speech, work, or committed history")
+        }
+        coordinator.discardInput()
+        capture.resetTurn()
         return failures
     }
 
