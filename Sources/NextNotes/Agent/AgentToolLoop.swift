@@ -92,6 +92,37 @@ enum AgentToolLoop {
         let sentence = trimmed.split(whereSeparator: { ".!?".contains($0) })
             .last.map(String.init)?.trimmingCharacters(in: .whitespacesAndNewlines)
             .lowercased().replacingOccurrences(of: "\u{2019}", with: "'") ?? ""
+        if let intent = promisedSentenceIntent(sentence, manifest: manifest, request: request, repairsUsed: repairsUsed) {
+            return intent
+        }
+        // A preview can follow an explicit own-action promise. Limit the fallback
+        // to unquoted opening narration and the person's matching imperative;
+        // labelled draft bodies, questions and capability lists are not actions.
+        let opening = String(trimmed.prefix(while: { !$0.isNewline }))
+        guard repairsUsed == 0, !request.contains("?"),
+              !opening.contains(where: { ":?\"“”‘`".contains($0) }),
+              opening.range(of: #"(?:^|[^\p{L}\p{N}])'"#, options: .regularExpression) == nil,
+              !opening.trimmingCharacters(in: .whitespaces).hasPrefix(">") else { return nil }
+        let clauses = opening.split(whereSeparator: { ".!?".contains($0) }).map {
+            $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased().replacingOccurrences(of: "\u{2019}", with: "'")
+        }
+        guard let first = clauses.first else { return nil }
+        // Own narration begins here, optionally after one bare acknowledgement;
+        // a recipient greeting or arbitrary earlier sentence is not that narration.
+        let acknowledged = first == "got it" || VoiceTurnPolicy.isBareAcknowledgment(first)
+        guard !acknowledged || clauses.count > 1 else { return nil }
+        let candidate = acknowledged ? clauses[1] : first
+        guard let prefix = ["i'll ", "i will ", "let me "].first(where: { candidate.hasPrefix($0) }),
+              !candidate.dropFirst(prefix.count).contains("'"),
+              let action = AgentAccountRead.words(of: String(candidate.dropFirst(prefix.count))).first,
+              explicitlyRequests(action, in: request) else { return nil }
+        return promisedSentenceIntent(candidate, manifest: manifest, request: request, repairsUsed: repairsUsed)
+    }
+
+    private static func promisedSentenceIntent(
+        _ sentence: String, manifest: AgentCapabilityManifest, request: String, repairsUsed: Int
+    ) -> AgentIntentClass? {
         guard let prefix = ["i'll ", "i will ", "let me ", "i can help ", "i can "].first(where: { sentence.hasPrefix($0) })
         else { return nil }
         let words = AgentAccountRead.words(of: sentence)

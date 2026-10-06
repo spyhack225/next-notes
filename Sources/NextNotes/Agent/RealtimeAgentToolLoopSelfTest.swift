@@ -565,6 +565,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--m04-earlier-promise") {
+            failures += await runDraftSubjectRepairCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--catch-up-setup") {
             failures += await runCatchUpSetupCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -2818,6 +2824,63 @@ enum RealtimeAgentToolLoopSelfTest {
         check("M04 offer exceeded the existing call cap", offerCapped.model.count == 1 && offerCapped.calls.isEmpty)
         let offerAfterRepair = await run([recorded, offered, complete])
         check("M04 offer spent a second draft repair", offerAfterRepair.model.count == 2 && offerAfterRepair.calls.isEmpty)
+        // Same three retained Qwen M04 raws: the opening own-action promise is
+        // followed by prose preview, not an executed draft. Use the existing runner,
+        // creative subject, calls-only continuation, and real approval seam.
+        let qwenPreview = "Got it. I’ll draft that email for you.  \n\nDrafting email to ana@example.com:  \nSubject: Deck send confirmation  \nBody: Hi Ana, I’ll send the deck on Friday. Let me know if you need anything else in the meantime.  \n\nReady when you are — just say “send” or “review” and I’ll act."
+        let qwen = await run([qwenPreview, constrainedComplete, "The draft is ready for review."], providerID: .appLLM)
+        check("M04 earlier own promise missed the existing bounded call round", qwen.model.count == 3
+            && qwen.calls.count == 1 && qwen.calls.first?.toolID == "draft_email"
+            && qwen.calls.first?.arguments == expected && qwen.reply == "The draft is ready for review.")
+        if qwen.model.count >= 2 {
+            check("M04 earlier promise lost original request or calls-only grammar", qwen.model[1].user.contains(request)
+                && qwen.model[1].user.contains("That promised action has not run.")
+                && qwen.model[1].grammar?.matches(constrainedComplete) == true
+                && qwen.model[1].grammar?.matches(qwenPreview) == false)
+        }
+        let again = await run([qwenPreview, qwenPreview, constrainedComplete], providerID: .appLLM)
+        check("M04 earlier promise spent more than one continuation", again.model.count == 2
+            && again.calls.isEmpty && again.reply == "I haven't done that yet.")
+        let already = await run([constrainedComplete, qwenPreview], providerID: .appLLM)
+        check("M04 earlier promise repeated completed mail work", already.model.count == 2
+            && already.calls.count == 1
+            && already.reply.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+                == qwenPreview.split(whereSeparator: \.isWhitespace).joined(separator: " "))
+        for preview in [
+            "Draft:\nI’ll draft that email for you.\nReady for review.",
+            "Body: I’ll draft that email for you. Ready for review.",
+            "The message reads 'Okay. I’ll draft that email for you. Ready.'",
+            "The message reads ‘Okay. I’ll draft that email for you. Ready.’",
+            "Hi Ana. I’ll draft that email for you. Ready for review.",
+            "Got it. \"I’ll draft that email for you.\" Ready for review.",
+            "Got it. “I’ll draft that email for you.” Ready for review.",
+            "Got it. `I’ll draft that email for you.` Ready for review.",
+            "> I’ll draft that email for you. Ready for review.",
+            "Got it. I’ll draft that email for you? Ready for review.",
+            "Got it. I can draft emails. Ready for review.",
+            "Got it. I’ll send that email for you. Ready for review.",
+        ] {
+            let control = await run([preview], providerID: .appLLM)
+            check("M04 earlier body/quote/question/capability/mismatched write became an action: \(preview)",
+                  control.model.count == 1 && control.calls.isEmpty && control.reply == preview)
+        }
+        for opening in ["I'll draft that email for you.", "Okay. I'll draft that email for you."] {
+            let control = await run([opening + " Ready for review.", constrainedComplete,
+                                     "The draft is ready for review."], providerID: .appLLM)
+            check("M04 opening own action/acknowledgement lost its ASCII contraction: \(opening)",
+                  control.model.count == 3 && control.calls.count == 1
+                    && control.calls.first?.arguments == expected)
+        }
+        for text in ["Can you draft emails?", "What can you help me draft?", "Explain email drafting.",
+                     "Please do not draft an email."] {
+            let control = await run([qwenPreview], providerID: .appLLM, requestOverride: text)
+            check("M04 earlier promise overrode a capability/advice/negated request: \(text)",
+                  control.model.count == 1 && control.calls.isEmpty
+                    && control.reply.split(whereSeparator: \.isWhitespace).joined(separator: " ")
+                        == qwenPreview.split(whereSeparator: \.isWhitespace).joined(separator: " "))
+        }
+        await review(request, script: [qwenPreview, constrainedComplete, "The draft is ready."],
+                     missingRecipient: false, continuationNote: "That promised action has not run.", providerID: .appLLM)
         print("  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT_REPAIR: actual omitted/blank subject, one repair, caps, exact card/approval/backing, missing recipient")
         return []
     }

@@ -1,0 +1,9 @@
+# Promised draft before preview — 2026-10-05
+
+The three retained Qwen M04 replies promised to draft an email before a prose preview and unrelated closing line. The producer inspected only the last sentence, so the existing call-required continuation never ran. AgentToolLoop now recognizes matching opening own-action narration, optionally after one existing bare acknowledgement. Last-sentence behavior, one continuation, tool validation and one irreversible approval remain intact. No new store, timer, budget or write bypass.
+
+Actual production original: four failures -> fixed PASS. Parallel audit caught three quoted/body-opening false continuations in the first proposal: identical added negatives fail before the tightened quote/narration boundary and pass after it. The flow checks generated subject, exact card/payload, zero backing before approval, one approved backing, missing-recipient refusal, completed-action suppression and bounded repeats. Quote/code/body/question/capability/mismatched-write and ASCII/curly contraction controls pass. Final focused/full production, capability-manifest, tool-review and owner store-isolation pass.
+
+Actual pinned Qwen3-4B-Instruct-2507-Q4_K_M, unchanged baseline sampler and 2026-10-05T09:00:00-04:00 fixture: prior three MISSED_TOOL -> one native PASS (23.4s), draft_email once with ana@example.com, generated subject and original body. Mail backing is isolated; no owner Gmail write. This is bounded acceptance, not an aggregate score, model promotion or phase closure.
+
+Both slices committed before exact tested artifact installation OPEN=0. Raw rounds, patches, original/fixed logs and cleanup records: ~/Library/Caches/NextNotesBuild/integration/m04-earlier-requested-promise/. Obsolete comparison apps removed; native TMPDIR roots removed after child joins. Broader wake/voice/full/owner/floor gates remain open.
