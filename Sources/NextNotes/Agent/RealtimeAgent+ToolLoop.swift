@@ -2248,7 +2248,7 @@ extension RealtimeAgent {
                 // "I cannot open the 'next project' folder yet…" — 20:46:06Z, with both
                 // file tools in this very roster. Hand the planner the contradiction and
                 // let it try once more rather than speaking a refusal that is not true.
-                // A requested, eligible file read supplies evidence before a capability
+                // A requested, eligible file or calendar read supplies evidence before a capability
                 // correction. Execution stays below the unsupported-action claim check.
                 let pendingRead = AgentAccountRead.pendingRead(
                     reply: reply, selectedIntents: manifest.selectedIntents,
@@ -2258,7 +2258,7 @@ extension RealtimeAgent {
                         AccountReadTools.toolID(for: intent, manifest: manifest, request: currentRequest)
                     },
                     request: currentRequest, now: SelfTest.fixtureClock ?? Date(), manifest: manifest)
-                if pendingRead?.intent != .files, !rebutted,
+                if pendingRead?.intent != .files, pendingRead?.intent != .calendar, !rebutted,
                    let note = AgentRefusalGuard.rebuttal(for: reply, manifest: manifest) {
                     rebutted = true
                     speech?.cancel()

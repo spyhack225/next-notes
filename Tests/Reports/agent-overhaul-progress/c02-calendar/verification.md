@@ -1,0 +1,9 @@
+# C02 eligible calendar read before refusal correction — 2026-10-06
+
+Native full f9ee119 retained C02 false refusal26/30/owner8. Exact “What do I have tomorrow?” first model offer already supplies the selected, ready, read-risk get_agenda. The files-only exemption nevertheless sends a correction model round; its “do that?” offer loses read qualification. Both native rounds finish=stop, so this is read ordering, not cutoff/date/class selection.
+
+COMMON replays both exact replies through actual typed handle/executor/admission/ToolStepRunner, replacing external tool backing only. Original fails four assertions: zero calendar backing, correction instead of verified result, missing consumer read and grounded delivery. Producer exempts only eligible calendar reads alongside existing files; actual execution remains below unsupported completed-action checks and normal permission admission. No extra await/model pass, reply scrubber or timeout/store is added. Retained denial text remains retained; scripted grounded final verifies the actual consumer, and native semantic measurement is separate.
+
+The initial global eligible-read candidate passed focus but introduced four K01 full-production failures. That rejected candidate is preserved, never committed/installed; the final calendar-scoped correction preserves existing meeting behavior and all unchanged predicates. Native calendar acceptance, full/owner/default/voice/wake/floor/latency and roadmap completion stay open until measured. Raw COMMON/fixed/fixed2 logs and exact binary identities: ~/Library/Caches/NextNotesBuild/integration/c02-gmail-delivery/.
+
+Exact tested combined artifact 312f7ea8ec60ebba3836bd5e7f648bf237256608b9545944011f1f6d30caa060: focused C02, isolated gws, full production toolloop, tool review, capability manifest, live grader and store isolation all exit0. Each subprocess joined before owned TMP removal. Scoped whitespace PASS.

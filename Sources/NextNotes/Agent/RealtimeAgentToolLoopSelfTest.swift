@@ -598,6 +598,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--c02-read-before-rebuttal") {
+            failures += await runCalendarReadBeforeRebuttalCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--o01-answer-source") {
             failures += await runAnswerToolProvenanceCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1172,6 +1178,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runAnswerToolProvenanceCases(agent: agent, check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runHonestRecipientCases(agent: agent, check: check))
+        failures.append(contentsOf: await runCalendarReadBeforeRebuttalCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedFileReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedMeetingReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
@@ -1193,6 +1200,121 @@ enum RealtimeAgentToolLoopSelfTest {
         return failures.isEmpty
     }
 
+
+    /// C02's retained false refusal must not replace an already eligible calendar read.
+    @MainActor
+    static func runCalendarReadBeforeRebuttalCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["C02 read fixture requires SelfTest"] }
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorBudget = agent.budgetForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.localModelProviderForTesting = priorProvider
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.answerDepthForTesting = priorDepth
+            agent.budgetForTesting = priorBudget
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        let request = "What do I have tomorrow?"
+        let first = "I don't have your calendar set up, so I can't see what's on your schedule. Want me to check your calendar or help you add something?"
+        let second = "I don't have your calendar connected, so I can't pull up tomorrow's events. If you'd like me to check what's on your schedule, I can look at any events that are already booked for today or nearby dates. Would you like me to do that?"
+        let final = "Tomorrow you have a dentist appointment, a design sync and dinner with Cyril."
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let qualified = LiveEvalCases.all.first { $0.id == "C02" }?.turns == [request]
+            && manifest.selectedIntents.contains(.calendar)
+            && manifest.entry(named: "get_agenda")?.isReady == true
+            && manifest.entry(named: "get_agenda")?.risk == .read
+        check("C02 INPUT_INVALID retained request/ready calendar read", qualified)
+        guard qualified else { return ["C02 INPUT_INVALID"] }
+        func pending(_ reply: String, using value: AgentCapabilityManifest? = nil,
+                     completed: [String] = []) -> String? {
+            let selected = value ?? manifest
+            return AgentAccountRead.pendingRead(reply: reply, selectedIntents: selected.selectedIntents,
+                completedThisTurn: completed, completedThisSession: [], toolIDFor: {
+                    AccountReadTools.toolID(for: $0, manifest: selected, request: request)
+                }, request: request, manifest: selected)?.toolID
+        }
+        check("C02 retained first offer did not qualify original read", pending(first) == "get_agenda")
+        check("C02 first refusal lacks existing correction control", AgentRefusalGuard.rebuttal(for: first, manifest: manifest) != nil)
+        check("C02 deictic second offer unexpectedly supplies read", pending(second) == nil)
+        check("C02 completed read was repeated", pending(first, completed: ["get_agenda"]) == nil)
+        check("C02 missing-information question acquired a read", pending("Which calendar should I check?") == nil)
+        let unselected = manifest.copy(selected: [], selectedIntents: [])
+        check("C02 unselected calendar acquired read", pending(first, using: unselected) == nil)
+        var unavailableInputs = inputs
+        unavailableInputs.tools.removeAll { $0.id == "get_agenda" }
+        let unavailable = AgentCapabilityManifestBuilder.build(unavailableInputs, request: request)
+        check("C02 unavailable calendar acquired read", pending(first, using: unavailable) == nil)
+        agent.answerDepthForTesting = .balanced
+        agent.budgetForTesting = nil
+        agent.denyUnattendedApprovalsForTesting = true
+        @MainActor
+        func run(_ script: [String], using selected: AgentCapabilityInputs? = nil, allow: Bool = true)
+            async -> (reply: String, prompts: [PlannerScriptLog.Call], tools: [LiveEvalLoggedCall], output: String) {
+            let fixture = LiveEvalFixtures()
+            fixture.beginCase()
+            let log = PlannerScriptLog()
+            var output = ""
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = selected ?? inputs
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                let result = try await fixture.run(tool, arguments)
+                output = result.summary
+                return result
+            }
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                autoObserve: allow, autoRead: allow, autoSearchFiles: allow, autoComputerControl: false, grants: [])
+            agent.readApprovalOverrideForTesting = allow
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                window: 4_096, promptTokens: 2_000, script: script, log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let actual = await agent.handle(request, source: .text)
+            return (actual.reply, log.calls, fixture.calls, output)
+        }
+        let retained = await run([first, second])
+        check("C02 retained two rounds skipped actual calendar backing", retained.tools.map(\.toolID) == ["get_agenda"])
+        check("C02 retained second provider received correction instead of actual tomorrow result",
+            retained.prompts.count == 2 && retained.output.contains("Dentist")
+                && retained.output.contains("Design sync") && retained.output.contains("Dinner with Cyril")
+                && retained.prompts.last?.user.contains(retained.output) == true
+                && retained.prompts.last?.user.contains("Correction from the application") == false)
+        // The retained model denial remains retained; source repair is not a reply scrubber.
+        check("C02 source repair rewrote retained model text", retained.reply == second)
+        let actual = await run([first, final])
+        check("C02 actual grounded consumer missed one admitted read", actual.tools.map(\.toolID) == ["get_agenda"])
+        check("C02 actual final consumer lacked original request/verified result",
+            actual.prompts.count == 2 && !actual.output.isEmpty
+                && actual.prompts.last?.user.contains(actual.output) == true
+                && actual.prompts.last?.user.contains("Current user request:\n" + request) == true
+                && actual.reply == final)
+        let ordinary = await run(["I'll check your calendar for tomorrow.", final])
+        check("C02 ordinary offered read changed", ordinary.tools.map(\.toolID) == ["get_agenda"]
+            && ordinary.prompts.count == 2 && ordinary.reply == final)
+        let missing = await run([first], using: unavailableInputs)
+        check("C02 unavailable consumer entered backing", missing.tools.isEmpty && missing.prompts.count == 1 && missing.reply == first)
+        let refused = await run([first, second], allow: false)
+        check("C02 refused admission entered backing or claimed successful calendar result", refused.tools.isEmpty
+            && !refused.reply.contains("Dentist") && !refused.reply.contains("Design sync"))
+        let claim = "I ran get_agenda. Your calendar tomorrow is free. Want me to check your calendar?"
+        let unsupported = await run([claim, claim])
+        check("C02 eligible read bypassed unsupported completed-tool claim", unsupported.tools.isEmpty
+            && unsupported.prompts.count == 2 && unsupported.reply.contains(ToolClaimGuard.honestReply))
+        return []
+    }
 
     /// Exact Qwen K01 retained rounds, through the existing requested-read floor.
     @MainActor
