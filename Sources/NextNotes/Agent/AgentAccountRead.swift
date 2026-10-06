@@ -209,9 +209,24 @@ enum AgentAccountRead {
             || tokens == ["what", "do", "you", "remember", "about", "me"]
     }
 
-    /// Only the explicit locate clause supplies a file name; a later email/write
-    /// clause cannot become part of the filesystem search query.
+    /// The explicit locate clause or named append target supplies a file name;
+    /// payload content and later email/write clauses cannot become the search query.
     private static func requestedFileQuery(_ request: String) -> String? {
+        // An explicit append instruction needs its named document located first.
+        // Only the authored target supplies the query: quoted payload is content,
+        // never search text or authority to append. Ambiguous/compound prose stays
+        // with the planner, and the existing manifest/executor still admit the read.
+        let targetPattern = #"^(?:please\s+)?(?:add|append)\s+(?:'[^'\r\n]+'|"[^"\r\n]+")\s+to\s+my\s+([\p{L}\p{N}][\p{L}\p{N} -]*)\s+(?:doc|document)[.!]?$"#
+        let authored = request.trimmingCharacters(in: .whitespacesAndNewlines)
+        if let regex = try? NSRegularExpression(pattern: targetPattern, options: .caseInsensitive),
+           let match = regex.firstMatch(in: authored, range: NSRange(authored.startIndex..., in: authored)),
+           let range = Range(match.range(at: 1), in: authored) {
+            let target = words(of: String(authored[range]))
+            let boundaries: Set<String> = ["and", "or", "then", "also", "to", "doc", "document"]
+            if !target.isEmpty, !target.contains(where: { boundaries.contains($0) }) {
+                return target.joined(separator: " ")
+            }
+        }
         let clause = request.replacingOccurrences(
             of: #"\b(?:and|then|also)\b"#, with: "\n", options: [.regularExpression, .caseInsensitive])
             .components(separatedBy: CharacterSet(charactersIn: ".!?;\n")).first ?? ""

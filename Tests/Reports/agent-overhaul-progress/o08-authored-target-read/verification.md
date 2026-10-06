@@ -1,0 +1,11 @@
+# Named append-target prerequisite lookup — 2026-10-06 (partial)
+
+Exact native O08: Add 'bring passports' to my trip doc. Mini offers to help but runs no tool. The manifest selects ready read-risk filesystem.search; existing requestedFileQuery admits only an explicit find/locate/look-for clause, so the literal append target has no prerequisite lookup.
+
+AgentAccountRead extends that same seam for a complete add/append quoted-content-to-my-named-doc imperative. Only the literal target supplies the query; payload, third-party, quoted whole instruction, question, ambiguous/compound target and absent name stay out. Existing selection/read-risk/completed-read suppression/permissions/runner/result carry remain. No Google/docID inference, write, prompt, retry, budget, store or generic continuation is added. This mitigates the external model's omitted call; it does not repair its semantics.
+
+Identical COMMON original fails six assertions; fixed focused regression/full production tool loop/live grader/capability manifest/store isolation all PASS. Actual typed handle -> runner -> Executor (fake=nil, only external fixture fire replaced) searches trip exactly once, carries unchanged result to the same provider and permits its document question; denied-read reaches no backing/second model pass; no append/card. Exact tested artifact 535717f8635ece069119bed201ccf25b7bb050b437fdee8da89ae8759f4aa705. Joined processes precede owned TMP removal; scoped whitespace PASS.
+
+Native pinned Mini/clock/sampler now performs exactly filesystem.search(query=trip), two rounds, but still ends in false no-access REFUSAL/owner0/1. Original unchanged fixture search summary contains Pricing names and no trusted append IDs; it was not replaced with a helpful Trip document. Lookup producer/handoff are verified; native lookup+clarification, identified append and original user-flow acceptance remain OPEN. No subsequent unchanged full run erases this failure.
+
+Raw COMMON/fixed/native evidence stays outside iCloud at ~/Library/Caches/NextNotesBuild/integration/o08-authored-target-read/. Obsolete original comparison77526 removed210,939,920bytes after comparison; pins/logs retained. Parent full/default/voice/wake/floor/latency gates remain open.

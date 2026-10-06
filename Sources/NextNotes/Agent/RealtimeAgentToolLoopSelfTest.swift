@@ -598,6 +598,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--o08-authored-target") {
+            failures += await runO08AuthoredTargetCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--o03-calendar-question") {
             failures += await runO03CalendarQuestionCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1198,6 +1204,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runReminderAdmissionCases(agent: agent, check: check))
         failures.append(contentsOf: await runCatchUpSetupCases(agent: agent, check: check))
         failures.append(contentsOf: await runO08CatalogueNameCases(agent: agent, check: check))
+        failures.append(contentsOf: await runO08AuthoredTargetCases(agent: agent, check: check))
         failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
         failures.append(contentsOf: await ExplicitMemorySaveSelfTest.run())
@@ -3862,6 +3869,138 @@ enum RealtimeAgentToolLoopSelfTest {
         return []
     }
     // O08_CATALOGUE_NAME_COMMON_END
+
+    // O08_AUTHORED_TARGET_COMMON_BEGIN
+    @MainActor
+    static func runO08AuthoredTargetCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["O08 target fixture requires SelfTest"] }
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorFiles = agent.fileRetrievalForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorCap = agent.maxCallsForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.localModelProviderForTesting = priorProvider
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.fileRetrievalForTesting = priorFiles
+            agent.answerDepthForTesting = priorDepth
+            agent.maxCallsForTesting = priorCap
+            agent.budgetForTesting = priorBudget
+            AgentToolExecutor.recordedReadApprovalsForTesting = priorApprovals
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        let request = "Add 'bring passports' to my trip doc"
+        let raw = "I can help you add that to your trip document. Want me to find the right place in it, or just make sure it's there?"
+        let question = "Which document should I add that to?"
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let entry = manifest.entry(named: "filesystem.search")
+        let qualified = LiveEvalCases.all.first { $0.id == "O08" }?.turns == [request]
+            && manifest.selectedIntents.contains(.files) && !manifest.selectedIntents.contains(.drive)
+            && manifest.selectedIDs.contains("filesystem.search")
+            && entry?.risk == .read && entry?.isReady == true
+            && AgentToolCallParser.parse(raw, knownNames: AgentCapabilityManifest.callNames(manifest)).calls.isEmpty
+        check("O08 INPUT_INVALID: unchanged request/raw and selected ready local lookup", qualified)
+        guard qualified else { return ["O08 target INPUT_INVALID"] }
+        func pending(_ value: AgentCapabilityManifest? = nil, turn: [String] = [], session: Set<String> = []) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+            let value = value ?? manifest
+            return AgentAccountRead.pendingRead(reply: raw, selectedIntents: value.selectedIntents,
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: value, request: request) },
+                request: request, manifest: value)
+        }
+        check("O08 original no-call offer omitted its literal trip prerequisite lookup",
+              pending()?.toolID == "filesystem.search" && pending()?.arguments == ["query": "trip"])
+        for name in ["filesystem.search", "filesystem.find"] {
+            check("O08 completed lookup repeated: \(name)", pending(turn: [name]) == nil && pending(session: [name]) == nil)
+        }
+        for text in ["Add 'bring passports' to my doc", "Add 'bring passports' to my document",
+                     "Add 'bring passports' to his trip doc", "He asked me to add 'bring passports' to my trip doc",
+                     "Should I add 'bring passports' to my trip doc?", "Quote 'Add bring passports to my trip doc' exactly",
+                     "\"Add 'bring passports' to my trip doc\"", "‘Add bring passports to my trip doc’",
+                     "Add 'bring passports' to my trip or family doc", "Add 'bring passports' to my trip doc and email it to Marcus",
+                     "Add 'bring passports' to my trip doc then open it", "Add bring passports to my trip doc"] {
+            check("O08 missing target/quoted instruction/third-party/question/compound acquired lookup: \(text)",
+                  AgentAccountRead.defaultRead(for: .files, request: text) == nil)
+        }
+        check("O08 payload words became the target or broke the append form",
+              AgentAccountRead.defaultRead(for: .files, request: "Append 'bring passports and tickets' to my trip document")?.arguments == ["query": "trip"])
+        var absentInputs = inputs
+        absentInputs.tools.removeAll { $0.id == "filesystem.search" }
+        check("O08 unavailable lookup invented", pending(AgentCapabilityManifestBuilder.build(absentInputs, request: request)) == nil)
+        let blocked = AgentCapabilityManifest(reader: manifest.reader, maxRisk: manifest.maxRisk,
+            allowed: manifest.allowed, unavailable: manifest.unavailable, selected: [], selectedIntents: [],
+            compactCatalogue: manifest.compactCatalogue, catalogueTokens: manifest.catalogueTokens)
+        check("O08 unselected class acquired target lookup", pending(blocked) == nil)
+        if let entry {
+            let unsafe = AgentCapabilityManifest.Entry(id: entry.id, aliases: entry.aliases,
+                namespace: entry.namespace, intent: entry.intent, source: entry.source, risk: .send,
+                executionMode: entry.executionMode, modelDescription: entry.modelDescription,
+                parameters: entry.parameters, readiness: entry.readiness, userPhrase: entry.userPhrase)
+            let wrongRisk = AgentCapabilityManifest(reader: manifest.reader, maxRisk: manifest.maxRisk,
+                allowed: manifest.allowed.map { $0.id == entry.id ? unsafe : $0 },
+                unavailable: manifest.unavailable, selected: manifest.selected, selectedIntents: manifest.selectedIntents,
+                compactCatalogue: manifest.compactCatalogue, catalogueTokens: manifest.catalogueTokens)
+            check("O08 write-risk lookup descriptor admitted", pending(wrongRisk) == nil)
+        }
+        agent.answerDepthForTesting = .balanced
+        agent.maxCallsForTesting = nil
+        agent.budgetForTesting = nil
+        agent.denyUnattendedApprovalsForTesting = true
+        @MainActor
+        func run(_ script: [String], allow: Bool = true) async -> (String, [PlannerScriptLog.Call], [LiveEvalLoggedCall], String) {
+            let fixture = LiveEvalFixtures(); fixture.beginCase()
+            let log = PlannerScriptLog()
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+            agent.fileRetrievalForTesting = fixture.files
+            agent.readApprovalOverrideForTesting = allow
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.fireOverrideForTesting = fixture.run
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                autoObserve: allow, autoRead: allow, autoSearchFiles: allow, autoComputerControl: false, grants: [])
+            AgentToolExecutor.recordedReadApprovalsForTesting = []
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                window: 4_096, promptTokens: 2_000, script: script, log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let result = await agent.handle(request, source: .text)
+            return (result.reply, log.calls, fixture.calls,
+                    fixture.summary(for: "filesystem.search", arguments: ["query": "trip"]))
+        }
+        let actual = await run([raw, question])
+        check("O08 actual Executor fire consumer omitted trip search or entered append/another account",
+              actual.2.map(\.toolID) == ["filesystem.search"] && actual.2.first?.arguments == ["query": "trip"])
+        check("O08 actual lookup result/request did not reach the same final provider",
+              actual.1.count == 2 && actual.1.last?.user.contains(actual.3) == true
+                && actual.1.last?.user.contains(request) == true)
+        check("O08 original lookup/question flow lost the document clarification", actual.0 == question)
+        check("O08 target lookup created a write approval card",
+              PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        let direct = await run([#"<tool_call>{"name":"filesystem.search","arguments":{"query":"trip"}}</tool_call>"#, question])
+        check("O08 model-selected search changed or repeated", direct.2.map(\.toolID) == ["filesystem.search"]
+            && direct.2.first?.arguments == ["query": "trip"] && direct.1.count == 2 && direct.0 == question)
+        let denied = await run([raw], allow: false)
+        check("O08 refused read entered backing, another model round or write approval",
+              denied.2.isEmpty && denied.1.count == 1 && denied.0.contains(AgentAccountRead.notReadYet(.files))
+                && PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        print("  TOOLLOOP_PRODUCTION_O08_TARGET: retained no-call offer -> literal target read -> same-result document question; no append/ID/card")
+        return []
+    }
+    // O08_AUTHORED_TARGET_COMMON_END
+
 
     /// PL-11 explicit setup: same words, actual typed handle -> normal card -> private
     /// native schedule/runner. Scripted planner is the unchanged no-call control.
