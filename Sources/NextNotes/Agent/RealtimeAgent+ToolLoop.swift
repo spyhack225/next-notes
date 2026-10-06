@@ -94,6 +94,7 @@ struct AgentModelTurnResult: Sendable {
     var taskOutcome: AgentTaskOutcome? = nil
     let reply: String
     let usedTools: Bool
+    var toolResultIDs: [String]? = nil
     var knowledgeAnswer: KnowledgeAnswer? = nil
 }
 
@@ -546,7 +547,7 @@ extension RealtimeAgent {
                     .handedOffFellBack(note: $0, then: .answer(planned.reply)), voice: false)
             } ?? planned.reply
             return AgentModelTurnResult(taskOutcome: planned.taskOutcome, reply: reply, usedTools: planned.usedTools,
-                                        knowledgeAnswer: planned.knowledgeAnswer)
+                                        toolResultIDs: planned.calledToolIDs, knowledgeAnswer: planned.knowledgeAnswer)
         }
         let provider: any LLMProvider
         if let testingProvider = localModelProviderForTesting {

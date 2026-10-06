@@ -675,7 +675,7 @@ final class RealtimeAgent {
                     ? speech.spokenFallback(for: reply) : nil,
                 contextKind: result.usedTools ? "tools" : nil,
                 speak: !speech.didStreamSpeech || !speakable,
-                knowledgeAnswer: result.knowledgeAnswer
+                knowledgeAnswer: result.knowledgeAnswer, toolResultIDs: result.toolResultIDs
             )
         case .calendar, .mail, .files, .drive, .computer:
             beginWork(title: intent.progressTitle)
@@ -854,7 +854,8 @@ final class RealtimeAgent {
         spokenReply: String? = nil,
         contextKind: String? = nil,
         speak: Bool = true,
-        knowledgeAnswer: KnowledgeAnswer? = nil
+        knowledgeAnswer: KnowledgeAnswer? = nil,
+        toolResultIDs: [String]? = nil
     ) -> AgentTurn {
         guard isCurrent(mine) else {
             return AgentTurn(reply: lastReply, delegated: false)
@@ -870,14 +871,15 @@ final class RealtimeAgent {
         if isTypedWorker {
             typedPresentation = { [weak self] in
                 self?.finish(shown, speak: false, contextKind: contextKind,
-                    unscrubbed: shown == reply ? nil : reply, knowledgeAnswer: knowledgeAnswer)
+                    unscrubbed: shown == reply ? nil : reply, knowledgeAnswer: knowledgeAnswer,
+                    toolResultIDs: toolResultIDs)
             }
             return AgentTurn(reply: shown, delegated: delegated)
         }
         finish(shown, speak: speak, spokenReply: spokenReply.map {
             AgentReplyRenderer.scrub($0, outcome: nil)
         }, contextKind: contextKind, unscrubbed: shown == reply ? nil : reply,
-           knowledgeAnswer: knowledgeAnswer)
+           knowledgeAnswer: knowledgeAnswer, toolResultIDs: toolResultIDs)
         return AgentTurn(reply: shown, delegated: delegated)
     }
 
@@ -990,7 +992,7 @@ final class RealtimeAgent {
             mine, planned.reply,
             route: planned.usedTools ? "on-device-tools" : "on-device-answer",
             contextKind: planned.usedTools ? "tools" : nil,
-            speak: !speech.didStreamSpeech && speakable)
+            speak: !speech.didStreamSpeech && speakable, toolResultIDs: planned.calledToolIDs)
     }
 
     /// - Parameter unscrubbed: the reply as it arrived, when the caller scrubbed it. The
@@ -999,7 +1001,7 @@ final class RealtimeAgent {
     private func finish(
         _ reply: String, speak: Bool = true,
         spokenReply: String? = nil, contextKind: String? = nil, unscrubbed: String? = nil,
-        knowledgeAnswer: KnowledgeAnswer? = nil
+        knowledgeAnswer: KnowledgeAnswer? = nil, toolResultIDs: [String]? = nil
     ) {
         let presented = respondingMessage
         respondingMessage = nil
@@ -1025,7 +1027,7 @@ final class RealtimeAgent {
             return (claims, answer.citations.filter { retained.contains($0.chunkID) })
         }
         let messageID = AgentSession.shared.recordAssistant(
-            reply, contextKind: contextKind,
+            reply, contextKind: contextKind, toolResultIDs: toolResultIDs,
             source: currentTurnSource == .voice ? .voice : nil,
             messageID: presented?.id, at: presented?.at,
             knowledgeClaims: visibleKnowledge?.claims, knowledgeCitations: visibleKnowledge?.citations)
@@ -1167,6 +1169,8 @@ final class AgentSession {
         let role: String
         let text: String
         var contextKind: String? = nil
+        /// Successful tool results made available to this answer, not evidence for every claim.
+        var toolResultIDs: [String]? = nil
         /// Existing conversation row carries only the answer claims and source descriptors.
         var knowledgeClaims: [KnowledgeClaim]? = nil
         var knowledgeCitations: [KnowledgeCitation]? = nil
@@ -1427,7 +1431,7 @@ final class AgentSession {
         remaining -= summary.isEmpty ? 0 : summary.count + 2
         var selected: [String] = []
         for message in earlier.reversed() {
-            let label: String
+            var label: String
             if message.role == "user" {
                 label = switch message.source {
                 case "voice": "User [voice]"
@@ -1436,7 +1440,9 @@ final class AgentSession {
                 default: "User"
                 }
             } else {
-                label = "Assistant\(message.contextKind.map { " [\($0) result]" } ?? "")"
+                let resultKind = message.toolResultIDs.flatMap { $0.isEmpty ? nil : $0.joined(separator: ", ") }
+                    ?? message.contextKind
+                label = "Assistant\(resultKind.map { " [\($0) result]" } ?? "")"
             }
             // Assistant rows only. What the person said is evidence about the request and is
             // never edited; a row that was entirely a claim leaves nothing to show, so it is
@@ -1606,11 +1612,17 @@ final class AgentSession {
 
     @discardableResult
     func recordAssistant(_ text: String, contextKind: String? = nil,
+                         toolResultIDs: [String]? = nil,
                          source: AgentUtteranceSource? = nil,
                          messageID: UUID? = nil, at: Date? = nil,
                          knowledgeClaims: [KnowledgeClaim]? = nil,
                          knowledgeCitations: [KnowledgeCitation]? = nil) -> UUID {
         let storedText = String(text.prefix(Self.maxStoredCharacters))
+        // Only the current result's canonical successful IDs, bounded by the existing call cap.
+        // Conversation-global completed IDs say nothing about this answer's provenance.
+        let verifiedIDs = Array(Set((toolResultIDs ?? []).filter {
+            AgentToolRegistry.shared.tool(named: $0)?.id == $0
+        })).sorted().prefix(AgentToolLoop.defaultMaxCalls)
         let claimedText = knowledgeClaims?.map(\.text).joined(separator: " ")
         func normalized(_ value: String) -> String {
             value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -1625,7 +1637,8 @@ final class AgentSession {
         let message = Message(
             id: messageID ?? UUID(),
             role: "assistant", text: storedText,
-            contextKind: contextKind, knowledgeClaims: retainsSourceRows ? knowledgeClaims : nil,
+            contextKind: contextKind, toolResultIDs: verifiedIDs.isEmpty ? nil : Array(verifiedIDs),
+            knowledgeClaims: retainsSourceRows ? knowledgeClaims : nil,
             knowledgeCitations: retainsSourceRows ? knowledgeCitations : nil, at: at ?? Date(), source: source?.rawValue,
             speechDelivery: source == .voice ? VoiceSpeechDelivery() : nil)
         // An explicitly supplied `at` is the visible draft's own time (the answer the

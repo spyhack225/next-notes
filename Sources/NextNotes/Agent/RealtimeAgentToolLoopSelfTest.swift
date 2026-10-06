@@ -565,6 +565,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--o01-answer-source") {
+            failures += await runAnswerToolProvenanceCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--f03-requested-file") {
             failures += await runRequestedFileReadCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1130,6 +1136,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: runDirectIntentCases(check: check))
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
         failures.append(contentsOf: runAccountReadCases(check: check))
+        failures.append(contentsOf: await runAnswerToolProvenanceCases(agent: agent, check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runHonestRecipientCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedFileReadCases(agent: agent, check: check))
@@ -1794,8 +1801,125 @@ enum RealtimeAgentToolLoopSelfTest {
         return failures
     }
 
-    /// Exact native F03 outputs, through the actual typed caller and unchanged tool fixture.
-    /// An explicitly requested file lookup runs before an unrelated recipient question.
+    /// Exact native O01 outputs, through the actual typed caller and unchanged mail fixture.
+    /// Each answer retains only its own successful tool sources for a later question.
+    @MainActor
+    static func runAnswerToolProvenanceCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["O01 provenance fixture requires SelfTest"] }
+        let previousInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let previousFake = AgentToolExecutor.fakeForTesting
+        let previousProvider = agent.localModelProviderForTesting
+        let previousReads = agent.readApprovalOverrideForTesting
+        let previousDenial = agent.denyUnattendedApprovalsForTesting
+        let previousDepth = agent.answerDepthForTesting
+        let previousBudget = agent.budgetForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = previousInputs
+            AgentToolExecutor.fakeForTesting = previousFake
+            agent.localModelProviderForTesting = previousProvider
+            agent.readApprovalOverrideForTesting = previousReads
+            agent.denyUnattendedApprovalsForTesting = previousDenial
+            agent.answerDepthForTesting = previousDepth
+            agent.budgetForTesting = previousBudget
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        let request = "Summarise my last emails"
+        let question = "Is this coming from my emails?"
+        let originalCall = "I'll need to look at your emails to summarize them. One moment.\n<function name=\"search_email\"></function>"
+        let originalSummary = "Here's a quick summary of your last emails:\n\n1.  **Cyril** asked about dinner tomorrow.\n2.  **Ana Ruiz** needs the deck sent by Friday.\n3.  **Marcus Lee** shared an updated pricing sheet.\n4.  A GitHub note confirmed CI passed on main.\n5.  **Stripe** notified you about a September invoice.\n6.  **Marcus Lee** discussed contract renewal terms.\n\nWant me to help with any of these?"
+        let originalFollowUp = "No, that summary was from me earlier — it's based on what I can see in your calendar, email, Drive and Docs, reminders, routines, past meetings and notes, what you've told me to remember, and Mac apps and the screen. If something new came up today, I'd need to look at it directly."
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let qualified = LiveEvalCases.all.first { $0.id == "O01" }?.turns == [request, question]
+            && manifest.entry(named: "search_email")?.isReady == true
+            && manifest.selectedIDs.contains("search_email")
+        check("O01 INPUT_INVALID original request/selected ready mail read", qualified)
+        guard qualified else { return ["O01 INPUT_INVALID"] }
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+        agent.readApprovalOverrideForTesting = true
+        agent.denyUnattendedApprovalsForTesting = true
+        agent.answerDepthForTesting = .balanced
+        agent.budgetForTesting = nil
+        let fixture = LiveEvalFixtures()
+        fixture.beginCase()
+        AgentToolExecutor.fakeForTesting = fixture.run
+        @MainActor
+        func answer(_ request: String, script: [String]) async -> PlannerScriptLog {
+            let log = PlannerScriptLog()
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                window: 4_096, promptTokens: 2_000, script: script, log: log)
+            agent.setTypedPendingForTesting(nil)
+            _ = await agent.handle(request, source: .text)
+            return log
+        }
+        AgentSession.shared.forgetAllConversations()
+        let first = await answer(request, script: [originalCall, originalSummary])
+        let mailRow = AgentSession.shared.messages.last { $0.role == "assistant" }
+        let renderedSummary = AgentReplyRenderer.scrub(originalSummary, outcome: nil)
+        let exactRenderedSummary = mailRow?.text == renderedSummary
+            || mailRow?.text == "This takes a few steps on this Mac.\n\n" + renderedSummary
+        print("  TOOLLOOP_PRODUCTION_O01_ORIGINAL: calls=\(first.calls.count) tools=\(fixture.calls.map(\.toolID)) finalPromptCyril=\(first.calls.last?.user.contains("Cyril") == true) storedRawContains=\(mailRow?.text.contains(originalSummary) == true) storedExactRendered=\(exactRenderedSummary) rawCharacters=\(originalSummary.count) renderedCharacters=\(renderedSummary.count) storedCharacters=\(mailRow?.text.count ?? -1)")
+        check("O01 real mail read/result did not qualify original summary",
+            fixture.calls.map(\.toolID) == ["search_email"] && first.calls.count == 2
+                && first.calls.last?.user.contains("Cyril") == true && exactRenderedSummary)
+        check("O01 answer row lost successful per-turn mail result ID", mailRow?.toolResultIDs == ["search_email"])
+        let follow = await answer(question, script: [originalFollowUp])
+        let mailLabel = "Assistant [search_email result]"
+        let calendarLabel = "Assistant [get_agenda result]"
+        check("O01 actual provider follow-up lost the preceding answer's mail source",
+            follow.calls.count == 1 && follow.calls[0].user.contains(mailLabel))
+        check("O01 source handoff rewrote the scripted negative into an unsupported yes",
+            AgentSession.shared.messages.last { $0.role == "assistant" }?.text == originalFollowUp)
+        check("O01 no-read follow-up inherited prior mail source IDs",
+            AgentSession.shared.messages.last { $0.role == "assistant" }?.toolResultIDs?.isEmpty != false)
+        let calendar = await answer("What do I have tomorrow?", script: [
+            #"<tool_call>{"name":"get_agenda","arguments":{"date":"2026-10-06"}}</tool_call>"#,
+            "Tomorrow you have a dentist appointment and a design sync."])
+        let agendaRow = AgentSession.shared.messages.last { $0.role == "assistant" }
+        check("O01 later agenda-only answer did not qualify a real result",
+            calendar.calls.count == 2 && fixture.calls.last?.toolID == "get_agenda")
+        check("O01 old conversation mail contaminated the later calendar answer source",
+            agendaRow?.toolResultIDs == ["get_agenda"])
+        let afterCalendar = await answer(question, script: ["That answer used the calendar result."])
+        let lastAssistantLine = afterCalendar.calls.first?.user.components(separatedBy: "\n").last { $0.hasPrefix("Assistant") }
+        check("O01 latest answer source was absent or inferred from global old mail IDs",
+            lastAssistantLine?.contains(calendarLabel) == true && lastAssistantLine?.contains(mailLabel) == false)
+        AgentSession.shared.forgetAllConversations()
+        _ = await answer("What is 2 plus 2?", script: ["Four."])
+        let noRead = await answer(question, script: ["That answer was arithmetic."])
+        check("O01 no-read answer/provider invented verified source metadata",
+            AgentSession.shared.messages.filter { $0.role == "assistant" }.allSatisfy { $0.toolResultIDs?.isEmpty != false }
+                && noRead.calls.allSatisfy { !$0.user.contains(mailLabel) && !$0.user.contains(calendarLabel) })
+        AgentSession.shared.forgetAllConversations()
+        AgentToolExecutor.fakeForTesting = { _, _ in throw AgentError.permissionDenied("Fixture mail read refused.") }
+        _ = await answer(request, script: [originalCall])
+        let failed = await answer(question, script: ["No successful result is available."])
+        check("O01 failed/refused read invented answer source metadata",
+            AgentSession.shared.messages.filter { $0.role == "assistant" }.allSatisfy { $0.toolResultIDs?.isEmpty != false }
+                && failed.calls.allSatisfy { !$0.user.contains(mailLabel) && !$0.user.contains(calendarLabel) })
+        AgentSession.shared.forgetAllConversations()
+        AgentToolExecutor.fakeForTesting = fixture.run
+        _ = await answer("ask the local model summarise my last emails", script: [originalCall, originalSummary])
+        check("O01 explicit on-device finish lost current successful mail IDs",
+            AgentSession.shared.messages.last { $0.role == "assistant" }?.toolResultIDs == ["search_email"])
+        let onDeviceFollow = await answer(question, script: [originalFollowUp])
+        check("O01 explicit on-device answer lost source at actual follow-up provider",
+            onDeviceFollow.calls.first?.user.contains(mailLabel) == true)
+        AgentSession.shared.recordAssistant("A source boundary.", contextKind: "tools",
+            toolResultIDs: ["search_email", "not.a.registered.source", "search_email"])
+        let bounded = AgentSession.shared.messages.last
+        check("O01 answer commit admitted unknown/duplicate source IDs", bounded?.toolResultIDs == ["search_email"])
+        let encoded = bounded.flatMap { try? JSONEncoder().encode($0) }
+        let decoded = encoded.flatMap { try? JSONDecoder().decode(AgentSession.Message.self, from: $0) }
+        check("O01 source metadata did not survive existing message Codable seam", decoded?.toolResultIDs == ["search_email"])
+        let legacy = try? JSONDecoder().decode(AgentSession.Message.self,
+            from: Data(#"{"id":"00000000-0000-0000-0000-000000000001","role":"assistant","text":"Legacy result","contextKind":"tools","at":0}"#.utf8))
+        check("O01 legacy row failed decode or invented a specific tool source", legacy != nil && legacy?.toolResultIDs == nil)
+        print("  TOOLLOOP_PRODUCTION_O01_SOURCE: mail/provider/agenda/no-read/refused/legacy checked; native answer quality remains separate")
+        return []
+    }
+
     @MainActor
     static func runRequestedFileReadCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
         guard SelfTest.isRunning else { return ["F03 requested-file fixture requires SelfTest"] }
