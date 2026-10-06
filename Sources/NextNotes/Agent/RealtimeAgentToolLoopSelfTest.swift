@@ -671,7 +671,8 @@ enum RealtimeAgentToolLoopSelfTest {
             return failures.isEmpty
         }
         if CommandLine.arguments.contains("--r02-daily-grounding")
-            || CommandLine.arguments.contains("--r01-timestamp-time") {
+            || CommandLine.arguments.contains("--r01-timestamp-time")
+            || CommandLine.arguments.contains("--r01-write-after-read") {
             failures += await runReminderAdmissionCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
             print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
@@ -4871,7 +4872,8 @@ enum RealtimeAgentToolLoopSelfTest {
                  expectedOverride: [String: String]? = nil,
                  originalNativeArguments: [String: String]? = nil,
                  expectApproval: Bool = true, acknowledgment: String = "yes", approveCard: Bool = true,
-                 initialReplyOverride: String? = nil, initialPasses: Int = 1)
+                 initialReplyOverride: String? = nil, initialPasses: Int = 1,
+                 readBeforeWrite: Bool = false, enforceGrammar: Bool = false)
             async -> (reply: String, log: [PlannerScriptLog.Call], fired: [String], saved: [AgentSchedule],
                       asks: Int, cardArguments: [String: String]?) {
             caseIndex += 1
@@ -4898,6 +4900,10 @@ enum RealtimeAgentToolLoopSelfTest {
                 autoComputerControl: false, grants: [])
             AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
                 fired.record(tool.id)
+                if readBeforeWrite, tool.id == "schedule.list", arguments.isEmpty {
+                    return try await ScheduleToolExecutor.run(tool, arguments: arguments,
+                        scheduler: scheduler, now: now, timeZone: zone)
+                }
                 guard tool.id == "schedule.create",
                       arguments == accepted || arguments == originalNativeArguments else {
                     throw AgentError.permissionDenied("Unexpected payload in the reminder fixture.")
@@ -4907,7 +4913,7 @@ enum RealtimeAgentToolLoopSelfTest {
                     scheduler: scheduler, now: now, timeZone: zone)
             }
             agent.localModelProviderForTesting = PlannerScriptProvider(
-                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, enforcesGrammar: enforceGrammar, log: log)
             agent.answerDepthForTesting = .balanced
             agent.maxCallsForTesting = cap
             agent.budgetForTesting = nil
@@ -4943,7 +4949,9 @@ enum RealtimeAgentToolLoopSelfTest {
             }
             if let shown {
                 let card = ToolCallReviewStore.shared.review(for: shown)
-                check("R01 reminder entered backing before its existing approval", fired.toolIDs.isEmpty)
+                check("R01 reminder entered write backing before its existing approval",
+                      (readBeforeWrite ? fired.toolIDs.allSatisfy { $0 == "schedule.list" } : fired.toolIDs.isEmpty)
+                        && ScheduleStore(directory: store.directory).schedules.isEmpty)
                 if card.isReadyToRun && (shown.arguments == accepted || shown.arguments == originalNativeArguments) {
                     check("R01 unchanged complete reminder card lost readiness",
                           PermissionGate.shared.islandProposal(for: shown).canExecute)
@@ -4954,7 +4962,7 @@ enum RealtimeAgentToolLoopSelfTest {
             } else if !finished { operation.cancel() }
             let result = await operation.value
             if let shown { ToolCallReviewStore.shared.remove(id: shown.id) }
-            if !unconfirmed {
+            if !unconfirmed && !(readBeforeWrite && PendingAction.isNegative(acknowledgment)) {
                 check("R01 confirmed request lost original request/acknowledgment",
                       log.calls.dropFirst(initialPasses).first?.user.contains(requested) == true
                         && log.calls.dropFirst(initialPasses).first?.user.contains("The user answered: " + acknowledgment) == true)
@@ -4968,6 +4976,98 @@ enum RealtimeAgentToolLoopSelfTest {
             return (result.reply, log.calls, liveFixture ? fixtures.calls.map(\.toolID) : fired.toolIDs, saved,
                     PermissionGate.shared.askCount - beforeAsks, shown?.arguments)
         }
+        // R01_WRITE_AFTER_READ_COMMON: exact a5b native prefix; the eventual strict
+        // create is an authored scripted consumer, not a claimed native model success.
+        let writeOffer = "Got it, Serge. I'll remind you at 9 tomorrow to call the bank.\n\nWant me to set that reminder now?"
+        let writeMalformed = "I'll set the reminder for tomorrow at 9 to call the bank.\n\n<tool_call>{\"name\":\"schedule.create\",\"arguments\":\"{\\\"id\\\":\\\"bank_call_reminder\\\",\\\"title\\\":\\\"Call the bank\\\",\\\"text\\\":\\\"Remind me at 9 to call the bank\\\",\\\"routine\\\":{\\\"time\\\":\\\"09:00\\\",\\\"repeat\\\":\\\"weekly\\\",\\\"days\\\":[\\\"monday\\\"]}\\\"}\",\"rationale\":\"Setting the reminder as requested.\"}"
+        let writeList = "I can't set that reminder from memory — I need to check your reminders and routines first. Let me look at what's already there.\n\n<tool_call>{\"name\":\"schedule.list\",\"arguments\":{},\"rationale\":\"List existing reminders, routines, and triggers so I can update a match if one exists for the bank call.\"}</tool_call>"
+        let writePromise = "I'll set that reminder for you now."
+        let writeManifest = AgentCapabilityManifestBuilder.build(allEnabledFixture(), request: request)
+        let writePending = PendingAction(requestText: request,
+            question: PendingAction.lastSentence(writeOffer), capabilityID: "schedule.create",
+            origin: .typedQuestion, sessionID: nil, at: now)
+        let writeConfirmed = writePending.confirmedPrompt(acknowledgment: "yes")
+        let writeParsed = AgentToolCallParser.parse(writeMalformed, knownNames: ["schedule.create"])
+        check("R01_WRITE INPUT_INVALID: exact malformed native recovery changed",
+              writeParsed.calls.count == 1 && writeParsed.calls.first?.name == "schedule.create"
+                && writeParsed.calls.first?.arguments.isEmpty == true)
+        check("R01_WRITE completed read incorrectly satisfied the explicit write promise",
+              !AgentToolLoop.promiseIsCompleted(intent: .reminders, reply: writePromise,
+                request: writeConfirmed, manifest: writeManifest, completedToolIDs: ["schedule.list"]))
+        for (authored, reply, completed) in [
+            (writeConfirmed, "I checked your reminders.", ["schedule.list"]),
+            (writeConfirmed, "Should I set that reminder for you now?", ["schedule.list"]),
+            ("List my reminders", writePromise, ["schedule.list"]),
+            ("Can you set reminders?", writePromise, ["schedule.list"]),
+            ("Say 'Remind me at 9 tomorrow to call the bank'", writePromise, ["schedule.list"]),
+            (writeConfirmed, writePromise, ["schedule.list", "schedule.create"]),
+            (writeConfirmed, writePromise, ["schedule.update"]),
+            (writeConfirmed.replacingOccurrences(of: "The user answered: yes", with: "The user answered: no"),
+                writePromise, ["schedule.list"]),
+        ] {
+            check("R01_WRITE changed completed/read/question/negative suppression",
+                  AgentToolLoop.promiseIsCompleted(intent: .reminders, reply: reply,
+                    request: authored, manifest: writeManifest, completedToolIDs: completed))
+        }
+        // The ambiguous original 9 is not turned into a stored AM/PM choice by the
+        // continuation. This scripted proposal chooses 21:00, shown on the normal card.
+        let writeAt = calendar.date(bySettingHour: 21, minute: 0, second: 0, of: tomorrow)!
+        let writeFields = ["title": "Call the bank", "text": request, "kind": "reminder",
+                           "repeat": "once", "time": "21:00", "date": dateText]
+        func jsonString(_ value: String) -> String {
+            let data = try! JSONSerialization.data(withJSONObject: [value])
+            let array = String(data: data, encoding: .utf8)!
+            return String(array.dropFirst().dropLast())
+        }
+        if let entry = writeManifest.entry(named: "schedule.create") {
+            let fields = entry.parameters.map { parameter in
+                jsonString(parameter.name) + ":" + (writeFields[parameter.name].map(jsonString) ?? "null")
+            }.joined(separator: ",")
+            let strictCreate = "<tool_call>{\"name\":\"schedule.create\",\"arguments\":{" + fields
+                + "},\"rationale\":\"The user requested this reminder.\"}</tool_call>"
+            let callGrammar = LlamaGrammarPlanner.grammar(for: writeManifest, requireCall: true)
+            check("R01_WRITE INPUT_INVALID: authored strict create does not satisfy actual manifest grammar",
+                  callGrammar.matches(strictCreate) && !callGrammar.matches(writePromise)
+                    && !callGrammar.matches(writeMalformed))
+            let final = "Reminder saved for tomorrow at 9 PM to call the bank."
+            let script = [writeOffer, writeMalformed, writeList, writePromise, strictCreate, final]
+            let accepted = await run(script, expectedOverride: writeFields,
+                readBeforeWrite: true, enforceGrammar: true)
+            check("R01_WRITE retained malformed/list/promise did not reach one bounded strict-call round",
+                  accepted.log.count == 6 && accepted.log[2].user.contains("ERROR missing_argument")
+                    && accepted.log[4].user.contains("That promised action has not run")
+                    && accepted.log[4].grammar?.matches(strictCreate) == true
+                    && accepted.log[4].grammar?.matches(writePromise) == false)
+            check("R01_WRITE normal card did not retain exact proposal with zero prior write",
+                  accepted.asks == 1 && accepted.cardArguments == writeFields)
+            check("R01_WRITE actual approved private native consumer lost payload or repeated effect",
+                  accepted.fired == ["schedule.list", "schedule.create"] && accepted.saved.count == 1
+                    && accepted.saved.first?.prompt == request
+                    && accepted.saved.first?.when?.time == ScheduleLocalTime(hour: 21, minute: 0)
+                    && accepted.saved.first?.when?.repeatRule == .once(writeAt)
+                    && accepted.log.last?.user.contains("Saved") == true && accepted.reply == final)
+            let refused = await run(script, expectedOverride: writeFields, approveCard: false,
+                readBeforeWrite: true, enforceGrammar: true)
+            check("R01_WRITE refused approval reached write backing or saved/replayed",
+                  refused.asks == 1 && refused.cardArguments == writeFields
+                    && refused.fired == ["schedule.list"] && refused.saved.isEmpty)
+            let capped = await run(script, cap: 3, expectedOverride: writeFields,
+                readBeforeWrite: true, enforceGrammar: true)
+            check("R01_WRITE shared call/repair cap admitted another round or write",
+                  capped.log.count == 4 && capped.fired == ["schedule.list"]
+                    && capped.asks == 0 && capped.saved.isEmpty)
+            let completedWrite = await run([strictCreate, writePromise], unconfirmed: true,
+                expectedOverride: writeFields, readBeforeWrite: true, enforceGrammar: true)
+            check("R01_WRITE an admitted write was repeated by the same promise",
+                  completedWrite.log.count == 2 && completedWrite.fired == ["schedule.create"]
+                    && completedWrite.saved.count == 1 && completedWrite.asks == 1)
+            let declined = await run(script, expectedOverride: writeFields, expectApproval: false, acknowledgment: "no",
+                readBeforeWrite: true, enforceGrammar: true)
+            check("R01_WRITE negative answer reached planner/tool/card/store",
+                  declined.log.count == 1 && declined.fired.isEmpty && declined.asks == 0
+                    && declined.saved.isEmpty)
+        } else { check("R01_WRITE INPUT_INVALID: selected create descriptor missing", false) }
+        if CommandLine.arguments.contains("--r01-write-after-read") { return [] }
         // R01_TIMESTAMP_COMMON_BEGIN: retained ae5af51 native call, no new repair budget.
         let timestampOffer = "Got it, Serge. I'll remind you at 9 tomorrow to call the bank.\n\nWant me to set that reminder now?"
         let timestampPromise = "I'll set that reminder for you now."

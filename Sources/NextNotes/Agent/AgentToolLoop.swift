@@ -173,6 +173,24 @@ enum AgentToolLoop {
                        options: [.regularExpression, .caseInsensitive]) != nil {
             return false
         }
+        // A successful read cannot complete the requested reminder write. This
+        // admits only the existing bounded call-required continuation; it supplies
+        // no fields or approval and never interprets a model promise as authority.
+        if intent == .reminders,
+           completed.allSatisfy({ (manifest.entry(named: $0)?.risk ?? .privileged) <= .read }),
+           manifest.selected.contains(where: { $0.id == "schedule.create" && $0.isReady && $0.risk > .read }),
+           PendingAction.lastSentence(reply).range(of:
+                #"^\s*(?:I'll|I will|let me)\s+(?:set|create|add)\b[^?\n]*\breminder\b[^?\n]*[.!]?\s*$"#,
+                options: [.regularExpression, .caseInsensitive]) != nil {
+            guard let decoded = reminderObjective(in: request, now: Date()) else { return true }
+            let objective = decoded.objective
+            if explicitlyRequests("remind", in: objective),
+               objective.range(of: #"\bremind\s+me\b"#, options: [.regularExpression, .caseInsensitive]) != nil,
+               !MultiStepPlanRouting.likelyMultiStep(objective),
+               !objective.contains(where: { "?;\n\r".contains($0) }) {
+                return false
+            }
+        }
         return true
     }
 
@@ -193,6 +211,26 @@ enum AgentToolLoop {
             message: "The draft is missing its subject. " + subject.description
                 + " Send the complete draft call again. Leave unknown addresses or ids "
                 + "missing; never invent them.").modelText
+    }
+
+    /// The same authored objective and exact accepted question used by grounding
+    /// and completion tracking. A malformed or changed confirmation stays refused.
+    private static func reminderObjective(
+        in request: String, now: Date
+    ) -> (objective: String, question: String?)? {
+        guard request.hasPrefix(PendingAction.confirmedPrefix) else { return (request, nil) }
+        let lines = request.components(separatedBy: "\n")
+        guard lines.count == 4, lines[1].hasPrefix("You then asked: "),
+              lines[2].hasPrefix("The user answered: ") else { return nil }
+        let answer = String(lines[2].dropFirst("The user answered: ".count))
+        guard VoiceTurnPolicy.isBareAcknowledgment(answer) else { return nil }
+        let objective = String(lines[0].dropFirst(PendingAction.confirmedPrefix.count))
+            .trimmingCharacters(in: .whitespaces)
+        let pending = PendingAction(requestText: objective,
+            question: String(lines[1].dropFirst("You then asked: ".count)),
+            capabilityID: nil, origin: .typedQuestion, sessionID: nil, at: now)
+        guard pending.confirmedPrompt(acknowledgment: answer) == request else { return nil }
+        return (objective, pending.question)
     }
 
     private static func explicitlyRequests(_ action: String, in request: String) -> Bool {
@@ -275,22 +313,9 @@ enum AgentToolLoop {
             // This relative expression means tomorrow, but is not native schedule syntax.
             // Bind it only to matching authored timing below; other nonempty dates retain
             // their existing native validation/repair and never become a different choice.
-            var objective = request
-            var confirmedQuestion: String?
-            if request.hasPrefix(PendingAction.confirmedPrefix) {
-                let lines = request.components(separatedBy: "\n")
-                guard lines.count == 4, lines[1].hasPrefix("You then asked: "),
-                      lines[2].hasPrefix("The user answered: ") else { return proposed }
-                let answer = String(lines[2].dropFirst("The user answered: ".count))
-                guard VoiceTurnPolicy.isBareAcknowledgment(answer) else { return proposed }
-                objective = String(lines[0].dropFirst(PendingAction.confirmedPrefix.count))
-                    .trimmingCharacters(in: .whitespaces)
-                let pending = PendingAction(requestText: objective,
-                    question: String(lines[1].dropFirst("You then asked: ".count)),
-                    capabilityID: nil, origin: .typedQuestion, sessionID: nil, at: now)
-                guard pending.confirmedPrompt(acknowledgment: answer) == request else { return proposed }
-                confirmedQuestion = pending.question
-            }
+            guard let decoded = reminderObjective(in: request, now: now) else { return proposed }
+            let objective = decoded.objective
+            let confirmedQuestion = decoded.question
             let kind = proposed["kind"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
             let repeatWord = proposed["repeat"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
             guard ["", "reminder"].contains(kind),
