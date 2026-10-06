@@ -1,4 +1,5 @@
 import Foundation
+import NextNotesDictionary
 
 /// PL-12: scripted stable partials through the actual coordinator and speculative
 /// frontend slot. Only the external generator is replaced; no microphone/model required.
@@ -69,10 +70,96 @@ enum VoicePreparationSelfTest {
                 }
             } catch { problems.append("matching commit failed: \(error.localizedDescription)") }
         } else { problems.append("final scripted revision did not reach the actual frontend") }
+        problems += await dictionaryPreparationCases()
         // Existing slot negatives pin context/word/symbol/identity changes and late
         // revisions through the SAME frontend implementation, independently of timing.
         if !(await LocalVoiceFrontendSpeculationSelfTest.run()) {
             problems.append("existing exact-request/correlation/revision safety checks failed")
+        }
+        await capture.endSession(source: .done)
+        coordinator.resetForTesting()
+        await frontend.clearStagedTurn()
+        await frontend.setGenerationForTesting(nil)
+        return problems
+    }
+
+    /// Same raw ASR partial and commit, through the actual coordinator/provider/speech path.
+    private static func dictionaryPreparationCases() async -> [String] {
+        let coordinator = VoiceConversationCoordinator.shared
+        let capture = AgentCaptureController.shared
+        let frontend = FrontendResponder.shared
+        let speech = RecordingSpeechBacking()
+        AgentSpeechSynthesizer.shared.useTestingBacking(speech)
+        defer {
+            _ = VoiceConversationCoordinator.installCorrectorForTesting(nil)
+            coordinator.answerSpeechObserverForTesting = nil
+            AgentSpeechSynthesizer.shared.restoreSystemBacking()
+        }
+        var problems: [String] = []
+        let raw = "Tell me about cloud code"
+        for mode in ["corrected", "unchanged", "revised", "cancelled", "dictionary_changed"] {
+            await capture.endSession(source: .done)
+            coordinator.resetForTesting()
+            await frontend.clearStagedTurn()
+            AgentSession.shared.forgetAllConversations()
+            await capture.beginSession(captureAudio: false)
+            let original = DictionaryCorrector(entries: DictionaryStore.parse(
+                mode == "unchanged" ? "# off: cloud code -> Claude Code" : "cloud code -> Claude Code"))
+            guard VoiceConversationCoordinator.installCorrectorForTesting(original) else {
+                problems.append("dictionary fixture isolation refused")
+                break
+            }
+            let source = Source(finishImmediately: mode != "cancelled")
+            await frontend.setGenerationForTesting { _, messages, _ in source.stream(messages: messages) }
+            var observed: [String] = []
+            coordinator.answerSpeechObserverForTesting = { observed.append($0) }
+            speech.reset()
+            let history = AgentSession.shared.messages.count
+            func correctionRows() -> Int {
+                AgentAuditLog.shared.entries.filter { $0.detail.hasPrefix("dictionary corrected:") }.count
+            }
+            let audit = correctionRows()
+            coordinator.prepareResponseIfUseful(raw)
+            let prepared = await source.waitForCount(1, within: .milliseconds(500))
+            let preparedWords = source.last?.messages.last?.content.components(separatedBy: "Latest user speech:\n").last
+            if !prepared || preparedWords != original.apply(to: raw).text {
+                problems.append("\(mode): preparation provider did not receive the corrected authored partial")
+            }
+            if correctionRows() != audit || AgentSession.shared.messages.count != history || !speech.spoken.isEmpty {
+                problems.append("\(mode): preparation audited, stored or spoke before commit")
+            }
+            var final = raw
+            var commitCorrector = original
+            if mode == "revised" { final += " again" }
+            if mode == "dictionary_changed" {
+                commitCorrector = DictionaryCorrector(entries: DictionaryStore.parse("cloud code -> Cloud Workshop"))
+                if !VoiceConversationCoordinator.installCorrectorForTesting(commitCorrector) {
+                    problems.append("updated dictionary fixture isolation refused")
+                }
+            }
+            if mode == "cancelled" {
+                coordinator.prepareResponseIfUseful("")
+                if !(await source.waitForCancellation(0)) {
+                    problems.append("cancelled dictionary preparation retained its producer")
+                }
+                source.finishFutureRequests()
+            }
+            let corrected = commitCorrector.apply(to: final)
+            let expected = "Prepared \(corrected.text)."
+            let turn = await coordinator.handle(final)
+            let expectedCalls = ["corrected", "unchanged"].contains(mode) ? 1 : 2
+            if source.count != expectedCalls {
+                problems.append("\(mode): commit generation count \(source.count), expected \(expectedCalls)")
+            }
+            if turn.delegated || turn.reply != expected
+                || observed.last?.trimmingCharacters(in: .whitespacesAndNewlines) != expected
+                || speech.spoken.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines) != expected {
+                problems.append("\(mode): actual committed answer/speech did not retain the current corrected request")
+            }
+            let expectedCorrections = corrected.applied.isEmpty ? 0 : 1
+            if correctionRows() - audit != expectedCorrections {
+                problems.append("\(mode): dictionary correction audit was not commit-only")
+            }
         }
         await capture.endSession(source: .done)
         coordinator.resetForTesting()
@@ -90,21 +177,28 @@ enum VoicePreparationSelfTest {
         private let lock = NSLock()
         private var requests: [Request] = []
         private var cancelled: Set<Int> = []
+        private var finishImmediately: Bool
+        init(finishImmediately: Bool = false) { self.finishImmediately = finishImmediately }
+        func finishFutureRequests() { lock.withLock { finishImmediately = true } }
         var count: Int { lock.withLock { requests.count } }
         var last: Request? { lock.withLock { requests.last } }
 
         func stream(messages: [LLMChatMessage]) -> AsyncThrowingStream<String, Error> {
             let (stream, continuation) = AsyncThrowingStream<String, Error>.makeStream()
+            let words = messages.last?.content.components(separatedBy: "Latest user speech:\n").last ?? "missing"
             let index = lock.withLock {
                 let index = requests.count
+                // A visible request must already have its authored first chunk.
+                // Otherwise waitForCount/finishLast can finish before this yield.
+                // Install termination only after unlocking, avoiding reentrancy.
+                continuation.yield("<answer/> Prepared \(words).")
+                if finishImmediately { continuation.finish() }
                 requests.append(Request(continuation: continuation, correlation: ModelPassRecorder.correlation, messages: messages))
                 return index
             }
             continuation.onTermination = { [weak self] reason in
                 if case .cancelled = reason { _ = self?.lock.withLock { self?.cancelled.insert(index) } }
             }
-            let words = messages.last?.content.components(separatedBy: "Latest user speech:\n").last ?? "missing"
-            continuation.yield("<answer/> Prepared \(words).")
             return stream
         }
         func finishLast() { last?.continuation.finish() }

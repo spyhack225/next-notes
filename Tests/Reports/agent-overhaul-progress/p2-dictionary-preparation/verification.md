@@ -1,0 +1,9 @@
+# Reuse prepared voice answers after dictionary correction
+
+Confirmed cause: partial speech used raw ASR text, but committed speech applied the user dictionary. The existing exact request key therefore discarded a prepared answer for an unchanged utterance. Coordinator now uses the same corrector during preparation with audit:false; correction auditing remains commit-only. Request/context/correlation identity, cancellation, permissions and provider selection are unchanged. No await, timer, model pass or store added.
+
+Same actual Coordinator preparation→FrontendResponder→Coordinator handle→recording speech consumer: original RED5 → fixed PASS. Corrected same utterance uses one generation; disabled correction preserves reuse; revised words, cancellation and changed dictionary use a fresh generation. Preparation neither speaks nor records a turn/correction; committed correction is audited once. Partials, delivery, capture, turn routing and store isolation all PASS (21 owner files/32 defaults unchanged). Generator and speaker are explicitly scripted; this does not establish native latency or audibility.
+
+Initial COMMON exposed the existing fake Source publication race (count/last visible before first yield), with two different unchanged matching-stream failures retained. Corrected SAME COMMON publishes only after its authored payload is buffered and installs termination after unlocking; original then has exactly the five dictionary failures and fixed passes unchanged predicates. The initial run cause is not independently timestamp-proven. Real Apple availability admission remains intact.
+
+Logs/patches/results: ~/Library/Caches/NextNotesBuild/integration/p2-apple-dictionary-preparation/. Per-test TMP removed; joined original/invalid fixture stages deleted. P2 full latency/speculation and native first-token targets remain open. Verified fixed app is installed by this handoff.

@@ -1,4 +1,5 @@
 import Foundation
+import NextNotesDictionary
 import FoundationModels
 import Observation
 
@@ -81,6 +82,15 @@ final class VoiceConversationCoordinator {
     /// The availability gate's test seam. Production reads Apple's own answer;
     /// a self-test cannot turn Apple Intelligence off, so it injects one here.
     var frontendUnavailableReasonForTesting: String?
+    private static var correctorForTesting: DictionaryCorrector?
+    /// Authored dictionary rules only; never redirects or reads the owner dictionary.
+    static func installCorrectorForTesting(_ corrector: DictionaryCorrector?) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-latency",
+              CommandLine.arguments.contains("--voice-latency-partials"),
+              AgentSession.shared.fileURL == nil else { return false }
+        correctorForTesting = corrector
+        return true
+    }
     /// The prewarm trigger's test seam. When set, a prewarm request calls this
     /// instead of loading the runtime, so a self-test can count triggers without
     /// pulling gigabytes into memory. Nil in production.
@@ -227,7 +237,7 @@ final class VoiceConversationCoordinator {
     /// The frontend reuses it only for an exact final request/context match.
     func prepareResponseIfUseful(_ partial: String) {
         guard streamForTesting == nil else { return }
-        let text = partial.trimmingCharacters(in: .whitespacesAndNewlines)
+        let text = Self.corrected(partial, audit: false).trimmingCharacters(in: .whitespacesAndNewlines)
         guard VoiceTranscriptCanonical.key(text) != VoiceTranscriptCanonical.key(provisionalText) else { return }
         provisionalText = text
         preparationEpoch &+= 1
@@ -1377,6 +1387,7 @@ final class VoiceConversationCoordinator {
         workerForTesting = nil
         workerProviderForTesting = nil
         frontendUnavailableReasonForTesting = nil
+        Self.correctorForTesting = nil
         prewarmObserverForTesting = nil
         voiceReceiptTimingForTesting = nil
         answerSpeechObserverForTesting = nil
@@ -1386,16 +1397,18 @@ final class VoiceConversationCoordinator {
 
     /// The user's dictionary applied to what the Agent heard, audited when it changes
     /// anything so a surprising turn can be traced back to the rule that rewrote it.
-    private static func corrected(_ raw: String) -> String {
-        let corrector = DictionaryStore.shared.corrector
+    private static func corrected(_ raw: String, audit: Bool = true) -> String {
+        let corrector = correctorForTesting ?? DictionaryStore.shared.corrector
         guard !corrector.isEmpty else { return raw }
         let result = corrector.apply(to: raw)
         guard !result.applied.isEmpty else { return raw }
-        AgentAuditLog.shared.record(
-            kind: .request, title: result.text,
-            detail: "dictionary corrected: "
-                + result.applied.map { "\($0.from) → \($0.to)" }.joined(separator: ", ")
-        )
+        if audit {
+            AgentAuditLog.shared.record(
+                kind: .request, title: result.text,
+                detail: "dictionary corrected: "
+                    + result.applied.map { "\($0.from) → \($0.to)" }.joined(separator: ", ")
+            )
+        }
         return result.text
     }
 
