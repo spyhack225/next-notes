@@ -57,6 +57,13 @@ protocol AgentSpeechBacking: AnyObject {
     func pauseForListening()
     func resumeAfterListening()
     func stop()
+    var outputGain: Float { get }
+    func setOutputGain(_ gain: Float)
+}
+
+extension AgentSpeechBacking {
+    var outputGain: Float { 1 }
+    func setOutputGain(_ gain: Float) { }
 }
 
 /// Reply-scoped native synthesis: clauses may be prepared before earlier playback ends.
@@ -142,6 +149,12 @@ final class AgentSpeechSynthesizer {
     private(set) var voiceResumeBinding: ResumeBinding?
     /// Applied to each utterance. Duplex ducking lowers this while speaking.
     var utteranceVolume: Float = 1.0
+    private var listeningOutputGain: Float = 1
+    var outputGain: Float { backing.outputGain }
+    func setOutputGain(_ gain: Float) {
+        listeningOutputGain = max(0, min(1, gain))
+        backing.setOutputGain(listeningOutputGain)
+    }
     /// Forces the output backend for one run without writing the user's preference
     /// (`Settings.agentVoiceEngine`). Honoured only under the self-test harness, because
     /// changing `Settings` from a self-test writes the owner's defaults.
@@ -271,6 +284,7 @@ final class AgentSpeechSynthesizer {
     /// Clear prior playback so a streamed reply can enqueue clauses one by one.
     /// Called by `StreamingSpeechBuffer.begin` — does not set `didStop`.
     func prepareForStream() {
+        setOutputGain(1)
         voiceResumePending = false
         voiceResumeBinding = nil
         usingSystemFallbackForReply = false
@@ -309,6 +323,7 @@ final class AgentSpeechSynthesizer {
                 )
             }
         }
+        backing.setOutputGain(listeningOutputGain)
     }
 
     /// What `prepareForStream` picks. A self-test may name the engine instead of the
@@ -355,6 +370,7 @@ final class AgentSpeechSynthesizer {
             } else { pendingClauses.append(trimmed) }
             onPlaybackEvent?(.enqueued(trimmed))
             if beginning { reply.beginReply(volume: utteranceVolume) }
+            backing.setOutputGain(listeningOutputGain)
             reply.enqueue(trimmed, token: token)
             return
         }
@@ -382,6 +398,7 @@ final class AgentSpeechSynthesizer {
     /// pending clause so mid-reply cut-off does not keep speaking the rest.
     /// Target <100 ms.
     func stop() {
+        setOutputGain(1)
         voiceResumePending = false
         voiceResumeBinding = nil
         isPausedForListening = false
@@ -503,6 +520,7 @@ final class AgentSpeechSynthesizer {
         fallbackBackingForTesting = nil
         testingBacking = false
         self.backing = persistentPlaybackBacking ?? systemBacking
+        setOutputGain(1)
         utteranceVolume = 1.0
         pendingClauses.removeAll()
         onFirstAudio = nil
@@ -598,6 +616,7 @@ final class AgentSpeechSynthesizer {
         if CommandLine.arguments.contains("--selftest-voice-pipeline") { SelfTest.diagnostic(detail) }
         MainActorSection.run("tts.clause") {
             backing.speak(clause, volume: utteranceVolume, token: currentPlaybackToken)
+            backing.setOutputGain(listeningOutputGain)
         }
     }
 
@@ -611,6 +630,7 @@ final class AgentSpeechSynthesizer {
         replyOpen = false
         replyFinished = false
         backing = fallbackBackingForTesting ?? systemBacking
+        backing.setOutputGain(listeningOutputGain)
         if partialReply {
             // Completed clauses are gone. A partially rendered head is interrupted,
             // never repeated; only untouched pending clauses use the old fallback.
@@ -1013,6 +1033,8 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
     }
 
     var isSpeaking: Bool { speaking }
+    var outputGain: Float { player.volume }
+    func setOutputGain(_ gain: Float) { player.volume = max(0, min(1, gain)) }
 
     func speak(_ text: String, volume: Float, token: UInt64) {
         // Do not clear the AVSpeech queue here — clause streaming feeds one
@@ -1393,6 +1415,8 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
 final class RecordingSpeechBacking: AgentSpeechBacking {
     private(set) var spoken: [String] = []
     private(set) var volumes: [Float] = []
+    private(set) var outputGain: Float = 1
+    func setOutputGain(_ gain: Float) { outputGain = max(0, min(1, gain)) }
     private(set) var stopCount = 0
     private(set) var pauseCount = 0
     private(set) var resumeCount = 0

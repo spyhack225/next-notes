@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import Synchronization
 
 /// Agent duplex I/O façade: capture stays on `AudioCaptureHub`, TTS plays out,
 /// and user speech interrupts playback without waiting for the utterance to end.
@@ -48,6 +49,14 @@ final class RealtimeAudioSession {
     /// Lowered playback while the agent is speaking. Best-effort ducking only.
     static let duckedVolume: Float = 0.65
     static let fullVolume: Float = 1.0
+    static let bargeDuckGain: Float = 0.3
+    // Read-only current output identity for the existing nonisolated capture lane.
+    nonisolated private static let voiceActivityOutput = Mutex<(UUID, UInt64)?>(nil)
+    nonisolated static var voiceActivityOutputGeneration: (UUID, UInt64)? {
+        voiceActivityOutput.withLock { $0 }
+    }
+    private var activeCaptureID: UUID?
+    private var listeningDuck: (UUID, UInt64)?
 
     private(set) var phase: Phase = .idle
     private(set) var isActive = false
@@ -58,6 +67,7 @@ final class RealtimeAudioSession {
     /// FluidAudio's callback thread, and neither may read main-actor state (P2-01).
     private(set) var isSpeaking = false {
         didSet {
+            publishVoiceActivityOutput()
             guard isSpeaking != oldValue else { return }
             VoiceLatencyTimeline.shared.setOutputActive(isSpeaking)
         }
@@ -68,6 +78,7 @@ final class RealtimeAudioSession {
     /// Last barge-in → TTS stopped interval, for metrics / self-test.
     private(set) var lastBargeInStopSeconds: TimeInterval?
     private(set) var lastListeningPauseAt: Date?
+    private(set) var lastListeningDuckAt: Date?
     private struct ListeningHold {
         let captureID: UUID
         let outputGeneration: UInt64
@@ -141,7 +152,9 @@ final class RealtimeAudioSession {
 
     /// Agent listen opened. Capture still starts on the hub via
     /// `AgentCaptureController` — this only tracks duplex phase.
-    func begin() {
+    func begin(captureID: UUID? = nil) {
+        activeCaptureID = captureID
+        AgentSpeechSynthesizer.shared.setOutputGain(1)
         AcousticEchoProcessor.shared.reset()
         installPlaybackListener()
         isActive = true
@@ -152,12 +165,15 @@ final class RealtimeAudioSession {
         AgentSpeechSynthesizer.shared.utteranceVolume = Self.fullVolume
         lastBargeInStopSeconds = nil
         lastListeningPauseAt = nil
+        lastListeningDuckAt = nil
+        listeningDuck = nil
         listeningHold = nil
         Log.agent.info("duplex · begin")
     }
 
     /// Session closed. Stops any in-flight utterance and clears pending clauses.
     func end() {
+        activeCaptureID = nil
         listeningHold = nil
         stopOutput()
         AgentSpeechSynthesizer.shared.endPersistentPocketPlayback()
@@ -188,6 +204,9 @@ final class RealtimeAudioSession {
         if let output = voiceShadowOutput, token.output <= output.id { return false }
         if !isActive { installPlaybackListener() }
         listeningHold = nil
+        listeningDuck = nil
+        lastListeningDuckAt = nil
+        Self.voiceActivityOutput.withLock { $0 = nil }
         speechBuffer.begin()
         let identity = turn ?? RealtimeAgent.shared.voiceFrontendShadowTurn
         let kind: OutputKind = suppliedKind ?? identity.map { turn == nil ? .fixed($0) : .answer($0) } ?? .delivery([])
@@ -530,12 +549,47 @@ final class RealtimeAudioSession {
     func noteOutputFinished() {
         guard isSpeaking else { return }
         listeningHold = nil
+        listeningDuck = nil
+        AgentSpeechSynthesizer.shared.setOutputGain(1)
         isSpeaking = false
         if isActive { phase = .listening }
         AgentSpeechSynthesizer.shared.utteranceVolume = Self.fullVolume
     }
 
     // MARK: - Barge-in
+
+    private func publishVoiceActivityOutput() {
+        let identity: (UUID, UInt64)? = if isActive, isSpeaking, let activeCaptureID {
+            (activeCaptureID, AgentSpeechSynthesizer.shared.outputGeneration)
+        } else { nil }
+        Self.voiceActivityOutput.withLock { $0 = identity }
+    }
+    @discardableResult
+    func duckForListening(captureID: UUID, outputGeneration: UInt64) -> Bool {
+        let synth = AgentSpeechSynthesizer.shared
+        guard isActive, activeCaptureID == captureID, isSpeaking, duckingEnabled,
+              synth.isSpeaking, !synth.isPausedForListening,
+              synth.outputGeneration == outputGeneration else { return false }
+        if let held = listeningDuck {
+            guard held.0 == captureID, held.1 == outputGeneration else { return false }
+            return synth.outputGain == Self.bargeDuckGain
+        }
+        synth.setOutputGain(Self.bargeDuckGain)
+        guard synth.outputGain == Self.bargeDuckGain else {
+            synth.setOutputGain(1)
+            return false
+        }
+        listeningDuck = (captureID, outputGeneration)
+        if lastListeningDuckAt == nil { lastListeningDuckAt = Date() }
+        VoiceLatencyTimeline.shared.mark(.bargeDuck)
+        return true
+    }
+    func releaseDuck(captureID: UUID, outputGeneration: UInt64) {
+        guard let held = listeningDuck, held.0 == captureID, held.1 == outputGeneration,
+              AgentSpeechSynthesizer.shared.outputGeneration == outputGeneration else { return }
+        listeningDuck = nil
+        AgentSpeechSynthesizer.shared.setOutputGain(1)
+    }
 
     /// A plausible near-mic candidate holds rendered speech in place. It does
     /// not cancel the response task, current clause, or queued clauses. Only
@@ -613,6 +667,7 @@ final class RealtimeAudioSession {
     }
 
     private func stopOutput() {
+        listeningDuck = nil
         listeningHold = nil
         voiceShadowStreamOpen = false
         speechBuffer.cancel()
@@ -623,6 +678,7 @@ final class RealtimeAudioSession {
 
     private func applySpeakingVolumeIfActive() {
         guard isActive else { return }
+        publishVoiceActivityOutput()
         AgentSpeechSynthesizer.shared.utteranceVolume =
             duckingEnabled ? Self.duckedVolume : Self.fullVolume
     }

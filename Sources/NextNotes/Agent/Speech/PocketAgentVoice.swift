@@ -355,6 +355,8 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
     }
 
     var isSpeaking: Bool { speaking }
+    var outputGain: Float { player.volume }
+    func setOutputGain(_ gain: Float) { player.volume = max(0, min(1, gain)) }
     var isPlaybackEngineRunning: Bool { engine.isRunning }
 
     // Non-streaming callers use the identical reply lifecycle and native join.

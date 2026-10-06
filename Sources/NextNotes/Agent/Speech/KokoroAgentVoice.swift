@@ -127,6 +127,8 @@ final class KokoroSpeechBacking: NSObject, AgentSpeechBacking {
     var onFailure: ((String, Float, UInt64) -> Void)?
 
     var isSpeaking: Bool { speaking }
+    var outputGain: Float { player.volume }
+    func setOutputGain(_ gain: Float) { player.volume = max(0, min(1, gain)) }
 
     override init() {
         super.init()

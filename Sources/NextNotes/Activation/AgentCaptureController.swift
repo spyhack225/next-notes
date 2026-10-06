@@ -1,4 +1,6 @@
 import AVFoundation
+@preconcurrency import CoreML
+import FluidAudio
 import Foundation
 import Observation
 
@@ -82,6 +84,277 @@ private final class TurnAudioBacklog: @unchecked Sendable {
     }
 }
 
+
+/// Bounded input state within Capture's session. Capture closes admission and
+/// joins the retained load/probe handles; this has no audio stream or backlog.
+private final class CaptureVoiceActivityInput: @unchecked Sendable {
+    struct Probe: Sendable {
+        let captureID: UUID
+        let outputGeneration: UInt64
+        let probability: Float
+        let echoOK: Bool
+        let at: UInt64
+    }
+    struct Snapshot: Sendable {
+        let ready: Bool
+        let artifact: String?
+        let failure: String?
+        let nativeProbes: Int
+    }
+    private let lock = NSLock()
+    private let captureID: UUID
+    private let callback: @Sendable (Probe) async -> Void
+    private var active = true
+    private var manager: VadManager?
+    private var artifact: String?
+    private var failure: String?
+    private var nativeProbes = 0
+    private var samples: [Float] = []
+    private var newSamples = 0
+    private var nearEvidence: (generation: UInt64, at: UInt64)?
+    private var windowGeneration: UInt64?
+    private var busy = false
+    private var loadTask: Task<Void, Never>?
+    private var probeTask: Task<Void, Never>?
+
+    init(captureID: UUID, retiring: Task<Void, Never>?,
+         skipModelForTesting: Bool = false,
+         callback: @escaping @Sendable (Probe) async -> Void) {
+        self.captureID = captureID
+        self.callback = callback
+        if SelfTest.isRunning && skipModelForTesting { return }
+        let offline = SelfTest.isRunning
+        loadTask = Task.detached(priority: .utility) { [self] in
+            await retiring?.value
+            do {
+                try Task.checkCancellation()
+                let config = VadConfig(defaultThreshold: 0.5,
+                    computeUnits: .cpuAndNeuralEngine)
+                let directory = FileManager.default.urls(for: .applicationSupportDirectory,
+                    in: .userDomainMask)[0].appendingPathComponent("FluidAudio/Models/silero-vad-coreml")
+                let names = offline ? ["silero-vad-unified-256ms-v6.0.0.mlmodelc"]
+                    : ["silero-vad-unified-256ms-v6.2.1.mlmodelc",
+                       "silero-vad-unified-256ms-v6.0.0.mlmodelc"]
+                let present = names
+                    .map { directory.appendingPathComponent($0) }
+                    .first { FileManager.default.fileExists(atPath: $0.path) }
+                let loaded: VadManager
+                let description: String
+                if let present {
+                    let configuration = MLModelConfiguration()
+                    configuration.computeUnits = config.computeUnits
+                    let model = try MLModel(contentsOf: present, configuration: configuration)
+                    try Task.checkCancellation()
+                    loaded = VadManager(config: config, vadModel: model)
+                    description = present.absoluteString
+                } else {
+                    // Diagnostic entry never initiates a model download. Ordinary optional
+                    // preparation reuses FluidAudio's existing ModelHub/cache policy.
+                    guard !offline else { throw CocoaError(.fileNoSuchFile) }
+                    loaded = try await VadManager(config: config)
+                    description = directory.appendingPathComponent(
+                        "silero-vad-unified-256ms-v6.2.1.mlmodelc").absoluteString
+                }
+                try Task.checkCancellation()
+                finishLoad(loaded, artifact: description, failure: nil)
+            } catch {
+                finishLoad(nil, artifact: nil, failure: error.localizedDescription)
+            }
+        }
+    }
+
+    private func finishLoad(_ manager: VadManager?, artifact: String?, failure: String?) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard active else { return }
+        self.manager = manager
+        self.artifact = artifact
+        self.failure = failure
+    }
+    func snapshot() -> Snapshot {
+        lock.lock()
+        defer { lock.unlock() }
+        return Snapshot(ready: active && manager != nil, artifact: artifact,
+                        failure: failure, nativeProbes: nativeProbes)
+    }
+    func waitUntilLoaded() async { await loadTask?.value }
+    private func retainedProbe() -> Task<Void, Never>? {
+        lock.lock()
+        defer { lock.unlock() }
+        return probeTask
+    }
+    func waitForProbe() async { await retainedProbe()?.value }
+
+    func ingest(_ buffer: AVAudioPCMBuffer, evidence: AcousticEchoProcessor.Evidence,
+                outputGeneration: UInt64?, at: UInt64) {
+        guard buffer.format.commonFormat == .pcmFormatFloat32,
+              buffer.format.sampleRate == 16_000, buffer.format.channelCount == 1,
+              !buffer.format.isInterleaved, let channel = buffer.floatChannelData?[0] else { return }
+        let count = Int(buffer.frameLength)
+        guard count > 0 else { return }
+        lock.lock()
+        guard active else { lock.unlock(); return }
+        if windowGeneration != outputGeneration {
+            samples.removeAll(keepingCapacity: true)
+            newSamples = 0
+            nearEvidence = nil
+            windowGeneration = outputGeneration
+        }
+        samples.append(contentsOf: UnsafeBufferPointer(start: channel, count: count))
+        if samples.count > VadManager.chunkSize { samples.removeFirst(samples.count - VadManager.chunkSize) }
+        newSamples = min(VadManager.chunkSize, newSamples + count)
+        // The probability describes the whole256ms window. Match independent
+        // near evidence to that same window, rather than only its last10ms chunk.
+        // Keep it bound to the current output so an older utterance cannot duck
+        // a successor reply.
+        if nearEvidence?.generation != outputGeneration { nearEvidence = nil }
+        if let outputGeneration,
+           evidence.independentNearCandidate || evidence.nearCandidate {
+            nearEvidence = (outputGeneration, at)
+        }
+        guard samples.count == VadManager.chunkSize, newSamples >= 800,
+              !busy, let manager, let outputGeneration else { lock.unlock(); return }
+        newSamples %= 800
+        busy = true
+        let window = samples
+        let predecessor = probeTask
+        let windowNanos = UInt64(VadManager.chunkSize) * 62_500
+        let echoOK = !evidence.recentReference || (nearEvidence.map {
+            $0.generation == outputGeneration && at >= $0.at && at - $0.at <= windowNanos
+        } ?? false)
+        probeTask = Task.detached(priority: .userInitiated) { [self] in
+            await predecessor?.value
+            do {
+                try Task.checkCancellation()
+                let results = try await manager.process(window)
+                try Task.checkCancellation()
+                guard results.count == 1, let result = results.first,
+                      result.probability.isFinite, (0...1).contains(result.probability) else {
+                    throw CocoaError(.coderInvalidValue)
+                }
+                let admitted = completedProbe()
+                if admitted {
+                    await callback(Probe(captureID: captureID, outputGeneration: outputGeneration,
+                        probability: result.probability, echoOK: echoOK, at: at))
+                }
+            } catch {
+                if !(error is CancellationError) { disable(error.localizedDescription) }
+            }
+            finishProbe()
+        }
+        lock.unlock()
+    }
+    private func completedProbe() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard active else { return false }
+        nativeProbes += 1
+        return true
+    }
+    private func disable(_ message: String) {
+        lock.lock()
+        manager = nil
+        failure = message
+        lock.unlock()
+    }
+    private func finishProbe() {
+        lock.lock()
+        busy = false
+        lock.unlock()
+    }
+
+
+    /// The real ingest owns the window. This isolated test skips only model
+    /// construction and observes its actual PCM/state before native submission.
+    static func windowGenerationSelfTestFailures() async -> [String] {
+        guard SelfTest.isRunning else { return ["VAD window fixture requires self-test mode"] }
+        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
+            sampleRate: 16_000, channels: 1, interleaved: false),
+            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 160),
+            let pcm = buffer.floatChannelData?[0] else { return ["VAD window fixture PCM unavailable"] }
+        buffer.frameLength = 160
+        let input = CaptureVoiceActivityInput(captureID: UUID(), retiring: nil,
+            skipModelForTesting: true) { _ in }
+        var failures: [String] = []
+        var time: UInt64 = 1_000_000_000
+        func ingest(_ generation: UInt64?, near: Bool, value: Float) {
+            for index in 0..<160 { pcm[index] = value }
+            time += 10_000_000
+            let evidence = AcousticEchoProcessor.Evidence(aecProcessed: true,
+                recentReference: true, nearCandidate: near, independentNearCandidate: near,
+                echoCoherence: 0, bestCoherence: 0, bestLagSamples: 0,
+                referenceUnderflow: false, queuedReferenceSamples: 160,
+                rawRMS: 0.1, cleanedRMS: 0.1, referenceRMS: 0.1)
+            input.ingest(buffer, evidence: evidence, outputGeneration: generation, at: time)
+        }
+        func window() -> (frames: Int, pending: Int, first: Float?, near: UInt64?) {
+            input.lock.lock()
+            defer { input.lock.unlock() }
+            return (input.samples.count, input.newSamples, input.samples.first,
+                    input.nearEvidence?.generation)
+        }
+        ingest(1, near: true, value: 0.25)
+        ingest(1, near: false, value: 0.25)
+        if window().frames != 320 || window().pending != 320 || window().near != 1 {
+            failures.append("same output generation failed to retain actual warm PCM/evidence")
+        }
+        ingest(2, near: false, value: -0.5)
+        if window().frames != 160 || window().pending != 160
+            || window().first != -0.5 || window().near != nil {
+            failures.append("successor VAD window retained prior output PCM or pending frames")
+        }
+        ingest(nil, near: false, value: 0.125)
+        if window().frames != 160 || window().pending != 160
+            || window().first != 0.125 || window().near != nil {
+            failures.append("idle VAD window retained prior speaking output PCM")
+        }
+        ingest(nil, near: false, value: 0.125)
+        if window().frames != 320 { failures.append("unchanged idle input failed to retain bounded PCM") }
+        ingest(3, near: true, value: -0.25)
+        if window().frames != 160 || window().pending != 160
+            || window().first != -0.25 || window().near != 3 {
+            failures.append("new output VAD window retained idle PCM or lost fresh near evidence")
+        }
+        ingest(3, near: false, value: -0.25)
+        if window().frames != 320 || window().near != 3 {
+            failures.append("same successor generation discarded warm PCM/near evidence")
+        }
+        for _ in 0..<30 { ingest(3, near: false, value: -0.25) }
+        if window().frames != VadManager.chunkSize || window().pending != VadManager.chunkSize
+            || input.snapshot().ready || input.snapshot().nativeProbes != 0 {
+            failures.append("isolated actual VAD input lost its bounded window or launched a native probe")
+        }
+        await input.close().value
+        ingest(4, near: true, value: 0.5)
+        if window().frames != 0 || input.snapshot().ready || input.snapshot().nativeProbes != 0 {
+            failures.append("closed input admitted new window PCM or native work")
+        }
+        return failures
+    }
+    func resetSamplesForTesting() {
+        guard SelfTest.isRunning else { return }
+        lock.lock()
+        samples.removeAll()
+        newSamples = 0
+        nearEvidence = nil
+        lock.unlock()
+    }
+    func close() -> Task<Void, Never> {
+        lock.lock()
+        active = false
+        samples.removeAll()
+        manager = nil
+        let loading = loadTask, probing = probeTask
+        lock.unlock()
+        loading?.cancel()
+        probing?.cancel()
+        return Task.detached(priority: .utility) {
+            await loading?.value
+            await probing?.value
+        }
+    }
+}
+
 /// Continuous agent listen: wake or ⇧⌘ Space opens a session; local EOU endpoints one
 /// turn; the session stays open until Done, idle, or goodbye.
 ///
@@ -146,6 +419,14 @@ final class AgentCaptureController {
     private var engine: (any TranscriptionEngine)?
     private var consumeTask: Task<Void, Never>?
     private var feedTask: Task<Void, Never>?
+    @ObservationIgnored private var voiceActivityInput: CaptureVoiceActivityInput?
+    @ObservationIgnored private var voiceActivityDrain: Task<Void, Never>?
+    @ObservationIgnored private var voiceActivityConsecutive = 0
+    @ObservationIgnored private var voiceActivityGeneration: UInt64?
+    @ObservationIgnored private var voiceActivityLastProbe: UInt64?
+    @ObservationIgnored private var voiceActivityQuietSince: UInt64?
+    @ObservationIgnored private var voiceActivityObserverForTesting:
+        (@MainActor (CaptureVoiceActivityInput.Probe) -> Void)?
     private var fileFeedTask: Task<Void, Never>?
     private var fileFeedCompletedAt: Date?
     private var deferredFileFeed: (URL, AVAudioFormat, @Sendable (AudioChunk) -> Void)?
@@ -318,7 +599,7 @@ final class AgentCaptureController {
         VoiceConversationCoordinator.shared.noteSessionOpened(origin: origin, at: Date())
         // A voice conversation does not share the CPU with an embedding backfill.
         Task { await EmbeddingRuntime.shared.stopNow() }
-        RealtimeAudioSession.shared.begin()
+        RealtimeAudioSession.shared.begin(captureID: captureID)
         VoicePlaybackDelivery.shared.outputSessionOpened()
         RealtimeAgent.shared.userSpeechEnded()
         lastEndpoint = .none
@@ -446,6 +727,11 @@ final class AgentCaptureController {
     func endSession(source: EndpointSource = .done) async {
         guard isSessionActive else { return }
         let unconfirmedWake = wakeConfirmationPending
+        let activity = voiceActivityInput
+        voiceActivityInput = nil
+        let activityDrain = activity?.close() ?? voiceActivityDrain
+        voiceActivityDrain = activityDrain
+        resetVoiceActivity()
         isSessionActive = false
         voiceShadowQueuedTurn = nil
         captureSessionID = nil
@@ -482,7 +768,8 @@ final class AgentCaptureController {
         stopVAD()
         VoiceLatencyTimeline.shared.endSession()
         MainActorStallProbe.shared.stop()
-        await stopEngine()
+        await stopEngine(closeVoiceActivity: false)
+        await activityDrain?.value
         // Done closes the session. The VAD endpoint is the only path that
         // submits speech; a cumulative ASR tail after Done is often playback
         // or a revision of a request already in flight.
@@ -645,6 +932,13 @@ final class AgentCaptureController {
             return
         }
         self.engine = engine
+        let activity = CaptureVoiceActivityInput(captureID: captureID,
+            retiring: voiceActivityDrain) { [weak self] probe in
+            guard let self else { return }
+            await MainActor.run { self.noteVoiceActivity(probe) }
+        }
+        voiceActivityInput = activity
+        resetVoiceActivity()
         consumeTask = Task { @MainActor [weak self] in
             do {
                 for try await chunk in stream {
@@ -869,6 +1163,14 @@ final class AgentCaptureController {
         let deliver: @Sendable (AudioChunk) -> Void = { chunk in
             let cleaned = AcousticEchoProcessor.shared.process(chunk)
             let acoustic = AcousticEchoProcessor.shared.evidenceSnapshot()
+            let output = RealtimeAudioSession.voiceActivityOutputGeneration
+            // The capture timestamp is the first frame. Freshness follows the final
+            // frame of the supplied 16k buffer, never the later native callback time.
+            activity.ingest(cleaned.buffer, evidence: acoustic,
+                outputGeneration: output?.0 == captureID ? output?.1 : nil,
+                at: chunk.captureHostTime.map { VoiceLatencyTimeline.nanos(hostTime: $0)
+                    + UInt64(cleaned.buffer.frameLength) * 62_500 }
+                    ?? VoiceLatencyTimeline.nowNanos())
             continuation.yield(cleaned)
             let sequence = turnAudioSequence.next()
             if let producerProbeForTesting {
@@ -1033,7 +1335,14 @@ final class AgentCaptureController {
         SelfTest.diagnostic("VOICE_FILE_MAX_PACING_LAG=\(maximumPacingLag)")
     }
 
-    private func stopEngine() async {
+    private func stopEngine(closeVoiceActivity: Bool = true) async {
+        let activity = closeVoiceActivity ? voiceActivityInput : nil
+        let activityDrain = closeVoiceActivity ? (activity?.close() ?? voiceActivityDrain) : nil
+        if closeVoiceActivity {
+            voiceActivityInput = nil
+            voiceActivityDrain = activityDrain
+            resetVoiceActivity()
+        }
         AudioCaptureHub.shared.unsubscribe(.agent)
         fileFeedTask?.cancel()
         fileFeedTask = nil
@@ -1061,6 +1370,7 @@ final class AgentCaptureController {
             if let draining { await draining.value }
         }
         if drained == nil { draining?.cancel() }
+        await activityDrain?.value
         if let finishing {
             _ = await withBoundedWait(RealtimeAgent.Limits.captureFinish) {
                 await finishing.finish()
@@ -1090,6 +1400,10 @@ final class AgentCaptureController {
         eouTerminationRequested = true
         // Refuse callbacks/new admission synchronously before any shutdown await.
         captureSessionID = nil
+        let activity = voiceActivityInput
+        voiceActivityInput = nil
+        let activityDrain = activity?.close() ?? voiceActivityDrain
+        voiceActivityDrain = activityDrain
         let decoder = turnDetectorTask
         let detector = turnDetector
         turnDetectorTask = nil
@@ -1100,6 +1414,7 @@ final class AgentCaptureController {
         return Task { @MainActor in
             await self.endSession(source: .done)
             await decoder?.value
+            await activityDrain?.value
             await detector?.close()
         }
     }
@@ -1234,6 +1549,51 @@ final class AgentCaptureController {
         return failures
     }
     // EOU_REUSE_COMMON_END
+
+    private func resetVoiceActivity() {
+        voiceActivityConsecutive = 0
+        voiceActivityGeneration = nil
+        voiceActivityLastProbe = nil
+        voiceActivityQuietSince = nil
+    }
+    private func noteVoiceActivity(_ probe: CaptureVoiceActivityInput.Probe,
+                                  now: UInt64 = VoiceLatencyTimeline.nowNanos()) {
+        defer { if SelfTest.isRunning { voiceActivityObserverForTesting?(probe) } }
+        // A model that fell behind cannot interpret an old buffer as current speech.
+        let windowNanos: UInt64 = 256_000_000
+        let audio = RealtimeAudioSession.shared
+        let speech = AgentSpeechSynthesizer.shared
+        guard isSessionActive, captureSessionID == probe.captureID,
+              speech.outputGeneration == probe.outputGeneration,
+              now >= probe.at, now - probe.at <= windowNanos else { return }
+        if voiceActivityGeneration != probe.outputGeneration
+            || voiceActivityLastProbe.map({ probe.at < $0 || probe.at - $0 > windowNanos }) == true {
+            resetVoiceActivity()
+            voiceActivityGeneration = probe.outputGeneration
+        }
+        voiceActivityLastProbe = probe.at
+        if probe.probability >= 0.6 && probe.echoOK {
+            voiceActivityQuietSince = nil
+            voiceActivityConsecutive = min(2, voiceActivityConsecutive + 1)
+            if voiceActivityConsecutive == 2 {
+                _ = audio.duckForListening(captureID: probe.captureID,
+                    outputGeneration: probe.outputGeneration)
+            }
+        } else {
+            voiceActivityConsecutive = 0
+            if probe.probability < 0.35 {
+                if voiceActivityQuietSince == nil { voiceActivityQuietSince = probe.at }
+                let text = transcript.trimmingCharacters(in: .whitespacesAndNewlines)
+                let novel = !text.isEmpty && !VoiceTurnPolicy.isHesitation(text)
+                    && !VoiceTurnPolicy.isBackchannel(text, whileAssistantSpeaking: true)
+                if !novel, let quiet = voiceActivityQuietSince,
+                   probe.at >= quiet, probe.at - quiet >= 300_000_000 {
+                    audio.releaseDuck(captureID: probe.captureID,
+                        outputGeneration: probe.outputGeneration)
+                }
+            } else { voiceActivityQuietSince = nil }
+        }
+    }
 
     private func startVAD() {
         vadTask?.cancel()
@@ -2117,6 +2477,9 @@ final class AgentCaptureController {
         appleFastResults: Bool = true) async -> [String] {
         let capture = AgentCaptureController.shared
         let speech = AgentSpeechSynthesizer.shared
+        if let far = SelfTest.value(after: "--voice-duck-replay") {
+            return await voiceDuckReplay(far: URL(fileURLWithPath: far), near: wav)
+        }
         let pocketProbe = AgentSpeechSynthesizer.pocketProbeRequested(
             requested: SelfTest.requested, arguments: CommandLine.arguments)
         if CommandLine.arguments.contains("--voice-test-pocket") && !pocketProbe {
@@ -2133,9 +2496,28 @@ final class AgentCaptureController {
         do { try await capture.beginFileSession(wav: wav, deferFeed: true,
             appleFastResults: appleFastResults) }
         catch { return ["could not open barge-in session: \(error.localizedDescription)"] }
+        if CommandLine.arguments.contains("--voice-feed-10ms") {
+            await capture.voiceActivityInput?.waitUntilLoaded()
+            let state = capture.voiceActivityInput?.snapshot()
+            SelfTest.diagnostic("VOICE_DUCK_MODEL=\(state?.artifact ?? "unavailable") source=FluidInference/silero-vad-coreml")
+            if state?.ready != true {
+                SelfTest.diagnostic("VOICE_BARGE_ABSENT: VAD artifact unavailable: \(state?.failure ?? "not prepared")")
+                await capture.endSession(source: .done)
+                return ["VAD artifact unavailable; live duck measurement cannot run"]
+            }
+        }
         let audio = RealtimeAudioSession.shared
         let priorPlaybackEvent = speech.onPlaybackEvent
         let priorTurnHandler = capture.turnHandlerForTesting
+        let priorActivityObserver = capture.voiceActivityObserverForTesting
+        defer { capture.voiceActivityObserverForTesting = priorActivityObserver }
+        if pocketProbe && CommandLine.arguments.contains("--voice-feed-10ms") {
+            capture.voiceActivityObserverForTesting = { probe in
+                let sinceVoice = capture.fileFirstVoiceAt.map { Date().timeIntervalSince($0) }
+                let age = (Double(VoiceLatencyTimeline.nowNanos()) - Double(probe.at)) / 1e9
+                SelfTest.diagnostic("VOICE_DUCK_PROBE probability=\(probe.probability) echoOK=\(probe.echoOK) age_s=\(age) sinceVoice_s=\(sinceVoice.map(String.init(describing:)) ?? "none") gain=\(speech.outputGain)")
+            }
+        }
         // A successful interruption is the subject of this probe. Do not let
         // the fixture's imperative sentence launch a tool task afterward.
         capture.turnHandlerForTesting = { _ in }
@@ -2216,6 +2598,22 @@ final class AgentCaptureController {
             }
             if let novel = capture.fileFirstNovelASRAt, let pausedAt {
                 SelfTest.diagnostic("VOICE_BARGE_ASR_TO_PAUSE=\(pausedAt.timeIntervalSince(novel))")
+            }
+            if CommandLine.arguments.contains("--voice-feed-10ms") {
+                let nativeProbes = capture.voiceActivityInput?.snapshot().nativeProbes ?? 0
+                SelfTest.diagnostic("VOICE_DUCK_NATIVE_PROBES=\(nativeProbes)")
+                if nativeProbes == 0 { failures.append("no native Silero callback consumed cleaned capture") }
+                if let duckAt = audio.lastListeningDuckAt,
+                   let voice = capture.fileFirstVoiceAt {
+                    let seconds = duckAt.timeIntervalSince(voice)
+                    SelfTest.diagnostic("VOICE_BARGE_VOICE_TO_DUCK=\(seconds)")
+                    if seconds < 0 || seconds > 0.200 {
+                        failures.append("voice to duck \(seconds)s exceeds 0.200s")
+                    }
+                    if pausedAt == nil || duckAt >= pausedAt! {
+                        failures.append("no duck before reversible pause")
+                    }
+                } else { failures.append("no duck before reversible pause") }
             }
             if pocketProbe && !speech.isPocketProbePlayback { failures.append("Pocket failed over during barge diagnostic") }
             let countAtStop = acknowledgedClauses
@@ -2533,9 +2931,223 @@ final class AgentCaptureController {
         return failures
     }
 
+    /// Authored far-only and double-talk, actual Silero and actual AEC -> gain.
+    /// Captured timestamps use sample time; this is not a physical room or wall-clock gate.
+    private static func voiceDuckReplay(far: URL, near: URL) async -> [String] {
+        func samples(_ url: URL) throws -> [Float] {
+            let file = try AVAudioFile(forReading: url, commonFormat: .pcmFormatFloat32,
+                                      interleaved: false)
+            guard file.processingFormat.sampleRate == 16_000,
+                  file.processingFormat.channelCount == 1,
+                  file.length > 0, file.length < 16_000 * 120,
+                  let buffer = AVAudioPCMBuffer(pcmFormat: file.processingFormat,
+                      frameCapacity: AVAudioFrameCount(file.length)) else { throw CocoaError(.coderInvalidValue) }
+            try file.read(into: buffer)
+            guard let channel = buffer.floatChannelData?[0] else { throw CocoaError(.coderInvalidValue) }
+            return Array(UnsafeBufferPointer(start: channel, count: Int(buffer.frameLength)))
+        }
+        let farSamples: [Float], nearSamples: [Float]
+        do { farSamples = try samples(far); nearSamples = try samples(near) }
+        catch {
+            SelfTest.diagnostic("VOICE_BARGE_ABSENT: authored16k VAD replay fixtures unavailable: \(error.localizedDescription)")
+            return ["authored VAD replay fixtures unavailable; measurement cannot run"]
+        }
+        guard let onset = nearSamples.firstIndex(where: { abs($0) >= 0.06 }),
+              let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
+                  sampleRate: 16_000, channels: 1, interleaved: false),
+              let render = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 160),
+              let mic = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 160),
+              let rendered = render.floatChannelData?[0], let captured = mic.floatChannelData?[0] else {
+            return ["authored VAD replay has no measurable speech/PCM"]
+        }
+        let capture = AgentCaptureController.shared
+        let audio = RealtimeAudioSession.shared
+        let speech = AgentSpeechSynthesizer.shared
+        await capture.endSession(source: .done)
+        let backing = RecordingSpeechBacking()
+        speech.useTestingBacking(backing)
+        let priorObserver = capture.voiceActivityObserverForTesting
+        defer { capture.voiceActivityObserverForTesting = priorObserver; speech.restoreSystemBacking() }
+        await capture.beginSession(captureAudio: false)
+        guard let id = capture.captureSessionID else { return ["VAD replay capture unavailable"] }
+        let input = CaptureVoiceActivityInput(captureID: id, retiring: capture.voiceActivityDrain) { probe in
+            await MainActor.run { capture.noteVoiceActivity(probe, now: probe.at) }
+        }
+        capture.voiceActivityInput = input
+        await input.waitUntilLoaded()
+        let state = input.snapshot()
+        SelfTest.diagnostic("VOICE_DUCK_MODEL=\(state.artifact ?? "unavailable") source=FluidInference/silero-vad-coreml scope=authored-sample-replay")
+        guard state.ready else {
+            SelfTest.diagnostic("VOICE_BARGE_ABSENT: VAD replay model unavailable: \(state.failure ?? "not prepared")")
+            await capture.endSession(source: .done)
+            return ["VAD replay artifact unavailable; measurement cannot run"]
+        }
+        var failures: [String] = []
+        for doubleTalk in [false, true] {
+            await input.waitForProbe()
+            input.resetSamplesForTesting()
+            capture.resetVoiceActivity()
+            audio.speak(OutputScheduler.tokenForTesting(), "This same reply keeps playing during the replay.")
+            speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
+            AcousticEchoProcessor.shared.reset()
+            let generation = speech.outputGeneration
+            let before = input.snapshot().nativeProbes
+            let anchor = VoiceLatencyTimeline.nowNanos()
+            var duckAt: UInt64?
+            var lastGain: Float = 1
+            capture.voiceActivityObserverForTesting = { probe in
+                if backing.outputGain < lastGain && duckAt == nil { duckAt = probe.at }
+                lastGain = backing.outputGain
+            }
+            let frames = max(farSamples.count + 480, 16_000 + nearSamples.count + 8_000)
+            for start in stride(from: 0, to: frames, by: 160) {
+                render.frameLength = 160; mic.frameLength = 160
+                for i in 0..<160 {
+                    let at = start + i
+                    rendered[i] = at < farSamples.count ? farSamples[at] : 0
+                    let echoIndex = at - 480
+                    let echo: Float = echoIndex >= 0 && echoIndex < farSamples.count ? farSamples[echoIndex] * 0.35 : 0
+                    let nearIndex = at - 16_000
+                    let own: Float = doubleTalk && nearIndex >= 0 && nearIndex < nearSamples.count ? nearSamples[nearIndex] : 0
+                    captured[i] = echo + own
+                }
+                AcousticEchoProcessor.shared.feedRendered(render)
+                let cleaned = AcousticEchoProcessor.shared.process(AudioChunk(buffer: mic))
+                input.ingest(cleaned.buffer, evidence: AcousticEchoProcessor.shared.evidenceSnapshot(),
+                    outputGeneration: generation, at: anchor + UInt64(start + 160) * 62_500)
+                await input.waitForProbe()
+            }
+            let probes = input.snapshot().nativeProbes - before
+            let delay = duckAt.map { (Double($0) - Double(anchor)) / 1e9 - Double(16_000 + onset) / 16_000 }
+            SelfTest.diagnostic("VOICE_DUCK_REPLAY mode=\(doubleTalk ? "double-talk" : "echo-only") nativeProbes=\(probes) duck=\(duckAt != nil) onsetToDuckSample=\(delay.map(String.init(describing:)) ?? "none")")
+            if probes == 0 { failures.append("native VAD replay produced no callback") }
+            if !doubleTalk && duckAt != nil { failures.append("pure authored echo ducked playback") }
+            if doubleTalk && (delay == nil || delay! < 0 || delay! > 0.200) {
+                failures.append("actual cleaned double-talk VAD did not duck within0.200s of authored onset")
+            }
+            if backing.paused || speech.currentPlaybackToken == 0 { failures.append("VAD replay paused/stopped output") }
+        }
+        let completed = input.snapshot().nativeProbes
+        await capture.endSession(source: .done)
+        input.ingest(mic, evidence: AcousticEchoProcessor.shared.evidenceSnapshot(),
+            outputGeneration: speech.outputGeneration, at: VoiceLatencyTimeline.nowNanos())
+        await input.waitForProbe()
+        if input.snapshot().ready || input.snapshot().nativeProbes != completed || backing.outputGain != 1 {
+            failures.append("closed native VAD input remained admitted or left output ducked")
+        }
+        return failures
+    }
+
+    /// Scripted probabilities test actual Capture -> AudioSession -> backing ownership.
+    /// Native Silero/AEC qualification remains the unchanged authored barge/replay path.
+    private static func voiceDuckHostCases() async -> [String] {
+        let windowFailures = await CaptureVoiceActivityInput.windowGenerationSelfTestFailures()
+        let capture = AgentCaptureController.shared
+        let audio = RealtimeAudioSession.shared
+        let speech = AgentSpeechSynthesizer.shared
+        await capture.endSession(source: .done)
+        let backing = RecordingSpeechBacking()
+        speech.useTestingBacking(backing)
+        let priorHandler = capture.turnHandlerForTesting
+        capture.turnHandlerForTesting = { _ in }
+        defer {
+            capture.turnHandlerForTesting = priorHandler
+            speech.restoreSystemBacking()
+        }
+        await capture.beginSession(captureAudio: false)
+        guard let id = capture.captureSessionID else { return ["duck host capture unavailable"] }
+        audio.speak(OutputScheduler.tokenForTesting(), "The same reply must keep playing.")
+        speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
+        let generation = speech.outputGeneration
+        let token = speech.currentPlaybackToken
+        let stopCount = backing.stopCount
+        let events = VoiceSession.shared.eventCount
+        let pending = VoiceConversationCoordinator.shared.inputPending
+        let start: UInt64 = 1_000_000_000
+        func probe(_ probability: Float, _ echoOK: Bool, _ at: UInt64,
+                   captureID: UUID? = nil, output: UInt64? = nil) {
+            capture.noteVoiceActivity(.init(captureID: captureID ?? id,
+                outputGeneration: output ?? generation, probability: probability,
+                echoOK: echoOK, at: at), now: at)
+        }
+        var failures = windowFailures
+        probe(0.9, false, start)
+        probe(0.9, false, start + 50_000_000)
+        probe(0.9, true, start + 100_000_000, captureID: UUID())
+        probe(0.9, true, start + 150_000_000, output: generation &+ 1)
+        if backing.outputGain != 1 { failures.append("echo or stale capture/output ducked playback") }
+        probe(0.9, true, start + 200_000_000)
+        if backing.outputGain != 1 { failures.append("one probability probe ducked playback") }
+        probe(0.9, true, start + 250_000_000)
+        let duckAt = audio.lastListeningDuckAt
+        if backing.outputGain != RealtimeAudioSession.bargeDuckGain || duckAt == nil {
+            failures.append("two valid probes did not duck actual current backing")
+        }
+        if speech.currentPlaybackToken != token || backing.paused || backing.stopCount != stopCount
+            || VoiceSession.shared.eventCount != events
+            || VoiceConversationCoordinator.shared.inputPending != pending {
+            failures.append("VAD-only duck paused/stopped playback or raised a conversational barrier")
+        }
+        probe(0.9, true, start + 300_000_000)
+        if audio.lastListeningDuckAt != duckAt { failures.append("duplicate VAD restamped first duck") }
+        audio.releaseDuck(captureID: UUID(), outputGeneration: generation)
+        audio.releaseDuck(captureID: id, outputGeneration: generation &+ 1)
+        if backing.outputGain != RealtimeAudioSession.bargeDuckGain {
+            failures.append("stale release changed the current duck")
+        }
+        probe(0.1, true, start + 350_000_000)
+        probe(0.1, true, start + 450_000_000)
+        probe(0.1, true, start + 550_000_000)
+        if backing.outputGain != RealtimeAudioSession.bargeDuckGain {
+            failures.append("duck released before300ms of observed silence")
+        }
+        probe(0.1, true, start + 650_000_000)
+        if backing.outputGain != 1 { failures.append("observed300ms quiet did not release duck") }
+        probe(0.9, true, start + 700_000_000)
+        probe(0.9, true, start + 750_000_000)
+        if backing.outputGain != RealtimeAudioSession.bargeDuckGain { failures.append("fresh speech could not duck again") }
+        capture.transcript = "I need another answer"
+        probe(0.1, true, start + 800_000_000)
+        probe(0.1, true, start + 900_000_000)
+        probe(0.1, true, start + 1_000_000_000)
+        probe(0.1, true, start + 1_100_000_000)
+        if backing.outputGain != RealtimeAudioSession.bargeDuckGain {
+            failures.append("quiet VAD released an unresolved novel lexical turn")
+        }
+        capture.transcript = ""
+        // Existing lexical provisional pause/resume retains the same token and gain.
+        _ = audio.pauseForListening(captureID: id)
+        _ = audio.resumeAfterListening(captureID: id)
+        if speech.currentPlaybackToken != token || backing.paused
+            || backing.outputGain != RealtimeAudioSession.bargeDuckGain {
+            failures.append("lexical pause/resume changed the ducked reply")
+        }
+        audio.noteUserSpeech()
+        if backing.outputGain != 1 || audio.isSpeaking || backing.stopCount != stopCount + 1 {
+            failures.append("committed stop did not restore gain and stop exactly once")
+        }
+        audio.speak(OutputScheduler.tokenForTesting(), "A successor reply starts at normal gain.")
+        speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
+        let successor = speech.currentPlaybackToken
+        probe(0.9, true, start + 800_000_000)
+        probe(0.9, true, start + 850_000_000)
+        if backing.outputGain != 1 || speech.currentPlaybackToken != successor {
+            failures.append("old native output generation ducked a successor")
+        }
+        let nextGeneration = speech.outputGeneration
+        probe(0.9, true, start + 900_000_000, output: nextGeneration)
+        probe(0.9, true, start + 950_000_000, output: nextGeneration)
+        audio.noteOutputFinished()
+        if backing.outputGain != 1 { failures.append("natural completion did not restore gain") }
+        await capture.endSession(source: .done)
+        return failures
+    }
+
     @MainActor
     static func disownSelfTestFailures() async -> [String] {
-        var failures: [String] = []
+        if CommandLine.arguments.contains("--voice-duck-host") { return await voiceDuckHostCases() }
+        var failures = await voiceDuckHostCases()
+
         let capture = AgentCaptureController.shared
         let island = IslandState.shared
         await capture.endSession(source: .done)
