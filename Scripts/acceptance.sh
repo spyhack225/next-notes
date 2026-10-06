@@ -161,8 +161,8 @@ INTEGRATION_ENTRIES=(
   "selftest-task-worker-attempt|300"
   "selftest-receipt-persistence|300"
   "selftest-agent-presentation|300"
-  "selftest-digest|300"
-  "selftest-podcast|300"
+  # PL-11: --selftest-digest and --selftest-podcast remain aliases.
+  "selftest-catch-up|300"
   "selftest-guided|300"
   # browser CDP
   "selftest-cdp|300"

@@ -2360,14 +2360,16 @@ final class AgentTaskManager {
 
     /// Folds whatever the ledger holds for this run onto the task's artifact list.
     /// Called from `execute` and from `--selftest-tasks`'s browser-run fixture; the
-    /// take-on-read keeps a second fold from duplicating the links.
+    /// Only an accepted primary update consumes its copied links.
     func foldArtifacts(taskID: String) {
         guard historyReadFailure == nil else { return }
-        let captured = AgentArtifactLedger.takeRecords(taskID: taskID)
+        let captured = AgentArtifactLedger.peekRecords(taskID: taskID)
         guard !captured.isEmpty else { return }
-        update(taskID) { item in
+        let result = update(taskID) { item in
             item.artifactRecords = AgentArtifact.merging(captured, into: item.artifactRecords)
         }
+        guard result.primaryCommitted else { return }
+        AgentArtifactLedger.consumeRecords(taskID: taskID, records: captured)
     }
 
     /// Background work used to finish only in the task list. A failure the conversation

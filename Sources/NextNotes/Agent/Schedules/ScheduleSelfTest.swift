@@ -1043,10 +1043,15 @@ enum ScheduleSelfTest {
             check("legacy schedule did not retain its budget", decoded.effectiveMaxOutputTokens == 384
                 && decoded.budget.maxOutputTokens == nil && decoded.budget.maxSeconds == 180
                 && decoded.budget.maxToolCalls == 8)
-            decoded.title = DigestTemplate.title
-            check("legacy digest budget was not 1536", decoded.effectiveMaxOutputTokens == 1_536)
-            decoded.title = PodcastTemplate.title
-            check("legacy podcast budget was not 4096", decoded.effectiveMaxOutputTokens == 4_096)
+            // PL-11: the two retired titles are the Catch-up routine, and so is every moment
+            // title; all of them share its 450-word budget (the old 1,536 and 4,096 are gone).
+            for title in CatchUpTemplate.legacyTitles + CatchUpTemplate.Moment.allCases.map(CatchUpTemplate.title(for:)) {
+                decoded.title = title
+                check("catch-up budget for \(title) was not \(CatchUpTemplate.maxOutputTokens)",
+                      decoded.effectiveMaxOutputTokens == CatchUpTemplate.maxOutputTokens)
+            }
+            decoded.title = "Inbox check"
+            check("a plain routine took the catch-up budget", decoded.effectiveMaxOutputTokens == 384)
             decoded.budget.maxOutputTokens = 700
             check("stored explicit output budget was replaced", decoded.effectiveMaxOutputTokens == 700)
 
@@ -1074,26 +1079,31 @@ enum ScheduleSelfTest {
             let createTool = ScheduleToolCatalogue.all.first { $0.name == "create" }!
             let creationTime = date(2026, 9, 16, 5, 0)
             _ = try await ScheduleToolExecutor.run(createTool,
-                arguments: ["kind": "routine", "title": DigestTemplate.title, "text": "Prepare a digest.",
+                arguments: ["kind": "routine", "title": "Morning digest", "text": "Prepare a digest.",
                     "repeat": "daily", "time": "06:00", "speak": "no"],
                 scheduler: scheduler, now: creationTime, timeZone: newYork, availableTools: [])
-            let createdDigest = store.schedules.first { $0.title == DigestTemplate.title }
-            check("create did not persist the digest output budget", createdDigest?.budget.maxOutputTokens == 1_536
-                && ScheduleStore(directory: store.directory).schedule(id: createdDigest?.id ?? UUID())?.budget.maxOutputTokens == 1_536)
-            check("digest budget never reached the actual runner model", runEnvironment.budgetRequests.count == 1
+            let createdDigest = store.schedules.first { $0.templateID == CatchUpTemplate.identity }
+            check("create did not stamp the catch-up identity and moment title on a retired title",
+                  createdDigest?.title == CatchUpTemplate.title(for: .morning))
+            check("create did not persist the catch-up output budget",
+                  createdDigest?.budget.maxOutputTokens == CatchUpTemplate.maxOutputTokens
+                && ScheduleStore(directory: store.directory).schedule(id: createdDigest?.id ?? UUID())?.budget.maxOutputTokens == CatchUpTemplate.maxOutputTokens)
+            check("catch-up budget never reached the actual runner model", runEnvironment.budgetRequests.count == 1
                 && runEnvironment.budgetRequests.first?.0 == .appleFoundation
-                && runEnvironment.budgetRequests.first?.1 == 1_536
+                && runEnvironment.budgetRequests.first?.1 == CatchUpTemplate.maxOutputTokens
                 && createdDigest?.lastRun?.outcome == .ranNow)
             check("Apple run was recorded as cloud", recorder.begun.first?.backend == "apple")
             check("Apple graph reader was classified as cloud", runEnvironment.readers.count == 1
                 && runEnvironment.readers.first! == .appleFoundation)
             _ = try await ScheduleToolExecutor.run(createTool,
-                arguments: ["kind": "routine", "title": PodcastTemplate.title, "text": "Prepare a podcast.",
+                arguments: ["kind": "routine", "title": "Your morning podcast", "text": "Prepare a podcast.",
                     "repeat": "daily", "time": "06:01", "speak": "no"],
                 scheduler: scheduler, now: creationTime, timeZone: newYork, availableTools: [])
-            check("create did not persist and forward the podcast output budget",
-                store.schedules.first { $0.title == PodcastTemplate.title }?.budget.maxOutputTokens == 4_096
-                && runEnvironment.budgetRequests.last?.1 == 4_096)
+            check("create did not persist and forward the catch-up output budget for the other retired title",
+                store.schedules.filter { $0.templateID == CatchUpTemplate.identity }.count == 2
+                && store.schedules.allSatisfy { $0.templateID != CatchUpTemplate.identity
+                    || $0.budget.maxOutputTokens == CatchUpTemplate.maxOutputTokens }
+                && runEnvironment.budgetRequests.last?.1 == CatchUpTemplate.maxOutputTokens)
 
             // Explicit slots inside quiet hours deliver. Late results and event results wait.
             var quiet = ScheduleSettingsSnapshot(enabled: true,

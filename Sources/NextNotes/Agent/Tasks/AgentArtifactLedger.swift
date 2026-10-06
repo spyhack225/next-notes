@@ -24,6 +24,15 @@ enum AgentArtifactLedger {
         lock.lock(); defer { lock.unlock() }
         return byTask.removeValue(forKey: taskID) ?? []
     }
+    /// A successful existing primary update consumes only the records it copied.
+    /// Later captures stay pending; a rejected update never calls this boundary.
+    static func consumeRecords(taskID: String, records: [AgentArtifact]) {
+        lock.lock(); defer { lock.unlock() }
+        guard let retained = byTask[taskID] else { return }
+        let remaining = retained.filter { !records.contains($0) }
+        if remaining.isEmpty { byTask.removeValue(forKey: taskID) }
+        else { byTask[taskID] = remaining }
+    }
     static func peekRecords(taskID: String?) -> [AgentArtifact] {
         guard let taskID else { return [] }
         lock.lock(); defer { lock.unlock() }

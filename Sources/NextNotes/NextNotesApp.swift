@@ -1128,16 +1128,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
-        if arguments.contains("--selftest-digest") {
+        // PL-11: `--selftest-digest` and `--selftest-podcast` are the retired names of this suite.
+        if arguments.contains("--selftest-catch-up") || arguments.contains("--selftest-digest")
+            || arguments.contains("--selftest-podcast") {
             Task { @MainActor in
-                SelfTest.failed = !(await DigestSelfTest.run())
-                SelfTest.requestTermination()
-            }
-            return true
-        }
-        if arguments.contains("--selftest-podcast") {
-            Task { @MainActor in
-                SelfTest.failed = !(await PodcastSelfTest.run())
+                SelfTest.failed = !(await CatchUpSelfTest.run())
                 SelfTest.requestTermination()
             }
             return true
@@ -10010,6 +10005,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let pocket = startupTerminationFixtureForTesting?.pocket ?? PocketAgentVoice.shared
         let parakeet = startupTerminationFixtureForTesting?.parakeet ?? ParakeetModels.shared
         let asrQueue = startupTerminationFixtureForTesting?.queue ?? TranscriptionQueue.shared
+        // Cancel file-render callers before native admission closes; join these same handles below.
+        let catchUpRenderTasks = CatchUpTemplate.beginTermination()
         pocket.beginTermination()
         let wake = WakeWordAudioMonitor.shared
         wake.beginTermination()
@@ -10065,6 +10062,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             await finalTranscripts.finishTermination(ownedFinalTasks)
             await diarization.finishTermination(ownedDiarizationTasks)
             await diarizer.finishTermination()
+            for task in catchUpRenderTasks { await task.value }
             await pocket.finishTermination()
             await wake.finishTermination()
             await parakeet.finishTermination()
