@@ -577,6 +577,12 @@ enum RealtimeAgentToolLoopSelfTest {
             print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
             return failures.isEmpty
         }
+        if CommandLine.arguments.contains("--known-name-reply") {
+            failures += await runKnownNameReplyCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         // This scripted loop has no person to complete an approval card. Missing
         // mutation arguments must exercise the executor's unattended rejection,
         // regardless of the owner's standing computer-control preference.
@@ -1100,6 +1106,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
         failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
         failures.append(contentsOf: await runModelIdentityContractCases(agent: agent, check: check))
+        failures.append(contentsOf: await runKnownNameReplyCases(agent: agent, check: check))
         failures.append(contentsOf: await runReminderAdmissionCases(agent: agent, check: check))
         failures.append(contentsOf: await runCatchUpSetupCases(agent: agent, check: check))
         failures.append(contentsOf: await runO08CatalogueNameCases(agent: agent, check: check))
@@ -3309,6 +3316,90 @@ enum RealtimeAgentToolLoopSelfTest {
         return []
     }
 
+    /// Exact native full5c7df10 N01 with its unchanged reversed raw. The real typed
+    /// handle must consume existing device names without a model or an external read.
+    @MainActor
+    static func runKnownNameReplyCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        let originalRequest = "Who am I?"
+        let originalRaw = "You're Will, a personal assistant on this Mac. I'm here to help with whatever you need — just let me know."
+        let priorProvider = agent.localModelProviderForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorGrounding = AgentGroundingCache.shared.snapshot()
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: originalRequest)
+        defer {
+            agent.localModelProviderForTesting = priorProvider
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.budgetForTesting = priorBudget
+            agent.answerDepthForTesting = priorDepth
+            agent.setTypedPendingForTesting(nil)
+            AgentGroundingCache.shared.publish(folders: priorGrounding.folders,
+                indexedItems: priorGrounding.indexedItems, manifest: AgentCapabilityManifest.current(),
+                assistantName: priorGrounding.assistantName, userFullName: priorGrounding.userFullName)
+        }
+        let local = AgentHarnessChoice(id: .local, source: .settings, available: true, note: "")
+        let external = AgentHarnessChoice(id: .codex, source: .explicit, available: true, note: "")
+        let originalFacts = AgentGrounding(assistantName: "Will", userFullName: "Serge Kadjo", folders: [],
+            indexedItems: 0, surfaces: [])
+        check("N01 known current person has no direct reply", AgentTurnIntent.identityReply(for: originalRequest,
+            grounding: originalFacts) == "You're Serge Kadjo.")
+        check("N01 configured assistant is reversed into the person's name", AgentTurnIntent.identityReply(
+            for: "Who are you?", grounding: originalFacts) == "I'm Will.")
+        for question in ["Who is Sarah?", "Who am I in this meeting?", "Who are you talking about?",
+            "Who am I? Then email Sarah", "Should I change my name?", "Tell me who I should be",
+            "Search my notes for my name", "Remember my name is Ana", "They asked \"Who am I?\"",
+            "Who am I?\nSend my name to Sarah", "What's the capital of Australia?", "What model are you running on?"] {
+            check("N01 unrelated/third-party/tool request stole a device-name reply: " + question,
+                AgentTurnIntent.identityReply(for: question, grounding: originalFacts) == nil)
+            check("N01 actual selector absorbed an unrelated/third-party/tool request: " + question,
+                AgentTurnIntent.resolve(question, choice: local) == .toolLoop(prompt: question))
+        }
+        var empty = originalFacts; empty.userFullName = ""; empty.assistantName = " "
+        check("N01 unknown person was assigned the assistant's name", AgentTurnIntent.identityReply(for: originalRequest, grounding: empty) == nil)
+        check("N01 empty configured assistant invented a name", AgentTurnIntent.identityReply(for: "Who are you?", grounding: empty) == nil)
+        check("N01 explicit external harness was replaced by a device reply",
+            AgentTurnIntent.resolve(originalRequest, choice: external) == .delegate)
+        check("N01 explicit on-device route was replaced by a device reply",
+            AgentTurnIntent.resolve("Ask the local model who am I?", choice: local) == .localModel(prompt: "who am I?"))
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+        agent.budgetForTesting = nil
+        agent.answerDepthForTesting = .balanced
+        var effects = 0
+        AgentToolExecutor.fakeForTesting = { _, _ in
+            effects += 1
+            throw AgentError.permissionDenied("The name fixture permits no external lookup or write.")
+        }
+        @MainActor
+        func consume(_ request: String, user: String, assistant: String, raw: String) async -> (String, Int) {
+            AgentGroundingCache.shared.publish(folders: [], indexedItems: 0, manifest: manifest,
+                assistantName: assistant, userFullName: user)
+            let log = PlannerScriptLog()
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer, window: 4_096,
+                promptTokens: 2_000, script: [raw], log: log)
+            AgentSession.shared.forgetAllConversations(); agent.setTypedPendingForTesting(nil)
+            let response = await agent.handle(request, source: .text)
+            check("N01 real concluded reply did not reach the existing session consumer",
+                AgentSession.shared.recentAssistantTexts().last == response.reply)
+            return (response.reply, log.calls.count)
+        }
+        let original = await consume(originalRequest, user: "Serge Kadjo", assistant: "Will", raw: originalRaw)
+        check("N01 exact original handle still infers/reverses known identity", original.0 == "You're Serge Kadjo." && original.1 == 0)
+        let renamed = await consume(originalRequest, user: "Ana Torres", assistant: "Moss", raw: originalRaw)
+        check("N01 real handle reused a stale user or assistant name", renamed.0 == "You're Ana Torres." && renamed.1 == 0)
+        let assistant = await consume("What's your name?", user: "Ana Torres", assistant: "Moss", raw: originalRaw)
+        check("N01 real handle lost configured assistant identity", assistant.0 == "I'm Moss." && assistant.1 == 0)
+        let unknownRaw = "I don't have a name to use."
+        let unknown = await consume(originalRequest, user: "", assistant: "Moss", raw: unknownRaw)
+        check("N01 actual empty person bypassed ordinary planning/invented identity", unknown.0 == unknownRaw && unknown.1 > 0)
+        check("N01 known names performed external lookup/write", effects == 0)
+        print("TOOLLOOP_PRODUCTION_N01_NAMES originalCalls=\(original.1) renamedCalls=\(renamed.1) assistantCalls=\(assistant.1)")
+        return []
+    }
+
     /// Full334b3f8 N02: preserve the exact user/raw, inspect the actual planner
     /// call's model fact and its existing earned rule. Scripted output is not scrubbed
     /// or re-authored; native improvement needs the separate original model replay.
@@ -3364,9 +3455,9 @@ enum RealtimeAgentToolLoopSelfTest {
             request: request)
         let fixedRules = RealtimeAgent.plannerRules(manifest: manifest, voice: false)
         check("N02 identity rule leaked into the stable rules", !fixedRules.contains(rule))
-        for ordinary in ["Who am I?", "What's the capital of Australia?"] {
+        for ordinary in ["Who am I in this meeting?", "What's the capital of Australia?"] {
             let controlLog = PlannerScriptLog()
-            let raw = ordinary == "Who am I?"
+            let raw = ordinary == "Who am I in this meeting?"
                 ? "You're Will, a personal assistant on this Mac. I'm here to help with whatever you need — just let me know."
                 : "Canberra."
             agent.localModelProviderForTesting = PlannerScriptProvider(

@@ -46,8 +46,8 @@ enum AgentTurnIntent: Equatable {
         }
     }
 
-    /// The selected model decides whether an ordinary turn needs a tool. Only an
-    /// explicitly named external coding harness bypasses the local planner.
+    /// The selected model plans ordinary turns; existing device names need no inference.
+    /// An explicitly named external coding harness retains its own route.
     @MainActor
     static func resolve(
         _ text: String,
@@ -70,7 +70,31 @@ enum AgentTurnIntent: Equatable {
         if let prompt = localModelPrompt(for: text) {
             return .localModel(prompt: prompt)
         }
+        // Names are existing device facts, not a model inference. A whole question
+        // about one current participant can use the existing reply consumer directly.
+        if let answer = identityReply(for: text) { return .reply(answer) }
         return .toolLoop(prompt: text)
+    }
+
+    /// Whole current-participant questions only; no third-party lookup or inferred fact.
+    static func identityReply(for request: String, grounding: AgentGrounding? = nil) -> String? {
+        guard !request.contains(where: { $0.isNewline }) else { return nil }
+        let question = request.trimmingCharacters(in: .whitespacesAndNewlines)
+            .trimmingCharacters(in: CharacterSet(charactersIn: "?!."))
+            .trimmingCharacters(in: .whitespaces).lowercased()
+        let name: String
+        let lead: String
+        switch question {
+        case "who am i", "what is my name", "what's my name", "what’s my name":
+            name = (grounding ?? .current()).userFullName.trimmingCharacters(in: .whitespacesAndNewlines)
+            lead = "You're "
+        case "who are you", "what is your name", "what's your name", "what’s your name":
+            name = (grounding ?? .current()).assistantName.trimmingCharacters(in: .whitespacesAndNewlines)
+            lead = "I'm "
+        default: return nil
+        }
+        guard !name.isEmpty else { return nil }
+        return lead + name + "."
     }
 
     /// The phrasings that address this app rather than a model inside it. Longest first so
