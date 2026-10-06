@@ -134,6 +134,16 @@ enum CatchUpTemplate {
         return arguments
     }
 
+    /// Only the named built-in default. Times, conditions, compounds and advice keep
+    /// the ordinary planner instead of silently replacing the person's choices.
+    static func setupCall(_ request: String) -> AgentToolCall? {
+        guard !request.contains(where: { "\n\r\"“”`;".contains($0) }),
+              request.range(of: #"^\s*(?:please\s+)?(?:(?:can|could|would)\s+you\s+)?(?:set\s+up|create)\s+(?:my|a|the)\s+morning\s+catch(?:-|\s)?up\s*[.!?]?\s*$"#,
+                            options: .regularExpression.union(.caseInsensitive)) != nil else { return nil }
+        return AgentToolCall(name: "schedule.create", arguments: createArguments(),
+                             rationale: restatement(), evidence: nil)
+    }
+
     /// The confirmed sentence stored with a catch-up schedule, in consumer words. Rendered from
     /// the fields so what the person hears is what will run.
     static func plainEnglish(for schedule: AgentSchedule) -> String {

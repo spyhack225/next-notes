@@ -565,6 +565,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--catch-up-setup") {
+            failures += await runCatchUpSetupCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--r02-daily-grounding") {
             failures += await runReminderAdmissionCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1095,6 +1101,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runDraftSubjectRepairCases(agent: agent, check: check))
         failures.append(contentsOf: await runModelIdentityContractCases(agent: agent, check: check))
         failures.append(contentsOf: await runReminderAdmissionCases(agent: agent, check: check))
+        failures.append(contentsOf: await runCatchUpSetupCases(agent: agent, check: check))
         failures.append(contentsOf: await runO08CatalogueNameCases(agent: agent, check: check))
         failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
@@ -2599,6 +2606,157 @@ enum RealtimeAgentToolLoopSelfTest {
         return []
     }
     // O08_CATALOGUE_NAME_COMMON_END
+
+    /// PL-11 explicit setup: same words, actual typed handle -> normal card -> private
+    /// native schedule/runner. Scripted planner is the unchanged no-call control.
+    @MainActor
+    static func runCatchUpSetupCases(agent: RealtimeAgent, check: @escaping (String, Bool) -> Void) async -> [String] {
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorCap = agent.maxCallsForTesting
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("NextNotesCatchUpSetup-" + UUID().uuidString)
+        defer {
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.localModelProviderForTesting = priorProvider
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.answerDepthForTesting = priorDepth
+            agent.budgetForTesting = priorBudget
+            agent.maxCallsForTesting = priorCap
+            agent.setTypedPendingForTesting(nil)
+            try? FileManager.default.removeItem(at: root)
+        }
+        let request = "Set up my morning catch-up"
+        let raw = "I can set up your morning catch-up. Shall I?"
+        let expected = CatchUpTemplate.createArguments()
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        check("PL11_SETUP ready schedule/template read fixture unavailable", manifest.allowedIDs.contains("schedule.create")
+            && Set(CatchUpTemplate.allowedTools).isSubset(of: manifest.allowedIDs))
+        let produced = CatchUpTemplate.setupCall(request)
+        check("PL11_SETUP exact setup request has no owned template call", produced?.name == "schedule.create"
+            && produced?.arguments == expected)
+        let voiceRoute = VoiceConversationCoordinator.shared.toolShapeRoute(request, allowedIDs: manifest.allowedIDs)
+        check("PL11_SETUP actual pre-model voice gate misses explicit template setup", voiceRoute?.text == request
+            && voiceRoute?.route == "catch-up:setup")
+        for supported in ["Please set up a morning catch-up", "Could you set up my morning catch-up?"] {
+            check("PL11_SETUP supported explicit setup changed template fields: " + supported,
+                  CatchUpTemplate.setupCall(supported)?.arguments == expected)
+        }
+        for unsupported in ["Catch me up", "Start my morning catch-up", "What is a morning catch-up?",
+            "Should I set up a morning catch-up?", "Tell me how to set up a morning catch-up",
+            "Set up my morning catch-up at 7", "Set up my weekend catch-up", "Set up my morning catch-up and email Ana",
+            "Set up my morning catch-up; delete my files", "If I ask later, set up my morning catch-up",
+            "\"Set up my morning catch-up\"", "Set up my morning catch-up\nthen send it to Ana"] {
+            check("PL11_SETUP unsupported/ambiguous request guessed a schedule: " + unsupported,
+                  CatchUpTemplate.setupCall(unsupported) == nil)
+            check("PL11_SETUP explicit voice gate absorbed an unsupported request: " + unsupported,
+                  VoiceConversationCoordinator.shared.toolShapeRoute(unsupported, allowedIDs: manifest.allowedIDs)?.route != "catch-up:setup")
+        }
+        check("PL11_SETUP voice gate borrowed unavailable schedule permission",
+              VoiceConversationCoordinator.shared.toolShapeRoute(request, allowedIDs: manifest.allowedIDs.subtracting(["schedule.create"])) == nil)
+        var caseIndex = 0
+        @MainActor
+        func run(approve: Bool, using fixture: AgentCapabilityInputs, existing: Bool = false) async
+            -> (reply: String, saved: [AgentSchedule], calls: Int, fired: Int, asks: Int, tests: Int) {
+            caseIndex += 1
+            let store = ScheduleStore(directory: root.appendingPathComponent("case-\(caseIndex)"))
+            if existing {
+                do {
+                    let seed = try ScheduleToolExecutor.parseCreate(expected, now: SelfTest.fixtureClock ?? Date(),
+                        timeZone: TimeZone(identifier: "America/New_York")!, availableTools: manifest.allowedIDs)
+                    check("PL11_SETUP duplicate seed did not save to its private store", store.save(seed))
+                } catch { check("PL11_SETUP duplicate seed refused valid template", false) }
+            }
+            let initialSchedules = store.schedules
+            let environment = RoutineAuthoritySelfTest.FakeRunEnvironment()
+            let routine = ScheduledRunner(store: store, environment: environment,
+                tools: RoutineAuthoritySelfTest.FakeToolRunner(), recorder: RoutineAuthoritySelfTest.FakeRecorder())
+            let zone = TimeZone(identifier: "America/New_York")!
+            let scheduler = AgentScheduler(store: store, system: RoutineAuthoritySelfTest.NoSystem(),
+                deliverer: RoutineAuthoritySelfTest.QuietDeliverer(), environment: RoutineAuthoritySelfTest.AbsentEnvironment(),
+                settings: { ScheduleSettingsSnapshot(enabled: true, quietStart: nil, quietEnd: nil, speech: .never) },
+                timeZone: { zone }, runner: routine)
+            let log = PlannerScriptLog()
+            var fired = 0
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = fixture
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(autoObserve: true, autoRead: true,
+                autoSearchFiles: true, autoComputerControl: false, grants: [])
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                fired += 1
+                guard tool.id == "schedule.create", arguments == expected else {
+                    throw AgentError.permissionDenied("Unexpected action in the catch-up setup fixture.")
+                }
+                check("PL11_SETUP backing lost original user objective/authority", MemoryProvenance.current?.origin == .userConversation
+                    && MemoryProvenance.current?.userText.first == request)
+                return try await ScheduleToolExecutor.run(tool, arguments: arguments, scheduler: scheduler,
+                    now: SelfTest.fixtureClock ?? Date(), timeZone: zone, availableTools: manifest.allowedIDs)
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer, window: 4_096,
+                promptTokens: 2_000, script: [raw], log: log)
+            agent.denyUnattendedApprovalsForTesting = false
+            agent.answerDepthForTesting = .balanced
+            agent.budgetForTesting = nil
+            agent.maxCallsForTesting = nil
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+            let beforeAsks = PermissionGate.shared.askCount
+            var finished = false
+            let operation = Task { @MainActor in
+                let turn = await agent.handle(request, source: .text)
+                finished = true
+                return turn
+            }
+            let deadline = ContinuousClock.now.advanced(by: .seconds(3))
+            while !finished, PermissionGate.shared.pending == nil, ContinuousClock.now < deadline { await Task.yield() }
+            if let pending = PermissionGate.shared.pending {
+                check("PL11_SETUP entered backing or saved before the one approval", fired == 0 && store.schedules == initialSchedules)
+                check("PL11_SETUP ordinary card changed payload or lost native readiness", pending.toolID == "schedule.create"
+                    && pending.arguments == expected && ToolCallReviewStore.shared.review(for: pending).isReadyToRun)
+                _ = PermissionGate.shared.respond(id: pending.id, approved: approve)
+                let turn = await operation.value
+                ToolCallReviewStore.shared.remove(id: pending.id)
+                return (turn.reply, ScheduleStore(directory: store.directory).schedules, log.calls.count,
+                    fired, PermissionGate.shared.askCount - beforeAsks, environment.completions)
+            }
+            if !finished { operation.cancel() }
+            let turn = await operation.value
+            return (turn.reply, ScheduleStore(directory: store.directory).schedules, log.calls.count,
+                fired, PermissionGate.shared.askCount - beforeAsks, environment.completions)
+        }
+        let accepted = await run(approve: true, using: inputs)
+        check("PL11_SETUP actual handle failed to create through one approval without a planner pass",
+              accepted.saved.count == 1 && accepted.fired == 1 && accepted.asks == 1 && accepted.calls == 0
+                && accepted.tests == 1 && accepted.reply.contains("Saved"))
+        let saved = accepted.saved.first
+        check("PL11_SETUP fresh native reader lost exact private catch-up contract", saved?.templateID == CatchUpTemplate.identity
+            && saved?.kind == .routine && saved?.title == "Your morning catch-up" && saved?.prompt == expected["text"]
+            && saved?.when?.repeatRule == .weekdays && saved?.when?.time == ScheduleLocalTime(hour: 6, minute: 0)
+            && saved?.allowedTools == CatchUpTemplate.allowedTools && saved?.model == .auto
+            && saved?.budget.maxOutputTokens == CatchUpTemplate.maxOutputTokens)
+        let duplicate = await run(approve: true, using: inputs, existing: true)
+        check("PL11_SETUP explicit setup duplicated or reran an existing native template", duplicate.saved.count == 1
+            && duplicate.tests == 0 && !duplicate.reply.contains("Saved"))
+        let denied = await run(approve: false, using: inputs)
+        check("PL11_SETUP denied card reached backing or saved a recurring task", denied.saved.isEmpty && denied.fired == 0 && denied.tests == 0)
+        var disabled = inputs; disabled.switches.schedules = false
+        let unavailable = await run(approve: true, using: disabled)
+        check("PL11_SETUP unavailable schedules reached a card, backing or private store", unavailable.saved.isEmpty
+            && unavailable.fired == 0 && unavailable.asks == 0 && unavailable.tests == 0)
+        check("PL11_SETUP retained approval/card work after actual consumer returned", PermissionGate.shared.pending == nil
+            && PermissionGate.shared.queuedCount == 0)
+        print("TOOLLOOP_PRODUCTION_PL11_SETUP approved=\(accepted.saved.count) asks=\(accepted.asks) plannerCalls=\(accepted.calls)")
+        return []
+    }
 
     /// Installed 334b3f8 R01: exact offer -> yes -> malformed function call. The
     /// planner is scripted, but actual executor/confirmation/validation and native

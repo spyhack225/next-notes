@@ -1507,16 +1507,17 @@ extension RealtimeAgent {
             budget: budget, ceilingRemaining: budget.ceiling, request: prompt,
             maxCalls: maxCalls, readerContextTokens: window,
             untrustedOutputs: AgentSession.shared.recentAssistantTexts())
-        // The action is completely specified by the user's own sentence. Produce its
-        // write before asking a model to plan: a recall or a fluent acknowledgment cannot
-        // substitute for saving it. The existing runner still binds provenance, checks
+        // An explicit fact or named built-in setup supplies its owned call already.
+        // Produce it before asking a model to plan; the normal runner/card remains
+        // the approval boundary. The existing runner still binds provenance, checks
         // effect validity, executes the guards and records only successful completions.
         if !prompt.hasPrefix(PendingAction.confirmedPrefix),
            work?.followUps.isEmpty ?? true,
-           let call = AgentDirectIntent.memorySaveCall(prompt) {
+           let call = AgentDirectIntent.memorySaveCall(prompt) ?? CatchUpTemplate.setupCall(prompt) {
+            let failureReply = call.name == "schedule.create" ? "I couldn’t set up that catch-up." : "I couldn't save that memory."
             guard manifest.allowedIDs.contains(call.name) else {
-                return PlannedTurnResult(taskOutcome: .failed("I couldn't save that memory."),
-                                         reply: "I couldn't save that memory.", usedTools: false, calledToolIDs: [])
+                return PlannedTurnResult(taskOutcome: .failed(failureReply),
+                                         reply: failureReply, usedTools: false, calledToolIDs: [])
             }
             if !isVoiceWorker { await waitForVoiceInput() }
             guard isCurrent(owner) else {
@@ -1529,7 +1530,7 @@ extension RealtimeAgent {
             UsageLog.shared.record(UsageRecord(
                 id: UUID(), ts: Date(),
                 feature: ((background || isVoiceWorker) ? UsageFeature.agentWorker : .agentTyped).rawValue,
-                pass: "explicit-memory-save", provider: UsageProvider.rules.rawValue,
+                pass: call.name == "schedule.create" ? "explicit-catch-up-setup" : "explicit-memory-save", provider: UsageProvider.rules.rawValue,
                 modelID: "direct-intent", locality: "local",
                 totalMs: max(0, ModelPassRecorder.milliseconds(began.duration(to: clock.now))
                                 - (step.usage?.ms ?? 0)),
@@ -1561,7 +1562,7 @@ extension RealtimeAgent {
                     }
                 case .repaired, .skipped, .answerNow, .outOfTime:
                     // No model rewrite/retry of a rejected fact, and no success acknowledgment.
-                    reply = "I couldn't save that memory."
+                    reply = failureReply
                 }
                 let taskOutcome: AgentTaskOutcome?
                 if case .completed = step.disposition { taskOutcome = nil } else { taskOutcome = .failed(reply) }

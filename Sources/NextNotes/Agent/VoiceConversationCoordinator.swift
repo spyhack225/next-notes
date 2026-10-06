@@ -1189,7 +1189,10 @@ final class VoiceConversationCoordinator {
                     "whats the status of that task", "what s the status of that task"]).contains(key)
     }
 
-    private func toolShapeRoute(_ text: String, allowedIDs: Set<String>) -> (text: String, route: String)? {
+    func toolShapeRoute(_ text: String, allowedIDs: Set<String>) -> (text: String, route: String)? {
+        if allowedIDs.contains("schedule.create"), CatchUpTemplate.setupCall(text) != nil {
+            return (text, "catch-up:setup")
+        }
         if let direct = AgentDirectIntent.parse(text, wholeSentence: false) {
             return (text, "direct:" + direct.requiredToolIDs.joined(separator: "+"))
         }
