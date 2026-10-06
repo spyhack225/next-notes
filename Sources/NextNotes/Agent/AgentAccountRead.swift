@@ -401,7 +401,17 @@ enum AgentAccountRead {
             guard offersRead else { return false }
             if offerWords.contains(where: { accountNouns(intent).contains($0) }) { return true }
             return sentences.dropLast().contains { sentence in
-                let antecedent = words(of: sentence)
+                var antecedent = words(of: sentence)
+                // A topic-labelled promise still owns its account read ("For events, I can check...").
+                // Strip only one account topic, never quoted narration or arbitrary preceding prose.
+                let parts = sentence.split(separator: ",", maxSplits: 1, omittingEmptySubsequences: false)
+                let topic = parts.first.map { words(of: String($0)) } ?? []
+                let opening = sentence.trimmingCharacters(in: .whitespacesAndNewlines).first
+                if parts.count == 2, topic.count == 2, topic.first == "for",
+                   accountNouns(intent).contains(topic[1]),
+                   opening.map({ !"\"'`“‘".contains($0) }) == true {
+                    antecedent = words(of: String(parts[1]))
+                }
                 let beginsPromise = antecedent.first.map { ["i", "im", "ill", "ive"].contains($0) } == true
                     || Array(antecedent.prefix(2)) == ["let", "me"]
                 return beginsPromise && namesAccount(intent, sentence) && promisesToRead(antecedent)

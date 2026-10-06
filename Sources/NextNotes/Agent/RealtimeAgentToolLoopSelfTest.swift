@@ -610,6 +610,12 @@ enum RealtimeAgentToolLoopSelfTest {
             print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
             return failures.isEmpty
         }
+        if CommandLine.arguments.contains("--c04-second-read") {
+            failures += await runC04SecondReadCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--o08-authored-target") {
             failures += await runO08AuthoredTargetCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1209,6 +1215,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runRequestedFileReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedMeetingReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
+        failures.append(contentsOf: await runC04SecondReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runProjectMemoryReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runA04ActiveAppReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedTodoReadCases(agent: agent, check: check))
@@ -3255,6 +3262,149 @@ enum RealtimeAgentToolLoopSelfTest {
         return []
     }
 
+
+    /// C04 retains the vendor's exact two no-call replies and its independent second read.
+    @MainActor
+    static func runC04SecondReadCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["C04 second-read fixture requires SelfTest"] }
+        let request = "Summarize my last emails and list me my events for tomorrow"
+        let first = "I'll check your recent emails and upcoming events. One moment."
+        let second = """
+        Here's a summary of your recent emails:
+
+        - You reached out to Cyril about dinner tomorrow.
+        - Ana Ruiz asked you to send the deck by Friday.
+        - Marcus shared the updated pricing sheet v3.
+        - GitHub notified that CI passed on main.
+        - Stripe (noreply@stripe.example) confirmed your September invoice is ready.
+        - Marcus also received contract renewal terms from a previous message.
+
+        For events, I can check your calendar. Would you like me to look at what's booked for tomorrow?
+        """
+        let final = "Marcus sent the pricing sheet and Ana requested the deck. Tomorrow you have a dentist appointment, a design sync and dinner with Cyril."
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let qualified = LiveEvalCases.all.first { $0.id == "C04" }?.turns == [request]
+            && manifest.selectedIntents.isSuperset(of: [.mail, .calendar])
+            && ["search_email", "get_agenda"].allSatisfy {
+                manifest.selectedIDs.contains($0) && manifest.entry(named: $0)?.isReady == true
+                    && manifest.entry(named: $0)?.risk == .read
+            }
+        check("C04 INPUT_INVALID exact request/selected ready independent reads", qualified)
+        guard qualified else { return ["C04 INPUT_INVALID"] }
+        let now = SelfTest.fixtureClock ?? Date()
+        let expectedAgenda = AgentToolLoop.groundedArguments(for: "get_agenda", proposed: [:], request: request, now: now)
+        check("C04 original mail floor/actual argument grounding changed",
+              AgentAccountRead.defaultRead(for: .mail, request: request)?.arguments == ["query": "in:inbox"]
+                && AgentToolLoop.groundedArguments(for: "search_email", proposed: ["query": "in:inbox"], request: request).isEmpty)
+        func pending(_ raw: String = second, question: String = request, turn: [String] = ["search_email"],
+                     session: Set<String> = [], using selected: AgentCapabilityManifest? = nil) -> String? {
+            let selected = selected ?? manifest
+            return AgentAccountRead.pendingRead(reply: raw, selectedIntents: selected.selectedIntents,
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: selected, request: question) },
+                request: question, now: now, manifest: selected)?.toolID
+        }
+        check("C04 retained second offer omitted independent calendar read", pending() == "get_agenda")
+        check("C04 old direct first-person calendar offer regressed",
+              pending("I can check your calendar. Would you like me to look at what's booked for tomorrow?") == "get_agenda")
+        check("C04 completed current/same-session calendar read repeated",
+              pending(turn: ["search_email", "get_agenda"]) == nil && pending(session: ["get_agenda"]) == nil)
+        for raw in ["For events, I can't check your calendar. Would you like me to look at what's booked for tomorrow?",
+                    "For events, you can check your calendar. Would you like me to look at what's booked for tomorrow?",
+                    "For events, I can cancel your calendar events. Would you like me to do that?",
+                    "For events, I can check your calendar. Which calendar should I look at?",
+                    "\"For events, I can check your calendar\". Would you like me to look at what's booked for tomorrow?",
+                    "“For events, I can check your calendar”. Would you like me to look at what's booked for tomorrow?"] {
+            check("C04 denial/advice/write/clarification/quoted narration acquired read: " + raw, pending(raw) == nil)
+        }
+        let mailOnly = AgentCapabilityManifestBuilder.build(inputs, request: "Summarize my last emails")
+        check("C04 changed mail-only request acquired calendar",
+              pending(question: "Summarize my last emails", using: mailOnly) == nil)
+        var unavailable = inputs; unavailable.tools.removeAll { $0.id == "get_agenda" }
+        check("C04 unavailable calendar descriptor invented",
+              pending(using: AgentCapabilityManifestBuilder.build(unavailable, request: request)) == nil)
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorBudget = agent.budgetForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.localModelProviderForTesting = priorProvider
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.answerDepthForTesting = priorDepth
+            agent.budgetForTesting = priorBudget
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        @MainActor
+        func run(_ script: [String], denyCalendar: Bool = false)
+            async -> (reply: String, calls: [PlannerScriptLog.Call], tools: [LiveEvalLoggedCall], mail: String, agenda: String) {
+            let fixture = LiveEvalFixtures(now: now)
+            fixture.beginCase()
+            let log = PlannerScriptLog()
+            var mail = "", agenda = ""
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                autoObserve: true, autoRead: true, autoSearchFiles: true, autoComputerControl: false, grants: [])
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                let output = try await fixture.run(tool, arguments)
+                if tool.id == "search_email" {
+                    mail = output.summary
+                    if denyCalendar {
+                        agent.readApprovalOverrideForTesting = false
+                        AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                            autoObserve: false, autoRead: false, autoSearchFiles: false,
+                            autoComputerControl: false, grants: [])
+                    }
+                }
+                if tool.id == "get_agenda" { agenda = output.summary }
+                return output
+            }
+            agent.readApprovalOverrideForTesting = true
+            agent.denyUnattendedApprovalsForTesting = true
+            agent.answerDepthForTesting = .deep
+            agent.budgetForTesting = nil
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                window: 4_096, promptTokens: 2_000, script: script, log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let result = await agent.handle(request, source: .text)
+            return (result.reply, log.calls, fixture.calls, mail, agenda)
+        }
+        let actual = await run([first, second, final])
+        check("C04 original first reply/mail result did not qualify",
+              actual.tools.first?.toolID == "search_email" && actual.tools.first?.arguments.isEmpty == true
+                && actual.calls.count >= 2 && !actual.mail.isEmpty && actual.calls[1].user.contains(actual.mail))
+        check("C04 actual typed flow omitted/repeated second requested read",
+              actual.tools.map(\.toolID) == ["search_email", "get_agenda"]
+                && actual.tools.last?.arguments == expectedAgenda)
+        check("C04 actual final provider lost request or either successful read result",
+              actual.calls.count == 3 && !actual.agenda.isEmpty
+                && actual.calls.last?.user.contains(request) == true
+                && actual.calls.last?.user.contains(actual.mail) == true
+                && actual.calls.last?.user.contains(actual.agenda) == true)
+        check("C04 actual consumer retained offer instead of complete grounded answer",
+              actual.reply == final || actual.reply == "This takes a few steps on this Mac.\n\n" + final)
+        let completed = await run([first, #"<tool_call>{"name":"get_agenda","arguments":{}}</tool_call>"#, second])
+        check("C04 actual model-authored completed calendar read repeated",
+              completed.tools.map(\.toolID) == ["search_email", "get_agenda"] && completed.calls.count == 3)
+        let denied = await run([first, second], denyCalendar: true)
+        check("C04 refused calendar read entered backing or fabricated success",
+              denied.tools.map(\.toolID) == ["search_email"] && denied.calls.count == 2
+                && denied.agenda.isEmpty && denied.reply.contains(AgentAccountRead.notReadYet(.calendar)))
+        return []
+    }
 
     /// F02 preserves the actual no-call reply and asks only for remembered project evidence.
     /// The unchanged native fixture does not establish current project activity.
