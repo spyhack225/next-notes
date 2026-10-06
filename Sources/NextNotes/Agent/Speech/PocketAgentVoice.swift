@@ -1,4 +1,5 @@
 import AVFoundation
+import Darwin
 import FluidAudio
 import Observation
 
@@ -33,6 +34,41 @@ final class PocketAgentVoice {
     private var prepareTask: Task<Void, Never>?
     private var terminationRequested = false
     private var terminationPrepareTask: Task<Void, Never>?
+    private weak var replyPlayback: PocketSpeechBacking?
+    private var replyTask: Task<Void, Never>?
+    private var replyGeneration: UInt64 = 0
+
+    // Same model owner, one current native reply handle. The predecessor is
+    // captured only until its cancellation/native join returns; never a list.
+    func startReplyPlayback(_ playback: PocketSpeechBacking,
+        operation: @escaping @MainActor @Sendable () async -> Void
+    ) -> Task<Void, Never>? {
+        guard !terminationRequested else { return nil }
+        let previous = replyTask
+        if let priorBacking = replyPlayback, priorBacking !== playback { priorBacking.stop() }
+        previous?.cancel()
+        replyGeneration &+= 1
+        let generation = replyGeneration
+        replyPlayback = playback
+        let pending = Task { @MainActor [weak self] in
+            // Even a canceled successor must drain its captured predecessor.
+            await previous?.value
+            guard let self else { return }
+            if !Task.isCancelled && !terminationRequested && replyGeneration == generation {
+                await operation()
+            }
+            if replyGeneration == generation {
+                replyTask = nil
+                if replyPlayback?.isSpeaking == false { replyPlayback = nil }
+            }
+        }
+        replyTask = pending
+        return pending
+    }
+
+    func replyPlaybackDrained(_ playback: PocketSpeechBacking) {
+        if replyPlayback === playback && replyTask == nil { replyPlayback = nil }
+    }
 
     /// Snapshot before cancel; prepare() may clear its ordinary slot across an await.
     func beginTermination() {
@@ -40,13 +76,19 @@ final class PocketAgentVoice {
         terminationRequested = true
         terminationPrepareTask = prepareTask
         terminationPrepareTask?.cancel()
+        replyPlayback?.stop()
+        replyTask?.cancel()
     }
 
-    /// This joins preparation/warmup only, not every caller-owned synthesis stream.
+    /// Join preparation and the reply-scoped playback producer. File render
+    /// callers retain their own existing CatchUp/LongForm termination joins.
     func finishTermination() async {
         beginTermination()
         await terminationPrepareTask?.value
+        await replyTask?.value
         terminationPrepareTask = nil
+        replyTask = nil
+        replyPlayback = nil
     }
 
     private func checkTerminationAdmission() throws {
@@ -121,8 +163,7 @@ final class PocketAgentVoice {
         }
     }
 
-    func frames(for text: String, voice: String)
-        async throws -> AsyncThrowingStream<PocketTtsSynthesizer.AudioFrame, Error> {
+    private func prepareForSynthesis() async throws {
         try checkTerminationAdmission()
         // The one-time native warmup can be draining a cancelled CoreML call.
         // If it exceeds this caller's budget, fall back for this reply while
@@ -131,10 +172,26 @@ final class PocketAgentVoice {
         try checkTerminationAdmission()
         guard prepared != nil else { throw PocketPlaybackError.modelUnavailable("Pocket TTS is still preparing.") }
         guard isReady else { throw PocketPlaybackError.modelUnavailable(errorMessage) }
+    }
+
+    func frames(for text: String, voice: String)
+        async throws -> AsyncThrowingStream<PocketTtsSynthesizer.AudioFrame, Error> {
+        try await prepareForSynthesis()
         return try await manager.synthesizeStreaming(text: text, voice: voice)
     }
 
+    func makeReplySession(voice: String) async throws -> PocketTtsSession {
+        try await prepareForSynthesis()
+        let session = try await manager.makeSession(voice: voice)
+        do { try checkTerminationAdmission() }
+        catch { await session.cancel(); throw error }
+        return session
+    }
+
     static func runSelfTest() async -> Bool {
+        if CommandLine.arguments.contains("--tts-pocket-pipeline") {
+            return await PocketReplyPipelineSelfTest.run()
+        }
         let voice = PocketAgentVoice.shared
         await voice.prepare()
         guard voice.isReady else {
@@ -200,28 +257,78 @@ final class PocketAgentVoice {
     }
 }
 
-/// Playback-only engine. A stopped generation cannot schedule another frame or
-/// finish a newer utterance; the outer synthesizer still owns clause ordering.
+/// Fixture-only numeric playback observations captured before any MainActor hop.
+struct PocketPlayedBufferObservation: Sendable {
+    let token: UInt64
+    let ordinal: Int
+    let samples: Int
+    let nonzero: Bool
+    let scheduledHostTime: UInt64
+    let playedHostTime: UInt64
+}
+
+/// Playback-only engine. One native session belongs to one reply; a stopped
+/// generation cannot schedule another frame or complete a successor clause.
 @MainActor
-final class PocketSpeechBacking: AgentSpeechBacking {
+final class PocketSpeechBacking: AgentReplySpeechBacking {
     private let engine = AVAudioEngine()
     private let player = AVAudioPlayerNode()
     private let format = AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)!
+    private let voiceForTesting: String?
+    private let voiceOwner: PocketAgentVoice
+    private var replyWork: (@MainActor @Sendable () async throws -> Void)?
+    var replyWorkForTesting: (@MainActor @Sendable () async throws -> Void)? {
+        get { replyWork }
+        set {
+            if SelfTest.requested == "--selftest-tts-pocket"
+                && CommandLine.arguments.contains("--tts-pocket-pipeline") { replyWork = newValue }
+        }
+    }
+    private(set) var engineStartsForTesting = 0
+    private var playedBufferObserver: (@Sendable (PocketPlayedBufferObservation) -> Void)?
+    var playedBufferObserverForTesting: (@Sendable (PocketPlayedBufferObservation) -> Void)? {
+        get { playedBufferObserver }
+        set { if SelfTest.isRunning { playedBufferObserver = newValue } }
+    }
+    // Text exists here only while the asynchronous native session is being
+    // created or its existing output has reached the bounded playback window.
+    // After enqueue the native session owns text; this retains callback metadata.
+    private struct Clause {
+        let token: UInt64
+        var text: String?
+        let submittedAt: Date
+        var firstProducedAt: Date?
+        var pendingFrames = 0
+        var ordinal = 0
+        var produced = false
+        var sealed = false
+        var firstPlayed = false
+        var startReported = false
+    }
+    private var clauses: [Clause] = []
+    private var completed = 0
+    private var lastProducedIndex: Int?
     private var generation: UInt64 = 0
     private var task: Task<Void, Never>?
-    private var pendingFrames = 0
+    private var nativeSession: PocketTtsSession?
+    private var inputFinished = false
+    private var nativeInputFinished = false
     private var producerFinished = false
+    private var pendingSamples = 0
+    private let maximumPendingSamples = 72_000 // Three seconds, 24kHz mono.
+    private var capacityWaiter: CheckedContinuation<Void, Never>?
     private var speaking = false
     private var pausedForListening = false
-    private var firstFramePlayed = false
-    private var clauseSubmittedAt = Date.distantPast
-    private var firstProducedAt: Date?
-    private var firstProducedSamples = 0
+    private var volume: Float = 1
     var onUtteranceStarted: ((UInt64) -> Void)?
     var onUtteranceFinished: ((UInt64) -> Void)?
     var onFailure: ((String, Float, UInt64) -> Void)?
 
-    init() {
+    init(voiceForTesting: String? = nil, voiceOwnerForTesting: PocketAgentVoice? = nil) {
+        let fixture = SelfTest.requested == "--selftest-tts-pocket"
+            && CommandLine.arguments.contains("--tts-pocket-pipeline")
+        self.voiceForTesting = fixture ? voiceForTesting : nil
+        voiceOwner = fixture ? (voiceOwnerForTesting ?? .shared) : .shared
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
         VoicePlaybackReference.install(on: engine)
@@ -230,88 +337,210 @@ final class PocketSpeechBacking: AgentSpeechBacking {
     var isSpeaking: Bool { speaking }
     var isPlaybackEngineRunning: Bool { engine.isRunning }
 
+    // Non-streaming callers use the identical reply lifecycle and native join.
     func speak(_ text: String, volume: Float, token: UInt64) {
-        // A drained clause can reuse the running engine even though each
-        // clause now has a distinct callback token.
-        let continuing = !speaking && producerFinished
-            && pendingFrames == 0 && engine.isRunning
-        if !continuing { stop() }
-        generation = token
+        beginReply(volume: volume)
+        enqueue(text, token: token)
+        finishReply()
+    }
+
+    func beginReply(volume: Float) {
+        stop()
+        self.volume = max(0, min(1, volume))
         speaking = true
-        pausedForListening = false
-        firstFramePlayed = false
         producerFinished = false
-        clauseSubmittedAt = Date()
-        firstProducedAt = nil
-        firstProducedSamples = 0
+        inputFinished = false
+        nativeInputFinished = false
+        let reply = generation
+        let voice = voiceForTesting ?? Settings.shared.agentPocketVoice
+        task = voiceOwner.startReplyPlayback(self) { [weak self] in
+            guard let self, generation == reply else { return }
+            await generateReply(voice: voice, reply: reply)
+        }
+        if task == nil { speaking = false }
+    }
+
+    func enqueue(_ text: String, token: UInt64) {
+        guard speaking, !inputFinished, !text.isEmpty,
+              !clauses.contains(where: { $0.token == token }) else { return }
+        let submittedAt = Date()
+        clauses.append(Clause(token: token, text: text, submittedAt: submittedAt))
         let submitted = String(format: "Pocket TTS clause submitted %.3f token=%llu characters=%d",
-                               clauseSubmittedAt.timeIntervalSince1970, token, text.count)
+                               submittedAt.timeIntervalSince1970, token, text.count)
         Log.agent.info("\(submitted, privacy: .public)")
         if CommandLine.arguments.contains("--selftest-voice-pipeline") { SelfTest.diagnostic(submitted) }
-        let voice = Settings.shared.agentPocketVoice
-        task = Task { @MainActor [weak self] in
-            guard let self else { return }
-            do {
-                engine.mainMixerNode.outputVolume = max(0, min(1, volume))
-                if !engine.isRunning { try engine.start() }
-                if !pausedForListening && !player.isPlaying { player.play() }
-                let frames = try await PocketAgentVoice.shared.frames(for: text, voice: voice)
-                for try await frame in frames {
-                    try Task.checkCancellation()
-                    guard generation == token else { return }
-                    if firstProducedAt == nil {
-                        let producedAt = Date()
-                        firstProducedAt = producedAt
-                        firstProducedSamples = frame.samples.count
-                        let detail = String(format: "Pocket TTS first PCM %.3f token=%llu synthesis=%.3fs samples=%d",
-                                            producedAt.timeIntervalSince1970, token,
-                                            producedAt.timeIntervalSince(clauseSubmittedAt), firstProducedSamples)
-                        Log.agent.info("\(detail, privacy: .public)")
-                        if CommandLine.arguments.contains("--selftest-voice-pipeline") { SelfTest.diagnostic(detail) }
-                        // The synthesis side of the clause. Only Pocket reports a PCM mark;
-                        // the Apple and Kokoro backings have none, which is why
-                        // `--selftest-voice-latency` requires Pocket rather than inventing a
-                        // zero for the others.
-                        VoiceLatencyTimeline.shared.mark(.ttsFirstPCM)
-                    }
-                    guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
-                                                        frameCapacity: AVAudioFrameCount(frame.samples.count)),
-                          let samples = buffer.floatChannelData?[0] else { continue }
-                    buffer.frameLength = buffer.frameCapacity
-                    for (index, sample) in frame.samples.enumerated() { samples[index] = sample }
-                    pendingFrames += 1
-                    player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) {
-                        [weak self] _ in
-                        Task { @MainActor in self?.framePlayed(token: token) }
-                    }
-                }
-                guard generation == token else { return }
-                if !firstFramePlayed && pendingFrames == 0 {
-                    throw PocketPlaybackError.emptyOutput
-                }
-                producerFinished = true
-                finishIfDrained(token: token)
-            } catch is CancellationError {
-                // A newer reply or barge-in has already reset the player.
-            } catch {
-                guard generation == token else { return }
-                Log.agent.error("Pocket TTS synthesis failed: \(error.localizedDescription, privacy: .public)")
-                stop()
-                onFailure?(text, volume, token)
+        flushSubmittedText()
+    }
+
+    func finishReply() {
+        guard speaking, !inputFinished else { return }
+        inputFinished = true
+        flushSubmittedText()
+    }
+
+    private func flushSubmittedText() {
+        guard speaking, let nativeSession, !nativeInputFinished,
+              pendingSamples < maximumPendingSamples else { return }
+        for index in clauses.indices {
+            if let text = clauses[index].text {
+                nativeSession.enqueue(text)
+                clauses[index].text = nil
             }
+        }
+        if inputFinished && clauses.allSatisfy({ $0.text == nil }) {
+            nativeInputFinished = true
+            nativeSession.finish()
         }
     }
 
+    private func generateReply(voice: String, reply: UInt64) async {
+        var session: PocketTtsSession?
+        var failure: Error?
+        do {
+            try Task.checkCancellation()
+            if let work = replyWork {
+                try await work()
+                try Task.checkCancellation()
+                return
+            }
+            // Activate output while the model prepares, as the original one-shot
+            // path did. Starting at first PCM puts device startup on audible latency.
+            engine.mainMixerNode.outputVolume = volume
+            if !engine.isRunning {
+                try engine.start()
+                if SelfTest.isRunning { engineStartsForTesting += 1 }
+            }
+            if !pausedForListening && !player.isPlaying { player.play() }
+            let created = try await voiceOwner.makeReplySession(voice: voice)
+            session = created
+            try Task.checkCancellation()
+            guard generation == reply else { throw CancellationError() }
+            nativeSession = created
+            flushSubmittedText()
+            for try await frame in created.frames {
+                try Task.checkCancellation()
+                guard generation == reply else { throw CancellationError() }
+                guard let index = frame.utteranceIndex, clauses.indices.contains(index),
+                      !clauses[index].sealed else { throw PocketPlaybackError.emptyOutput }
+                if lastProducedIndex != index {
+                    if let previous = lastProducedIndex {
+                        guard index == previous + 1 else { throw PocketPlaybackError.emptyOutput }
+                        clauses[previous].sealed = true
+                        publishPlayedClauses(reply: reply)
+                        // Synth callbacks can synchronously stop or replace this reply.
+                        guard generation == reply else { throw CancellationError() }
+                    } else if index != 0 { throw PocketPlaybackError.emptyOutput }
+                    lastProducedIndex = index
+                }
+                if !clauses[index].produced {
+                    clauses[index].produced = true
+                    let producedAt = Date()
+                    clauses[index].firstProducedAt = producedAt
+                    let detail = String(format: "Pocket TTS first PCM %.3f token=%llu synthesis=%.3fs samples=%d",
+                        producedAt.timeIntervalSince1970, clauses[index].token,
+                        producedAt.timeIntervalSince(clauses[index].submittedAt), frame.samples.count)
+                    Log.agent.info("\(detail, privacy: .public)")
+                    if CommandLine.arguments.contains("--selftest-voice-pipeline") { SelfTest.diagnostic(detail) }
+                    VoiceLatencyTimeline.shared.mark(.ttsFirstPCM)
+                }
+                try await schedule(frame.samples, index: index, reply: reply)
+            }
+            try Task.checkCancellation()
+            guard generation == reply, inputFinished, !clauses.isEmpty,
+                  clauses.allSatisfy(\.produced) else { throw PocketPlaybackError.emptyOutput }
+        } catch { failure = error }
+        // Stream iteration cancellation alone can return before the native
+        // session's onTermination cancellation task joins its CoreML prediction.
+        // Retain and explicitly join this SAME session before releasing ownership.
+        await session?.cancel()
+        guard generation == reply else { return }
+        nativeSession = nil
+        if let failure {
+            if failure is CancellationError { return }
+            let head = clauses.indices.contains(completed) ? clauses[completed] : nil
+            let failedVolume = volume
+            Log.agent.error("Pocket TTS synthesis failed: \(failure.localizedDescription, privacy: .public)")
+            stop()
+            if let head { onFailure?("", failedVolume, head.token) }
+        } else {
+            producerFinished = true
+            for index in clauses.indices { clauses[index].sealed = true }
+            publishPlayedClauses(reply: reply)
+        }
+    }
+
+    private func schedule(_ frame: [Float], index: Int, reply: UInt64) async throws {
+        guard !frame.isEmpty, frame.count <= maximumPendingSamples else { throw PocketPlaybackError.emptyOutput }
+        // 10ms first-playback acknowledgement. All PCM is retained: native80ms
+        // frames/generation stay unchanged; only each utterance's first frame
+        // is scheduled as240samples plus its exact remainder.
+        let head = min(240, frame.count)
+        let ranges = clauses[index].ordinal == 0 && head < frame.count
+            ? [0..<head, head..<frame.count] : [0..<frame.count]
+        for range in ranges {
+            while pendingSamples + range.count > maximumPendingSamples {
+                await withCheckedContinuation { capacityWaiter = $0 }
+                try Task.checkCancellation()
+                guard generation == reply else { throw CancellationError() }
+            }
+            try Task.checkCancellation()
+            guard generation == reply else { throw CancellationError() }
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
+                frameCapacity: AVAudioFrameCount(range.count)),
+                let samples = buffer.floatChannelData?[0] else { throw PocketPlaybackError.emptyOutput }
+            buffer.frameLength = buffer.frameCapacity
+            for (offset, sample) in frame[range].enumerated() { samples[offset] = sample }
+            if !engine.isRunning {
+                engine.mainMixerNode.outputVolume = volume
+                try engine.start()
+                if SelfTest.isRunning { engineStartsForTesting += 1 }
+            }
+            let token = clauses[index].token
+            let ordinal = clauses[index].ordinal
+            clauses[index].ordinal += 1
+            clauses[index].pendingFrames += 1
+            pendingSamples += range.count
+            let observer = playedBufferObserver
+            let count = range.count
+            let nonzero = observer != nil && frame[range].contains { abs($0) > 0.0001 }
+            let scheduledHostTime = observer == nil ? 0 : mach_absolute_time()
+            player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) { [weak self] _ in
+                observer?(.init(token: token, ordinal: ordinal, samples: count,
+                    nonzero: nonzero, scheduledHostTime: scheduledHostTime,
+                    playedHostTime: mach_absolute_time()))
+                Task { @MainActor in self?.framePlayed(reply: reply, index: index, samples: count) }
+            }
+            if !pausedForListening && !player.isPlaying { player.play() }
+        }
+    }
+
+    // Caller does not wait; output stops synchronously, native ownership stays
+    // retained until this task's explicit cancel/join path has returned.
     func stop() {
+        generation &+= 1
         task?.cancel()
-        task = nil
         player.stop()
         engine.stop()
         MainActorSection.run("echo.stopped") { VoicePlaybackReference.stopped() }
         speaking = false
         pausedForListening = false
-        pendingFrames = 0
+        clauses.removeAll()
+        completed = 0
+        lastProducedIndex = nil
+        nativeSession = nil
+        pendingSamples = 0
+        inputFinished = true
+        nativeInputFinished = true
         producerFinished = false
+        capacityWaiter?.resume()
+        capacityWaiter = nil
+    }
+
+    func finishStoppedPlayback() async {
+        let owned = task
+        let stoppedGeneration = generation
+        await owned?.value
+        if generation == stoppedGeneration && !speaking { task = nil }
     }
 
     func pauseForListening() {
@@ -323,45 +552,59 @@ final class PocketSpeechBacking: AgentSpeechBacking {
     func resumeAfterListening() {
         guard speaking, pausedForListening else { return }
         pausedForListening = false
-        if pendingFrames > 0 && !player.isPlaying { player.play() }
+        if pendingSamples > 0 && !player.isPlaying { player.play() }
+        capacityWaiter?.resume()
+        capacityWaiter = nil
+        flushSubmittedText()
     }
 
-    private func framePlayed(token: UInt64) {
-        MainActorSection.run("tts.played") { framePlayedBody(token: token) }
-    }
-
-    private func framePlayedBody(token: UInt64) {
-        guard generation == token, speaking, pendingFrames > 0 else { return }
-        if !firstFramePlayed {
-            firstFramePlayed = true
-            let playedAt = Date()
-            let synthesis = firstProducedAt?.timeIntervalSince(clauseSubmittedAt) ?? -1
-            let render = firstProducedAt.map { playedAt.timeIntervalSince($0) } ?? -1
-            let detail = String(format: "Pocket TTS first played %.3f token=%llu synthesis=%.3fs render=%.3fs firstSamples=%d",
-                                playedAt.timeIntervalSince1970, token, synthesis, render, firstProducedSamples)
-            Log.agent.info("\(detail, privacy: .public)")
-            if CommandLine.arguments.contains("--selftest-voice-pipeline") { SelfTest.diagnostic(detail) }
-            // The callback acknowledges the first complete output buffer.
-            // This deliberately overstates onset latency by that buffer's
-            // duration; scheduling a buffer is not a playback observation.
-            onUtteranceStarted?(token)
+    private func framePlayed(reply: UInt64, index: Int, samples: Int) {
+        MainActorSection.run("tts.played") {
+            guard generation == reply, speaking, clauses.indices.contains(index),
+                  clauses[index].pendingFrames > 0 else { return }
+            clauses[index].pendingFrames -= 1
+            if !clauses[index].firstPlayed {
+                clauses[index].firstPlayed = true
+                let playedAt = Date()
+                let clause = clauses[index]
+                let synthesis = clause.firstProducedAt?.timeIntervalSince(clause.submittedAt) ?? -1
+                let render = clause.firstProducedAt.map { playedAt.timeIntervalSince($0) } ?? -1
+                let detail = String(format: "Pocket TTS first played %.3f token=%llu synthesis=%.3fs render=%.3fs firstSamples=%d",
+                    playedAt.timeIntervalSince1970, clause.token, synthesis, render, samples)
+                Log.agent.info("\(detail, privacy: .public)")
+                if CommandLine.arguments.contains("--selftest-voice-pipeline") { SelfTest.diagnostic(detail) }
+            }
+            pendingSamples -= samples
+            capacityWaiter?.resume()
+            capacityWaiter = nil
+            flushSubmittedText()
+            publishPlayedClauses(reply: reply)
         }
-        pendingFrames -= 1
-        finishIfDrained(token: token)
     }
 
-    private func finishIfDrained(token: UInt64) {
-        guard producerFinished, pendingFrames == 0, generation == token, speaking else { return }
+    private func publishPlayedClauses(reply: UInt64) {
+        while generation == reply, speaking, clauses.indices.contains(completed) {
+            let index = completed
+            if clauses[index].firstPlayed && !clauses[index].startReported {
+                clauses[index].startReported = true
+                onUtteranceStarted?(clauses[index].token)
+                guard generation == reply, speaking else { return }
+            }
+            guard clauses[index].sealed, clauses[index].pendingFrames == 0 else { return }
+            let token = clauses[index].token
+            completed += 1
+            onUtteranceFinished?(token)
+        }
+        guard generation == reply, speaking, producerFinished,
+              completed == clauses.count, pendingSamples == 0 else { return }
         speaking = false
         pausedForListening = false
-        task = nil
         player.stop()
         engine.stop()
         MainActorSection.run("echo.stopped") { VoicePlaybackReference.stopped() }
-        onUtteranceFinished?(token)
+        voiceOwner.replyPlaybackDrained(self)
     }
 }
-
 private enum PocketPlaybackError: LocalizedError {
     case emptyOutput
     case modelUnavailable(String?)

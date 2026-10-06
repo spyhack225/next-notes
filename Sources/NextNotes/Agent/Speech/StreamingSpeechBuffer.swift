@@ -70,6 +70,7 @@ final class StreamingSpeechBuffer {
             return
         }
         flush(finalize: true)
+        synthesizer.finishStream()
     }
 
     /// Barge-in / session end. Clears this buffer; caller still stops TTS.

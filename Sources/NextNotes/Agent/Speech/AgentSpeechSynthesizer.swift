@@ -59,6 +59,18 @@ protocol AgentSpeechBacking: AnyObject {
     func stop()
 }
 
+/// Reply-scoped native synthesis: clauses may be prepared before earlier playback ends.
+/// The existing synthesizer still owns tokens, order and delivery acknowledgements.
+@MainActor
+protocol AgentReplySpeechBacking: AgentSpeechBacking {
+    var onUtteranceStarted: ((UInt64) -> Void)? { get set }
+    var onUtteranceFinished: ((UInt64) -> Void)? { get set }
+    var onFailure: ((String, Float, UInt64) -> Void)? { get set }
+    func beginReply(volume: Float)
+    func enqueue(_ text: String, token: UInt64)
+    func finishReply()
+}
+
 /// `AVSpeechSynthesizer` baseline. Speaks `AgentSpeechPolicy.spokenClauses`
 /// one utterance at a time, never waits for the queue to drain, and is always
 /// interruptible — `stop()` cancels the current clause and clears the rest.
@@ -115,6 +127,11 @@ final class AgentSpeechSynthesizer {
     private var fallbackBackingForTesting: (any AgentSpeechBacking)?
     /// Remaining clauses after the one currently speaking (or just enqueued).
     private var pendingClauses: [String] = []
+    // Native utterance identity aligned with currentClause + pendingClauses.
+    // This is the same clause owner, not a second text/delivery queue.
+    private var replyTokens: [UInt64] = []
+    private var replyOpen = false
+    private var replyFinished = false
     /// Set by `stop()`. The interrupt self-test fails unless this path ran.
     private(set) var didStop = false
     private(set) var isPausedForListening = false
@@ -238,6 +255,11 @@ final class AgentSpeechSynthesizer {
         let clauses = AgentSpeechPolicy.spokenClauses(reply)
         guard !clauses.isEmpty else { return }
         prepareForStream()
+        if backing is any AgentReplySpeechBacking {
+            for clause in clauses { enqueueClause(clause) }
+            finishStream()
+            return
+        }
         pendingClauses = Array(clauses.dropFirst())
         currentClause = clauses[0]
         currentClauseRendered = false
@@ -254,13 +276,17 @@ final class AgentSpeechSynthesizer {
         usingSystemFallbackForReply = false
         deferredFallbackClause = false
         isPausedForListening = false
+        let closingReply = replyOpen
         interruptCurrentClause()
+        replyTokens.removeAll()
+        replyOpen = false
+        replyFinished = false
         currentPlaybackToken = 0
         outputGeneration &+= 1
         onPlaybackEvent?(.began(outputGeneration))
         didStop = false
         pendingClauses.removeAll()
-        if backing.isSpeaking {
+        if backing.isSpeaking || closingReply {
             backing.stop()
         }
         if !testingBacking {
@@ -300,7 +326,23 @@ final class AgentSpeechSynthesizer {
     func enqueueClause(_ clause: String) {
         let trimmed = clause.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !didStop else { return }
-        if backing.isSpeaking || !pendingClauses.isEmpty {
+        if let reply = backing as? any AgentReplySpeechBacking {
+            let beginning = !replyOpen
+            if beginning { replyOpen = true; replyFinished = false }
+            playbackTokenCounter &+= 1
+            let token = playbackTokenCounter
+            replyTokens.append(token)
+            if currentClause == nil && pendingClauses.isEmpty {
+                currentClause = trimmed
+                currentClauseRendered = false
+                currentPlaybackToken = token
+            } else { pendingClauses.append(trimmed) }
+            onPlaybackEvent?(.enqueued(trimmed))
+            if beginning { reply.beginReply(volume: utteranceVolume) }
+            reply.enqueue(trimmed, token: token)
+            return
+        }
+        if backing.isSpeaking || !pendingClauses.isEmpty || isPausedForListening {
             pendingClauses.append(trimmed)
             onPlaybackEvent?(.enqueued(trimmed))
         } else {
@@ -309,6 +351,15 @@ final class AgentSpeechSynthesizer {
             onPlaybackEvent?(.enqueued(trimmed))
             startClause(trimmed)
         }
+    }
+
+    /// Text EOF is separate from playback drain, including a paused reply.
+    func finishStream() {
+        guard !didStop, replyOpen, !replyFinished,
+              let reply = backing as? any AgentReplySpeechBacking else { return }
+        replyFinished = true
+        reply.finishReply()
+        if currentClause == nil && pendingClauses.isEmpty { advanceQueue() }
     }
 
     /// Barge-in / VAD / Stop. Immediate, not word-boundary. Clears every
@@ -320,6 +371,9 @@ final class AgentSpeechSynthesizer {
         isPausedForListening = false
         deferredFallbackClause = false
         interruptCurrentClause()
+        replyTokens.removeAll()
+        replyOpen = false
+        replyFinished = false
         outputGeneration &+= 1
         currentPlaybackToken = 0
         let hadPendingAudio = onFirstAudio != nil
@@ -363,10 +417,18 @@ final class AgentSpeechSynthesizer {
 
     /// Self-test only. Restored by interrupt / stream self-tests so a later
     /// turn still uses the system voice.
-    func useTestingBacking(_ backing: any AgentSpeechBacking) {
+    func useTestingBacking(_ backing: any AgentSpeechBacking, fallback: (any AgentSpeechBacking)? = nil) {
         self.backing.stop()
+        fallbackBackingForTesting = fallback
         testingBacking = true
         self.backing = backing
+        if let reply = backing as? any AgentReplySpeechBacking {
+            reply.onUtteranceStarted = { [weak self] token in self?.didBeginAudio(token: token) }
+            reply.onUtteranceFinished = { [weak self] token in self?.didFinishAudio(token: token) }
+            reply.onFailure = { [weak self] text, volume, token in
+                self?.fallbackCurrentClause(text: text, token: token)
+            }
+        }
     }
 
     /// Prepare the experimental Pocket source renderer for a probe session.
@@ -432,6 +494,9 @@ final class AgentSpeechSynthesizer {
         onPlaybackEvent = nil
         currentClause = nil
         currentClauseRendered = false
+        replyTokens.removeAll()
+        replyOpen = false
+        replyFinished = false
     }
 
     private func didResumeAudio(_ receipt: AppleResumePlaybackReceipt) {
@@ -465,6 +530,7 @@ final class AgentSpeechSynthesizer {
     private func didFinishAudio(token: UInt64) {
         guard token == currentPlaybackToken, currentClause != nil else { return }
         if let currentClause { onPlaybackEvent?(.completed(currentClause)) }
+        if replyOpen, replyTokens.first == token { replyTokens.removeFirst() }
         currentClause = nil
         currentClauseRendered = false
         advanceQueue()
@@ -485,14 +551,24 @@ final class AgentSpeechSynthesizer {
     /// or when the queue is empty (then duplex phase returns to listening).
     func advanceQueue() {
         guard !didStop else { return }
-        guard !isPausedForListening else { return }
+        guard !isPausedForListening || replyOpen else { return }
         guard !pendingClauses.isEmpty else {
+            guard !isPausedForListening else { return }
+            if replyOpen {
+                guard replyFinished else { return }
+                replyOpen = false
+                replyTokens.removeAll()
+            }
             RealtimeAudioSession.shared.noteOutputFinished()
             return
         }
         let next = pendingClauses.removeFirst()
         currentClause = next
         currentClauseRendered = false
+        if replyOpen, let token = replyTokens.first {
+            currentPlaybackToken = token // Already submitted: never restart synthesis.
+            return
+        }
         startClause(next)
     }
 
@@ -511,9 +587,23 @@ final class AgentSpeechSynthesizer {
 
     private func fallbackCurrentClause(text: String, token: UInt64) {
         guard token == currentPlaybackToken, !usingSystemFallbackForReply,
-              let currentClause, !currentClause.isEmpty, currentClause == text else { return }
+              let currentClause, !currentClause.isEmpty,
+              currentClause == text || (replyOpen && text.isEmpty) else { return }
         usingSystemFallbackForReply = true
+        let partialReply = replyOpen && currentClauseRendered
+        replyTokens.removeAll()
+        replyOpen = false
+        replyFinished = false
         backing = fallbackBackingForTesting ?? systemBacking
+        if partialReply {
+            // Completed clauses are gone. A partially rendered head is interrupted,
+            // never repeated; only untouched pending clauses use the old fallback.
+            onPlaybackEvent?(.interrupted(currentClause, wasRendered: true))
+            self.currentClause = nil
+            currentClauseRendered = false
+            if !isPausedForListening { advanceQueue() }
+            return
+        }
         currentClauseRendered = false
         if isPausedForListening {
             deferredFallbackClause = true

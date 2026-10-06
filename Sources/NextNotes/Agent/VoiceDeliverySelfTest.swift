@@ -89,6 +89,7 @@ enum VoiceDeliverySelfTest {
         failures += scheduler.failures
 
         failures += streamingCases()
+        failures += await replySubmissionCases()
         failures += await OutputTokenSelfTest.run()
 
         if failures.isEmpty {
@@ -98,6 +99,211 @@ enum VoiceDeliverySelfTest {
         for failure in failures { print("VOICE_DELIVERY_FAILED: \(failure)") }
         print("VOICE_DELIVERY_FAILED")
         return false
+    }
+
+    /// Original and fixed share the actual reply/text/synth/ledger consumers.
+    /// Held callbacks expose synthesis submission, never pretend audio was heard.
+    @MainActor
+    private static func replySubmissionCases() async -> [String] {
+        var failures: [String] = []
+        func check(_ ok: Bool, _ name: String) { if !ok { failures.append("reply pipeline: " + name) } }
+        let capture = AgentCaptureController.shared
+        let session = RealtimeAudioSession.shared
+        let synth = AgentSpeechSynthesizer.shared
+        await capture.beginSession(captureAudio: false)
+        let backing = RecordingReplySpeechBacking()
+        synth.useTestingBacking(backing)
+        var events: [AgentSpeechSynthesizer.PlaybackEvent] = []
+        let prior = synth.onPlaybackEvent
+        synth.onPlaybackEvent = { event in prior?(event); events.append(event) }
+        defer { synth.stop(); synth.onPlaybackEvent = prior; synth.restoreSystemBacking() }
+        let clauses = ["The first note is ready.", "I will keep working while we talk.", "You can interrupt me at any time."]
+        let full = clauses.joined(separator: " ")
+        let output = OutputScheduler.tokenForTesting()
+        check(session.beginSpokenReply(output), "authored reply was not admitted")
+        for clause in clauses { session.appendSpokenReply(output, clause + " ") }
+        let message = AgentSession.shared.recordAssistant(full, source: .voice)
+        if let id = session.retainedOutputID {
+            VoicePlaybackDelivery.shared.bind(messageID: message, output: id, turn: RealtimeAgent.shared.currentGeneration)
+        } else { failures.append("reply pipeline: missing actual output identity") }
+        check(backing.submitted.map(\.text) == clauses, "later clauses waited for first playback completion")
+        check(backing.beginCount == 1 && backing.finishCount == 0, "reply began repeatedly or finished before text closed")
+        synth.pauseForListening()
+        let held = backing.submitted.map(\.token)
+        session.finalizeSpokenReply(output)
+        session.finalizeSpokenReply(output)
+        check(backing.finishCount == 1 && synth.isPausedForListening,
+              "text finalization did not finish the same paused reply exactly once")
+        synth.resumeAfterListening()
+        check(backing.pauseCount == 1 && backing.resumeCount == 1 && backing.submitted.map(\.token) == held,
+              "pause/resume restarted synthesis or lost submitted tokens")
+        var expected: [AgentSpeechSynthesizer.PlaybackEvent] = []
+        let originalToken = synth.currentPlaybackToken
+        for clause in clauses {
+            let token = synth.currentPlaybackToken
+            backing.onUtteranceStarted?(token)
+            backing.complete(token)
+            expected += [.startAcknowledged(clause), .completed(clause)]
+            if clause == clauses[0] {
+                let next = synth.currentPlaybackToken
+                let n = events.count
+                backing.onUtteranceFinished?(token)
+                check(synth.currentPlaybackToken == next && events.count == n, "stale completion advanced a successor")
+                let row = AgentSession.shared.messages.first { $0.id == message }
+                check(row?.speechDelivery?.completedText == clauses[0] && row?.speechDelivery?.status == "pending",
+                      "one completed clause marked unplayed text delivered")
+            }
+        }
+        check(events.filter { if case .startAcknowledged = $0 { return true }; if case .completed = $0 { return true }; return false } == expected,
+              "clause acknowledgements changed text, order or identity")
+        check(AgentSession.shared.messages.first { $0.id == message }?.speechDelivery ==
+              VoiceSpeechDelivery(completedText: full, status: "completed"), "completed reply did not reach actual delivery history")
+
+        events = []
+        session.speak(OutputScheduler.tokenForTesting(), full)
+        let cancelMessage = AgentSession.shared.recordAssistant(full, source: .voice)
+        if let id = session.retainedOutputID {
+            VoicePlaybackDelivery.shared.bind(messageID: cancelMessage, output: id, turn: RealtimeAgent.shared.currentGeneration)
+        }
+        let stoppedToken = synth.currentPlaybackToken
+        backing.onUtteranceStarted?(stoppedToken)
+        session.noteUserSpeech()
+        let interrupted: [AgentSpeechSynthesizer.PlaybackEvent] = [
+            .interrupted(clauses[0], wasRendered: true), .interrupted(clauses[1], wasRendered: false),
+            .interrupted(clauses[2], wasRendered: false)]
+        check(events.filter { if case .interrupted = $0 { return true }; return false } == interrupted,
+              "stop failed to retire every submitted or queued clause")
+        let cancelled = AgentSession.shared.messages.first { $0.id == cancelMessage }?.speechDelivery
+        check(cancelled?.completedText == "" && cancelled?.status == "interrupted",
+              "started-only speech was marked completely heard")
+        let begins = backing.beginCount, finishes = backing.finishCount
+        synth.speak("Only one short reply.")
+        let successor = synth.currentPlaybackToken
+        let eventCount = events.count
+        backing.onUtteranceStarted?(originalToken)
+        backing.onUtteranceFinished?(stoppedToken)
+        check(synth.currentPlaybackToken == successor && events.count == eventCount,
+              "old reply callback changed a new one-shot reply")
+        check(backing.beginCount == begins + 1 && backing.finishCount == finishes + 1
+              && backing.submitted.last?.text == "Only one short reply.", "one-shot omitted reply begin/enqueue/finish")
+        backing.onUtteranceStarted?(successor)
+        backing.complete(successor)
+        check(!backing.isSpeaking && synth.pendingClauseCount == 0, "one-shot did not drain")
+
+        // Actual reply failure names the existing head token, not a second text copy.
+        // Retire only a partially played head; untouched successors remain eligible.
+        let safe = RecordingSpeechBacking()
+        synth.useTestingBacking(backing, fallback: safe)
+        synth.speak(full)
+        events = []
+        let first = synth.currentPlaybackToken
+        backing.onUtteranceStarted?(first)
+        backing.complete(first)
+        let partial = synth.currentPlaybackToken
+        backing.onUtteranceStarted?(partial)
+        synth.pauseForListening()
+        let beforeFailure = events
+        backing.onFailure?("", 0, partial &+ 1)
+        backing.onFailure?("", 0, first)
+        check(events == beforeFailure && safe.spoken.isEmpty && synth.currentPlaybackToken == partial,
+              "future or completed-head failure changed the current reply")
+        backing.stop() // Production failure stops native playback before delivering this receipt.
+        backing.onFailure?("", 0, partial)
+        backing.onFailure?("", 0, partial)
+        check(synth.isPausedForListening && safe.spoken.isEmpty,
+              "partial failure spoke through pause or duplicate receipt")
+        check(events.filter { if case .interrupted = $0 { return true }; return false }
+              == [.interrupted(clauses[1], wasRendered: true)],
+              "partial failure interrupted untouched successors or failed to retire only its head")
+        synth.resumeAfterListening()
+        check(safe.spoken == [clauses[2]] && synth.currentPlaybackToken != partial,
+              "partial fallback replayed completed/started text or lost untouched successor")
+        let fallbackToken = synth.currentPlaybackToken
+        let fallbackEvents = events
+        backing.onUtteranceStarted?(partial)
+        backing.onUtteranceFinished?(partial)
+        check(events == fallbackEvents && synth.currentPlaybackToken == fallbackToken,
+              "late native callback retired fallback successor")
+        synth.notifyTestingFirstAudio(token: fallbackToken)
+        synth.notifyTestingAudioFinished(token: fallbackToken)
+        check(events.filter { if case .completed = $0 { return true }; return false }
+              == [.completed(clauses[0]), .completed(clauses[2])],
+              "fallback completion blessed partially played text or changed exact completed ledger")
+        // A late completion promotes an already submitted native head even while
+        // its player remains paused, so a failure cannot strand that successor.
+        synth.useTestingBacking(backing, fallback: safe)
+        let startIndex = backing.submitted.count
+        synth.prepareForStream()
+        synth.enqueueClause(clauses[0])
+        synth.enqueueClause(clauses[1])
+        let heldHead = synth.currentPlaybackToken
+        synth.pauseForListening()
+        backing.complete(heldHead)
+        synth.enqueueClause(clauses[2])
+        if let queued = backing.submitted.dropFirst(startIndex).dropFirst().first {
+            check(synth.isPausedForListening && synth.currentPlaybackToken == queued.token,
+                  "paused completion lost the already submitted successor identity")
+            let spokenBefore = safe.spoken.count
+            backing.stop()
+            backing.onFailure?("", 0, queued.token)
+            check(synth.isPausedForListening && safe.spoken.count == spokenBefore,
+                  "unrendered queued failure played through pause")
+            synth.resumeAfterListening()
+            check(Array(safe.spoken.dropFirst(spokenBefore)) == [clauses[1]],
+                  "queued failure was lost or resumed the wrong clause")
+            synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+            synth.notifyTestingAudioFinished(token: synth.currentPlaybackToken)
+            check(Array(safe.spoken.dropFirst(spokenBefore)) == Array(clauses.dropFirst()),
+                  "paused append displaced or replayed an older successor")
+            synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
+            synth.notifyTestingAudioFinished(token: synth.currentPlaybackToken)
+        } else {
+            failures.append("reply pipeline: missing actual submitted successor for paused failure")
+        }
+        synth.stop()
+
+        // After a rendered final head fails, late text still cannot play through pause.
+        synth.useTestingBacking(backing, fallback: safe)
+        synth.prepareForStream()
+        synth.enqueueClause(clauses[0])
+        let finalHead = synth.currentPlaybackToken
+        backing.onUtteranceStarted?(finalHead)
+        synth.pauseForListening()
+        backing.stop()
+        backing.onFailure?("", 0, finalHead)
+        let spokenBeforeAppend = safe.spoken.count
+        let nativeBeforeAppend = backing.submitted.count
+        synth.enqueueClause(clauses[1])
+        check(safe.spoken.count == spokenBeforeAppend && backing.submitted.count == nativeBeforeAppend
+              && synth.isPausedForListening,
+              "late fallback text played through pause")
+        synth.resumeAfterListening()
+        check(Array(safe.spoken.dropFirst(spokenBeforeAppend)) == [clauses[1]],
+              "late fallback text was lost or replayed the rendered head")
+        synth.stop()
+        await capture.endSession(source: .done)
+        return failures
+    }
+
+    @MainActor
+    private final class RecordingReplySpeechBacking: AgentReplySpeechBacking {
+        struct Submission { let text: String; let token: UInt64 }
+        var onUtteranceStarted: ((UInt64) -> Void)?
+        var onUtteranceFinished: ((UInt64) -> Void)?
+        var onFailure: ((String, Float, UInt64) -> Void)?
+        private(set) var submitted: [Submission] = []
+        private(set) var beginCount = 0, finishCount = 0, pauseCount = 0, resumeCount = 0
+        private var active: Set<UInt64> = []
+        var isSpeaking: Bool { !active.isEmpty }
+        func beginReply(volume: Float) { beginCount += 1 }
+        func enqueue(_ text: String, token: UInt64) { submitted.append(.init(text: text, token: token)); active.insert(token) }
+        func finishReply() { finishCount += 1 }
+        // Original synth still calls speak; both paths record real backing entry.
+        func speak(_ text: String, volume: Float, token: UInt64) { enqueue(text, token: token) }
+        func pauseForListening() { pauseCount += 1 }
+        func resumeAfterListening() { resumeCount += 1 }
+        func stop() { active.removeAll() }
+        func complete(_ token: UInt64) { active.remove(token); onUtteranceFinished?(token) }
     }
 
     // MARK: - P0-09 streaming cases
