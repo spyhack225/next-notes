@@ -2580,15 +2580,20 @@ enum RealtimeAgentToolLoopSelfTest {
         check("M03 now unavailable read invented", pending(request, reply: original, using: unavailable) == nil)
         @MainActor
         func run(_ text: String, _ script: [String], approved: Bool = true)
-            async -> (reply: String, calls: [PlannerScriptLog.Call], reads: [LiveEvalLoggedCall], body: String) {
+            async -> (reply: String, calls: [PlannerScriptLog.Call], reads: [LiveEvalLoggedCall], body: String, output: String) {
             let fixtures = LiveEvalFixtures()
             let log = PlannerScriptLog()
+            var output = ""
             AgentSession.shared.forgetAllConversations()
             agent.setTypedPendingForTesting(nil)
             AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
             agent.readApprovalOverrideForTesting = approved
             AgentToolExecutor.fakeForTesting = nil
-            AgentToolExecutor.fireOverrideForTesting = fixtures.run
+            AgentToolExecutor.fireOverrideForTesting = { tool, arguments in
+                let result = try await fixtures.run(tool, arguments)
+                output = result.summary
+                return result
+            }
             AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
                 autoObserve: true, autoRead: approved, autoSearchFiles: false,
                 autoComputerControl: false, grants: [])
@@ -2596,7 +2601,7 @@ enum RealtimeAgentToolLoopSelfTest {
                 id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
             let operation = Task { @MainActor in await agent.handle(text, source: .text) }
             let result = await operation.value
-            return (result.reply, log.calls, fixtures.calls, fixtures.mailSearch("in:inbox", maxResults: 1))
+            return (result.reply, log.calls, fixtures.calls, fixtures.mailSearch("in:inbox", maxResults: 1), output)
         }
         for raw in [original, originalFinal] {
             let actual = await run(request, [raw, answer])
@@ -2620,6 +2625,57 @@ enum RealtimeAgentToolLoopSelfTest {
               completed.reads.count == 1 && completed.calls.count == 2 && completed.reply == original)
         let plural = await run("Check my emails", [original, answer])
         check("M03 now changed plural read cardinality", plural.reads.count == 1 && plural.reads.first?.arguments == [:])
+        // Retained native M03 authored a bare search, not the no-call floor above.
+        // A missing cardinality must inherit the same explicit singular request.
+        let authored = "I'll check your email for the last message.\n<function name=\"search_email\"></function>"
+        let wrongLatest = "The last email you have is Ana Ruiz's about sending a deck by Friday. The next one is Marcus Lee's about the pricing sheet v3. The third is Cyril's asking if you're free for dinner tomorrow. The fourth is GitHub's note that CI passed, the fifth is Stripe's invoice reminder, and the sixth is Marcus's contract renewal message.\n\nWant me to help with any of these, or would you like a different summary?"
+        let broad = LiveEvalFixtures().mailSearch("")
+        check("M03 authored original default/result cardinality did not qualify",
+              WorkspaceToolRunner.searchCount(nil) == 10 && broad.split(separator: "\n").count == 6
+                && broad.contains("Cyril") && broad.contains("Deck for Friday"))
+        for final in [wrongLatest, answer] {
+            let actual = await run(request, [authored, final])
+            check("M03 authored omitted count did not bind one actual permitted backing",
+                  actual.reads.count == 1 && actual.reads.first?.arguments == ["maxResults": "1"])
+            check("M03 authored actual backing still returned older mail for one newest message",
+                  actual.output == actual.body && actual.output.split(separator: "\n").count == 1)
+            check("M03 authored final provider lost singular result/request or received older mail",
+                  actual.calls.count == 2 && actual.calls[1].user.contains("Current user request:\n" + request)
+                    && actual.calls[1].user.contains(actual.output) && actual.output.contains("Cyril")
+                    && !actual.calls[1].user.contains("Deck for Friday")
+                    && !actual.calls[1].user.contains("Pricing sheet v3"))
+            check("M03 authored reply was scrubbed or required an extra model round",
+                  actual.calls.count == 2 && (actual.reply == final
+                    || actual.reply == "This takes a few steps on this Mac.\n\n" + final))
+        }
+        let empty = await run(request, [#"<tool_call>{"name":"search_email","arguments":{"query":""}}</tool_call>"#, answer])
+        check("M03 authored empty query lost its meaning or omitted singular count",
+              empty.reads.count == 1 && empty.reads.first?.arguments == ["query": "", "maxResults": "1"]
+                && empty.output == empty.body && empty.calls.count == 2
+                && empty.calls[1].user.contains(empty.output))
+        for count in ["1", "3", "5", ""] {
+            check("M03 authored explicit cardinality was overridden: \(count)",
+                  AgentToolLoop.groundedArguments(for: "search_email", proposed: ["maxResults": count], request: request)
+                    == ["maxResults": count])
+        }
+        for text in ["Summarize my last emails", "Check my latest emails", "Read my last 5 emails",
+                     "Check my email", "Any new emails?", "Check my latest email about pricing",
+                     "Check my last email from Marcus", "Check my last email yesterday",
+                     "Email the last email to Marcus", "How should I check my last email?",
+                     "Check my email then summarize \"the last email\"",
+                     "Summarize my emails. Quote 'Note, check the latest email.' exactly"] {
+            check("M03 authored omission absorbed plural/filter/write/advice/quoted request: \(text)",
+                  AgentToolLoop.groundedArguments(for: "search_email", proposed: [:], request: text).isEmpty)
+        }
+        let pluralAuthored = await run("Summarize my last emails", [authored, answer])
+        check("M03 authored plural result was narrowed",
+              pluralAuthored.reads.count == 1 && pluralAuthored.reads.first?.arguments == [:]
+                && pluralAuthored.output.split(separator: "\n").count == 6
+                && pluralAuthored.output.contains("Cyril") && pluralAuthored.output.contains("Deck for Friday")
+                && pluralAuthored.calls.count == 2 && pluralAuthored.calls[1].user.contains(pluralAuthored.output))
+        let deniedAuthored = await run(request, [authored, answer], approved: false)
+        check("M03 authored omitted-count grounding bypassed real refusal",
+              deniedAuthored.reads.isEmpty && deniedAuthored.calls.count == 1 && deniedAuthored.reply != answer)
         print("TOOLLOOP_PRODUCTION_M03_NOW: original promise, actual read/final consumer, refusal and completed read checked")
         return []
     }

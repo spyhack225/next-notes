@@ -274,8 +274,9 @@ enum AgentAccountRead {
 
     /// A complete read clause naming one newest message owns its cardinality.
     /// Plural mail, quoted words and clauses with sender/topic/time filters keep
-    /// their existing default; model-selected arguments do not use this floor.
-    private static func requestsSingleLatestMailRead(_ request: String) -> Bool {
+    /// their existing default. This also grounds an omitted model-authored limit;
+    /// an explicitly authored limit keeps its existing meaning.
+    static func requestsSingleLatestMailRead(_ request: String) -> Bool {
         guard !request.contains(where: { "\n\r\"“”‘`".contains($0) }),
               request.range(of: #"(?:^|[^\p{L}\p{N}])'"#, options: .regularExpression) == nil,
               let read = AgentDirectIntent.capabilityVerbs.first(where: { $0.toolID == "search_email" })

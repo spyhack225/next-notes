@@ -264,7 +264,12 @@ enum AgentToolLoop {
     ) -> [String: String] {
         switch tool {
         case "get_agenda": return groundCalendarDay(proposed, request: request, now: now, calendar: calendar)
-        case "search_email": return groundMailFilter(proposed, request)
+        case "search_email":
+            var grounded = groundMailFilter(proposed, request)
+            if proposed["maxResults"] == nil, AgentAccountRead.requestsSingleLatestMailRead(request) {
+                grounded["maxResults"] = "1"
+            }
+            return grounded
         case "schedule.create":
             let dateText = proposed["date"]?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() ?? ""
             // This relative expression means tomorrow, but is not native schedule syntax.
