@@ -320,6 +320,22 @@ final class AgentSpeechSynthesizer {
         return Settings.shared.agentVoiceEngine
     }
 
+    /// Exact process diagnostic only; the saved voice choice is never changed.
+    static func pocketProbeRequested(requested: String?, arguments: [String]) -> Bool {
+        guard let requested,
+              ["--selftest-voice-suspend-live", "--selftest-voice-barge"].contains(requested),
+              arguments.contains("--voice-test-pocket") else { return false }
+        let tests = arguments.filter {
+            $0.hasPrefix("--selftest") && $0 != SelfTest.outputFlag && $0 != SelfTest.timeoutFlag
+        }
+        return tests == [requested]
+    }
+
+    var isPocketProbePlayback: Bool {
+        Self.pocketProbeRequested(requested: SelfTest.requested, arguments: CommandLine.arguments)
+            && (backing as AnyObject) === pocketBacking
+    }
+
     /// Append one already-split clause. Starts playback when idle; otherwise
     /// queues behind the current utterance. No-op after `stop()` until
     /// `prepareForStream` / `speak` resets.
@@ -691,6 +707,16 @@ final class AgentSpeechSynthesizer {
               recorder.spoken == ["First sentence.", "Second sentence."] else {
             return ["suspend: held next clause did not start after resume"]
         }
+        let suspend = "--selftest-voice-suspend-live", barge = "--selftest-voice-barge"
+        let modifier = "--voice-test-pocket"
+        let scoped = [
+            pocketProbeRequested(requested: suspend, arguments: [suspend, modifier]),
+            pocketProbeRequested(requested: barge, arguments: [barge, "fixture.wav", modifier, SelfTest.timeoutFlag, "120"]),
+            !pocketProbeRequested(requested: suspend, arguments: [suspend]),
+            !pocketProbeRequested(requested: suspend, arguments: [suspend, barge, modifier]),
+            !pocketProbeRequested(requested: "--selftest-tts-pocket", arguments: ["--selftest-tts-pocket", modifier]),
+            !pocketProbeRequested(requested: nil, arguments: [modifier])]
+        guard scoped.allSatisfy({ $0 }) else { return ["suspend: Pocket probe escaped its exact diagnostic flags"] }
         return runFallbackSelfTest()
     }
 
@@ -730,48 +756,68 @@ final class AgentSpeechSynthesizer {
     /// dataPlayedBack receipts, and clause drain without disturbing the room.
     static func runLiveSuspendSelfTest() async -> (Bool, String) {
         let synth = AgentSpeechSynthesizer.shared
-        let oldVolume = synth.utteranceVolume
-        var started = 0
-        var completed = 0
-        synth.utteranceVolume = 0
-        synth.onPlaybackEvent = { event in
-            if case .startAcknowledged = event { started += 1 }
-            if case .completed = event { completed += 1 }
+        let pocketProbe = pocketProbeRequested(requested: SelfTest.requested, arguments: CommandLine.arguments)
+        if CommandLine.arguments.contains("--voice-test-pocket") && !pocketProbe {
+            return (false, "VOICE_SUSPEND_FAILED: Pocket modifier requires this diagnostic alone")
         }
+        let oldVolume = synth.utteranceVolume
+        let oldEngine = synth.engineOverrideForTesting
+        let priorEvent = synth.onPlaybackEvent
         defer {
             synth.stop()
-            synth.onPlaybackEvent = nil
+            synth.onPlaybackEvent = priorEvent
             synth.utteranceVolume = oldVolume
+            synth.engineOverrideForTesting = oldEngine
         }
-        synth.speak("The first sentence has enough duration to pause after audio begins and "
-            + "should resume from the same place without cancelling the reply.")
-        for _ in 0..<150 where started == 0 {
-            try? await Task.sleep(for: .milliseconds(20))
+        if pocketProbe {
+            synth.engineOverrideForTesting = "pocket"
+            await PocketAgentVoice.shared.prepare()
+            guard PocketAgentVoice.shared.isReady else { return (false, "VOICE_SUSPEND_FAILED: Pocket is unavailable") }
         }
-        guard started == 1 else { return (false, "VOICE_SUSPEND_FAILED: first PCM never played") }
+        var started: [String] = [], completed: [String] = []
+        var startedTokens: [UInt64] = []
+        synth.utteranceVolume = 0
+        synth.onPlaybackEvent = { event in
+            if case .startAcknowledged(let text) = event { started.append(text); startedTokens.append(synth.currentPlaybackToken) }
+            if case .completed(let text) = event { completed.append(text) }
+        }
+        let first = "The first sentence has enough duration to pause after audio begins and "
+            + "should resume from the same place without cancelling the reply."
+        let late = "A queued clause must follow the same paused reply."
+        synth.prepareForStream()
+        synth.enqueueClause(first)
+        for _ in 0..<150 where started.isEmpty { try? await Task.sleep(for: .milliseconds(20)) }
+        guard started == [first] else { return (false, "VOICE_SUSPEND_FAILED: first PCM never played") }
+        SelfTest.diagnostic("VOICE_SUSPEND_ROUTE requested=\(pocketProbe ? "pocket" : "selected") actual=\(String(describing: type(of: synth.backing))) muted=true")
+        guard !pocketProbe || synth.isPocketProbePlayback else {
+            return (false, "VOICE_SUSPEND_FAILED: explicit Pocket diagnostic used another backing")
+        }
         let heldToken = synth.currentPlaybackToken
         synth.pauseForListening()
+        synth.enqueueClause(late)
+        synth.finishStream()
         let completedAtPause = completed
         try? await Task.sleep(for: .milliseconds(350))
         guard synth.isPausedForListening, completed == completedAtPause,
-              synth.currentPlaybackToken == heldToken else {
-            return (false, "VOICE_SUSPEND_FAILED: paused player drained or lost token")
+              synth.currentPlaybackToken == heldToken, synth.pendingClauseCount == 1 else {
+            return (false, "VOICE_SUSPEND_FAILED: paused player drained or lost token/late clause")
         }
         synth.resumeAfterListening()
-        for _ in 0..<600 where completed == completedAtPause {
-            try? await Task.sleep(for: .milliseconds(20))
+        for _ in 0..<800 where completed.count < 2 { try? await Task.sleep(for: .milliseconds(20)) }
+        guard !synth.isPausedForListening, completed == [first, late], started == [first, late],
+              startedTokens.count == 2, startedTokens.first == heldToken,
+              Set(startedTokens).count == 2, synth.pendingClauseCount == 0,
+              !pocketProbe || (synth.isPocketProbePlayback && !synth.pocketBacking.isPlaybackEngineRunning) else {
+            return (false, "VOICE_SUSPEND_FAILED: same reply did not resume/drain exact ordered clauses")
         }
-        guard !synth.isPausedForListening, completed == completedAtPause + 1 else {
-            return (false, "VOICE_SUSPEND_FAILED: held clause did not resume and drain")
+        let fresh = "A second clause should start after the first engine was drained."
+        synth.speak(fresh)
+        for _ in 0..<400 where completed.count < 3 { try? await Task.sleep(for: .milliseconds(20)) }
+        guard completed == [first, late, fresh], started == [first, late, fresh],
+              !pocketProbe || (synth.isPocketProbePlayback && !synth.pocketBacking.isPlaybackEngineRunning) else {
+            return (false, "VOICE_SUSPEND_FAILED: next reply did not restart and drain")
         }
-        synth.speak("A second clause should start after the first engine was drained.")
-        for _ in 0..<400 where completed < completedAtPause + 2 {
-            try? await Task.sleep(for: .milliseconds(20))
-        }
-        guard completed == completedAtPause + 2, started >= 2 else {
-            return (false, "VOICE_SUSPEND_FAILED: next clause did not restart and drain")
-        }
-        return (true, "VOICE_SUSPEND_OK: paused PCM retained token and queue; resumed and drained; next clause restarted")
+        return (true, "VOICE_SUSPEND_OK: native software callbacks retained paused token; late clause and next reply drained exactly")
     }
 
     /// Multi-clause enqueue + barge-in clears the remainder. Recording backing

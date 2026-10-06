@@ -2112,12 +2112,24 @@ final class AgentCaptureController {
     static func runVoiceBargeSelfTest(wav: URL,
         appleFastResults: Bool = true) async -> [String] {
         let capture = AgentCaptureController.shared
+        let speech = AgentSpeechSynthesizer.shared
+        let pocketProbe = AgentSpeechSynthesizer.pocketProbeRequested(
+            requested: SelfTest.requested, arguments: CommandLine.arguments)
+        if CommandLine.arguments.contains("--voice-test-pocket") && !pocketProbe {
+            return ["Pocket modifier requires the barge diagnostic alone"]
+        }
+        let oldEngine = speech.engineOverrideForTesting
+        defer { speech.engineOverrideForTesting = oldEngine }
+        if pocketProbe {
+            speech.engineOverrideForTesting = "pocket"
+            await PocketAgentVoice.shared.prepare()
+            guard PocketAgentVoice.shared.isReady else { return ["Pocket is unavailable"] }
+        }
         await capture.endSession(source: .done)
         do { try await capture.beginFileSession(wav: wav, deferFeed: true,
             appleFastResults: appleFastResults) }
         catch { return ["could not open barge-in session: \(error.localizedDescription)"] }
         let audio = RealtimeAudioSession.shared
-        let speech = AgentSpeechSynthesizer.shared
         let priorPlaybackEvent = speech.onPlaybackEvent
         let priorTurnHandler = capture.turnHandlerForTesting
         // A successful interruption is the subject of this probe. Do not let
@@ -2147,7 +2159,10 @@ final class AgentCaptureController {
             try? await Task.sleep(for: .milliseconds(50))
         }
         var failures: [String] = []
-        if firstOutputAt == nil || !audio.isSpeaking {
+        SelfTest.diagnostic("VOICE_BARGE_ROUTE requested=\(pocketProbe ? "pocket" : "selected") pocketProbeBacking=\(speech.isPocketProbePlayback) scope=file-fed-asr")
+        if pocketProbe && !speech.isPocketProbePlayback {
+            failures.append("explicit Pocket barge diagnostic used another backing")
+        } else if firstOutputAt == nil || !audio.isSpeaking {
             failures.append("real TTS was not playing before voice input began")
         } else {
             capture.startDeferredFileFeed()
@@ -2198,6 +2213,7 @@ final class AgentCaptureController {
             if let novel = capture.fileFirstNovelASRAt, let pausedAt {
                 SelfTest.diagnostic("VOICE_BARGE_ASR_TO_PAUSE=\(pausedAt.timeIntervalSince(novel))")
             }
+            if pocketProbe && !speech.isPocketProbePlayback { failures.append("Pocket failed over during barge diagnostic") }
             let countAtStop = acknowledgedClauses
             try? await Task.sleep(for: .seconds(1))
             if acknowledgedClauses != countAtStop {

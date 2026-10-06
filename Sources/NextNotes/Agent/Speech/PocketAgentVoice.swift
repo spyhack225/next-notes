@@ -181,8 +181,21 @@ final class PocketAgentVoice {
     }
 
     func makeReplySession(voice: String) async throws -> PocketTtsSession {
+        let observe = SelfTest.requested == "--selftest-tts-pocket"
+            && CommandLine.arguments.contains("--tts-pocket-pipeline")
+        let observedGeneration = replyGeneration
+        if observe {
+            SelfTest.diagnostic("POCKET_REPLY_PREPARATION stage=prepare_enter owner_generation=\(observedGeneration) host=\(mach_absolute_time())")
+        }
         try await prepareForSynthesis()
+        if observe {
+            SelfTest.diagnostic("POCKET_REPLY_PREPARATION stage=prepare_ready owner_generation=\(observedGeneration) host=\(mach_absolute_time())")
+            SelfTest.diagnostic("POCKET_REPLY_PREPARATION stage=session_enter owner_generation=\(observedGeneration) host=\(mach_absolute_time())")
+        }
         let session = try await manager.makeSession(voice: voice)
+        if observe {
+            SelfTest.diagnostic("POCKET_REPLY_PREPARATION stage=session_return owner_generation=\(observedGeneration) host=\(mach_absolute_time())")
+        }
         do { try checkTerminationAdmission() }
         catch { await session.cancel(); throw error }
         return session
@@ -362,6 +375,12 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
         replyCorrelation = LatencyCorrelation.current
         replyStartedAt = Date()
         replyStartedHostTime = mach_absolute_time()
+        if SelfTest.requested == "--selftest-tts-pocket",
+           CommandLine.arguments.contains("--tts-pocket-pipeline") {
+            var timebase = mach_timebase_info_data_t()
+            mach_timebase_info(&timebase)
+            SelfTest.diagnostic("POCKET_REPLY_PREPARATION stage=begin_reply reply=\(reply) host=\(replyStartedHostTime) numer=\(timebase.numer) denom=\(timebase.denom)")
+        }
         let voice = voiceForTesting ?? Settings.shared.agentPocketVoice
         task = voiceOwner.startReplyPlayback(self) { [weak self] in
             guard let self, generation == reply else { return }
@@ -394,6 +413,10 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
         for index in clauses.indices {
             if let text = clauses[index].text {
                 nativeSession.enqueue(text)
+                if SelfTest.requested == "--selftest-tts-pocket",
+                   CommandLine.arguments.contains("--tts-pocket-pipeline") {
+                    SelfTest.diagnostic("POCKET_REPLY_PREPARATION stage=submitted reply=\(generation) token=\(clauses[index].token) host=\(mach_absolute_time())")
+                }
                 clauses[index].text = nil
             }
         }
@@ -428,6 +451,12 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
             nativeSession = created
             flushSubmittedText()
             for try await frame in created.frames {
+                // Actual stream receipt, before clause callbacks/actor-side logging.
+                var firstPCMReceivedHostTime: UInt64 = 0
+                if SelfTest.requested == "--selftest-tts-pocket",
+                   CommandLine.arguments.contains("--tts-pocket-pipeline"),
+                   let index = frame.utteranceIndex, clauses.indices.contains(index),
+                   !clauses[index].produced { firstPCMReceivedHostTime = mach_absolute_time() }
                 try Task.checkCancellation()
                 guard generation == reply else { throw CancellationError() }
                 guard let index = frame.utteranceIndex, clauses.indices.contains(index),
@@ -444,6 +473,10 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
                 }
                 if !clauses[index].produced {
                     clauses[index].produced = true
+                    if SelfTest.requested == "--selftest-tts-pocket",
+                       CommandLine.arguments.contains("--tts-pocket-pipeline") {
+                        SelfTest.diagnostic("POCKET_REPLY_PREPARATION stage=first_pcm_received reply=\(reply) token=\(clauses[index].token) samples=\(frame.samples.count) host=\(firstPCMReceivedHostTime)")
+                    }
                     let producedAt = Date()
                     clauses[index].firstProducedAt = producedAt
                     let detail = String(format: "Pocket TTS first PCM %.3f token=%llu synthesis=%.3fs samples=%d",
