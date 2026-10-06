@@ -343,6 +343,7 @@ enum MeetingHealthSelfTest {
                   let writer = actualWriter else { throw MeetingAudioWriterError.unsupportedFormat }
             hub.feedForTesting(try pcm(format: format, frames: 3 * 16_000, value: 0.1))
             check("normal stop fixture never received saved capture", await waitUntil { await writer.resourceSnapshot().writtenFrames >= 3 * 16_000 })
+            let originalStart = session.meeting.start
             settings.meetingsKeepAudio = false
             await session.stop()
             settings.meetingsKeepAudio = true
@@ -353,7 +354,19 @@ enum MeetingHealthSelfTest {
             check("healthy Stop did not reach actual done pipeline", saved?.status == .done)
             check("healthy Stop did not persist its end fact", saved?.captureIntegrity?.normalEndAt == saved?.end && saved?.end != nil)
             check("healthy Stop became a capture interruption", saved?.captureIntegrity?.interruptedAt == nil && saved?.hasPartialCapture == false)
-            check("healthy Stop lost its written sample boundary", saved?.captureBoundary == saved?.start.addingTimeInterval(Double(progress.writtenFrames) / 16_000))
+            let writtenBoundary = originalStart.addingTimeInterval(Double(progress.writtenFrames) / 16_000)
+            check("healthy Stop producer lost its written sample boundary", session.meeting.captureBoundary == writtenBoundary)
+            // MeetingStore's existing ISO8601 codec stores whole seconds. Applying
+            // frame duration to a separately decoded/truncated start is not the
+            // same operation as encoding the producer's actual boundary Date.
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            let encodedBoundary = try encoder.encode(writtenBoundary)
+            let decodedBoundary = try decoder.decode(Date.self, from: encodedBoundary)
+            check("healthy Stop stored boundary differs from actual producer codec", saved?.captureBoundary == decodedBoundary)
+            log("MEETING_HEALTH_NORMAL_BOUNDARY start_seconds=\(String(format: "%.6f", originalStart.timeIntervalSince1970)) written_frames=\(progress.writtenFrames) producer_seconds=\(session.meeting.captureBoundary.map { String(format: "%.6f", $0.timeIntervalSince1970) } ?? "unknown") stored_seconds=\(saved?.captureBoundary.map { String(format: "%.6f", $0.timeIntervalSince1970) } ?? "unknown") codec_seconds=\(String(format: "%.6f", decodedBoundary.timeIntervalSince1970))")
             check("healthy Stop did not preserve both live captured tracks", sources == Set([AudioSource.mic, .system]))
             check("mid-meeting keep toggle rewrote actual Stop snapshot", saved?.audioIsTemporary == false)
         } catch { failures.append("actual healthy stop session: \(error.localizedDescription)") }

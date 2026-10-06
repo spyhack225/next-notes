@@ -847,7 +847,6 @@ private final class CaptureSelfTestRecorder: @unchecked Sendable {
     private var values: [Float] = []
     private var hostTimes: [UInt64] = []
     private var overflowCount = 0
-    private var latestOverflow = 0
 
     func append(_ value: Float, hostTime: UInt64? = nil) {
         lock.lock()
@@ -858,14 +857,13 @@ private final class CaptureSelfTestRecorder: @unchecked Sendable {
 
     func overflow(_ count: Int) {
         lock.lock()
-        overflowCount += 1
-        latestOverflow = max(latestOverflow, count)
+        overflowCount += count
         lock.unlock()
     }
 
     func snapshot() -> (values: [Float], overflow: Int, hostTimes: [UInt64]) {
         lock.lock()
         defer { lock.unlock() }
-        return (values, max(overflowCount, latestOverflow), hostTimes)
+        return (values, overflowCount, hostTimes)
     }
 }
