@@ -219,7 +219,8 @@ enum VoiceLatencySelfTest {
             SelfTest.diagnostic("VOICE_LATENCY_LISTEN \(column) median=\(format(median(values)))"
                 + " p95=\(format(p95(values))) min=\(format(values.min()))"
                 + " max=\(format(values.max())) n=\(values.count) units=s")
-            if values.count != runs { wrong.append("\(column): expected \(runs) measurements, got \(values.count)") }
+            let expected = column == "L1" && speculation == "disabled" ? 0 : runs
+            if values.count != expected { wrong.append("\(column): expected \(expected) measurements, got \(values.count)") }
         }
         let stalls = counted.map(\.mainStallSeconds)
         SelfTest.diagnostic("VOICE_LATENCY_MEDIAN main_stall_max="
