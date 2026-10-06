@@ -771,6 +771,7 @@ enum ToolLoopLiveEval {
         var turns: Int
         var tools: [String]
         var reply: String
+        var replies: [String]
         var evidence: String
         var expectedFix: String
         var rounds: Int
@@ -827,7 +828,8 @@ enum ToolLoopLiveEval {
                 seconds: (result.seconds * 10).rounded() / 10,
                 turns: result.replies.count,
                 tools: tools,
-                reply: String(result.replies.last?.prefix(300) ?? ""),
+                reply: result.replies.last ?? "",
+                replies: result.replies,
                 evidence: result.evalCase.evidence,
                 expectedFix: result.evalCase.expectedFix,
                 rounds: rounds.count,
@@ -916,8 +918,9 @@ enum ToolLoopLiveEval {
         }
         let raw = [String(repeating: "é👩🏽‍💻漢字\n", count: 100) + "FIRST-END",
                    String(repeating: "答🌍\n", count: 150) + "SECOND-END"]
+        let replies = raw.map { "Rendered reply: " + $0 + "-DISPLAY-END" }
         let result = CaseResult(
-            evalCase: evalCase, verdict: .pass, seconds: 1, replies: [], calls: [],
+            evalCase: evalCase, verdict: .pass, seconds: 1, replies: replies, calls: [],
             trace: [.round(index: 0, systemCharacters: 123, userCharacters: 45,
                            maxTokens: 512, raw: raw[0], seconds: 0.25),
                     .round(index: 1, systemCharacters: 456, userCharacters: 78,
@@ -927,6 +930,10 @@ enum ToolLoopLiveEval {
             let row = reportRows([result], options: options)[0]
             let data = try JSONEncoder().encode(row)
             let decoded = try JSONDecoder().decode(ReportRow.self, from: data)
+            let exactReplyObject = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+            if exactReplyObject?["replies"] as? [String] != replies || exactReplyObject?["reply"] as? String != replies.last {
+                failures.append("multi-turn report lost exact rendered replies")
+            }
             if decoded.rawRounds.map(\.raw) != raw || decoded.rounds != 2
                 || decoded.rawRounds.map(\.index) != [0, 1]
                 || decoded.rawRounds.map(\.systemCharacters) != [123, 456]
@@ -987,8 +994,9 @@ enum ToolLoopLiveEval {
         }
         lines.append("- Model pin: `\(options.model ?? "Agent role (unpinned)")`; fixture clock: "
             + "`\(options.fixtureNow ?? "live clock")`; time zone: `\(TimeZone.current.identifier)`.")
-        lines.append("- JSONL rawRounds preserves every planner round and its full completion; "
-            + "systemCharacters/userCharacters are prompt character counts, not prompt text.")
+        lines.append("- JSONL replies preserves every complete rendered turn reply; rawRounds preserves "
+            + "every planner round and its full completion. systemCharacters/userCharacters are "
+            + "prompt character counts, not prompt text.")
         if let artifact = model.artifact {
             lines.append("- Artifact: `\(artifact.id)`; `\(artifact.fileURL.path)`; \(artifact.bytes) bytes")
         }
