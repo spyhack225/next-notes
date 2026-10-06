@@ -307,7 +307,9 @@ enum AgentToolLoop {
                     // request only when the accepted question repeats that same timing.
                     // A redundant once-only date must not bypass this daily-clock check.
                     if kind == "reminder", repeatWord == "daily", ["", "today"].contains(dateText),
-                       proposed["time"].flatMap(ScheduleLocalTime.parse) != nil,
+                       (proposed["time"].flatMap(ScheduleLocalTime.parse) != nil
+                        || ((proposed["time"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
+                            && (proposed["on"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true))),
                        let question = confirmedQuestion,
                        question.range(of: #"\bevery night at\s+\d"#, options: [.regularExpression, .caseInsensitive]) != nil,
                        question.range(of: #"\b(?:morning|am)\b"#, options: [.regularExpression, .caseInsensitive]) == nil,

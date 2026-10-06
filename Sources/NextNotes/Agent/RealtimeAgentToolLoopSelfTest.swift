@@ -4209,7 +4209,8 @@ enum RealtimeAgentToolLoopSelfTest {
                  requestOverride: String? = nil, unconfirmed: Bool = false, liveFixture: Bool = false,
                  expectedOverride: [String: String]? = nil,
                  originalNativeArguments: [String: String]? = nil,
-                 expectApproval: Bool = true, acknowledgment: String = "yes", approveCard: Bool = true)
+                 expectApproval: Bool = true, acknowledgment: String = "yes", approveCard: Bool = true,
+                 initialReplyOverride: String? = nil, initialPasses: Int = 1)
             async -> (reply: String, log: [PlannerScriptLog.Call], fired: [String], saved: [AgentSchedule],
                       asks: Int, cardArguments: [String: String]?) {
             caseIndex += 1
@@ -4254,8 +4255,12 @@ enum RealtimeAgentToolLoopSelfTest {
             AgentSession.shared.forgetAllConversations()
             if !unconfirmed {
                 let first = await agent.handle(requested, source: .text)
-                check("R01 exact initial offer changed or did not retain pending", first.reply == script.first
+                check("R01 exact initial offer changed or did not retain pending", first.reply == (initialReplyOverride ?? script.first)
                     && agent.typedPending?.requestText == requested)
+                if let initialReplyOverride {
+                    check("R02_MISSING actual initial pending lost the native final question",
+                          agent.typedPending?.question == PendingAction.lastSentence(initialReplyOverride))
+                }
                 check("R01 initial offer executed before the user's yes", fired.toolIDs.isEmpty && fixtures.calls.isEmpty)
             }
             let beforeAsks = PermissionGate.shared.askCount
@@ -4290,8 +4295,8 @@ enum RealtimeAgentToolLoopSelfTest {
             if let shown { ToolCallReviewStore.shared.remove(id: shown.id) }
             if !unconfirmed {
                 check("R01 confirmed request lost original request/acknowledgment",
-                      log.calls.dropFirst().first?.user.contains(requested) == true
-                        && log.calls.dropFirst().first?.user.contains("The user answered: " + acknowledgment) == true)
+                      log.calls.dropFirst(initialPasses).first?.user.contains(requested) == true
+                        && log.calls.dropFirst(initialPasses).first?.user.contains("The user answered: " + acknowledgment) == true)
             } else {
                 check("R01 unconfirmed schedule approval count disagreed with the admitted call",
                       (shown != nil) == expectApproval)
@@ -4345,6 +4350,70 @@ enum RealtimeAgentToolLoopSelfTest {
                     request: pending.confirmedPrompt(acknowledgment: "actually at 11"), now: now,
                     calendar: calendar) == emitted.arguments)
         }
+        // R02_CONFIRMED_OMITTED_CLOCK_COMMON_BEGIN
+        let omittedClockRaw0 = "Got it, Serge. I'll set a reminder to put the book out at 10pm every night.\n<function name=\"schedule.create\">[{\"id\":\"reminder_1\",\"title\":\"Put the book out\",\"text\":\"Remind me to put the book out\",\"routine\":\"standalone instructions\",\"kind\":\"reminder\",\"tools\":[\"calendar\"],\"model\":\"auto\",\"plainEnglish\":true,\"on\":true,\"time\":\"22:00\",\"repeat\":\"daily\",\"days\":[\"monday\",\"tuesday\",\"wednesday\",\"thursday\",\"friday\",\"saturday\",\"sunday\"]}]</param></function>"
+        let omittedClockRaw1 = "I can set that reminder for you, but I need a few details first. What would you like the reminder to say? And should it go off every night at 10 specifically, or on certain days of the week?"
+        let omittedClockRaw2 = "I'll set a reminder for you to put the book out at 10 each night."
+        let omittedClockRaw3 = "<tool_call>\n  {\"name\":\"schedule.create\",\"arguments\":{\"title\":\"Put the book out\",\"text\":\"Remind me to put the book out each night at 10 PM\",\"kind\":\"reminder\",\"tools\":\"calendar\",\"model\":\"auto\",\"plainEnglish\":null,\"on\":null,\"leadMinutes\":null,\"filter\":null,\"repeat\":\"daily\",\"time\":null,\"date\":null,\"inMinutes\":null,\"days\":null,\"day\":null,\"endsOn\":null,\"speak\":null},\"rationale\":\"Create a daily reminder set for the user's request to remind them every night at 10 to put the book out.\"}\n</tool_call>"
+        let omittedClockParsed = AgentToolCallParser.parse(omittedClockRaw3, knownNames: ["schedule.create"])
+        check("R02_MISSING INPUT_INVALID: exact native null fields were not omitted",
+              omittedClockParsed.calls.count == 1 && omittedClockParsed.malformed.isEmpty
+                && omittedClockParsed.calls.first?.arguments["time"] == nil
+                && omittedClockParsed.calls.first?.arguments["date"] == nil
+                && omittedClockParsed.calls.first?.arguments["on"] == nil)
+        if let emitted = omittedClockParsed.calls.first {
+            let accepted = emitted.arguments.merging(["time": "22:00"]) { _, agreed in agreed }
+            let manifest = AgentCapabilityManifestBuilder.build(allEnabledFixture(), request: dailyRequest)
+            let pending = PendingAction.detect(reply: omittedClockRaw1, request: dailyRequest,
+                allowedIDs: manifest.allowedIDs, origin: .typedQuestion, sessionID: nil, now: now)
+            let question = "And should it go off every night at 10 specifically, or on certain days of the week?"
+            check("R02_MISSING exact native last question was not retained", pending?.question == question
+                && pending?.requestText == dailyRequest)
+            if let pending {
+                check("R02_MISSING confirmed agreed clock was lost when model omitted time",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                        request: pending.confirmedPrompt(acknowledgment: "okay"), now: now, calendar: calendar) == accepted)
+                for change in [["time": "unknown"], ["on": "call_started"], ["on": "23:00"],
+                    ["date": dateText], ["date": "today+1d"], ["inMinutes": "60"],
+                    ["repeat": "weekly", "days": "monday"], ["repeat": "once"], ["repeat": ""], ["kind": "routine"]] {
+                    let proposed = emitted.arguments.merging(change) { _, value in value }
+                    check("R02_MISSING omitted-clock path rewrote invalid/trigger/date/frequency/other-kind fields",
+                          AgentToolLoop.groundedArguments(for: emitted.name, proposed: proposed,
+                            request: pending.confirmedPrompt(acknowledgment: "okay"), now: now, calendar: calendar) == proposed)
+                }
+                for changedQuestion in ["Should it go off every night at 11?", "Should it go off every night at 10 or 11?",
+                    "Should it go off every morning at 10?", "What time should I use?", "Should it be weekly at 10?"] {
+                    let changed = PendingAction(requestText: dailyRequest, question: changedQuestion,
+                        capabilityID: "schedule.create", origin: .typedQuestion, sessionID: nil, at: now)
+                    check("R02_MISSING borrowed clock from changed/ambiguous accepted question",
+                          AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                            request: changed.confirmedPrompt(acknowledgment: "okay"), now: now, calendar: calendar) == emitted.arguments)
+                }
+                check("R02_MISSING substantive reply borrowed the old clock",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                        request: pending.confirmedPrompt(acknowledgment: "actually at 11"), now: now, calendar: calendar) == emitted.arguments)
+            }
+            let script = [omittedClockRaw0, omittedClockRaw1, omittedClockRaw2, omittedClockRaw3,
+                          "The book reminder is saved for every night at 10."]
+            let native = await run(script, requestOverride: dailyRequest, expectedOverride: accepted,
+                originalNativeArguments: emitted.arguments, acknowledgment: "okay",
+                initialReplyOverride: omittedClockRaw1, initialPasses: 2)
+            check("R02_MISSING actual retained four-round plan lost exact single approval/native daily22 backing",
+                  native.log.count == 5 && native.log.dropFirst(2).first?.user.contains("You then asked: " + question) == true
+                    && native.asks == 1 && native.cardArguments == accepted
+                    && native.fired == ["schedule.create"] && native.saved.count == 1
+                    && native.saved.first?.when?.time == ScheduleLocalTime(hour: 22, minute: 0)
+                    && native.saved.first?.when?.repeatRule == .daily
+                    && native.saved.first?.prompt == emitted.arguments["text"])
+            let denied = await run(script, requestOverride: dailyRequest, expectedOverride: accepted,
+                originalNativeArguments: emitted.arguments, acknowledgment: "okay", approveCard: false,
+                initialReplyOverride: omittedClockRaw1, initialPasses: 2)
+            check("R02_MISSING refused approval reached backing or lost exact card",
+                  denied.asks == 1 && denied.cardArguments == accepted && denied.fired.isEmpty && denied.saved.isEmpty)
+            print("TOOLLOOP_PRODUCTION_R02_MISSING calls=\(native.log.count) asks=\(native.asks) saved=\(native.saved.count) deniedSaved=\(denied.saved.count)")
+        }
+        // R02_CONFIRMED_OMITTED_CLOCK_COMMON_END
+
         let dailyRaw = #"<function name="schedule.create"><param name="id">every-night-10-reminder</param><param name="title">Put the book out</param><param name="text">Remind to put the book out every night at 10</param><param name="kind">reminder</param><param name="time">22:00</param><param name="days">7</param></function>"#
         let dailyParsed = AgentToolCallParser.parse(dailyRaw, knownNames: ["schedule.create"])
         if dailyParsed.calls.count == 1, let emitted = dailyParsed.calls.first {

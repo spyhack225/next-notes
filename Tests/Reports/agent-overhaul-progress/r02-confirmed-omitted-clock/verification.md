@@ -1,0 +1,9 @@
+# Confirmed nightly reminder clock omission — 2026-10-06
+
+The installed14c native quick retained a nightly10pm request and the exact confirmation, but the model emitted daily reminder arguments with a null time. The parser already omitted null correctly. The existing agreed-clock grounder required a model-supplied clock too, so validation rejected the request before an approval card. This is a bounded mitigation for the external model omission through the existing authored-timing seam.
+
+The same four captured raw replies reproduce three failures in the actual typed runner→review→Executor→private ScheduleStore flow. One existing condition now accepts omitted time only with no competing trigger and an exact confirmed matching nightly question. Changed/ambiguous times, substantive answers, offsets/dates/frequencies/kinds and invalid nonempty times remain unchanged. No prompt, retry, model pass, approval, scheduler or store added.
+
+Unchanged regression: original calls4/approvals0/saved0 → fixed calls5/approvals1/saved1 at22:00 daily; refused approval saved0. Focus, full production toolloop, schedule, tool review and owner-store isolation all PASS; 21 files/32 defaults unchanged. Same staged artifact native R02 PASS: one schedule.create at22:00, five rounds. Binary 9f757ad5f0e1ad601bf8e9352c15cbf031c91f40ea4c70843e1ad5faf00a0d35. Model MiniCPM5-2B Q4_K_M, native planner, baseline sampler, pinned2026-10-05/America-New_York clock. Native evaluation uses isolated backing, not the owner's schedule. Owned temporary roots removed after joined exits; model claim released.
+
+Raw logs, captured rounds, original/fixed metadata and patch: ~/Library/Caches/NextNotesBuild/integration/r02-confirmed-omitted-clock/. Obsolete original comparison bundle removed; current tested build retained for installation. Three current quick runs and broader full/owner, voice/wake, latency, model-floor/default and live account acceptance remain separate and open.
