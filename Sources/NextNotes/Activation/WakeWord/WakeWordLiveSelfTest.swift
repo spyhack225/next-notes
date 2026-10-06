@@ -256,7 +256,11 @@ enum WakeWordLiveSelfTest {
                     continue
                 }
                 let judged = try? await WakeWordAudioMonitor.confirmationForCorpus(
-                    wav: url, spotter: spotter, phrase: manifest.phrase)
+                    wav: url, spotter: spotter, phrase: manifest.phrase,
+                    observation: { frames, hitFrame, text, checked in
+                        reportConfirmationDetail(file: clip.file, kind: "hit", sensitivity: sensitivity,
+                            frames: frames, hitFrame: hitFrame, text: text, checked: checked)
+                    })
                 if judged != nil { stageOneHits[sensitivity, default: 0] += 1 }
                 if judged == .unavailable { unavailablePerSensitivity[sensitivity, default: 0] += 1 }
                 if case .confirmed(_)? = judged {
@@ -294,7 +298,11 @@ enum WakeWordLiveSelfTest {
                     continue
                 }
                 let judged = try? await WakeWordAudioMonitor.confirmationForCorpus(
-                    wav: url, spotter: spotter, phrase: manifest.phrase)
+                    wav: url, spotter: spotter, phrase: manifest.phrase,
+                    observation: { frames, hitFrame, text, checked in
+                        reportConfirmationDetail(file: clip.file, kind: "near-miss", sensitivity: sensitivity,
+                            frames: frames, hitFrame: hitFrame, text: text, checked: checked)
+                    })
                 if judged != nil { stageOneFalse[sensitivity, default: 0] += 1 }
                 if judged == .unavailable { unavailablePerSensitivity[sensitivity, default: 0] += 1 }
                 if case .confirmed(_)? = judged {
@@ -364,6 +372,28 @@ enum WakeWordLiveSelfTest {
     }
 
     // MARK: - Fixture resolution
+
+    /// Escaped text from the same recognized authored-fixture window, not a
+    /// transcription of optional local microphone captures or a second ASR pass.
+    @MainActor
+    private static func reportConfirmationDetail(file: String, kind: String, sensitivity: Double,
+        frames: Int, hitFrame: Int, text: String, checked: WakePhraseConfirmation.Result) {
+        guard SelfTest.isRunning, CommandLine.arguments.contains("--selftest-wake-live"),
+              CommandLine.arguments.contains("--wake-corpus-only"),
+              CommandLine.arguments.contains("--wake-confirmation-details") else { return }
+        let detail: [String: Any] = [
+            "file": file, "kind": kind, "sensitivity": sensitivity,
+            "windowFrames": frames, "firstHitFrame": hitFrame, "sampleRate": 16_000,
+            "transcript": text, "accepted": checked.accepted, "closeness": checked.closeness,
+            "reason": checked.reason, "matchedWords": checked.matchedWords, "remainder": checked.remainder,
+        ]
+        guard let data = try? JSONSerialization.data(withJSONObject: detail, options: [.sortedKeys]),
+              let line = String(data: data, encoding: .utf8) else {
+            SelfTest.diagnostic("WAKE_CONFIRMATION_DETAIL_UNAVAILABLE: output encoding failed")
+            return
+        }
+        SelfTest.diagnostic("WAKE_CONFIRMATION_DETAIL " + line)
+    }
 
     /// Explicit path first, then `Tests/Fixtures/wake` under the working directory
     /// (true when launched via `Scripts/run-selftest.sh` from the repo root).

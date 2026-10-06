@@ -1,0 +1,9 @@
+# Authored wake confirmation details — 2026-10-05
+
+The existing authored-corpus flag lacked the actual recognized bounded-window text, making its false accepts impossible to attribute. An opt-in `--wake-confirmation-details` modifier now observes the same ASR/scorer pass through the existing corpus seam. It is admitted only under SelfTest + wake-live + corpus-only. Normal live wake has no observer; optional microphone captures cannot enter it. No second ASR pass, threshold, corpus, parser, model, owner or logging store changes.
+
+Actual native corpus:44 escaped confirmation rows; default sensitivity0.6 still **16/24 hits and3/32 false accepts**, ASR unavailable0. Stage one itself has16 hits and4 false candidates. Three accepted negative windows have12,800frames(.8s): “Hey we should leave.” atcloseness.90, “Hey where did I” at.92, “Hey win or lose.” at.92. “Hey wind the clock.” is refused at.60. The scorer receives those actual short prefixes, not the full manifest sentences. Eight true clips never reach confirmation. No speculative repair/tuning or accuracy/room gate promotion follows.
+
+Existing actual callback flag PASS and emits no new detail rows. The corpus accuracy flag remains FAILED, retaining its unchanged0.8 hit-rate and≤2 false thresholds. This is diagnostic availability, not a wake accuracy fix. Binary SHA `bc80eedfe65af6bd327d6d23f968177561d5f2315527175341d456289a131942`; load2.05, swap5.34GiB, free10.97GiB. All task-owned TMP roots removed after subprocess joins; model claim released.
+
+Patches, actual metadata, reports and logs live outside iCloud at `~/Library/Caches/NextNotesBuild/integration/wake-confirmation-details/`. Only committed authored fixtures were read; no owner recording or live microphone capture. Root installs the committed verified diagnostic artifact and retains current build only. Broader quality, voice/floor, wake/CORE and roadmap gates remain open.

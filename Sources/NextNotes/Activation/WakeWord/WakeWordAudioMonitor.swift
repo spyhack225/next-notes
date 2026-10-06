@@ -371,10 +371,12 @@ final class WakeWordAudioMonitor {
         )
     }
 
-    private func confirmWindow(_ window: [Float], phrase: String) async -> Confirmation {
+    private func confirmWindow(_ window: [Float], phrase: String,
+        observation: (@MainActor (String, WakePhraseConfirmation.Result) -> Void)? = nil) async -> Confirmation {
         do {
             guard let text = try await recognizeWindow(window) else { return .unavailable }
             let checked = WakePhraseConfirmation.check(transcript: text, phrase: phrase)
+            observation?(text, checked)
             return checked.accepted ? .confirmed(checked) : .rejected(checked)
         } catch { return .unavailable }
     }
@@ -382,7 +384,8 @@ final class WakeWordAudioMonitor {
     /// Corpus attribution keeps the same bounded prefix/first-hit decision as the
     /// audio callback. It never wakes the UI, starts capture, or loads an ASR model.
     static func confirmationForCorpus(wav: URL, spotter: SherpaKeywordSpotter,
-        phrase: String) async throws -> Confirmation? {
+        phrase: String,
+        observation: (@MainActor (Int, Int, String, WakePhraseConfirmation.Result) -> Void)? = nil) async throws -> Confirmation? {
         var samples = try AudioConversion.monoSamples(fromFileAt: wav, sampleRate: 16_000)
         samples.append(contentsOf: [Float](repeating: 0, count: 16_000))
         let gate = Gate()
@@ -391,7 +394,15 @@ final class WakeWordAudioMonitor {
             let end = min(offset + 3_200, samples.count)
             if let (_, window, _) = gate.candidate(Array(samples[offset..<end]),
                 accept: { spotter.accept(samples: $0) }) {
-                return await shared.confirmWindow(window, phrase: phrase)
+                // Explicit authored-corpus diagnostic only; live wake callers have
+                // no observer and retain no recognized audio text in their reports.
+                let observe: (@MainActor (String, WakePhraseConfirmation.Result) -> Void)?
+                if SelfTest.isRunning, CommandLine.arguments.contains("--selftest-wake-live"),
+                   CommandLine.arguments.contains("--wake-corpus-only"),
+                   CommandLine.arguments.contains("--wake-confirmation-details"), let observation {
+                    observe = { text, checked in observation(window.count, end, text, checked) }
+                } else { observe = nil }
+                return await shared.confirmWindow(window, phrase: phrase, observation: observe)
             }
             offset = end
         }
