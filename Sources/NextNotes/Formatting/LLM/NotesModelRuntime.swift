@@ -944,13 +944,14 @@ actor NotesModelRuntime {
                 Array(prompt[keep...]), startPosition: keep, context: context, jobID: jobID,
                 optional: optional)
         } catch {
-            // The removal and the partial decode leave the cache half-shifted; nothing can
-            // reuse it until it is cleared.
-            llama_memory_clear(memory, true)
-            kvTokens = []
+            // Cancellation is checked between successful native chunks, whose exact
+            // positions are already retained. A failed native decode remains unknown.
+            if !(error is CancellationError) {
+                llama_memory_clear(memory, true)
+                kvTokens = []
+            }
             throw error
         }
-        kvTokens = prompt
         lastPrefillStats = PrefillStats(
             promptTokens: prompt.count,
             reused: keep,
@@ -987,6 +988,7 @@ actor NotesModelRuntime {
                     logits: offset == tokens.count - 1, to: &batch)
             }
             guard decodeNative(context, batch) == 0 else { throw LlamaError.decodeFailed }
+            kvTokens.append(contentsOf: tokens[index..<end])
             index = end
             prefillChunkObserverForTesting?()
         }
@@ -1218,10 +1220,12 @@ actor NotesModelRuntime {
                 position += 1
             }
         } catch {
-            // A failed decode or a cancellation mid-generation leaves the native context in
-            // a state this code did not build; drop both halves of the cache together.
-            llama_memory_clear(llama_get_memory(context), true)
-            kvTokens = []
+            // Cancellation arrives at a token boundary; every successful native token is
+            // recorded above. Never reuse a context after an actual decode failure.
+            if !(error is CancellationError) {
+                llama_memory_clear(llama_get_memory(context), true)
+                kvTokens = []
+            }
             throw error
         }
         if !pending.isEmpty, turnEnd.isEmpty || !pending.hasPrefix(turnEnd) { yield(pending) }

@@ -1,6 +1,25 @@
 import Foundation
 import llama
 
+/// Cancel only at an observed successful native chunk boundary; no sleep or fake cache.
+private final class PrefixCacheCancellationProbe: @unchecked Sendable {
+    private let lock = NSLock()
+    private let target: Int
+    private var chunks = 0
+    private var cancelled = false
+    init(atChunk: Int) { target = atChunk }
+    var didCancel: Bool { lock.withLock { cancelled } }
+    func decoded() {
+        let stop = lock.withLock { chunks += 1; return chunks == target }
+        if stop {
+            withUnsafeCurrentTask { task in
+                task?.cancel()
+                lock.withLock { cancelled = task != nil }
+            }
+        }
+    }
+}
+
 /// `--selftest-llm-prefix-cache` (P0-18): the runtime keeps its KV cache across calls and
 /// decodes only the tokens that changed.
 ///
@@ -34,6 +53,7 @@ enum PrefixCacheSelfTest {
         var text = ""
         var pieces: [String] = []
         var error: String?
+        var wasCancelled = false
     }
 
     static func runSelfTest() async -> Bool {
@@ -337,6 +357,8 @@ enum PrefixCacheSelfTest {
         if let error = after.error {
             failures.append("call 6 failed: \(error)")
         }
+        failures += await cancellationReuseFailures(runtime, system: system,
+            firstUser: firstUser, promptTokens: stats6.promptTokens)
         _ = await runtime.shutdown()
 
         if failures.isEmpty {
@@ -347,6 +369,56 @@ enum PrefixCacheSelfTest {
                 secondSeconds: stats2.seconds)
         }
         return .failed(failures)
+    }
+
+    private static func cancellationReuseFailures(
+        _ runtime: NotesModelRuntime, system: String, firstUser: String, promptTokens: Int
+    ) async -> [String] {
+        // The producer currently decodes prompt chunks of at most128 native tokens.
+        guard promptTokens > 128 else { return ["cancelled prefill fixture needs more than128 actual tokens"] }
+        var failures: [String] = []
+        for partialPrefill in [true, false] {
+            await runtime.resetPrefixCacheForTesting()
+            let probe = PrefixCacheCancellationProbe(atChunk: partialPrefill ? 1 : (promptTokens + 127) / 128)
+            await runtime.setPrefillChunkObserverForTesting { probe.decoded() }
+            let cancelledStream = await runtime.streamInteractiveConversation(
+                system: system, messages: [.init(role: .user, content: firstUser)],
+                maxTokens: generationBudget)
+            let cancelled = await drain(cancelledStream)
+            await runtime.setPrefillChunkObserverForTesting(nil)
+            let name = partialPrefill ? "partial prefill" : "completed prefill before sampling"
+            if !probe.didCancel || !cancelled.wasCancelled || !cancelled.text.isEmpty {
+                failures.append("\(name) did not cancel its actual native producer before output")
+                continue
+            }
+            let finalUser = partialPrefill ? firstUser + " Please explain." : firstUser
+            let successor = await runtime.streamInteractiveConversation(
+                system: system, messages: [.init(role: .user, content: finalUser)],
+                maxTokens: generationBudget)
+            let result = await drain(successor)
+            guard let stats = await runtime.prefillStatsForTesting() else {
+                failures.append("\(name) successor has no native prefill counters")
+                continue
+            }
+            let expected = partialPrefill ? 128 : stats.promptTokens - 1
+            if stats.reused != expected || stats.decoded != stats.promptTokens - expected {
+                failures.append("\(name) discarded native-success prefix: reused\(stats.reused), expected\(expected)")
+            }
+            if result.error != nil || result.text.isEmpty {
+                failures.append("\(name) successor did not deliver a native answer")
+            }
+            // A different first token must still invalidate the retained prefix.
+            let changed = await runtime.streamInteractiveConversation(
+                system: differentOpeningSystem(), messages: [.init(role: .user, content: finalUser)],
+                maxTokens: generationBudget)
+            let changedResult = await drain(changed)
+            let changedStats = await runtime.prefillStatsForTesting()
+            // Reuse only the same family/BOS opening, as in existing call3's bound.
+            if (changedStats?.reused ?? Int.max) > 8 || changedResult.error != nil {
+                failures.append("\(name) retained changed instruction tokens")
+            }
+        }
+        return failures
     }
 
     // MARK: - Fixtures and helpers
@@ -378,6 +450,7 @@ enum PrefixCacheSelfTest {
             }
         } catch {
             result.error = error.localizedDescription
+            result.wasCancelled = error is CancellationError
         }
         return result
     }
