@@ -1,0 +1,7 @@
+# Current installed quick failure retained — 2026-10-06
+
+Installed source9c5db1b/binary9f757ad5f0e1ad601bf8e9352c15cbf031c91f40ea4c70843e1ad5faf00a0d35 completed quick10/10 then6/10 (103.0/80.8seconds), same MiniCPM5-2B artifact, native planner, baseline sampler and pinned2026-10-05/America-New_York clock. Failed series stopped before a third unchanged run; no three-run aggregate or quality/default acceptance. Native markers, exits, corpus, raw rounds and child joins qualify. Load2.98/3.43, swap5.22GiB, free11.29GiB, quiet process audits empty. Owned temporary roots removed; model claim released.
+
+Second run failures: M05 WRONG_TOOL, K01 MISSED_TOOL, R02 and A02 REFUSAL. No graded ERROR/TIMEOUT/LEAK/FABRICATED. Its system-character counts are exactly118 longer than the first run across these four classes, under investigation; neither source nor causal impact is yet confirmed. The new R02 asks for missing wording and never emits a call, unlike the omitted confirmed-time regression. That bounded original actual producer regression, native one-case check and five related flags remain green; broader reminder reliability stays open.
+
+Raw reports and complete failed rounds: ~/Library/Caches/NextNotesBuild/toolloop-live/mini-native-9c5db1b-20261006/. Previous14c9/10,10/10,10/10 is historical and does not qualify this changed artifact. Broader full/owner, voice/wake, latency, model floor/default and roadmap completion remain open. No failed result is erased or grade softened.
