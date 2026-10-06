@@ -1095,9 +1095,17 @@ extension RealtimeAgent {
         let earned = catalogue
             ? plannerRuleLines(manifest: manifest, extraCatalogue: halves.extra, request: request)
             : ""
-        return AgentPromptContext.assemble(
+        let context = AgentPromptContext.assemble(
             .toolLoop, rules: plannerRules(manifest: manifest, voice: voice, catalogue: catalogue),
-            capabilities: capabilities, volatileTail: earned, skills: skills).system
+            capabilities: capabilities, volatileTail: earned, skills: skills)
+        if SelfTest.requested == "--selftest-toolloop-live" {
+            SelfTest.diagnostic("TOOLLOOP_LIVE_CONTEXT_CHARS "
+                + "persona=\(context.persona.count) grounding=\(context.grounding.count) "
+                + "rules=\(context.rules.count) memory=\(context.memory.count) "
+                + "capabilities=\(context.capabilities.count) skills=\(context.skills.count) "
+                + "now=\(context.now.count) volatileTail=\(context.volatileTail.count)")
+        }
+        return context.system
     }
 
     /// The call format and the per-request lines, as the last thing in the prompt.
