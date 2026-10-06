@@ -185,7 +185,9 @@ enum VoiceDeliverySelfTest {
         for chunk in chunks(of: meetingReply, size: 20) { meetingBuffer.append(chunk) }
         meetingBuffer.finalize()
         drain(synth)
-        check(recorder.spoken == [meetingReply],
+        // P2-06 may deliver the first comma chunk before the sentence ends.
+        // Preserve every word/punctuation through the actual drained consumer.
+        check(recorder.spoken.joined(separator: " ") == meetingReply,
               "prose ending in “meeting.” was cut: \(recorder.spoken)")
         check(recorder.stopCount == 0,
               "prose ending in “meeting.” stopped playback (stopCount=\(recorder.stopCount))")

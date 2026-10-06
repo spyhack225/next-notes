@@ -1,0 +1,7 @@
+# Start a safe speech chunk before sentence completion
+
+P2-06 bounded producer change: StreamingSpeechBuffer previously held an unfinished first sentence until punctuation. It now delivers a comma/colon/、 prefix after at least four words, or eight complete words at whitespace, through the existing synthesizer and playback ledger. The original first-clause remainder is delivered once. Whole-reply safety guards, later sentence splitting, cancellation and backing selection are preserved; no await, timer, model pass or audio owner added.
+
+Original exact production buffer→synthesizer→recording backing regression RED11 → fixed PASS. Stream, voice delivery, playback ledger, suspend and store isolation all PASS; 21 owner files/32 defaults unchanged. The first candidate lost trailing whitespace through policy trimming; its red is retained and the responsible boundary now uses the original next character. Delivery's old one-sentence-chunk assertion now requires exact joined original150-character text through its drained consumer, allowing the intended early chunk.
+
+These are software delivery checks, not native first-audio/prosody measurements. Pocket session reuse, synth-ahead, per-boundary silence and the full P2-06/latency gates remain open. Raw original/failed/final logs and patches: ~/Library/Caches/NextNotesBuild/integration/p2-first-speech-chunk/. Per-test TMP roots removed; joined original/failed app stages deleted. Verified final app is installed by the commit handoff.

@@ -18,6 +18,11 @@ final class StreamingSpeechBuffer {
     private let synthesizer: AgentSpeechSynthesizer
     private var buffer = ""
     private var flushedCount = 0
+    // Keep clause indexing: the policy splits long clauses and ASCII dashes.
+    // Only the first clause may have a prefix already handed to playback.
+    private var firstChunkCharacters = 0
+    static let firstChunkMinimumWords = 4
+    static let firstChunkForceWords = 8
     private var cancelled = false
     /// True once at least one clause was handed to the synthesizer this turn.
     private(set) var didEnqueue = false
@@ -31,6 +36,7 @@ final class StreamingSpeechBuffer {
         cancelled = false
         buffer = ""
         flushedCount = 0
+        firstChunkCharacters = 0
         didEnqueue = false
         synthesizer.prepareForStream()
     }
@@ -44,6 +50,7 @@ final class StreamingSpeechBuffer {
             buffer = next
             cancelled = true
             flushedCount = 0
+            firstChunkCharacters = 0
             didEnqueue = false
             // This is deliberately stronger than clearing pending clauses: if an
             // unsafe token follows a spoken clause, stop the current utterance too.
@@ -70,6 +77,7 @@ final class StreamingSpeechBuffer {
         cancelled = true
         buffer = ""
         flushedCount = 0
+        firstChunkCharacters = 0
         didEnqueue = false
     }
 
@@ -85,10 +93,27 @@ final class StreamingSpeechBuffer {
 
         let all = AgentSpeechPolicy.speakableClauses(buffer)
         let ready = finalize ? all : completePrefix(of: all)
-        let newOnes = Array(ready.dropFirst(flushedCount))
+        if !finalize, !didEnqueue, ready.isEmpty,
+           let first = all.first,
+           // The policy trims the clause. Keep its original next character so
+           // a trailing space proves the last word/punctuation is complete.
+           let chunk = Self.firstChunk(in: String(buffer.drop(while: { $0.isWhitespace })
+               .prefix(first.count + 1))) {
+            firstChunkCharacters = chunk.count
+            VoiceLatencyTimeline.shared.mark(.firstClauseEnqueued)
+            synthesizer.enqueueClause(chunk)
+            didEnqueue = true
+            return
+        }
+        var newOnes = Array(ready.dropFirst(flushedCount))
         guard !newOnes.isEmpty else { return }
+        if flushedCount == 0, firstChunkCharacters > 0 {
+            newOnes[0] = String(newOnes[0].dropFirst(firstChunkCharacters))
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            firstChunkCharacters = 0
+        }
         flushedCount = ready.count
-        for clause in newOnes {
+        for clause in newOnes where !clause.isEmpty {
             // The first clause of a reply is the boundary between the model's first token
             // and the synthesizer, so it is stamped once per reply, here, before the enqueue.
             if !didEnqueue {
@@ -97,6 +122,30 @@ final class StreamingSpeechBuffer {
             synthesizer.enqueueClause(clause)
             didEnqueue = true
         }
+    }
+
+    /// Cut only a complete word, after the existing whole-reply safety checks.
+    /// A comma in 1,000 or a colon in 09:00 has no following whitespace.
+    private static func firstChunk(in clause: String) -> String? {
+        for index in clause.indices where [",", ":", "、"].contains(clause[index]) {
+            let next = clause.index(after: index)
+            guard next < clause.endIndex, clause[next].isWhitespace else { continue }
+            let prefix = String(clause[...index])
+            if prefix.split(whereSeparator: \.isWhitespace).count >= firstChunkMinimumWords,
+               prefix.count <= AgentSpeechPolicy.shortLimit { return prefix }
+        }
+        var words = 0
+        var insideWord = false
+        for index in clause.indices {
+            if clause[index].isWhitespace {
+                if insideWord { words += 1; insideWord = false }
+                if words == firstChunkForceWords {
+                    let prefix = String(clause[..<index])
+                    return prefix.count <= AgentSpeechPolicy.shortLimit ? prefix : nil
+                }
+            } else { insideWord = true }
+        }
+        return nil
     }
 
     /// Clauses that already ended on a boundary; hold an incomplete tail.
@@ -196,6 +245,69 @@ final class StreamingSpeechBuffer {
                 "token-stream: URL buffer must stay silent, got spoken=\(recorder.spoken) pending=\(synth.pendingClauseCount)"
             )
         }
+
+        // P2-06: exercise the actual buffer -> synthesizer -> backing seam.
+        // These are software clause receipts, not a claim about audible onset.
+        var enqueued: [String] = []
+        let priorPlaybackEvent = synth.onPlaybackEvent
+        synth.onPlaybackEvent = { event in
+            if case .enqueued(let text) = event { enqueued.append(text) }
+        }
+        defer { synth.onPlaybackEvent = priorPlaybackEvent; synth.stop() }
+        func fresh() {
+            recorder.reset()
+            enqueued.removeAll()
+            buffer.begin()
+        }
+        func check(_ label: String, _ condition: Bool) {
+            if !condition { failures.append("first-chunk: " + label) }
+        }
+        for mark in [",", ":", "、"] {
+            fresh()
+            buffer.append("Here are your next steps" + mark + " ")
+            check("\(mark) starts before sentence end", recorder.spoken == ["Here are your next steps" + mark])
+            buffer.append("we can review them together.")
+            buffer.finalize()
+            buffer.finalize()
+            check("\(mark) retains its exact remainder once", enqueued == ["Here are your next steps" + mark, "we can review them together."])
+        }
+        fresh()
+        buffer.append("I can help you organise these notes today ")
+        check("eight complete words start before punctuation", recorder.spoken == ["I can help you organise these notes today"])
+        buffer.append("and keep the original files safe.")
+        buffer.finalize()
+        check("forced chunk retains the exact remainder", enqueued == ["I can help you organise these notes today", "and keep the original files safe."])
+        fresh()
+        buffer.append("Here are steps, ")
+        check("short comma waits", enqueued.isEmpty)
+        fresh()
+        buffer.append("I can help you organise these notes today")
+        check("incomplete eighth word waits", enqueued.isEmpty)
+        buffer.append("ish ")
+        check("continued word is kept whole", enqueued == ["I can help you organise these notes todayish"])
+        fresh()
+        buffer.append("We have a total of 1,000 ")
+        check("number separator never cuts a chunk", enqueued.isEmpty)
+        buffer.append("files.")
+        buffer.finalize()
+        check("number remains intact", enqueued == ["We have a total of 1,000 files."])
+        fresh()
+        buffer.append("Here are your next steps, ")
+        buffer.append("read https://example.com for details.")
+        check("unsafe continuation stops pending playback", synth.didStop && synth.pendingClauseCount == 0 && !recorder.isSpeaking)
+        buffer.finalize()
+        check("unsafe continuation never enqueues", enqueued == ["Here are your next steps,"])
+        fresh()
+        buffer.append("Here are your next steps, ")
+        buffer.cancel()
+        synth.stop()
+        buffer.append("this cancelled continuation must stay silent.")
+        buffer.finalize()
+        check("cancellation retains only the original chunk", enqueued == ["Here are your next steps,"])
+        fresh()
+        buffer.append("Here is a complete sentence. Another follows.")
+        buffer.finalize()
+        check("complete sentences retain existing boundaries", enqueued == ["Here is a complete sentence.", "Another follows."])
 
         if failures.isEmpty {
             print("TTS_TOKEN_STREAM_OK")
