@@ -3356,8 +3356,9 @@ enum RealtimeAgentToolLoopSelfTest {
                  requestOverride: String? = nil, unconfirmed: Bool = false, liveFixture: Bool = false,
                  expectedOverride: [String: String]? = nil,
                  originalNativeArguments: [String: String]? = nil,
-                 expectApproval: Bool = true, acknowledgment: String = "yes")
-            async -> (reply: String, log: [PlannerScriptLog.Call], fired: [String], saved: [AgentSchedule]) {
+                 expectApproval: Bool = true, acknowledgment: String = "yes", approveCard: Bool = true)
+            async -> (reply: String, log: [PlannerScriptLog.Call], fired: [String], saved: [AgentSchedule],
+                      asks: Int, cardArguments: [String: String]?) {
             caseIndex += 1
             let requested = requestOverride ?? request
             let accepted = expectedOverride ?? expected
@@ -3404,6 +3405,7 @@ enum RealtimeAgentToolLoopSelfTest {
                     && agent.typedPending?.requestText == requested)
                 check("R01 initial offer executed before the user's yes", fired.toolIDs.isEmpty && fixtures.calls.isEmpty)
             }
+            let beforeAsks = PermissionGate.shared.askCount
             var finished = false
             let operation = Task { @MainActor in
                 let result = await agent.handle(unconfirmed ? requested : acknowledgment, source: .text)
@@ -3426,8 +3428,8 @@ enum RealtimeAgentToolLoopSelfTest {
                 if card.isReadyToRun && (shown.arguments == accepted || shown.arguments == originalNativeArguments) {
                     check("R01 unchanged complete reminder card lost readiness",
                           PermissionGate.shared.islandProposal(for: shown).canExecute)
-                    let approved = PermissionGate.shared.respond(id: shown.id, approved: true)
-                    check("R01 complete reminder card could not be approved once", approved)
+                    let approved = PermissionGate.shared.respond(id: shown.id, approved: approveCard)
+                    check("R01 complete reminder card could not be settled once", approved)
                     if !approved { PermissionGate.shared.cancelPending(id: shown.id) }
                 } else { PermissionGate.shared.cancelPending(id: shown.id) }
             } else if !finished { operation.cancel() }
@@ -3444,7 +3446,8 @@ enum RealtimeAgentToolLoopSelfTest {
             check("R01 retained an approval/card after entered work returned",
                   PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
             let saved = ScheduleStore(directory: store.directory).schedules
-            return (result.reply, log.calls, liveFixture ? fixtures.calls.map(\.toolID) : fired.toolIDs, saved)
+            return (result.reply, log.calls, liveFixture ? fixtures.calls.map(\.toolID) : fired.toolIDs, saved,
+                    PermissionGate.shared.askCount - beforeAsks, shown?.arguments)
         }
         // Current quiet quick R02: preserve actual model call, not the claimed daily prose.
         let dailyRequest = "Every night at 10, remind me to put the book out"
@@ -3510,6 +3513,96 @@ enum RealtimeAgentToolLoopSelfTest {
                     request: changedAnswer.confirmedPrompt(acknowledgment: "actually at 11"), now: now, calendar: calendar)
                     == emitted.arguments)
         } else { check("R02_DAILY exact original XML call unavailable", false) }
+
+        // R02_AUTHORED_NIGHTLY_TIME_COMMON_BEGIN
+        do {
+            let requested = "Every night at 10, remind me to put the book out"
+            let raw = "I'll set a nightly reminder for 10 PM to remind you to put the book out.  \n\n<tool_call>{\"name\":\"schedule.create\",\"arguments\":{\"title\":\"Put book out\",\"text\":\"Put the book out\",\"kind\":\"reminder\",\"on\":\"23:00\",\"repeat\":\"daily\"},\"rationale\":\"The user wants a nightly reminder at 10 PM (22:00) to put the book out. I'm creating a daily reminder at 10 PM as requested.\"}</tool_call>"
+            let parsed = AgentToolCallParser.parse(raw, knownNames: ["schedule.create"])
+            if parsed.calls.count == 1, let emitted = parsed.calls.first {
+                var accepted = emitted.arguments
+                accepted["time"] = "22:00"
+                accepted.removeValue(forKey: "on")
+                check("R02_TIME exact original external-model field/hour mismatch changed",
+                      emitted.name == "schedule.create" && emitted.arguments["kind"] == "reminder"
+                        && emitted.arguments["repeat"] == "daily" && emitted.arguments["time"] == nil
+                        && emitted.arguments["on"] == "23:00")
+                check("R02_TIME selected nightly reminder did not bind authored clock instead of invalid trigger field",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                          request: requested, now: now, calendar: calendar) == accepted)
+                let native = await run([raw, "The nightly book reminder is saved for 10 PM."],
+                    requestOverride: requested, unconfirmed: true, expectedOverride: accepted,
+                    originalNativeArguments: emitted.arguments)
+                check("R02_TIME actual card lost exact authored timing or exposed contradictory trigger clock",
+                      native.asks == 1 && native.cardArguments == accepted && native.cardArguments?["on"] == nil)
+                check("R02_TIME actual runner added repair/planner work or repeated backing",
+                      native.log.count == 2 && native.fired == ["schedule.create"]
+                        && native.log.last?.user.contains("Saved") == true)
+                check("R02_TIME approved exact native temporary schedule did not persist daily22 and original action",
+                      native.saved.count == 1 && native.saved.first?.kind == .reminder
+                        && native.saved.first?.when?.repeatRule == .daily
+                        && native.saved.first?.when?.time == ScheduleLocalTime(hour: 22, minute: 0)
+                        && native.saved.first?.title == emitted.arguments["title"]
+                        && native.saved.first?.prompt == emitted.arguments["text"])
+                let denied = await run([raw, "I stopped there."], requestOverride: requested, unconfirmed: true,
+                    expectedOverride: accepted, originalNativeArguments: emitted.arguments, approveCard: false)
+                check("R02_TIME refused single approval reached backing/store or changed shown payload",
+                      denied.asks == 1 && denied.cardArguments == accepted && denied.fired.isEmpty && denied.saved.isEmpty)
+                let replay = await run([raw, raw, raw, "The nightly book reminder is saved for 10 PM."],
+                    requestOverride: requested, unconfirmed: true, expectedOverride: accepted,
+                    originalNativeArguments: emitted.arguments)
+                check("R02_TIME repeated model proposal obtained another approval or saved another schedule",
+                      replay.asks == 1 && replay.fired == ["schedule.create"] && replay.saved.count == 1)
+                // Every field beyond this exact absent-time/clock-only-trigger pattern
+                // stays with native validation and the existing one repair round.
+                for (label, change) in [
+                    ("explicit valid clock", ["time": "23:00"]), ("explicit invalid clock", ["time": "Tomorrow 22:00"]),
+                    ("trigger event", ["on": "call_started"]), ("nonclock trigger", ["on": "tomorrow"]),
+                    ("missing on", ["on": ""]), ("invalid on clock", ["on": "25:00"]),
+                    ("missing kind", ["kind": ""]), ("routine", ["kind": "routine"]),
+                    ("trigger kind", ["kind": "trigger"]), ("once", ["repeat": "once"]),
+                    ("weekly", ["repeat": "weekly", "days": "monday"]), ("omitted recurrence", ["repeat": ""]),
+                    ("date", ["date": dateText]), ("offset", ["inMinutes": "60"]),
+                ] {
+                    let payload = emitted.arguments.merging(change) { _, new in new }
+                    check("R02_TIME changes an excluded selected-call field: \(label)",
+                          AgentToolLoop.groundedArguments(for: emitted.name, proposed: payload,
+                              request: requested, now: now, calendar: calendar) == payload)
+                }
+                for objective in ["Every night at 10 or 11, remind me to put the book out",
+                    "Every night, remind me to put the book out", "At 10, remind me to put the book out",
+                    "Every night at 10 except weekends, remind me to put the book out",
+                    "Every morning at 10, remind me to put the book out",
+                    "Every night at 10, remind me to put the book out and email Marcus",
+                    "What does every night at 10 mean?"] {
+                    check("R02_TIME invents clock from ambiguous/unknown/advice/compound objective",
+                          AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                              request: objective, now: now, calendar: calendar) == emitted.arguments)
+                }
+                for question in ["Should I remind you every night at 10?", "Should I remind you every night at 11?"] {
+                    let pending = PendingAction(requestText: requested, question: question,
+                        capabilityID: "schedule.create", origin: .typedQuestion, sessionID: nil, at: now)
+                    for answer in ["yes", "actually at 11"] {
+                        check("R02_TIME rewrites a confirmed or changed clock without proving the accepted question",
+                              AgentToolLoop.groundedArguments(for: emitted.name, proposed: emitted.arguments,
+                                  request: pending.confirmedPrompt(acknowledgment: answer), now: now,
+                                  calendar: calendar) == emitted.arguments)
+                    }
+                }
+                let withRecipient = emitted.arguments.merging(["to": "marcus@example.invalid"]) { _, new in new }
+                var expectedRecipient = accepted; expectedRecipient["to"] = "marcus@example.invalid"
+                check("R02_TIME mitigation rewrote a recipient/title/text beyond the exact clock field",
+                      AgentToolLoop.groundedArguments(for: emitted.name, proposed: withRecipient,
+                          request: requested, now: now, calendar: calendar) == expectedRecipient)
+                for name in ["schedule.update", "send_email"] {
+                    check("R02_TIME changes an unrelated tool or recipient action",
+                          AgentToolLoop.groundedArguments(for: name, proposed: emitted.arguments,
+                              request: requested, now: now, calendar: calendar) == emitted.arguments)
+                }
+                print("TOOLLOOP_PRODUCTION_R02_TIME asks=\(native.asks) saved=\(native.saved.count) deniedSaved=\(denied.saved.count)")
+            } else { check("R02_TIME exact retained selected call did not parse", false) }
+        }
+        // R02_AUTHORED_NIGHTLY_TIME_COMMON_END
 
         if CommandLine.arguments.contains("--r02-daily-grounding") { return [] }
 

@@ -292,9 +292,9 @@ enum AgentToolLoop {
                   proposed["inMinutes"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true,
                   !MultiStepPlanRouting.likelyMultiStep(objective),
                   !objective.contains(where: { ";\n\r".contains($0) }) else { return proposed }
-            // A single explicit nightly reminder owns its omitted recurrence. Keep the
-            // authored clock: a different/ambiguous clock or explicit repeat is not ours.
-            if dateText.isEmpty, repeatWord.isEmpty,
+            // The single explicit nightly objective supplies only known timing.
+            // Preserve existing fields outside the narrow omissions below.
+            if dateText.isEmpty,
                let pattern = try? NSRegularExpression(pattern:
                     #"^\s*(?:please\s+)?every night at (\d{1,2}(?::\d{2})?\s*(?:pm)?)\s*,?\s*remind me to .+$"#,
                     options: .caseInsensitive),
@@ -303,10 +303,24 @@ enum AgentToolLoop {
                 let clock = String(objective[clockRange]).trimmingCharacters(in: .whitespaces).lowercased()
                 let nightClock = clock.hasSuffix("pm") || (ScheduleLocalTime.parse(clock)?.hour ?? 0) > 12
                     ? clock : clock + "pm"
-                if let timing = ScheduleLocalTime.parse(nightClock), (18...23).contains(timing.hour),
-                   let authored = proposed["time"].flatMap(ScheduleLocalTime.parse), authored == timing {
-                    var grounded = proposed; grounded["repeat"] = "daily"
-                    return grounded
+                if let timing = ScheduleLocalTime.parse(nightClock), (18...23).contains(timing.hour) {
+                    // External-model mitigation: this selected daily reminder placed a
+                    // clock in trigger-only `on` and omitted time. Use only the person's
+                    // explicit nightly clock, preserving one exact approval payload.
+                    // A confirmed question may have changed that clock; do not rewrite it.
+                    if kind == "reminder", repeatWord == "daily", !request.hasPrefix(PendingAction.confirmedPrefix),
+                       proposed["time"]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true,
+                       proposed["on"].flatMap(ScheduleLocalTime.parse) != nil {
+                        var grounded = proposed
+                        grounded["time"] = timing.formatted
+                        grounded.removeValue(forKey: "on")
+                        return grounded
+                    }
+                    if repeatWord.isEmpty,
+                       let authored = proposed["time"].flatMap(ScheduleLocalTime.parse), authored == timing {
+                        var grounded = proposed; grounded["repeat"] = "daily"
+                        return grounded
+                    }
                 }
             }
             guard ["", "once"].contains(repeatWord), explicitlyRequests("remind", in: objective)

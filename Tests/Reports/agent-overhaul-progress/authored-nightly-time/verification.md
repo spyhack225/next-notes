@@ -1,0 +1,9 @@
+# Authored nightly reminder time — 2026-10-05
+
+The unchanged Qwen request, “Every night at 10, remind me to put the book out”, selected a daily reminder with `on=23:00` and no `time`. Native validation refused it and repair asked a redundant question. This external-model defect remains open; the existing argument grounder now mitigates only this direct, unambiguous nightly request using its existing clock parser before the signature and approval card. The card and backing receive `time=22:00` with the invalid trigger-only clock removed. Explicit edited times, confirmed continuations, other triggers and ambiguous requests are preserved.
+
+Original focused production regression: 10 failures. Fixed identical regression, full production loop, schedule, routine authority, owner-store isolation and tool review pass. Actual approval/card/native private-store cases verify one daily22 save, zero backing before approval, no save after refusal, and no duplicate after replay. Every task-owned temporary directory is removed after its subprocess joins.
+
+Pinned native Qwen R02 passes with one `schedule.create` at22:00. Model SHA `3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597`; fixture clock `2026-10-05T09:00:00-04:00`; baseline sampler; binary SHA `8fae385ecf08c52683476777a6babcbd85487f4272eb0151ff3d213e99c806d4`. Start load2.65, swap5.44GiB, free10.79GiB. This native fixture does not write the owner's reminders. No aggregate quality, latency, default-model or roadmap completion claim.
+
+Raw planner rounds and focused original/fixed logs are retained outside iCloud at `~/Library/Caches/NextNotesBuild/integration/r02-authored-nightly-time/`. The unchanged original raw model output is retained. Only the verified fixed artifact is installed; the comparison app is disposable after verification.
