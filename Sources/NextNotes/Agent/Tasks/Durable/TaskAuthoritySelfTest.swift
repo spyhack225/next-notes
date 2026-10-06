@@ -340,6 +340,58 @@ enum TaskAuthoritySelfTest {
                 try rejects { _ = try AgentTaskStore(fileURL: f.file).load() }
             }
         }
+        test("legacy-prepared-repair-same-mount") { f in
+            try f.legacy([row()])
+            f.store.migrationBoundaryForTesting = { phase in
+                if phase == "prepared" { throw FixtureError.interrupted }
+            }
+            try rejects { _ = try f.store.load() }
+            try editHeader(f.file) { object in
+                var identity = object["fileIdentity"] as! [String: Any]
+                identity.removeValue(forKey: "volumeUUID")
+                object["fileIdentity"] = identity
+            }
+            let fresh = AgentTaskStore(fileURL: f.file)
+            try require(fresh.canRepairPreparedHistory, "legacy preparation on the same mount lost explicit repair")
+            try fresh.repairPreparedHistory()
+            try require(try fresh.load() == [row()], "legacy repair changed retained rows")
+        }
+        for legacy in [true, false] {
+            test("witness-remounted-device-\(legacy)") { f in
+                try f.marked([row()])
+                try editHeader(f.file) { object in
+                    var identity = object["fileIdentity"] as! [String: Any]
+                    identity["device"] = (identity["device"] as! NSNumber).uint64Value + 5
+                    if legacy { identity.removeValue(forKey: "volumeUUID") }
+                    object["fileIdentity"] = identity
+                }
+                let witness = try Data(contentsOf: f.file)
+                let authority = try f.sql.probeAuthority()?.authority
+                let fresh = AgentTaskStore(fileURL: f.file)
+                try require(try fresh.load() == [row()], "remount device number blocked unchanged marked history")
+                try require(try fresh.recoveredReadHistory().tasks == [row()], "real recovered reader rejected remounted history")
+                try require(try Data(contentsOf: f.file) == witness && f.sql.probeAuthority()?.authority == authority,
+                    "read repaired or rewrote retained history")
+                try require(fresh.save([row()]).primaryCommitted, "normal save remained blocked after remount")
+                let written = try JSONSerialization.jsonObject(with: Data(contentsOf: f.file)) as! [String: Any]
+                let identity = written["fileIdentity"] as! [String: Any]
+                try require(identity["volumeUUID"] is String, "new export lacks stable volume identity")
+            }
+        }
+        for component in ["volumeUUID", "inode"] {
+            test("witness-replaced-\(component)") { f in
+                try f.marked([row()])
+                try editHeader(f.file) { object in
+                    var identity = object["fileIdentity"] as! [String: Any]
+                    if component == "inode" { identity[component] = (identity[component] as! NSNumber).uint64Value + 1 }
+                    else { identity[component] = UUID().uuidString }
+                    object["fileIdentity"] = identity
+                }
+                let witness = try Data(contentsOf: f.file)
+                try rejects { _ = try AgentTaskStore(fileURL: f.file).load() }
+                try require(try Data(contentsOf: f.file) == witness, "conflicting witness was overwritten")
+            }
+        }
         test("fresh-save-without-load") { f in
             try f.marked([row()])
             let fresh = AgentTaskStore(fileURL: f.file)

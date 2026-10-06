@@ -195,7 +195,7 @@ final class AgentTaskStore {
             guard header.formatVersion == 1, header.preparedAuthority.databaseID == authority.databaseID,
                   header.preparedAuthority.generation > 0,
                   header.preparedAuthority.generation <= authority.generation,
-                  header.fileIdentity == probe.identity else { throw TaskStoreError.authorityConflict }
+                  header.fileIdentity.matchesPersistedWitness(probe.identity) else { throw TaskStoreError.authorityConflict }
         }
     }
 

@@ -10,6 +10,23 @@ struct TaskStoreAuthority: Codable, Equatable, Sendable {
 struct TaskStoreFileIdentity: Codable, Equatable, Sendable {
     let device: UInt64
     let inode: UInt64
+    // st_dev identifies the current mount, not a persistent APFS volume.
+    var volumeUUID: String? = nil
+
+    // Live file guards and prepared-import repair retain the original exact
+    // mount identity. Stable volume metadata is checked only as a saved witness.
+    static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.device == rhs.device && lhs.inode == rhs.inode
+    }
+
+    /// Used only for an already-marked SQL history and its retained export.
+    /// Legacy exports had no volume UUID; matching inode plus the separately
+    /// checked database UUID/generation admits their first post-remount read.
+    func matchesPersistedWitness(_ current: Self) -> Bool {
+        guard inode == current.inode else { return false }
+        if let volumeUUID { return volumeUUID == current.volumeUUID }
+        return current.volumeUUID != nil || device == current.device
+    }
 }
 
 struct TaskStoreAuthorityProbe: Sendable {
@@ -66,6 +83,9 @@ final class TaskStore: @unchecked Sendable {
     private let lock = NSLock()
     private var db: OpaquePointer?
     private var openedInode: UInt64?
+    // Captured on the first successful stat. In-process guards still compare
+    // device+inode exactly, so a later mount/file replacement is rejected.
+    private lazy var volumeUUID = try? fileURL.resourceValues(forKeys: [.volumeUUIDStringKey]).volumeUUIDString
     var authorityBoundaryForTesting: ((String, OpaquePointer?) throws -> Void)?
 
     private func boundary(_ name: String, db: OpaquePointer?) throws {
@@ -179,7 +199,7 @@ final class TaskStore: @unchecked Sendable {
         var value = stat()
         if fstatat(AT_FDCWD, fileURL.path, &value, 0) == 0 {
             guard (value.st_mode & S_IFMT) == S_IFREG else { throw TaskStoreError.invalidRecord }
-            return TaskStoreFileIdentity(device: UInt64(value.st_dev), inode: UInt64(value.st_ino))
+            return TaskStoreFileIdentity(device: UInt64(value.st_dev), inode: UInt64(value.st_ino), volumeUUID: volumeUUID)
         }
         guard errno == ENOENT else { throw TaskStoreError.fileRemoved }
         for suffix in ["-wal", "-shm"] {
