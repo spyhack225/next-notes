@@ -436,7 +436,11 @@ final class LiveEvalFixtures: @unchecked Sendable {
             return "No meeting is in progress."
 
         case "memory.recall":
-            return "Saved about the user: their brother is Cyril; they are the CEO of ProductFlo; they prefer short answers."
+            let query = Set(MemoryGuard.tokens(value(arguments, "query")))
+            let facts = ["their brother is Cyril", "they are the CEO of ProductFlo", "they prefer short answers"]
+            let matching = facts.filter { query.isEmpty || !Set(MemoryGuard.tokens($0)).isDisjoint(with: query) }
+            return matching.isEmpty ? "Nothing remembered matches."
+                : "Saved about the user: " + matching.joined(separator: "; ") + "."
 
         case "memory.remember", "memory.update", "memory.forget":
             let text = value(arguments, "text").isEmpty
@@ -452,10 +456,15 @@ final class LiveEvalFixtures: @unchecked Sendable {
             return "Reminder set (fixture): \(joined)."
 
         case "filesystem.find", "filesystem.search", "find_drive_files":
-            return """
-                Pricing 2026.pdf — Documents/ProductFlo (modified 3 days ago)
-                Pricing sheet v3 — Google Drive
-                """
+            let rows = [
+                (name: "Pricing 2026.pdf", line: "Pricing 2026.pdf — Documents/ProductFlo (modified 3 days ago)"),
+                (name: "Pricing sheet v3", line: "Pricing sheet v3 — Google Drive"),
+            ]
+            let query = value(arguments, "query").lowercased()
+            let matching = toolID == "find_drive_files" ? rows
+                : rows.filter { $0.name.lowercased().contains(query) }
+            return matching.isEmpty ? "No file matching \(value(arguments, "query")) in fixture files."
+                : matching.map { $0.line }.joined(separator: "\n")
 
         case "filesystem.tree":
             return """

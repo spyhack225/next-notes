@@ -1583,6 +1583,78 @@ enum LiveEvalGrader {
         }
         // R01_FIXTURE_END_COMMON
 
+        // Query parity against the existing private memory producer, no project facts added.
+        if let recall = AgentToolRegistry.shared.tool(named: "memory.recall") {
+            let memory = NextMemory(directory: nil)
+            do {
+                for fact in ["The user's brother is Cyril.", "The user is the CEO of ProductFlo.", "The user prefers short answers."] {
+                    try memory.remember(kind: .profile, text: fact, source: .manual)
+                }
+                for query in ["projects", "unrelated", "brother", "CYRIL", "CEO", "short", "", "   "] {
+                    let actual = try MemoryToolExecutor.run(recall, arguments: ["query": query],
+                        provenance: nil, store: memory)
+                    fixtures.beginCase()
+                    let retained = try await fixtures.run(recall, ["query": query])
+                    check("memory fixture query/result was not joined: \(query)",
+                          fixtures.calls.count == 1 && fixtures.calls.first?.arguments == ["query": query])
+                    if ["projects", "unrelated"].contains(query) {
+                        check("memory fixture invented facts for a nonmatching authored query: \(query)",
+                              actual.summary == "Nothing remembered matches." && retained.summary == actual.summary)
+                    } else if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        check("empty-query memory fixture changed", retained.summary == "Saved about the user: their brother is Cyril; they are the CEO of ProductFlo; they prefer short answers.")
+                    } else {
+                        let expected = ["brother": "Cyril", "CYRIL": "Cyril", "CEO": "ProductFlo", "short": "short answers"][query]!
+                        check("memory fixture lost matching retained fact: \(query)",
+                              actual.summary.contains(expected) && retained.summary.contains(expected))
+                        let excluded = expected == "Cyril" ? "ProductFlo" : "Cyril"
+                        check("memory fixture query leaked unrelated retained fact: \(query)",
+                              !actual.summary.contains(excluded) && !retained.summary.contains(excluded))
+                    }
+                }
+            } catch { failures.append("fixture arguments: private memory parity failed: " + error.localizedDescription) }
+        } else { failures.append("fixture arguments: memory recall prerequisite unavailable") }
+
+        // O08 query fidelity: existing authored request, real search over disposable files.
+        // This repairs instrument data, not append completion or model refusal behavior.
+        if let search = AgentToolRegistry.shared.tool(named: "filesystem.search"),
+           let find = AgentToolRegistry.shared.tool(named: "filesystem.find"),
+           let original = LiveEvalCases.caseWithID(id: "O08") {
+            check("O08 authored trip objective changed", original.turns == ["Add 'bring passports' to my trip doc"])
+            let root = FileManager.default.temporaryDirectory
+                .appendingPathComponent("NextNotesO08SearchFidelity-\(UUID().uuidString)", isDirectory: true)
+            defer { try? FileManager.default.removeItem(at: root) }
+            do {
+                try FileManager.default.createDirectory(at: root, withIntermediateDirectories: true)
+                try Data("Authored disposable pricing fixture.".utf8)
+                    .write(to: root.appendingPathComponent("Pricing 2026.pdf"))
+                for query in ["trip", "pricing", "PRICING", "pricing 2026"] {
+                    for tool in [search, find] {
+                    let actual = tool.id == "filesystem.search"
+                        ? try FilesystemExecutor.run(tool, arguments: ["query": query, "folder": root.path])
+                        : try FileToolExecutor.run(tool, arguments: ["query": query], files: fixtures.files, mayRead: true)
+                    fixtures.beginCase()
+                    let retained = try await fixtures.run(tool, ["query": query])
+                    check("O08 fixture query/result was not joined: \(query)",
+                          fixtures.calls.count == 1 && fixtures.calls.first?.arguments == ["query": query]
+                            && fixtures.log.firstResult(for: 0) != nil)
+                    if query == "trip" {
+                        check("O08 isolated real search unexpectedly found a trip file",
+                              !actual.summary.contains("Pricing") && !actual.summary.contains("Google Drive"))
+                        check("O08 fixture emits unrelated pricing hits for authored trip query: \(tool.id)",
+                              !retained.summary.contains("Pricing") && !retained.summary.contains("Google Drive"))
+                        check("O08 missing-file result is incorrectly emitted as hits or access denial: \(tool.id)",
+                              retained.summary.hasPrefix("No file matching trip ")
+                                && !retained.summary.contains("access"))
+                    } else {
+                        check("O08 matching pricing query was lost: \(query)",
+                              actual.summary.contains("Pricing 2026.pdf")
+                                && retained.summary.contains("Pricing 2026.pdf"))
+                    }
+                    }
+                }
+            } catch { failures.append("fixture arguments: O08 isolated search failed: " + error.localizedDescription) }
+        } else { failures.append("fixture arguments: O08 exact search/case prerequisite unavailable") }
+
         fixtures.beginCase()
         do {
             _ = try await AgentToolExecutor.run("search_email", arguments: ["query": "in:inbox"],
