@@ -697,6 +697,7 @@ enum AgentCapabilityManifestBuilder {
         for (intent, alternatives) in lexicon {
             if alternatives.contains(where: { matches(text, $0) }) { matched.insert(intent) }
         }
+        if AgentAccountRead.requestsProjectMemoryRead(request) { matched.insert(.memory) }
         if namesKnownApp(text) { matched.insert(.screen) }
         if looksLikeURL(text) { matched.insert(.browser) }
         if mentionsConnectedApp(text, toolNames: toolNames) { matched.insert(.integrations) }

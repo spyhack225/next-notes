@@ -71,8 +71,8 @@ enum AgentAccountRead {
             return ("computer.active_app", [:])
         case .memory:
             guard requestsMemoryRead(request) else { return nil }
-            // Empty query uses the existing bounded retained-fact recall.
-            return ("memory.recall", [:])
+            // General self-knowledge uses bounded retained facts; projects supplies its literal query.
+            return ("memory.recall", requestsProjectMemoryRead(request) ? ["query": "projects"] : [:])
         case .mail:
             if let sender = requestedMailSender(request) {
                 return ("search_email", ["query": "from:\"\(sender)\""])
@@ -205,8 +205,20 @@ enum AgentAccountRead {
     /// question never acquires a read from selecting the memory class.
     static func requestsMemoryRead(_ request: String) -> Bool {
         let tokens = words(of: request)
-        return tokens == ["what", "do", "you", "know", "about", "me"]
+        return requestsProjectMemoryRead(request)
+            || tokens == ["what", "do", "you", "know", "about", "me"]
             || tokens == ["what", "do", "you", "remember", "about", "me"]
+    }
+
+    /// The person supplied the search noun. Recall can return remembered projects,
+    /// but it cannot establish that a retained fact is current activity.
+    static func requestsProjectMemoryRead(_ request: String) -> Bool {
+        let authored = request.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !authored.contains(where: { "\n\r".contains($0) }),
+              authored.first.map({ !"\"“”‘’'`".contains($0) }) == true else { return false }
+        let question = AgentDirectIntent.questionForm(authored)
+        return question == "what projects am i working on"
+            || question == "what are the projects i am working on"
     }
 
     /// The explicit locate clause or named append target supplies a file name;

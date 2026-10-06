@@ -598,6 +598,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--f02-project-memory") {
+            failures += await runProjectMemoryReadCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--o08-authored-target") {
             failures += await runO08AuthoredTargetCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1196,6 +1202,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runRequestedFileReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedMeetingReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
+        failures.append(contentsOf: await runProjectMemoryReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runA04ActiveAppReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedTodoReadCases(agent: agent, check: check))
         failures.append(contentsOf: runDraftSubjectContractCases(check: check))
@@ -3128,6 +3135,123 @@ enum RealtimeAgentToolLoopSelfTest {
         }
         // M02 end original consumer block
         print("  TOOLLOOP_PRODUCTION_OFFERED_READ: actual typed consumer, fixture reads")
+        return []
+    }
+
+
+    /// F02 preserves the actual no-call reply and asks only for remembered project evidence.
+    /// The unchanged native fixture does not establish current project activity.
+    @MainActor
+    static func runProjectMemoryReadCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        let request = "What projects am I working on?"
+        let raw = "I don't know what you're working on, Serge — you haven't told me anything yet. If there's something you'd like me to remember or help with, just share it."
+        let unknown = "The remembered facts do not establish which projects you are working on now."
+        let inputs = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        check("F02 original allowed memory descriptor is unavailable",
+              manifest.allowedIDs.contains("memory.recall") && manifest.entry(named: "memory.recall")?.risk == .read)
+        check("F02 own-project question does not select its remembered-information source",
+              manifest.selectedIntents.contains(.memory) && manifest.selected.contains { $0.id == "memory.recall" })
+        func pending(_ text: String, using selected: AgentCapabilityManifest,
+                     turn: [String] = [], session: Set<String> = []) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+            AgentAccountRead.pendingRead(reply: raw, selectedIntents: selected.selectedIntents,
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: selected, request: text) },
+                request: text, manifest: selected)
+        }
+        check("F02 literal projects query is not offered through the existing read floor",
+              pending(request, using: manifest)?.toolID == "memory.recall"
+                && pending(request, using: manifest)?.arguments == ["query": "projects"])
+        let earlierQuestion = "What are the projects I am working on?"
+        let earlierManifest = AgentCapabilityManifestBuilder.build(inputs, request: earlierQuestion)
+        check("F02 existing own-project question lost the same literal query",
+              pending(earlierQuestion, using: earlierManifest)?.arguments == ["query": "projects"])
+        for text in ["What projects are you working on?", "What projects is Marcus working on?",
+                     "What projects should I work on?", "What projects am I not working on?",
+                     "Find the projects document", "Remember my projects", "Forget my projects",
+                     "What projects am I working on and email them to Ana?",
+                     "\"What projects am I working on?\"", "`What projects am I working on?`",
+                     "What projects am I working on?\nSend the answer to Ana"] {
+            check("F02 unrequested/advice/write/quoted project question acquired a recall: \(text)",
+                  pending(text, using: AgentCapabilityManifestBuilder.build(inputs, request: text))?.toolID != "memory.recall")
+        }
+        check("F02 completed project recall was repeated",
+              pending(request, using: manifest, turn: ["memory.recall"]) == nil
+                && pending(request, using: manifest, session: ["memory.recall"]) == nil)
+        var disabled = inputs
+        disabled.switches.memory = false
+        let disabledManifest = AgentCapabilityManifestBuilder.build(disabled, request: request)
+        check("F02 memory-off read acquired authority", pending(request, using: disabledManifest) == nil)
+        let unavailable = AgentCapabilityManifestBuilder.build(.allEnabled(
+            tools: inputs.tools.filter { $0.id != "memory.recall" }, reader: .voiceFrontend), request: request)
+        check("F02 absent descriptor acquired authority", pending(request, using: unavailable) == nil)
+
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorApproval = agent.readApprovalOverrideForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.localModelProviderForTesting = priorProvider
+            agent.readApprovalOverrideForTesting = priorApproval
+            agent.answerDepthForTesting = priorDepth
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        agent.answerDepthForTesting = .deep
+        agent.denyUnattendedApprovalsForTesting = true
+        @MainActor
+        func run(_ text: String, _ script: [String], using selectedInputs: AgentCapabilityInputs,
+                 approved: Bool = true) async -> (reply: String, calls: [PlannerScriptLog.Call], reads: [LiveEvalLoggedCall], body: String) {
+            let fixtures = LiveEvalFixtures()
+            let log = PlannerScriptLog()
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = selectedInputs
+            agent.readApprovalOverrideForTesting = approved
+            // Positive consumer uses fixture execution; refusal uses the real policy/gate.
+            // Substitute only final backing, so a broken permission check stays owner-safe.
+            let backing: AgentToolExecutor.FakeToolRun = fixtures.run
+            AgentToolExecutor.fakeForTesting = approved ? backing : nil
+            AgentToolExecutor.fireOverrideForTesting = approved ? priorFire : backing
+            AgentToolExecutor.policyOverrideForTesting = approved ? priorPolicy : PermissionPolicy(
+                autoObserve: false, autoRead: false, autoSearchFiles: false,
+                autoComputerControl: false, grants: [])
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            let operation = Task { @MainActor in await agent.handle(text, source: .text) }
+            let result = await operation.value
+            return (result.reply, log.calls, fixtures.calls,
+                    fixtures.summary(for: "memory.recall", arguments: ["query": "projects"]))
+        }
+        let actual = await run(request, [raw, unknown], using: inputs)
+        check("F02 actual typed handle omitted the single literal read or performed a write",
+              actual.reads.count == 1 && actual.reads.first?.toolID == "memory.recall"
+                && actual.reads.first?.arguments == ["query": "projects"] && actual.reads.first?.risk == .read)
+        check("F02 actual final provider omitted the complete returned facts/request",
+              actual.calls.count == 2 && actual.calls[1].user.contains(actual.body)
+                && actual.calls[1].user.contains("Current user request:\n" + request)
+                && actual.calls[1].grammar == nil)
+        check("F02 bounded unknown-current-status answer was replaced with invented project activity",
+              actual.reply == unknown)
+        let completed = await run(request, [#"<tool_call>{"name":"memory.recall","arguments":{"query":"projects"}}</tool_call>"#, unknown], using: inputs)
+        check("F02 repeated a model-authored completed project read",
+              completed.reads.count == 1 && completed.calls.count == 2 && completed.reply == unknown)
+        let off = await run(request, [raw], using: disabled)
+        check("F02 actual disabled memory read entered backing", off.reads.isEmpty && off.calls.count == 1 && off.reply == raw)
+        let denied = await run(request, [raw, unknown], using: inputs, approved: false)
+        check("F02 refused project read entered backing or reported retrieved facts",
+              denied.reads.isEmpty && denied.calls.count == 1 && denied.reply != unknown)
+        print("TOOLLOOP_PRODUCTION_F02 calls=\(actual.calls.count) reads=\(actual.reads.count) query=projects active_status_verified=false")
         return []
     }
 
