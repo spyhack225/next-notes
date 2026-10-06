@@ -97,14 +97,17 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
     }
     struct Snapshot: Sendable {
         let ready: Bool
+        let prepared: Bool
         let artifact: String?
         let failure: String?
         let nativeProbes: Int
     }
     private let lock = NSLock()
-    private let captureID: UUID
+    private var captureID: UUID?
+    private var pendingCaptureID: UUID?
     private let callback: @Sendable (Probe) async -> Void
     private var active = true
+    private var closed = false
     private var manager: VadManager?
     private var artifact: String?
     private var failure: String?
@@ -117,27 +120,31 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
     private var loadTask: Task<Void, Never>?
     private var probeTask: Task<Void, Never>?
 
-    init(captureID: UUID, retiring: Task<Void, Never>?,
-         skipModelForTesting: Bool = false,
+    init(captureID: UUID?, retiring: Task<Void, Never>?,
+         cachedOnly: Bool = false, cachedModel: URL? = nil, skipModelForTesting: Bool = false,
          callback: @escaping @Sendable (Probe) async -> Void) {
         self.captureID = captureID
         self.callback = callback
+        active = captureID != nil
         if SelfTest.isRunning && skipModelForTesting { return }
         let offline = SelfTest.isRunning
         loadTask = Task.detached(priority: .utility) { [self] in
             await retiring?.value
             do {
                 try Task.checkCancellation()
+                if cachedOnly {
+                    let quiet = await ComputeScheduler.shared.occupancy().busy.isEmpty
+                    guard quiet, ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork,
+                          ProcessInfo.processInfo.thermalState == .nominal else {
+                        finishLoad(nil, artifact: nil, failure: "Optional VAD preparation was not admitted.")
+                        return
+                    }
+                }
                 let config = VadConfig(defaultThreshold: 0.5,
                     computeUnits: .cpuAndNeuralEngine)
                 let directory = FileManager.default.urls(for: .applicationSupportDirectory,
                     in: .userDomainMask)[0].appendingPathComponent("FluidAudio/Models/silero-vad-coreml")
-                let names = offline ? ["silero-vad-unified-256ms-v6.0.0.mlmodelc"]
-                    : ["silero-vad-unified-256ms-v6.2.1.mlmodelc",
-                       "silero-vad-unified-256ms-v6.0.0.mlmodelc"]
-                let present = names
-                    .map { directory.appendingPathComponent($0) }
-                    .first { FileManager.default.fileExists(atPath: $0.path) }
+                let present = cachedModel ?? Self.cachedModelURL(offline: offline)
                 let loaded: VadManager
                 let description: String
                 if let present {
@@ -148,14 +155,25 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
                     loaded = VadManager(config: config, vadModel: model)
                     description = present.absoluteString
                 } else {
-                    // Diagnostic entry never initiates a model download. Ordinary optional
-                    // preparation reuses FluidAudio's existing ModelHub/cache policy.
-                    guard !offline else { throw CocoaError(.fileNoSuchFile) }
+                    // Diagnostic/optional cached preparation never downloads. Only the
+                    // unchanged ordinary capture fallback uses FluidAudio's ModelHub.
+                    guard !offline && !cachedOnly else { throw CocoaError(.fileNoSuchFile) }
                     loaded = try await VadManager(config: config)
                     description = directory.appendingPathComponent(
                         "silero-vad-unified-256ms-v6.2.1.mlmodelc").absoluteString
                 }
                 try Task.checkCancellation()
+                if cachedOnly {
+                    // Prime the SAME stateless graph; no invented PCM enters capture's ring,
+                    // no generation-bound probe/callback or conversation effect is emitted.
+                    let primed = try await loaded.process([Float](repeating: 0, count: VadManager.chunkSize))
+                    _ = try Self.validProbability(primed)
+                    try Task.checkCancellation()
+                    guard ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork else {
+                        finishLoad(nil, artifact: nil, failure: "Optional VAD preparation was released under pressure.")
+                        return
+                    }
+                }
                 finishLoad(loaded, artifact: description, failure: nil)
             } catch {
                 finishLoad(nil, artifact: nil, failure: error.localizedDescription)
@@ -163,10 +181,20 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
         }
     }
 
+    static func cachedModelURL(offline: Bool) -> URL? {
+        let directory = FileManager.default.urls(for: .applicationSupportDirectory,
+            in: .userDomainMask)[0].appendingPathComponent("FluidAudio/Models/silero-vad-coreml")
+        let names = offline ? ["silero-vad-unified-256ms-v6.0.0.mlmodelc"]
+            : ["silero-vad-unified-256ms-v6.2.1.mlmodelc",
+               "silero-vad-unified-256ms-v6.0.0.mlmodelc"]
+        return names.map { directory.appendingPathComponent($0) }
+            .first { FileManager.default.fileExists(atPath: $0.path) }
+    }
+
     private func finishLoad(_ manager: VadManager?, artifact: String?, failure: String?) {
         lock.lock()
         defer { lock.unlock() }
-        guard active else { return }
+        guard !closed else { return }
         self.manager = manager
         self.artifact = artifact
         self.failure = failure
@@ -174,10 +202,72 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
     func snapshot() -> Snapshot {
         lock.lock()
         defer { lock.unlock() }
-        return Snapshot(ready: active && manager != nil, artifact: artifact,
+        return Snapshot(ready: active && manager != nil, prepared: manager != nil, artifact: artifact,
                         failure: failure, nativeProbes: nativeProbes)
     }
     func waitUntilLoaded() async { await loadTask?.value }
+
+    /// Reopen the SAME model owner; retire native work off the capture/key-down path.
+    /// Incoming new-session PCM stays bounded while that native drain settles.
+    func activate(captureID: UUID, retiring: Task<Void, Never>?) {
+        lock.lock()
+        guard !closed else { lock.unlock(); return }
+        let loading = loadTask
+        self.captureID = nil
+        pendingCaptureID = captureID
+        active = false
+        samples.removeAll(keepingCapacity: true)
+        newSamples = 0
+        nearEvidence = nil
+        windowGeneration = nil
+        nativeProbes = 0
+        loadTask = Task.detached(priority: .utility) { [self] in
+            await retiring?.value
+            await loading?.value
+            guard !Task.isCancelled else { return }
+            finishActivation(captureID)
+        }
+        lock.unlock()
+    }
+    private func finishActivation(_ id: UUID) {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !closed, pendingCaptureID == id else { return }
+        captureID = id
+        pendingCaptureID = nil
+        active = true
+    }
+
+    /// Refuse callbacks/PCM now, join the existing native handles, retain only weights.
+    func suspend() -> Task<Void, Never> {
+        lock.lock()
+        active = false
+        captureID = nil
+        pendingCaptureID = nil
+        samples.removeAll(keepingCapacity: true)
+        newSamples = 0
+        nearEvidence = nil
+        windowGeneration = nil
+        let loading = loadTask, probing = probeTask
+        lock.unlock()
+        probing?.cancel()
+        return Task.detached(priority: .utility) { [self] in
+            await loading?.value
+            await probing?.value
+            // A pressure event may have arrived while this capture was active.
+            if !ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork {
+                releaseAfterSuspendIfIdle()
+            }
+        }
+    }
+    private func releaseAfterSuspendIfIdle() {
+        lock.lock()
+        defer { lock.unlock() }
+        guard !active, captureID == nil, pendingCaptureID == nil else { return }
+        manager = nil
+        artifact = nil
+        failure = "Voice activity model was released under pressure."
+    }
     private func retainedProbe() -> Task<Void, Never>? {
         lock.lock()
         defer { lock.unlock() }
@@ -193,7 +283,7 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
         let count = Int(buffer.frameLength)
         guard count > 0 else { return }
         lock.lock()
-        guard active else { lock.unlock(); return }
+        guard !closed, captureID != nil || pendingCaptureID != nil else { lock.unlock(); return }
         if windowGeneration != outputGeneration {
             samples.removeAll(keepingCapacity: true)
             newSamples = 0
@@ -212,8 +302,8 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
            evidence.independentNearCandidate || evidence.nearCandidate {
             nearEvidence = (outputGeneration, at)
         }
-        guard samples.count == VadManager.chunkSize, newSamples >= 800,
-              !busy, let manager, let outputGeneration else { lock.unlock(); return }
+        guard active, samples.count == VadManager.chunkSize, newSamples >= 800,
+              !busy, let manager, let captureID, let outputGeneration else { lock.unlock(); return }
         newSamples %= 800
         busy = true
         let window = samples
@@ -228,14 +318,11 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
                 try Task.checkCancellation()
                 let results = try await manager.process(window)
                 try Task.checkCancellation()
-                guard results.count == 1, let result = results.first,
-                      result.probability.isFinite, (0...1).contains(result.probability) else {
-                    throw CocoaError(.coderInvalidValue)
-                }
-                let admitted = completedProbe()
+                let probability = try Self.validProbability(results)
+                let admitted = completedProbe(captureID: captureID)
                 if admitted {
                     await callback(Probe(captureID: captureID, outputGeneration: outputGeneration,
-                        probability: result.probability, echoOK: echoOK, at: at))
+                        probability: probability, echoOK: echoOK, at: at))
                 }
             } catch {
                 if !(error is CancellationError) { disable(error.localizedDescription) }
@@ -244,10 +331,18 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
         }
         lock.unlock()
     }
-    private func completedProbe() -> Bool {
+    private static func validProbability(_ results: [VadResult]) throws -> Float {
+        guard results.count == 1, let result = results.first,
+              result.probability.isFinite, (0...1).contains(result.probability) else {
+            throw CocoaError(.coderInvalidValue)
+        }
+        return result.probability
+    }
+
+    private func completedProbe(captureID: UUID) -> Bool {
         lock.lock()
         defer { lock.unlock() }
-        guard active else { return false }
+        guard active, self.captureID == captureID else { return false }
         nativeProbes += 1
         return true
     }
@@ -331,6 +426,26 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
         }
         return failures
     }
+    func nativeManagerForResidentTesting() -> VadManager? {
+        guard SelfTest.requested == "--selftest-voice-turns",
+              CommandLine.arguments.contains("--voice-duck-resident") else { return nil }
+        lock.lock()
+        defer { lock.unlock() }
+        return manager
+    }
+
+    func holdProbeForResidentTesting(_ hold: VoiceInputProducerProbe) {
+        guard SelfTest.requested == "--selftest-voice-turns",
+              CommandLine.arguments.contains("--voice-duck-resident") else { return }
+        lock.lock()
+        let predecessor = probeTask
+        probeTask = Task.detached {
+            await predecessor?.value
+            await hold.holdPreparedDecoder()
+        }
+        lock.unlock()
+    }
+
     func resetSamplesForTesting() {
         guard SelfTest.isRunning else { return }
         lock.lock()
@@ -342,7 +457,13 @@ private final class CaptureVoiceActivityInput: @unchecked Sendable {
     func close() -> Task<Void, Never> {
         lock.lock()
         active = false
+        closed = true
+        captureID = nil
+        pendingCaptureID = nil
         samples.removeAll()
+        newSamples = 0
+        nearEvidence = nil
+        windowGeneration = nil
         manager = nil
         let loading = loadTask, probing = probeTask
         lock.unlock()
@@ -729,8 +850,7 @@ final class AgentCaptureController {
         guard isSessionActive else { return }
         let unconfirmedWake = wakeConfirmationPending
         let activity = voiceActivityInput
-        voiceActivityInput = nil
-        let activityDrain = activity?.close() ?? voiceActivityDrain
+        let activityDrain = activity?.suspend() ?? voiceActivityDrain
         voiceActivityDrain = activityDrain
         resetVoiceActivity()
         isSessionActive = false
@@ -911,6 +1031,45 @@ final class AgentCaptureController {
         }
     }
 
+    /// The same capture-owned VAD entry used by live/file input and its lifecycle fixture.
+    private func startVoiceActivity(for captureID: UUID) {
+        if let activity = voiceActivityInput, activity.snapshot().failure == nil {
+            activity.activate(captureID: captureID, retiring: voiceActivityDrain)
+        } else {
+            if let old = voiceActivityInput { voiceActivityDrain = old.close() }
+            voiceActivityInput = makeVoiceActivity(captureID: captureID)
+        }
+        resetVoiceActivity()
+    }
+
+    private func makeVoiceActivity(captureID: UUID?, cachedOnly: Bool = false,
+        cachedModel: URL? = nil) -> CaptureVoiceActivityInput {
+        CaptureVoiceActivityInput(captureID: captureID, retiring: voiceActivityDrain,
+            cachedOnly: cachedOnly, cachedModel: cachedModel) { [weak self] probe in
+            guard let self else { return }
+            await MainActor.run { self.noteVoiceActivity(probe) }
+        }
+    }
+
+    @discardableResult
+    private func prepareResidentVoiceActivity() -> Bool {
+        guard !eouTerminationRequested, !isSessionActive,
+              !SelfTest.isRunning || (SelfTest.requested == "--selftest-voice-turns"
+                && CommandLine.arguments.contains("--voice-duck-resident")),
+              ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork,
+              ProcessInfo.processInfo.thermalState == .nominal,
+              let cached = CaptureVoiceActivityInput.cachedModelURL(offline: SelfTest.isRunning)
+        else { return false }
+        if let existing = voiceActivityInput {
+            guard existing.snapshot().failure != nil else { return false }
+            voiceActivityDrain = existing.close()
+            voiceActivityInput = nil
+        }
+        // The admitted URL is immutable for this load; disappearance cannot download.
+        voiceActivityInput = makeVoiceActivity(captureID: nil, cachedOnly: true, cachedModel: cached)
+        return true
+    }
+
     private func startEngine(for captureID: UUID, fileURL: URL? = nil,
         deferFileFeed: Bool = false, appleFastResults: Bool = true,
         prepareFrontendAfterEOU: Bool = false) async throws {
@@ -933,13 +1092,8 @@ final class AgentCaptureController {
             return
         }
         self.engine = engine
-        let activity = CaptureVoiceActivityInput(captureID: captureID,
-            retiring: voiceActivityDrain) { [weak self] probe in
-            guard let self else { return }
-            await MainActor.run { self.noteVoiceActivity(probe) }
-        }
-        voiceActivityInput = activity
-        resetVoiceActivity()
+        startVoiceActivity(for: captureID)
+        guard let activity = voiceActivityInput else { throw TranscriptionError.notRunning }
         consumeTask = Task { @MainActor [weak self] in
             do {
                 for try await chunk in stream {
@@ -1383,6 +1537,7 @@ final class AgentCaptureController {
     /// owns the optional load and is joined by capture reopen, pressure release and quit.
     @discardableResult
     func prepareResidentEOU() -> Bool {
+        _ = prepareResidentVoiceActivity()
         guard !eouTerminationRequested, !isSessionActive, !eouPreparationPending,
               !SelfTest.isRunning || (SelfTest.requested == "--selftest-voice-eou"
                 && CommandLine.arguments.contains("--voice-eou-reuse")),
@@ -1419,6 +1574,13 @@ final class AgentCaptureController {
 
     // EOU_REUSE_COMMON_BEGIN
     func releaseIdleEOUUnderPressure() async {
+        guard !isSessionActive else { return }
+        let activity = voiceActivityInput
+        voiceActivityInput = nil
+        let activityDrain = activity?.close() ?? voiceActivityDrain
+        voiceActivityDrain = activityDrain
+        await activityDrain?.value
+        // A session may reopen during that join; do not release its EOU weights.
         guard !isSessionActive, let detector = turnDetector else { return }
         let retiring = turnDetectorTask
         // Chain cleanup through the existing handle so reopen and quit can join it.
@@ -3239,8 +3401,141 @@ final class AgentCaptureController {
         return failures
     }
 
+    /// Actual cached-model owner across two distinct sessions, plus held join/pressure/quit.
+    /// This checks residency and native probe consumption, never a wall-clock duck threshold.
+    @MainActor
+    private static func voiceDuckResidentCases() async -> [String] {
+        guard SelfTest.requested == "--selftest-voice-turns",
+              CommandLine.arguments.contains("--voice-duck-resident") else {
+            return ["resident VAD fixture requires its exact self-test modifier"]
+        }
+        let capture = AgentCaptureController()
+        let audio = RealtimeAudioSession.shared
+        let speech = AgentSpeechSynthesizer.shared
+        let backing = RecordingSpeechBacking()
+        speech.useTestingBacking(backing)
+        var failures: [String] = []
+        capture.turnHandlerForTesting = { _ in }
+        func check(_ text: String, _ good: Bool) { if !good { failures.append(text) } }
+        let missingURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("SileroResident-" + UUID().uuidString, isDirectory: true)
+            .appendingPathComponent("missing.mlmodelc")
+        let missing = CaptureVoiceActivityInput(captureID: UUID(), retiring: nil,
+            cachedModel: missingURL) { _ in }
+        await missing.waitUntilLoaded()
+        check("missing admitted cache silently selected another model", !missing.snapshot().prepared
+            && missing.snapshot().failure != nil && missing.snapshot().nativeProbes == 0)
+        await missing.close().value
+        check("cached Silero prewarm was not admitted through Capture", capture.prepareResidentVoiceActivity())
+        await capture.voiceActivityInput?.waitUntilLoaded()
+        let warmed = capture.voiceActivityInput
+        check("idle prewarm did not retain prepared inert VAD", warmed?.snapshot().prepared == true
+            && warmed?.snapshot().ready == false && warmed?.snapshot().nativeProbes == 0)
+        await capture.beginSession(captureAudio: false)
+        guard let firstID = capture.captureSessionID else {
+            speech.restoreSystemBacking(); return failures + ["first fixture capture unavailable"]
+        }
+        capture.startVoiceActivity(for: firstID)
+        guard let first = capture.voiceActivityInput else {
+            await capture.endSession(); speech.restoreSystemBacking()
+            return failures + ["first fixture VAD owner unavailable"]
+        }
+        await first.waitUntilLoaded()
+        guard first.snapshot().ready else {
+            await capture.endSession(); speech.restoreSystemBacking()
+            return failures + ["VAD artifact unavailable: \(first.snapshot().failure ?? "unknown")"]
+        }
+        var firstManager = first.nativeManagerForResidentTesting()
+        check("first session discarded prewarmed VAD owner/manager", warmed === first
+            && firstManager != nil && warmed?.nativeManagerForResidentTesting() === firstManager)
+        // One actual stateless native process consumes real ingest and reaches Capture.
+        guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
+            sampleRate: 16_000, channels: 1, interleaved: false),
+            let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4096),
+            let channel = buffer.floatChannelData?[0] else {
+            await capture.endSession(); speech.restoreSystemBacking()
+            return failures + ["VAD fixture PCM unavailable"]
+        }
+        buffer.frameLength = 4096
+        for index in 0..<4096 { channel[index] = 0 }
+        var seen: [UUID] = []
+        capture.voiceActivityObserverForTesting = { seen.append($0.captureID) }
+        func probe(_ input: CaptureVoiceActivityInput) async {
+            audio.speak(OutputScheduler.tokenForTesting(), "The same reply keeps playing.")
+            speech.notifyTestingFirstAudio(token: speech.currentPlaybackToken)
+            let evidence = AcousticEchoProcessor.Evidence(aecProcessed: true,
+                recentReference: true, nearCandidate: false, independentNearCandidate: false,
+                echoCoherence: 1, bestCoherence: 1, bestLagSamples: 0,
+                referenceUnderflow: false, queuedReferenceSamples: 4096,
+                rawRMS: 0, cleanedRMS: 0, referenceRMS: 0)
+            input.ingest(buffer, evidence: evidence, outputGeneration: speech.outputGeneration,
+                at: VoiceLatencyTimeline.nowNanos())
+            await input.waitForProbe()
+            check("native current-session VAD probe was not consumed", input.snapshot().nativeProbes == 1)
+            check("silent echo-control native probe changed output gain", backing.outputGain == 1)
+        }
+        await probe(first)
+        await capture.releaseIdleEOUUnderPressure()
+        check("idle-pressure entry released an active VAD owner", capture.voiceActivityInput === first
+            && first.snapshot().ready)
+        await capture.endSession()
+        check("ordinary close discarded prepared Silero weights", capture.voiceActivityInput === first
+            && first.snapshot().prepared && !first.snapshot().ready)
+        await capture.beginSession(captureAudio: false)
+        guard let secondID = capture.captureSessionID else {
+            speech.restoreSystemBacking(); return failures + ["second fixture capture unavailable"]
+        }
+        capture.startVoiceActivity(for: secondID)
+        guard let second = capture.voiceActivityInput else {
+            await capture.endSession(); speech.restoreSystemBacking()
+            return failures + ["second fixture VAD owner unavailable"]
+        }
+        await second.waitUntilLoaded()
+        check("second session reloaded a new Silero owner/manager", second === first && secondID != firstID
+            && firstManager != nil && second.nativeManagerForResidentTesting() === firstManager)
+        firstManager = nil
+        await probe(second)
+        check("native probe callbacks lost distinct capture ownership", seen == [firstID, secondID])
+        let hold = VoiceInputProducerProbe(holdPrepare: true, holdFirstCommit: false)
+        second.holdProbeForResidentTesting(hold)
+        for _ in 0..<200 {
+            if hold.snapshot().contains(where: { $0.kind == "prepare.held" }) { break }
+            await Task.yield()
+        }
+        check("held VAD owner fixture never entered its existing task", hold.snapshot().contains { $0.kind == "prepare.held" })
+        var ended = false
+        let ending = Task { @MainActor in await capture.endSession(); ended = true }
+        for _ in 0..<20 { await Task.yield() }
+        check("normal VAD close returned before retained probe joined", !ended)
+        hold.releaseAll()
+        await ending.value
+        await capture.releaseIdleEOUUnderPressure()
+        check("idle pressure left Silero model/owner resident", capture.voiceActivityInput == nil && !second.snapshot().prepared)
+        let before = seen.count
+        second.ingest(buffer, evidence: AcousticEchoProcessor.Evidence(aecProcessed: true,
+            recentReference: false, nearCandidate: true, independentNearCandidate: true,
+            echoCoherence: 0, bestCoherence: 0, bestLagSamples: 0,
+            referenceUnderflow: false, queuedReferenceSamples: 0,
+            rawRMS: 1, cleanedRMS: 1, referenceRMS: 0),
+            outputGeneration: speech.outputGeneration, at: VoiceLatencyTimeline.nowNanos())
+        await second.waitForProbe()
+        check("released VAD owner admitted new native work", seen.count == before && !second.snapshot().ready)
+        _ = capture.prepareResidentVoiceActivity()
+        await capture.voiceActivityInput?.waitUntilLoaded()
+        let terminating = capture.voiceActivityInput
+        await capture.beginEOUTermination()?.value
+        check("quit failed to close/join idle prepared Silero", capture.voiceActivityInput == nil
+            && terminating?.snapshot().prepared != true)
+        check("terminated Capture admitted a Silero prewarm", !capture.prepareResidentVoiceActivity())
+        capture.voiceActivityObserverForTesting = nil
+        speech.restoreSystemBacking()
+        SelfTest.diagnostic("VOICE_DUCK_RESIDENT: native probe captures=\(seen.count); scope=residency-not-latency")
+        return failures
+    }
+
     @MainActor
     static func disownSelfTestFailures() async -> [String] {
+        if CommandLine.arguments.contains("--voice-duck-resident") { return await voiceDuckResidentCases() }
         if CommandLine.arguments.contains("--voice-duck-host") { return await voiceDuckHostCases() }
         var failures = await voiceDuckHostCases()
 
