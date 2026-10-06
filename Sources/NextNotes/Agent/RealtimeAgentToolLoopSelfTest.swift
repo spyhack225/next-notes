@@ -583,6 +583,12 @@ enum RealtimeAgentToolLoopSelfTest {
             print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
             return failures.isEmpty
         }
+        if CommandLine.arguments.contains("--requested-meeting-read") {
+            failures += await runRequestedMeetingReadCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--requested-todo-read") {
             failures += await runRequestedTodoReadCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1107,6 +1113,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
+        failures.append(contentsOf: await runRequestedMeetingReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runA04ActiveAppReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedTodoReadCases(agent: agent, check: check))
@@ -1126,6 +1133,162 @@ enum RealtimeAgentToolLoopSelfTest {
         return failures.isEmpty
     }
 
+
+    /// Exact Qwen K01 retained rounds, through the existing requested-read floor.
+    @MainActor
+    static func runRequestedMeetingReadCases(agent: RealtimeAgent,
+        check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["K01 fixture requires SelfTest"] }
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorTrace = agent.plannerTraceForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorCap = agent.maxCallsForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.localModelProviderForTesting = priorProvider
+            agent.plannerTraceForTesting = priorTrace
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.answerDepthForTesting = priorDepth
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.budgetForTesting = priorBudget
+            agent.maxCallsForTesting = priorCap
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        let request = "What did we decide in the last meeting?"
+        let rawRounds = [
+            "I'll check what was decided in the last meeting for you. Let me pull that information.\n\n<tool_call>{\"name\":\"meeting.decisions\",\"arguments\":{\"}},\"rationale\":\"The user is asking about decisions from the most recent meeting, so I need to retrieve the recorded decisions directly from the meeting data.\"</tool_call>",
+            "I don't have the details of the last meeting's decisions right now. Let me check what was decided.",
+            "In the last meeting, we decided to finalize the project timeline and assign Sarah to lead the user testing phase. Let me know if you'd like more details.",
+        ]
+        let grounded = "The launch moves to October 14; the price stays at $12 a month."
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let entry = manifest.entry(named: "meeting.decisions")
+        let qualified = LiveEvalCases.all.first { $0.id == "K01" }?.turns == [request]
+            && manifest.selectedIntents.contains(.meetings)
+            && manifest.selectedIDs.contains("meeting.decisions")
+            && entry?.isReady == true && entry?.intent == .meetings
+            && entry.map { $0.risk <= .read } == true
+        check("K01 INPUT_INVALID: exact request/selected ready decisions read", qualified)
+        guard qualified else { return ["K01 INPUT_INVALID"] }
+        func pending(_ reply: String, question: String? = nil, turn: [String] = [],
+                     session: Set<String> = [], using value: AgentCapabilityManifest? = nil) -> String? {
+            let selected = value ?? manifest
+            let query = question ?? request
+            return AgentAccountRead.pendingRead(reply: reply, selectedIntents: selected.selectedIntents,
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: selected, request: query) },
+                request: query, manifest: selected)?.toolID
+        }
+        for reply in rawRounds.dropFirst() {
+            check("K01 retained unsupported meeting reply omitted requested read: \(reply)",
+                  pending(reply) == "meeting.decisions")
+            check("K01 repeated completed current-turn read", pending(reply, turn: ["meeting.decisions"]) == nil)
+            check("K01 repeated same-session alternative meeting read", pending(reply, session: ["meeting.recent_context"]) == nil)
+        }
+        let negatives = ["Which meeting do you mean?", "What decision do you mean?",
+            "You should agree on a decision in the last meeting.",
+            "In the last meeting, we haven't decided that yet.",
+            "In the last meeting, we will decide that later.",
+            "In the last meeting, we decided? Which meeting do you mean?",
+            "She said we decided that in the last meeting.",
+            "\"In the last meeting, we decided to launch.\"",
+            "“I don't have the details of the last meeting's decisions.”",
+            "I don't have the details of your approval. Which action do you mean?"]
+        for reply in negatives {
+            check("K01 clarification/advice/quote/negation acquired read: \(reply)", pending(reply) == nil)
+        }
+        for question in ["Email the decisions from the last meeting to Ana",
+                         "How should we decide things in meetings?",
+                         "She asked what did we decide in the last meeting"] {
+            check("K01 write/advice/quoted request acquired read", pending(rawRounds[2], question: question) == nil)
+        }
+        var unavailableInputs = inputs
+        unavailableInputs.tools.removeAll { $0.id == "meeting.decisions" }
+        let unavailableManifest = AgentCapabilityManifestBuilder.build(unavailableInputs, request: request)
+        check("K01 unavailable decisions fixture still offered default read", unavailableManifest.entry(named: "meeting.decisions") == nil)
+        check("K01 unavailable decisions read invented", pending(rawRounds[2], using: unavailableManifest) == nil)
+        agent.answerDepthForTesting = .deep
+        agent.denyUnattendedApprovalsForTesting = true
+        agent.budgetForTesting = nil
+        agent.maxCallsForTesting = nil
+        @MainActor
+        func run(_ script: [String], allow: Bool = true, using value: AgentCapabilityInputs? = nil) async
+            -> (reply: String, calls: [PlannerScriptLog.Call], tools: [LiveEvalLoggedCall], output: String, rounds: [String]) {
+            let fixtures = LiveEvalFixtures()
+            let log = PlannerScriptLog()
+            var output = ""
+            var rounds: [String] = []
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = value ?? inputs
+            agent.readApprovalOverrideForTesting = allow
+            let backing: AgentToolExecutor.FakeToolRun = { tool, arguments in
+                let result = try await fixtures.run(tool, arguments)
+                output = result.summary
+                return result
+            }
+            AgentToolExecutor.fakeForTesting = allow ? backing : nil
+            AgentToolExecutor.fireOverrideForTesting = allow ? priorFire : backing
+            AgentToolExecutor.policyOverrideForTesting = allow ? priorPolicy : PermissionPolicy(
+                autoObserve: false, autoRead: false, autoSearchFiles: false,
+                autoComputerControl: false, grants: [])
+            agent.plannerTraceForTesting = { event in
+                if case .round(_, _, _, _, let text, _) = event { rounds.append(text) }
+            }
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                window: 4_096, promptTokens: 2_000, script: script, log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let operation = Task { @MainActor in await agent.handle(request, source: .text) }
+            let result = await operation.value
+            return (result.reply, log.calls, fixtures.log.calls, output, rounds)
+        }
+        for (name, script) in [
+            ("exact retained three-round sequence", rawRounds + [grounded]),
+            ("fronted factual assertion", [rawRounds[2], grounded]),
+            ("same absence after existing refusal repair", [rawRounds[1], rawRounds[1], grounded])
+        ] {
+            let actual = await run(script)
+            check("K01 \(name) omitted selected read or entered write backing",
+                  actual.tools.map(\.toolID) == ["meeting.decisions"]
+                    && actual.tools.first?.arguments.isEmpty == true
+                    && actual.tools.allSatisfy { $0.risk <= .read })
+            check("K01 \(name) final consumer lost actual read result/request",
+                  actual.calls.count == script.count && !actual.output.isEmpty
+                    && actual.calls.last?.user.contains(actual.output) == true
+                    && actual.calls.last?.user.contains(request) == true
+                    && actual.output.contains("October 14"))
+            check("K01 \(name) lost original raw rounds or grounded final delivery",
+                  actual.rounds == script && actual.reply == grounded)
+        }
+        let denied = await run(["We decided to launch."], allow: false)
+        check("K01 refused read entered backing or fabricated success",
+              denied.tools.isEmpty && denied.calls.count == 1
+                && denied.reply.contains(AgentAccountRead.notReadYet(.meetings)))
+        let unavailable = await run([rawRounds[2]], using: unavailableInputs)
+        check("K01 unavailable read changed reply or entered backing",
+              unavailable.tools.isEmpty && unavailable.calls.count == 1 && unavailable.reply == rawRounds[2])
+        let completed = await run([#"<tool_call>{"name":"meeting.decisions","arguments":{}}</tool_call>"#, rawRounds[2]])
+        check("K01 actual completed read was repeated or final answer scrubbed",
+              completed.tools.map(\.toolID) == ["meeting.decisions"]
+                && completed.calls.count == 2 && completed.reply == rawRounds[2])
+        for reply in [negatives[0], negatives[7]] {
+            let untouched = await run([reply])
+            check("K01 actual clarification/quoted reply entered backing",
+                  untouched.tools.isEmpty && untouched.calls.count == 1 && untouched.reply == reply)
+        }
+        return []
+    }
 
     /// The retained full0/full1 R03 no-call replies, through the ordinary selected
     /// manifest, read admission, actual PRIVATE schedule list and final-answer consumer.

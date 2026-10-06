@@ -289,9 +289,10 @@ enum AgentAccountRead {
         guard requestsMeetingRead(request) else { return false }
         for statement in reply.components(separatedBy: CharacterSet(charactersIn: ".!")) {
             // A question is not an assertion, including "We decided?".
-            guard !statement.contains("?") else { continue }
-            let text = AgentDirectIntent.questionForm(statement)
-            if text.range(of: #"^(?:we|they) (?:decided|agreed|had (?:a |the )?decisions?)\b"#,
+            let assertion = statement.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !statement.contains("?"), assertion.first.map({ "\"“'‘".contains($0) }) != true else { continue }
+            let text = AgentDirectIntent.questionForm(assertion)
+            if text.range(of: #"^(?:in (?:the|our|my) (?:last|previous) (?:meeting|call)\s+)?(?:we|they) (?:decided|agreed|had (?:a |the )?decisions?)\b"#,
                           options: .regularExpression) != nil { return true }
         }
         return false
@@ -311,8 +312,10 @@ enum AgentAccountRead {
     private static func presentsRequestedMeetingAbsence(_ reply: String, request: String) -> Bool {
         guard requestsMeetingRead(request) else { return false }
         let first = reply.components(separatedBy: CharacterSet(charactersIn: ".!?")).first ?? ""
-        let text = AgentDirectIntent.questionForm(first)
-        return text.range(of: #"^i (?:don't|do not) have (?:any )?information about\b"#,
+        let assertion = first.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard assertion.first.map({ "\"“'‘".contains($0) }) != true else { return false }
+        let text = AgentDirectIntent.questionForm(assertion)
+        return text.range(of: #"^i (?:don't|do not) have (?:(?:any )?information about\b|(?:the )?details (?:of|about) (?:the|our|my|your) (?:last |previous )?(?:meeting|call)(?:'s)?\b)"#,
                           options: .regularExpression) != nil
     }
 
