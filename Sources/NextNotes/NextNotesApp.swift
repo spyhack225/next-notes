@@ -1144,6 +1144,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             return true
         }
+        if arguments.contains("--selftest-mac-accounts") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MacAccountsSelfTest.run())
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-mac-accounts-live") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MacAccountsLiveSelfTest.run())
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-ui-strings") {
             SelfTest.failed = !UIStringsLint.run()
             SelfTest.requestTermination()
@@ -7384,7 +7398,20 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest("GWS_FIXTURES_FAILED: \(fixtureFailures.count) problem(s) in 10 cases")
             }
 
-            let cli = GoogleWorkspaceCLI.shared
+            let cli: GoogleWorkspaceCLI
+            if let fixturePath = SelfTest.value(after: "--gws-fixture-root") {
+                let root = URL(fileURLWithPath: fixturePath, isDirectory: true)
+                guard let fixture = GoogleWorkspaceCLI.isolatedForTesting(
+                    root: root, executable: root.appendingPathComponent("gws")) else {
+                    writeSelfTest("GWS_FAILED: isolated fixture refused")
+                    SelfTest.failed = true
+                    SelfTest.requestTermination()
+                    return
+                }
+                cli = fixture
+            } else {
+                cli = GoogleWorkspaceCLI.shared
+            }
             guard let binary = await cli.binaryURL() else {
                 writeSelfTest("""
                     GWS_FAILED: no gws binary found. Install it from the Workspace tab, \

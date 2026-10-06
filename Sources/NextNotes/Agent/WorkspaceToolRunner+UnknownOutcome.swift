@@ -70,10 +70,15 @@ extension WorkspaceToolRunner {
         cli: any WorkspaceCLIRunning = GoogleWorkspaceCLI.shared
     ) async -> AgentToolResult {
         let arguments = preparedAction?.executionPlan.arguments ?? proposal.arguments
-        let exactCalendarID = preparedAction?.executionPlan.toolID == "create_event" ? calendarEventID : nil
-        let outcome = await resolveUnknown(
-            tool: proposal.tool, arguments: arguments, firedAt: firedAt,
-            calendarEventID: exactCalendarID, cli: cli)
+        let mac = await GoogleSource.macWorkspace(forTool: proposal.tool, cli: cli)
+        let exactCalendarID = mac == nil && preparedAction?.executionPlan.toolID == "create_event" ? calendarEventID : nil
+        let outcome: UnknownOutcome
+        if let mac {
+            outcome = await resolveUnknownOnMac(tool: proposal.tool, arguments: arguments, firedAt: firedAt, mac: mac)
+        } else {
+            outcome = await resolveUnknownOnGoogle(tool: proposal.tool, arguments: arguments, firedAt: firedAt,
+                                                  calendarEventID: exactCalendarID, cli: cli)
+        }
         let said = unknownOutcomeSentence(
             tool: proposal.tool, arguments: arguments, outcome: outcome)
         return AgentToolResult(
@@ -97,6 +102,17 @@ extension WorkspaceToolRunner {
     static func resolveUnknown(
         tool: String, arguments: [String: String], firedAt: Date,
         calendarEventID: String? = nil, cli: any WorkspaceCLIRunning
+    ) async -> UnknownOutcome {
+        if let mac = await GoogleSource.macWorkspace(forTool: tool, cli: cli) {
+            return await resolveUnknownOnMac(tool: tool, arguments: arguments, firedAt: firedAt, mac: mac)
+        }
+        return await resolveUnknownOnGoogle(tool: tool, arguments: arguments, firedAt: firedAt,
+                                           calendarEventID: calendarEventID, cli: cli)
+    }
+
+    private static func resolveUnknownOnGoogle(
+        tool: String, arguments: [String: String], firedAt: Date,
+        calendarEventID: String?, cli: any WorkspaceCLIRunning
     ) async -> UnknownOutcome {
         do {
             switch tool {

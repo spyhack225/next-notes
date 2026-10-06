@@ -80,7 +80,7 @@ final class FirstIngestionGate {
     /// The account this Mac is signed in to Workspace as, when its first use is still owed.
     /// Nil when nothing is connected, or the connection has already had its first look.
     static func unreviewedWorkspaceAccount() async -> String? {
-        let state = await GoogleWorkspaceCLI.shared.authState()
+        let state = await GoogleSource.authState()
         guard case .signedIn(let method) = state else { return nil }
         let account = "google-workspace:\(method)"
         return shared.isReviewed(account: account) ? nil : account
