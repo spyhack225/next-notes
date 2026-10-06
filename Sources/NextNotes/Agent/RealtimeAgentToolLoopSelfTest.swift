@@ -598,6 +598,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--m03-now-read") {
+            failures += await runM03NowReadCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--f02-project-memory") {
             failures += await runProjectMemoryReadCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1195,6 +1201,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runAnswerToolProvenanceCases(agent: agent, check: check))
+        failures.append(contentsOf: await runM03NowReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runHonestRecipientCases(agent: agent, check: check))
         failures.append(contentsOf: await runO03CalendarQuestionCases(agent: agent, check: check))
@@ -2497,6 +2504,116 @@ enum RealtimeAgentToolLoopSelfTest {
         check("F03 missing address produced a false capability correction",
               !log.calls.contains { $0.user.contains("denies something this Mac can do") })
         print("  TOOLLOOP_PRODUCTION_F03_RECIPIENT: provider rounds=\(log.calls.count) tools=\(fixture.calls.map(\.toolID)) reply=\(turn.reply)")
+        return []
+    }
+
+    /// Exact vendor-only M03 no-call promise through the actual read executor and final consumer.
+    @MainActor
+    static func runM03NowReadCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["M03 now-read fixture requires SelfTest"] }
+        let request = "Check my email, check the last email and then do a summary"
+        let original = "Let me check your email now."
+        let originalFinal = "I'm sorry — I'll start fresh here. Let me look at your emails now."
+        let answer = "The last email is from Cyril about dinner tomorrow evening. They're asking if you're free."
+        let inputs = AgentCapabilityInputs.allEnabled(
+            tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorApproval = agent.readApprovalOverrideForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.localModelProviderForTesting = priorProvider
+            agent.readApprovalOverrideForTesting = priorApproval
+            agent.answerDepthForTesting = priorDepth
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        agent.answerDepthForTesting = .deep
+        agent.denyUnattendedApprovalsForTesting = true
+        func pending(_ text: String, reply: String, completed: [String] = [],
+                     using selected: AgentCapabilityManifest? = nil) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+            let selected = selected ?? manifest
+            return AgentAccountRead.pendingRead(reply: reply, selectedIntents: selected.selectedIntents,
+                completedThisTurn: completed, completedThisSession: [], toolIDFor: {
+                    AccountReadTools.toolID(for: $0, manifest: selected, request: text)
+                }, request: text, manifest: selected)
+        }
+        check("M03 now exact ready read unavailable", manifest.entry(named: "search_email")?.risk == .read)
+        check("M03 now existing inbox fallback grounding changed",
+              AgentToolLoop.groundedArguments(for: "search_email",
+                proposed: ["query": "in:inbox", "maxResults": "1"], request: request)
+                == ["maxResults": "1"])
+        for raw in [original, originalFinal, "I'll check your email and notice any new messages.",
+                    "I'll check your email normally."] {
+            check("M03 now non-negative promise lost requested latest read: \(raw)",
+                  pending(request, reply: raw)?.arguments == ["query": "in:inbox", "maxResults": "1"])
+        }
+        for raw in ["No, I'll check your email.", "I will not check your email now.", "I can't check your email.",
+                    "I haven't looked at your email yet.", "I don't check your email.",
+                    "I cannot read your email.", "Which account should I check?"] {
+            check("M03 now denied/clarifying reply acquired an automatic read: \(raw)",
+                  pending(request, reply: raw) == nil)
+        }
+        check("M03 now completed read repeated", pending(request, reply: original, completed: ["search_email"]) == nil)
+        check("M03 can followed by a non-contraction word lost its read",
+              pending(request, reply: "I can check your email tomorrow.") != nil)
+        check("M03 now unrequested mail write acquired inbox read", pending("Email the summary to Marcus", reply: original) == nil)
+        let unavailable = AgentCapabilityManifestBuilder.build(.allEnabled(
+            tools: inputs.tools.filter { $0.id != "search_email" }, reader: .voiceFrontend), request: request)
+        check("M03 now unavailable read invented", pending(request, reply: original, using: unavailable) == nil)
+        @MainActor
+        func run(_ text: String, _ script: [String], approved: Bool = true)
+            async -> (reply: String, calls: [PlannerScriptLog.Call], reads: [LiveEvalLoggedCall], body: String) {
+            let fixtures = LiveEvalFixtures()
+            let log = PlannerScriptLog()
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+            agent.readApprovalOverrideForTesting = approved
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.fireOverrideForTesting = fixtures.run
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+                autoObserve: true, autoRead: approved, autoSearchFiles: false,
+                autoComputerControl: false, grants: [])
+            agent.localModelProviderForTesting = PlannerScriptProvider(
+                id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+            let operation = Task { @MainActor in await agent.handle(text, source: .text) }
+            let result = await operation.value
+            return (result.reply, log.calls, fixtures.calls, fixtures.mailSearch("in:inbox", maxResults: 1))
+        }
+        for raw in [original, originalFinal] {
+            let actual = await run(request, [raw, answer])
+            check("M03 now original promise did not reach exactly one actual read backing",
+                  actual.reads.count == 1 && actual.reads.first?.toolID == "search_email"
+                    && actual.reads.first?.risk == .read
+                    && actual.reads.first?.arguments == ["maxResults": "1"])
+            check("M03 now actual final provider lost original request or newest mail",
+                  actual.calls.count == 2 && actual.calls[1].user.contains("Current user request:\n" + request)
+                    && actual.calls[1].user.contains(actual.body) && actual.body.contains("Cyril")
+                    && !actual.calls[1].user.contains("Pricing sheet v3")
+                    && actual.calls[1].grammar == nil)
+            check("M03 now final answer was replaced with unexecuted promise",
+                  actual.reply == answer || actual.reply == "This takes a few steps on this Mac.\n\n" + answer)
+        }
+        let denied = await run(request, [original, answer], approved: false)
+        check("M03 now refused approval entered backing or delivered unsupported summary",
+              denied.reads.isEmpty && denied.calls.count == 1 && denied.reply != answer)
+        let completed = await run(request, [#"<tool_call>{"name":"search_email","arguments":{"query":"in:inbox","maxResults":1}}</tool_call>"#, original])
+        check("M03 now completed selected read was repeated or reply scrubbed",
+              completed.reads.count == 1 && completed.calls.count == 2 && completed.reply == original)
+        let plural = await run("Check my emails", [original, answer])
+        check("M03 now changed plural read cardinality", plural.reads.count == 1 && plural.reads.first?.arguments == [:])
+        print("TOOLLOOP_PRODUCTION_M03_NOW: original promise, actual read/final consumer, refusal and completed read checked")
         return []
     }
 

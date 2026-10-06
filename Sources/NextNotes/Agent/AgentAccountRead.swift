@@ -512,8 +512,15 @@ enum AgentAccountRead {
         // tokenizer: words are split on anything that is not a letter or a digit, so "haven't"
         // arrives here as `"haven"`. A fixed list containing the contraction would not have
         // matched the one sentence this rule exists not to match.
-        guard present.contains(where: { word in denialStems.contains { word.hasPrefix($0) } })
-            == false else { return false }
+        // Both ASCII and curly can't split into can,t; can tomorrow is not a denial.
+        guard !zip(present, present.dropFirst()).contains(where: {
+            $0.0 == "can" && $0.1 == "t"
+        }) else { return false }
+        // Standalone no/not are words, unlike contraction stems: now, normal
+        // and notice do not negate a requested read.
+        guard present.contains(where: { word in denialStems.contains { stem in
+            stem == "no" || stem == "not" ? word == stem : word.hasPrefix(stem)
+        } }) == false else { return false }
         let firstPerson: Set<String> = ["i", "im", "ill", "ive"]
         let letMe = zip(present, present.dropFirst()).contains { pair in
             pair.0 == "let" && pair.1 == "me"
