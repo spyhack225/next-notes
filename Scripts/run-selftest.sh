@@ -4,8 +4,8 @@
 # - Waits on the same install lock `make install` holds, so it never races a
 #   half-swapped `/Applications/Next Notes.app`.
 # - Verifies the Mach-O exists and the bundle codesigns before launch.
-# - Runs the binary in the *foreground* (never backgrounded) so the parent
-#   shell stays alive through AppKit `_RegisterApplication`. Cursor-agent
+# - Keeps this launcher in the foreground, waiting on its exact child, so the
+#   parent shell stays alive through AppKit `_RegisterApplication`. Cursor-agent
 #   shells that exit while NextNotes is still registering produce the
 #   SIGABRT crash reports with Responsible=Cursor / Parent=Exited process.
 # - Does not call `make install`, and never opens the GUI for its own sake.
@@ -89,39 +89,51 @@ if ! codesign --verify --verbose=2 "$APP" >/dev/null 2>&1; then
   exit 1
 fi
 
+# Own one disposable child directory, never the caller's TMPDIR itself.
+owned_tmp=$(mktemp -d "${TMPDIR:-/tmp}/NextNotesSelfTest-run.XXXXXX")
+export TMPDIR="$owned_tmp/"
+child_pid=""
+joined=0
+cleanup() {
+  status=$?
+  trap - EXIT HUP INT TERM
+  retain=0
+  if [[ -n "$child_pid" && "$joined" == "0" ]]; then
+    kill -TERM "$child_pid" 2>/dev/null || true
+    wait "$child_pid" 2>/dev/null || true
+    # Joining open after interrupt does not prove its LaunchServices app joined.
+    if [[ "$VIA_OPEN" == "1" ]]; then retain=1; fi
+  fi
+  if [[ "$retain" == "1" ]]; then
+    echo "run-selftest: app join unproven; retained $owned_tmp" >&2
+  else
+    rm -rf -- "$owned_tmp"
+  fi
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 if [[ "$VIA_OPEN" == "1" ]]; then
   out=${OUT:-"/tmp/nextnotes-selftest-$$.txt"}
   rm -f "$out"
-  echo "run-selftest: open -n $APP --args ${ARGS[*]} --selftest-out $out" >&2
-  open -n "$APP" --args "${ARGS[@]}" --selftest-out "$out"
-  # A verdict is a *leading* marker, not a whole line: the app writes
-  # `DICTATION_OK: every hold came back to idle` as often as a bare `…_OK`, and an
-  # end-anchored match misses every verdict with a sentence after it — which made this
-  # wait loop sit for its full timeout on runs that had already finished.
+  echo "run-selftest: open -n -W $APP --args ${ARGS[*]} --selftest-out $out" >&2
+  open -n -W "$APP" --env "TMPDIR=$TMPDIR" --args "${ARGS[@]}" --selftest-out "$out" &
+  child_pid=$!
+  launch_status=0
+  wait "$child_pid" || launch_status=$?
+  joined=1
   verdict_re='^[[:space:]]*[A-Z0-9_]+_(OK|FAILED|SILENT|MISSING)($|:)|SELFTEST_TIMEOUT'
   failed_re='^[[:space:]]*[A-Z0-9_]+_(FAILED|SILENT|MISSING)($|:)|SELFTEST_TIMEOUT'
-  # The app's own watchdog is the authority; wait a little past the timeout it was
-  # given so its verdict is the one that is reported, rather than this loop's.
-  wait_seconds=300
-  for ((i = 0; i < ${#ARGS[@]}; i++)); do
-    if [[ "${ARGS[i]}" == "--selftest-timeout" ]] && (( i + 1 < ${#ARGS[@]} )); then
-      wait_seconds=${ARGS[i + 1]}
-    fi
-  done
-  for _ in $(seq 1 $((wait_seconds + 30))); do
-    if [[ -f "$out" ]] && grep -E "$verdict_re" "$out" >/dev/null 2>&1; then
-      cat "$out"
-      if grep -E "$failed_re" "$out" >/dev/null 2>&1; then
-        exit 1
-      fi
-      exit 0
-    fi
-    sleep 1
-  done
-  echo "error: timed out waiting for $out" >&2
-  ls -la "$out" 2>/dev/null || true
   cat "$out" 2>/dev/null || true
-  exit 1
+  if [[ "$launch_status" != "0" ]] || ! grep -E "$verdict_re" "$out" >/dev/null 2>&1; then
+    echo "error: self-test exited without a successful launch/verdict: $out" >&2
+    exit 1
+  fi
+  if grep -E "$failed_re" "$out" >/dev/null 2>&1; then exit 1; fi
+  exit 0
 fi
 
 cmd=("$BIN")
@@ -129,7 +141,12 @@ cmd+=("${ARGS[@]}")
 if [[ -n "$OUT" ]]; then
   cmd+=(--selftest-out "$OUT")
 fi
-# Foreground only — do not background. Keeping this shell as parent is the
-# whole point of the wrapper (see AGENTS.md RegisterApplication note).
+# Keep the foreground shell alive as parent until this exact child exits.
+# A retained child PID lets signal cleanup forward and join without name-killing.
 echo "run-selftest: direct ${cmd[*]}" >&2
-exec "${cmd[@]}"
+"${cmd[@]}" <&0 &
+child_pid=$!
+run_status=0
+wait "$child_pid" || run_status=$?
+joined=1
+exit "$run_status"
