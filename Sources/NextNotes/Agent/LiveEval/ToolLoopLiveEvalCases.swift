@@ -211,7 +211,9 @@ enum LiveEvalCases {
             id: "M03",
             turns: ["Check my email, check the last email and then do a summary"],
             expectation: .tools(anyOf: ["search_email"], allowed: ["read_email"]),
-            mustMention: [["pricing"]],
+            // The mailbox's newest message is Cyril's dinner question, not Marcus's
+            // older pricing sheet. A one-message read must be able to answer this request.
+            mustMention: [["cyril"], ["dinner"]],
             evidence: "09-15 01:13Z",
             expectedFix: "P1-06, P1-09"),
 

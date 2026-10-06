@@ -617,6 +617,60 @@ enum LiveEvalGrader {
         // MISSED_TOOL — a needed tool never ran, and there was no denial or offer.
         expect(.missedTool, "K01", replies: ["The calendar is clear."])
 
+        // M03_LATEST_MAIL_CONTRACT_COMMON_BEGIN
+        // The retained native maxResults=1 call reads Cyril's newest message.
+        // Execute the same fixture boundary and grade the actual recorded call,
+        // rather than changing mailbox dates to satisfy an older subject mention.
+        do {
+            let latestMail = LiveEvalFixtures(now: Date(timeIntervalSince1970: 1_780_000_000))
+            let savedFake = AgentToolExecutor.fakeForTesting
+            AgentToolExecutor.fakeForTesting = latestMail.run
+            defer { AgentToolExecutor.fakeForTesting = savedFake }
+            let arguments = ["query": "", "maxResults": "1"]
+            do {
+                let result = try await AgentToolExecutor.run("search_email", arguments: arguments,
+                    policy: .denyMutations, autoApproveReads: true, promptIfNeeded: false)
+                if latestMail.calls.count != 1 || latestMail.calls.first?.toolID != "search_email"
+                    || latestMail.calls.first?.arguments != arguments
+                    || latestMail.log.firstResult(for: 0) == nil
+                    || result.summary.split(separator: "\n").count != 1
+                    || !result.summary.contains("Cyril <cyril@example.com>")
+                    || !result.summary.contains("Dinner tomorrow?")
+                    || result.summary.contains("Pricing sheet v3") {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: M03 actual latest-mail fixture changed")
+                    misclassified += 1
+                }
+                let allMail = latestMail.mailSearch("")
+                if !allMail.contains("Marcus Lee <marcus@productflo.example>")
+                    || !allMail.contains("Pricing sheet v3")
+                    || allMail.components(separatedBy: "\n").first != result.summary {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: M03 fixture chronology changed")
+                    misclassified += 1
+                }
+                expect(.pass, "M03", replies: ["I checked your email. The last message was from Cyril about dinner tomorrow evening. They’re asking if you’re free tomorrow night. Let me know if you want to reply or keep it as is."], calls: latestMail.calls)
+                expect(.pass, "M03", replies: ["Your latest email is from Cyril, asking whether you're free for dinner tomorrow evening."],
+                       calls: latestMail.calls)
+                // Exact older native false green: Marcus's pricing mail is not latest.
+                expect(.ungrounded, "M03", replies: ["The latest email is from Marcus Lee at 05:00 about the updated pricing sheet for ProductFlo. Before that, there’s a reminder from Stripe about the September invoice and an email from Ana Ruiz asking for the deck by Friday. The most recent one relates to ProductFlo’s pricing sheet — likely something you need to review or act on. Let me know if you’d like me to open it."], calls: latestMail.calls)
+                expect(.ungrounded, "M03", replies: ["Your latest email is Ana's request for the deck by Friday."],
+                       calls: latestMail.calls)
+                // A broader summary may include earlier mail after the actual latest message.
+                expect(.pass, "M03", replies: ["The latest email is from Cyril about dinner tomorrow. Earlier, Ana asked for the deck and Marcus sent the pricing sheet."],
+                       calls: latestMail.calls)
+                // Preserve tool/claim/format verdicts; correct words alone are insufficient.
+                expect(.missedTool, "M03", replies: ["Cyril asks about dinner tomorrow."])
+                expect(.fabricated, "M03", replies: ["I checked your email. The last message was from Cyril about dinner tomorrow evening. They’re asking if you’re free tomorrow night. Let me know if you want to reply or keep it as is."])
+                expect(.wrongTool, "M03", replies: ["Cyril asks about dinner tomorrow."],
+                       calls: [call("get_agenda", ["date": today])])
+                expect(.leak, "M03", replies: ["Cyril asks about dinner tomorrow. <tool_call>"],
+                       calls: latestMail.calls)
+            } catch {
+                SelfTest.diagnostic("TOOLLOOP_LIVE_GRADER_WRONG: M03 actual latest-mail read refused")
+                misclassified += 1
+            }
+        }
+        // M03_LATEST_MAIL_CONTRACT_COMMON_END
+
         // UNGROUNDED — a correct call but the reply never names the decision.
         expect(.ungrounded, "K01", replies: ["Nothing was decided."], calls: [
             call("meeting.decisions"),
