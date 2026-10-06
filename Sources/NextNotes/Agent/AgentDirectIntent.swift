@@ -430,6 +430,7 @@ enum AgentDirectIntent: Equatable, Sendable {
 
     static let questionRoutes: [QuestionRoute] = [
         .init(intent: .calendar, patterns: [
+            #"^(?:(?:can|could|would|will) you (?:please )?(?:tell|show) me |(?:please )?(?:tell|show) me )?what(?:'s| is) on (?:today|tomorrow|yesterday|monday|tuesday|wednesday|thursday|friday|saturday|sunday)$"#,
             #"\bwhat('s| is)( on)? my (calendar|agenda|schedule)\b"#,
             #"\bwhat do i have (today|tomorrow|tonight|this (morning|afternoon|evening|week)|on \w+day)\b"#,
             #"\bam i (free|busy)\b"#, #"\bany (meetings|events|calls) (today|tomorrow|this week)\b"#,
@@ -457,11 +458,16 @@ enum AgentDirectIntent: Equatable, Sendable {
         in text: String, readyIntents: Set<AgentIntentClass>
     ) -> AgentIntentClass? {
         guard !readyIntents.isEmpty else { return nil }
+        // Whole-question routes cannot turn quoted or multiline prose into a request
+        // when questionForm drops its punctuation. Existing unanchored routes retain their rules.
+        let quoted = text.contains(where: { "\n\r\"“”‘`".contains($0) })
+            || text.range(of: #"(?:^|[^\p{L}\p{N}])'"#, options: .regularExpression) != nil
         let text = questionForm(text)
         guard !text.isEmpty else { return nil }
         for route in questionRoutes where readyIntents.contains(route.intent) {
             for pattern in route.patterns
-            where text.range(of: pattern, options: .regularExpression) != nil {
+            where !(pattern.hasPrefix("^") && quoted)
+                && text.range(of: pattern, options: .regularExpression) != nil {
                 return route.intent
             }
         }

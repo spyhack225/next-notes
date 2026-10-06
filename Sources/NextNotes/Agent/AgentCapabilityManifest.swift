@@ -700,11 +700,11 @@ enum AgentCapabilityManifestBuilder {
         if namesKnownApp(text) { matched.insert(.screen) }
         if looksLikeURL(text) { matched.insert(.browser) }
         if mentionsConnectedApp(text, toolNames: toolNames) { matched.insert(.integrations) }
-        // Named-speaker past questions already route to meetings on the frontend. Reuse
-        // that route when the lexicon found no source; explicit mail/files/etc stay chosen.
+        // Calendar and named-speaker past questions already have shared question routes.
+        // Reuse them when the lexicon found no source; explicit mail/files/etc stay chosen.
         if matched.isEmpty,
-           AgentDirectIntent.questionRoute(in: request, readyIntents: [.meetings]) == .meetings {
-            matched.insert(.meetings)
+           let question = AgentDirectIntent.questionRoute(in: request, readyIntents: [.calendar, .meetings]) {
+            matched.insert(question)
         }
         return matched
     }

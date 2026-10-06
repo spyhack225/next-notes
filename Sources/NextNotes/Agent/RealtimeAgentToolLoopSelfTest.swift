@@ -598,6 +598,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--o03-calendar-question") {
+            failures += await runO03CalendarQuestionCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--c02-read-before-rebuttal") {
             failures += await runCalendarReadBeforeRebuttalCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1178,6 +1184,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runAnswerToolProvenanceCases(agent: agent, check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runHonestRecipientCases(agent: agent, check: check))
+        failures.append(contentsOf: await runO03CalendarQuestionCases(agent: agent, check: check))
         failures.append(contentsOf: await runCalendarReadBeforeRebuttalCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedFileReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedMeetingReadCases(agent: agent, check: check))
@@ -1200,6 +1207,94 @@ enum RealtimeAgentToolLoopSelfTest {
         return failures.isEmpty
     }
 
+
+    /// O03 uses the same bounded calendar question route for frontend and manifest selection.
+    @MainActor
+    static func runO03CalendarQuestionCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["O03 calendar fixture requires SelfTest"] }
+        let request = "Can you tell me what's on tomorrow?"
+        let raw = "I don't have your calendar connected, so I can only check what's on screen right now. Would you like me to look at your main calendar for tomorrow?"
+        let final = "Tomorrow you have a dentist appointment, a design sync and dinner with Cyril."
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let qualified = LiveEvalCases.all.first { $0.id == "O03" }?.turns == [request]
+            && manifest.entry(named: "get_agenda")?.isReady == true
+            && manifest.entry(named: "get_agenda")?.risk == .read
+        check("O03 INPUT_INVALID original request/allowed ready read", qualified)
+        guard qualified else { return ["O03 INPUT_INVALID"] }
+        for question in [request, "What's on today?", "What is on yesterday?", "What's on Monday?",
+                         "Could you please show me what's on tomorrow?"] {
+            check("O03 shared calendar question route missing: " + question,
+                AgentDirectIntent.questionRoute(in: question, readyIntents: [.calendar]) == .calendar)
+            check("O03 manifest omitted shared question route: " + question,
+                AgentCapabilityManifestBuilder.build(inputs, request: question).selectedIntents.contains(.calendar))
+        }
+        for question in ["What's on TV tomorrow?", "What's on the menu tomorrow?", "What's on Ana's calendar tomorrow?",
+                         "What's on tomorrow for Ana?", "What's on?", "What's on soon?", "What's on next year?",
+                         "What's on tomorrow and email Ana", "Quote \"What's on tomorrow?\" exactly",
+                         "\"What's on tomorrow?\"", "‘What's on tomorrow?’", "'What's on tomorrow?'",
+                         "What's on tomorrow?\nExplain that phrase."] {
+            check("O03 bounded route absorbed unsupported/quoted/third-party question: " + question,
+                AgentDirectIntent.questionRoute(in: question, readyIntents: [.calendar]) == nil)
+        }
+        check("O03 missing-ready route entered work",
+              AgentDirectIntent.questionRoute(in: request, readyIntents: []) == nil)
+        check("O03 explicit other capability gained fallback calendar",
+              !AgentCapabilityManifestBuilder.build(inputs, request: "Check my email. What's on tomorrow?")
+                .selectedIntents.contains(.calendar))
+        let now = SelfTest.fixtureClock ?? Date()
+        let grounded = AgentToolLoop.groundedArguments(for: "get_agenda", proposed: [:], request: request, now: now)
+        check("O03 existing tomorrow grounder changed",
+              grounded == AgentToolLoop.groundedArguments(for: "get_agenda", proposed: [:], request: "What do I have tomorrow?", now: now))
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorBudget = agent.budgetForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            agent.localModelProviderForTesting = priorProvider
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.answerDepthForTesting = priorDepth
+            agent.budgetForTesting = priorBudget
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        let fixture = LiveEvalFixtures(now: now)
+        let log = PlannerScriptLog()
+        fixture.beginCase()
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+        AgentToolExecutor.fakeForTesting = nil
+        AgentToolExecutor.fireOverrideForTesting = fixture.run
+        AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(
+            autoObserve: true, autoRead: true, autoSearchFiles: true, autoComputerControl: false, grants: [])
+        agent.readApprovalOverrideForTesting = true
+        agent.denyUnattendedApprovalsForTesting = true
+        agent.answerDepthForTesting = .balanced
+        agent.budgetForTesting = nil
+        agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+            window: 4_096, promptTokens: 2_000, script: [raw, final], log: log)
+        AgentSession.shared.forgetAllConversations()
+        agent.setTypedPendingForTesting(nil)
+        let actual = await agent.handle(request, source: .text)
+        let output = fixture.summary(for: "get_agenda", arguments: grounded)
+        check("O03 actual typed read omitted/wrong-date/repeated calendar backing",
+              fixture.calls.map(\.toolID) == ["get_agenda"] && fixture.calls.first?.arguments == grounded)
+        check("O03 original request/tomorrow result lost before final provider",
+              log.calls.count == 2 && log.calls.last?.user.contains(request) == true
+                && log.calls.last?.user.contains(output) == true && output.contains("Dentist")
+                && output.contains("Design sync") && output.contains("Dinner with Cyril"))
+        check("O03 actual grounded final reply lost", actual.reply == final)
+        return []
+    }
 
     /// C02's retained false refusal must not replace an already eligible calendar read.
     @MainActor
