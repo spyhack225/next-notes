@@ -57,6 +57,23 @@ enum VoicePreparationSelfTest {
         coordinator.prepareResponseIfUseful(final)
         if await source.waitForCount(count + 1, within: .milliseconds(500)),
            let request = source.last {
+            // The actual staging caller carries all the same application context,
+            // excluding only the words still being spoken.
+            let staging = coordinator.stagingRequest()
+            let marker = "Latest user speech:\n"
+            let expectedPrefix: String?
+            if let content = request.messages.last?.content,
+               let range = content.range(of: marker, options: .backwards) {
+                expectedPrefix = String(content[..<range.upperBound])
+            } else { expectedPrefix = nil }
+            if staging.system != VoiceConversationCoordinator.systemPrompt
+                || staging.messages.count != request.messages.count
+                || zip(staging.messages.dropLast(), request.messages.dropLast()).contains(where: { pair in
+                    pair.0.role != pair.1.role || pair.0.content != pair.1.content
+                })
+                || staging.messages.last?.content != expectedPrefix {
+                problems.append("staging caller lost the actual history/capability/work prefix")
+            }
             source.finishLast()
             do {
                 let stream = await ModelPassRecorder.$correlation.withValue(request.correlation) {

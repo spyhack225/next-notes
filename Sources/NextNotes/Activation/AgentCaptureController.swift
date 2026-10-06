@@ -1327,10 +1327,14 @@ final class AgentCaptureController {
         guard isSessionActive, !wakeConfirmationPending, turnHandlerForTesting == nil,
               !frontendStagedForTurn, !deferFrontendForEOU else { return }
         frontendStagedForTurn = true
+        let request = VoiceConversationCoordinator.shared.stagingRequest()
+        let captureID = captureSessionID
+        let epoch = turnEpoch
         Task {
+            guard isSessionActive, captureSessionID == captureID, turnEpoch == epoch else { return }
             do {
                 try await LocalVoiceFrontend.shared.stageNextTurn(
-                    system: VoiceConversationCoordinator.systemPrompt)
+                    system: request.system, messages: request.messages)
             } catch {
                 Log.agent.error("local voice turn stage: \(error.localizedDescription, privacy: .public)")
             }

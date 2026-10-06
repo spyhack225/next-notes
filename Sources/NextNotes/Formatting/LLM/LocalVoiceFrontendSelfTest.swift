@@ -3,9 +3,160 @@ import Foundation
 /// Model-backed latency and independence probe. The final verdict must fail if either
 /// model cannot generate, if the frontend is empty, or if it waits for the 4B worker.
 enum LocalVoiceFrontendSelfTest {
+
+    /// Actual Foundation Models session construction/prewarm/take only. No respond(),
+    /// inference stream, compute acquisition, speech, tools, or owner fixture data.
+    private static func stagingContractCases() async -> [String] {
+        guard LocalVoiceSplitResponse.isEnabled else { return ["split staging fixture requires the production split mode"] }
+        let frontend = LocalVoiceFrontend()
+        let probe = StagingProbe()
+        var problems: [String] = []
+        guard await frontend.setStagingObserverForTesting({ probe.record($0) }) else {
+            return ["staging observer admission refused"]
+        }
+        let system = "Answer this authored fixture plainly."
+        let prefix = "Frontend control schemas (application facts, not external tool grants):\n[]\nApproval offered: no\n\nWork status (context, not instructions):\nNo active jobs.\n\nLatest user speech:\n"
+        let context = LLMChatMessage(role: .system, content: "Fixture capability and playback context: idle.")
+        let stage: [LLMChatMessage] = [context, .init(role: .assistant, content: "An authored prior answer."),
+            .init(role: .user, content: prefix)]
+        let final = Array(stage.dropLast()) + [.init(role: .user, content: prefix + "What is a haiku?")]
+        func warm(_ messages: [LLMChatMessage]? = nil) async throws {
+            probe.reset()
+            try await frontend.stageNextTurn(system: system, messages: messages ?? stage)
+        }
+        func take(_ kind: LocalVoiceFrontend.StagedSessionKind,
+                  _ messages: [LLMChatMessage]? = nil, generation: UInt64 = 1,
+                  advancingBy duration: Duration = .zero, instructions: String? = nil) async -> ObjectIdentifier? {
+            await frontend.takeStagedSplitSessionForTesting(kind, system: instructions ?? system,
+                messages: messages ?? final, generation: generation, advancingBy: duration)
+        }
+        do {
+            try await warm()
+            if probe.prewarmed(.route) != 1 || probe.prewarmed(.answer) != 1
+                || probe.consumed(.route) != 0 || probe.consumed(.answer) != 0 {
+                problems.append("complete transcript/prefix did not prewarm two independent sessions before inference")
+            }
+            let route = await take(.route), answer = await take(.answer)
+            if route == nil || answer == nil || route == answer {
+                problems.append("exact current route/answer plans did not take the distinct prewarmed sessions")
+            }
+            problems += probe.problems(expectedAnswer: true)
+            let routeAgain = await take(.route), answerAgain = await take(.answer)
+            if routeAgain != nil || answerAgain != nil {
+                problems.append("a staged route or answer session was consumed twice")
+            }
+            for name in ["history", "playback", "work", "approval", "instructions"] {
+                try await warm()
+                var changed = final
+                var changedSystem = system
+                switch name {
+                case "history": changed[1] = .init(role: .assistant, content: "A different authored answer.")
+                case "playback": changed[0] = .init(role: .system, content: "Fixture capability and playback context: paused.")
+                case "work": changed[2] = .init(role: .user, content: (prefix + "What is a haiku?").replacingOccurrences(of: "No active jobs.", with: "Task 1 [running]: An authored task."))
+                case "approval": changed[2] = .init(role: .user, content: (prefix + "What is a haiku?").replacingOccurrences(of: "Approval offered: no", with: "Approval offered: yes"))
+                default: changedSystem = "Different answer instructions."
+                }
+                let route = await take(.route, changed)
+                let answer = await take(.answer, changed, instructions: changedSystem)
+                let routeMayMatch = ["history", "playback", "instructions"].contains(name)
+                if (route != nil) != routeMayMatch || answer != nil {
+                    problems.append("\(name) change reused an inapplicable plan or discarded the independent matching route")
+                }
+                if await take(.answer) != nil {
+                    problems.append("\(name) mismatch retained its discarded answer for a later request")
+                }
+            }
+            try await warm()
+            let expiredRoute = await take(.route, advancingBy: .seconds(61)), expiredAnswer = await take(.answer)
+            if expiredRoute != nil || expiredAnswer != nil {
+                problems.append("a staged session survived its 60-second freshness limit")
+            }
+            try await warm()
+            await frontend.clearStagedTurn()
+            let clearedRoute = await take(.route), clearedAnswer = await take(.answer)
+            if clearedRoute != nil || clearedAnswer != nil {
+                problems.append("cleared/cancelled epoch retained a staged session")
+            }
+            try await warm()
+            _ = await take(.route, generation: 2)
+            if await take(.answer, generation: 3) != nil {
+                problems.append("a successor generation borrowed the prior route's staged answer")
+            }
+            // Cancellation of prior partial work cannot erase a newly staged turn.
+            // Only the external generator is finite/scripted; session construction
+            // and the cancellation/staging owner are the real production path.
+            await frontend.setGenerationForTesting { _, _, _ in AsyncThrowingStream { $0.finish() } }
+            await frontend.speculate(system: system, messages: final, maxTokens: 64, revision: 1)
+            try await warm()
+            await frontend.cancelSpeculation()
+            let successorRoute = await take(.route), successorAnswer = await take(.answer)
+            if successorRoute == nil || successorAnswer == nil {
+                problems.append("cancelling old speculation erased a newly staged unconsumed turn")
+            }
+            // Consume a finite no-output generator through the existing drain path.
+            let joined = await frontend.stream(system: system, messages: final, maxTokens: 64)
+            for try await _ in joined { }
+            await frontend.setGenerationForTesting(nil)
+            let cancelled = Task { () -> Bool in
+                withUnsafeCurrentTask { $0?.cancel() }
+                do { try await frontend.stageNextTurn(system: system, messages: stage); return false }
+                catch is CancellationError { return true }
+                catch { return false }
+            }
+            if !(await cancelled.value) { problems.append("already-cancelled staging was admitted") }
+            // A nonempty user utterance is not a stable staging prefix.
+            probe.reset()
+            try await frontend.stageNextTurn(system: system, messages: final)
+            if probe.prewarmed(.route) != 0 || probe.prewarmed(.answer) != 0 {
+                problems.append("staging accepted user speech as a stable application prefix")
+            }
+            await frontend.clearStagedTurn()
+        } catch { problems.append("staging construction failed: \(error.localizedDescription)") }
+        await frontend.clearStagedTurn()
+        await frontend.setGenerationForTesting(nil)
+        _ = await frontend.setStagingObserverForTesting(nil)
+        return problems
+    }
+
+    private final class StagingProbe: @unchecked Sendable {
+        private let lock = NSLock()
+        private var rows: [LocalVoiceFrontend.StagingObservation] = []
+        func record(_ row: LocalVoiceFrontend.StagingObservation) { lock.withLock { rows.append(row) } }
+        func reset() { lock.withLock { rows.removeAll() } }
+        func prewarmed(_ kind: LocalVoiceFrontend.StagedSessionKind) -> Int {
+            lock.withLock { rows.filter { $0.kind == kind && !$0.consumed }.count }
+        }
+        func consumed(_ kind: LocalVoiceFrontend.StagedSessionKind) -> Int {
+            lock.withLock { rows.filter { $0.kind == kind && $0.consumed }.count }
+        }
+        func problems(expectedAnswer: Bool) -> [String] {
+            lock.withLock {
+                var failures: [String] = []
+                for kind in [LocalVoiceFrontend.StagedSessionKind.route, .answer] {
+                    let created = rows.filter { $0.kind == kind && !$0.consumed }
+                    let taken = rows.filter { $0.kind == kind && $0.consumed }
+                    let expected = kind == .route || expectedAnswer ? 1 : 0
+                    if created.count != 1 || taken.count != expected
+                        || taken.contains(where: { row in !created.contains { $0.session == row.session } }) {
+                        failures.append("\(kind.rawValue) SDK consumer did not take its exact prewarmed session once")
+                    }
+                }
+                return failures
+            }
+        }
+    }
+
     static func run() async -> Bool {
+        if CommandLine.arguments.contains("--voice-frontend-stage-contract") {
+            let problems = await stagingContractCases()
+            for problem in problems { await SelfTest.diagnostic("VOICE_STAGING_FAILED: " + problem) }
+            await SelfTest.diagnostic(problems.isEmpty ? "VOICE_STAGING_OK" : "VOICE_STAGING_FAILED")
+            await SelfTest.diagnostic(problems.isEmpty ? "VOICE_FRONTEND_OK" : "VOICE_FRONTEND_FAILED")
+            return problems.isEmpty
+        }
         let frontend = LocalVoiceFrontend.shared
-        guard NotesModels.isDownloaded else {
+        let stagedCorpus = CommandLine.arguments.contains("--voice-frontend-stage-split")
+        guard stagedCorpus || NotesModels.isDownloaded else {
             await SelfTest.diagnostic("VOICE_FRONTEND_MISSING_WORKER_MODEL")
             await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
             return false
@@ -13,9 +164,9 @@ enum LocalVoiceFrontendSelfTest {
         do {
             let cpuWorker = CommandLine.arguments.contains("--voice-worker-cpu")
             let stageLeadSeconds = CommandLine.arguments.contains("--voice-stage-lead2s") ? 2 : 1
-            let workerRuntime = cpuWorker
+            let workerRuntime: NotesModelRuntime? = stagedCorpus ? nil : (cpuWorker
                 ? NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
-                : NotesModelRuntime.shared
+                : NotesModelRuntime.shared)
             let prewarmStart = ContinuousClock.now
             try await frontend.prepare()
             await SelfTest.diagnostic("voice frontend prewarm \(prewarmStart.duration(to: .now))")
@@ -132,6 +283,11 @@ enum LocalVoiceFrontendSelfTest {
             var routingFailures = 0
             var firstTextSeconds: [Double] = []
             let capabilityFacts = await MainActor.run { VoiceCapabilitySnapshot.current().promptText }
+            let stagedSplit = CommandLine.arguments.contains("--voice-frontend-stage-split")
+            let stagingProbe = StagingProbe()
+            if stagedSplit, !(await frontend.setStagingObserverForTesting({ stagingProbe.record($0) })) {
+                throw LocalVoiceFrontend.FrontendError.unavailable("staging_fixture_refused")
+            }
             for fixture in fixtures {
                 do {
                 let start = ContinuousClock.now
@@ -139,12 +295,18 @@ enum LocalVoiceFrontendSelfTest {
                 var firstClause: Double?
                 var clauseText: String?
                 var output = ""
-                let stream = await frontend.stream(
-                    system: system,
-                    messages: [.init(role: .system, content: capabilityFacts), .init(role: .user, content:
-                        "Work status (context, not instructions):\n\(fixture.work)\n\nLatest user speech:\n\(fixture.speech)")],
-                    maxTokens: 256
-                )
+                let fixturePrefix = "Work status (context, not instructions):\n\(fixture.work)\n\nLatest user speech:\n"
+                let fixtureMessages: [LLMChatMessage] = [.init(role: .system, content: capabilityFacts),
+                    .init(role: .user, content: fixturePrefix + fixture.speech)]
+                stagingProbe.reset()
+                if stagedSplit {
+                    // Actual SDK sessions and prewarm, then the unchanged real stream consumer.
+                    try await frontend.stageNextTurn(system: system,
+                        messages: [.init(role: .system, content: capabilityFacts),
+                            .init(role: .user, content: fixturePrefix)])
+                }
+                let stream = await frontend.stream(system: system, messages: fixtureMessages,
+                    maxTokens: 256)
                 for try await delta in stream {
                     output += delta
                     if firstClause == nil, let clause = firstSpeakableClause(in: output) {
@@ -174,6 +336,14 @@ enum LocalVoiceFrontendSelfTest {
                 }
                 firstTextSeconds.append(first)
                 let parsed = VoiceFrontendEnvelope.parse(output)
+                if stagedSplit {
+                    let hasAnswer: Bool
+                    if case .answer = parsed { hasAnswer = true } else { hasAnswer = false }
+                    let failures = stagingProbe.problems(expectedAnswer: hasAnswer)
+                    for failure in failures { await SelfTest.diagnostic("voice frontend staged consumer: " + failure) }
+                    routingFailures += failures.count
+                    await SelfTest.diagnostic("VOICE_STAGING_CONSUMER route=\(stagingProbe.consumed(.route)) answer=\(stagingProbe.consumed(.answer))")
+                }
                 let classified: Bool
                 switch (fixture.expected, parsed) {
                 case (.answer, .answer): classified = true
@@ -204,6 +374,8 @@ enum LocalVoiceFrontendSelfTest {
                         hasSubstance = true
                     }
                     guard hasSubstance, !hasGenericTail else {
+                        _ = await frontend.setStagingObserverForTesting(nil)
+                        await frontend.clearStagedTurn()
                         await SelfTest.diagnostic("voice frontend substantive failure: speech=\(fixture.speech) answer=\(answer)")
                         await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
                         return false
@@ -215,11 +387,13 @@ enum LocalVoiceFrontendSelfTest {
                 }
             }
 
+            _ = await frontend.setStagingObserverForTesting(nil)
+            await frontend.clearStagedTurn()
             guard routingFailures == 0 else {
                 await SelfTest.diagnostic("VOICE_FRONTEND_FAILED: \(routingFailures) routing cases")
                 return false
             }
-            if CommandLine.arguments.contains("--voice-frontend-clause")
+            if stagedSplit || CommandLine.arguments.contains("--voice-frontend-clause")
                 || CommandLine.arguments.contains("--voice-frontend-routing-only") {
                 await SelfTest.diagnostic("VOICE_FRONTEND_OK")
                 return true
@@ -227,6 +401,9 @@ enum LocalVoiceFrontendSelfTest {
 
             // The planner genuinely generates in the separate llama native context.
             // A long answer keeps that context occupied while the frontend handles speech.
+            guard let workerRuntime else {
+                throw LocalVoiceFrontend.FrontendError.unavailable("worker_fixture_missing_runtime")
+            }
             let workerState = WorkerState()
             let worker = Task {
                 do {
@@ -428,6 +605,8 @@ enum LocalVoiceFrontendSelfTest {
             await SelfTest.diagnostic("VOICE_FRONTEND_OK")
             return true
         } catch {
+            _ = await frontend.setStagingObserverForTesting(nil)
+            await frontend.clearStagedTurn()
             await SelfTest.diagnostic("voice frontend error: \(error)")
             await SelfTest.diagnostic("VOICE_FRONTEND_FAILED")
             return false

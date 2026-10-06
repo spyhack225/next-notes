@@ -456,6 +456,8 @@ enum VoiceLatencySelfTest {
             parts.append("\(column)=\(Self.format(listenSeconds(column, turn: turn)))")
         }
         parts.append("speculation=\(turn.notes["speculation"] ?? "absent")")
+        parts.append("route_staging=\(turn.notes["route_staging"] ?? "absent")")
+        parts.append("answer_staging=\(turn.notes["answer_staging"] ?? "absent")")
         parts.append("main_stall_max=\(Self.format(turn.mainStallSeconds))")
         parts.append("stall_site=\(turn.stallSite ?? "unlabelled")")
         parts.append("eou_prepare=\(Self.format(eouPrepare))")

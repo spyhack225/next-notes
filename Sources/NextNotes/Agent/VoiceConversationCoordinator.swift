@@ -1221,6 +1221,12 @@ final class VoiceConversationCoordinator {
         return frontendRequest(text).messages
     }
 
+    /// Capture this complete application context before the latest spoken words exist.
+    /// The frontend separately matches route and answer plans against the committed turn.
+    func stagingRequest() -> (system: String, messages: [LLMChatMessage]) {
+        (Self.systemPrompt, frontendRequest("").messages)
+    }
+
     private func frontendRequest(_ text: String) -> (indexed: [TaskRecord], messages: [LLMChatMessage], approval: SpokenApprovalState?) {
         let records = taskBridge.indexedSessionTasks(AgentCaptureController.shared.sessionID).map { row in
             var value = row

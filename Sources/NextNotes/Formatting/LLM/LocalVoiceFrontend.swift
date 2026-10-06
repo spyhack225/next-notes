@@ -47,6 +47,76 @@ actor FrontendResponder {
     /// Prepared when user speech begins, then consumed by the committed turn.
     private var stagedSession: LanguageModelSession?
     private var stagingEpoch: UInt64 = 0
+    private struct StagedSplitTurn {
+        let epoch: UInt64
+        let createdAt: ContinuousClock.Instant
+        let routePlan: LocalVoicePrompt.Plan
+        let answerPlan: LocalVoicePrompt.Plan
+        var route: LanguageModelSession?
+        var answer: LanguageModelSession?
+        var generation: UInt64?
+    }
+    private var stagedSplitTurn: StagedSplitTurn?
+    enum StagedSessionKind: String, Sendable { case route, answer }
+    struct StagingObservation: Sendable {
+        let kind: StagedSessionKind
+        let consumed: Bool
+        let session: ObjectIdentifier
+    }
+    private var stagingObserverForTesting: (@Sendable (StagingObservation) -> Void)?
+    func setStagingObserverForTesting(
+        _ observer: (@Sendable (StagingObservation) -> Void)?
+    ) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-frontend",
+              CommandLine.arguments.contains("--voice-frontend-stage-contract")
+                || CommandLine.arguments.contains("--voice-frontend-stage-split") else { return false }
+        stagingObserverForTesting = observer
+        return true
+    }
+    /// Inspect the same take used by the SDK consumer, without starting a response.
+    func takeStagedSplitSessionForTesting(
+        _ kind: StagedSessionKind, system: String, messages: [LLMChatMessage],
+        generation: UInt64 = 1, advancingBy duration: Duration = .zero
+    ) -> ObjectIdentifier? {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-frontend",
+              CommandLine.arguments.contains("--voice-frontend-stage-contract") else { return nil }
+        let plan = kind == .route ? LocalVoiceSplitResponse.routePlan(messages: messages)
+            : LocalVoiceSplitResponse.answerPlan(system: system, messages: messages)
+        guard let plan else { return nil }
+        return takeStagedSplitSession(kind, plan: plan, generation: generation,
+            at: .now.advanced(by: duration)).map(ObjectIdentifier.init)
+    }
+    private func takeStagedSplitSession(
+        _ kind: StagedSessionKind, plan: LocalVoicePrompt.Plan, generation: UInt64,
+        at now: ContinuousClock.Instant = .now
+    ) -> LanguageModelSession? {
+        guard var staged = stagedSplitTurn else { return nil }
+        guard staged.epoch == stagingEpoch,
+              staged.createdAt.duration(to: now) < .seconds(60),
+              staged.generation == nil || staged.generation == generation else {
+            stagedSplitTurn = nil
+            return nil
+        }
+        let expected = kind == .route ? staged.routePlan : staged.answerPlan
+        let session = kind == .route ? staged.route : staged.answer
+        if kind == .route { staged.route = nil } else { staged.answer = nil }
+        // Empty latest speech at staging is the complete application-owned prefix.
+        // Only append the user's words; instructions, role history and work/approval
+        // prefix must still match the plan the SDK will actually consume.
+        let marker = "Latest user speech:\n"
+        let prefix = plan.latestUser.range(of: marker, options: .backwards).map {
+            String(plan.latestUser[..<$0.upperBound])
+        }
+        guard expected.instructions == plan.instructions, expected.history == plan.history,
+              prefix == expected.latestUser, let session else {
+            stagedSplitTurn = staged
+            return nil
+        }
+        staged.generation = generation
+        stagedSplitTurn = staged
+        stagingObserverForTesting?(.init(kind: kind, consumed: true, session: ObjectIdentifier(session)))
+        return session
+    }
     private struct RequestKey: Equatable {
         let system: String
         let roles: [String]
@@ -169,12 +239,45 @@ actor FrontendResponder {
         return true
     }
 
-    /// Prepare the next request while the person is still talking. Apple's native
-    /// prewarm is prompt-specific, so the staged session carries the same instructions
-    /// later used for inference. It has no prior conversation transcript.
-    func stageNextTurn(system: String) async throws {
+    /// Prepare the complete application-owned context while the person is still
+    /// talking. Split routing and answering retain separate exact transcript/prefix
+    /// sessions. Legacy callers without messages retain their original static prewarm.
+    func stageNextTurn(system: String, messages: [LLMChatMessage]? = nil) async throws {
+        try Task.checkCancellation()
         stagingEpoch &+= 1
         let epoch = stagingEpoch
+        stagedSplitTurn = nil
+        if LocalVoiceSplitResponse.isEnabled, let messages {
+            stagedSession = nil
+            guard let routePlan = LocalVoiceSplitResponse.routePlan(messages: messages),
+                  let answerPlan = LocalVoiceSplitResponse.answerPlan(system: system, messages: messages),
+                  routePlan.latestUser.hasSuffix("Latest user speech:\n"),
+                  answerPlan.latestUser.hasSuffix("Latest user speech:\n") else { return }
+            if let reason = FoundationModelFormatter.unavailableReason {
+                throw FrontendError.unavailable(reason)
+            }
+            // SDK prewarm builds only these exact transcript/prompt prefixes. It
+            // starts no app inference, compute ticket, answer stream or tool effect.
+            let route = LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: routePlan))
+            route.prewarm(promptPrefix: Prompt(routePlan.latestUser))
+            let answer: LanguageModelSession?
+            if latencyAnswerProvider is LlamaLLMProvider {
+                answer = nil
+            } else {
+                let session = LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: answerPlan))
+                session.prewarm(promptPrefix: Prompt(answerPlan.latestUser))
+                answer = session
+            }
+            try Task.checkCancellation()
+            guard epoch == stagingEpoch else { return }
+            stagedSplitTurn = StagedSplitTurn(epoch: epoch, createdAt: .now,
+                routePlan: routePlan, answerPlan: answerPlan, route: route, answer: answer)
+            stagingObserverForTesting?(.init(kind: .route, consumed: false, session: ObjectIdentifier(route)))
+            if let answer {
+                stagingObserverForTesting?(.init(kind: .answer, consumed: false, session: ObjectIdentifier(answer)))
+            }
+            return
+        }
         try await prepare()
         guard epoch == stagingEpoch else { return }
         if LocalVoicePrompt.isEnabled || LocalVoiceTypedResponse.isEnabled
@@ -193,6 +296,7 @@ actor FrontendResponder {
     func clearStagedTurn() {
         stagingEpoch &+= 1
         stagedSession = nil
+        stagedSplitTurn = nil
         cancelSpeculation()
     }
 
@@ -241,6 +345,9 @@ actor FrontendResponder {
 
     func cancelSpeculation() {
         if let speculation {
+            // An answer not yet consumed belongs to this cancelled generation.
+            // A later stage with no admitted generation must survive this old cancel.
+            if stagedSplitTurn?.generation == speculation.timing.id { stagedSplitTurn = nil }
             traceSpeculation("canceled revision=\(speculation.epoch)")
             let canceledAt = ContinuousClock.now
             speculation.timing.markCancellation()
@@ -418,7 +525,8 @@ actor FrontendResponder {
         _ event: String,
         durationFrom: ContinuousClock.Instant? = nil
     ) {
-        guard CommandLine.arguments.contains("--selftest-voice-pipeline") else { return }
+        guard CommandLine.arguments.contains("--selftest-voice-pipeline")
+                || SelfTest.requested == "--selftest-voice-latency" else { return }
         let revision = timing.revision.map(String.init) ?? "none"
         var message = String(format:
             "VOICE_FRONTEND_TIMING gen=%llu revision=%@ event=%@ elapsed_s=%.3f",
@@ -664,7 +772,13 @@ actor FrontendResponder {
         guard let routePlan = LocalVoiceSplitResponse.routePlan(messages: messages) else {
             throw FrontendError.unavailable("split_route_missing_latest_user")
         }
-        let routeSession = LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: routePlan))
+        let stagedRoute = takeStagedSplitSession(.route, plan: routePlan, generation: timing.id)
+        let routeSession = stagedRoute ?? LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: routePlan))
+        if timing.id == nextGenerationTimingID {
+            VoiceLatencyTimeline.shared.note("route_staging", stagedRoute == nil ? "fresh" : "staged")
+            VoiceLatencyTimeline.shared.note("answer_staging", "not_requested")
+        }
+        Self.emitTiming(timing, stagedRoute == nil ? "route_session_fresh" : "route_session_staged")
         if timing.id == nextGenerationTimingID {
             VoiceLatencyTimeline.shared.mark(.routeStarted)
         }
@@ -731,8 +845,16 @@ actor FrontendResponder {
                 // acquire their own existing context reservation and compute lane.
                 await ComputeScheduler.shared.release(schedulerJob)
             }
+            let stagedAnswer = latencyAnswerProvider is LlamaLLMProvider ? nil
+                : takeStagedSplitSession(.answer, plan: answerPlan, generation: timing.id)
             let answerSession = latencyAnswerProvider is LlamaLLMProvider ? nil
-                : LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: answerPlan))
+                : (stagedAnswer ?? LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: answerPlan)))
+            let answerStaging = latencyAnswerProvider is LlamaLLMProvider ? "native"
+                : stagedAnswer == nil ? "fresh" : "staged"
+            if timing.id == nextGenerationTimingID {
+                VoiceLatencyTimeline.shared.note("answer_staging", answerStaging)
+            }
+            Self.emitTiming(timing, "answer_session_" + answerStaging)
             return try await streamSplitAnswer(
                 session: answerSession, plan: answerPlan,
                 maxTokens: maxTokens,
