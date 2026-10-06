@@ -10,6 +10,38 @@ enum AgentToolExecutor {
     @MainActor static var fakeForTesting: FakeToolRun?
     /// Replaces only the external effect, after real approval, validity and argument checks.
     @MainActor static var fireOverrideForTesting: FakeToolRun?
+    // An authored fixture supplies only its already-navigated page URL. Scope,
+    // authorization, prepared metadata and final argument/fire checks remain real.
+    @MainActor private static var browserPageURLForTesting: (() -> String?)?
+    @MainActor private static var browserPageRootForTesting: URL?
+    @MainActor
+    private static func browserPageFixtureIsAdmitted(_ root: URL) -> Bool {
+        let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath().standardizedFileURL
+        let resolved = root.resolvingSymlinksInPath().standardizedFileURL
+        var directory: ObjCBool = false
+        return SelfTest.isRunning && SelfTest.requested == "--selftest-toolloop-production"
+            && fireOverrideForTesting != nil && fakeForTesting == nil
+            && root.standardizedFileURL.path == resolved.path
+            && resolved.deletingLastPathComponent().path == temporary.path
+            && UUID(uuidString: resolved.lastPathComponent) != nil
+            && FileManager.default.fileExists(atPath: resolved.path, isDirectory: &directory) && directory.boolValue
+    }
+    // A nil URL under an installed fixture must not fall back to the owner's browser.
+    @MainActor
+    static func browserPageReadbackForTesting() -> (isFixture: Bool, url: String?) {
+        guard SelfTest.isRunning, let provider = browserPageURLForTesting else { return (false, nil) }
+        guard let root = browserPageRootForTesting, browserPageFixtureIsAdmitted(root) else { return (true, nil) }
+        return (true, provider())
+    }
+    @MainActor
+    @discardableResult
+    static func setBrowserPageURLForTesting(_ provider: (() -> String?)?, root: URL) -> Bool {
+        guard browserPageFixtureIsAdmitted(root),
+              provider == nil ? browserPageRootForTesting == root : browserPageURLForTesting == nil else { return false }
+        browserPageURLForTesting = provider
+        browserPageRootForTesting = provider == nil ? nil : root
+        return true
+    }
     /// Opt-in only for the admitted duplex caller. Other overrides still bypass
     /// presentation; the real activity statements below remain the only producer.
     @MainActor private static var fireProjectionRootForTesting: URL?
@@ -134,7 +166,19 @@ enum AgentToolExecutor {
         authorizedArguments.removeValue(forKey: "_browserBackend")
         authorizedArguments.removeValue(forKey: "_authorizedPageURL")
         if tool.namespace == .browser {
-            if await BrowserCDPClient.isReachable() {
+            if SelfTest.isRunning, let fixtureURL = browserPageURLForTesting {
+                guard let root = browserPageRootForTesting, browserPageFixtureIsAdmitted(root),
+                      authorizedArguments["targetId"] == nil else {
+                    throw AgentError.backendUnavailable("The isolated browser fixture is no longer available.")
+                }
+                authorizedArguments["_browserBackend"] = "accessibility"
+                if tool.name != "navigate" && tool.name != "download" {
+                    guard let pageURL = fixtureURL(), !pageURL.isEmpty else {
+                        throw AgentError.backendUnavailable("The isolated browser document URL could not be identified.")
+                    }
+                    authorizedArguments["_authorizedPageURL"] = pageURL
+                }
+            } else if await BrowserCDPClient.isReachable() {
                 guard let targetID = await BrowserCDPClient.targetID(
                     for: tool, arguments: authorizedArguments
                 ) else {

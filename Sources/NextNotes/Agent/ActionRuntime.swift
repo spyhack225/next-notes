@@ -1051,7 +1051,13 @@ final class ActionOrchestrator {
 
         if tool.namespace == .browser {
             let observedURL: String?
-            if arguments["_browserBackend"] == "cdp" {
+            // This diagnostic readback is the same admitted authored page binding used
+            // before permission. It never reaches an owner tab or claims native DOM evidence.
+            let fixture = SelfTest.isRunning
+                ? await AgentToolExecutor.browserPageReadbackForTesting() : (isFixture: false, url: nil as String?)
+            if fixture.isFixture {
+                observedURL = fixture.url
+            } else if arguments["_browserBackend"] == "cdp" {
                 observedURL = await BrowserCDPClient.targetURL(for: tool, arguments: arguments)
             } else {
                 observedURL = BrowserToolExecutor.currentURL()

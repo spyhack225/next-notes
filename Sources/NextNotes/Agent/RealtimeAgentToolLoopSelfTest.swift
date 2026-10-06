@@ -616,6 +616,12 @@ enum RealtimeAgentToolLoopSelfTest {
             print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
             return failures.isEmpty
         }
+        if CommandLine.arguments.contains("--a02-page-inspection") {
+            failures += await runA02PageInspectionCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--o08-authored-target") {
             failures += await runO08AuthoredTargetCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1227,6 +1233,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runCatchUpSetupCases(agent: agent, check: check))
         failures.append(contentsOf: await runO08CatalogueNameCases(agent: agent, check: check))
         failures.append(contentsOf: await runO08AuthoredTargetCases(agent: agent, check: check))
+        failures.append(contentsOf: await runA02PageInspectionCases(agent: agent, check: check))
         failures.append(contentsOf: await runPromiseContinuationCases(agent: agent, check: check))
         failures.append(contentsOf: await NeedleFirstStepSelfTest.run())
         failures.append(contentsOf: await ExplicitMemorySaveSelfTest.run())
@@ -4473,6 +4480,188 @@ enum RealtimeAgentToolLoopSelfTest {
     }
     // O08_AUTHORED_TARGET_COMMON_END
 
+    // A02_PAGE_INSPECTION_COMMON_BEGIN
+    @MainActor
+    static func runA02PageInspectionCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorFiles = agent.fileRetrievalForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorCap = agent.maxCallsForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorApprovals = AgentToolExecutor.recordedReadApprovalsForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.localModelProviderForTesting = priorProvider
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.fileRetrievalForTesting = priorFiles
+            agent.answerDepthForTesting = priorDepth
+            agent.maxCallsForTesting = priorCap
+            agent.budgetForTesting = priorBudget
+            AgentToolExecutor.recordedReadApprovalsForTesting = priorApprovals
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        let request = "Open youtube and play the latest Cortech video"
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let snapshot = LiveEvalFixtures().summary(for: "browser.snapshot", arguments: [:])
+        let rawJSON = #"[["I can't browse the web from here, but I don't have a way to find or play videos on YouTube. Want me to help with something else?", "I'll open YouTube and find the latest Cortech video.\n<function name=\"browser.navigate\"><param name=\"url\">https://www.youtube.com</param></function>", "I'll open YouTube and find the latest Cortech video there.", "<tool_call>{\"name\":\"browser.navigate\",\"arguments\":{\"url\":\"https://www.youtube.com/results?search_query=Cortech&sort=date\"},\"rationale\":\"Open YouTube and search for the latest Cortech video.\"}</tool_call>", "I've opened YouTube and searched for the latest Cortech videos. Would you like me to show you what's available, or is there something specific you'd like help with?"], ["I don't have a tool I can use to browse or play YouTube videos directly. If you'd like, I can open the YouTube search page for \"Cortech\" in your browser instead — would you like me to do that?", "I'll open YouTube and find the latest Cortech video.\n<tool_call>{\"name\":\"browser.navigate\",\"arguments\":{\"url\":\"https://www.youtube.com/results?search_query=cortech\"}}</function>", "I've opened YouTube and searched for Cortech videos. Play the latest one when you're ready."]]"#
+        guard let scripts = try? JSONDecoder().decode([[String]].self, from: Data(rawJSON.utf8)) else {
+            return ["A02 INPUT_INVALID retained raw could not decode"]
+        }
+        check("A02 INPUT_INVALID unchanged request and trusted named target fixture",
+            LiveEvalCases.all.first { $0.id == "A02" }?.turns == [request]
+            && manifest.selectedIntents.contains(.browser)
+            && manifest.entry(named: "browser.snapshot")?.risk == .observe
+            && manifest.entry(named: "browser.snapshot")?.isReady == true
+            && snapshot.contains("[2] Link: Cortech — newest upload (2 days ago)"))
+        func pending(_ text: String = request, turn: [String] = ["browser.navigate"], session: Set<String> = [], value: AgentCapabilityManifest? = nil) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+            let value = value ?? manifest
+            return AgentAccountRead.pendingRead(reply: scripts[0].last!, selectedIntents: value.selectedIntents,
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: value, request: text) },
+                request: text, manifest: value)
+        }
+        check("A02 successful navigation stopped before inspecting the requested target",
+            pending()?.toolID == "browser.snapshot" && pending()?.arguments == [:])
+        check("A02 prior-session inspection incorrectly suppressed this turn's page read",
+            pending(session: ["browser.snapshot"])?.toolID == "browser.snapshot")
+        for earlier in ["browser.snapshot", "browser.read_page", "browser.click"] {
+            check("A02 earlier page result suppressed the last navigation's inspection",
+                pending(turn: ["browser.navigate", earlier, "browser.navigate"])?.toolID == "browser.snapshot")
+        }
+        for ids in [[], ["browser.navigate", "browser.snapshot"], ["browser.navigate", "browser.read_page"], ["browser.navigate", "browser.click"]] {
+            check("A02 no navigate/completed current inspection acquired another read", pending(turn: ids) == nil)
+        }
+        for text in ["Open youtube", "Open youtube and play the latest video", "Should I open youtube and play the latest Cortech video?",
+                     "Quote 'Open youtube and play the latest Cortech video'", "He asked me to open youtube and play the latest Cortech video",
+                     "Open youtube and play the latest Cortech video then email Marcus", "Open youtube and buy the latest Cortech video"] {
+            check("A02 unrelated/ambiguous/question/quoted/third-party request acquired inspection: " + text, pending(text) == nil)
+        }
+        var noRead = inputs
+        noRead.tools.removeAll { $0.id == "browser.snapshot" }
+        check("A02 missing snapshot descriptor invented read",
+            pending(value: AgentCapabilityManifestBuilder.build(noRead, request: request)) == nil)
+        // AX alone is not browser readiness: production browser actions can use CDP.
+        // Supply an actually unready browser descriptor for this permission control.
+        if let entry = manifest.entry(named: "browser.snapshot") {
+            let blocked = AgentCapabilityManifest.Entry(id: entry.id, aliases: entry.aliases,
+                namespace: entry.namespace, intent: entry.intent, source: entry.source, risk: entry.risk,
+                executionMode: entry.executionMode, modelDescription: entry.modelDescription,
+                parameters: entry.parameters, readiness: .needsPermission("Fixture browser permission required."),
+                userPhrase: entry.userPhrase)
+            let unready = AgentCapabilityManifest(reader: manifest.reader, maxRisk: manifest.maxRisk,
+                allowed: manifest.allowed.map { $0.id == entry.id ? blocked : $0 }, unavailable: manifest.unavailable,
+                selected: manifest.selected.map { $0.id == entry.id ? blocked : $0 }, selectedIntents: manifest.selectedIntents,
+                compactCatalogue: manifest.compactCatalogue, catalogueTokens: manifest.catalogueTokens)
+            check("A02 unready browser permission invented snapshot", pending(value: unready) == nil)
+        }
+        let unselected = manifest.copy(selected: manifest.selected.filter { $0.id != "browser.snapshot" },
+            selectedIntents: manifest.selectedIntents)
+        check("A02 unselected snapshot admitted from allowed roster", pending(value: unselected) == nil)
+        if let entry = manifest.entry(named: "browser.snapshot") {
+            let unsafe = AgentCapabilityManifest.Entry(id: entry.id, aliases: entry.aliases,
+                namespace: entry.namespace, intent: entry.intent, source: entry.source, risk: .send,
+                executionMode: entry.executionMode, modelDescription: entry.modelDescription,
+                parameters: entry.parameters, readiness: entry.readiness, userPhrase: entry.userPhrase)
+            let wrongRisk = AgentCapabilityManifest(reader: manifest.reader, maxRisk: manifest.maxRisk,
+                allowed: manifest.allowed.map { $0.id == entry.id ? unsafe : $0 }, unavailable: manifest.unavailable,
+                selected: manifest.selected, selectedIntents: manifest.selectedIntents,
+                compactCatalogue: manifest.compactCatalogue, catalogueTokens: manifest.catalogueTokens)
+            check("A02 write-risk snapshot descriptor admitted", pending(value: wrongRisk) == nil)
+        }
+        agent.answerDepthForTesting = .balanced
+        agent.maxCallsForTesting = nil
+        agent.budgetForTesting = nil
+        agent.denyUnattendedApprovalsForTesting = true
+        let click = #"<tool_call>{"name":"browser.click","arguments":{"id":"2","expectedText":"Cortech — newest upload (2 days ago)"}}</tool_call>"#
+        let final = "I opened the newest Cortech video."
+        @MainActor
+        func run(_ script: [String], inspect: Bool = true, cap: Int? = nil) async -> (String, [PlannerScriptLog.Call], [LiveEvalLoggedCall]) {
+            let fixture = LiveEvalFixtures(); fixture.beginCase()
+            let log = PlannerScriptLog()
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+            agent.fileRetrievalForTesting = fixture.files
+            agent.readApprovalOverrideForTesting = inspect
+            agent.maxCallsForTesting = cap
+            AgentToolExecutor.fakeForTesting = nil
+            AgentToolExecutor.fireOverrideForTesting = fixture.run
+            let root = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+                .appendingPathComponent(UUID().uuidString, isDirectory: true)
+            do { try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false) }
+            catch { check("A02 INPUT_INVALID browser fixture root", false); return ("", [], []) }
+            let admitted = AgentToolExecutor.setBrowserPageURLForTesting({
+                fixture.calls.last(where: { $0.toolID == "browser.navigate" })?.arguments["url"]
+            }, root: root)
+            defer {
+                check("A02 browser fixture admission did not release", AgentToolExecutor.setBrowserPageURLForTesting(nil, root: root))
+                try? FileManager.default.removeItem(at: root)
+            }
+            guard admitted else { check("A02 INPUT_INVALID browser fixture admission", false); return ("", [], []) }
+            // Temporary fixture-only grants permit the authored reversible navigation/click.
+            // Snapshot still crosses the actual observation permission decision.
+            AgentToolExecutor.policyOverrideForTesting = PermissionPolicy(autoObserve: inspect,
+                autoRead: inspect, autoSearchFiles: false, autoComputerControl: false,
+                grants: [PermissionGrant(toolID: "browser.navigate", duration: .alwaysThisAction),
+                         PermissionGrant(toolID: "browser.click", duration: .alwaysThisAction)])
+            AgentToolExecutor.recordedReadApprovalsForTesting = []
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                window: 4_096, promptTokens: 2_000, script: script, log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let actual = await agent.handle(request, source: .text)
+            return (actual.reply, log.calls, fixture.calls)
+        }
+        // All retained raw outputs above stay byte-identical. The first changed input
+        // is the inspection after round 3. Subsequent retained native outputs describe
+        // the original missing-evidence history, not a native counterfactual here.
+        for (index, script) in scripts.enumerated() {
+            let originalPrefix = Array(script.prefix(3))
+            let actual = await run(originalPrefix + [click, final])
+            let navCount = 1
+            let lastNavigation = AgentToolCallParser.parse(originalPrefix[1], knownNames: ["browser.navigate"])
+                .calls.first?.arguments["url"]
+            let expectedPreparedClick = ["id": "2", "expectedText": "Cortech — newest upload (2 days ago)",
+                "_browserBackend": "accessibility", "_authorizedPageURL": lastNavigation ?? ""]
+            check("A02 retained native case \(index) lost snapshot/named click or repeated effects",
+                actual.2.map(\.toolID) == Array(repeating: "browser.navigate", count: navCount) + ["browser.snapshot", "browser.click"]
+                && actual.2.last?.arguments == expectedPreparedClick)
+            check("A02 retained native case \(index) snapshot did not reach exact same planner",
+                actual.1.count == originalPrefix.count + 2 && actual.1[originalPrefix.count].user.contains(snapshot)
+                && actual.1[originalPrefix.count].user.contains(request))
+            check("A02 retained native case \(index) lost final named-target result",
+                actual.0 == final || actual.0 == "This takes a few steps on this Mac.\n\n" + final)
+            check("A02 retained native case \(index) leaked approval card",
+                PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        }
+        let chosen = scripts[1].dropLast().map { $0 } + [#"<tool_call>{"name":"browser.snapshot","arguments":{}}</tool_call>"#, click, final]
+        let direct = await run(chosen)
+        check("A02 model-selected inspection repeated the floor or changed target", direct.2.map(\.toolID) == ["browser.navigate", "browser.snapshot", "browser.click"]
+            && direct.2.last?.arguments == ["id": "2", "expectedText": "Cortech — newest upload (2 days ago)",
+                "_browserBackend": "accessibility", "_authorizedPageURL": "https://www.youtube.com/results?search_query=cortech"])
+
+        let denied = await run(scripts[1], inspect: false)
+        check("A02 refused snapshot reached backing/click or another model round",
+            denied.2.map(\.toolID) == ["browser.navigate"] && denied.1.count == scripts[1].count
+            && PermissionGate.shared.pending == nil && PermissionGate.shared.queuedCount == 0)
+        let exhausted = await run(scripts[1], cap: 1)
+        check("A02 spent call cap was widened for inspection", !exhausted.2.contains { $0.toolID == "browser.snapshot" || $0.toolID == "browser.click" })
+        print("  TOOLLOOP_PRODUCTION_A02_INSPECTION: retained native rounds -> actual runner/fire fixture -> exact snapshot -> scripted named click; native playback remains unverified")
+        return []
+    }
+    // A02_PAGE_INSPECTION_COMMON_END
+
+
 
     /// PL-11 explicit setup: same words, actual typed handle -> normal card -> private
     /// native schedule/runner. Scripted planner is the unchanged no-call control.
@@ -5762,6 +5951,9 @@ enum RealtimeAgentToolLoopSelfTest {
             let ran = ScriptedToolLog()
             AgentToolExecutor.fakeForTesting = { tool, _ in
                 ran.record(tool.id)
+                if tool.id == "browser.snapshot" {
+                    return AgentToolResult(summary: LiveEvalFixtures().summary(for: tool.id, arguments: [:]))
+                }
                 return AgentToolResult(summary: "Pricing 2026.pdf in your Documents folder.")
             }
             agent.localModelProviderForTesting = PlannerScriptProvider(
@@ -5784,13 +5976,16 @@ enum RealtimeAgentToolLoopSelfTest {
                 refusal,
                 #"<tool_call>{"name":"browser.navigate","arguments":{"url":"https://www.youtube.com"}}</tool_call>"#,
                 "The YouTube page is open.",
+                "The page lists Cortech's newest upload from two days ago.",
             ])
             check("A02 exact no-call refusal did not enter the existing correction round",
-                  a02.calls.count == 3
+                  a02.calls.count == 4
                     && a02.calls[1].user.contains("Correction from the application")
                     && a02.calls[1].user.contains("browser.navigate"))
-            check("A02 corrected browser call bypassed the actual runner or invented another action",
-                  a02.tools == ["browser.navigate"] && a02.reply == "The YouTube page is open.")
+            check("A02 corrected browser call lost requested inspection or invented another action",
+                  a02.tools == ["browser.navigate", "browser.snapshot"]
+                    && a02.reply == "The page lists Cortech's newest upload from two days ago."
+                    && a02.calls.last?.user.contains("Cortech — newest upload") == true)
             let repeated = await run("Open youtube and play the latest Cortech video", [
                 refusal, refusal,
                 #"<tool_call>{"name":"browser.navigate","arguments":{"url":"https://www.youtube.com"}}</tool_call>"#,
@@ -5919,14 +6114,14 @@ enum RealtimeAgentToolLoopSelfTest {
         agent.localModelProviderForTesting = PlannerScriptProvider(
             id: .localServer, window: 4_096, promptTokens: 2_000,
             script: ["I can't browse the web from here, but I don't have a way to find or play videos on YouTube. Want me to help with something else?", "I'll open YouTube and find the latest Cortech video.\n<function name=\"browser.navigate\"><param name=\"url\">https://www.youtube.com</param></function>", browserFollowThroughPromise,
-                     #"<tool_call>{"name":"browser.snapshot","arguments":{}}</tool_call>"#,
                      "The page lists Cortech's newest upload from two days ago."], log: nativeFollowLog)
         agent.setTypedPendingForTesting(nil)
         AgentSession.shared.forgetAllConversations()
         let nativeFollow = await agent.handle(browserFollowThroughRequest, source: .text)
-        check("A02 partial navigation promise did not use the SAME bounded continuation",
-              nativeFollowLog.calls.count == 5
-                && nativeFollowLog.calls[3].user.contains("That promised action has not run."))
+        check("A02 partial navigation promise lost page evidence or spent a promise repair",
+              nativeFollowLog.calls.count == 4
+                && nativeFollowLog.calls[3].user.contains("Cortech — newest upload")
+                && !nativeFollowLog.calls[3].user.contains("That promised action has not run."))
         check("A02 follow-through did not reach actual runner page inspection",
               nativeFollowFixtures.calls.map(\.toolID) == ["browser.navigate", "browser.snapshot"]
                 && nativeFollowFixtures.calls.first?.arguments["url"] == "https://www.youtube.com"
@@ -5939,9 +6134,15 @@ enum RealtimeAgentToolLoopSelfTest {
             (browserFollowThroughRequest, "Should I find the latest Cortech video?"),
             (browserFollowThroughRequest, "I'll not find the latest Cortech video there."),
         ] {
-            let ordinary = await run(request, [nav, response, "This extra pass must not run."])
-            check("A02 follow-through continued single-open/completed/clarification/negation",
-                  ordinary.tools == ["browser.navigate"] && ordinary.calls.count == 2 && ordinary.reply == response)
+            // These model replies do not cancel the person's explicit play request.
+            // The read floor supplies page evidence without a promised-action repair.
+            let observed = "The page lists Cortech's newest upload from two days ago."
+            let ordinary = await run(request, [nav, response, observed])
+            check("A02 explicit play request lost page evidence or added a promise repair",
+                  ordinary.tools == ["browser.navigate", "browser.snapshot"]
+                    && ordinary.calls.count == 3 && ordinary.reply == observed
+                    && ordinary.calls.last?.user.contains("Cortech — newest upload") == true
+                    && ordinary.calls.last?.user.contains("That promised action has not run.") == false)
         }
         let singleOpen = await run("Open youtube", [nav, browserFollowThroughPromise,
             "This extra pass must not run."])
@@ -5967,17 +6168,21 @@ enum RealtimeAgentToolLoopSelfTest {
               unavailableFollow.tools == ["browser.navigate"] && unavailableFollow.calls.count == 2
                 && unavailableFollow.reply == browserFollowThroughPromise)
         AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorFollowInputs
-        // Literal P5 class contract: navigate already ran browser class. The exact
-        // Qwen A02 promise remains a limitation; no action-level inference is invented.
+        // The exact Qwen promise used to stop after navigation. The requested
+        // read now supplies page evidence; choosing/playing a video stays model-owned.
         let a02Promise = "I'll look for the latest Cortech video on YouTube. Let me search for that."
         let a02 = await run("Open YouTube and play the latest Cortech video", [
             #"<tool_call>{"name":"browser.navigate","arguments":{"url":"https://www.youtube.com"}}</tool_call>"#,
             a02Promise,
-            #"<tool_call>{"name":"browser.snapshot","arguments":{}}</tool_call>"#,
+            "The page lists Cortech's newest upload from two days ago.",
         ])
-        check("P5 re-ran a class completed by the original A02 navigate",
-              a02.tools == ["browser.navigate"] && a02.calls.count == 2 && a02.reply == a02Promise)
-        print("  TOOLLOOP_PRODUCTION_PROMISE: actual typed promise continuation; Qwen A02 remains")
+        check("A02 Qwen promise lost requested inspection or added another action",
+              a02.tools == ["browser.navigate", "browser.snapshot"]
+                && a02.calls.count == 3
+                && a02.reply == "The page lists Cortech's newest upload from two days ago."
+                && a02.calls.last?.user.contains("Cortech — newest upload") == true
+                && a02.calls.last?.user.contains("That promised action has not run.") == false)
+        print("  TOOLLOOP_PRODUCTION_PROMISE: actual typed promise continuation; A02 page-read handoff, native playback remains")
         return []
     }
 

@@ -16,7 +16,7 @@ enum AccountReadTools {
         case .files:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
-        case .meetings, .memory, .screen, .reminders:
+        case .meetings, .memory, .screen, .reminders, .browser:
             guard let read = AgentAccountRead.defaultRead(for: intent, request: request) else { return nil }
             id = read.toolID
         default: return nil
@@ -63,6 +63,9 @@ enum AgentAccountRead {
     static func defaultRead(for intent: AgentIntentClass, request: String,
                             now: Date = Date()) -> (toolID: String, arguments: [String: String])? {
         switch intent {
+        case .browser:
+            guard requestsBrowserVideoInspection(request) else { return nil }
+            return ("browser.snapshot", [:])
         case .reminders:
             guard requestsReminderListRead(request) else { return nil }
             return ("schedule.list", [:])
@@ -131,6 +134,17 @@ enum AgentAccountRead {
         toolIDFor: (AgentIntentClass) -> String?, request: String, now: Date = Date(),
         manifest: AgentCapabilityManifest? = nil
     ) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+        // Opening the requested site does not inspect the named video. This
+        // prerequisite is a read only; its result supplies ids to the same planner.
+        // Prior-session page state cannot answer this turn's navigation.
+        if selectedIntents.contains(.browser), let navigation = completedThisTurn.lastIndex(of: "browser.navigate"),
+           !completedThisTurn.dropFirst(navigation + 1).contains(where: { ["browser.snapshot", "browser.read_page", "browser.click"].contains($0) }),
+           let read = defaultRead(for: .browser, request: request, now: now),
+           let manifest, manifest.selectedIDs.contains(read.toolID),
+           let entry = manifest.entry(named: read.toolID),
+           entry.intent == .browser, entry.risk <= .read, entry.isReady {
+            return (.browser, read.toolID, read.arguments)
+        }
         // 1. An account or meeting class selected for this request.
         let candidates = selectedIntents.intersection(classes).sorted { $0.rawValue < $1.rawValue }
         guard candidates.isEmpty == false else { return nil }
@@ -176,6 +190,25 @@ enum AgentAccountRead {
             return (intent, read.toolID, read.arguments)
         }
         return nil
+    }
+
+    /// A literal open-site then named-video instruction needs page metadata
+    /// before the planner can choose a target. Neither a question, quoted prose,
+    /// a bare navigate nor a further unrelated instruction acquires this read.
+    private static func requestsBrowserVideoInspection(_ request: String) -> Bool {
+        guard !request.contains(where: { "\n\r\"“”‘’'`?!;".contains($0) }) else { return false }
+        guard let expression = try? NSRegularExpression(pattern: #"\b(?:and|then)\b"#, options: .caseInsensitive)
+        else { return false }
+        let ranges = expression.matches(in: request, range: NSRange(request.startIndex..., in: request))
+        guard ranges.count == 1, let split = Range(ranges[0].range, in: request),
+              let opened = AgentDirectIntent.parse(String(request[..<split.lowerBound])),
+              case .openURL = opened
+        else { return false }
+        let following = AgentDirectIntent.questionForm(String(request[split.upperBound...]))
+        let words = words(of: following)
+        return words.first == "play" && words.last == "video" && words.count >= 3
+            && words.contains(where: { !["play", "the", "a", "latest", "newest", "video"].contains($0) })
+            && !words.contains(where: { ["or", "if", "unless", "email", "send", "delete", "buy", "purchase"].contains($0) })
     }
 
     /// The existing own-to-do question route asks for saved reminders. Only a
