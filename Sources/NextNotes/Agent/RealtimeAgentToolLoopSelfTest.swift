@@ -406,6 +406,35 @@ enum RealtimeAgentToolLoopSelfTest {
     /// the local model; it does not add a row to the user's Agent conversation.
     @MainActor
     static func runVoiceGrounding() async -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-grounding",
+              AgentSession.shared.fileURL == nil else {
+            SelfTest.diagnostic("VOICE_GROUNDING_FAILED: model probe requires its isolated self-test")
+            return false
+        }
+        let provider: LlamaLLMProvider
+        if CommandLine.arguments.contains("--model") {
+            let pins = CommandLine.arguments.indices.filter { CommandLine.arguments[$0] == "--model" }
+            guard pins.count == 1, let pin = SelfTest.value(after: "--model"),
+                  !pin.isEmpty, pin != "agent", pin != "apple", !pin.hasPrefix("openrouter:"),
+                  let resolved = await ToolLoopLiveEval.resolveModel(argument: pin, allowCloud: false),
+                  !resolved.isFallback, let local = resolved.provider as? LlamaLLMProvider,
+                  let artifact = resolved.artifact else {
+                SelfTest.diagnostic("VOICE_GROUNDING_FAILED: explicit local model pin could not be resolved")
+                return false
+            }
+            let actual = await local.runtime.activeSpec()
+            guard actual.fileURL == artifact.fileURL else {
+                SelfTest.diagnostic("VOICE_GROUNDING_FAILED: explicit pin differs from the runtime model")
+                return false
+            }
+            provider = local
+        } else {
+            provider = LlamaLLMProvider()
+        }
+        let selectedArtifact = await provider.runtime.activeSpec()
+        let selectedBytes = ((try? FileManager.default.attributesOfItem(
+            atPath: selectedArtifact.fileURL.path)[.size]) as? NSNumber)?.int64Value ?? -1
+        SelfTest.diagnostic("VOICE_GROUNDING_MODEL phase=selected requested=\(String(reflecting: SelfTest.value(after: "--model") ?? "builtin")) model=\(String(reflecting: selectedArtifact.displayName)) file=\(String(reflecting: selectedArtifact.fileURL.path)) bytes=\(selectedBytes)")
         let groundingFailures = await runGroundingChecks()
         // The prompt the voice path actually hears, not a copy of it.
         let voiceAnswer = LocalVoiceSplitResponse.answerInstructions
@@ -422,7 +451,6 @@ enum RealtimeAgentToolLoopSelfTest {
             promptFailures.append("the spoken-answer prompt grew to \(voiceAnswer.count) characters")
         }
         for failure in promptFailures { print("VOICE_GROUNDING_WRONG: \(failure)") }
-        let provider = LlamaLLMProvider()
         if let reason = await provider.unavailableReason {
             print("VOICE_GROUNDING_FAILED: \(reason)")
             return false
@@ -551,8 +579,13 @@ enum RealtimeAgentToolLoopSelfTest {
         print("VOICE_IDENTITY_RESPONSE: \(String(identityAnswer.prefix(240)))")
         if !knowsUser { print("VOICE_GROUNDING_WRONG: the speaking path still does not know the user") }
 
+        let completedArtifact = await provider.runtime.activeSpec()
+        let completedLoaded = await provider.runtime.isLoaded
+        let artifactMatches = completedLoaded && completedArtifact.fileURL == selectedArtifact.fileURL
+        SelfTest.diagnostic("VOICE_GROUNDING_MODEL phase=completed loaded=\(completedLoaded) matches=\(artifactMatches) model=\(String(reflecting: completedArtifact.displayName)) file=\(String(reflecting: completedArtifact.fileURL.path))")
+        if !artifactMatches { SelfTest.diagnostic("VOICE_GROUNDING_WRONG: model artifact changed or was not loaded") }
         let passed = correct && understandsReferent && addressesTimeout && knowsUser
-            && promptFailures.isEmpty
+            && promptFailures.isEmpty && artifactMatches
         print(passed ? "VOICE_GROUNDING_OK" : "VOICE_GROUNDING_FAILED")
         return passed
     }
