@@ -159,6 +159,13 @@ final class AgentSpeechSynthesizer {
     /// (`Settings.agentVoiceEngine`). Honoured only under the self-test harness, because
     /// changing `Settings` from a self-test writes the owner's defaults.
     var engineOverrideForTesting: String?
+    // Nil for ordinary playback; the existing scripted suspend flag drives
+    // preparation availability without loading or changing the chosen voice.
+    private var pocketReadinessForTesting: Bool?
+    private var pocketIsReady: Bool {
+        if SelfTest.isRunning, let pocketReadinessForTesting { return pocketReadinessForTesting }
+        return PocketAgentVoice.shared.isReady
+    }
     /// Called on the backing's first output acknowledgement. Pocket reports
     /// the first completed player buffer; Apple reports its delegate start;
     /// Kokoro reports a successful `play()`. These are different strengths of
@@ -311,7 +318,7 @@ final class AgentSpeechSynthesizer {
                 )
             } else {
                 switch Self.selectedEngine {
-                case "pocket":
+                case "pocket" where pocketIsReady:
                     backing = pocketBacking
                 case "kokoro" where KokoroAgentVoice.isSupportedOS:
                     backing = kokoroBacking
@@ -737,7 +744,49 @@ final class AgentSpeechSynthesizer {
             !pocketProbeRequested(requested: "--selftest-tts-pocket", arguments: ["--selftest-tts-pocket", modifier]),
             !pocketProbeRequested(requested: nil, arguments: [modifier])]
         guard scoped.allSatisfy({ $0 }) else { return ["suspend: Pocket probe escaped its exact diagnostic flags"] }
-        return runFallbackSelfTest()
+        return runFallbackSelfTest() + runPocketReadinessSelfTest()
+    }
+
+    private static func runPocketReadinessSelfTest() -> [String] {
+        guard SelfTest.isRunning else { return ["voice readiness: diagnostic admission missing"] }
+        let synth = AgentSpeechSynthesizer.shared
+        let savedEngine = synth.engineOverrideForTesting
+        let savedReadiness = synth.pocketReadinessForTesting
+        let savedPreference = Settings.shared.agentVoiceEngine
+        var failures: [String] = []
+        defer {
+            synth.stop()
+            synth.restoreSystemBacking()
+            synth.engineOverrideForTesting = savedEngine
+            synth.pocketReadinessForTesting = savedReadiness
+        }
+        synth.restoreSystemBacking()
+        synth.engineOverrideForTesting = "pocket"
+        synth.pocketReadinessForTesting = false
+        synth.prepareForStream()
+        if (synth.backing as AnyObject) !== synth.systemBacking {
+            failures.append("voice readiness: preparing Pocket did not immediately select Apple")
+        }
+        synth.stop()
+        if !synth.didStop || synth.currentClause != nil || synth.pendingClauseCount != 0 {
+            failures.append("voice readiness: cancellation retained cold playback")
+        }
+        synth.pocketReadinessForTesting = true
+        synth.prepareForStream()
+        if (synth.backing as AnyObject) !== synth.pocketBacking {
+            failures.append("voice readiness: next ready reply did not select chosen Pocket")
+        }
+        synth.stop()
+        synth.pocketReadinessForTesting = false
+        synth.prepareForStream()
+        if (synth.backing as AnyObject) !== synth.systemBacking || synth.didStop {
+            failures.append("voice readiness: replacement unavailable reply entered Pocket or stayed canceled")
+        }
+        synth.stop()
+        if Settings.shared.agentVoiceEngine != savedPreference {
+            failures.append("voice readiness: temporary playback changed saved preference")
+        }
+        return failures
     }
 
     private static func runFallbackSelfTest() -> [String] {
