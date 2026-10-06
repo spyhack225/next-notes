@@ -1159,6 +1159,7 @@ actor NotesModelRuntime {
         var output = ""
         var pending = ""
         var generated = 0
+        var endedNormally = false
         var reportedFirstToken = false
         var position = llama_pos(promptTokens.count)
         var batch = llama_batch_init(1, 0, 1)
@@ -1174,7 +1175,10 @@ actor NotesModelRuntime {
                 try checkTerminationAdmission()
 
                 let token = llama_sampler_sample(sampler, context, -1)
-                if llama_vocab_is_eog(vocabulary, token) { break }
+                if llama_vocab_is_eog(vocabulary, token) {
+                    endedNormally = true
+                    break
+                }
                 var piece = LlamaHelpers.piece(
                     token, vocabulary: vocabulary, renderSpecial: renderSpecial)
                 if renderSpecial {
@@ -1209,6 +1213,7 @@ actor NotesModelRuntime {
                 }
                 if !turnEnd.isEmpty, pending == turnEnd {
                     pending = ""
+                    endedNormally = true
                     break
                 }
 
@@ -1236,7 +1241,7 @@ actor NotesModelRuntime {
             cachedTokens: reused,
             completionTokens: generated,
             reasoningTokens: nil,
-            finishReason: nil,
+            finishReason: endedNormally ? "stop" : "length",
             estimated: false)
     }
 

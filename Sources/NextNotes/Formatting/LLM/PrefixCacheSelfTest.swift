@@ -49,7 +49,7 @@ enum PrefixCacheSelfTest {
         case failed([String])
     }
 
-    private struct Streamed {
+    private struct Streamed: Sendable {
         var text = ""
         var pieces: [String] = []
         var error: String?
@@ -57,6 +57,9 @@ enum PrefixCacheSelfTest {
     }
 
     static func runSelfTest() async -> Bool {
+        if CommandLine.arguments.contains("--native-stream-finish") {
+            return await nativeStreamFinishChecks()
+        }
         let pure = pureFailures()
         for problem in pure {
             SelfTest.diagnostic("LLM_PREFIX_CACHE_WRONG: \(problem)")
@@ -86,6 +89,133 @@ enum PrefixCacheSelfTest {
             SelfTest.diagnostic("LLM_PREFIX_CACHE_FAILED: \(problems.count) problem(s)")
             return false
         }
+    }
+
+    /// Actual native stream -> provider recorder -> persisted usage reader. The same
+    /// finite grammar must exhaust a small allowance and end normally with a larger one.
+    /// The caller deliberately supplies its ordinary "stop" fallback in both cases.
+    private static func nativeStreamFinishChecks() async -> Bool {
+        let arguments = CommandLine.arguments
+        guard let index = arguments.firstIndex(of: "--model"),
+              arguments.indices.contains(index + 1),
+              arguments.filter({ $0 == "--model" }).count == 1,
+              arguments[index + 1].hasPrefix("file:") else {
+            SelfTest.diagnostic("NATIVE_STREAM_FINISH_FAILED: explicit --model file pin required")
+            return false
+        }
+        let path = String(arguments[index + 1].dropFirst("file:".count))
+        let file = URL(fileURLWithPath: path)
+        // ModelSpec resolves its filename in Models. Match the existing file resolver's
+        // directory admission, then require a regular existing file; never adopt defaults.
+        guard file.path == path, file.pathExtension.lowercased() == "gguf",
+              file.deletingLastPathComponent().standardizedFileURL ==
+                  ModelSpec.directory.standardizedFileURL,
+              let attributes = try? FileManager.default.attributesOfItem(atPath: path),
+              attributes[.type] as? FileAttributeType == .typeRegular,
+              let bytes = (attributes[.size] as? NSNumber)?.int64Value, bytes > 0 else {
+            SelfTest.diagnostic("NATIVE_STREAM_FINISH_FAILED: invalid or absent model file pin")
+            return false
+        }
+        let spec = ModelSpec(
+            displayName: file.deletingPathExtension().lastPathComponent,
+            fileName: file.lastPathComponent, url: file,
+            expectedBytes: bytes, expectedSHA256: nil)
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(
+            "NextNotesStreamFinish-" + UUID().uuidString, isDirectory: true)
+        do {
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        } catch {
+            SelfTest.diagnostic("NATIVE_STREAM_FINISH_FAILED: private usage directory unavailable")
+            return false
+        }
+        let log = UsageLog(directory: directory)
+        let runtime = NotesModelRuntime(spec: spec, gpuLayers: NotesModelRuntime.allGPULayers)
+        let provider = LlamaLLMProvider(modelName: spec.displayName, runtime: runtime)
+        let literal = "alpha bravo charlie delta echo foxtrot golf hotel india juliet"
+        let grammar = GBNFGrammar(text: #"root ::= "alpha bravo charlie delta echo foxtrot golf hotel india juliet""#)
+        let system = "Return exactly the requested fixed phrase."
+        let user = literal
+        var failures: [String] = []
+        func check(_ condition: Bool, _ problem: String) {
+            if !condition { failures.append(problem) }
+        }
+        do {
+            // This check uses the pinned vocabulary, not a character/token estimate.
+            let tokens = try await provider.countTokens(literal)
+            guard tokens > 2, tokens < 64, grammar.structuralProblems().isEmpty else {
+                throw CocoaError(.coderInvalidValue)
+            }
+            for (pass, cap, limited) in [
+                ("native-stream-finish-limited", 2, true),
+                ("native-stream-finish-complete", 64, false),
+            ] {
+                let turnID = UUID()
+                let recorder = ModelPassRecorder(
+                    feature: .agentTyped, pass: pass, provider: provider,
+                    ids: UsageCorrelation(turnID: turnID), log: log)
+                let result = await ModelPassRecorder.$current.withValue(recorder) {
+                    await drain(await provider.stream(
+                        system: system, user: user, maxTokens: cap, grammar: grammar),
+                        recorder: recorder)
+                }
+                recorder.noteModelEnd()
+                if let error = result.error { recorder.fail(message: error) }
+                recorder.finish(reason: "stop")
+                recorder.finish(reason: "stop") // Existing once-only commit remains once-only.
+                log.flush()
+                let rows = try UsageLog.loadForReport(directory: directory)
+                let matching = rows.filter { $0.turnID == turnID }
+                check(matching.count == 1, "\(pass): expected one persisted row for the actual turn")
+                check(result.error == nil && !result.wasCancelled,
+                      "\(pass): native stream failed or was cancelled")
+                check(!result.text.isEmpty && literal.hasPrefix(result.text),
+                      "\(pass): actual streamed output is not a nonempty authored prefix")
+                check(limited ? result.text != literal : result.text == literal,
+                      "\(pass): actual grammar completion does not match its allowance")
+                guard let row = matching.first else { continue }
+                check(row.pass == pass && row.feature == UsageFeature.agentTyped.rawValue
+                          && row.provider == UsageProvider.llama.rawValue
+                          && row.modelID == spec.displayName && row.locality == "local",
+                      "\(pass): persisted row does not identify the actual pinned provider")
+                check(row.countsEstimated == false && (row.promptTokens ?? 0) > 0,
+                      "\(pass): native prompt/completion usage is absent or estimated")
+                let completion = row.completionTokens ?? 0
+                check(limited ? completion == cap : completion > 0 && completion < cap,
+                      "\(pass): native generated count does not prove allowance/end distinction")
+                check(row.cachedTokens != nil && (row.cachedTokens ?? -1) >= 0
+                          && (row.cachedTokens ?? Int.max) <= (row.promptTokens ?? 0),
+                      "\(pass): native cached-token count is absent or invalid")
+                if !limited {
+                    check((row.cachedTokens ?? 0) > 0 && row.warm == true,
+                          "\(pass): same-runtime repeated prompt did not reuse its native prefix")
+                }
+                check(row.errorClass == nil, "\(pass): persisted usage records a native failure")
+                check(row.finishReason == (limited ? "length" : "stop"),
+                      "\(pass): persisted finish reason lost the actual native termination")
+                check(row.truncated == limited,
+                      "\(pass): persisted truncation lost the actual native termination")
+                SelfTest.diagnostic(
+                    "NATIVE_STREAM_FINISH_ROW pass=\(pass) cap=\(cap) "
+                        + "prompt=\(row.promptTokens ?? -1) cached=\(row.cachedTokens ?? -1) "
+                        + "completion=\(completion) estimated=\(row.countsEstimated == true) "
+                        + "finish=\(row.finishReason ?? "nil") truncated=\(row.truncated == true)")
+                // Authored fixture output only; never included in the usage record itself.
+                SelfTest.diagnostic("NATIVE_STREAM_FINISH_OUTPUT pass=\(pass) text=\(result.text)")
+            }
+            check(try UsageLog.loadForReport(directory: directory).count == 2,
+                  "expected exactly two native pass rows in the private usage log")
+        } catch {
+            failures.append("native grammar/usage qualification failed: \(error.localizedDescription)")
+        }
+        // Join the same private native owner before removing its temporary consumer files.
+        check(await runtime.finishTermination(), "private native owner did not finish termination")
+        log.flush()
+        do { try FileManager.default.removeItem(at: directory) }
+        catch { failures.append("private usage directory cleanup failed") }
+        for problem in failures { SelfTest.diagnostic("NATIVE_STREAM_FINISH_WRONG: \(problem)") }
+        SelfTest.diagnostic(failures.isEmpty ? "NATIVE_STREAM_FINISH_OK"
+                          : "NATIVE_STREAM_FINISH_FAILED: \(failures.count) problem(s)")
+        return failures.isEmpty
     }
 
     // MARK: - Part A, pure
@@ -441,12 +571,17 @@ enum PrefixCacheSelfTest {
         "This probe uses a different opening sentence on purpose. " + fixtureSystem()
     }
 
-    private static func drain(_ stream: AsyncThrowingStream<String, Error>) async -> Streamed {
+    private static func drain(
+        _ stream: AsyncThrowingStream<String, Error>, recorder: ModelPassRecorder? = nil
+    ) async -> Streamed {
         var result = Streamed()
         do {
             for try await piece in stream {
                 result.text += piece
-                if !piece.isEmpty { result.pieces.append(piece) }
+                if !piece.isEmpty {
+                    recorder?.noteFirstToken()
+                    result.pieces.append(piece)
+                }
             }
         } catch {
             result.error = error.localizedDescription
