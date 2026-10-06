@@ -35,6 +35,7 @@ enum VoiceTurnPolicy {
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return Set([
             "cancel that", "cancel the task", "cancel what you are doing",
+            "cancel", "cancel it", "cancel that task", "stop that task",
             "stop working on that", "never mind", "nevermind", "forget that request"
         ]).contains(normalized)
     }
@@ -286,12 +287,15 @@ enum VoiceTurnPolicy {
         if isBackchannel("yes", whileAssistantSpeaking: false) {
             failures.append("suppressed an answer when assistant was quiet")
         }
-        for phrase in ["Cancel that.", "Never mind", "Stop working on that"] {
+        for phrase in ["Cancel that.", "Never mind", "Stop working on that",
+                       "Cancel.", "Cancel it.", "Cancel that task", "Stop that task."] {
             if !isExplicitWorkCancellation(phrase) {
                 failures.append("missed explicit work cancellation: \(phrase)")
             }
         }
-        for phrase in ["stop talking", "cancel that and open Safari", "never mind the color"] {
+        for phrase in ["stop talking", "cancel that and open Safari", "never mind the color",
+                       "cancel the appointment", "cancel it after lunch", "should I cancel that task?",
+                       "don't cancel that task", "cancel it and read a file"] {
             if isExplicitWorkCancellation(phrase) {
                 failures.append("cancelled an ambiguous instruction: \(phrase)")
             }
