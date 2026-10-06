@@ -222,6 +222,11 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         // The embedders are a batch backfill's, never a live path's: they go first.
         await EmbeddingRuntime.shared.stopNow()
         StaticEmbedder.shared.unload()
+        // Streaming EOU is a separate capture-owned graph. Drop it only idle;
+        // its existing task chain settles native work before releasing weights.
+        if let capture = await AgentCaptureController.sharedIfLoaded {
+            await capture.releaseIdleEOUUnderPressure()
+        }
         let plan = ModelResidencyPolicy.unloadOrder(
             resident: [.notes, .diarization, .asr, .wake],
             wakeNeeded: true,

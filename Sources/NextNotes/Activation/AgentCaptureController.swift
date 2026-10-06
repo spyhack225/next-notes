@@ -90,7 +90,14 @@ private final class TurnAudioBacklog: @unchecked Sendable {
 @MainActor
 @Observable
 final class AgentCaptureController {
-    static let shared = AgentCaptureController()
+    private static var loadedShared: AgentCaptureController?
+    static var shared: AgentCaptureController {
+        if let loadedShared { return loadedShared }
+        let capture = AgentCaptureController()
+        loadedShared = capture
+        return capture
+    }
+    static var sharedIfLoaded: AgentCaptureController? { loadedShared }
 
     enum Limits {
         static let speechLevel: Float = 0.06
@@ -167,7 +174,9 @@ final class AgentCaptureController {
     private var audioContinuation: AsyncStream<AudioChunk>.Continuation?
     private var turnDetector: LocalVoiceTurnDetector?
     @ObservationIgnored private var inputProducerProbeForTesting: VoiceInputProducerProbe?
+    // The latest task also retains/joins its retiring predecessor off the input path.
     private var turnDetectorTask: Task<Void, Never>?
+    private var eouTerminationRequested = false
     private var turnAudioBacklog: TurnAudioBacklog?
     private var turnDetectorReady = false
     /// The local decoder owns the visible/preparation candidate only after it
@@ -262,6 +271,7 @@ final class AgentCaptureController {
     func beginSession(captureAudio: Bool = true, origin: VoiceSessionOrigin = .other,
         wakeConfirmationPending: Bool = false,
         onOpened: (@MainActor (UUID) -> Void)? = nil) async {
+        guard !eouTerminationRequested else { return }
         if isSessionActive {
             if origin == .wake { VoiceConversationCoordinator.shared.noteSessionOpened(origin: origin, at: Date()) }
             return
@@ -316,7 +326,7 @@ final class AgentCaptureController {
         localDecoderCaughtUp = false
         localOwnsPartial = false
         deferFrontendForEOU = false
-        resetTurn()
+        resetTurn(resetDecoder: false)
         VoiceSession.shared.send(.sessionOpened(sessionID: captureID))
         turnDetectorReady = false
         modelEOUAt = nil
@@ -652,16 +662,23 @@ final class AgentCaptureController {
         let turnAudioBacklog = TurnAudioBacklog()
         let turnAudioSequence = TurnAudioSequence()
         let producerProbeForTesting = SelfTest.isRunning ? inputProducerProbeForTesting : nil
-        let detector = LocalVoiceTurnDetector(producerProbeForTesting: producerProbeForTesting)
+        let retiringDecoderTask = turnDetectorTask
+        let detector = turnDetector ?? LocalVoiceTurnDetector(producerProbeForTesting: producerProbeForTesting)
         turnDetector = detector
         self.turnAudioBacklog = turnAudioBacklog
         let eouCallback = makeEOUCallback(captureID: captureID, epoch: turnEpoch)
         let partialCallback = makePartialCallback(captureID: captureID, epoch: turnEpoch)
         turnDetectorTask = Task.detached(priority: .userInitiated) {
+            var nativeFailure = false
             do {
+                // Mic/Apple ASR and their feed already opened. Rebind only after
+                // the retiring native session (or pressure release) settles.
                 let prepareStarted = Date()
+                await retiringDecoderTask?.value
+                try Task.checkCancellation()
                 try await detector.prepare(onEndOfUtterance: eouCallback,
-                    onPartial: partialCallback)
+                    onPartial: partialCallback, sessionID: captureID,
+                    producerProbeForTesting: producerProbeForTesting)
                 try Task.checkCancellation()
                 await MainActor.run {
                     guard AgentCaptureController.shared.captureSessionID == captureID else { return }
@@ -784,7 +801,10 @@ final class AgentCaptureController {
                   }
                 }
             } catch {
-                Log.agent.error("local voice EOU unavailable: \(error.localizedDescription, privacy: .public)")
+                nativeFailure = !(error is CancellationError)
+                if nativeFailure {
+                    Log.agent.error("local voice EOU unavailable: \(error.localizedDescription, privacy: .public)")
+                }
             }
             await MainActor.run {
                 guard AgentCaptureController.shared.captureSessionID == captureID else { return }
@@ -795,7 +815,14 @@ final class AgentCaptureController {
                     AgentCaptureController.shared.prepareVoiceFrontend()
                 }
             }
-            await detector.close()
+            let failed = nativeFailure
+            let keepPrepared = await MainActor.run {
+                let capture = AgentCaptureController.shared
+                return !failed && !capture.eouTerminationRequested
+                    && capture.turnDetector === detector
+                    && (capture.isSessionActive || ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork)
+            }
+            await detector.close(keepingPrepared: keepPrepared)
         }
         let feedTask = Task.detached(priority: .userInitiated) {
             let converter = captureFormat == format
@@ -1012,9 +1039,9 @@ final class AgentCaptureController {
         audioContinuation = nil
         turnAudioBacklog?.finish()
         turnAudioBacklog = nil
+        // Keep the same task/owner until its native drain settles. A new session
+        // joins that handle inside its detached preparation, never at key-down.
         turnDetectorTask?.cancel()
-        turnDetectorTask = nil
-        turnDetector = nil
         fileCaptureFormat = nil
         fileDeliveryForTesting = nil
         turnDetectorReady = false
@@ -1037,6 +1064,173 @@ final class AgentCaptureController {
             }
         }
     }
+
+    // EOU_REUSE_COMMON_BEGIN
+    func releaseIdleEOUUnderPressure() async {
+        guard !isSessionActive, let detector = turnDetector else { return }
+        let retiring = turnDetectorTask
+        // Chain cleanup through the existing handle so reopen and quit can join it.
+        let release = Task.detached(priority: .utility) {
+            await retiring?.value
+            let stillIdle = await MainActor.run {
+                let capture = AgentCaptureController.shared
+                return !capture.isSessionActive && capture.turnDetector === detector
+            }
+            if stillIdle { await detector.close() }
+        }
+        turnDetectorTask = release
+        await release.value
+    }
+
+    func beginEOUTermination() -> Task<Void, Never>? {
+        guard !eouTerminationRequested else { return nil }
+        eouTerminationRequested = true
+        // Refuse callbacks/new admission synchronously before any shutdown await.
+        captureSessionID = nil
+        let decoder = turnDetectorTask
+        let detector = turnDetector
+        turnDetectorTask = nil
+        turnDetector = nil
+        fileFeedTask?.cancel()
+        turnAudioBacklog?.finish()
+        decoder?.cancel()
+        return Task { @MainActor in
+            await self.endSession(source: .done)
+            await decoder?.value
+            await detector?.close()
+        }
+    }
+
+    /// Native EOU lifecycle only. The authored file and actual capture/decoder are unchanged;
+    /// the existing turn handler records commits without starting LLM/TTS work.
+    static func runEOUReuseSelfTest(wav: URL) async -> [String] {
+        guard SelfTest.requested == "--selftest-voice-eou",
+              CommandLine.arguments.contains("--voice-eou-reuse") else {
+            return ["EOU reuse requires its exact diagnostic flag"]
+        }
+        let capture = AgentCaptureController.shared
+        await capture.endSession(source: .done)
+        let priorHandler = capture.turnHandlerForTesting
+        let priorProbe = capture.inputProducerProbeForTesting
+        let probe = VoiceInputProducerProbe(holdPrepare: false, holdFirstCommit: false)
+        capture.inputProducerProbeForTesting = probe
+        var records: [(UUID, String, EndpointSource)] = []
+        capture.turnHandlerForTesting = { text in
+            if let id = capture.captureSessionID {
+                records.append((id, text, capture.lastEndpoint))
+            }
+        }
+        var failures: [String] = []
+        @MainActor func count(_ name: String, in probe: VoiceInputProducerProbe) -> Int {
+            probe.snapshot().filter { $0.kind == name }.count
+        }
+        @MainActor func waitFor(_ predicate: @MainActor () -> Bool) async -> Bool {
+            let deadline = Date().addingTimeInterval(8)
+            while !predicate(), Date() < deadline {
+                try? await Task.sleep(for: .milliseconds(20))
+            }
+            return predicate()
+        }
+        do {
+            var sessionIDs: [UUID] = []
+            for index in 0..<2 {
+                try await capture.beginFileSession(wav: wav, prepareResources: false)
+                guard let id = capture.captureSessionID else { throw TranscriptionError.notRunning }
+                sessionIDs.append(id)
+                await capture.fileFeedTask?.value
+                if !(await waitFor({ records.count > index })) {
+                    failures.append("session \(index): native EOU did not commit its authored file")
+                }
+                await capture.waitForActiveTurnForTesting()
+                if index == 1, let detector = capture.turnDetector {
+                    let staleResetRan = await detector.resetForNextTurn(
+                        onEndOfUtterance: { _ in }, onPartial: { _ in },
+                        sessionID: sessionIDs.first)
+                    if staleResetRan {
+                        failures.append("retired session reset rebound the next native decoder callbacks")
+                    }
+                }
+                // Capture before normal stop so original cleanup cannot hide an unjoined task.
+                let decoder = capture.turnDetectorTask
+                await capture.endSession(source: .done)
+                await decoder?.value
+            }
+            if count("prepare.load", in: probe) != 1 || count("prepare.loaded", in: probe) != 1 {
+                failures.append("two actual sessions reloaded EOU: load=\(count("prepare.load", in: probe)) completed=\(count("prepare.loaded", in: probe))")
+            }
+            if count("native.eou", in: probe) < 2 || records.count != 2
+                || records.contains(where: { $0.1.isEmpty || $0.2 != .localEOU })
+                || Set(records.map { $0.0 }) != Set(sessionIDs) || Set(sessionIDs).count != 2 {
+                failures.append("native endpoints did not retain two distinct session identities")
+            }
+            if let detector = capture.turnDetector {
+                if !(await detector.modelsPreparedForTesting()) {
+                    failures.append("normal session close did not retain prepared EOU weights")
+                }
+            } else { failures.append("normal session close discarded the EOU owner") }
+            let closedBefore = count("models.closed", in: probe)
+            let idlePressure = ModelResidencyGuardian(releaseForTesting: {
+                await capture.releaseIdleEOUUnderPressure()
+            })
+            idlePressure.receive(.warning)
+            if !(await waitFor({ count("models.closed", in: probe) > closedBefore })) {
+                failures.append("idle pressure did not release actual EOU models")
+            }
+            if let detector = capture.turnDetector, await detector.modelsPreparedForTesting() {
+                failures.append("idle pressure left prepared EOU weights resident")
+            }
+            // Cold reload after pressure, held inside the SAME real preparation operation.
+            let held = VoiceInputProducerProbe(holdPrepare: true, holdFirstCommit: false)
+            capture.inputProducerProbeForTesting = held
+            try await capture.beginFileSession(wav: wav, deferFeed: true, prepareResources: false)
+            let decoder = capture.turnDetectorTask
+            if !(await waitFor({ count("prepare.held", in: held) == 1 })) {
+                failures.append("pressure restart never reached the actual held load/prime")
+            }
+            let busyPressure = ModelResidencyGuardian(releaseForTesting: {
+                await capture.releaseIdleEOUUnderPressure()
+            })
+            busyPressure.receive(.warning)
+            for _ in 0..<20 { await Task.yield() }
+            if count("models.closed", in: held) != 0 {
+                failures.append("pressure released an active held decoder")
+            }
+            let quit = capture.beginEOUTermination()
+            var joined = false
+            let observeQuit = Task { @MainActor in
+                if let quit { await quit.value }
+                joined = true
+            }
+            for _ in 0..<20 { await Task.yield() }
+            if quit == nil || joined { failures.append("quit did not join its held native preparation") }
+            held.releaseAll()
+            await observeQuit.value
+            if let decoder { decoder.cancel(); await decoder.value }
+            if quit == nil { await capture.endSession(source: .done) }
+            await capture.beginSession(captureAudio: false)
+            if capture.isSessionActive || capture.captureSessionID != nil {
+                failures.append("quit reopened native capture admission")
+            }
+            if count("prepare.load", in: held) != 1 || count("prepare.loaded", in: held) != 1
+                || count("models.closed", in: held) == 0 {
+                failures.append("pressure reload/quit did not bind the same actual models")
+            }
+            capture.inputProducerProbeForTesting?.releaseAll()
+        } catch {
+            failures.append("EOU reuse native flow: \(error.localizedDescription)")
+            capture.inputProducerProbeForTesting?.releaseAll()
+        }
+        let decoder = capture.turnDetectorTask
+        await capture.endSession(source: .done)
+        decoder?.cancel()
+        await decoder?.value
+        await capture.releaseIdleEOUUnderPressure()
+        capture.turnHandlerForTesting = priorHandler
+        capture.inputProducerProbeForTesting = priorProbe
+        SelfTest.diagnostic("VOICE_EOU_REUSE_NATIVE sessions=\(records.count) load=\(count("prepare.load", in: probe)) completed=\(count("prepare.loaded", in: probe)) eou=\(count("native.eou", in: probe))")
+        return failures
+    }
+    // EOU_REUSE_COMMON_END
 
     private func startVAD() {
         vadTask?.cancel()
@@ -2008,19 +2202,19 @@ final class AgentCaptureController {
         return failures
     }
 
-    private func resetTurn() {
+    private func resetTurn(resetDecoder: Bool = true) {
         inputProducerProbeForTesting?.record("capture.reset", epoch: turnEpoch)
         voiceShadowTurn = nil
         appleEchoRecognition = .init()
         localEchoRecognition = .init()
         wordlessModelEOU = false
         turnEpoch &+= 1
-        if let turnDetector {
+        if resetDecoder, let turnDetector {
             if let captureID = captureSessionID {
                 let callback = makeEOUCallback(captureID: captureID, epoch: turnEpoch)
                 let partial = makePartialCallback(captureID: captureID, epoch: turnEpoch)
                 Task { await turnDetector.resetForNextTurn(
-                    onEndOfUtterance: callback, onPartial: partial) }
+                    onEndOfUtterance: callback, onPartial: partial, sessionID: captureID) }
             }
         }
         transcript = ""

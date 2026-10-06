@@ -2255,7 +2255,10 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     SelfTest.requestTermination()
                     return
                 }
-                let failures = await LocalVoiceTurnDetector.selfTest(wav: URL(fileURLWithPath: path))
+                let wav = URL(fileURLWithPath: path)
+                let failures = CommandLine.arguments.contains("--voice-eou-reuse")
+                    ? await AgentCaptureController.runEOUReuseSelfTest(wav: wav)
+                    : await LocalVoiceTurnDetector.selfTest(wav: wav)
                 for failure in failures { writeSelfTest("VOICE_EOU_WRONG: \(failure)") }
                 SelfTest.failed = !failures.isEmpty
                 writeSelfTest(SelfTest.failed ? "VOICE_EOU_FAILED" : "VOICE_EOU_OK")
@@ -10033,6 +10036,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         let parakeet = startupTerminationFixtureForTesting?.parakeet ?? ParakeetModels.shared
         let asrQueue = startupTerminationFixtureForTesting?.queue ?? TranscriptionQueue.shared
         // Cancel file-render callers before native admission closes; join these same handles below.
+        let eouTerminationTask = AgentCaptureController.sharedIfLoaded?.beginEOUTermination()
         let catchUpRenderTasks = CatchUpTemplate.beginTermination()
         pocket.beginTermination()
         let wake = WakeWordAudioMonitor.shared
@@ -10089,6 +10093,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             await finalTranscripts.finishTermination(ownedFinalTasks)
             await diarization.finishTermination(ownedDiarizationTasks)
             await diarizer.finishTermination()
+            if let eouTerminationTask { await eouTerminationTask.value }
             for task in catchUpRenderTasks { await task.value }
             await pocket.finishTermination()
             await wake.finishTermination()

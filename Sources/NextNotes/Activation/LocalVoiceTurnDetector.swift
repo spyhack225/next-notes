@@ -141,7 +141,8 @@ final class VoiceInputProducerProbe: @unchecked Sendable {
 actor LocalVoiceTurnDetector {
     private let manager = StreamingEouAsrManager(chunkSize: .ms160, eouDebounceMs: 320)
     private var ready = false
-    private let producerProbeForTesting: VoiceInputProducerProbe?
+    private var preparedSessionID: UUID?
+    private var producerProbeForTesting: VoiceInputProducerProbe?
 
     init(producerProbeForTesting: VoiceInputProducerProbe? = nil) {
         // An ordinary app invocation cannot suspend production operations.
@@ -224,11 +225,27 @@ actor LocalVoiceTurnDetector {
 
     func prepare(
         onEndOfUtterance: @escaping @Sendable (String) -> Void,
-        onPartial: @escaping @Sendable (String) -> Void
+        onPartial: @escaping @Sendable (String) -> Void,
+        sessionID: UUID? = nil,
+        producerProbeForTesting probe: VoiceInputProducerProbe? = nil
     ) async throws {
         guard await acquireOperation() else { throw CancellationError() }
         defer { releaseOperation() }
+        if SelfTest.isRunning, let probe { producerProbeForTesting = probe }
+        preparedSessionID = sessionID
+        if ready {
+            await manager.reset()
+            if let producerProbeForTesting {
+                await producerProbeForTesting.holdPreparedDecoder()
+            }
+            await setCallbacks(onEndOfUtterance, onPartial: onPartial)
+            producerProbeForTesting?.record("prepare.reused")
+            producerProbeForTesting?.record("prepare.ready")
+            return
+        }
+        producerProbeForTesting?.record("prepare.load")
         try await manager.loadModels()
+        producerProbeForTesting?.record("prepare.loaded")
         // Core ML can defer its first encoder/decoder compilation until
         // process(), after loadModels returns. Prime that path before capture
         // announces readiness, then discard the silent decoder state.
@@ -264,25 +281,34 @@ actor LocalVoiceTurnDetector {
         completed = true
     }
 
-    func close() async {
+    func close(keepingPrepared: Bool = false) async {
         guard await acquireOperation(cancellable: false) else { return }
         defer { releaseOperation() }
+        // Retain only healthy, fully prepared weights after the owned session drains.
+        guard !keepingPrepared || !ready else { return }
         ready = false
+        preparedSessionID = nil
         await manager.cleanup()
+        producerProbeForTesting?.record("models.closed")
     }
 
+    func modelsPreparedForTesting() -> Bool { ready }
+
+    @discardableResult
     func resetForNextTurn(
         onEndOfUtterance: @escaping @Sendable (String) -> Void,
-        onPartial: @escaping @Sendable (String) -> Void
-    ) async {
+        onPartial: @escaping @Sendable (String) -> Void,
+        sessionID: UUID? = nil
+    ) async -> Bool {
         producerProbeForTesting?.record("reset.requested")
-        guard await acquireOperation() else { return }
+        guard await acquireOperation() else { return false }
         defer { releaseOperation() }
-        guard ready else { return }
+        guard ready, preparedSessionID == sessionID else { return false }
         producerProbeForTesting?.record("reset.granted")
         await manager.reset()
         await setCallbacks(onEndOfUtterance, onPartial: onPartial)
         producerProbeForTesting?.record("reset.completed")
+        return true
     }
 
     func resetForDiscontinuity() async {
