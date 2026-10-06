@@ -58,6 +58,8 @@ enum CallPolicy {
         "com.apple.assistantd",
         "com.apple.Siri",
         "com.apple.accessibility.AXVisualSupportAgent",
+        // Measured 2026-10-06: dictation held both audio flags and armed a false call.
+        "com.electron.wispr-flow",
         // measured 2026-09-23: screen recording armed a call question.
         "com.apple.replayd",
         // Our own bundle, as well as our own pid. A helper or a second copy of Next Notes

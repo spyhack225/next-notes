@@ -6217,6 +6217,32 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             failures.append("com.apple.CoreSpeech counted as a call")
         }
 
+        // Measured 2026-10-06: Wispr Flow held input and output during dictation,
+        // causing the detector to arm a meeting although no call was in progress.
+        let wispr = process(799, "com.electron.wispr-flow", input: true, output: true)
+        if CallPolicy.isCall(wispr, ownPID: ownPID) {
+            failures.append("Wispr Flow dictation counted as a call")
+        }
+        if CallPolicy.isMicrophoneApp(wispr, ownPID: ownPID) {
+            failures.append("Wispr Flow dictation was offered a call-recording answer")
+        }
+        if CallPolicy.candidate(in: [wispr, zoom], ownPID: ownPID, preferring: nil)?.pid
+            != zoom.pid {
+            failures.append("Wispr Flow displaced a real conferencing call")
+        }
+        var wisprState = CallPolicy.DebounceState.quiet
+        for _ in 0..<3 {
+            let candidate = CallPolicy.candidate(
+                in: [wispr], ownPID: ownPID, preferring: wisprState.subject?.pid
+            )
+            wisprState = CallPolicy.next(
+                wisprState, observing: candidate, elapsed: CallPolicy.onThreshold
+            )
+        }
+        if wisprState.call != nil {
+            failures.append("Wispr Flow alone reached the settled call that arms a meeting")
+        }
+
         // A process with no bundle id at all — `afplay` had none — must still be judged on
         // its flags rather than dropped for being anonymous.
         let anonymous = process(905, nil, input: true, output: true)
