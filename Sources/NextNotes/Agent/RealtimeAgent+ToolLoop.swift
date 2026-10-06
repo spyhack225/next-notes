@@ -2247,7 +2247,18 @@ extension RealtimeAgent {
                 // "I cannot open the 'next project' folder yet…" — 20:46:06Z, with both
                 // file tools in this very roster. Hand the planner the contradiction and
                 // let it try once more rather than speaking a refusal that is not true.
-                if !rebutted, let note = AgentRefusalGuard.rebuttal(for: reply, manifest: manifest) {
+                // A requested, eligible file read supplies evidence before a capability
+                // correction. Execution stays below the unsupported-action claim check.
+                let pendingRead = AgentAccountRead.pendingRead(
+                    reply: reply, selectedIntents: manifest.selectedIntents,
+                    completedThisTurn: runner.completedToolIDs,
+                    completedThisSession: AgentSession.shared.completedToolIDs,
+                    toolIDFor: { intent in
+                        AccountReadTools.toolID(for: intent, manifest: manifest, request: currentRequest)
+                    },
+                    request: currentRequest, now: SelfTest.fixtureClock ?? Date(), manifest: manifest)
+                if pendingRead?.intent != .files, !rebutted,
+                   let note = AgentRefusalGuard.rebuttal(for: reply, manifest: manifest) {
                     rebutted = true
                     speech?.cancel()
                     results.append(ToolResultBudget.cap(note, to: 1_200))
@@ -2314,14 +2325,7 @@ extension RealtimeAgent {
                 // same executor, the same risk classes and the same approval policy as any other
                 // call — and it is a read, so it runs by itself exactly where reads run by
                 // themselves today.
-                if let pending = AgentAccountRead.pendingRead(
-                    reply: reply, selectedIntents: manifest.selectedIntents,
-                    completedThisTurn: runner.completedToolIDs,
-                    completedThisSession: AgentSession.shared.completedToolIDs,
-                    toolIDFor: { intent in
-                        AccountReadTools.toolID(for: intent, manifest: manifest, request: currentRequest)
-                    },
-                    request: currentRequest, now: SelfTest.fixtureClock ?? Date(), manifest: manifest) {
+                if let pending = pendingRead {
                     speech?.cancel()
                     let call = AgentToolCall(name: pending.toolID,
                                              arguments: pending.arguments,

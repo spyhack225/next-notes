@@ -158,14 +158,15 @@ enum AgentAccountRead {
             }) { continue }
             // 3. The reply is final — the loop only asks here, after a round that parsed no
             //    call, so a turn about to call `draft_email` never reaches this.
-            // 4. The reply presents contents or offers/promises the requested read.
+            // 4. Explicit file lookup requests own their read; unrelated recipient
+            //    prose cannot replace it. Other classes retain their reply qualification.
             guard (intent == .screen && requestsActiveAppRead(request))
                 || (intent == .memory && requestsMemoryRead(request))
                 || (intent == .reminders && requestsReminderListRead(request))
                 || (intent != .files && presents(intent, reply))
                 || (intent == .meetings && presentsRequestedMeetingContents(reply, request: request))
                 || (intent == .meetings && presentsRequestedMeetingAbsence(reply, request: request))
-                || (intent == .files && presentsRequestedFileAbsence(reply, request: request))
+                || (intent == .files && requestedFileQuery(request) != nil)
             else { continue }
             guard let read = defaultRead(for: intent, request: request, now: now) else { continue }
             if let manifest {
@@ -214,6 +215,9 @@ enum AgentAccountRead {
         let clause = request.replacingOccurrences(
             of: #"\b(?:and|then|also)\b"#, with: "\n", options: [.regularExpression, .caseInsensitive])
             .components(separatedBy: CharacterSet(charactersIn: ".!?;\n")).first ?? ""
+        // Normalization removes double quotes; a quoted instruction is not a request.
+        // Quoted file names after the locate verb still use the existing parser.
+        guard clause.range(of: #"^\s*["“”‘’'`]"#, options: .regularExpression) == nil else { return nil }
         let command = AgentDirectIntent.questionForm(clause)
         guard command.range(of: #"^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:find|locate|look for)\b"#,
                             options: .regularExpression) != nil,
@@ -222,19 +226,6 @@ enum AgentAccountRead {
         // The search descriptor asks for words from the name, not the generic object.
         let query = words(of: name).filter { !["document", "documents", "doc", "docs"].contains($0) }
         return query.isEmpty ? nil : query.joined(separator: " ")
-    }
-
-    /// F03's unsupported local-file absence claim is contents, not a capability
-    /// denial or a missing-recipient question. A completed read suppresses it above.
-    private static func presentsRequestedFileAbsence(_ reply: String, request: String) -> Bool {
-        guard let query = requestedFileQuery(request) else { return false }
-        let name = words(of: query)
-        return reply.components(separatedBy: CharacterSet(charactersIn: ".!?\n")).contains { sentence in
-            let text = AgentDirectIntent.questionForm(sentence)
-            return text.range(of: #"^i (?:don't|do not) have\b.+\bon (?:this|your|the) mac\b"#,
-                              options: .regularExpression) != nil
-                && name.allSatisfy { words(of: text).contains($0) }
-        }
     }
 
     /// An explicit sender question supplies its own literal name, not a guessed address.

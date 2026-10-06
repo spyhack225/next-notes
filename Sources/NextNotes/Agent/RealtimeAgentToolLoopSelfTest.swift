@@ -565,6 +565,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--f03-requested-file") {
+            failures += await runRequestedFileReadCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--f03-honest-recipient") {
             failures += await runHonestRecipientCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1126,6 +1132,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runHonestRecipientCases(agent: agent, check: check))
+        failures.append(contentsOf: await runRequestedFileReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedMeetingReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runA04ActiveAppReadCases(agent: agent, check: check))
@@ -1642,19 +1649,20 @@ enum RealtimeAgentToolLoopSelfTest {
                       filePending(reply, completed: [completed]) == nil)
             }
         }
-        for (request, reply) in [
-            ("Email the pricing document to Marcus", miniReplies[0]),
-            ("Can I find the pricing document?", miniReplies[0]),
-            ("How do I find the pricing document?", miniReplies[0]),
-            (f03Request, "Which pricing document do you mean?"),
-            (f03Request, "What is Marcus's email address?"),
-            (f03Request, "I don't have a budget document on this Mac."),
-            (f03Request, "I haven't searched for the pricing document yet."),
-            (f03Request, "Your files are a good place to keep the pricing document."),
-            (f03Request, "- Marcus <marcus@example.com> — Pricing sheet\n- Ana <ana@example.com> — Deck"),
-        ] {
-            check("F03 file floor admitted an unrequested read or clarification",
-                  filePending(reply, request: request) == nil)
+        for reply in ["Which pricing document do you mean?", "What is Marcus's email address?",
+                      "I don't have a budget document on this Mac.",
+                      "I haven't searched for the pricing document yet.",
+                      "Your files are a good place to keep the pricing document.",
+                      "- Marcus <marcus@example.com> — Pricing sheet\n- Ana <ana@example.com> — Deck"] {
+            check("F03 explicit requested lookup was replaced by unrelated prose",
+                  filePending(reply)?.arguments == ["query": "pricing"])
+        }
+        for request in ["Email the pricing document to Marcus", "Can I find the pricing document?",
+                        "How do I find the pricing document?", "Don't find the pricing document",
+                        "If I find the pricing document, can I email it?", "Find the document",
+                        "\"Find the pricing document\""] {
+            check("F03 file floor admitted an unrequested, negated or unnamed lookup: \(request)",
+                  filePending(miniReplies[0], request: request) == nil)
         }
         let noSearch = AgentCapabilityManifestBuilder.build(
             AgentCapabilityInputs.allEnabled(
@@ -1787,6 +1795,150 @@ enum RealtimeAgentToolLoopSelfTest {
     }
 
     /// Exact native F03 outputs, through the actual typed caller and unchanged tool fixture.
+    /// An explicitly requested file lookup runs before an unrelated recipient question.
+    @MainActor
+    static func runRequestedFileReadCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["F03 requested-file fixture requires SelfTest"] }
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorFire = AgentToolExecutor.fireOverrideForTesting
+        let priorPolicy = AgentToolExecutor.policyOverrideForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorFiles = agent.fileRetrievalForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorBudget = agent.budgetForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.fakeForTesting = priorFake
+            AgentToolExecutor.fireOverrideForTesting = priorFire
+            AgentToolExecutor.policyOverrideForTesting = priorPolicy
+            agent.localModelProviderForTesting = priorProvider
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.fileRetrievalForTesting = priorFiles
+            agent.answerDepthForTesting = priorDepth
+            agent.budgetForTesting = priorBudget
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        let request = "Find the pricing document and email it to Marcus"
+        let raw = "I don't know who Marcus is, and I can only send emails to people I have on file. Could you give me their email address?"
+        let final = "I found Pricing 2026.pdf. What is Marcus's email address?"
+        let retainedDenials = [
+            "I don't have a pricing document on this Mac, and I can't send emails without knowing Marcus's email address. If you have the document or Marcus's email, let me know and I'll help.",
+            "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you find the document another way.",
+            "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you draft the message instead.",
+        ]
+
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        let entry = manifest.entry(named: "filesystem.search")
+        let qualified = LiveEvalCases.all.first { $0.id == "F03" }?.turns == [request]
+            && manifest.selectedIDs.contains("filesystem.search")
+            && entry?.intent == .files && entry?.isReady == true && entry?.risk == .read
+        check("F03 INPUT_INVALID: retained request/selected ready file lookup", qualified)
+        guard qualified else { return ["F03 INPUT_INVALID"] }
+        func pending(turn: [String] = [], session: Set<String> = [], using value: AgentCapabilityManifest? = nil) -> String? {
+            let selected = value ?? manifest
+            return AgentAccountRead.pendingRead(reply: raw, selectedIntents: selected.selectedIntents,
+                completedThisTurn: turn, completedThisSession: session,
+                toolIDFor: { AccountReadTools.toolID(for: $0, manifest: selected, request: request) },
+                request: request, manifest: selected)?.toolID
+        }
+        check("F03 recipient question skipped explicitly requested file lookup", pending() == "filesystem.search")
+        for quoted in ["\"Find the pricing document\"", "“Find the pricing document”"] {
+            check("F03 quoted command acquired a default file read: \(quoted)",
+                  AgentAccountRead.defaultRead(for: .files, request: quoted) == nil)
+        }
+        check("F03 quoted file name lost its explicitly requested lookup",
+              AgentAccountRead.defaultRead(for: .files, request: "Find the \"pricing\" document")?.arguments == ["query": "pricing"])
+
+        for id in ["filesystem.search", FileToolCatalogue.findID] {
+            check("F03 repeated current/same-session file lookup",
+                  pending(turn: [id]) == nil && pending(session: [id]) == nil)
+        }
+        var noSearchInputs = inputs
+        noSearchInputs.tools.removeAll { $0.id == "filesystem.search" }
+        let noSearch = AgentCapabilityManifestBuilder.build(noSearchInputs, request: request)
+        check("F03 unavailable default lookup invented", pending(using: noSearch) == nil)
+        let blocked = AgentCapabilityManifest(reader: manifest.reader, maxRisk: manifest.maxRisk,
+            allowed: manifest.allowed, unavailable: manifest.unavailable, selected: [], selectedIntents: [],
+            compactCatalogue: manifest.compactCatalogue, catalogueTokens: manifest.catalogueTokens)
+        check("F03 unselected intent acquired file lookup", pending(using: blocked) == nil)
+        if let entry {
+            let unsafe = AgentCapabilityManifest.Entry(id: entry.id, aliases: entry.aliases,
+                namespace: entry.namespace, intent: entry.intent, source: entry.source, risk: .send,
+                executionMode: entry.executionMode, modelDescription: entry.modelDescription,
+                parameters: entry.parameters, readiness: entry.readiness, userPhrase: entry.userPhrase)
+            let wrongRisk = AgentCapabilityManifest(reader: manifest.reader, maxRisk: manifest.maxRisk,
+                allowed: manifest.allowed.map { $0.id == entry.id ? unsafe : $0 },
+                unavailable: manifest.unavailable, selected: manifest.selected, selectedIntents: manifest.selectedIntents,
+                compactCatalogue: manifest.compactCatalogue, catalogueTokens: manifest.catalogueTokens)
+            check("F03 default lookup admitted write-risk descriptor", pending(using: wrongRisk) == nil)
+        }
+        agent.answerDepthForTesting = .balanced
+        agent.denyUnattendedApprovalsForTesting = true
+        agent.budgetForTesting = nil
+        @MainActor
+        func run(_ script: [String], allow: Bool = true) async -> (String, [PlannerScriptLog.Call], [LiveEvalLoggedCall], String) {
+            let fixture = LiveEvalFixtures()
+            fixture.beginCase()
+            let log = PlannerScriptLog()
+            var output = ""
+            let backing: AgentToolExecutor.FakeToolRun = { tool, arguments in
+                let result = try await fixture.run(tool, arguments)
+                output = result.summary
+                return result
+            }
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+            agent.fileRetrievalForTesting = fixture.files
+            agent.readApprovalOverrideForTesting = allow
+            AgentToolExecutor.fakeForTesting = allow ? backing : nil
+            AgentToolExecutor.fireOverrideForTesting = allow ? priorFire : backing
+            AgentToolExecutor.policyOverrideForTesting = allow ? priorPolicy : PermissionPolicy(
+                autoObserve: false, autoRead: false, autoSearchFiles: false, autoComputerControl: false, grants: [])
+            agent.localModelProviderForTesting = PlannerScriptProvider(id: .localServer,
+                window: 4_096, promptTokens: 2_000, script: script, log: log)
+            AgentSession.shared.forgetAllConversations()
+            agent.setTypedPendingForTesting(nil)
+            let result = await agent.handle(request, source: .text)
+            return (result.reply, log.calls, fixture.calls, output)
+        }
+        func exact(_ actual: String, _ expected: String) -> Bool {
+            actual == expected || actual == "This takes a few steps on this Mac.\n\n" + expected
+        }
+        let actual = await run([raw, final])
+        check("F03 actual recipient clarification skipped pricing read or entered write/mailbox",
+              actual.2.map(\.toolID) == ["filesystem.search"] && actual.2.first?.arguments == ["query": "pricing"])
+        check("F03 actual file result/request missing from final provider input",
+              actual.1.count == 2 && actual.3.contains("Pricing 2026.pdf")
+                && actual.1.last?.user.contains(actual.3) == true && actual.1.last?.user.contains(request) == true)
+        check("F03 final consumer lost required recipient question", exact(actual.0, final))
+        for (index, denial) in retainedDenials.enumerated() {
+            let lookedUp = await run([denial, final])
+            check("F03 retained denial \(index) spent capability correction before eligible lookup",
+                  lookedUp.1.count == 2 && lookedUp.2.map(\.toolID) == ["filesystem.search"]
+                    && lookedUp.2.first?.arguments == ["query": "pricing"])
+            check("F03 retained denial \(index) lost actual result/request or grounded final question",
+                  lookedUp.3.contains("Pricing 2026.pdf") && lookedUp.1.last?.user.contains(lookedUp.3) == true
+                    && lookedUp.1.last?.user.contains(request) == true && exact(lookedUp.0, final))
+            check("F03 retained denial \(index) polluted the read consumer with capability correction",
+                  !lookedUp.1.contains { $0.user.contains("denies something this Mac can do") })
+        }
+        let already = await run([#"<function name="filesystem.search"><param name="query">pricing</param></function>"#, raw])
+        check("F03 actual already-completed lookup repeated or recipient answer rewritten",
+              already.2.map(\.toolID) == ["filesystem.search"] && already.1.count == 2 && exact(already.0, raw))
+        for deniedRaw in [raw, retainedDenials[0]] {
+            let denied = await run([deniedRaw], allow: false)
+            check("F03 denied lookup reached backing, another model pass or false success",
+                  denied.2.isEmpty && denied.1.count == 1 && denied.0.contains(AgentAccountRead.notReadYet(.files)))
+        }
+        print("  TOOLLOOP_PRODUCTION_F03_FILE: rounds=\(actual.1.count) tools=\(actual.2.map(\.toolID)) reply=\(actual.0)")
+        return []
+    }
+
     @MainActor
     static func runHonestRecipientCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
         guard SelfTest.isRunning else { return ["F03 honest-recipient fixture requires SelfTest"] }
@@ -2031,48 +2183,9 @@ enum RealtimeAgentToolLoopSelfTest {
             check("P1 consumer read for clarification/advice", ran.toolIDs.isEmpty)
             check("P1 consumer changed clarification/advice", result.reply == reply && log.calls.count == 1)
         }
-        // Preserve the exact measured MiniCPM no-call rounds. The wrong automatic
-        // inbox branch stays excluded; the requested file read now needs its own proof.
-        let f03First = "I don't have a pricing document on this Mac, and I can't send emails without knowing Marcus's email address. If you have the document or Marcus's email, let me know and I'll help."
-        for second in [
-            "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you find the document another way.",
-            "I don't have a pricing document on this Mac, so I can't email it. If you'd like, I can search your email for anything related to pricing or help you draft the message instead.",
-        ] {
-            let log = PlannerScriptLog()
-            let ran = ScriptedToolLog()
-            var rawRounds: [String] = []
-            agent.plannerTraceForTesting = { event in
-                if case .round(_, _, _, _, let raw, _) = event { rawRounds.append(raw) }
-            }
-            var readArguments: [[String: String]] = []
-            let fileResult = "F03 fixture search result: /fixture/Pricing 2026.pdf"
-            let finalQuestion = "I found Pricing 2026.pdf. What is Marcus's email address?"
-            AgentToolExecutor.fakeForTesting = { tool, arguments in
-                ran.record(tool.id)
-                readArguments.append(arguments)
-                return AgentToolResult(summary: fileResult)
-            }
-            agent.localModelProviderForTesting = PlannerScriptProvider(
-                id: .localServer, window: 4_096, promptTokens: 2_000,
-                script: [f03First, second, finalQuestion], log: log)
-            AgentSession.shared.forgetAllConversations()
-            agent.setTypedPendingForTesting(nil)
-            let operation = Task { @MainActor in
-                await agent.handle("Find the pricing document and email it to Marcus", source: .text)
-            }
-            let turn = await operation.value
-            check("F03 actual pendingRead consumer ran an unrequested mailbox read",
-                  !ran.toolIDs.contains("search_email") && !ran.toolIDs.contains("read_email"))
-            check("F03 actual pendingRead consumer omitted the authorized file search",
-                  ran.toolIDs == ["filesystem.search"] && readArguments == [["query": "pricing"]])
-            check("F03 actual producer missed selected file catalogue or changed retained raw rounds",
-                  log.calls.count == 3 && log.calls[0].system.contains("filesystem.search")
-                    && Array(rawRounds.prefix(2)) == [f03First, second]
-                    && log.calls[2].user.contains(fileResult))
-            check("F03 actual read consumer failed to preserve the missing-recipient question",
-                  turn.reply == finalQuestion && !ran.toolIDs.contains("draft_email")
-                    && !ran.toolIDs.contains("send_email"))
-        }
+        // Exact retained F03 first/second denials are independent inputs in
+        // runRequestedFileReadCases, followed by a grounded final consumer answer.
+        // The obsolete correction-only second round must not be relabeled grounded.
         agent.plannerTraceForTesting = previousTrace
         // The exact default must remain registered/allowed in this manifest.
         let previousInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
