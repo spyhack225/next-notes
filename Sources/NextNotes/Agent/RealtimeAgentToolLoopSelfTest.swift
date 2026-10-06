@@ -565,6 +565,12 @@ enum RealtimeAgentToolLoopSelfTest {
             if !condition { failures.append(name) }
         }
         let agent = RealtimeAgent.shared
+        if CommandLine.arguments.contains("--f03-honest-recipient") {
+            failures += await runHonestRecipientCases(agent: agent, check: check)
+            for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
+            print(failures.isEmpty ? "TOOLLOOP_PRODUCTION_OK" : "TOOLLOOP_PRODUCTION_FAILED")
+            return failures.isEmpty
+        }
         if CommandLine.arguments.contains("--m04-earlier-promise") {
             failures += await runDraftSubjectRepairCases(agent: agent, check: check)
             for failure in failures { print("  TOOLLOOP_PRODUCTION_WRONG: \(failure)") }
@@ -1119,6 +1125,7 @@ enum RealtimeAgentToolLoopSelfTest {
         failures.append(contentsOf: await runOnDeviceBoundaryCases(agent: agent, check: check))
         failures.append(contentsOf: runAccountReadCases(check: check))
         failures.append(contentsOf: await runOfferedReadConsumerCases(agent: agent, check: check))
+        failures.append(contentsOf: await runHonestRecipientCases(agent: agent, check: check))
         failures.append(contentsOf: await runRequestedMeetingReadCases(agent: agent, check: check))
         failures.append(contentsOf: await runY02ReadConsumerCases(agent: agent, check: check))
         failures.append(contentsOf: await runA04ActiveAppReadCases(agent: agent, check: check))
@@ -1777,6 +1784,78 @@ enum RealtimeAgentToolLoopSelfTest {
         print("  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure")
         failures.append(contentsOf: runIdentifierCases(check: check))
         return failures
+    }
+
+    /// Exact native F03 outputs, through the actual typed caller and unchanged tool fixture.
+    @MainActor
+    static func runHonestRecipientCases(agent: RealtimeAgent, check: (String, Bool) -> Void) async -> [String] {
+        guard SelfTest.isRunning else { return ["F03 honest-recipient fixture requires SelfTest"] }
+        let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+        let priorFake = AgentToolExecutor.fakeForTesting
+        let priorProvider = agent.localModelProviderForTesting
+        let priorTrace = agent.plannerTraceForTesting
+        let priorReads = agent.readApprovalOverrideForTesting
+        let priorDepth = agent.answerDepthForTesting
+        let priorDenial = agent.denyUnattendedApprovalsForTesting
+        let priorBudget = agent.budgetForTesting
+        let priorFiles = agent.fileRetrievalForTesting
+        defer {
+            AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+            AgentToolExecutor.fakeForTesting = priorFake
+            agent.localModelProviderForTesting = priorProvider
+            agent.plannerTraceForTesting = priorTrace
+            agent.readApprovalOverrideForTesting = priorReads
+            agent.answerDepthForTesting = priorDepth
+            agent.denyUnattendedApprovalsForTesting = priorDenial
+            agent.budgetForTesting = priorBudget
+            agent.fileRetrievalForTesting = priorFiles
+            agent.setTypedPendingForTesting(nil)
+            AgentSession.shared.forgetAllConversations()
+        }
+        let request = "Find the pricing document and email it to Marcus"
+        let first = "\n\nI'll search for pricing-related files first.\n\nFrom my earlier notes, I see you have a pricing document. Let me find it.\n<function name=\"filesystem.search\"><param name=\"query\">pricing</param></function>"
+        let question = "I don't have Marcus's email address stored, so I can't complete the email part without it. Could you tell me the email address for Marcus?"
+        let inputs = allEnabledFixture()
+        let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+        check("F03 INPUT_INVALID: original request/ready file read and email refusal controls",
+              LiveEvalCases.all.first { $0.id == "F03" }?.turns == [request]
+                && manifest.selectedIDs.contains("filesystem.search")
+                && manifest.allowedIDs.contains("search_email") && manifest.allowedIDs.contains("read_email"))
+        AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+        let fixture = LiveEvalFixtures()
+        fixture.beginCase()
+        AgentToolExecutor.fakeForTesting = fixture.run
+        agent.fileRetrievalForTesting = fixture.files
+        agent.readApprovalOverrideForTesting = true
+        agent.denyUnattendedApprovalsForTesting = true
+        agent.answerDepthForTesting = .balanced
+        agent.budgetForTesting = nil
+        let log = PlannerScriptLog()
+        var rawRounds: [String] = []
+        agent.plannerTraceForTesting = { event in
+            if case .round(_, _, _, _, let raw, _) = event { rawRounds.append(raw) }
+        }
+        // Retain the actual empty third output; correct classification must never request it.
+        agent.localModelProviderForTesting = PlannerScriptProvider(
+            id: .localServer, window: 4_096, promptTokens: 2_000,
+            script: [first, question, ""], log: log)
+        AgentSession.shared.forgetAllConversations()
+        agent.setTypedPendingForTesting(nil)
+        let turn = await agent.handle(request, source: .text)
+        check("F03 successful pricing lookup changed or reached a mailbox/write backing",
+              fixture.calls.map(\.toolID) == ["filesystem.search"]
+                && fixture.calls.first?.arguments == ["query": "pricing"])
+        check("F03 actual pricing result did not reach the next provider input",
+              log.calls.count >= 2 && log.calls[1].user.contains("Pricing 2026.pdf"))
+        check("F03 honest recipient question spent a third model round", log.calls.count == 2)
+        check("F03 honest recipient question was replaced",
+              turn.reply == question || turn.reply == "This takes a few steps on this Mac.\n\n" + question)
+        check("F03 actual provider outputs changed or gained an empty repair",
+              rawRounds == [first, question])
+        check("F03 missing address produced a false capability correction",
+              !log.calls.contains { $0.user.contains("denies something this Mac can do") })
+        print("  TOOLLOOP_PRODUCTION_F03_RECIPIENT: provider rounds=\(log.calls.count) tools=\(fixture.calls.map(\.toolID)) reply=\(turn.reply)")
+        return []
     }
 
     /// P1's actual no-call consumer: fixture provider and executor, the same

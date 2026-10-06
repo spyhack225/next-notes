@@ -88,7 +88,7 @@ enum AgentRefusalGuard {
                    label: "the files and folders the user shared"),
         Capability(subjects: ["calendar", "agenda", "meeting today", "schedule"],
                    toolIDs: ["get_agenda"], label: "their calendar"),
-        Capability(subjects: ["email", "e-mail", "inbox", "gmail", "mail", "message", "messages"],
+        Capability(subjects: ["email", "emails", "e-mail", "e-mails", "inbox", "gmail", "mail", "message", "messages"],
                    toolIDs: ["search_email", "read_email"], label: "their email"),
         Capability(subjects: ["drive", "google drive", "google doc", "google docs", "doc", "docs",
                               "document", "sheet", "sheets", "slide", "slides"],
@@ -127,7 +127,20 @@ enum AgentRefusalGuard {
     /// a clause that is an honest limit is not a denial whatever it contains.
     static func rebuttal(for reply: String, manifest: AgentCapabilityManifest) -> String? {
         var contradicted: [Capability] = []
+        var previousMissingAddress = false
         for clause in clauses(of: reply) {
+            // A recipient's address is required data, not a mailbox capability. Preserve
+            // its immediately dependent write limit; unrelated access denials still run.
+            let missingAddress = clause.range(of:
+                #"^i (?:don't|do not|don’t) (?:have|know) [^.!?;,\n]*\be-?mail address\b(?: stored| saved| on file| yet)?[,.;]?$"#,
+                options: .regularExpression) != nil && clause.range(of:
+                #"\b(?:access|permission|tools?|account|inbox|mailbox)\b"#,
+                options: .regularExpression) == nil
+            let dependentLimit = previousMissingAddress && clause.range(of:
+                #"^(?:so )?i (?:can't|cannot|can not|can’t|am unable to) (?:complete (?:the |this |that )?email(?: part)?|(?:send|draft) (?:the |this |that |an? )?(?:email|e-mail|message)|email (?:it|this|that)) without (?:it|that|the (?:email )?address)[.!]?$"#,
+                options: .regularExpression) != nil
+            previousMissingAddress = missingAddress
+            if missingAddress || dependentLimit { continue }
             // The generic "don't have a" exemption protects missing information
             // and identities. An explicit missing browser tool is a capability
             // claim instead; test only that capability, not the generic tools row.

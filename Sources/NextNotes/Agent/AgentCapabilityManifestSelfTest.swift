@@ -281,6 +281,18 @@ enum AgentCapabilityManifestSelfTest {
             ("I cannot open a new note. I do not have the tool to create new Google Docs or Notes.", true),
             ("The transcript does not say who owns that action item.", false),
             ("Nothing in Desktop, Documents and Downloads matches that.", false),
+            // Exact retained Mini candidate F03: missing address is data, not access.
+            ("I don't have Marcus's email address stored, so I can't complete the email part without it. Could you tell me the email address for Marcus?", false),
+            ("I do not know Sarah's email address. I cannot send the email without it. Which address should I use?", false),
+            ("I don't have Ana's email address on file, so I can't draft the message without that. What address should I use?", false),
+            ("I don't have his email address saved. Could you give it to me?", false),
+            ("I don’t have Ana's email address on file, so I can’t send the email without it. Which address should I use?", false),
+            ("I don't have access to your email.", true),
+            ("I can't access your inbox.", true),
+            ("I don't have Marcus's email address stored, and I don't have access to your email.", true),
+            ("I don't have Marcus's email address stored. I can't send emails at all.", true),
+            ("I don't have permission to access Marcus's email address.", true),
+            ("I don't have Marcus's email address stored, so I can't access your email without it.", true),
         ] {
             let rebuttal = AgentRefusalGuard.rebuttal(for: reply, manifest: parity)
             if (rebuttal != nil) != expected {
