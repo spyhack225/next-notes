@@ -332,6 +332,8 @@ enum AgentAccountRead {
     }
 
     private static func requestsMeetingRead(_ request: String) -> Bool {
+        guard request.trimmingCharacters(in: .whitespacesAndNewlines).first.map({ "\"“”'‘`".contains($0) }) != true
+        else { return false }
         let query = AgentDirectIntent.questionForm(request)
         guard let route = AgentDirectIntent.questionRoutes.first(where: { $0.intent == .meetings })
         else { return false }
@@ -344,11 +346,12 @@ enum AgentAccountRead {
     /// prose cannot replace it merely because it repeats the named person/topic, not "meeting".
     private static func presentsRequestedMeetingAbsence(_ reply: String, request: String) -> Bool {
         guard requestsMeetingRead(request) else { return false }
-        let first = reply.components(separatedBy: CharacterSet(charactersIn: ".!?")).first ?? ""
+        let first = reply.components(separatedBy: CharacterSet(charactersIn: ".!")).first ?? ""
+        guard !first.contains("?") else { return false }
         let assertion = first.trimmingCharacters(in: .whitespacesAndNewlines)
         guard assertion.first.map({ "\"“'‘".contains($0) }) != true else { return false }
         let text = AgentDirectIntent.questionForm(assertion)
-        return text.range(of: #"^i (?:don't|do not) have (?:(?:any )?information about\b|(?:the )?details (?:of|about) (?:the|our|my|your) (?:last |previous )?(?:meeting|call)(?:'s)?\b)"#,
+        return text.range(of: #"^(?:i (?:don't|do not) have (?:(?:any )?information about\b|(?:the )?details (?:of|about) (?:the|our|my|your) (?:last |previous )?(?:meeting|call)(?:'s)?\b)|(?:we|i) (?:haven't|have not) had (?:a|the|our|my) (?:last |previous )?(?:meeting|call)\b)"#,
                           options: .regularExpression) != nil
     }
 

@@ -1455,6 +1455,8 @@ enum RealtimeAgentToolLoopSelfTest {
             "I don't have the details of the last meeting's decisions right now. Let me check what was decided.",
             "In the last meeting, we decided to finalize the project timeline and assign Sarah to lead the user testing phase. Let me know if you'd like more details.",
         ]
+        // Exact Mini quick2 no-call false absence, unchanged native wording.
+        let absence = "We haven't had a meeting yet, so there's nothing decided on that front. If you'd like to share what came up in a past meeting, I can look it up for you."
         let grounded = "The launch moves to October 14; the price stays at $12 a month."
         let inputs = allEnabledFixture()
         let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
@@ -1475,7 +1477,7 @@ enum RealtimeAgentToolLoopSelfTest {
                 toolIDFor: { AccountReadTools.toolID(for: $0, manifest: selected, request: query) },
                 request: query, manifest: selected)?.toolID
         }
-        for reply in rawRounds.dropFirst() {
+        for reply in Array(rawRounds.dropFirst()) + [absence] {
             check("K01 retained unsupported meeting reply omitted requested read: \(reply)",
                   pending(reply) == "meeting.decisions")
             check("K01 repeated completed current-turn read", pending(reply, turn: ["meeting.decisions"]) == nil)
@@ -1489,7 +1491,12 @@ enum RealtimeAgentToolLoopSelfTest {
             "She said we decided that in the last meeting.",
             "\"In the last meeting, we decided to launch.\"",
             "“I don't have the details of the last meeting's decisions.”",
-            "I don't have the details of your approval. Which action do you mean?"]
+            "I don't have the details of your approval. Which action do you mean?",
+            "We haven't had a meeting yet? Which meeting do you mean?",
+            "If we haven't had a meeting yet, what should we decide?",
+            "You said we haven't had a meeting yet.",
+            "\"We haven't had a meeting yet.\"",
+            "We will have a meeting tomorrow."]
         for reply in negatives {
             check("K01 clarification/advice/quote/negation acquired read: \(reply)", pending(reply) == nil)
         }
@@ -1497,6 +1504,15 @@ enum RealtimeAgentToolLoopSelfTest {
                          "How should we decide things in meetings?",
                          "She asked what did we decide in the last meeting"] {
             check("K01 write/advice/quoted request acquired read", pending(rawRounds[2], question: question) == nil)
+        }
+        let quotedTopic = "What did we decide in the last meeting about \"the launch\"?"
+        check("K01 active quoted-topic question lost existing missing-details read",
+              pending(rawRounds[1], question: quotedTopic) == "meeting.decisions")
+        check("K01 active quoted-topic question omitted exact absence read",
+              pending(absence, question: quotedTopic) == "meeting.decisions")
+        for question in ["\"What did we decide in the last meeting?\"",
+                         "“What did we decide in the last meeting?”"] {
+            check("K01 quoted meeting question acquired absence read", pending(absence, question: question) == nil)
         }
         var unavailableInputs = inputs
         unavailableInputs.tools.removeAll { $0.id == "meeting.decisions" }
@@ -1540,6 +1556,7 @@ enum RealtimeAgentToolLoopSelfTest {
         for (name, script) in [
             ("exact retained three-round sequence", rawRounds + [grounded]),
             ("fronted factual assertion", [rawRounds[2], grounded]),
+            ("exact Mini false absence", [absence, grounded]),
             ("same absence after existing refusal repair", [rawRounds[1], rawRounds[1], grounded])
         ] {
             let actual = await run(script)
@@ -1559,9 +1576,16 @@ enum RealtimeAgentToolLoopSelfTest {
         check("K01 refused read entered backing or fabricated success",
               denied.tools.isEmpty && denied.calls.count == 1
                 && denied.reply.contains(AgentAccountRead.notReadYet(.meetings)))
+        let deniedAbsence = await run([absence], allow: false)
+        check("K01 exact absence ignored read permission or fabricated success",
+              deniedAbsence.tools.isEmpty && deniedAbsence.calls.count == 1
+                && deniedAbsence.reply.contains(AgentAccountRead.notReadYet(.meetings)))
         let unavailable = await run([rawRounds[2]], using: unavailableInputs)
         check("K01 unavailable read changed reply or entered backing",
               unavailable.tools.isEmpty && unavailable.calls.count == 1 && unavailable.reply == rawRounds[2])
+        let unavailableAbsence = await run([absence], using: unavailableInputs)
+        check("K01 unavailable absence changed reply or entered backing",
+              unavailableAbsence.tools.isEmpty && unavailableAbsence.calls.count == 1 && unavailableAbsence.reply == absence)
         let completed = await run([#"<tool_call>{"name":"meeting.decisions","arguments":{}}</tool_call>"#, rawRounds[2]])
         check("K01 actual completed read was repeated or final answer scrubbed",
               completed.tools.map(\.toolID) == ["meeting.decisions"]
