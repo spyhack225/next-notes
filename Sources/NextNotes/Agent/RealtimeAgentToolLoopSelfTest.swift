@@ -2147,6 +2147,135 @@ enum RealtimeAgentToolLoopSelfTest {
             }
         }
         // K03 end original consumer block
+        // REQUESTED_LATEST_MAIL_READ_COMMON_BEGIN
+        do {
+            let request = "Check my email, check the last email and then do a summary"
+            let raw = "I'll check your last email and give you a summary. Let me look that up for you."
+            let wrongLatest = "The latest email is from Marcus Lee at 05:00 about the updated pricing sheet for ProductFlo. Before that, there’s a reminder from Stripe about the September invoice and an email from Ana Ruiz asking for the deck by Friday. The most recent one relates to ProductFlo’s pricing sheet — likely something you need to review or act on. Let me know if you’d like me to open it."
+            let grounded = "I checked your email. The last message was from Cyril about dinner tomorrow evening. They're asking if you're free tomorrow night."
+            let inputs = AgentCapabilityInputs.allEnabled(
+                tools: AgentToolRegistry.shared.tools(upTo: .privileged), reader: .voiceFrontend)
+            let manifest = AgentCapabilityManifestBuilder.build(inputs, request: request)
+            let qualified = SelfTest.isRunning && manifest.selectedIntents.contains(.mail)
+                && manifest.entry(named: "search_email")?.isReady == true
+                && manifest.entry(named: "search_email").map { $0.risk <= .read } == true
+            check("M03 singular ready mail-read fixture unavailable", qualified)
+            if qualified {
+                let priorInputs = AgentCapabilityManifestBuilder.inputsOverrideForTesting
+                let priorFake = AgentToolExecutor.fakeForTesting
+                let priorProvider = agent.localModelProviderForTesting
+                let priorTrace = agent.plannerTraceForTesting
+                defer {
+                    AgentCapabilityManifestBuilder.inputsOverrideForTesting = priorInputs
+                    AgentToolExecutor.fakeForTesting = priorFake
+                    agent.localModelProviderForTesting = priorProvider
+                    agent.plannerTraceForTesting = priorTrace
+                    agent.setTypedPendingForTesting(nil)
+                    AgentSession.shared.forgetAllConversations()
+                }
+                for question in [request, "Check my last email", "Read the latest email",
+                                 "Show my most recent email", "Please summarize the last email",
+                                 "I can't see it. Check my last email", "I can’t see it. Check my last email"] {
+                    let read = AgentAccountRead.defaultRead(for: .mail, request: question)
+                    check("M03 singular default omitted exact requested cardinality: \(question)",
+                          read?.toolID == "search_email"
+                            && read?.arguments == ["query": "in:inbox", "maxResults": "1"])
+                }
+                for question in ["Summarize my last emails", "Check my latest emails",
+                                 "Read my last 5 emails", "Check my email", "Any new emails?",
+                                 "Check my latest email about pricing", "Check my last email from Marcus",
+                                 "Check my last email yesterday", "Email the last email to Marcus",
+                                 "Check my email then summarize \"the last email\"",
+                                 "Summarize my emails. Quote 'Note, check the latest email.' exactly",
+                                 "Summarize my emails. Quote ‘Note, check the latest email.’ exactly"] {
+                    check("M03 singular floor absorbed plural/filter/write/quoted request: \(question)",
+                          AgentAccountRead.defaultRead(for: .mail, request: question)?.arguments == ["query": "in:inbox"])
+                }
+                check("M03 singular floor changed existing sender filter",
+                      AgentAccountRead.defaultRead(for: .mail, request: "Any new emails from Marcus?")?.arguments
+                        == ["query": #"from:"Marcus""#])
+                @MainActor
+                func run(_ question: String, _ script: [String]) async
+                    -> (reply: String, calls: [PlannerScriptLog.Call], tools: [LiveEvalLoggedCall], newest: String, actual: String, rounds: [String]) {
+                    let fixtures = LiveEvalFixtures()
+                    let log = PlannerScriptLog()
+                    var rounds: [String] = []
+                    AgentCapabilityManifestBuilder.inputsOverrideForTesting = inputs
+                    AgentToolExecutor.fakeForTesting = { tool, arguments in try await fixtures.run(tool, arguments) }
+                    agent.plannerTraceForTesting = { event in
+                        if case .round(_, _, _, _, let text, _) = event { rounds.append(text) }
+                    }
+                    agent.localModelProviderForTesting = PlannerScriptProvider(
+                        id: .localServer, window: 4_096, promptTokens: 2_000, script: script, log: log)
+                    AgentSession.shared.forgetAllConversations()
+                    agent.setTypedPendingForTesting(nil)
+                    let turn = await agent.handle(question, source: .text)
+                    return (turn.reply, log.calls, fixtures.calls,
+                            fixtures.mailSearch("", maxResults: 1),
+                            fixtures.summary(for: "search_email", arguments: fixtures.calls.first?.arguments ?? [:]), rounds)
+                }
+                // Replay the exact original wrong-latest output as well as a grounded final
+                // consumer. The repair changes read inputs; it never scrubs a model reply.
+                for answer in [wrongLatest, grounded] {
+                    let actual = await run(request, [raw, answer])
+                    check("M03 actual automatic read omitted maxResults=1 or repeated backing",
+                          actual.tools.count == 1 && actual.tools.first?.toolID == "search_email"
+                            && actual.tools.first?.arguments == ["maxResults": "1"]
+                            && actual.tools.first.map { $0.risk <= .read } == true)
+                    check("M03 actual fixture supplied older mail to singular final consumer",
+                          actual.actual == actual.newest && actual.actual.split(separator: "\n").count == 1
+                            && actual.actual.contains("Cyril") && actual.actual.contains("Dinner tomorrow?"))
+                    check("M03 actual final prompt lost request/newest result or included older messages",
+                          actual.calls.count == 2 && actual.rounds == [raw, answer]
+                            && actual.calls[1].user.contains("Current user request:\n" + request)
+                            && actual.calls[1].user.contains(actual.newest)
+                            && !actual.calls[1].user.contains("Pricing sheet v3")
+                            && !actual.calls[1].user.contains("Deck for Friday")
+                            && !actual.calls[1].user.contains("Your invoice for September")
+                            && actual.calls[1].grammar == nil)
+                    if answer == grounded {
+                        check("M03 final consumer did not deliver the grounded newest-mail reply", actual.reply == grounded)
+                    } else if let eval = LiveEvalCases.caseWithID(id: "M03") {
+                        check("M03 retained wrong-latest raw was sanitized or promoted",
+                              actual.rounds.last == wrongLatest
+                                && LiveEvalGrader.grade(case: eval, replies: [actual.reply], calls: actual.tools, trace: []) == .ungrounded)
+                    }
+                }
+                let plural = await run("Summarize my last emails", [raw, grounded])
+                check("M03 singular repair capped an actual plural-mail read",
+                      plural.tools.count == 1 && plural.tools.first?.arguments["maxResults"] == nil
+                        && plural.actual.contains("Pricing sheet v3")
+                        && plural.actual.contains("Dinner tomorrow?")
+                        && plural.calls.count == 2 && plural.calls[1].user.contains(plural.actual))
+                for quoted in ["Summarize my emails. Quote 'Note, check the latest email.' exactly",
+                               "Summarize my emails. Quote ‘Note, check the latest email.’ exactly"] {
+                    let unchanged = await run(quoted, [raw, grounded])
+                    check("M03 quoted singular prose capped the actual plural requested read",
+                          unchanged.tools.count == 1 && unchanged.tools.first?.arguments["maxResults"] == nil
+                            && unchanged.actual.contains("Pricing sheet v3")
+                            && unchanged.actual.contains("Dinner tomorrow?")
+                            && unchanged.calls.count == 2 && unchanged.calls[1].user.contains(unchanged.actual))
+                }
+                let filtered = await run("Summarize my last emails from Marcus", [
+                    #"<tool_call>{"name":"search_email","arguments":{"query":"from:Marcus","maxResults":5}}</tool_call>"#,
+                    "Marcus sent the pricing sheet; his older contract renewal message is also there.",
+                ])
+                check("M03 singular floor changed a direct authored sender/filter/count read",
+                      filtered.tools.count == 1
+                        && filtered.tools.first?.arguments == ["query": "from:Marcus", "maxResults": "5"]
+                        && filtered.actual.contains("Pricing sheet v3")
+                        && !filtered.actual.contains("Dinner tomorrow?")
+                        && filtered.calls.count == 2 && filtered.calls[1].user.contains(filtered.actual))
+                let selected = await run(request, [#"<tool_call>{"name":"search_email","arguments":{"query":"","maxResults":1}}</tool_call>"#, grounded])
+                check("M03 singular floor altered/repeated existing direct model-selected one-message read",
+                      selected.tools.count == 1
+                        && selected.tools.first?.arguments == ["query": "", "maxResults": "1"]
+                        && selected.actual == selected.newest && selected.calls.count == 2
+                        && selected.calls[1].user.contains(selected.newest) && selected.reply == grounded)
+            }
+        }
+        // REQUESTED_LATEST_MAIL_READ_COMMON_END
+
         // M02 begin original consumer block
         // Paste in existing runOfferedReadConsumerCases before final hook restoration.
         // COMMON before both producers: request/raw from retained full334b M02.

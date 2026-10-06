@@ -80,7 +80,9 @@ enum AgentAccountRead {
             // P1-09's own default: the newest messages, which is what "summarise my emails"
             // means and what the empty query means. A query is the *model's* to write; this is
             // the floor that answers when the model wrote none.
-            return ("search_email", ["query": "in:inbox"])
+            var arguments = ["query": "in:inbox"]
+            if requestsSingleLatestMailRead(request) { arguments["maxResults"] = "1" }
+            return ("search_email", arguments)
         case .calendar:
             // The date the request names, else today — through the same grounder the planner's
             // own `get_agenda` arguments go through, so "tomorrow" is resolved by one
@@ -250,6 +252,24 @@ enum AgentAccountRead {
                                        "before", "after", "today", "yesterday", "this", "last", "to"]
         guard !words(of: sender).contains(where: { boundaries.contains($0) }) else { return nil }
         return sender
+    }
+
+    /// A complete read clause naming one newest message owns its cardinality.
+    /// Plural mail, quoted words and clauses with sender/topic/time filters keep
+    /// their existing default; model-selected arguments do not use this floor.
+    private static func requestsSingleLatestMailRead(_ request: String) -> Bool {
+        guard !request.contains(where: { "\n\r\"“”‘`".contains($0) }),
+              request.range(of: #"(?:^|[^\p{L}\p{N}])'"#, options: .regularExpression) == nil,
+              let read = AgentDirectIntent.capabilityVerbs.first(where: { $0.toolID == "search_email" })
+        else { return false }
+        let pattern = #"^(?:please\s+)?(?:(?:can|could|would|will)\s+you\s+)?(?:please\s+)?(?:"#
+            + read.verbs.map(NSRegularExpression.escapedPattern(for:)).joined(separator: "|")
+            + #")\s+(?:(?:my|the)\s+)?(?:last|latest|most recent)\s+(?:email|message)$"#
+        let separated = request.replacingOccurrences(
+            of: #"\b(?:and|then|also)\b"#, with: "\n", options: [.regularExpression, .caseInsensitive])
+        return separated.components(separatedBy: CharacterSet(charactersIn: ",.!?;\n")).contains { clause in
+            AgentDirectIntent.questionForm(clause).range(of: pattern, options: .regularExpression) != nil
+        }
     }
 
     /// Bind the existing default mail read to a requested read clause. A separate

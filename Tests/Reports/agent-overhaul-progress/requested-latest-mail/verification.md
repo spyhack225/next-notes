@@ -1,0 +1,9 @@
+# Requested latest-email cardinality — 2026-10-05
+
+The original singular request asked for the last email. The automatic default read supplied a broad query with no count; the existing grounder removed its unauthored inbox filter and the fixture returned six messages. Qwen incorrectly attributed latest to older Marcus mail in two of three quiet runs. AgentAccountRead now binds an explicit complete singular latest-email read clause to maxResults=1 through the same selected read, runner and final-answer path. Sender/filter/count/plural/direct model-call behavior, permissions, prompts and grader stay unchanged.
+
+Original13 production assertions fail -> unchanged fixed production PASS. Actual original request/automatic runner receives one newest Cyril message and carries it to the existing final consumer. Quotes and contractions, plural/filter/count requests, direct model-selected max1 and backing-once controls pass. The exact retained wrong native final is deliberately replayed unchanged and remains UNGROUNDED: no answer scrubber pretends inputs fixed a model output. Grader, capability-manifest and owner store-isolation pass.
+
+One actual pinned Qwen3-4B-Instruct-2507-Q4_K_M run, same baseline sampler and 2026-10-05T09:00:00-04:00 clock: M03 PASS, search_email(maxResults=1) once, final Cyril dinner attribution (native raw retained). This verifies the bounded original flow, not broader model grounding or a new aggregate score. Latest pre-fix quick8/8/9 used the separately corrected latest-mail grader; full/owner/wake/voice/floor gates remain open.
+
+Verified producer committed and exact tested artifact installed OPEN=0. Logs/patches/raw rounds/artifact/cleanup: ~/Library/Caches/NextNotesBuild/integration/requested-latest-mail-read/. Original app removed after comparison; each native cache TMPDIR removed after child joins. Foreign index and worktree changes preserved.
