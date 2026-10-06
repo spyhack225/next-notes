@@ -1,0 +1,9 @@
+# P2-03 playback context (2026-10-06)
+
+The producer rebuilt playback status at commit after a previously playing clause completed, changing an otherwise identical prepared request and wasting its inference. Coordinator now captures the existing conservative playback string on the first partial of an active input turn, carries that value into the committed task, then releases it. History, task/approval state and dictionary remain current. Withdrawal, empty input and close clear it; an older task cannot clear a successor snapshot. No new timer, wait, model pass, store or speech gate.
+
+Identical actual synth→bound delivery callback→AgentSession→Coordinator→frontend buffer→speech-consumer case fails one adoption assertion before repair and passes afterward. The completed first clause really changes the delivery row; the committed turn now adopts one prepared producer instead of starting a second. Empty/discard/close/next-turn controls and existing request/dictionary/correlation controls pass. Generation is authored; this proves production-path state/adoption, not native SDK latency or physical audibility.
+
+Focused voice-latency partials plus capture, voice-delivery, playback-ledger, duplex and store-isolation pass; isolation preserves21files/32defaults. Existing shadow divergence diagnostics and nested A02/tool-loop red remain retained, without promoting those gates. Exact tested fixed bundle is installed with OPEN=0; binary identity/signature recorded in cache installed.json. Raw original/fixed logs, source maps and build results are outside iCloud at `~/Library/Caches/NextNotesBuild/integration/p2-frozen-playback-context/`. Children joined; owned temporary roots removed; obsolete original bundle retired.
+
+P2-03 remains open: partial-revision/two-stage reuse, actual native hit rate and `.600`TTFT/`.900`first-audio acceptance still require qualification.

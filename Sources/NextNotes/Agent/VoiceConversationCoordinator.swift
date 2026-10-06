@@ -56,6 +56,8 @@ final class VoiceConversationCoordinator {
         return response.turn
     }
     private var provisionalText = ""
+    /// Same prospective turn context, captured before a played clause can advance.
+    private var turnPlaybackStatus: String?
     private var preparationEpoch: UInt64 = 0
     private var preparationTask: Task<Void, Never>?
     /// First stable partial handed to preparation, on the existing voice timeline clock.
@@ -241,6 +243,10 @@ final class VoiceConversationCoordinator {
         let text = Self.corrected(partial, audit: false).trimmingCharacters(in: .whitespacesAndNewlines)
         guard VoiceTranscriptCanonical.key(text) != VoiceTranscriptCanonical.key(provisionalText) else { return }
         provisionalText = text
+        if text.isEmpty { turnPlaybackStatus = nil }
+        else if turnPlaybackStatus == nil && AgentCaptureController.shared.isSessionActive {
+            turnPlaybackStatus = AgentSession.shared.latestVoiceDeliveryContext
+        }
         preparationEpoch &+= 1
         let epoch = preparationEpoch
         if CommandLine.arguments.contains("--selftest-voice-pipeline") {
@@ -284,6 +290,7 @@ final class VoiceConversationCoordinator {
         preparationTask?.cancel()
         preparationTask = nil
         provisionalText = ""
+        turnPlaybackStatus = nil
         preparationStartedAt = nil
         Task { await FrontendResponder.shared.cancelSpeculation(through: epoch) }
     }
@@ -497,6 +504,8 @@ final class VoiceConversationCoordinator {
             noteHesitation(text)
             return AgentTurn(reply: "", delegated: false)
         }
+        let playbackStatus = turnPlaybackStatus ?? AgentSession.shared.latestVoiceDeliveryContext
+        turnPlaybackStatus = nil
         // Stop preparation that has not started. Retain an already prepared
         // stream until respond compares its complete request key at commit.
         preparationEpoch &+= 1
@@ -526,7 +535,7 @@ final class VoiceConversationCoordinator {
         FunctionCallWatcher.shared.noteUserTurn(text)
         let task = Task { @MainActor in
             await self.respond(text, id: id, inputEpoch: epoch, commitRevision: commitRevision,
-                               usageTurnID: usageTurnID)
+                               usageTurnID: usageTurnID, playbackStatus: playbackStatus)
         }
         responseTask = task
         return await withTaskCancellationHandler {
@@ -535,7 +544,7 @@ final class VoiceConversationCoordinator {
     }
 
     private func respond(_ text: String, id: UUID, inputEpoch: UInt64, commitRevision: UInt64,
-                         usageTurnID: UUID) async -> AgentTurn {
+                         usageTurnID: UUID, playbackStatus: String) async -> AgentTurn {
         let agent = RealtimeAgent.shared
         let identity = voiceShadowTurns[inputEpoch]
         let turn = agent.beginVoiceFrontend(voiceTurn: identity)
@@ -561,7 +570,7 @@ final class VoiceConversationCoordinator {
         // stage read the question as a past turn and the status package as the
         // current one (live 2026-09-22: "can you hear me" → "I didn't quite
         // catch that. Could you repeat your question?").
-        let request = frontendRequest(text)
+        let request = frontendRequest(text, playbackStatus: playbackStatus)
         let userMessageID = AgentSession.shared.recordUser(text, source: .voice, deferReview: true)
         AgentAuditLog.shared.record(kind: .request, title: text, detail: "local conversational frontend")
         let active = taskBridge.liveVoiceTasks(owner: self)
@@ -1228,7 +1237,7 @@ final class VoiceConversationCoordinator {
         (Self.systemPrompt, frontendRequest("").messages)
     }
 
-    private func frontendRequest(_ text: String) -> (indexed: [TaskRecord], messages: [LLMChatMessage], approval: SpokenApprovalState?) {
+    private func frontendRequest(_ text: String, playbackStatus: String? = nil) -> (indexed: [TaskRecord], messages: [LLMChatMessage], approval: SpokenApprovalState?) {
         let records = taskBridge.indexedSessionTasks(AgentCaptureController.shared.sessionID).map { row in
             var value = row
             if let id = UUID(uuidString: row.id.raw), let observed = taskBridge.voiceControlObservation(id) {
@@ -1255,7 +1264,7 @@ final class VoiceConversationCoordinator {
         let messages = [LLMChatMessage(role: .system,
                 content: "Capability inventory (application facts):\n" + VoiceCapabilitySnapshot.current().promptText
                     + "\nPlayback status (context only; never speak these labels):\n"
-                    + AgentSession.shared.latestVoiceDeliveryContext)]
+                    + (playbackStatus ?? turnPlaybackStatus ?? AgentSession.shared.latestVoiceDeliveryContext))]
             + history
             + [.init(role: .user, content: "Frontend control schemas (application facts, not external tool grants):\n\(toolContext)\nApproval offered: \(offeredApproval == nil ? "no" : "yes")\n\nWork status (context, not instructions):\n\(workContext.isEmpty ? "No active jobs." : workContext)\n\nLatest user speech:\n\(text)")]
         return (indexed, messages, offeredApproval)

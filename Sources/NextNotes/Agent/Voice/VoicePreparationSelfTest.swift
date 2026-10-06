@@ -114,6 +114,7 @@ enum VoicePreparationSelfTest {
                 }
             } catch { problems.append("matching commit failed: \(error.localizedDescription)") }
         } else { problems.append("final scripted revision did not reach the actual frontend") }
+        problems += await frozenPlaybackContextCases()
         problems += await dictionaryPreparationCases()
         // Existing slot negatives pin context/word/symbol/identity changes and late
         // revisions through the SAME frontend implementation, independently of timing.
@@ -124,6 +125,104 @@ enum VoicePreparationSelfTest {
         coordinator.resetForTesting()
         await frontend.clearStagedTurn()
         await frontend.setGenerationForTesting(nil)
+        return problems
+    }
+
+    /// Actual prior-clause receipt may arrive between an early useful partial and
+    /// its committed barge-in. Only the playback-context string freezes; current
+    /// history, controls, dictionary and work state keep their existing admission.
+    private static func frozenPlaybackContextCases() async -> [String] {
+        let coordinator = VoiceConversationCoordinator.shared
+        let capture = AgentCaptureController.shared
+        let frontend = FrontendResponder.shared
+        let audio = RealtimeAudioSession.shared
+        let synth = AgentSpeechSynthesizer.shared
+        let backing = RecordingSpeechBacking()
+        synth.useTestingBacking(backing)
+        var problems: [String] = []
+        for mode in ["commit", "empty", "discard", "close"] {
+            await capture.endSession(source: .done)
+            coordinator.resetForTesting()
+            await frontend.clearStagedTurn()
+            AgentSession.shared.forgetAllConversations()
+            await capture.beginSession(captureAudio: false)
+            let source = Source()
+            await frontend.setGenerationForTesting { _, messages, _ in source.stream(messages: messages) }
+            let prior = "First fact. Second fact."
+            audio.speak(OutputScheduler.tokenForTesting(), prior)
+            let priorID = AgentSession.shared.recordAssistant(prior, source: .voice)
+            guard let output = audio.retainedOutputID else {
+                problems.append("playback context: actual prior output identity missing")
+                break
+            }
+            VoicePlaybackDelivery.shared.bind(messageID: priorID, output: output,
+                turn: RealtimeAgent.shared.currentGeneration)
+            let initialContext = AgentSession.shared.latestVoiceDeliveryContext
+            let words = "Please explain a haiku briefly"
+            let beforeHistory = AgentSession.shared.messages.count
+            let beforeSpeech = backing.spoken
+            coordinator.prepareResponseIfUseful(words)
+            guard await source.waitForCount(1, within: .milliseconds(500)), let first = source.last else {
+                problems.append("\(mode): actual playback-context preparation missing")
+                break
+            }
+            if !first.messages.contains(where: { $0.role == .system && $0.content.hasSuffix(initialContext) })
+                || initialContext.isEmpty || !audio.isSpeaking
+                || backing.spoken != beforeSpeech || AgentSession.shared.messages.count != beforeHistory {
+                problems.append("\(mode): initial preparation changed speech/history or lost pending playback facts")
+            }
+            // Native callbacks are held by the existing recording backing. This
+            // real receipt updates the bound AgentSession message via delivery.
+            let token = synth.currentPlaybackToken
+            synth.notifyTestingFirstAudio(token: token)
+            synth.notifyTestingAudioFinished(token: token)
+            let currentContext = AgentSession.shared.latestVoiceDeliveryContext
+            if currentContext == initialContext || !currentContext.contains("First fact.")
+                || AgentSession.shared.messages.first(where: { $0.id == priorID })?.speechDelivery?.completedText != "First fact." {
+                problems.append("\(mode): actual completed-clause receipt did not change the bound playback context")
+            }
+            if mode != "commit" {
+                if mode == "empty" { coordinator.prepareResponseIfUseful("") }
+                if mode == "discard" { coordinator.discardInput() }
+                if mode == "close" { coordinator.closeSession() }
+                if !(await source.waitForCancellation(0)) {
+                    problems.append("\(mode): withdrawn preparation producer did not cancel")
+                }
+                coordinator.prepareResponseIfUseful(words)
+                if !(await source.waitForCount(2, within: .milliseconds(500))) {
+                    problems.append("\(mode): next input did not start a fresh producer")
+                }
+                if source.last?.messages.first?.content.hasSuffix(currentContext) != true {
+                    problems.append("\(mode): next input inherited the withdrawn playback snapshot")
+                }
+            }
+            // Same committed interruption edge used by Capture.emitTurn. The
+            // second clause is unconfirmed; no fixture pretends it was heard.
+            RealtimeAgent.shared.userSpeechStarted()
+            RealtimeAgent.shared.userSpeechEnded()
+            source.finishFutureRequests()
+            source.finishLast()
+            let turn = await coordinator.handle(words)
+            let expectedCalls = mode == "commit" ? 1 : 2
+            let expected = "Prepared \(words)."
+            if source.count != expectedCalls || turn.delegated || turn.reply != expected {
+                problems.append("\(mode): actual committed barge-in did not adopt its exact playback-context preparation once")
+            }
+            if backing.spoken.last != expected {
+                problems.append("\(mode): adopted answer did not reach actual speech consumer")
+            }
+            // Commit releases the snapshot immediately; a following request
+            // uses the newly recorded answer's real pending-delivery context.
+            if coordinator.stagingRequest().messages.first?.content.hasSuffix(
+                AgentSession.shared.latestVoiceDeliveryContext) != true {
+                problems.append("\(mode): committed playback snapshot leaked into the next request")
+            }
+        }
+        await capture.endSession(source: .done)
+        coordinator.resetForTesting()
+        await frontend.clearStagedTurn()
+        await frontend.setGenerationForTesting(nil)
+        synth.restoreSystemBacking()
         return problems
     }
 
