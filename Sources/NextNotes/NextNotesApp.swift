@@ -3797,6 +3797,15 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     /// Pair it with `--fake-calendar` to see the invented meeting come through the service.
     private func runCalendarSelfTest() {
         Task { @MainActor in
+            if GoogleCalendarErrorSelfTest.isRequested {
+                let failures = await GoogleCalendarErrorSelfTest.run()
+                for failure in failures { writeSelfTest("CALENDAR_GOOGLE_WRONG: \(failure)") }
+                writeSelfTest(failures.isEmpty
+                    ? "CALENDAR_OK: isolated Google error consumers behave"
+                    : "CALENDAR_FAILED: \(failures.count) isolated Google error problem(s)")
+                SelfTest.requestTermination()
+                return
+            }
             let service = CalendarService.shared
             await service.refresh()
 

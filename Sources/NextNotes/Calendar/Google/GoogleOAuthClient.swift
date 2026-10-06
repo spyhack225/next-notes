@@ -88,13 +88,14 @@ enum GoogleOAuthClient {
     static func refresh(
         clientID: String,
         clientSecret: String,
-        refreshToken: String
+        refreshToken: String,
+        requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))? = nil
     ) async throws -> GoogleTokenResponse {
         try await postForm(to: tokenEndpoint, fields: withSecret(clientSecret, in: [
             "client_id": clientID,
             "refresh_token": refreshToken,
             "grant_type": "refresh_token",
-        ]))
+        ]), requestForTesting: requestForTesting)
     }
 
     // MARK: - Internals
@@ -130,21 +131,30 @@ enum GoogleOAuthClient {
 
     private static func postForm(
         to endpoint: String,
-        fields: [String: String]
+        fields: [String: String],
+        requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))? = nil
     ) async throws -> GoogleTokenResponse {
+        precondition(requestForTesting == nil || GoogleCalendarErrorSelfTest.isRequested)
         guard let url = URL(string: endpoint) else { throw GoogleCalendarError.badAuthorizationURL }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
         request.httpBody = Data(formEncoded(fields).utf8)
 
-        let (data, response) = try await PrivateURLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        if let requestForTesting {
+            (data, response) = try await requestForTesting(request)
+        } else {
+            (data, response) = try await PrivateURLSession.shared.data(for: request)
+        }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
             let failure = try? JSONDecoder().decode(GoogleErrorResponse.self, from: data)
             throw GoogleCalendarError.tokenRequestFailed(
                 status: status,
-                reason: failure?.errorDescription ?? failure?.error ?? "HTTP \(status)"
+                reason: failure?.errorDescription ?? failure?.error ?? "HTTP \(status)",
+                code: failure?.error
             )
         }
         return try JSONDecoder().decode(GoogleTokenResponse.self, from: data)

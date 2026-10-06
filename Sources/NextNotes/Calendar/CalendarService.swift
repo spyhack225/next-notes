@@ -36,6 +36,7 @@ final class CalendarService {
     private let eventKit = EventKitCalendarProvider()
     private let google = GoogleCalendarProvider()
     private let fake: FakeCalendarProvider?
+    private let providersForTesting: [any CalendarProvider]?
 
     private var poll: Task<Void, Never>?
     /// The last refresh queued, if any. Each new one waits for it, so the reads stay
@@ -46,6 +47,15 @@ final class CalendarService {
 
     private init() {
         fake = FakeCalendarProvider.isEnabled ? FakeCalendarProvider() : nil
+        providersForTesting = nil
+    }
+
+    /// Runs the real refresh consumer over fixture-owned providers without reading
+    /// configured accounts or publishing the fixture into the shared Agent context.
+    init(providersForTesting: [any CalendarProvider]) {
+        precondition(GoogleCalendarErrorSelfTest.isRequested)
+        fake = nil
+        self.providersForTesting = providersForTesting
     }
 
     // MARK: - Lifecycle
@@ -141,12 +151,14 @@ final class CalendarService {
         isRefreshing = true
         defer { isRefreshing = false }
 
-        let settings = Settings.shared
-        await google.configure(
-            clientID: settings.googleClientID,
-            clientSecret: settings.googleClientSecret,
-            calendarIDs: settings.googleCalendarIDs
-        )
+        if providersForTesting == nil {
+            let settings = Settings.shared
+            await google.configure(
+                clientID: settings.googleClientID,
+                clientSecret: settings.googleClientSecret,
+                calendarIDs: settings.googleCalendarIDs
+            )
+        }
 
         let from = Date().addingTimeInterval(-Self.lookBehind)
         let to = Date().addingTimeInterval(Self.lookAhead)
@@ -184,7 +196,7 @@ final class CalendarService {
             """)
         // P4-01: the block every prompt carries, refreshed where the events change. A prompt
         // built between a calendar pass and this line would name yesterday's next meeting.
-        AgentNowPublisher.refresh()
+        if providersForTesting == nil { AgentNowPublisher.refresh() }
     }
 
     // MARK: - Authorization
@@ -235,6 +247,7 @@ final class CalendarService {
     // MARK: - Internals
 
     private func activeProviders() -> [any CalendarProvider] {
+        if let providersForTesting { return providersForTesting }
         // The fake provider replaces the real ones rather than joining them: a test run
         // must never arm a recording of a meeting that is actually happening.
         if let fake { return [fake] }

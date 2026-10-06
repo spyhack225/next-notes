@@ -16,6 +16,32 @@ actor GoogleCalendarProvider: CalendarProvider {
     private var clientSecret = ""
     private var calendarIDs: [String] = []
 
+    // Exact calendar diagnostic only: fake HTTP and an isolated token supplied together.
+    // Default construction keeps the existing private session and Keychain behavior.
+    private let requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
+    private let refreshTokenForTesting: (@Sendable () -> String?)?
+    private let clearTokenForTesting: (@Sendable () -> Void)?
+
+    init(
+        requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))? = nil,
+        refreshTokenForTesting: (@Sendable () -> String?)? = nil,
+        clearTokenForTesting: (@Sendable () -> Void)? = nil
+    ) {
+        let injected = requestForTesting != nil || refreshTokenForTesting != nil
+            || clearTokenForTesting != nil
+        precondition(!injected || (GoogleCalendarErrorSelfTest.isRequested
+            && requestForTesting != nil && refreshTokenForTesting != nil
+            && clearTokenForTesting != nil))
+        self.requestForTesting = requestForTesting
+        self.refreshTokenForTesting = refreshTokenForTesting
+        self.clearTokenForTesting = clearTokenForTesting
+    }
+
+    private var storedRefreshToken: String? {
+        if let refreshTokenForTesting { return refreshTokenForTesting() }
+        return GoogleTokenStore.refreshToken
+    }
+
     private var accessToken: String?
     private var accessTokenExpiry = Date.distantPast
 
@@ -36,7 +62,7 @@ actor GoogleCalendarProvider: CalendarProvider {
         guard !clientID.trimmingCharacters(in: .whitespaces).isEmpty else {
             return .disabled("Paste a Google Cloud OAuth client ID of type “Desktop app”.")
         }
-        return GoogleTokenStore.hasRefreshToken ? .authorized : .needsAuthorization
+        return storedRefreshToken != nil ? .authorized : .needsAuthorization
     }
 
     @discardableResult
@@ -54,7 +80,8 @@ actor GoogleCalendarProvider: CalendarProvider {
     }
 
     func signOut() {
-        GoogleTokenStore.clear()
+        if let clearTokenForTesting { clearTokenForTesting() }
+        else { GoogleTokenStore.clear() }
         accessToken = nil
         accessTokenExpiry = .distantPast
     }
@@ -93,6 +120,8 @@ actor GoogleCalendarProvider: CalendarProvider {
         // Named `collected` rather than `events`: a local of that name shadows this very
         // method, and the per-calendar call below stops resolving.
         var collected: [MeetingEvent] = []
+        var successfulCalendars = 0
+        var firstFailure: (any Error)?
         for calendarID in ids {
             do {
                 collected.append(contentsOf: try await events(
@@ -101,7 +130,9 @@ actor GoogleCalendarProvider: CalendarProvider {
                     from: from,
                     to: to
                 ))
+                successfulCalendars += 1
             } catch {
+                if firstFailure == nil { firstFailure = error }
                 // One inaccessible calendar — a shared one whose access was revoked — must
                 // not cost the user every other calendar on the account.
                 Log.calendar.error("""
@@ -110,6 +141,10 @@ actor GoogleCalendarProvider: CalendarProvider {
                     """)
             }
         }
+        // A successful empty calendar is usable; every selected read failing is not.
+        // Preserve partial successes, but let the existing refresh consumer expose
+        // the actual error when no calendar could be read.
+        if successfulCalendars == 0, let firstFailure { throw firstFailure }
         return collected
     }
 
@@ -195,7 +230,13 @@ actor GoogleCalendarProvider: CalendarProvider {
         var request = URLRequest(url: url)
         request.setValue("Bearer \(try await validAccessToken())", forHTTPHeaderField: "Authorization")
 
-        let (data, response) = try await PrivateURLSession.shared.data(for: request)
+        let data: Data
+        let response: URLResponse
+        if let requestForTesting {
+            (data, response) = try await requestForTesting(request)
+        } else {
+            (data, response) = try await PrivateURLSession.shared.data(for: request)
+        }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
             if status == 401 { throw GoogleCalendarError.accessTokenRejected }
@@ -219,19 +260,21 @@ actor GoogleCalendarProvider: CalendarProvider {
         if let accessToken, accessTokenExpiry > Date().addingTimeInterval(Self.expiryMargin) {
             return accessToken
         }
-        guard let refreshToken = GoogleTokenStore.refreshToken else {
+        guard let refreshToken = storedRefreshToken else {
             throw GoogleCalendarError.notSignedIn
         }
         do {
             let token = try await GoogleOAuthClient.refresh(
                 clientID: clientID,
                 clientSecret: clientSecret,
-                refreshToken: refreshToken
+                refreshToken: refreshToken,
+                requestForTesting: requestForTesting
             )
             accessToken = token.accessToken
             accessTokenExpiry = Date().addingTimeInterval(TimeInterval(token.expiresIn))
             return token.accessToken
-        } catch GoogleCalendarError.tokenRequestFailed(let status, _) where status == 400 {
+        } catch GoogleCalendarError.tokenRequestFailed(let status, _, let code)
+            where status == 400 && code == "invalid_grant" {
             // "invalid_grant" is Google's way of saying the refresh token is dead: revoked,
             // expired after six months of disuse, or invalidated by a password change.
             signOut()
@@ -298,7 +341,7 @@ enum GoogleCalendarError: LocalizedError, Equatable {
     case authorizationTimedOut
     case authorizationDenied(String)
     case stateMismatch
-    case tokenRequestFailed(status: Int, reason: String)
+    case tokenRequestFailed(status: Int, reason: String, code: String? = nil)
     case requestFailed(status: Int, reason: String)
 
     var errorDescription: String? {
@@ -323,7 +366,7 @@ enum GoogleCalendarError: LocalizedError, Equatable {
             "Google refused the sign-in: \(reason)."
         case .stateMismatch:
             "The sign-in response didn't match the request and was discarded."
-        case .tokenRequestFailed(_, let reason):
+        case .tokenRequestFailed(_, let reason, _):
             "Google wouldn't issue a token: \(reason)."
         case .requestFailed(_, let reason):
             "Google Calendar request failed: \(reason)."
