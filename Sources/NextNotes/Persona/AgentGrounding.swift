@@ -122,6 +122,7 @@ struct AgentGrounding: Sendable, Equatable {
         defaults: UserDefaults = .standard
     ) -> Self {
         let published = cache.snapshot()
+        let fixtureNames = AgentGroundingFacts.liveEvalNames()
         let mayReadFiles = FileIndexScope.mayRead(
             reader: reader,
             cloudConsent: defaults.bool(forKey: IndexedFoldersStore.cloudConsentKey)
@@ -129,8 +130,8 @@ struct AgentGrounding: Sendable, Equatable {
         let filesOn = defaults.object(forKey: IndexedFoldersStore.enabledKey) as? Bool ?? false
         let folders = (mayReadFiles && filesOn) ? published.folders : []
         return Self(
-            assistantName: published.assistantName ?? AgentGroundingFacts.assistantName(),
-            userFullName: published.userFullName ?? AgentGroundingFacts.userFullName(),
+            assistantName: fixtureNames?.assistant ?? published.assistantName ?? AgentGroundingFacts.assistantName(),
+            userFullName: fixtureNames?.user ?? published.userFullName ?? AgentGroundingFacts.userFullName(),
             folders: folders,
             indexedItems: folders.isEmpty ? 0 : published.indexedItems,
             surfaces: published.surfaces,
@@ -151,6 +152,32 @@ enum AgentGroundingFacts {
 
     private static let lock = NSLock()
     nonisolated(unsafe) private static var identity: Cached?
+    /// Only an active N01 live-eval case installs names. Both the normal facts
+    /// reader and the unchanged dynamic grader consume this same source.
+    nonisolated(unsafe) private static var namesForLiveEval: (assistant: String, user: String)?
+
+    static func installLiveEvalNames(assistant: String, user: String) -> Bool {
+        guard SelfTest.requested == "--selftest-toolloop-live" else { return false }
+        lock.lock()
+        defer { lock.unlock() }
+        guard namesForLiveEval == nil else { return false }
+        namesForLiveEval = (assistant, user)
+        return true
+    }
+
+    static func clearLiveEvalNames() {
+        guard SelfTest.requested == "--selftest-toolloop-live" else { return }
+        lock.lock()
+        defer { lock.unlock() }
+        namesForLiveEval = nil
+    }
+
+    static func liveEvalNames() -> (assistant: String, user: String)? {
+        guard SelfTest.requested == "--selftest-toolloop-live" else { return nil }
+        lock.lock()
+        defer { lock.unlock() }
+        return namesForLiveEval
+    }
 
     /// Spelled out rather than read from `AgentIdentityStore`, whose statics belong to the
     /// main actor: these builders are `nonisolated` by necessity. `--selftest-tool-awareness`
@@ -161,6 +188,7 @@ enum AgentGroundingFacts {
     /// `agent-identity.json`'s display name, read directly rather than through the
     /// main-actor store. Falls back to the store's own default.
     static func assistantName() -> String {
+        if let fixture = liveEvalNames() { return fixture.assistant }
         let url = AppIdentity.applicationSupportDirectory
             .appendingPathComponent(identityFileName)
         let modified = (try? FileManager.default
@@ -187,6 +215,7 @@ enum AgentGroundingFacts {
     /// The account holder, as macOS has it. `ActionItemReminders.localUserNames` already
     /// treats this as the user's identity for meeting owners; the Agent now says it out loud.
     static func userFullName() -> String {
+        if let fixture = liveEvalNames() { return fixture.user }
         let full = NSFullUserName().trimmingCharacters(in: .whitespacesAndNewlines)
         // A short-name-only account ("sergekadjo") is not a name a person would be called.
         guard full.contains(" ") || full.rangeOfCharacter(from: .uppercaseLetters) != nil else {

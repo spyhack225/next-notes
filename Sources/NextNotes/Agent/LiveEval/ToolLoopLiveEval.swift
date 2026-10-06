@@ -626,6 +626,33 @@ enum ToolLoopLiveEval {
 
         var results: [CaseResult] = []
         for evalCase in cases {
+            // N01 is about the two participants, not this machine's account. Keep
+            // its original question and the grader's dynamic-name rule, but feed
+            // both through the existing device-facts source with explicit names.
+            let fixtureNames = evalCase.id == "N01"
+            let installedNames = fixtureNames
+                && AgentGroundingFacts.installLiveEvalNames(assistant: "Will", user: "Serge Kadjo")
+            defer { if installedNames { AgentGroundingFacts.clearLiveEvalNames() } }
+            if fixtureNames {
+                let failure: String?
+                if !installedNames {
+                    failure = "N01 device-name fixture unavailable"
+                } else {
+                    let actual = AgentGrounding.current()
+                    failure = actual.assistantName == "Will" && actual.userFullName == "Serge Kadjo"
+                        && AgentGroundingFacts.assistantName() == actual.assistantName
+                        && AgentGroundingFacts.userFullName() == actual.userFullName
+                        ? nil : "N01 answer/grader name sources differ"
+                }
+                if let failure {
+                    SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: " + failure)
+                    results.append(CaseResult(evalCase: evalCase, verdict: .error, seconds: 0,
+                        replies: [], calls: [], trace: [], usage: [], infrastructureError: failure,
+                        timing: [], needle: [], process: ProcessSnapshot.current()))
+                    break
+                }
+                SelfTest.diagnostic("TOOLLOOP_LIVE_IDENTITY_FIXTURE: assistant=Will user=Serge Kadjo")
+            }
             AgentSession.shared.startNewConversation()
             fixtures.beginCase()
             needleAttemptsForTesting = []
