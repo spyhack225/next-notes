@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import FluidAudio
 
 /// Opt-in diagnostic in an isolated harness process. No downloads, cloud calls,
 /// microphone, private speech or persisted choice changes. This measures actual
@@ -7,6 +8,30 @@ import Foundation
 @MainActor
 enum MeetingResourceLiveProbe {
     static func run(log: (String) -> Void) async -> Bool {
+        // An isolated cached-model diagnostic must not purge or re-download a
+        // model when native loading fails. Normal app loading is unchanged.
+        let previousOffline = ModelHub.offlineMode
+        if SelfTest.isRunning && SelfTest.requested == "--selftest-meeting-resources-live" {
+            ModelHub.offlineMode = true
+        }
+        defer { ModelHub.offlineMode = previousOffline }
+        if CommandLine.arguments.contains("--meeting-resource-offline-policy") {
+            guard ModelHub.offlineMode else {
+                log("MEETING_RESOURCES_LIVE_FAILED: cached diagnostic permits model repair/download")
+                return false
+            }
+            do {
+                _ = try await ModelHub.fetchWithAuth(from: URL(string: "https://example.invalid/native-probe")!)
+                log("MEETING_RESOURCES_LIVE_FAILED: offline boundary admitted a fetch")
+                return false
+            } catch DownloadError.networkDisabled {
+                log("MEETING_RESOURCES_LIVE_OK: SDK network boundary refused before model entry")
+                return true
+            } catch {
+                log("MEETING_RESOURCES_LIVE_FAILED: offline boundary returned another error")
+                return false
+            }
+        }
         let fm = FileManager.default
         let root = fm.temporaryDirectory
         // Deliberately an optional result: unknown capacity must not authorize loads.
