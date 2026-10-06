@@ -78,6 +78,10 @@ enum VoiceLatencySelfTest {
             SelfTest.diagnostic(prefix + String(repeating: "x", count: 4_096 - prefix.utf8.count))
             return (true, "VOICE_LATENCY_OK")
         }
+        if CommandLine.arguments.contains("--voice-latency-first-token-contract") {
+            SelfTest.diagnostic("VOICE_LATENCY_INSTRUMENTATION_ONLY: no audio or model latency measured")
+            return finish(selfTestFirstTokenBudget())
+        }
         if CommandLine.arguments.contains("--voice-latency-model-guards") {
             return finish(await selfTestAnswerModelGuards())
         }
@@ -99,6 +103,12 @@ enum VoiceLatencySelfTest {
             return absent("--voice-latency-floor requires an explicit answering candidate and authored audio fixture")
         }
         let budget = Double(SelfTest.value(after: "--voice-latency-budget") ?? "")
+        let firstTokenBudget = Double(SelfTest.value(after: "--voice-latency-first-token-budget") ?? "")
+        if CommandLine.arguments.contains("--voice-latency-first-token-budget") {
+            guard let firstTokenBudget, firstTokenBudget.isFinite, firstTokenBudget > 0 else {
+                return absent("--voice-latency-first-token-budget requires a finite positive number of seconds")
+            }
+        }
         let maxStall = Double(SelfTest.value(after: "--voice-latency-max-stall") ?? "") ?? 0.100
         let startDelay = Double(SelfTest.value(after: "--voice-latency-start-delay") ?? "") ?? 0
         let islandOff = SelfTest.value(after: "--voice-latency-island") == "off"
@@ -237,6 +247,9 @@ enum VoiceLatencySelfTest {
         }), headline > budget {
             wrong.append(String(format: "median speech_end_to_first_audio %.3fs > budget %.3fs",
                 headline, budget))
+        }
+        if let firstTokenBudget {
+            wrong += firstTokenBudgetProblems(turns: counted, expectedRuns: runs, budget: firstTokenBudget)
         }
         if floor {
             wrong += reportFixedAnswerFloor(turns: counted, expectedRuns: runs)
@@ -645,6 +658,7 @@ enum VoiceLatencySelfTest {
         wrong += selfTestUsageRow()
         wrong += selfTestJoinedModelPassOutput()
         wrong += selfTestFloorResources()
+        wrong += selfTestFirstTokenBudget()
         wrong += await MainActorStallProbeSelfTest.run()
         return wrong
     }
@@ -1112,6 +1126,59 @@ enum VoiceLatencySelfTest {
             timeline.mark(.ttsFirstPCM, at: at)
         }
         timeline.noteStall(nanos: stallNanos, site: "selftest.stall")
+    }
+
+    /// The P2-02 budget uses the same closed turns and measured span as the printed
+    /// table. Missing spans cannot turn a slow or incomplete batch into a pass.
+    private static func firstTokenBudgetProblems(turns: [VoiceClosedTurn], expectedRuns: Int,
+        budget: Double) -> [String] {
+        let values = turns.compactMap { $0.seconds(.voiceTranscriptToFirstToken) }
+        guard turns.count == expectedRuns, values.count == expectedRuns,
+              values.allSatisfy({ $0.isFinite && $0 >= 0 }), let measured = median(values) else {
+            return ["first-token budget: expected \(expectedRuns) complete counted measurements, got \(values.count)"]
+        }
+        return measured <= budget ? [] : [String(format:
+            "median transcript_to_first_token %.3fs > budget %.3fs", measured, budget)]
+    }
+
+    private static func selfTestFirstTokenBudget() -> [String] {
+        let timeline = VoiceLatencyTimeline()
+        var turns: [VoiceClosedTurn] = []
+        for _ in 0..<5 {
+            timeline.beginSession(UUID())
+            stampCompleteTurn(timeline)
+            timeline.mark(.firstAudible)
+            if let turn = timeline.closedTurnsForTesting().last { turns.append(turn) }
+        }
+        guard turns.count == 5 else { return ["first-token budget fixture lost a closed turn"] }
+        var wrong: [String] = []
+        if firstTokenBudgetProblems(turns: turns, expectedRuns: 5, budget: 0.600).isEmpty {
+            wrong.append("first-token budget admitted five measured slow turns")
+        }
+        if !firstTokenBudgetProblems(turns: turns, expectedRuns: 5, budget: 1.100).isEmpty {
+            wrong.append("first-token budget rejected measured turns below the budget")
+        }
+        let exact = median(turns.compactMap { $0.seconds(.voiceTranscriptToFirstToken) })!
+        if !firstTokenBudgetProblems(turns: turns, expectedRuns: 5, budget: exact).isEmpty {
+            wrong.append("first-token budget rejected its exact inclusive boundary")
+        }
+        if firstTokenBudgetProblems(turns: Array(turns.dropLast()), expectedRuns: 5, budget: 2).isEmpty {
+            wrong.append("first-token budget admitted an incomplete counted batch")
+        }
+        if firstTokenBudgetProblems(turns: [], expectedRuns: 5, budget: 2).isEmpty {
+            wrong.append("first-token budget admitted no measurements")
+        }
+        var spans = turns[0].durations
+        spans.removeValue(forKey: .voiceTranscriptToFirstToken)
+        let absent = VoiceClosedTurn(number: turns[0].number, sessionID: turns[0].sessionID,
+            turnID: turns[0].turnID, conversationID: turns[0].conversationID, reason: turns[0].reason,
+            marks: turns[0].marks, notes: turns[0].notes, maxStallNanos: turns[0].maxStallNanos,
+            stallSite: turns[0].stallSite, closedAtNanos: turns[0].closedAtNanos,
+            durations: spans, speculationHit: turns[0].speculationHit)
+        if firstTokenBudgetProblems(turns: [absent] + Array(turns.dropFirst()), expectedRuns: 5, budget: 2).isEmpty {
+            wrong.append("first-token budget admitted a missing measured span")
+        }
+        return wrong
     }
 
     // MARK: - Numbers
