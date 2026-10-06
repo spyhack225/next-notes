@@ -153,7 +153,10 @@ enum NativeStartupTerminationSelfTest {
         let root = candidate.standardizedFileURL
         let temporary = fm.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
         let prefix = "NextNotesStartupTerminationTest-"
-        guard SelfTest.requested == "--selftest-native-termination",
+        let preparationVoiceFixture = pocket && SelfTest.requested == "--selftest-tts-pocket"
+            && CommandLine.arguments.contains("--tts-pocket-cached-prepare")
+            && CommandLine.arguments.contains("--pocket-prepare-voice-only")
+        guard SelfTest.requested == "--selftest-native-termination" || preparationVoiceFixture,
               root.isFileURL,
               root.resolvingSymlinksInPath().path == root.path,
               root.deletingLastPathComponent().path == temporary.path,

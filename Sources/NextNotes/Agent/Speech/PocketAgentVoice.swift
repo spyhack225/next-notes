@@ -96,10 +96,25 @@ final class PocketAgentVoice {
         try Task.checkCancellation()
     }
 
+    private static var isPreparationVoiceFixture: Bool {
+        SelfTest.requested == "--selftest-tts-pocket"
+            && CommandLine.arguments.contains("--tts-pocket-cached-prepare")
+            && CommandLine.arguments.contains("--pocket-prepare-voice-only")
+    }
+    private var preparationVoiceForTesting: String?
+    private var preparationLoadedForTesting: (@MainActor () async -> Void)?
+    private var preparationWarmVoiceForTesting: (@MainActor (String) -> Void)?
+
+    private var selectedPreparationVoice: String {
+        if Self.isPreparationVoiceFixture, let preparationVoiceForTesting { return preparationVoiceForTesting }
+        return terminationFixtureRoot != nil ? "alba" : Settings.shared.agentPocketVoice
+    }
+
     func prepare() async {
         guard !terminationRequested, !Task.isCancelled else { return }
         if isReady { return }
         if let prepareTask { await prepareTask.value; return }
+        let voice = selectedPreparationVoice
         isPreparing = true
         errorMessage = nil
         let pending = Task { @MainActor in
@@ -112,7 +127,8 @@ final class PocketAgentVoice {
                     try await manager.initialize()
                 }
                 try checkTerminationAdmission()
-                try await warmFirstPrediction()
+                if Self.isPreparationVoiceFixture { await preparationLoadedForTesting?() }
+                try await warmFirstPrediction(voice: voice)
                 try checkTerminationAdmission()
                 isReady = true
                 terminationFixtureTrace?.readyPublished()
@@ -138,10 +154,11 @@ final class PocketAgentVoice {
     /// actual Pocket frame otherwise arrives about 0.55 s after a clause is
     /// submitted, versus about 0.08 s after this warmup on this machine.
     /// No generated frame reaches the speaker or the playback ledger.
-    private func warmFirstPrediction() async throws {
+    private func warmFirstPrediction(voice: String) async throws {
         try checkTerminationAdmission()
         terminationFixtureTrace?.warmEntered()
-        let session = try await manager.makeSession(voice: terminationFixtureRoot != nil ? "alba" : Settings.shared.agentPocketVoice)
+        if Self.isPreparationVoiceFixture { preparationWarmVoiceForTesting?(voice) }
+        let session = try await manager.makeSession(voice: voice)
         if terminationRequested || Task.isCancelled {
             await session.cancel()
             throw CancellationError()
@@ -201,7 +218,68 @@ final class PocketAgentVoice {
         return session
     }
 
+    /// Actual ordinary private preparation, not cache-only initialization.
+    private static func runPreparationVoiceSelfTest() async -> Bool {
+        guard isPreparationVoiceFixture,
+              let i = CommandLine.arguments.firstIndex(of: "--pocket-cached-assets"),
+              CommandLine.arguments.indices.contains(i + 1) else {
+            SelfTest.diagnostic("POCKET_PREPARATION_VOICE_INPUT_INVALID: temporary assets required")
+            return false
+        }
+        let owner: PocketAgentVoice
+        let trace = StartupTerminationTrace(autoQuit: false)
+        do {
+            let root = try NativeStartupTerminationSelfTest.validateAssets(
+                URL(fileURLWithPath: CommandLine.arguments[i + 1]), pocket: true)
+            let alternate = root.appendingPathComponent("Models/" + Repo.pocketTts.folderName + "/"
+                + PocketTtsLanguage.english.repoSubdirectory + "/constants_bin/michael.safetensors")
+            guard let values = try? alternate.resourceValues(forKeys: [.isRegularFileKey, .fileSizeKey]),
+                  values.isRegularFile == true, (values.fileSize ?? 0) > 0 else {
+                SelfTest.diagnostic("POCKET_PREPARATION_VOICE_INPUT_INVALID: alternate conditioning required")
+                return false
+            }
+            owner = try PocketAgentVoice(terminationFixtureRoot: root, trace: trace)
+        } catch {
+            SelfTest.diagnostic("POCKET_PREPARATION_VOICE_INPUT_INVALID: refused fixture assets")
+            return false
+        }
+        let oldOffline = ModelHub.offlineMode
+        ModelHub.offlineMode = true // Exact isolated diagnostic, never production.
+        defer { ModelHub.offlineMode = oldOffline }
+        owner.preparationVoiceForTesting = "alba"
+        var loadedVoice: String?
+        var warmVoice: String?
+        // Real initialize() has returned here. The supplied choice changes
+        // across that await; no Settings write or model/provider fake.
+        owner.preparationLoadedForTesting = {
+            loadedVoice = owner.preparationVoiceForTesting
+            owner.preparationVoiceForTesting = "michael"
+        }
+        owner.preparationWarmVoiceForTesting = { warmVoice = $0 }
+        await owner.prepare()
+        let ready = owner.isReady
+        let observed = trace.snapshot()
+        await owner.finishTermination()
+        owner.preparationLoadedForTesting = nil
+        owner.preparationWarmVoiceForTesting = nil
+        let failures: [String] = [
+            loadedVoice != "alba" ? "chosen voice was not supplied at actual load checkpoint" : nil,
+            warmVoice != "alba" ? "chosen voice was reread after native initialization await" : nil,
+            !ready ? "actual unheard nonzero prediction did not complete" : nil,
+            observed.loadStarts != 1 || observed.loadEnds != 1 || observed.warmStarts != 1
+                || observed.readyPublications != 1 || observed.ownedTaskEnds != 1
+                ? "actual preparation/readiness/join counts differ" : nil,
+            owner.isPreparing || trace.snapshot().ownedTaskPending ? "owner remained pending after join" : nil,
+        ].compactMap { $0 }
+        SelfTest.diagnostic("POCKET_PREPARATION_VOICE chosen=alba observed_warm=\(warmVoice ?? "none") "
+            + "loads=\(observed.loadStarts) primes=\(observed.warmStarts) ready=\(ready) joined=\(!trace.snapshot().ownedTaskPending)")
+        for failure in failures { SelfTest.diagnostic("POCKET_PREPARATION_VOICE_ASSERT_FAILED: " + failure) }
+        SelfTest.diagnostic(failures.isEmpty ? "POCKET_PREPARATION_VOICE_OK" : "POCKET_PREPARATION_VOICE_FAILED")
+        return failures.isEmpty
+    }
+
     static func runSelfTest() async -> Bool {
+        if isPreparationVoiceFixture { return await runPreparationVoiceSelfTest() }
         if CommandLine.arguments.contains("--tts-pocket-pipeline") {
             return await PocketReplyPipelineSelfTest.run()
         }
