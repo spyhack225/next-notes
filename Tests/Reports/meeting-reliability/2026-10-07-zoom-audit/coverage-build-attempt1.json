@@ -1,0 +1,6 @@
+{
+  "verdict": "FAILED",
+  "cause": "new regression fixture called longSegments instead of existing longTranscriptSegments",
+  "repair": "reuse correct existing fixture helper",
+  "production_fix_changed": false
+}

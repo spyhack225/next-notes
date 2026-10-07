@@ -1,0 +1,76 @@
+[
+  {
+    "flag": "notes-truncation",
+    "exit": 0,
+    "seconds": 2.916159125001286,
+    "verdicts": [
+      "NOTES_TRUNCATION factsCut=true maps=5 reduce=1",
+      "NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read"
+    ]
+  },
+  {
+    "flag": "notes-longform",
+    "exit": 0,
+    "seconds": 2.5948219999991124,
+    "verdicts": [
+      "NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, single pass intact, overflow retried, window-derived chunks"
+    ]
+  },
+  {
+    "flag": "meeting-context",
+    "exit": 0,
+    "seconds": 1.1330672920012148,
+    "verdicts": [
+      "MEETING_CONTEXT_OK: extraction and the authority split hold"
+    ]
+  },
+  {
+    "flag": "meeting-health",
+    "exit": 0,
+    "seconds": 1.5049273330005235,
+    "verdicts": [
+      "MEETING_HEALTH_OK: 90 checks; actual capture, writer, durable warning and notification producers"
+    ]
+  },
+  {
+    "flag": "meeting-integrity",
+    "exit": 0,
+    "seconds": 1.2428906249988358,
+    "verdicts": [
+      "MEETING_INTEGRITY_OK: 67 checks; recording restart through final pass, notes, done and fresh reader"
+    ]
+  },
+  {
+    "flag": "wake",
+    "exit": 0,
+    "seconds": 2.6521738340015872,
+    "verdicts": [
+      "WAKE_OK: model loaded; phrase spotting and authority split hold"
+    ]
+  },
+  {
+    "flag": "cleanup-router",
+    "exit": 0,
+    "seconds": 7.456816375000926,
+    "verdicts": [
+      "CLEANUP_ROUTER_OK"
+    ]
+  },
+  {
+    "flag": "cleanup-structure",
+    "exit": 0,
+    "seconds": 1.117367833001481,
+    "verdicts": [
+      "CLEANUP_STRUCTURE_OK"
+    ]
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "seconds": 31.21746987500228,
+    "verdicts": [
+      "STORE_ISOLATION_OK: 21 files and 33 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_FAILED"
+    ]
+  }
+]

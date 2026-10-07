@@ -1,0 +1,3 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-28775/Next Notes.app/Contents/MacOS/NextNotes --selftest-cleanup-structure --selftest-timeout 240
+2026-10-07 15:42:33.386 NextNotes[29104:660749] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+CLEANUP_STRUCTURE_OK

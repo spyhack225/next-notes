@@ -1,0 +1,485 @@
+{
+  "meeting_id": "3B92EA32-9D55-4622-A2D6-810B044792FF",
+  "start": "2026-10-07T18:06:22Z",
+  "end": "2026-10-07T18:46:27Z",
+  "duration_seconds": 2405,
+  "audio_seconds": 2398.507125,
+  "capture_integrity": {
+    "audioWriteFailed": false,
+    "captureGap": false,
+    "lastCapturedAt": "2026-10-07T18:46:21Z",
+    "missingCaptureFrames": 0,
+    "normalEndAt": "2026-10-07T18:46:27Z"
+  },
+  "notes_model": "MiniCPM5-2B",
+  "notes_words": 99,
+  "transcript_words": 7393,
+  "live_words": 7392,
+  "segments": 529,
+  "live_segments": 770,
+  "commands": {
+    "count": 10,
+    "words": 92,
+    "time_ranges": [
+      [
+        317.74,
+        318.46000000000004
+      ],
+      [
+        516.58,
+        517.06
+      ],
+      [
+        697.1999999999999,
+        699.4399999999999
+      ],
+      [
+        989.1800000000001,
+        990.14
+      ],
+      [
+        1031.54,
+        1036.02
+      ],
+      [
+        1063.82,
+        1068.7
+      ],
+      [
+        1101.64,
+        1106.44
+      ],
+      [
+        1465.4399999999998,
+        1469.9199999999998
+      ],
+      [
+        1779.14,
+        1780.18
+      ],
+      [
+        2384.54,
+        2384.86
+      ]
+    ]
+  },
+  "system_speaker_counts": {
+    "Others": 10,
+    "Speaker 1": 107,
+    "Speaker 2": 1
+  },
+  "attendee_count": 0,
+  "speaker_name_count": 0,
+  "stages": {
+    "meeting.candidate_to_card": {
+      "duration_seconds": {
+        "n": 1,
+        "min": 1.0667369365692139,
+        "median": 1.0667369365692139,
+        "p95": 1.0667369365692139,
+        "max": 1.0667369365692139
+      },
+      "first": "2026-10-07T18:39:01Z",
+      "last": "2026-10-07T18:39:02Z",
+      "footprint_bytes": {
+        "n": 1,
+        "min": 1091555192,
+        "median": 1091555192,
+        "p95": 1091555192,
+        "max": 1091555192
+      }
+    },
+    "meeting.diarize": {
+      "duration_seconds": {
+        "n": 1,
+        "min": 9.957541292,
+        "median": 9.957541292,
+        "p95": 9.957541292,
+        "max": 9.957541292
+      },
+      "first": "2026-10-07T18:47:02Z",
+      "last": "2026-10-07T18:47:12Z",
+      "footprint_bytes": {
+        "n": 1,
+        "min": 2037469528,
+        "median": 2037469528,
+        "p95": 2037469528,
+        "max": 2037469528
+      }
+    },
+    "meeting.drain": {
+      "duration_seconds": {
+        "n": 1,
+        "min": 0.12661397457122803,
+        "median": 0.12661397457122803,
+        "p95": 0.12661397457122803,
+        "max": 0.12661397457122803
+      },
+      "first": "2026-10-07T18:46:27Z",
+      "last": "2026-10-07T18:46:28Z",
+      "footprint_bytes": {
+        "n": 1,
+        "min": 963956600,
+        "median": 963956600,
+        "p95": 963956600,
+        "max": 963956600
+      }
+    },
+    "meeting.final_pass": {
+      "duration_seconds": {
+        "n": 1,
+        "min": 34.15542495250702,
+        "median": 34.15542495250702,
+        "p95": 34.15542495250702,
+        "max": 34.15542495250702
+      },
+      "first": "2026-10-07T18:46:28Z",
+      "last": "2026-10-07T18:47:02Z",
+      "footprint_bytes": {
+        "n": 1,
+        "min": 1131302920,
+        "median": 1131302920,
+        "p95": 1131302920,
+        "max": 1131302920
+      }
+    },
+    "meeting.notes": {
+      "duration_seconds": {
+        "n": 1,
+        "min": 123.88119697570801,
+        "median": 123.88119697570801,
+        "p95": 123.88119697570801,
+        "max": 123.88119697570801
+      },
+      "first": "2026-10-07T18:47:12Z",
+      "last": "2026-10-07T18:49:16Z",
+      "footprint_bytes": {
+        "n": 1,
+        "min": 2132398664,
+        "median": 2132398664,
+        "p95": 2132398664,
+        "max": 2132398664
+      }
+    },
+    "meeting.resources": {
+      "duration_seconds": {
+        "n": 117,
+        "min": 0.0005970001220703125,
+        "median": 0.0018749237060546875,
+        "p95": 0.08578705787658691,
+        "max": 0.2515600919723511
+      },
+      "first": "2026-10-07T18:36:35Z",
+      "last": "2026-10-07T18:46:26Z",
+      "footprint_bytes": {
+        "n": 117,
+        "min": 952110968,
+        "median": 1085214584,
+        "p95": 1158123384,
+        "max": 1168166776
+      }
+    },
+    "meeting.speech_to_final": {
+      "duration_seconds": {
+        "n": 177,
+        "min": 6.665741024017279,
+        "median": 7.206647014617829,
+        "p95": 9.968023944854394,
+        "max": 11.474433032035677
+      },
+      "first": "2026-10-07T18:36:31Z",
+      "last": "2026-10-07T18:46:22Z",
+      "footprint_bytes": {
+        "n": 177,
+        "min": 952405880,
+        "median": 1085296504,
+        "p95": 1157418872,
+        "max": 1167019896
+      }
+    },
+    "meeting.speech_to_partial": {
+      "duration_seconds": {
+        "n": 135,
+        "min": 6.584592027664257,
+        "median": 6.67943296432486,
+        "p95": 9.162103992462107,
+        "max": 9.760222040176359
+      },
+      "first": "2026-10-07T18:36:32Z",
+      "last": "2026-10-07T18:46:22Z",
+      "footprint_bytes": {
+        "n": 135,
+        "min": 952405880,
+        "median": 1085329272,
+        "p95": 1157877624,
+        "max": 1172017016
+      }
+    },
+    "meeting.transcript_to_context": {
+      "duration_seconds": {
+        "n": 177,
+        "min": 4.792e-06,
+        "median": 0.0007525,
+        "p95": 0.001912584,
+        "max": 0.087327542
+      },
+      "first": "2026-10-07T18:36:39Z",
+      "last": "2026-10-07T18:46:22Z",
+      "footprint_bytes": {
+        "n": 177,
+        "min": 952405880,
+        "median": 1085296504,
+        "p95": 1157582712,
+        "max": 1167019896
+      }
+    },
+    "meeting.transcript_write": {
+      "duration_seconds": {
+        "n": 115,
+        "min": 0.002045959,
+        "median": 0.003242125,
+        "p95": 0.006910083,
+        "max": 0.023363
+      },
+      "first": "2026-10-07T18:36:40Z",
+      "last": "2026-10-07T18:46:28Z",
+      "footprint_bytes": {
+        "n": 115,
+        "min": 952897400,
+        "median": 1085640568,
+        "p95": 1154469752,
+        "max": 1168691064
+      }
+    }
+  },
+  "usage": {
+    "agent.voice": {
+      "n": 864,
+      "passes": {
+        "frontend-route": 839,
+        "turn": 21,
+        "frontend-answer": 4
+      },
+      "finishes": {
+        "error": 8,
+        "cancelled": 823,
+        "incomplete": 20,
+        "stop": 13
+      },
+      "elapsed_ms": {
+        "n": 864,
+        "min": 0,
+        "median": 192.5,
+        "p95": 1267,
+        "max": 8828
+      },
+      "elapsed_sum_ms": 344312
+    },
+    "agent.worker": {
+      "n": 3,
+      "passes": {
+        "planner": 3
+      },
+      "finishes": {
+        "stop": 3
+      },
+      "elapsed_ms": {
+        "n": 3,
+        "min": 12393,
+        "median": 20889,
+        "p95": 32839,
+        "max": 32839
+      },
+      "elapsed_sum_ms": 66121
+    },
+    "meeting.diarize": {
+      "n": 1,
+      "passes": {
+        "cluster": 1
+      },
+      "finishes": {
+        "stop": 1
+      },
+      "elapsed_ms": {
+        "n": 1,
+        "min": 9958,
+        "median": 9958,
+        "p95": 9958,
+        "max": 9958
+      },
+      "elapsed_sum_ms": 9958
+    },
+    "meeting.live": {
+      "n": 2,
+      "passes": {
+        "live": 2
+      },
+      "finishes": {
+        "stop": 2
+      },
+      "elapsed_ms": {
+        "n": 2,
+        "min": 8296,
+        "median": 10881.5,
+        "p95": 13467,
+        "max": 13467
+      },
+      "elapsed_sum_ms": 21763
+    },
+    "meeting.needle": {
+      "n": 258,
+      "passes": {
+        "turn": 258
+      },
+      "finishes": {
+        "stop": 258
+      },
+      "elapsed_ms": {
+        "n": 258,
+        "min": 0,
+        "median": 1.0,
+        "p95": 1275,
+        "max": 13160
+      },
+      "elapsed_sum_ms": 46888
+    },
+    "meeting.notes.single": {
+      "n": 1,
+      "passes": {
+        "single": 1
+      },
+      "finishes": {
+        "stop": 1
+      },
+      "elapsed_ms": {
+        "n": 1,
+        "min": 123771,
+        "median": 123771,
+        "p95": 123771,
+        "max": 123771
+      },
+      "elapsed_sum_ms": 123771
+    },
+    "meeting.reconcile": {
+      "n": 29,
+      "passes": {
+        "reconcile": 29
+      },
+      "finishes": {
+        "stop": 29
+      },
+      "elapsed_ms": {
+        "n": 29,
+        "min": 2282,
+        "median": 5358,
+        "p95": 20193,
+        "max": 42995
+      },
+      "elapsed_sum_ms": 250366
+    },
+    "meeting.transcribe": {
+      "n": 2,
+      "passes": {
+        "mic": 1,
+        "system": 1
+      },
+      "finishes": {
+        "unknown": 2
+      },
+      "elapsed_ms": {
+        "n": 2,
+        "min": 20422,
+        "median": 36881.5,
+        "p95": 53341,
+        "max": 53341
+      },
+      "elapsed_sum_ms": 73763
+    }
+  },
+  "resource_samples": 117,
+  "resource_summary": {
+    "footprint_bytes": {
+      "n": 117,
+      "min": 952110968,
+      "median": 1085214584,
+      "p95": 1158123384,
+      "max": 1168166776
+    },
+    "swapUsed": {
+      "n": 117,
+      "min": 7181828096,
+      "median": 7593328640,
+      "p95": 8083668992,
+      "max": 8083668992
+    },
+    "swapAvailable": {
+      "n": 117,
+      "min": 506265600,
+      "median": 996605952,
+      "p95": 1273888768,
+      "max": 1408106496
+    },
+    "freeBytes": {
+      "n": 117,
+      "min": 8833597440,
+      "median": 8937402368,
+      "p95": 9302597632,
+      "max": 9611235328
+    },
+    "queuedBytes": {
+      "n": 117,
+      "min": 0,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+    },
+    "activeBytes": {
+      "n": 117,
+      "min": 0,
+      "median": 0,
+      "p95": 281600,
+      "max": 448000
+    },
+    "missedFrames": {
+      "n": 117,
+      "min": 0,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+    },
+    "missedBuffers": {
+      "n": 117,
+      "min": 0,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+    },
+    "paused": {
+      "n": 117,
+      "min": 0,
+      "median": 0,
+      "p95": 0,
+      "max": 0
+    }
+  },
+  "external_guard": {
+    "n": 4446,
+    "first": "2026-10-07T18:06:22.015150+00:00",
+    "last": "2026-10-07T18:14:05.527949+00:00",
+    "footprint_bytes": {
+      "n": 4446,
+      "min": 565741680,
+      "median": 720169288.0,
+      "p95": 966954560,
+      "max": 1007455808
+    },
+    "pageins_delta": 163590
+  },
+  "sha256": {
+    "meeting.json": "da15f6aa9ebd2d4fb5a01fa34d177de51a2498f1c29f600792c13de11ca6d3dd",
+    "transcript.json": "cd05552dffe07c91eb4eaceb7ddf33b7cca9acf0abfe7ddf3373c2b7639b7500",
+    "transcript.live.json": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+    "notes.md": "b0123fd0f37839cef3694c882457043bb4ef9a706c898f4224692c1a9162bd7a",
+    "notes.json": "9280a0f914a547636d177236cfef4ed4956af7013d5a650edcd612d50b6a5b56"
+  }
+}

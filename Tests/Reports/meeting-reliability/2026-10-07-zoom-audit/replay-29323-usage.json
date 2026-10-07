@@ -1,0 +1,23 @@
+[
+  {
+    "cachedTokens": 0,
+    "id": "C67DBFA0-2904-4015-9A64-6FA50840ED5A",
+    "modelID": "MiniCPM5-2B",
+    "pass": "single",
+    "countsEstimated": false,
+    "v": 1,
+    "meetingID": "3B92EA32-9D55-4622-A2D6-810B044792FF",
+    "promptTokens": 13062,
+    "finishReason": "stop",
+    "ts": "2026-10-07T19:44:20Z",
+    "feature": "meeting.notes.single",
+    "completionTokens": 175,
+    "truncated": false,
+    "warm": true,
+    "requestedModel": "MiniCPM5-2B",
+    "totalMs": 51661,
+    "locality": "local",
+    "provider": "llama",
+    "requestedRole": "meetingNotes"
+  }
+]

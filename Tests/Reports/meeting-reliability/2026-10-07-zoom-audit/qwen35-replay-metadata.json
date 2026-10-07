@@ -1,0 +1,10 @@
+{
+  "model": "Qwen3.5-4B",
+  "exit": 0,
+  "wall_seconds": 99.94429400000081,
+  "markers": [
+    "NOTES_REPLAY_RESULT seconds=98.24853706359863 tokens=340 mapReduce=false chunks=1 collapsed=0 dropped=0 incompleteFacts=false",
+    "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+  ],
+  "factual_quality": "FAILED: invents next-week deadline and misstates completed lunch"
+}

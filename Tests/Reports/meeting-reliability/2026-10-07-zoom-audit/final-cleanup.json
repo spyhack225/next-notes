@@ -1,0 +1,59 @@
+{
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-28775",
+      "allocated_bytes_before": 124395520,
+      "reason": "owned intermediate candidate superseded by tested final install-30744; no active process; peers handed final30744"
+    },
+    {
+      "path": "/private/tmp/NextNotesMeetingNotesReplay-36746472-d84a-4951-9ae7-38e4eb5c34e0",
+      "allocated_bytes_before": 155648,
+      "reason": "owned copied fixture; generated output and exact logs preserved privately; sanitized usage and native proof retained"
+    },
+    {
+      "path": "/private/tmp/nextnotes-zoom-audit-22fe500f2ff14ef1bd5d0bff763c1639",
+      "allocated_bytes_before": 1380352,
+      "reason": "owned disposable probe executables/private Git indexes; compact exact app diagnostics/source fixtures preserved privately"
+    },
+    {
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-29323",
+      "allocated_bytes_before": 8192,
+      "reason": "owned finished notes replay sandbox; sanitized usage metadata retained"
+    },
+    {
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-29396",
+      "allocated_bytes_before": 12288,
+      "reason": "owned finished notes replay sandbox; sanitized usage metadata retained"
+    },
+    {
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-29579",
+      "allocated_bytes_before": 4096,
+      "reason": "owned finished notes replay sandbox; sanitized usage metadata retained"
+    },
+    {
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-29734",
+      "allocated_bytes_before": 8192,
+      "reason": "owned finished notes replay sandbox; sanitized usage metadata retained"
+    },
+    {
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-31234",
+      "allocated_bytes_before": 12288,
+      "reason": "owned finished notes replay sandbox; sanitized usage metadata retained"
+    },
+    {
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-31752",
+      "allocated_bytes_before": 8192,
+      "reason": "owned finished notes replay sandbox; sanitized usage metadata retained"
+    }
+  ],
+  "allocated_bytes_reclaimed": 125984768,
+  "previous_raw_log_bytes_removed": 215909031,
+  "retained": [
+    "installed owner app",
+    "final shared candidate install-30744",
+    "repaired rollback meeting-quality-rollback-9f769aa0b95c4f42aa9bd0d2ef5b6c97",
+    "explicit original incident reproduction rollback",
+    "private review and compact evidence"
+  ],
+  "owner_recordings_models_or_foreign_caches_removed": false
+}

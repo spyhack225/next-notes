@@ -1,0 +1,5 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-28775/Next Notes.app/Contents/MacOS/NextNotes --selftest-wake --selftest-timeout 240
+2026-10-07 15:42:22.807 NextNotes[29023:659671] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  WAKE_LOADED: encoder-epoch-13-avg-2-chunk-8-left-64.int8.onnx
+  WAKE_SPOTTED: LIGHT_UP
+WAKE_OK: model loaded; phrase spotting and authority split hold

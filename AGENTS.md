@@ -48,6 +48,48 @@ is genuinely unavoidable (a provider the person chose, a grant only they can giv
 plain action at a time, with the reason and the exact next click. `--selftest-ui-strings` and
 `PersonaCareEval` are the floor, not the goal; if a flow needs a diagram, it is not done.
 
+**Owner request, 2026-10-07 — shared performance evidence.** Read
+[PERFORMANCE-STANDARDS.md](PERFORMANCE-STANDARDS.md) before changing capture, models,
+meeting processing, dictation, voice, scheduling or rendering. Share meaningful findings,
+implementation scope, real original/fixed verdicts and remaining contracts with all project
+agents through **agent-relay**, and retain the evidence in that document or its linked reports.
+Coordinate native tests/builds on the owner's Mac; concurrent heavy development work must
+not invalidate a live meeting performance check. Development coordination must never gate
+the product's full-duplex microphone/model/speaker path. Preserve other agents' files,
+processes, claims and staged changes; a broadcast being sent does not prove it was read.
+
+The 7 October meeting incident's allocating producer was repeated asynchronous recursion in
+`NeedleServer.ensureRunning`, confirmed by hundreds of repeated frames and a 10.904 GB
+footprint. Commit `422ba5f` makes the existing startup task adopt/reject its child and clear
+itself before completing, and propagates startup errors. Original concurrent real-source
+and native startup cases fail; repaired cases settle around 5–6 MB. The maintained full-app
+startup case and four focused release meeting checks pass. A visible-window 395s recording
+saved/finished with sampled live peak 1.421 GB; responsiveness under competing builds and
+the aggregate function-call/notes quality gates remain open. Generic hub backlog logs do
+not identify the meeting consumer; use the meeting's actual counters and saved coverage.
+The 2.5 GB external diagnostic pause is not a production memory ceiling. The owner-requested
+installed release is pinned in the standard and `installed-release.json` in the
+[meeting investigation](Tests/Reports/meeting-reliability/2026-10-07-investigation/LIVE-FINDINGS.md).
+
+
+The subsequent 40m05 Zoom call stayed responsive according to the owner. Its retained
+first/last interval samples show bounded memory, but the middle metrics aged out; do not
+claim a continuous soak trace. The [Zoom quality audit](Tests/Reports/meeting-reliability/2026-10-07-zoom-audit/README.md)
+confirms poor note coverage/attribution and a separate wake producer bug: ordinary
+They will / Well / I will became commands and were excluded from notes. Original/fixed
+text probes fail 8 / fail 0; the optimized wake flag passes. Read the standard's long-call
+quality and identity section before changing notes strategy or speaker naming. Roster
+names alone never establish a voice binding, and generation OK never means factuality OK.
+Producer commits d729747 and 8df94cb are integrated and installed in the verified owner
+app. Actual native original/fixed replay confirms that two length-cut extraction maps
+now disclose incomplete coverage through the typed result and saved notes, with the same
+four model passes and generated body. This disclosure does not recover missing facts.
+All five writer comparisons fail factual quality; semantic action confidence and live
+context speaker projection remain open. Normal installed startup shows the owner's real
+history and preserves all original meeting files. Keep payloads private and consult the
+audit for exact pins, inherited gates and bounded verification.
+
+
 ---
 
 ## Fix bugs at the source

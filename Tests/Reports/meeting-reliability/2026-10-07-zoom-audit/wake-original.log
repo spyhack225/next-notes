@@ -1,0 +1,9 @@
+WAKE_MEETING_WRONG: ordinary speech index=0 matched remainderWords=0
+WAKE_MEETING_WRONG: ordinary speech index=1 matched remainderWords=2
+WAKE_MEETING_WRONG: ordinary speech index=2 matched remainderWords=0
+WAKE_MEETING_WRONG: ordinary speech index=3 matched remainderWords=4
+WAKE_MEETING_WRONG: ordinary speech index=4 matched remainderWords=5
+WAKE_MEETING_WRONG: ordinary speech index=5 matched remainderWords=5
+WAKE_MEETING_WRONG: ordinary speech index=7 matched remainderWords=1
+WAKE_MEETING_WRONG: ordinary speech index=8 matched remainderWords=1
+WAKE_MEETING_FAILED: failures=8

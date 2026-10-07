@@ -1,0 +1,16 @@
+{
+  "base_commit": "35559e4a16c023a1114a9ecc28cdc7910e7ecc1a",
+  "files": {
+    "Sources/NextNotes/Activation/WakeWord/WakeWordDetector.swift": {
+      "original_sha256": "ac2398346a776faa8b16c935fe8b70190ba59946903f1668ddf7e2810901adcb",
+      "head_matches_original": true,
+      "fixed_sha256": "b98db2316ec43b188c3e24e4a9d3b32b6da058ef6c02de6692984f5364652174"
+    },
+    "Sources/NextNotes/Activation/WakeWord/WakePhraseConfirmation.swift": {
+      "original_sha256": "358722b9118332c91a986bd392530a7e8a494aea0218c8e8e16c92266048f0c3",
+      "head_matches_original": true,
+      "fixed_sha256": "e80e2b18846a1bd3d08f1b21559636e5e56b565f39c8487d0339b90044a5e8bc"
+    }
+  },
+  "lexicon_sha256": "f7000ec3a90544c0c7c16090d8951779c2b322e14dad5006290f498567d439ea"
+}

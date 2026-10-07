@@ -1,0 +1,10 @@
+{
+  "target": "/Applications/Next Notes.app",
+  "pid": 31982,
+  "meeting_section_visible": true,
+  "latest_zoom_recording_visible": "2026-10-07T14:06:22-04:00",
+  "latest_duration": "40:05",
+  "owner_history_visible": true,
+  "recording_active": false,
+  "method": "native accessibility state from exact installed app path; raw titles/participants not retained"
+}

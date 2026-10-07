@@ -1,0 +1,14 @@
+{
+  "commit": "8df94cb7a26f5f55490f45d6a18b24b00c8b795a",
+  "paths": [
+    "Sources/NextNotes/Meetings/NotesGenerator.swift",
+    "Sources/NextNotes/Meetings/NotesService.swift",
+    "Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift"
+  ],
+  "foreign_staged_diff_unchanged": true,
+  "native_original_failure_retained": true,
+  "native_replay_fixed_pending": false,
+  "native_original_failure_then_fixed_pass": true,
+  "proof": "map-incompleteness-original.json; map-incompleteness-fixed.json"
+}

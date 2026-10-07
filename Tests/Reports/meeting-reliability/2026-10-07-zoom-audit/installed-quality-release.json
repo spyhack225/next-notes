@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-07T20:34:01.444692+00:00",
+  "target": "/Applications/Next Notes.app",
+  "source": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-30744/Next Notes.app",
+  "pid": 31982,
+  "old_pid": 20456,
+  "old_pid_exited": true,
+  "binary_sha256": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+  "codesign_verified": true,
+  "matches_tested_candidate": true,
+  "rollback": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-quality-rollback-9f769aa0b95c4f42aa9bd0d2ef5b6c97/Next Notes.app",
+  "rollback_binary_sha256": "a00ac67934f9357c708c2c17f32ee685ee87734ff72471ed14232b4f1ba95046",
+  "original_meeting_files_unchanged": true,
+  "mode": "normal owner data; no fixture, provider or preference override",
+  "source_commits": [
+    "d729747",
+    "8df94cb"
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "scenario": "actual native MiniCPM map facts stopped at length; final reduce completed",
+  "cut_map_passes": 2,
+  "final_generation_completed": true,
+  "incomplete_facts_reported": false,
+  "original_regression_verdict": "FAILED"
+}

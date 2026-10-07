@@ -1,0 +1,79 @@
+{
+  "all_events": 156909,
+  "app_event_count": 117,
+  "categories": [
+    {
+      "category": "calendar",
+      "type": "Error",
+      "count": 9
+    },
+    {
+      "category": "agent",
+      "type": "Error",
+      "count": 77
+    },
+    {
+      "category": "audio",
+      "type": "Error",
+      "count": 11
+    },
+    {
+      "category": "llm",
+      "type": "Info",
+      "count": 2
+    },
+    {
+      "category": "app",
+      "type": "Info",
+      "count": 1
+    },
+    {
+      "category": "inject",
+      "type": "Info",
+      "count": 3
+    },
+    {
+      "category": "metrics",
+      "type": "Info",
+      "count": 10
+    },
+    {
+      "category": "agent",
+      "type": "Info",
+      "count": 1
+    },
+    {
+      "category": "speech",
+      "type": "Info",
+      "count": 3
+    }
+  ],
+  "formats": {
+    "Google calendar %{public}s failed: %s": 9,
+    "voice frontend failure %{public}s": 7,
+    "local EOU startup catch-up lag %.*fs": 4,
+    "capture delivery backlog full \u2014 dropped audio buffer": 11,
+    "local EOU audio lag %.*fs; resetting decoder": 10,
+    "local EOU dropped %ld queued audio chunks": 3,
+    "local EOU skipped %ld audio chunks; resetting decoder": 53,
+    "residency: pressure=%{public}s": 2,
+    "file index \u00b7 %{public}s capped at %{public}ld rows (depth %{public}ld)": 1,
+    "output target: %{public}s": 1,
+    "span \u00b7 %{public}s \u00b7 %.*fs": 10,
+    "memory review waits: %{public}s": 1,
+    "Parakeet: final %.*fs audio, %ld segment(s), key-up %{public}s in %.*fs": 1,
+    "%{public}s": 1,
+    "dictation tail \u00b7 drain %.*fs \u00b7 transcribe %.*fs \u00b7 names %.*fs \u00b7 cleanup %.*fs": 1,
+    "AX insert not verified (%{public}s) \u2014 pasting": 1,
+    "pasted (%ld chars)": 1
+  },
+  "error_formats": {
+    "Google calendar %{public}s failed: %s": 9,
+    "voice frontend failure %{public}s": 7,
+    "local EOU startup catch-up lag %.*fs": 4,
+    "capture delivery backlog full \u2014 dropped audio buffer": 11,
+    "local EOU audio lag %.*fs; resetting decoder": 10,
+    "local EOU dropped %ld queued audio chunks": 3,
+    "local EOU skipped %ld audio chunks; resetting decoder": 53
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "commit": "d729747596aa9eaea346909bafad5ecffef9b99e",
+  "paths": [
+    "Sources/NextNotes/Activation/WakeWord/WakeWordDetector.swift",
+    "Sources/NextNotes/Activation/WakeWord/WakePhraseConfirmation.swift",
+    "Sources/NextNotes/Activation/WakeWord/MeetingWakeSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift",
+    "Sources/NextNotes/NextNotesApp.swift"
+  ],
+  "reviewed_shared_dependency": "existing benchmarkProvider helper, reused verbatim after native replay",
+  "foreign_staged_diff_unchanged": true,
+  "shared_app_worktree_retained": true
+}

@@ -1,0 +1,7 @@
+{
+  "removed_path": "/tmp/nextnotes-zoom-audit-22fe500f2ff14ef1bd5d0bff763c1639/unified-log.json",
+  "bytes": 215909031,
+  "sha256": "3a76d8d1622cfb09f73acb03a4dee9784f31ea40c13582ef2dd9778bcd773d5f",
+  "reason": "owned one-shot OS-log extract parsed into compact event counts; exact app evidence retained privately",
+  "owner_data_removed": false
+}

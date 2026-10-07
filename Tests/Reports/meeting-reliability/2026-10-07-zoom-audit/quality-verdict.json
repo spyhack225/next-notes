@@ -1,0 +1,19 @@
+{
+  "all_factual_quality_passed": false,
+  "default_changed": false,
+  "context_candidate_count": 3,
+  "ordinary_discussion_misclassified_as_actions": 3,
+  "structured_notes_action_count": 0,
+  "live_context_far_label": "Others",
+  "final_far_label": "Speaker 1",
+  "comparison_brief": "empty; not exact original background context",
+  "issues": [
+    "missing follow-up",
+    "misattribution/weak coverage",
+    "descriptive or past discussion made actions",
+    "invented deadline"
+  ],
+  "writer_comparisons": 5,
+  "partial_map_contract_fixed": true,
+  "semantic_quality_still_open": true
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "model": "apple",
+    "id": "apple",
+    "exit": 0,
+    "wall_seconds": 163.25179533400296,
+    "markers": [
+      "NOTES_REPLAY_RESULT seconds=161.89726400375366 tokens=4396 mapReduce=true chunks=3 collapsed=0 dropped=0",
+      "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+    ]
+  },
+  {
+    "model": "qwen4b",
+    "id": "unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "exit": 0,
+    "wall_seconds": 262.6670976660025,
+    "markers": [
+      "NOTES_REPLAY_RESULT seconds=260.707622051239 tokens=603 mapReduce=false chunks=1 collapsed=0 dropped=0",
+      "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+    ]
+  }
+]

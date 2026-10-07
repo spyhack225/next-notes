@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "claims": [
+    {
+      "agentId": "dictation-performance-20261007",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "development-light-dictation-pure-cpu",
+      "claimedAt": "2026-10-07T19:18:45.447Z"
+    },
+    {
+      "agentId": "meeting-performance-20261007",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "development-heavy",
+      "claimedAt": "2026-10-07T19:20:41.234Z"
+    }
+  ],
+  "owned": [
+    {
+      "agentId": "meeting-performance-20261007",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "development-heavy",
+      "claimedAt": "2026-10-07T19:20:41.234Z"
+    }
+  ]
+}

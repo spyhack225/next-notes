@@ -1,0 +1,67 @@
+diff --git a/Sources/NextNotes/Activation/WakeWord/WakePhraseConfirmation.swift b/Sources/NextNotes/Activation/WakeWord/WakePhraseConfirmation.swift
+index f9d6403..2b8b3f7 100644
+--- a/Sources/NextNotes/Activation/WakeWord/WakePhraseConfirmation.swift
++++ b/Sources/NextNotes/Activation/WakeWord/WakePhraseConfirmation.swift
+@@ -84,6 +84,20 @@ enum WakePhraseConfirmation {
+             return Result(accepted: false, closeness: 0, reason: "The phrase has no pronunciation.", remainder: "")
+         }
+ 
++        // A whole-phrase edit score can make the missing greeting cheap enough:
++        // “Well” and “I will” used to wake “Hey Will” during ordinary meetings.
++        // Retain the phrase's first word independently, including its dropped-h
++        // pronunciation, before scoring the complete phrase. The same accent
++        // substitutions still apply; no sensitivity or configured phrase changes.
++        let onset = phones(for: phraseWords[0], lookup: lookup)
++        let heardOnset = phones(for: heardWords[0], lookup: lookup)
++        let onsetTargets = [onset, WakeWordVariants.droppingLeadingH(onset)]
++        let onsetScore = onsetTargets.map { closeness(heardOnset, $0) }.max() ?? 0
++        guard heardWords.count >= phraseWords.count, onsetScore >= acceptedCloseness else {
++            return Result(accepted: false, closeness: onsetScore,
++                reason: "The beginning of the wake phrase was not heard.", remainder: "")
++        }
++
+         // Score against the accent-tolerant pronunciations as well as the canonical
+         // one. Without this a dropped /h/ — the commonest feature of the accent this
+         // was reported from — costs a whole phone and lands “ey will” under the bar.
+diff --git a/Sources/NextNotes/Activation/WakeWord/WakeWordDetector.swift b/Sources/NextNotes/Activation/WakeWord/WakeWordDetector.swift
+index d94588e..f7d008c 100644
+--- a/Sources/NextNotes/Activation/WakeWord/WakeWordDetector.swift
++++ b/Sources/NextNotes/Activation/WakeWord/WakeWordDetector.swift
+@@ -14,16 +14,36 @@ enum WakeWordDetector {
+         guard let phrase = configuration.validatedPhrase() else { return nil }
+         let haystack = text.precomposedStringWithCanonicalMapping
+         let needle = phrase.precomposedStringWithCanonicalMapping
+-        if let range = haystack.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) {
++        // Match complete words: “They will” contains the characters “Hey Will”,
++        // and “Hey William” starts with them, but neither addresses this agent.
++        var search = haystack.startIndex..<haystack.endIndex
++        var partialWordMatch = false
++        while let range = haystack.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive], range: search) {
++            let before = range.lowerBound == haystack.startIndex
++                || !isWordCharacter(haystack[haystack.index(before: range.lowerBound)])
++            let afterWord = range.upperBound == haystack.endIndex
++                || !isWordCharacter(haystack[range.upperBound])
++            guard before && afterWord else {
++                partialWordMatch = true
++                search = range.upperBound..<haystack.endIndex
++                continue
++            }
+             let after = haystack[range.upperBound...]
+                 .trimmingCharacters(in: CharacterSet(charactersIn: ",.!? ").union(.whitespacesAndNewlines))
+             let tightness = Double(needle.count) / Double(max(haystack.count, 1))
+             let confidence = min(1, 0.55 + tightness + (configuration.sensitivity - 0.5) * 0.2)
+             return Detection(phrase: phrase, remainder: after, confidence: confidence, range: range)
+         }
++        // A phonetic fallback must not turn the rejected part of a different
++        // written word back into an address. Genuine accent spellings still use it.
++        guard !partialWordMatch else { return nil }
+         return spotPhonetically(in: haystack, phrase: phrase, configuration: configuration)
+     }
+ 
++    private static func isWordCharacter(_ character: Character) -> Bool {
++        character.isLetter || character.isNumber || character == "'" || character == "’"
++    }
++
+     /// The transcript rarely spells the phrase the way it was configured. This user's
+     /// “Hey Will” came back from the dictation ASR as “hey we need”, which is not a
+     /// substring of anything, so requiring the literal text meant the meeting and

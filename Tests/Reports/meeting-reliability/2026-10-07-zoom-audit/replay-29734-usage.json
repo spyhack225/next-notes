@@ -1,0 +1,23 @@
+[
+  {
+    "id": "D17AB51D-2874-419F-9F7F-6573C8F12AC5",
+    "provider": "llama",
+    "requestedRole": "meetingNotes",
+    "ts": "2026-10-07T19:57:01Z",
+    "cachedTokens": 0,
+    "feature": "meeting.notes.single",
+    "pass": "single",
+    "locality": "local",
+    "finishReason": "stop",
+    "promptTokens": 14132,
+    "modelID": "Qwen3-4B-Instruct-2507",
+    "v": 1,
+    "completionTokens": 603,
+    "countsEstimated": false,
+    "requestedModel": "Qwen3-4B-Instruct-2507",
+    "totalMs": 256214,
+    "warm": true,
+    "truncated": false,
+    "meetingID": "3B92EA32-9D55-4622-A2D6-810B044792FF"
+  }
+]

@@ -231,3 +231,66 @@ their exact artifacts and regression seams; do not infer a polished-delivery pas
 recognition replay, a pre-clean count, a different model's answer or a pressure fallback.
 Historical architecture estimates, model-only speeds and competitor marketing numbers
 remain labelled as such. They must not override newer measured contracts or stored choices.
+
+## Long-call quality and identity acceptance — 7 October 2026
+
+The latest [Zoom audit](Tests/Reports/meeting-reliability/2026-10-07-zoom-audit/README.md)
+covers a 40m05 recording. The owner reports responsive operation. First 7m43 and last
+approximately ten minutes of retained footprint samples peak at 1.007 and 1.168 GB;
+the middle interval is unobserved. Capture integrity and retained meeting counters show
+no missing capture frames or writer failure. Machine-wide swap does not identify an
+allocating app. Final ASR, speaker processing and notes took 34.155, 9.958 and 123.881s;
+context/write medians below 4ms do not justify optimizing them ahead of notes quality.
+
+Generation success, full prompt fit and an untruncated response are insufficient quality
+gates. This full 14,062-token input produced only 137 tokens and missed a follow-up while
+misattributing experience. Audit factual coverage, attribution, commitments and uncertainty
+against the actual transcript; compare alternatives on the same copied input and model.
+Retain latency, strategy, pass counts and quality together. Keep owner speech, generated
+notes and voiceprint vectors private. A replay OK marker means completion, not quality.
+
+A wake detector is a meeting data producer: false wakes label ordinary speech as agent
+commands, exclude it from notes and can prioritize it over final ASR. The actual text
+producer accepted ordinary They will, Well and I will for Hey Will. Original/fixed
+real-source probes fail 8 / fail 0 unchanged ordinary-speech cases with the native
+lexicon; the optimized full-app wake flag passes. Complete word boundaries and a matching phonetic
+onset preserve the existing positive/accented and microphone-authority contracts. Never
+hide this defect by retaining every command as ordinary transcript speech. Text regression
+success does not prove acoustic wake recall or next-call behavior.
+
+Participant identity requires separate evidence for roster and voice-to-person binding.
+Reuse existing calendar enrichment, Meeting.speakerNames and the speaker naming UI.
+Provider participant IDs linked to transcript entries or observed active-speaker intervals
+may supply the binding; roster order, count and model guesses do not. Emails are optional
+provider data, never inferred. Keep user-confirmed names and uncertain labels. Provider
+account/grant requirements and live UI contracts must be verified before promising universal
+Zoom/Meet naming. Run participant collection off the capture callback without serializing
+microphone, model or speaker. The completed detected call has no retained identity evidence.
+
+Long-run monitoring must retain bounded per-meeting aggregates/coverage through an existing
+recording/usage seam. A bounded global metrics ring that drops the middle of a long call
+cannot establish a complete soak. Do not add a second metrics ledger or unbounded samples
+as a substitute for meaningful whole-session counters and sampling-coverage metadata.
+
+Native comparison on the same copied transcript fails factuality across MiniCPM
+whole/three-part, Apple, Qwen3-4B and Qwen3.5-4B outputs (63/160/162/261/98s). Bigger or
+slower is not a quality guarantee. Qwen3.5 invents a deadline. No default is promoted.
+Two original native MiniCPM maps hit length but the completed reduce disclosed no partial
+coverage. The extraction producer now carries incompleteFacts through its typed result
+and notes. The unchanged original native assertion fails before and passes after repair:
+the same 3 maps / 1 reduce, 1860 tokens and byte-identical generated body plus a coverage notice.
+No additional model pass or retry; disclosure does not recover the missing facts.
+Three live context candidates misclassify descriptive discussion despite exact quote
+checks: provenance is not intent or semantic confidence. That classification gate and
+final-speaker projection into live context remain open. Never treat empty structured-note
+arrays as a true negative when generated-note input already failed coverage.
+
+The source-invariant optimized candidate is installed at /Applications/Next Notes.app,
+SHA256 ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad.
+Commits d729747/8df94cb integrate both producer fixes. Final native wake, cleanup-router/
+structure, meeting-context, longform/truncation, health90, integrity 67 and isolation
+21files33defaults pass; isolation's embedded 18 browser tool-loop failures reproduce an
+inherited open gate. Normal startup shows the real owner history and leaves all eight
+original meeting files unchanged. Passive startup footprint spans889–894MB, not a new
+meeting soak. Nonstreaming notes do not expose first-token/prefill timing; comparisons
+are not reference-machine ASR+voice throughput proof or causal speed improvements.

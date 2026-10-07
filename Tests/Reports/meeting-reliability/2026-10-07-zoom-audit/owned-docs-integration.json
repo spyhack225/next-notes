@@ -1,0 +1,13 @@
+{
+  "head_before": "8df94cb7a26f5f55490f45d6a18b24b00c8b795a",
+  "source_commits": [
+    "d729747596aa9eaea346909bafad5ecffef9b99e",
+    "8df94cb7a26f5f55490f45d6a18b24b00c8b795a"
+  ],
+  "AGENTS_owned_marker": "Owner request, 2026-10-07 \u2014 shared performance evidence",
+  "AGENTS_foreign_staged_blob_retained": true,
+  "PERFORMANCE_STANDARDS_foreign_meantime_section_excluded": true,
+  "foreign_staged_other_paths_unchanged": true,
+  "owner_payloads_excluded": true,
+  "reclaimed_allocated_bytes": 125984768
+}

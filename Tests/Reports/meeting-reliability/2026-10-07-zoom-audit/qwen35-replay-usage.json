@@ -1,0 +1,23 @@
+[
+  {
+    "pass": "single",
+    "countsEstimated": false,
+    "totalMs": 92981,
+    "modelID": "Qwen3.5-4B",
+    "ts": 813097798,
+    "feature": "meeting.notes.single",
+    "promptTokens": 14516,
+    "v": 1,
+    "requestedModel": "Qwen3.5-4B",
+    "requestedRole": "meetingNotes",
+    "provider": "llama",
+    "warm": true,
+    "locality": "local",
+    "completionTokens": 340,
+    "cachedTokens": 0,
+    "finishReason": "stop",
+    "id": "5CF3BF5A-FF7F-40D8-A7E8-7E3EC51480D2",
+    "truncated": false,
+    "meetingID": "3B92EA32-9D55-4622-A2D6-810B044792FF"
+  }
+]

@@ -1,0 +1,127 @@
+{
+  "pid": 31982,
+  "normal_owner_data": true,
+  "no_pause_or_signal": true,
+  "samples": [
+    {
+      "at": "2026-10-07T20:36:56.034791+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507620352,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:36:57.043296+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507620352,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:36:58.052036+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507620352,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:36:59.062295+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507505664,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:00.070534+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507538432,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:01.070789+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507538432,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:02.080571+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507800576,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:03.090728+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2510815232,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:04.099224+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2505080832,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:05.106420+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2505080832,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:06.116297+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2505080832,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:07.123458+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2503245824,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:08.132368+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2503245824,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:09.133264+00:00",
+      "footprint_bytes": 893734536,
+      "resident_bytes": 2508537856,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:10.137604+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507505664,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:11.140050+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507505664,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:12.142263+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507505664,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:13.147930+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507505664,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:14.155273+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507505664,
+      "pageins": 264983
+    },
+    {
+      "at": "2026-10-07T20:37:15.164247+00:00",
+      "footprint_bytes": 889147016,
+      "resident_bytes": 2507440128,
+      "pageins": 264983
+    }
+  ]
+}

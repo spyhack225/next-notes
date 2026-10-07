@@ -1,0 +1,22 @@
+[
+  {
+    "strategy": "whole",
+    "window": null,
+    "exit": 0,
+    "wall_seconds": 64.16062100000272,
+    "markers": [
+      "NOTES_REPLAY_RESULT seconds=63.192022919654846 tokens=175 mapReduce=false chunks=1 collapsed=0 dropped=0",
+      "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+    ]
+  },
+  {
+    "strategy": "window8192",
+    "window": 8192,
+    "exit": 0,
+    "wall_seconds": 161.19347829199978,
+    "markers": [
+      "NOTES_REPLAY_RESULT seconds=159.558002948761 tokens=1860 mapReduce=true chunks=3 collapsed=0 dropped=0",
+      "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+    ]
+  }
+]

@@ -1,0 +1,16 @@
+{
+  "exit": 0,
+  "wall_seconds": 126.67019466599959,
+  "markers": [
+    "NOTES_REPLAY_RESULT seconds=125.3778430223465 tokens=1860 mapReduce=true chunks=3 collapsed=0 dropped=0 incompleteFacts=true",
+    "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+  ],
+  "cut_fact_passes": 2,
+  "incompleteFacts_reported": true,
+  "reader_notice_shown": true,
+  "actual_native_regression": "PASS",
+  "factual_quality_pass": false,
+  "generated_body_unchanged": true,
+  "original_model_pass_count": 4,
+  "fixed_model_pass_count": 4
+}
