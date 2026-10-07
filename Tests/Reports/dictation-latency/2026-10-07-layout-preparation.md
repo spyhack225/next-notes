@@ -91,6 +91,8 @@ Cleanly owned rule/sentence CPU source, Apple/local caller deadlines, quote rend
 
 Evidence and exact pins: [layout replay](2026-10-07-evidence/layout/long-warm.log), [native bundle](2026-10-07-evidence/layout/native-bundle.json), [retained bundle](2026-10-07-evidence/layout/retained-final-bundle.json), [rule comparison](2026-10-07-evidence/layout/rules/comparison-serial.json), [sentence comparison](2026-10-07-evidence/layout/sentences/ascii-comparison.json), [full-schema output](2026-10-07-evidence/layout/planner/full-schema.log), [typed output](2026-10-07-evidence/layout/planner/typed-schema.log).
 
+Source/evidence integration commit: `aea8146` (127owned paths). The foreign staged binary diff remains SHA256 `a95a56feed170210aba2a320010f073d3e2cb35b3c379a2db889f3d07aba6e2d` before and after. [Integration receipt](2026-10-07-evidence/layout/integration-receipt.json). No pull request, default promotion or installation is performed.
+
 ## Artifact lifecycle
 
 All owned compilers, launchers and native diagnostic owners have joined. Superseded original/debug/native bundles and completed standalone comparison executables are removed after exact path/hash/process checks; compact sources, patches, signatures and actual verdicts remain. This continuation reclaims **4,440,801,280 allocated bytes (4.14GiB)**, excluding prior-turn cleanup. Keep shared30744 (installed owner baseline), optimized45909 (native/functional candidate), debug47042 (current maintained regression candidate) and the reusable shared scratch. No worktree is created; models, recordings, user stores and other agents' artifacts are untouched. [Lifecycle receipt](2026-10-07-evidence/layout/artifact-lifecycle.json).

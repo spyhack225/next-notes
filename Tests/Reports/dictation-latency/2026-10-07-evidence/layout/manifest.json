@@ -4,6 +4,7 @@
   "debug-bundle-pins.json": "894a470de7d64d54083fc07bb0cee72a9a719a24a8dac3c59874bdbdd1e815fb",
   "final-debug-store-isolation.log": "eb333edfd4968dba2096a3c9fe7a5ea4013a8adb6780dfce0c2766c9b523732c",
   "final-fixed-regressions.log": "8dafb878405ab574f791b4a3500e6e26830377e339930127d2538392b4e19ad5",
+  "integration-receipt.json": "efbc9d52b27ae7ca46a4a9b104caa1946dc470c28c4e1735a4fa0e201cd88485",
   "late-partial-original.log": "141f0d67dbd5ef648d587c50988a916905ca09fe31437b79673d66758a83e7f1",
   "latest-owner-timing-metadata.json": "931d73c47c20df38cbd15cb7cccd6dad2e12f9b9083f201f55a720e3439a826d",
   "layout-only.patch": "115a41aa0356e1f31432cb13d91c9ae0ae73ff3181d8526ab7ecf030e5a0c552",

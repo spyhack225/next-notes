@@ -1,0 +1,14 @@
+{
+  "commit": "aea81464a47f2a4d0a1cbb6efe8cf4a08825326e",
+  "owned_paths": 127,
+  "foreign_staged_binary_diff_sha256_before": "a95a56feed170210aba2a320010f073d3e2cb35b3c379a2db889f3d07aba6e2d",
+  "foreign_staged_binary_diff_sha256_after": "a95a56feed170210aba2a320010f073d3e2cb35b3c379a2db889f3d07aba6e2d",
+  "canonical_working_tree_tests_pinned": true,
+  "clean_HEAD_checkout_independently_rebuilt": false,
+  "retained_uncommitted": [
+    "earlier full pipeline and router cancellation repairs with shared hunks",
+    "remaining latency fixture dependencies",
+    "ignored roadmap update"
+  ],
+  "notes": "Raw evidence patches and exact source pins retain original whitespace. Production source/docs whitespace check passes."
+}
