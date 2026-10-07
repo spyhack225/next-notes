@@ -1,0 +1,23 @@
+[
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-43576",
+    "sha256": "c8b23203326214df9f99426ca25a0658946e2e002b0f3dababf80d72d482a4a6",
+    "allocated_bytes": 232783872,
+    "build_log": "llm-deadline-fixed-build.log",
+    "note": "43576 verified deadline repair;44648/45034 initial fixture router legs disabled. Corrected original45343 retained."
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-44648",
+    "sha256": "db94963e85a8289deafcce82c622d7edfa237f30895924a49ccc21f9fc752265",
+    "allocated_bytes": 232804352,
+    "build_log": "quoted-word-original-build.log",
+    "note": "43576 verified deadline repair;44648/45034 initial fixture router legs disabled. Corrected original45343 retained."
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-45034",
+    "sha256": "c70579f1423733e61b5ae81122a42f5659aee59c9481592377cfde8a9473f496",
+    "allocated_bytes": 232804352,
+    "build_log": "quoted-word-fixed-build.log",
+    "note": "43576 verified deadline repair;44648/45034 initial fixture router legs disabled. Corrected original45343 retained."
+  }
+]

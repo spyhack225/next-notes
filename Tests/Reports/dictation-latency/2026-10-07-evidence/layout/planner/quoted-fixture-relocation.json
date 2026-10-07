@@ -1,0 +1,3 @@
+{
+  "note": "Moved unchanged quoted-word input/assertion body into StructurePlan.selfTestFailures; invoked directly by existing router flag. Earlier untracked latency fixture retains other repairs. Only function name/container and invocation location change. No production producer behavior change."
+}

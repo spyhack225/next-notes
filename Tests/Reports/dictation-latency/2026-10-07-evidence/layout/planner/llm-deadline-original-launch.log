@@ -1,0 +1,5 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-43327/Next Notes.app/Contents/MacOS/NextNotes --selftest-cleanup-router --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/llm-deadline-original.log
+2026-10-07 18:45:02.766 NextNotes[43544:865282] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  local layout deadline joins an uncancellable provider response
+  local layout deadline leaves provider availability outside its budget
+CLEANUP_ROUTER_FAILED: 2 case(s)

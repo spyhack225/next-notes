@@ -1,0 +1,11 @@
+{
+  "Sources/NextNotes/Formatting/TextFormatter.swift": "8f2832217badd574d64f3f5bfeafff173179c9f540b37c81d2bc5d66261ae95f",
+  "Sources/NextNotes/Formatting/SentenceChunker.swift": "ab9c45e1ef61131073df74cb50a3185aef62e4ce515474ea5b44ec48f4614656",
+  "Sources/NextNotes/Formatting/CleanupRouter.swift": "1baa4bd77fc5ab0c5bb7e2b37aca1b9a3a3fe3c1bb17b33c200135df906b445d",
+  "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": "8539e4668fad3f6c7021602a08afc3cc18a493f894b3bc8c73f094dfb65386ba",
+  "Sources/NextNotes/Formatting/IncrementalCleanup.swift": "0c58fcf789a97949f3375540df27e6c39b2d7f9603e0cea25eb765a2c6a44615",
+  "Sources/NextNotes/Formatting/CleanupTrace.swift": "2285079b94e26f07a34e27888360a6c1cfd12d141142de3420510bb36857cb20",
+  "Sources/NextNotes/Formatting/StructurePlanner.swift": "e35cfee5863be36d134810b520b0ff4f4cb9adbd68a6858d1fa13772dac592b9",
+  "Sources/NextNotes/Formatting/StructurePlan.swift": "e5b1dbe8e385d0c9efe11a2614871e9f5f2729bfc32524fd8f7b2fda2709865c",
+  "Sources/NextNotes/Core/DictationController.swift": "2b83111328c010dc80147033a4a98509f0cc416ba17ffd2dcf521a1825d891a9"
+}

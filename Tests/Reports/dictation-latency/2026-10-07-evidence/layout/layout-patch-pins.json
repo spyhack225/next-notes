@@ -1,0 +1,22 @@
+{
+  "Sources/NextNotes/Core/DictationController.swift": {
+    "original": "2b83111328c010dc80147033a4a98509f0cc416ba17ffd2dcf521a1825d891a9",
+    "fixed": "74e1f2f1ef7c46f6a36698e1c6eb2ac8ea55bb498c7e8e7dfd79c0920e5cef6d"
+  },
+  "Sources/NextNotes/Formatting/IncrementalCleanup.swift": {
+    "original": "0c58fcf789a97949f3375540df27e6c39b2d7f9603e0cea25eb765a2c6a44615",
+    "fixed": "698c045329466a7804ba79828329c7ae26c064cc0f586b6b28631f4d0f11cbc6"
+  },
+  "Sources/NextNotes/Formatting/CleanupRouter.swift": {
+    "original": "055c740f3e37291d7567db88c69dc76ce92d0c78106eb50fc01300306b1a075a",
+    "fixed": "418293c605767dc743ac03482a301cfc638fbe03d54e6be4088eb108ccc4bc5c"
+  },
+  "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": {
+    "original": "d4b198f5e74cd673e7aef75c047fa52b5d4fa758522c35472fc83ff94f249f81",
+    "fixed": "cfce148b5a507af1b7855756b9fede3cf3e22a0461b4a078577e694723508866"
+  },
+  "Sources/NextNotes/Formatting/CleanupTrace.swift": {
+    "original_reconstructed_by_removing_only_new_layout_trace_metadata": "2285079b94e26f07a34e27888360a6c1cfd12d141142de3420510bb36857cb20",
+    "fixed": "2059201e21d0728518e8e16acbb2aa4e78510003d1910250e199b201e579cfc1"
+  }
+}

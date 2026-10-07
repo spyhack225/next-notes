@@ -1,0 +1,10 @@
+{
+  "42401": {
+    "binary_sha256": "e0b0e85174d184cca976ff2595e73a2034bb76f5e1398d245e6173100b4019e9",
+    "uuid": "UUID: F83BA6F7-D261-30B0-BB4D-9393FA01172D (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/install-42401/Next Notes.app/Contents/MacOS/NextNotes"
+  },
+  "43327": {
+    "binary_sha256": "c1b42a670982799c31238b031206af38fc17e5c66025061635e4b85df169a0b7",
+    "uuid": "UUID: 55183FB0-184E-32C9-BB1A-A4161577D944 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/install-43327/Next Notes.app/Contents/MacOS/NextNotes"
+  }
+}

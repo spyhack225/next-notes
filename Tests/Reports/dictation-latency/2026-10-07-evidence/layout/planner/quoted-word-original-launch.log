@@ -1,0 +1,10 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-44648/Next Notes.app/Contents/MacOS/NextNotes --selftest-cleanup-router --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/quoted-word-original.log
+2026-10-07 19:09:11.104 NextNotes[45001:886211] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  layout renderer deletes unquoted opening words for a non-prefix quote
+  actual router loses literal opening words for a non-prefix quote
+  quoted D'abord counts lexical pieces as removable whitespace words
+  quoted D’abord counts lexical pieces as removable whitespace words
+  quoted First point counts lexical pieces as removable whitespace words
+  actual router/native-plan consumer removes French content after a correctly quoted announcement
+  eight spoken announcement words are rejected as eleven lexical pieces
+CLEANUP_ROUTER_FAILED: 7 case(s)

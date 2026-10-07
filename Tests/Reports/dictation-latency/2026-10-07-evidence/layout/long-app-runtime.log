@@ -1,0 +1,17 @@
+Timestamp               Ty Process[PID:TID]
+2026-10-07 18:11:44.285 I  NextNotes[39375:c9239] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.50s · prompt 1316 (reused 1297) · out 10
+2026-10-07 18:11:48.531 I  NextNotes[39375:c969e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.56s · prompt 1319 (reused 1297) · out 13
+2026-10-07 18:11:52.740 I  NextNotes[39375:c9239] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.96s · prompt 1315 (reused 1297) · out 9
+2026-10-07 18:11:56.404 I  NextNotes[39375:c9297] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.72s · prompt 1317 (reused 1297) · out 11
+2026-10-07 18:11:59.657 I  NextNotes[39375:c969e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.64s · prompt 1317 (reused 1297) · out 11
+2026-10-07 18:12:03.652 I  NextNotes[39375:c97ea] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.55s · prompt 1316 (reused 1297) · out 10
+2026-10-07 18:12:07.545 I  NextNotes[39375:c923b] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.65s · prompt 1319 (reused 1297) · out 13
+2026-10-07 18:12:10.964 I  NextNotes[39375:c9875] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.48s · prompt 1315 (reused 1297) · out 9
+2026-10-07 18:12:14.811 I  NextNotes[39375:c9031] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.50s · prompt 1316 (reused 1297) · out 10
+2026-10-07 18:12:18.229 I  NextNotes[39375:c9031] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.43s · prompt 1314 (reused 1297) · out 8
+2026-10-07 18:12:22.200 I  NextNotes[39375:c92bb] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.56s · prompt 1317 (reused 1297) · out 11
+2026-10-07 18:12:24.888 I  NextNotes[39375:c950c] [ai.pivotstudio.nextnotes:speech] Parakeet: final 121.2s audio, 30 segment(s), key-up awaited-inflight in 0.024s
+2026-10-07 18:12:24.903 I  NextNotes[39375:c9239] [ai.pivotstudio.nextnotes:speech] cleanup router · semantic miniCPM · 266 words · long, self-correction
+2026-10-07 18:12:25.398 I  NextNotes[39375:c969e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.49s · prompt 1315 (reused 1297) · out 9
+2026-10-07 18:12:31.073 I  NextNotes[39375:c97ea] [ai.pivotstudio.nextnotes:speech] cleanup structure · layout plan not used (the layout pass ran out of time after 6.0s)
+2026-10-07 18:12:31.073 I  NextNotes[39375:c8eca] [ai.pivotstudio.nextnotes:speech] dictation tail · drain 0.00s · transcribe 0.03s · names 0.00s · cleanup 6.18s

@@ -1,0 +1,41 @@
+{
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-37817",
+      "binary_sha256": "9c57531fd7c59fd8942deeada6a11852babd780744f8bea5f6b5019ef7da4e12",
+      "allocated_bytes": 124579840,
+      "reason": "completed owned rejected/superseded reproduction; compact sources, source pins and actual verdicts retained"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-40182",
+      "binary_sha256": "2b605ad03b09f4e6425041a76b2c0b09bc3951b9ddc16645a10a02ec5005f8bc",
+      "allocated_bytes": 232722432,
+      "reason": "completed owned rejected/superseded reproduction; compact sources, source pins and actual verdicts retained"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-41530",
+      "binary_sha256": "cbc0a22a617448552ede76ffbe880dbbd46c6a4c42273500880e8e9cedecde0e",
+      "allocated_bytes": 232722432,
+      "reason": "completed owned rejected/superseded reproduction; compact sources, source pins and actual verdicts retained"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-42401",
+      "binary_sha256": "e0b0e85174d184cca976ff2595e73a2034bb76f5e1398d245e6173100b4019e9",
+      "allocated_bytes": 232738816,
+      "reason": "completed owned rejected/superseded reproduction; compact sources, source pins and actual verdicts retained"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-43327",
+      "binary_sha256": "c1b42a670982799c31238b031206af38fc17e5c66025061635e4b85df169a0b7",
+      "allocated_bytes": 232787968,
+      "reason": "completed owned rejected/superseded reproduction; compact sources, source pins and actual verdicts retained"
+    }
+  ],
+  "allocated_bytes": 1055551488,
+  "retained": [
+    "shared30744 baseline",
+    "41800 pure-CPU verified rollback",
+    "43576 current deadline/CPU debug verification"
+  ],
+  "owner_processes_untouched": true
+}

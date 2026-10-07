@@ -1,0 +1,16 @@
+[
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-43978",
+    "sha256": "9d606de3fd67ce6b76ca30d919dad13898bed157cc68a91bd5fe423f6532e4d4",
+    "build_log": "local-details-build.log",
+    "allocated_bytes": 232783872,
+    "note": "44341 unrun incorrect fixture;43978 native details joined, logs retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-44341",
+    "sha256": "b80f201cc89d68f0f9c8e24a321a27322736d63bb286706a9df02b495ea75437",
+    "build_log": "quoted-prefix-original-build.log",
+    "allocated_bytes": 232804352,
+    "note": "44341 unrun incorrect fixture;43978 native details joined, logs retained"
+  }
+]

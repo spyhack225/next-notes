@@ -1,0 +1,10 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-44648/Next Notes.app",
+  "sha256": "db94963e85a8289deafcce82c622d7edfa237f30895924a49ccc21f9fc752265",
+  "producer_sha256": "e5b1dbe8e385d0c9efe11a2614871e9f5f2729bfc32524fd8f7b2fda2709865c",
+  "fixture_sha256": "d7bc098c70dad211612796bc9711d6ebc69a60769e7055e3df3acad22e56c767",
+  "signature_exit": 0,
+  "verdict": "CLEANUP_ROUTER_FAILED: 7 case(s)",
+  "output": "quoted-word-original-launch.log",
+  "note": "The cleanup-router flag writes stdout; no separate --out file was produced."
+}

@@ -1,0 +1,417 @@
+[
+  {
+    "ts": "2026-10-07T15:37:44Z",
+    "feature": "dictation.asr",
+    "pass": "engine",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": {
+      "inject": 0.13152599334716797,
+      "laneWait": 0.0041048526763916016,
+      "drain": 0.004706978797912598,
+      "transcribe": 0.00019299983978271484,
+      "names": 0.00018608570098876953,
+      "cleanup": 4.744231939315796
+    },
+    "counts": null,
+    "totalMs": 5,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T15:37:44Z",
+    "feature": "dictation.cleanup",
+    "pass": "cleanup",
+    "provider": "llama",
+    "modelID": "apple+miniCPM",
+    "stages": null,
+    "counts": {
+      "chunks": 2
+    },
+    "totalMs": 4744,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T15:37:44Z",
+    "feature": "dictation.hold",
+    "pass": "hold",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": null,
+    "counts": {
+      "cleanupTimedOut": 0,
+      "sessionPrewarmed": 0,
+      "capturedFrames": 1166108,
+      "droppedStreamBuffers": 0,
+      "holdMs": 72948,
+      "words": 222,
+      "keyDownToCaptureMs": 32,
+      "droppedHubBuffers": 0
+    },
+    "totalMs": 4927,
+    "finishReason": null,
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:49:38Z",
+    "feature": "dictation.asr",
+    "pass": "engine",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": {
+      "laneWait": 8.893013000488281e-05,
+      "cleanup": 0.03014194965362549,
+      "inject": 0.30970299243927,
+      "transcribe": 1.2561290264129639,
+      "names": 0.0015430450439453125,
+      "drain": 0.01725900173187256
+    },
+    "counts": null,
+    "totalMs": 1273,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:49:38Z",
+    "feature": "dictation.cleanup",
+    "pass": "cleanup",
+    "provider": "rules",
+    "modelID": "rules",
+    "stages": null,
+    "counts": null,
+    "totalMs": 30,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:49:38Z",
+    "feature": "dictation.hold",
+    "pass": "hold",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": null,
+    "counts": {
+      "keyDownToCaptureMs": 814,
+      "cleanupTimedOut": 0,
+      "capturedFrames": 22394,
+      "words": 1,
+      "holdMs": 2260,
+      "droppedHubBuffers": 0,
+      "droppedStreamBuffers": 0
+    },
+    "totalMs": 1715,
+    "finishReason": null,
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:49:47Z",
+    "feature": "dictation.asr",
+    "pass": "engine",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": {
+      "cleanup": 0.03157496452331543,
+      "transcribe": 0.1826159954071045,
+      "drain": 0.06280601024627686,
+      "inject": 0.15484905242919922,
+      "laneWait": 0.0005882978439331055,
+      "names": 0.002200007438659668
+    },
+    "counts": null,
+    "totalMs": 245,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:49:47Z",
+    "feature": "dictation.cleanup",
+    "pass": "cleanup",
+    "provider": "rules",
+    "modelID": "rules",
+    "stages": null,
+    "counts": null,
+    "totalMs": 32,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:49:48Z",
+    "feature": "dictation.hold",
+    "pass": "hold",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": null,
+    "counts": {
+      "holdMs": 8175,
+      "cleanupTimedOut": 0,
+      "droppedStreamBuffers": 0,
+      "droppedHubBuffers": 0,
+      "words": 27,
+      "capturedFrames": 127733,
+      "keyDownToCaptureMs": 160
+    },
+    "totalMs": 742,
+    "finishReason": null,
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:50:38Z",
+    "feature": "dictation.asr",
+    "pass": "engine",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": {
+      "names": 0.0007349252700805664,
+      "laneWait": 9.310245513916016e-05,
+      "drain": 0.037251949310302734,
+      "cleanup": 0.0777660608291626,
+      "inject": 0.22431790828704834,
+      "transcribe": 0.34719204902648926
+    },
+    "counts": null,
+    "totalMs": 384,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:50:38Z",
+    "feature": "dictation.cleanup",
+    "pass": "cleanup",
+    "provider": "rules",
+    "modelID": "rules",
+    "stages": null,
+    "counts": null,
+    "totalMs": 78,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:50:38Z",
+    "feature": "dictation.hold",
+    "pass": "hold",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": null,
+    "counts": {
+      "holdMs": 2194,
+      "cleanupTimedOut": 0,
+      "droppedHubBuffers": 0,
+      "droppedStreamBuffers": 0,
+      "words": 4,
+      "capturedFrames": 33444,
+      "keyDownToCaptureMs": 85
+    },
+    "totalMs": 872,
+    "finishReason": null,
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:53:03Z",
+    "feature": "dictation.asr",
+    "pass": "engine",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": {
+      "laneWait": 0.0005712509155273438,
+      "inject": 0.2445310354232788,
+      "drain": 0.012070059776306152,
+      "transcribe": 0.12131798267364502,
+      "names": 0.0003390312194824219,
+      "cleanup": 3.5662119388580322
+    },
+    "counts": null,
+    "totalMs": 133,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:53:03Z",
+    "feature": "dictation.cleanup",
+    "pass": "cleanup",
+    "provider": "llama",
+    "modelID": "miniCPM",
+    "stages": null,
+    "counts": {
+      "chunks": 1
+    },
+    "totalMs": 3566,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:53:04Z",
+    "feature": "dictation.hold",
+    "pass": "hold",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": null,
+    "counts": {
+      "keyDownToCaptureMs": 59,
+      "droppedStreamBuffers": 0,
+      "cleanupTimedOut": 0,
+      "capturedFrames": 367765,
+      "droppedHubBuffers": 0,
+      "words": 55,
+      "holdMs": 23058
+    },
+    "totalMs": 4055,
+    "finishReason": null,
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:54:28Z",
+    "feature": "dictation.asr",
+    "pass": "engine",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": {
+      "inject": 0.19795703887939453,
+      "transcribe": 0.00015306472778320312,
+      "names": 4.291534423828125e-05,
+      "laneWait": 0.0005058050155639648,
+      "cleanup": 2.072782039642334,
+      "drain": 0.09133005142211914
+    },
+    "counts": null,
+    "totalMs": 91,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:54:28Z",
+    "feature": "dictation.cleanup",
+    "pass": "cleanup",
+    "provider": "llama",
+    "modelID": "miniCPM",
+    "stages": null,
+    "counts": null,
+    "totalMs": 2073,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:54:28Z",
+    "feature": "dictation.hold",
+    "pass": "hold",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": null,
+    "counts": {
+      "cleanupTimedOut": 0,
+      "words": 39,
+      "keyDownToCaptureMs": 73,
+      "droppedStreamBuffers": 0,
+      "holdMs": 16856,
+      "droppedHubBuffers": 0,
+      "capturedFrames": 268783
+    },
+    "totalMs": 2597,
+    "finishReason": null,
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:55:27Z",
+    "feature": "dictation.asr",
+    "pass": "engine",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": {
+      "inject": 0.21112501621246338,
+      "cleanup": 4.150883913040161,
+      "transcribe": 0.06933701038360596,
+      "drain": 0.06090092658996582,
+      "names": 0.0009920597076416016,
+      "laneWait": 0.0004627704620361328
+    },
+    "counts": null,
+    "totalMs": 130,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:55:27Z",
+    "feature": "dictation.cleanup",
+    "pass": "cleanup",
+    "provider": "llama",
+    "modelID": "miniCPM",
+    "stages": null,
+    "counts": {
+      "chunks": 1
+    },
+    "totalMs": 4151,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:55:27Z",
+    "feature": "dictation.hold",
+    "pass": "hold",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": null,
+    "counts": {
+      "droppedStreamBuffers": 0,
+      "capturedFrames": 343702,
+      "keyDownToCaptureMs": 152,
+      "words": 52,
+      "holdMs": 21670,
+      "cleanupTimedOut": 0,
+      "droppedHubBuffers": 0
+    },
+    "totalMs": 4563,
+    "finishReason": null,
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:57:36Z",
+    "feature": "dictation.asr",
+    "pass": "engine",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": {
+      "cleanup": 4.305649042129517,
+      "drain": 0.07512199878692627,
+      "names": 0.0017299652099609375,
+      "laneWait": 0.002428889274597168,
+      "inject": 0.1915370225906372,
+      "transcribe": 0.20124304294586182
+    },
+    "counts": null,
+    "totalMs": 276,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:57:36Z",
+    "feature": "dictation.cleanup",
+    "pass": "cleanup",
+    "provider": "llama",
+    "modelID": "miniCPM",
+    "stages": null,
+    "counts": null,
+    "totalMs": 4306,
+    "finishReason": "stop",
+    "errorClass": null
+  },
+  {
+    "ts": "2026-10-07T18:57:36Z",
+    "feature": "dictation.hold",
+    "pass": "hold",
+    "provider": "parakeet",
+    "modelID": "parakeet",
+    "stages": null,
+    "counts": {
+      "holdMs": 72026,
+      "cleanupTimedOut": 0,
+      "droppedStreamBuffers": 0,
+      "capturedFrames": 1151730,
+      "keyDownToCaptureMs": 43,
+      "words": 204,
+      "droppedHubBuffers": 0
+    },
+    "totalMs": 5082,
+    "finishReason": null,
+    "errorClass": null
+  }
+]

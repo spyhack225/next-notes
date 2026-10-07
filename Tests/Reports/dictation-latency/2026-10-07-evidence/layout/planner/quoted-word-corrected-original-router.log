@@ -1,0 +1,10 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-45343/Next Notes.app/Contents/MacOS/NextNotes --selftest-cleanup-router
+2026-10-07 19:11:52.957 NextNotes[45592:890304] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  layout renderer deletes unquoted opening words for a non-prefix quote
+  actual router loses literal opening words for a non-prefix quote
+  quoted D'abord counts lexical pieces as removable whitespace words
+  quoted D’abord counts lexical pieces as removable whitespace words
+  quoted First point counts lexical pieces as removable whitespace words
+  actual router/native-plan consumer removes French content after a correctly quoted announcement: "J\'ai trois points pour toi.\n\n1. Règle la facturation.\n2. On déplace la réunion de jeudi.\n3. On appelle le comptable.\n\nTomorrow everyone will review the entire passage together and check that the original names, context, and wording have been kept intact for the reader. The team will preserve the same information while making the final document easier to read after the discussion has finished."; source=model plan
+  eight spoken announcement words are rejected as eleven lexical pieces
+CLEANUP_ROUTER_FAILED: 7 case(s)

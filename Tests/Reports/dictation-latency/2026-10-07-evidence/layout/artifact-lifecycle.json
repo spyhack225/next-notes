@@ -1,0 +1,19 @@
+{
+  "reclaimed_allocated_bytes": 4440801280,
+  "reclaimed_GiB": 4.1358184814453125,
+  "manifests": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-layout-20261007/retired-debug-bundles.json",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-layout-20261007/retired-superseded-bundles.json",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-layout-20261007/retired-final-superseded-bundles.json",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/retired-quote-intermediate-bundles.json",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/retired-quote-scaffold-bundles.json",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/retired-final-quote-artifacts.json"
+  ],
+  "retained": [
+    "shared30744 baseline (installed owner still active)",
+    "optimized45909 native/functional candidate",
+    "debug47042 maintained regression candidate",
+    "shared build scratch and models/recordings/user stores untouched"
+  ],
+  "no_worktree_created": true
+}

@@ -1,0 +1,5 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-45909/Next Notes.app/Contents/MacOS/NextNotes --selftest-dictation
+2026-10-07 19:24:58.374 NextNotes[46914:904728] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  DICTATION_NOTE: pre-roll fed 38137 frames of ~40000 with a 1.5 s start
+  DICTATION_NOTE: key-down to capture 0.07179999351501465s with a 1.5 s start
+DICTATION_OK: every hold came back to idle

@@ -1,0 +1,9 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-45343/Next Notes.app",
+  "sha256": "24a0e695d8d48abbc60b830ee9099bd572b411cfcf31d02a6fef4adf0d318848",
+  "signature_exit": 0,
+  "producer_sha256": "e5b1dbe8e385d0c9efe11a2614871e9f5f2729bfc32524fd8f7b2fda2709865c",
+  "fixture_sha256": "63084dfebd9717085cd2970d09b881a87fab2ac9be3277f5c6ed66d982472d9e",
+  "verdict": "CLEANUP_ROUTER_FAILED: 7 case(s)",
+  "output": "quoted-word-corrected-original-router.log"
+}

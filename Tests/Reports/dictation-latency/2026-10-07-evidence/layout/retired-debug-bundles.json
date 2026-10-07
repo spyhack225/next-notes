@@ -1,0 +1,36 @@
+{
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-35028",
+      "binary_sha256": "9568541647740145173842d0b69c87b06b500b595cf0ef06d703cf041b52e2a3",
+      "allocated_bytes": 232845312
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-35518",
+      "binary_sha256": "db600046e40eeda224726091ef45c85c859da0c5779c3a0de202a99705c6fbff",
+      "allocated_bytes": 232878080
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-35923",
+      "binary_sha256": "bd7f47a7a37d8647af3848df3def1cf5c98f2799b2f56cd98a9604d7df25421e",
+      "allocated_bytes": 232878080
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36151",
+      "binary_sha256": "57b0cd1f1cb22daf1997d21043fc6e1a2b70bfd9ecbcad5001f84ca2013d2d65",
+      "allocated_bytes": 232906752
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36425",
+      "binary_sha256": "ca97e224771fa34d38899f05df670d48e4e0fd826123af51e09d7955a5338cf2",
+      "allocated_bytes": 233009152
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-36975",
+      "binary_sha256": "1483b71e0d3aeb4ac67fce5dd9b2d240d5b8f58a4aed3aca37deac2ed12ce2d5",
+      "allocated_bytes": 233054208
+    }
+  ],
+  "allocated_bytes": 1397571584,
+  "retained": "37454 current fixed debug; source/pins/verdicts; shared30744 and15518 reproductions"
+}

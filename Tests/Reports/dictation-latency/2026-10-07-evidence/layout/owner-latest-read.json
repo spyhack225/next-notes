@@ -1,0 +1,214 @@
+{
+  "checked_at": "2026-10-07T23:16:01.574456+00:00",
+  "latest_ts": "2026-10-07T18:57:36Z",
+  "rows": [
+    {
+      "ts": "2026-10-07T18:53:03Z",
+      "feature": "dictation.asr",
+      "pass": "engine",
+      "provider": "parakeet",
+      "modelID": "parakeet",
+      "stages": {
+        "laneWait": 0.0005712509155273438,
+        "inject": 0.2445310354232788,
+        "drain": 0.012070059776306152,
+        "transcribe": 0.12131798267364502,
+        "names": 0.0003390312194824219,
+        "cleanup": 3.5662119388580322
+      },
+      "counts": null,
+      "totalMs": 133,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:53:03Z",
+      "feature": "dictation.cleanup",
+      "pass": "cleanup",
+      "provider": "llama",
+      "modelID": "miniCPM",
+      "stages": null,
+      "counts": {
+        "chunks": 1
+      },
+      "totalMs": 3566,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:53:04Z",
+      "feature": "dictation.hold",
+      "pass": "hold",
+      "provider": "parakeet",
+      "modelID": "parakeet",
+      "stages": null,
+      "counts": {
+        "keyDownToCaptureMs": 59,
+        "droppedStreamBuffers": 0,
+        "cleanupTimedOut": 0,
+        "capturedFrames": 367765,
+        "droppedHubBuffers": 0,
+        "words": 55,
+        "holdMs": 23058
+      },
+      "totalMs": 4055,
+      "finishReason": null,
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:54:28Z",
+      "feature": "dictation.asr",
+      "pass": "engine",
+      "provider": "parakeet",
+      "modelID": "parakeet",
+      "stages": {
+        "inject": 0.19795703887939453,
+        "transcribe": 0.00015306472778320312,
+        "names": 4.291534423828125e-05,
+        "laneWait": 0.0005058050155639648,
+        "cleanup": 2.072782039642334,
+        "drain": 0.09133005142211914
+      },
+      "counts": null,
+      "totalMs": 91,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:54:28Z",
+      "feature": "dictation.cleanup",
+      "pass": "cleanup",
+      "provider": "llama",
+      "modelID": "miniCPM",
+      "stages": null,
+      "counts": null,
+      "totalMs": 2073,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:54:28Z",
+      "feature": "dictation.hold",
+      "pass": "hold",
+      "provider": "parakeet",
+      "modelID": "parakeet",
+      "stages": null,
+      "counts": {
+        "cleanupTimedOut": 0,
+        "words": 39,
+        "keyDownToCaptureMs": 73,
+        "droppedStreamBuffers": 0,
+        "holdMs": 16856,
+        "droppedHubBuffers": 0,
+        "capturedFrames": 268783
+      },
+      "totalMs": 2597,
+      "finishReason": null,
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:55:27Z",
+      "feature": "dictation.asr",
+      "pass": "engine",
+      "provider": "parakeet",
+      "modelID": "parakeet",
+      "stages": {
+        "inject": 0.21112501621246338,
+        "cleanup": 4.150883913040161,
+        "transcribe": 0.06933701038360596,
+        "drain": 0.06090092658996582,
+        "names": 0.0009920597076416016,
+        "laneWait": 0.0004627704620361328
+      },
+      "counts": null,
+      "totalMs": 130,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:55:27Z",
+      "feature": "dictation.cleanup",
+      "pass": "cleanup",
+      "provider": "llama",
+      "modelID": "miniCPM",
+      "stages": null,
+      "counts": {
+        "chunks": 1
+      },
+      "totalMs": 4151,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:55:27Z",
+      "feature": "dictation.hold",
+      "pass": "hold",
+      "provider": "parakeet",
+      "modelID": "parakeet",
+      "stages": null,
+      "counts": {
+        "droppedStreamBuffers": 0,
+        "capturedFrames": 343702,
+        "keyDownToCaptureMs": 152,
+        "words": 52,
+        "holdMs": 21670,
+        "cleanupTimedOut": 0,
+        "droppedHubBuffers": 0
+      },
+      "totalMs": 4563,
+      "finishReason": null,
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:57:36Z",
+      "feature": "dictation.asr",
+      "pass": "engine",
+      "provider": "parakeet",
+      "modelID": "parakeet",
+      "stages": {
+        "cleanup": 4.305649042129517,
+        "drain": 0.07512199878692627,
+        "names": 0.0017299652099609375,
+        "laneWait": 0.002428889274597168,
+        "inject": 0.1915370225906372,
+        "transcribe": 0.20124304294586182
+      },
+      "counts": null,
+      "totalMs": 276,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:57:36Z",
+      "feature": "dictation.cleanup",
+      "pass": "cleanup",
+      "provider": "llama",
+      "modelID": "miniCPM",
+      "stages": null,
+      "counts": null,
+      "totalMs": 4306,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "ts": "2026-10-07T18:57:36Z",
+      "feature": "dictation.hold",
+      "pass": "hold",
+      "provider": "parakeet",
+      "modelID": "parakeet",
+      "stages": null,
+      "counts": {
+        "holdMs": 72026,
+        "cleanupTimedOut": 0,
+        "droppedStreamBuffers": 0,
+        "capturedFrames": 1151730,
+        "keyDownToCaptureMs": 43,
+        "words": 204,
+        "droppedHubBuffers": 0
+      },
+      "totalMs": 5082,
+      "finishReason": null,
+      "errorClass": null
+    }
+  ]
+}

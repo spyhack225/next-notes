@@ -1,0 +1,44 @@
+run-selftest: open -n -W /Users/sergekadjo/Library/Caches/NextNotesBuild/install-43978/Next Notes.app --args --selftest-cleanup plan --plan-model minicpm --plan-details --selftest-timeout 180 --selftest-out /Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/local-plan-details.log
+  live dictation config: cleanup on, engine Apple Foundation Model, grammar on, in the same pass
+  spoken structure: lists, quotations, code and tables all render
+
+=== plan (isolated MiniCPM layout pass) ===
+  warmup: 6.317s (ungraded cold start)
+P1-bare-sequence-is-prose	6.095s	turned down (the layout pass ran out of time)
+  want: three bare imperatives with no announcement are prose, not a list
+  in  : Ship the installer tonight. Write the release note tomorrow. Tell the beta group when both are done.
+  ship: Ship the installer tonight. Write the release note tomorrow. Tell the beta group when both are done.
+  plan: {"blocks":[{"kind":"numbered","stripWords":[0,0,0],"announcerQuotes":["","",""],"to":3,"from":1,"itemStarts":[1,2,3]}]}
+P2-counted-no-envelope	2.170s	accepted (list)
+  want: counted out loud without any envelope still becomes a list
+  in  : The first thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. The third thing is telling the beta group when both are done.
+  ship: 1. The first thing is the installer, it has to go out tonight. ↵ 2. The second thing is the release note for tomorrow. ↵ 3. The third thing is telling the beta group when both are done.
+  plan: {"blocks":[{"itemStarts":[],"stripWords":[],"kind":"prose","announcerQuotes":[],"from":1,"to":1},{"itemStarts":[2,3,4],"stripWords":[3,4,4],"kind":"numbered","announcerQuotes":["Premièrement,","Deuxièmement,","Enfin,"],"from":2,"to":4},{"itemStarts":[],"stripWords":[],"kind":"prose","announcerQuotes":[],"from":5,"to":5}]}
+P3-fr-enumeration	5.784s	accepted (list)
+  want: a French enumeration with no markers becomes a list
+  in  : Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  ship: Voici comment je vois la sortie de crise. ↵  ↵ 1. On gèle les embauches jusqu'en janvier. ↵ 2. On reporte le déménagement du bureau. ↵ 3. On prévient les clients avant vendredi. ↵  ↵ C'est tout pour moi.
+  plan: {"blocks":[{"announcerQuotes":[],"from":1,"to":1,"itemStarts":[],"stripWords":[],"kind":"prose"},{"announcerQuotes":["D'abord","Ensuite","Pour finir"],"from":2,"to":4,"itemStarts":[2,3,4],"stripWords":[0,0,0],"kind":"numbered"}]}
+P4-fr-announced	3.281s	accepted (list)
+  want: a French announcer plus uncounted items becomes a list
+  in  : J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  ship: J'ai trois points pour toi. ↵  ↵ 1. Règle la facturation. ↵ 2. On déplace la réunion de jeudi. ↵ 3. On appelle le comptable.
+  plan: {"blocks":[{"from":1,"announcerQuotes":[],"to":1,"itemStarts":[],"kind":"prose","stripWords":[]},{"from":2,"announcerQuotes":[],"to":2,"itemStarts":[],"kind":"prose","stripWords":[]},{"from":3,"announcerQuotes":[],"to":3,"itemStarts":[],"kind":"prose","stripWords":[]},{"from":4,"announcerQuotes":[],"to":4,"itemStarts":[],"kind":"prose","stripWords":[]}]}
+P5-prose-stays-prose	4.974s	prose
+  want: ordinary prose with no enumeration is never laid out as a list
+  in  : We finished the review this morning and everyone signed off on the plan. The release is scheduled for Friday afternoon as discussed. I will send the notes round once the build is green. There is nothing else outstanding on my side at the moment.
+  ship: We finished the review this morning and everyone signed off on the plan. ↵  ↵ The release is scheduled for Friday afternoon as discussed. ↵  ↵ I will send the notes round once the build is green. ↵  ↵ There is nothing else outstanding on my side at the moment.
+P6-mixed-prose-and-list	3.881s	turned down (a list block had 1 item(s); a list needs at least 2)
+  want: an intro and a sign-off stay prose around the list they frame
+  in  : Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+  ship: Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+CLEANUP_PLAN_SUMMARY: n=6 median=4.974s max=6.095s
+CLEANUP_PLAN_NATIVE_JOINED
+
+  plan: P6-mixed-prose-and-list: rendered layout is missing "1. "
+      got: Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+  plan: P6-mixed-prose-and-list: rendered layout is missing "2. "
+      got: Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+  plan: P6-mixed-prose-and-list: rendered layout is missing "3. "
+      got: Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+CLEANUP_FAILED: 3 assertion(s)

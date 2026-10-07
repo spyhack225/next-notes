@@ -65,6 +65,47 @@ enum SentenceChunker {
     /// sentence: the two must agree on where a sentence ends or the pairs it lines up are
     /// not pairs.
     static func sentences(in text: String) -> [String] {
+        // UTF-8 offsets are grapheme boundaries for ASCII except CRLF. Preserve
+        // the existing grapheme path for that pair and every non-ASCII passage.
+        guard !text.utf8.contains(where: { $0 >= 128 || $0 == 13 }) else {
+            return graphemeSentences(in: text)
+        }
+        let bytes = text.utf8
+        var result: [String] = []
+        var start = bytes.startIndex
+        var index = start
+        var previousNewline = false
+        while index < bytes.endIndex {
+            let byte = bytes[index]
+            let next = bytes.index(after: index)
+            let boundary: Bool
+            if byte == 46 || byte == 33 || byte == 63 {
+                if next == bytes.endIndex {
+                    boundary = true
+                } else {
+                    let following = bytes[next]
+                    boundary = following == 32 || (9...13).contains(following)
+                }
+            } else {
+                boundary = byte == 10 && previousNewline
+            }
+            if boundary {
+                result.append(String(text[start..<next]))
+                start = next
+                previousNewline = false
+            } else {
+                previousNewline = byte == 10
+            }
+            index = next
+        }
+        let tail = text[start...]
+        if !tail.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            result.append(String(tail))
+        }
+        return result.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+
+    private static func graphemeSentences(in text: String) -> [String] {
         var result: [String] = []
         var current = ""
         let iterator = Array(text)
@@ -91,8 +132,26 @@ enum SentenceChunker {
         }
         return result.map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
     }
-}
 
+    static func selfTestFailures() -> [String] {
+        let cases: [(String, String, [String])] = [
+            ("decimal-and-email", "Use 3.5 and ada@example.com. Then ship.",
+             ["Use 3.5 and ada@example.com.", "Then ship."]),
+            ("terminator-run", "Really?! Yes!", ["Really?!", "Yes!"]),
+            ("paragraph-boundary", "First.\n\nNext", ["First.", "\n\n", "Next"]),
+            ("open-tail", "First sentence. An unfinished clause", ["First sentence.", "An unfinished clause"]),
+            // Only horizontal whitespace is trimmed from each sentence. Keep these
+            // non-horizontal separators exactly as the original grapheme scan did.
+            ("ascii-whitespace", "One.\u{000B}Two?\u{000C}Three!", ["One.", "\u{000B}Two?", "\u{000C}Three!"]),
+            ("unicode-graphemes", "👩🏽‍💻 e\u{301}quipe! 東京. Next", ["👩🏽‍💻 e\u{301}quipe!", "東京.", "Next"]),
+            ("unicode-space", "Café.\u{00A0}Déjà?\u{2003}Voilà!", ["Café.", "Déjà?", "Voilà!"]),
+            ("empty", " \n\t", [])
+        ]
+        return cases.compactMap { id, input, expected in
+            sentences(in: input) == expected ? nil : "sentence split \(id) changed boundaries"
+        }
+    }
+}
 /// Which sentence group a model call belongs to, and how many calls it was queued behind.
 ///
 /// A task-local rather than a parameter because the number is needed one layer down —

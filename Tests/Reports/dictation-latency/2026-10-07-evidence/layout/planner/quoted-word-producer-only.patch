@@ -1,0 +1,111 @@
+--- a/Sources/NextNotes/Formatting/StructurePlan.swift
++++ b/Sources/NextNotes/Formatting/StructurePlan.swift
+@@ -59,7 +59,9 @@
+         /// "The second thing,", "Premièrement,". Empty when the item starts straight
+         /// into content, or when the model was not asked (older prompts).
+         ///
+-        /// Corroboration evidence only: it never deletes anything. A quote that is not
++        /// Corroboration evidence; a verified prefix also gives the marker length to
++        /// remove. A quote elsewhere in the sentence leaves its opening words intact.
++        /// A quote that is not
+         /// found word-for-word in its item's first sentence corroborates nothing, so a
+         /// model cannot invent a list and then invent the announcements for it — the
+         /// announcements have to be the speaker's own words, in whatever language was
+@@ -190,7 +192,7 @@
+             // fragment by definition: empty quotes nothing, and a quote as long as the
+             // sentence is the sentence, not its announcement.
+             for quote in block.announcerQuotes where !quote.isEmpty {
+-                let count = Self.words(in: quote).count
++                let count = Self.spokenWords(in: quote).count
+                 guard count >= 1, count <= Limits.maxStripWords else {
+                     return "a list item quoted \(count) announcement words, outside 1…"
+                         + "\(Limits.maxStripWords)"
+@@ -267,7 +269,7 @@
+         return nil
+     }
+ 
+-    /// Whether `quote` is really the opening fragment of `sentence`.
++    /// Whether `quote` is really present as a fragment of `sentence`.
+     ///
+     /// Both sides are reduced to lowercase word runs, so casing and punctuation cannot
+     /// break the match; the quote must then appear as a contiguous run of the sentence's
+@@ -275,13 +277,36 @@
+     /// whole-sentence "quote" verifies nothing — it is the item, not its announcement —
+     /// and an empty quote is an item the model says starts straight into content.
+     static func quoteVerifies(_ quote: String, against sentence: String) -> Bool {
++        quotedWordRange(quote, against: sentence) != nil
++    }
++
++    private static func quotedWordRange(_ quote: String, against sentence: String) -> Range<Int>? {
++        let count = spokenWords(in: quote).count
++        guard count >= 1, count <= Limits.maxStripWords else { return nil }
+         let quoted = words(in: quote)
+-        guard quoted.count >= 1, quoted.count <= Limits.maxStripWords else { return false }
++        guard !quoted.isEmpty else { return nil }
+         let spoken = words(in: sentence)
+-        guard quoted.count < spoken.count else { return false }
+-        return (0...(spoken.count - quoted.count)).contains { start in
+-            spoken[start..<(start + quoted.count)].elementsEqual(quoted)
+-        }
++        guard quoted.count < spoken.count else { return nil }
++        for start in 0...(spoken.count - quoted.count) {
++            let range = start..<(start + quoted.count)
++            if spoken[range].elementsEqual(quoted) { return range }
++        }
++        return nil
++    }
++
++    /// Match using punctuation-insensitive lexical pieces, but remove whole spoken
++    /// words. "D'abord" has two pieces and only one removable word. A match inside
++    /// the sentence, or ending inside a contraction/hyphenated word, removes nothing.
++    private static func prefixWordCount(_ range: Range<Int>, in sentence: String) -> Int {
++        guard range.lowerBound == 0 else { return 0 }
++        var pieces = 0
++        for (index, word) in spokenWords(in: sentence).enumerated() {
++            guard index < Limits.maxStripWords else { return 0 }
++            pieces += words(in: String(word)).count
++            if pieces == range.upperBound { return index + 1 }
++            if pieces > range.upperBound { return 0 }
++        }
++        return 0
+     }
+ 
+     /// This plan, with its sentence numbers moved onto a second split of the same speech.
+@@ -432,13 +457,13 @@
+             // A verified quote outranks the model's count: the quote had to be found
+             // word for word in this very sentence, while the count is an unchecked
+             // number. An unverified quote decides nothing and the count stands.
+-            // `dropping` still clamps both, and `saysNothingNew` still asserts the
+-            // output, so neither source can delete content.
++            // Only a complete prefix may be removed. `dropping` still clamps both;
++            // `saysNothingNew` prevents additions, not deletions.
+             let strip: Int
+             if index < block.announcerQuotes.count,
+                let first = lines.first,
+-               Self.quoteVerifies(block.announcerQuotes[index], against: first) {
+-                strip = Self.words(in: block.announcerQuotes[index]).count
++               let range = Self.quotedWordRange(block.announcerQuotes[index], against: first) {
++                strip = Self.prefixWordCount(range, in: first)
+             } else {
+                 strip = index < block.stripWords.count ? block.stripWords[index] : 0
+             }
+@@ -462,7 +487,7 @@
+     /// sentence, and a clumsy opening word is a far cheaper mistake than a lost clause.
+     static func dropping(_ count: Int, from sentence: String) -> String {
+         guard count > 0 else { return sentence }
+-        var words = sentence.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
++        var words = spokenWords(in: sentence).map(String.init)
+         let removable = min(count, max(0, words.count - 1), max(1, words.count * 3 / 5))
+         guard removable > 0 else { return sentence }
+         words.removeFirst(removable)
+@@ -486,6 +511,10 @@
+         text.lowercased()
+             .split { !$0.isLetter && !$0.isNumber }
+             .map(String.init)
++    }
++
++    private static func spokenWords(in text: String) -> [Substring] {
++        text.split { $0.isWhitespace || $0.isNewline }
+     }
+ 
+     // MARK: - Worth asking at all

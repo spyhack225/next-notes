@@ -3385,18 +3385,56 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             // Run it with `--selftest-cleanup plan`.
             if requested.contains("plan") {
                 writeSelfTest("")
-                writeSelfTest("=== plan (live Apple layout pass) ===")
-                guard FoundationModelFormatter.isAvailable else {
-                    writeSelfTest(
-                        "CLEANUP_PLAN_ABSENT: "
-                            + (FoundationModelFormatter.unavailableReason
-                                ?? "Apple Intelligence unavailable")
-                    )
+                // Diagnostic only: same corpus/validation through the existing local
+                // planner, with a private runtime. Never change a saved role or file.
+                let planModel = SelfTest.value(after: "--plan-model") ?? "apple"
+                let planner: any StructurePlanning
+                let localRuntime: NotesModelRuntime?
+                switch planModel {
+                case "apple":
+                    writeSelfTest("=== plan (live Apple layout pass) ===")
+                    guard FoundationModelFormatter.isAvailable else {
+                        writeSelfTest("CLEANUP_PLAN_ABSENT: "
+                            + (FoundationModelFormatter.unavailableReason ?? "Apple Intelligence unavailable"))
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    planner = AppleStructurePlanner()
+                    localRuntime = nil
+                case "minicpm":
+                    writeSelfTest("=== plan (isolated MiniCPM layout pass) ===")
+                    guard MiniCPMModels.isDownloaded else {
+                        writeSelfTest("CLEANUP_PLAN_ABSENT: MiniCPM file unavailable")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    let runtime = NotesModelRuntime(spec: MiniCPMModels.spec,
+                                                    gpuLayers: NotesModelRuntime.allGPULayers)
+                    localRuntime = runtime
+                    planner = LLMStructurePlanner(provider: LlamaLLMProvider(
+                        modelName: MiniCPMModels.spec.displayName, runtime: runtime))
+                default:
+                    writeSelfTest("CLEANUP_PLAN_FAILED: unknown diagnostic model")
                     SelfTest.requestTermination()
                     return
                 }
-                let planner = AppleStructurePlanner()
                 var planTimings: [Double] = []
+                if CommandLine.arguments.contains("--plan-prepare"), let localRuntime {
+                    // A bounded planner warmup can return before uncancellable native
+                    // loading finishes. Explicitly separate cold preparation from the
+                    // graded warm cases; this never changes production deadlines.
+                    let began = Date()
+                    do {
+                        try await localRuntime.prepare()
+                        writeSelfTest("CLEANUP_PLAN_COLD_PREPARE: "
+                            + String(format: "%.3fs", Date().timeIntervalSince(began)))
+                    } catch {
+                        writeSelfTest("CLEANUP_PLAN_PREPARE_FAILED: \(error.localizedDescription)")
+                        _ = await localRuntime.finishTermination()
+                        SelfTest.requestTermination()
+                        return
+                    }
+                }
                 // One ungraded call first: the first plan in a process pays the model's
                 // cold start (P1 timed out at the 3.5 s floor twice), while a real
                 // dictation finds a session staged at key-down. Grading from cold would
@@ -3421,6 +3459,11 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     let seconds = Date().timeIntervalSince(began)
                     planTimings.append(seconds)
                     let plan = outcome.plan
+                    if CommandLine.arguments.contains("--plan-details"), let plan,
+                       let data = try? JSONEncoder().encode(plan),
+                       let json = String(data: data, encoding: .utf8) {
+                        writeSelfTest("  plan: " + json)
+                    }
                     let laidOut = plan.flatMap {
                         $0.rendered(sentences: sentences, target: CleanupEvalCases.target)
                     }
@@ -3456,6 +3499,16 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     median=\(String(format: "%.3f", median))s \
                     max=\(String(format: "%.3f", planTimings.max() ?? 0))s
                     """)
+                if let localRuntime {
+                    // Caller return/cancellation does not prove native completion.
+                    // Join the private native owner before global backend teardown.
+                    guard await localRuntime.finishTermination() else {
+                        writeSelfTest("CLEANUP_PLAN_FAILED: native owner did not finish")
+                        SelfTest.requestTermination()
+                        return
+                    }
+                    writeSelfTest("CLEANUP_PLAN_NATIVE_JOINED")
+                }
             }
 
             // The head-to-head leg: the same corpus through every GGUF on this Mac.

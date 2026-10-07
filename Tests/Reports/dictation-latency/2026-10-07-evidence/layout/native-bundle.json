@@ -1,0 +1,16 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-37817/Next Notes.app",
+  "binary_sha256": "9c57531fd7c59fd8942deeada6a11852babd780744f8bea5f6b5019ef7da4e12",
+  "source_sha256": {
+    "Sources/NextNotes/Formatting/IncrementalCleanup.swift": "698c045329466a7804ba79828329c7ae26c064cc0f586b6b28631f4d0f11cbc6",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": "418293c605767dc743ac03482a301cfc638fbe03d54e6be4088eb108ccc4bc5c",
+    "Sources/NextNotes/Formatting/CleanupTrace.swift": "2059201e21d0728518e8e16acbb2aa4e78510003d1910250e199b201e579cfc1",
+    "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": "cfce148b5a507af1b7855756b9fede3cf3e22a0461b4a078577e694723508866",
+    "Sources/NextNotes/Core/DictationController.swift": "74e1f2f1ef7c46f6a36698e1c6eb2ac8ea55bb498c7e8e7dfd79c0920e5cef6d",
+    "Sources/NextNotes/Formatting/StructurePlanner.swift": "e35cfee5863be36d134810b520b0ff4f4cb9adbd68a6858d1fa13772dac592b9",
+    "Sources/NextNotes/Formatting/StructurePlan.swift": "e5b1dbe8e385d0c9efe11a2614871e9f5f2729bfc32524fd8f7b2fda2709865c"
+  },
+  "rules_sha256_before_micro_change": "3938208348c3016a3a13478b3b3b489bc04c4b1492af151a78389e06903f802c",
+  "config": "release",
+  "uuid": "UUID: F0FE6734-9F76-3DCA-8589-1D539EE94788 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/install-37817/Next Notes.app/Contents/MacOS/NextNotes"
+}

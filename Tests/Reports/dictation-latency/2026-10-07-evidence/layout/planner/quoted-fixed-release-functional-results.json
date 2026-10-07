@@ -1,0 +1,27 @@
+[
+  {
+    "flag": "--selftest-dictation",
+    "exit": 0,
+    "log": "quoted-fixed-release-dictation.log"
+  },
+  {
+    "flag": "--selftest-dictation-hygiene",
+    "exit": 0,
+    "log": "quoted-fixed-release-dictation-hygiene.log"
+  },
+  {
+    "flag": "--selftest-dictation-segments",
+    "exit": 0,
+    "log": "quoted-fixed-release-dictation-segments.log"
+  },
+  {
+    "flag": "--selftest-commandkey",
+    "exit": 0,
+    "log": "quoted-fixed-release-commandkey.log"
+  },
+  {
+    "flag": "--selftest-duplex",
+    "exit": 0,
+    "log": "quoted-fixed-release-duplex.log"
+  }
+]

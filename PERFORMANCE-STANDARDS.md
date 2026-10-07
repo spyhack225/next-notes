@@ -346,3 +346,11 @@ may include fallback. Cold startup21.5s, long-layout quality, universal2s and ex
 delivery stay open. No paired quiet speedup or ASR+voice throughput-floor claim.
 All owned diagnostics joined and the development claim is released. Full formatting,
 schema, validation and budgets remain; CPU improvements are in the installed build.
+
+## Continued dictation producer verification — 7 October
+
+The [continued optimization report](Tests/Reports/dictation-latency/2026-10-07-layout-preparation.md) keeps the long6.1–6.25s failed preparation experiment separate from retained producer repairs. Fixed-regex reuse saves about0.96ms per fixture pass and the exact-output ASCII sentence path about0.55ms per14KB split; these are component observations, not complete-path gains. Cancelled router layout now receives cancellation while semantic cleanup is still held. Local planner availability is inside the unchanged caller budget, and a timeout no longer joins an uncancellable responder. Native work still requires its own owner join.
+
+A correct native French plan exposed destructive renderer unit mismatch: `D'abord` counted as two lexical pieces, then two whitespace words were removed, losing `on`. Original actual renderer/router fails7 assertions; optimized45909 passes the same assertions and existing router/structure checks. Verified whole-prefix words are now removed in the same unit as the eight-word guide; later matches preserve opening words and nine spoken words remain rejected. Existing non-prefix evidence policy remains, so semantic false-list inference is still open.
+
+Native private MiniCPM full grammar, after completed weight preparation and an ungraded initial generation, preserves the exact French content but still fails3 mixed-layout assertions; six case durations2.117–5.795s are model-only observations. Full and conditional typed native Apple schemas each fail14 assertions; no representation/model/default is promoted. Universal2s polished delivery, cold ASR, paired accuracy and physical external insertion remain open. Staged optimized dictation/hygiene/segments/commandkey/duplex pass; the two inherited duplex reducer divergences remain reported. Native-shutdown installation hold and all quality/permission/latency contracts remain.

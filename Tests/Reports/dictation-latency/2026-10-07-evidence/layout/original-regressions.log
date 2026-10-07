@@ -1,0 +1,4 @@
+  actual hold does not prepare layout while speech is arriving
+  actual finishing router repeats a completed exact-input layout after release
+  cancelling actual router while semantic cleanup is held leaves layout work entered
+CLEANUP_ROUTER_FAILED: 3 case(s)

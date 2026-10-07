@@ -1,0 +1,9 @@
+{
+  "pid": 39375,
+  "samples": 426,
+  "scope": "Sampling begins after startup/initial speech; no full startup peak or system model-service memory proof",
+  "first_footprint": 328436256,
+  "last_footprint": 196167048,
+  "peak_footprint": 340085280,
+  "peak_resident": 688193536
+}

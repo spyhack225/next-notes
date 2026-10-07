@@ -1,0 +1,14 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-47042/Next Notes.app",
+  "config": "debug",
+  "sha256": "2cceb51c6c2250e44b00839924cc9ed550b0f61c4c268342b22cde3c72e8c209",
+  "signature_exit": 0,
+  "source_hashes": {
+    "StructurePlan.swift": "aa72d419b746464edb1b82b07c3802df51436b9ca379dc90a0ed686311bd17f1",
+    "StructurePlanner.swift": "e2d037855a11bf40352cbd1c473fe790bf167ff68a97781b8291f55317fe6911",
+    "TextFormatter.swift": "8f2832217badd574d64f3f5bfeafff173179c9f540b37c81d2bc5d66261ae95f",
+    "SentenceChunker.swift": "bcd28cf8fe4fcb743a06c847380c29a9502cb8f548da551723b6c7975f9a313b",
+    "CleanupRouter.swift": "d772363269a6b2e0fdb263a36a35c0d94c4cab708126cfb82616d1392b35b608",
+    "DictationCleanupLatencySelfTest.swift": "9443d0375d6d1785b2eefb202e5346b9433d0f1c839c74f40950fe9e65a00744"
+  }
+}

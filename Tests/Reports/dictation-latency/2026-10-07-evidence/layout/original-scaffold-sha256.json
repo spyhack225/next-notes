@@ -1,0 +1,6 @@
+{
+  "Sources/NextNotes/Formatting/IncrementalCleanup.swift": "c6827b619ad9e03e0a77198190126fa2166851cec118f7ab0a3b5133e0834222",
+  "Sources/NextNotes/Formatting/CleanupRouter.swift": "055c740f3e37291d7567db88c69dc76ce92d0c78106eb50fc01300306b1a075a",
+  "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": "d673d64c886a3f7e3080d05719091fed691018cdb4b0b5b44c06e5b8ee192055",
+  "Sources/NextNotes/Core/DictationController.swift": "e1318cb83eaa9b44b86d030a3d747a4c61166cacf36c2b96598f498c8ce57a00"
+}

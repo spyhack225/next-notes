@@ -1,0 +1,82 @@
+--- a/Sources/NextNotes/Formatting/StructurePlanner.swift
++++ b/Sources/NextNotes/Formatting/StructurePlanner.swift
+@@ -260,30 +260,35 @@
+ 
+     func plan(for sentences: [String], deadline requested: Duration?) async -> StructurePlanOutcome {
+         let began = Date()
+-        if let reason = await provider.unavailableReason {
+-            return .failed(reason, seconds: Date().timeIntervalSince(began))
+-        }
+-        // The caller's ceiling wins over the pinned one, for the same reason Apple's does:
+-        // whoever is holding the wait is the one who knows what it is worth. (D-09.)
++        guard !Task.isCancelled else {
++            return .failed(CancellationError().localizedDescription, seconds: 0)
++        }
++        // Availability can enter a provider actor behind native loading too. Its
++        // existing await belongs inside this same caller budget, not before it.
+         let budget = requested ?? budget
+         do {
+-            let text = try await withThrowingTaskGroup(of: String.self) { group in
+-                group.addTask {
+-                    try await provider.complete(
+-                        system: StructurePlanPrompt.system,
+-                        user: StructurePlanPrompt.user(sentences: sentences),
+-                        maxTokens: 500,
+-                        grammar: StructurePlanPrompt.grammar()
+-                    ).text
++            let response = Task<String, Error> {
++                try Task.checkCancellation()
++                if let reason = await provider.unavailableReason {
++                    throw PlanError.unavailable(reason)
+                 }
+-                group.addTask {
+-                    try await Task.sleep(for: budget)
+-                    throw PlanError.timedOut
+-                }
+-                guard let first = try await group.next() else { throw PlanError.timedOut }
+-                group.cancelAll()
+-                return first
+-            }
++                // Do not start generation if availability returned after cancellation.
++                try Task.checkCancellation()
++                return try await provider.complete(
++                    system: StructurePlanPrompt.system,
++                    user: StructurePlanPrompt.user(sentences: sentences),
++                    maxTokens: 500,
++                    grammar: StructurePlanPrompt.grammar()
++                ).text
++            }
++            let outcome = await withTaskCancellationHandler {
++                await withBoundedWait(budget) { await response.result }
++            } onCancel: { response.cancel() }
++            guard let outcome else {
++                response.cancel()
++                throw PlanError.timedOut
++            }
++            let text = try outcome.get()
+             let seconds = Date().timeIntervalSince(began)
+             guard let json = Self.firstJSONObject(in: text) else {
+                 return .failed("the layout plan was not JSON", seconds: seconds)
+@@ -298,7 +303,12 @@
+             return StructurePlanOutcome(plan: plan, rejection: nil, seconds: seconds)
+         } catch {
+             let seconds = Date().timeIntervalSince(began)
+-            if error is PlanError { return .failed("the layout pass ran out of time", seconds: seconds) }
++            if let failure = error as? PlanError {
++                switch failure {
++                case .timedOut: return .failed("the layout pass ran out of time", seconds: seconds)
++                case .unavailable(let reason): return .failed(reason, seconds: seconds)
++                }
++            }
+             return .failed(error.localizedDescription, seconds: seconds)
+         }
+     }
+@@ -326,7 +336,7 @@
+         return nil
+     }
+ 
+-    private enum PlanError: Error { case timedOut }
++    private enum PlanError: Error { case timedOut, unavailable(String) }
+ }
+ 
+ // MARK: - For the self-tests

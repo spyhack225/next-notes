@@ -1,0 +1,11 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-43576/Next Notes.app",
+  "config": "debug",
+  "binary_sha256": "c8b23203326214df9f99426ca25a0658946e2e002b0f3dababf80d72d482a4a6",
+  "uuid": "UUID: 3515866A-FFC7-3BDB-9959-0F8103B15C2D (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/install-43576/Next Notes.app/Contents/MacOS/NextNotes",
+  "source_sha256": {
+    "Sources/NextNotes/Formatting/StructurePlanner.swift": "e2d037855a11bf40352cbd1c473fe790bf167ff68a97781b8291f55317fe6911",
+    "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": "9443d0375d6d1785b2eefb202e5346b9433d0f1c839c74f40950fe9e65a00744"
+  },
+  "diagnostic_app_source_sha256": "964727e9bb75698f02cde184a180f5efb771b95a871af90f32123843d432b50c"
+}

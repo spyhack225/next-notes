@@ -1142,6 +1142,8 @@ extension CleanupRouter {
         failures += await structurePlanFailures()
         failures += CleanupGuard.selfTestFailures()
         failures += RuleBasedFormatter.selfTestFailures()
+        failures += SentenceChunker.selfTestFailures()
+        failures += await StructurePlan.selfTestFailures()
         failures += await MiniCPMCleanupFormatter.selfTestFailures()
         failures += salvageFailures()
         failures += traceFailures()

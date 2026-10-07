@@ -1,0 +1,40 @@
+[
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-41800",
+    "sha256": "a174df59f07ce6733a7b528b8f4c058e9edee38c05d8b5f0a14d108050d97df9",
+    "allocated_bytes": 232722432,
+    "build_log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-layout-20261007/retained-scan-corrected-debug-build.log",
+    "reason": "superseded after final optimized native and maintained producer/router checks; exact sources, signature pins and original verdict retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-45343",
+    "sha256": "24a0e695d8d48abbc60b830ee9099bd572b411cfcf31d02a6fef4adf0d318848",
+    "allocated_bytes": 232820736,
+    "build_log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/quoted-word-corrected-original-build.log",
+    "reason": "superseded after final optimized native and maintained producer/router checks; exact sources, signature pins and original verdict retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/check",
+    "sha256": "dcb3192f7f3c53f23ad95c0b0a95648fba949c1e3aa58ff3a5db56503edbd38e",
+    "allocated_bytes": 634880,
+    "reason": "completed owned standalone comparison; exact drivers/results retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-rules-20261007/check",
+    "sha256": "7c5c20ee0f56b00c89c036b2e49b62f4ec8af19ff7eb78f3596fbc40e6e24ac2",
+    "allocated_bytes": 98304,
+    "reason": "completed owned standalone comparison; exact drivers/results retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-sentences-20261007/check",
+    "sha256": "22cf8389e0a9c9356d383f2f39032d47e48e30a95b7e798683fa930c392148d9",
+    "allocated_bytes": 90112,
+    "reason": "completed owned standalone comparison; exact drivers/results retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-sentences-20261007/whitespace",
+    "sha256": "ad4c80968c73f3dc2549596e0d2a078429aa028953dc5ab1919f2a35c291bf5e",
+    "allocated_bytes": 65536,
+    "reason": "completed owned standalone comparison; exact drivers/results retained"
+  }
+]

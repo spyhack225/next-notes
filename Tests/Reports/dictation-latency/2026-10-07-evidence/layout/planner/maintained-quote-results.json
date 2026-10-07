@@ -1,0 +1,17 @@
+[
+  {
+    "flag": "--selftest-cleanup-router",
+    "exit": 0,
+    "log": "maintained-quote-cleanup-router.log"
+  },
+  {
+    "flag": "--selftest-cleanup-structure",
+    "exit": 0,
+    "log": "maintained-quote-cleanup-structure.log"
+  },
+  {
+    "flag": "--selftest-store-isolation",
+    "exit": 0,
+    "log": "maintained-quote-store-isolation.log"
+  }
+]

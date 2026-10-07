@@ -57,7 +57,7 @@ struct RuleBasedFormatter: TextFormatter {
     /// while the key is still down and needs the answer inside an actor — calls it directly.
     /// One implementation, so the text a pre-cleaned group is matched against is written by
     /// the same code as the text the key-up pass matches it against. (D-12.)
-    func apply(_ raw: String) -> String {
+    func apply(_ raw: String, isFinal: Bool = true) -> String {
         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return text }
 
@@ -66,33 +66,46 @@ struct RuleBasedFormatter: TextFormatter {
         text = collapseRepeats(in: text)
         text = collapseWhitespace(in: text)
         text = capitalizeSentences(in: text)
-        text = ensureTerminalPunctuation(in: text)
+        // A frozen audio segment can end in the middle of a sentence. Only the final
+        // transcript owns its missing full stop; pre-clean must see the open boundary.
+        if isFinal { text = ensureTerminalPunctuation(in: text) }
 
         return text
     }
 
+    private static let fillerPatterns = fillers.map {
+        try! NSRegularExpression(pattern: "(?i)(?<![\\w'])\($0)\\b,?")
+    }
+    private static let punctuationPatterns = spokenPunctuation.map {
+        (try! NSRegularExpression(pattern: "(?i)\\b\($0.0)\\b"), $0.1)
+    }
+    private static let tripleRepeat = try! NSRegularExpression(pattern: "(?i)\\b([\\w']+)(?:[ \\t]+\\1){2,}\\b")
+    private static let functionRepeat: NSRegularExpression = {
+        let words = repeatableFunctionWords.joined(separator: "|")
+        return try! NSRegularExpression(pattern: "(?i)\\b(\(words))(?:[ \\t]+\\1)+\\b")
+    }()
+    private static let horizontalSpace = try! NSRegularExpression(pattern: "[ \\t]+")
+    private static let spaceBeforePunctuation = try! NSRegularExpression(pattern: " +([,.!?;:])")
+    private static let extraNewlines = try! NSRegularExpression(pattern: "\\n{3,}")
+
+    private static func replace(_ expression: NSRegularExpression, in text: String,
+                                with template: String) -> String {
+        expression.stringByReplacingMatches(in: text, range: NSRange(text.startIndex..<text.endIndex, in: text),
+                                             withTemplate: template)
+    }
+
     private func stripFillers(from text: String) -> String {
         var result = text
-        for filler in Self.fillers {
-            // Match the filler as a whole word, plus a trailing comma if the ASR added one.
-            let pattern = "(?i)(?<![\\w'])\(filler)\\b,?"
-            result = result.replacingOccurrences(
-                of: pattern,
-                with: "",
-                options: .regularExpression
-            )
+        for expression in Self.fillerPatterns {
+            result = Self.replace(expression, in: result, with: "")
         }
         return result
     }
 
     private func applySpokenPunctuation(to text: String) -> String {
         var result = text
-        for (phrase, replacement) in Self.spokenPunctuation {
-            result = result.replacingOccurrences(
-                of: "(?i)\\b\(phrase)\\b",
-                with: replacement,
-                options: .regularExpression
-            )
+        for (expression, replacement) in Self.punctuationPatterns {
+            result = Self.replace(expression, in: result, with: replacement)
         }
         return result
     }
@@ -105,25 +118,15 @@ struct RuleBasedFormatter: TextFormatter {
     /// - two of a function word ("we we", "to to", "the the") collapse to one.
     /// A double content word ("very very", "no no") is kept on purpose.
     private func collapseRepeats(in text: String) -> String {
-        var result = text.replacingOccurrences(
-            of: "(?i)\\b([\\w']+)(?:[ \\t]+\\1){2,}\\b",
-            with: "$1",
-            options: .regularExpression
-        )
-        let words = Self.repeatableFunctionWords.joined(separator: "|")
-        result = result.replacingOccurrences(
-            of: "(?i)\\b(\(words))(?:[ \\t]+\\1)+\\b",
-            with: "$1",
-            options: .regularExpression
-        )
+        var result = Self.replace(Self.tripleRepeat, in: text, with: "$1")
+        result = Self.replace(Self.functionRepeat, in: result, with: "$1")
         return result
     }
 
     private func collapseWhitespace(in text: String) -> String {
-        text
-            .replacingOccurrences(of: "[ \\t]+", with: " ", options: .regularExpression)
-            .replacingOccurrences(of: " +([,.!?;:])", with: "$1", options: .regularExpression)
-            .replacingOccurrences(of: "\\n{3,}", with: "\n\n", options: .regularExpression)
+        let spaces = Self.replace(Self.horizontalSpace, in: text, with: " ")
+        let punctuation = Self.replace(Self.spaceBeforePunctuation, in: spaces, with: "$1")
+        return Self.replace(Self.extraNewlines, in: punctuation, with: "\n\n")
             .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 

@@ -1,0 +1,32 @@
+{
+  "cases" : 768,
+  "checks" : 5392,
+  "checksum" : 1230000,
+  "failures" : 0,
+  "timings_100_passes" : [
+    {
+      "candidate_ms" : 73.035415999999998,
+      "original_ms" : 181.28537499999999
+    },
+    {
+      "candidate_ms" : 69.765917000000002,
+      "original_ms" : 183.99462500000001
+    },
+    {
+      "candidate_ms" : 70.891290999999995,
+      "original_ms" : 215.187916
+    },
+    {
+      "candidate_ms" : 71.767750000000007,
+      "original_ms" : 175.84854200000001
+    },
+    {
+      "candidate_ms" : 66.837834000000001,
+      "original_ms" : 166.342375
+    },
+    {
+      "candidate_ms" : 66.288375000000002,
+      "original_ms" : 166.801917
+    }
+  ]
+}

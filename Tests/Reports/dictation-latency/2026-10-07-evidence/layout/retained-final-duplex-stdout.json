@@ -1,0 +1,10 @@
+{
+  "flag": "--selftest-duplex",
+  "bundle": "install-41800/Next Notes.app",
+  "transport": "actual tool stdout, this flag did not write --selftest-out",
+  "session_id": 53802,
+  "exit_code": 0,
+  "stdout": "VOICE_SESSION_DIVERGENCE: field=turnPending event=timer reducer=Optional(turn#2) legacy=nil\nVOICE_SESSION_DIVERGENCE: field=turnPending event=inputWithdrawn reducer=Optional(turn#2) legacy=nil\nDUPLEX_OK\n",
+  "verdict": "DUPLEX_OK",
+  "scope": "scripted actual full-duplex consumers; inherited reducer divergence diagnostics retained"
+}

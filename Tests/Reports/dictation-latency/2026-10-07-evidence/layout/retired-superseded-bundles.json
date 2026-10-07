@@ -1,0 +1,17 @@
+{
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-37454",
+      "binary_sha256": "97a297236727ee04c485bbec39940b0fd75feb3f39c47d3d2cae55a9e6c24489",
+      "allocated_bytes": 233054208
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-15518",
+      "binary_sha256": "fde1e658bfe61711e1f51ced2ccd427e3457298902821b208af3b39118a56b19",
+      "allocated_bytes": 124211200
+    }
+  ],
+  "allocated_bytes": 357265408,
+  "reason": "37454 fixed debug superseded by verified release37817; measured15518 superseded by shared30744; source/pins/logs retained",
+  "retained": "shared30744 baseline; release37817 current"
+}

@@ -120,6 +120,8 @@ struct AppleStructurePlanner: StructurePlanning {
     /// False shows the model every sentence whole. The probe uses it to check that the
     /// elision costs no accuracy; production never turns it off.
     var elides = true
+    /// Nil in production; exercises the actual planner deadline without model assets.
+    var draftCall: (@Sendable () async throws -> StructurePlanDraft)? = nil
 
     /// Three tenths of a second per sentence, floored at three and a half and capped at six.
     ///
@@ -137,7 +139,7 @@ struct AppleStructurePlanner: StructurePlanning {
 
     func plan(for sentences: [String], deadline requested: Duration?) async -> StructurePlanOutcome {
         let began = Date()
-        guard FoundationModelFormatter.isAvailable else {
+        guard draftCall != nil || FoundationModelFormatter.isAvailable else {
             return .failed(
                 FoundationModelFormatter.unavailableReason
                     ?? "Apple\u{2019}s on-device model is unavailable",
@@ -154,45 +156,47 @@ struct AppleStructurePlanner: StructurePlanning {
         // `catch` path below still carries it when the deadline wins the race.
         let prewarmedBox = LockedBox<Bool?>(nil)
         do {
-            let draft = try await withThrowingTaskGroup(of: StructurePlanDraft.self) { group in
-                group.addTask {
-                    // The session staged while the key was still down, if there is one for
-                    // exactly this prompt. Same trade as the cleanup pass, and the same
-                    // measurement behind it: the first call in a process pays the model
-                    // waking up, and that is most of the three seconds this pass used to
-                    // spend before it timed out.
-                    let staged = await CleanupSessionWarmer.shared
-                        .take(instructions: StructurePlanPrompt.system)
-                    prewarmedBox.value = staged != nil
-                    let session = staged
-                        ?? LanguageModelSession(instructions: StructurePlanPrompt.system)
-                    let response = try await session.respond(
-                        to: StructurePlanPrompt.user(sentences: sentences, eliding: elides),
-                        generating: StructurePlanDraft.self,
-                        options: GenerationOptions(
-                            // A layout is not a creative task; the same passage should be
-                            // laid out the same way twice.
-                            temperature: 0.1,
-                            maximumResponseTokens: 500
-                        )
+            // A native response may ignore cancellation. Bound the caller without
+            // joining that response at the deadline; cancel the same retained task.
+            let response = Task<StructurePlanDraft, Error> {
+                if let draftCall { return try await draftCall() }
+                // The session staged while the key was still down, if there is one for
+                // exactly this prompt. Same trade as the cleanup pass, and the same
+                // measurement behind it: the first call in a process pays the model
+                // waking up, and that is most of the three seconds this pass used to
+                // spend before it timed out.
+                let staged = await CleanupSessionWarmer.shared
+                    .take(instructions: StructurePlanPrompt.system)
+                prewarmedBox.value = staged != nil
+                let session = staged
+                    ?? LanguageModelSession(instructions: StructurePlanPrompt.system)
+                let response = try await session.respond(
+                    to: StructurePlanPrompt.user(sentences: sentences, eliding: elides),
+                    generating: StructurePlanDraft.self,
+                    options: GenerationOptions(
+                        // A layout is not a creative task; the same passage should be
+                        // laid out the same way twice.
+                        temperature: 0.1,
+                        maximumResponseTokens: 500
                     )
-                    // D-06: a completed layout answer is Apple-model activity, whether the
-                    // plan it carried is later used or turned down — the model ran either
-                    // way, and the warmth window reads that. Never
-                    // `MainActor.assumeIsolated` from a child task.
-                    await MainActor.run { AppleModelWarmth.noteActivity() }
-                    return response.content
-                }
-                group.addTask {
-                    try await Task.sleep(for: deadline)
-                    throw PlanError.timedOut
-                }
-                guard let first = try await group.next() else { throw PlanError.timedOut }
-                group.cancelAll()
-                return first
+                )
+                // D-06: a completed layout answer is Apple-model activity, whether the
+                // plan it carried is later used or turned down — the model ran either
+                // way, and the warmth window reads that. Never
+                // `MainActor.assumeIsolated` from a child task.
+                await MainActor.run { AppleModelWarmth.noteActivity() }
+                return response.content
             }
-            let plan = draft.plan
+            let outcome = await withTaskCancellationHandler {
+                await withBoundedWait(deadline) { await response.result }
+            } onCancel: { response.cancel() }
+            guard let outcome else {
+                response.cancel()
+                throw PlanError.timedOut
+            }
+            let draft = try outcome.get()
             let seconds = Date().timeIntervalSince(began)
+            let plan = draft.plan
             if let problem = plan.rejection(sentenceCount: sentences.count) {
                 return .failed(problem, seconds: seconds, prewarmed: prewarmedBox.value)
             }
@@ -256,30 +260,35 @@ struct LLMStructurePlanner: StructurePlanning {
 
     func plan(for sentences: [String], deadline requested: Duration?) async -> StructurePlanOutcome {
         let began = Date()
-        if let reason = await provider.unavailableReason {
-            return .failed(reason, seconds: Date().timeIntervalSince(began))
+        guard !Task.isCancelled else {
+            return .failed(CancellationError().localizedDescription, seconds: 0)
         }
-        // The caller's ceiling wins over the pinned one, for the same reason Apple's does:
-        // whoever is holding the wait is the one who knows what it is worth. (D-09.)
+        // Availability can enter a provider actor behind native loading too. Its
+        // existing await belongs inside this same caller budget, not before it.
         let budget = requested ?? budget
         do {
-            let text = try await withThrowingTaskGroup(of: String.self) { group in
-                group.addTask {
-                    try await provider.complete(
-                        system: StructurePlanPrompt.system,
-                        user: StructurePlanPrompt.user(sentences: sentences),
-                        maxTokens: 500,
-                        grammar: StructurePlanPrompt.grammar()
-                    ).text
+            let response = Task<String, Error> {
+                try Task.checkCancellation()
+                if let reason = await provider.unavailableReason {
+                    throw PlanError.unavailable(reason)
                 }
-                group.addTask {
-                    try await Task.sleep(for: budget)
-                    throw PlanError.timedOut
-                }
-                guard let first = try await group.next() else { throw PlanError.timedOut }
-                group.cancelAll()
-                return first
+                // Do not start generation if availability returned after cancellation.
+                try Task.checkCancellation()
+                return try await provider.complete(
+                    system: StructurePlanPrompt.system,
+                    user: StructurePlanPrompt.user(sentences: sentences),
+                    maxTokens: 500,
+                    grammar: StructurePlanPrompt.grammar()
+                ).text
             }
+            let outcome = await withTaskCancellationHandler {
+                await withBoundedWait(budget) { await response.result }
+            } onCancel: { response.cancel() }
+            guard let outcome else {
+                response.cancel()
+                throw PlanError.timedOut
+            }
+            let text = try outcome.get()
             let seconds = Date().timeIntervalSince(began)
             guard let json = Self.firstJSONObject(in: text) else {
                 return .failed("the layout plan was not JSON", seconds: seconds)
@@ -294,7 +303,12 @@ struct LLMStructurePlanner: StructurePlanning {
             return StructurePlanOutcome(plan: plan, rejection: nil, seconds: seconds)
         } catch {
             let seconds = Date().timeIntervalSince(began)
-            if error is PlanError { return .failed("the layout pass ran out of time", seconds: seconds) }
+            if let failure = error as? PlanError {
+                switch failure {
+                case .timedOut: return .failed("the layout pass ran out of time", seconds: seconds)
+                case .unavailable(let reason): return .failed(reason, seconds: seconds)
+                }
+            }
             return .failed(error.localizedDescription, seconds: seconds)
         }
     }
@@ -322,7 +336,7 @@ struct LLMStructurePlanner: StructurePlanning {
         return nil
     }
 
-    private enum PlanError: Error { case timedOut }
+    private enum PlanError: Error { case timedOut, unavailable(String) }
 }
 
 // MARK: - For the self-tests

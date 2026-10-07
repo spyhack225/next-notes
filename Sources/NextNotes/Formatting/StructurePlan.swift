@@ -59,7 +59,9 @@ struct StructurePlan: Codable, Sendable, Equatable {
         /// "The second thing,", "Premièrement,". Empty when the item starts straight
         /// into content, or when the model was not asked (older prompts).
         ///
-        /// Corroboration evidence only: it never deletes anything. A quote that is not
+        /// Corroboration evidence; a verified prefix also gives the marker length to
+        /// remove. A quote elsewhere in the sentence leaves its opening words intact.
+        /// A quote that is not
         /// found word-for-word in its item's first sentence corroborates nothing, so a
         /// model cannot invent a list and then invent the announcements for it — the
         /// announcements have to be the speaker's own words, in whatever language was
@@ -190,7 +192,7 @@ struct StructurePlan: Codable, Sendable, Equatable {
             // fragment by definition: empty quotes nothing, and a quote as long as the
             // sentence is the sentence, not its announcement.
             for quote in block.announcerQuotes where !quote.isEmpty {
-                let count = Self.words(in: quote).count
+                let count = Self.spokenWords(in: quote).count
                 guard count >= 1, count <= Limits.maxStripWords else {
                     return "a list item quoted \(count) announcement words, outside 1…"
                         + "\(Limits.maxStripWords)"
@@ -267,7 +269,7 @@ struct StructurePlan: Codable, Sendable, Equatable {
         return nil
     }
 
-    /// Whether `quote` is really the opening fragment of `sentence`.
+    /// Whether `quote` is really present as a fragment of `sentence`.
     ///
     /// Both sides are reduced to lowercase word runs, so casing and punctuation cannot
     /// break the match; the quote must then appear as a contiguous run of the sentence's
@@ -275,13 +277,36 @@ struct StructurePlan: Codable, Sendable, Equatable {
     /// whole-sentence "quote" verifies nothing — it is the item, not its announcement —
     /// and an empty quote is an item the model says starts straight into content.
     static func quoteVerifies(_ quote: String, against sentence: String) -> Bool {
+        quotedWordRange(quote, against: sentence) != nil
+    }
+
+    private static func quotedWordRange(_ quote: String, against sentence: String) -> Range<Int>? {
+        let count = spokenWords(in: quote).count
+        guard count >= 1, count <= Limits.maxStripWords else { return nil }
         let quoted = words(in: quote)
-        guard quoted.count >= 1, quoted.count <= Limits.maxStripWords else { return false }
+        guard !quoted.isEmpty else { return nil }
         let spoken = words(in: sentence)
-        guard quoted.count < spoken.count else { return false }
-        return (0...(spoken.count - quoted.count)).contains { start in
-            spoken[start..<(start + quoted.count)].elementsEqual(quoted)
+        guard quoted.count < spoken.count else { return nil }
+        for start in 0...(spoken.count - quoted.count) {
+            let range = start..<(start + quoted.count)
+            if spoken[range].elementsEqual(quoted) { return range }
         }
+        return nil
+    }
+
+    /// Match using punctuation-insensitive lexical pieces, but remove whole spoken
+    /// words. "D'abord" has two pieces and only one removable word. A match inside
+    /// the sentence, or ending inside a contraction/hyphenated word, removes nothing.
+    private static func prefixWordCount(_ range: Range<Int>, in sentence: String) -> Int {
+        guard range.lowerBound == 0 else { return 0 }
+        var pieces = 0
+        for (index, word) in spokenWords(in: sentence).enumerated() {
+            guard index < Limits.maxStripWords else { return 0 }
+            pieces += words(in: String(word)).count
+            if pieces == range.upperBound { return index + 1 }
+            if pieces > range.upperBound { return 0 }
+        }
+        return 0
     }
 
     /// This plan, with its sentence numbers moved onto a second split of the same speech.
@@ -432,13 +457,13 @@ struct StructurePlan: Codable, Sendable, Equatable {
             // A verified quote outranks the model's count: the quote had to be found
             // word for word in this very sentence, while the count is an unchecked
             // number. An unverified quote decides nothing and the count stands.
-            // `dropping` still clamps both, and `saysNothingNew` still asserts the
-            // output, so neither source can delete content.
+            // Only a complete prefix may be removed. `dropping` still clamps both;
+            // `saysNothingNew` prevents additions, not deletions.
             let strip: Int
             if index < block.announcerQuotes.count,
                let first = lines.first,
-               Self.quoteVerifies(block.announcerQuotes[index], against: first) {
-                strip = Self.words(in: block.announcerQuotes[index]).count
+               let range = Self.quotedWordRange(block.announcerQuotes[index], against: first) {
+                strip = Self.prefixWordCount(range, in: first)
             } else {
                 strip = index < block.stripWords.count ? block.stripWords[index] : 0
             }
@@ -462,7 +487,7 @@ struct StructurePlan: Codable, Sendable, Equatable {
     /// sentence, and a clumsy opening word is a far cheaper mistake than a lost clause.
     static func dropping(_ count: Int, from sentence: String) -> String {
         guard count > 0 else { return sentence }
-        var words = sentence.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        var words = spokenWords(in: sentence).map(String.init)
         let removable = min(count, max(0, words.count - 1), max(1, words.count * 3 / 5))
         guard removable > 0 else { return sentence }
         words.removeFirst(removable)
@@ -486,6 +511,102 @@ struct StructurePlan: Codable, Sendable, Equatable {
         text.lowercased()
             .split { !$0.isLetter && !$0.isNumber }
             .map(String.init)
+    }
+
+    private static func spokenWords(in text: String) -> [Substring] {
+        text.split { $0.isWhitespace || $0.isNewline }
+    }
+
+    // MARK: - Producer and router regressions
+
+    static func selfTestFailures() async -> [String] {
+        var failures: [String] = []
+        let middle = "The team discussed premièrement before choosing how the document should be arranged. We compared deuxièmement with the other label and agreed to preserve the existing wording. The designer mentioned enfin while describing the closing rehearsal rather than announcing another task. Tomorrow everyone will review the entire passage together and check that the original names, context, and wording have been kept intact for the reader."
+        let sentences = SpokenStructure.sentenceSplit(middle)
+        let middlePlan = StructurePlan(blocks: [
+            .init(kind: .numbered, from: 1, to: 3, itemStarts: [1, 2, 3],
+                  stripWords: [0, 0, 0], announcerQuotes: ["premièrement", "deuxièmement", "enfin"]),
+            .init(kind: .prose, from: 4, to: sentences.count)
+        ])
+        // Keep the existing language-general evidence policy. A quote found inside
+        // an item must never authorize deleting its unrelated opening words.
+        if !StructurePlan.quoteVerifies("premièrement", against: sentences[0])
+            || middlePlan.corroborationFailure(sentences: sentences) != nil {
+            failures.append("quoted-word repair removed existing non-prefix evidence support")
+        }
+        if middlePlan.rendered(sentences: sentences, target: CleanupEvalCases.target)?.text
+            .contains("1. " + sentences[0]) != true {
+            failures.append("layout renderer deletes unquoted opening words for a non-prefix quote")
+        }
+        guard StructurePlan.isWorthPlanning(sentences: sentences,
+                                            wordCount: SentenceChunker.wordCount(middle), sawMarkers: false) else {
+            return failures + ["quoted-word fixture does not enter the layout path"]
+        }
+        let middleTrace = CleanupTrace()
+        let middleOutput = await CleanupRouter(
+            semantic: KeepAsIsFormatter(), engine: .apple, rules: KeepAsIsFormatter(),
+            formatsLists: true, targetRendersLists: true,
+            target: CleanupEvalCases.target, trace: middleTrace,
+            structurePlanner: ScriptedStructurePlanner { _ in
+                StructurePlanOutcome(plan: middlePlan, rejection: nil, seconds: 0)
+            }, pressureSample: { .idle }
+        ).format(middle)
+        if !middleOutput.contains("1. " + sentences[0]) || middleTrace.snapshot.structurePlanModel == nil {
+            failures.append("actual router loses literal opening words for a non-prefix quote")
+        }
+
+        for (quote, first, expected) in [
+            ("D'abord", "D'abord on règle la facturation.", "On règle la facturation."),
+            ("D’abord", "D’abord on règle la facturation.", "On règle la facturation."),
+            ("First point", "First-point, ship the installer tonight.", "Ship the installer tonight.")
+        ] {
+            let input = [first, "Ensuite on déplace la réunion de jeudi."]
+            let plan = StructurePlan(blocks: [.init(kind: .numbered, from: 1, to: 2,
+                itemStarts: [1, 2], stripWords: [0, 0], announcerQuotes: [quote, "Ensuite"])])
+            if plan.rendered(sentences: input, target: CleanupEvalCases.target)?.text
+                .contains("1. " + expected) != true {
+                failures.append("quoted \(quote) counts lexical pieces as removable whitespace words")
+            }
+        }
+        let french = CleanupEvalCases.planCases.first { $0.id == "P4-fr-announced" }!.input
+        let tail = "Tomorrow everyone will review the entire passage together and check that the original names, context, and wording have been kept intact for the reader. The team will preserve the same information while making the final document easier to read after the discussion has finished."
+        let raw = french + " " + tail
+        let split = SpokenStructure.sentenceSplit(raw)
+        // These exact four French sentences, quotes and zero counts came from the
+        // native MiniCPM trace. Extra unchanged prose exercises production admission.
+        let nativePlan = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(kind: .numbered, from: 2, to: 4, itemStarts: [2, 3, 4],
+                  stripWords: [0, 0, 0], announcerQuotes: ["D'abord", "Ensuite", "Pour finir"]),
+            .init(kind: .prose, from: 5, to: split.count)
+        ])
+        let trace = CleanupTrace()
+        let output = await CleanupRouter(
+            semantic: KeepAsIsFormatter(), engine: .apple, rules: KeepAsIsFormatter(),
+            formatsLists: true, targetRendersLists: true,
+            target: CleanupEvalCases.target, trace: trace,
+            structurePlanner: ScriptedStructurePlanner { _ in
+                StructurePlanOutcome(plan: nativePlan, rejection: nil, seconds: 0)
+            }, pressureSample: { .idle }
+        ).format(raw)
+        let expected = "J'ai trois points pour toi.\n\n1. On règle la facturation.\n2. On déplace la réunion de jeudi.\n3. On appelle le comptable.\n\n" + tail
+        if output != expected || trace.snapshot.structureSource != "model plan" {
+            failures.append("actual router/native-plan consumer removes French content after a correctly quoted announcement: \(output.debugDescription); source=\(trace.snapshot.structureSource ?? "none")")
+        }
+        let eight = "D'abord nous vérifions l'équipe et l'état du projet"
+        let longer = eight + " puis nous envoyons tous les documents aux collègues demain."
+        let bounds = StructurePlan(blocks: [.init(kind: .numbered, from: 1, to: 2,
+            itemStarts: [1, 2], announcerQuotes: [eight, "Ensuite"])])
+        if bounds.rejection(sentenceCount: 2) != nil
+            || !StructurePlan.quoteVerifies(eight, against: longer) {
+            failures.append("eight spoken announcement words are rejected as eleven lexical pieces")
+        }
+        var over = bounds
+        over.blocks[0].announcerQuotes[0] = eight + " puis"
+        if over.rejection(sentenceCount: 2) == nil {
+            failures.append("the unchanged eight-word announcement bound accepts nine spoken words")
+        }
+        return failures
     }
 
     // MARK: - Worth asking at all
