@@ -1791,6 +1791,30 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             runNotesLongformSelfTest()
             return true
         }
+        if arguments.contains("--selftest-meeting-notes-replay") {
+            Task { @MainActor in
+                guard let input = SelfTest.value(after: "--selftest-meeting-notes-replay"),
+                      let model = SelfTest.value(after: "--notes-model"),
+                      let provider = await Self.benchmarkProvider(model) else {
+                    SelfTest.failed = true
+                    writeSelfTest("NOTES_REPLAY_FAILED: a copied fixture and selected model are required")
+                    SelfTest.requestTermination()
+                    return
+                }
+                let rawWindow = SelfTest.value(after: "--notes-replay-window")
+                guard rawWindow == nil || rawWindow.flatMap(Int.init) != nil else {
+                    SelfTest.failed = true
+                    writeSelfTest("NOTES_REPLAY_FAILED: invalid reader window")
+                    SelfTest.requestTermination()
+                    return
+                }
+                SelfTest.failed = !(await MeetingNotesReplaySelfTest.run(
+                    input: input, provider: provider, window: rawWindow.flatMap(Int.init),
+                    write: writeSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-notes-truncation") {
             runNotesTruncationSelfTest()
             return true
@@ -7692,6 +7716,22 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
 
     /// Enough tokens to prove the GPU path decodes, few enough to finish in seconds.
     private static let metalProbeTokens = 32
+    /// A benchmark-only provider for one named model, for one process (Scripts/model-bench.sh).
+    /// `apple`, or a usable library id moved into the shared runtime with the same awaited
+    /// `select` the tool-loop eval uses. Writes no role, no library selection, no file.
+    @MainActor
+    private static func benchmarkProvider(_ id: String) async -> (any LLMProvider)? {
+        if id == "apple" {
+            guard FoundationModelFormatter.unavailableReason == nil else { return nil }
+            return FoundationModelLLMProvider()
+        }
+        guard let model = InstalledModelLibrary.shared.usableModels.first(where: { $0.id == id })
+        else { return nil }
+        await NotesModelRuntime.shared.select(model)
+        let provider = LlamaLLMProvider(modelName: model.displayName)
+        return await provider.unavailableReason == nil ? provider : nil
+    }
+
     /// How much of the probe's answer is echoed, so a garbled GPU decode is visible.
     private static let metalProbeEcho = 80
 
@@ -8689,6 +8729,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             failures.append(contentsOf: wakeVariantFailures())
             failures.append(contentsOf: wakeTuningFailures())
             failures.append(contentsOf: wakeConfirmationFailures())
+            failures.append(contentsOf: MeetingWakeSelfTest.failures())
             failures.append(contentsOf: wakeWatchdogFailures())
 
             if CommandLine.arguments.contains("--wake-callback-only") {

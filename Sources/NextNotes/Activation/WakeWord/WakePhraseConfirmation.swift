@@ -84,6 +84,20 @@ enum WakePhraseConfirmation {
             return Result(accepted: false, closeness: 0, reason: "The phrase has no pronunciation.", remainder: "")
         }
 
+        // A whole-phrase edit score can make the missing greeting cheap enough:
+        // “Well” and “I will” used to wake “Hey Will” during ordinary meetings.
+        // Retain the phrase's first word independently, including its dropped-h
+        // pronunciation, before scoring the complete phrase. The same accent
+        // substitutions still apply; no sensitivity or configured phrase changes.
+        let onset = phones(for: phraseWords[0], lookup: lookup)
+        let heardOnset = phones(for: heardWords[0], lookup: lookup)
+        let onsetTargets = [onset, WakeWordVariants.droppingLeadingH(onset)]
+        let onsetScore = onsetTargets.map { closeness(heardOnset, $0) }.max() ?? 0
+        guard heardWords.count >= phraseWords.count, onsetScore >= acceptedCloseness else {
+            return Result(accepted: false, closeness: onsetScore,
+                reason: "The beginning of the wake phrase was not heard.", remainder: "")
+        }
+
         // Score against the accent-tolerant pronunciations as well as the canonical
         // one. Without this a dropped /h/ — the commonest feature of the accent this
         // was reported from — costs a whole phone and lands “ey will” under the bar.

@@ -14,14 +14,34 @@ enum WakeWordDetector {
         guard let phrase = configuration.validatedPhrase() else { return nil }
         let haystack = text.precomposedStringWithCanonicalMapping
         let needle = phrase.precomposedStringWithCanonicalMapping
-        if let range = haystack.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive]) {
+        // Match complete words: “They will” contains the characters “Hey Will”,
+        // and “Hey William” starts with them, but neither addresses this agent.
+        var search = haystack.startIndex..<haystack.endIndex
+        var partialWordMatch = false
+        while let range = haystack.range(of: needle, options: [.caseInsensitive, .diacriticInsensitive], range: search) {
+            let before = range.lowerBound == haystack.startIndex
+                || !isWordCharacter(haystack[haystack.index(before: range.lowerBound)])
+            let afterWord = range.upperBound == haystack.endIndex
+                || !isWordCharacter(haystack[range.upperBound])
+            guard before && afterWord else {
+                partialWordMatch = true
+                search = range.upperBound..<haystack.endIndex
+                continue
+            }
             let after = haystack[range.upperBound...]
                 .trimmingCharacters(in: CharacterSet(charactersIn: ",.!? ").union(.whitespacesAndNewlines))
             let tightness = Double(needle.count) / Double(max(haystack.count, 1))
             let confidence = min(1, 0.55 + tightness + (configuration.sensitivity - 0.5) * 0.2)
             return Detection(phrase: phrase, remainder: after, confidence: confidence, range: range)
         }
+        // A phonetic fallback must not turn the rejected part of a different
+        // written word back into an address. Genuine accent spellings still use it.
+        guard !partialWordMatch else { return nil }
         return spotPhonetically(in: haystack, phrase: phrase, configuration: configuration)
+    }
+
+    private static func isWordCharacter(_ character: Character) -> Bool {
+        character.isLetter || character.isNumber || character == "'" || character == "’"
     }
 
     /// The transcript rarely spells the phrase the way it was configured. This user's
