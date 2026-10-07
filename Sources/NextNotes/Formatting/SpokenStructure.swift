@@ -282,6 +282,9 @@ enum SpokenStructure {
 
     private struct Pattern {
         let regex: String
+        /// Immutable patterns are reused by every scan. Matching keeps its own
+        /// per-call state; recompiling the same grammar is not transcript work.
+        let expression: NSRegularExpression?
         let classify: @Sendable (String) -> Kindly?
         /// True for a discourse marker that stands for the whole short clause it sits in.
         /// "Open up this first thing first." is four words of throat-clearing announcing
@@ -291,6 +294,7 @@ enum SpokenStructure {
 
         init(_ regex: String, swallowsClause: Bool = false, _ classify: @escaping @Sendable (String) -> Kindly?) {
             self.regex = regex
+            self.expression = try? NSRegularExpression(pattern: regex, options: [.caseInsensitive])
             self.classify = classify
             self.swallowsClause = swallowsClause
         }
@@ -438,10 +442,7 @@ enum SpokenStructure {
         var markers: [Marker] = []
 
         for pattern in patterns {
-            guard let regex = try? NSRegularExpression(
-                pattern: pattern.regex,
-                options: [.caseInsensitive]
-            ) else { continue }
+            guard let regex = pattern.expression else { continue }
             regex.enumerateMatches(in: text, options: [], range: whole) { match, _, _ in
                 guard let match else { return }
                 let matched = ns.substring(with: match.range)
@@ -2073,4 +2074,3 @@ enum CleanupSelfTestLog {
         }
     }
 }
-

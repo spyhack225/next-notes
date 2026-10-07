@@ -287,6 +287,29 @@ struct SpokenFormsTests {
         }
     }
 
+    @Test("extension-only scores and the first perfect window retain their evidence")
+    func scoringShortcutsPreserveEvidence() {
+        // A candidate's own extension contributes even when its stem was not said.
+        // An unrelated extension with no stem match contributes nothing at all.
+        let own = SpokenForms.score(spoken: "typescript", against: "loginHandler.ts")
+        #expect(Self.isClose(own.score, 0.08))
+        #expect(own.matchedTokenCount == 0 && own.nameTokenCount == 2)
+        #expect(own.namedExtension && !own.namedOtherExtension)
+        #expect(own.spokenTokens == 0..<1)
+        let unrelated = SpokenForms.score(spoken: "markdown", against: "loginHandler.ts")
+        #expect(unrelated.score == 0 && unrelated.spokenTokens.isEmpty)
+        #expect(!unrelated.namedExtension && !unrelated.namedOtherExtension)
+
+        // A later extension or repeated name cannot replace the first score of one.
+        // FileReferences reads the following extension separately, as before.
+        let best = SpokenForms.bestMatch(
+            of: "loginHandler.ts",
+            in: "the login handler dot ts and the login handler dot ts"
+        )
+        #expect(best.score == 1 && best.spokenTokens == 1..<3)
+        #expect(best.matchedTokenCount == 2 && !best.namedExtension)
+    }
+
     @Test("the bias budget is merged exactly as the contract says")
     func bias() throws {
         let vectors = try Self.load()

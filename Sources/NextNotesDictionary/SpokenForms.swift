@@ -231,6 +231,17 @@ public enum SpokenForms {
         "yaml": ["yaml", "yml"],
     ]
 
+    /// The inverse of the same contract table, queried for every unmatched word
+    /// of a scoring window. Keep all claimants: aliases such as "typescript"
+    /// belong to more than one extension.
+    private static let extensionClaimants: [String: Set<String>] = {
+        var claims: [String: Set<String>] = [:]
+        for (ext, aliases) in extensionAliases {
+            for word in [ext] + aliases { claims[word, default: []].insert(ext) }
+        }
+        return claims
+    }()
+
     /// How a path segment is said out loud. Scoped to path segments rather than applied to
     /// every token, because "config" inside a name is usually the word and not an
     /// abbreviation anybody expands.
@@ -530,11 +541,15 @@ public enum SpokenForms {
         let keys: [PhoneticKey?]
 
         public init(_ spoken: String) {
-            var all: [SpokenToken] = []
+            self.init(tokens: SpokenForms.tokenize(spoken: spoken))
+        }
+
+        /// The tagger already needs these exact tokens and their source offsets.
+        /// Build its loose-match data only when needed, without tokenizing again.
+        init(tokens all: [SpokenToken]) {
             var kept: [String] = []
             var keptIndices: [Int] = []
             var keys: [PhoneticKey?] = []
-            all = SpokenForms.tokenize(spoken: spoken)
             for (index, token) in all.enumerated() where !SpokenForms.isFiller(token.text) {
                 keptIndices.append(index)
                 kept.append(token.text)
@@ -652,10 +667,14 @@ public enum SpokenForms {
                in: kept,
                range: range,
                consumed: consumed
-           ) {
+        ) {
             namedExtension = true
             for i in run { consumed[i] = true }
         } else {
+            // Without a name token or this candidate's extension, the result is
+            // necessarily .none. Most windows are unrelated prose: avoid searching
+            // every other extension's aliases for an answer we already cannot use.
+            guard matched > 0 else { return .none }
             for i in range where !consumed[i] {
                 if Self.namesSomeOtherExtension(kept[i], than: name.ext) {
                     namedOtherExtension = true
@@ -671,20 +690,28 @@ public enum SpokenForms {
         if namedExtension { score += 0.08 }
         if namedOtherExtension { score -= 0.15 }
 
-        let leftover = range.filter { !consumed[$0] }.count
+        // Every candidate visits up to six windows per transcript token. Count and
+        // locate consumed words in one scan, without allocating two arrays per window.
+        var leftover = 0
+        var lower: Int?
+        var upper: Int?
+        for i in range {
+            if consumed[i] {
+                if lower == nil { lower = i }
+                upper = i + 1
+            } else {
+                leftover += 1
+            }
+        }
         if leftover > 2 { score -= 0.03 * Double(leftover - 2) }
         score = min(1.0, max(0.0, score))
 
         // The span is closed over every consumed index rather than over the run starts,
         // because a run consumed more than its first token: "a p i" is one match and three
         // words, and a caller highlighting `spokenTokens` has to cover all three.
-        let touched = range.filter { consumed[$0] }
-        let lower = touched.first ?? range.lowerBound
-        let upper = (touched.last ?? range.lowerBound) + 1
-
         return Match(
             score: score,
-            spokenTokens: lower..<upper,
+            spokenTokens: (lower ?? range.lowerBound)..<(upper ?? range.lowerBound + 1),
             matchedTokenCount: matched,
             nameTokenCount: name.nameTokens.count,
             namedExtension: namedExtension,
@@ -734,6 +761,9 @@ public enum SpokenForms {
                 )
                 guard match.score > best.score else { continue }
                 best = heard.remapped(match)
+                // Scores are clamped to one, and enumeration already follows the
+                // contracted earliest/shortest tie order. No later window can win.
+                if best.score == 1 { return best }
             }
         }
 
@@ -1026,8 +1056,9 @@ private extension SpokenForms {
             // rejecting login/logout, and the arithmetic is integer so the port cannot
             // disagree about a rounding step.
             let shared = sharedPrefixLength(candidate, lowered)
+            guard shared >= 3 else { continue }
             let longest = max(candidate.count, lowered.count)
-            if shared >= 3, shared * 10 >= longest * 7 { return (i, 0.8) }
+            if shared * 10 >= longest * 7 { return (i, 0.8) }
         }
         return nil
     }
@@ -1048,16 +1079,10 @@ private extension SpokenForms {
     /// extension is checked first by the caller, so "typescript" against a .ts file never
     /// reaches here even though it also aliases .tsx.
     static func namesSomeOtherExtension(_ word: String, than ext: String?) -> Bool {
-        for (key, aliases) in extensionAliases {
-            if key == ext { continue }
-            if key == word || aliases.contains(word) {
-                // Only report it when the candidate's own extension does not claim the same
-                // word, or "typescript" beside a .tsx file would read as naming .ts.
-                if let ext, extensionAliases[ext]?.contains(word) == true { continue }
-                return true
-            }
-        }
-        return false
+        // Only report it when the candidate's own extension does not claim the same
+        // word, or "typescript" beside a .tsx file would read as naming .ts.
+        if let ext, extensionAliases[ext]?.contains(word) == true { return false }
+        return extensionClaimants[word]?.contains { $0 != ext } == true
     }
 }
 

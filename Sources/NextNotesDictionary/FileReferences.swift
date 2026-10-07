@@ -155,7 +155,9 @@ public enum FileReferences {
         guard !tokens.isEmpty else { return untouched }
         let words = tokens.map { $0.text.precomposedStringWithCanonicalMapping }
         let utf16 = Array(text.utf16)
-        let heard = SpokenForms.Heard(text)
+        // Exact-only and already-resolved names need no phonetic preparation. If a
+        // loose match is needed, reuse the exact pass's tokens once for this call.
+        var heard: SpokenForms.Heard?
 
         func word(_ index: Int) -> String? { words.indices.contains(index) ? words[index] : nil }
 
@@ -166,7 +168,9 @@ public enum FileReferences {
             // Exact spans first; the loose match only for a name that appears nowhere exactly.
             var spans = exactSpans(of: name.joined, in: words, tokens: tokens, utf16: utf16).map { (span: $0, exact: true, score: 1.0, looseExt: false, looseFull: false) }
             if spans.isEmpty, position < looseMatchLimit {
-                let match = SpokenForms.bestMatch(of: candidate.reference, in: heard)
+                let prepared = heard ?? SpokenForms.Heard(tokens: tokens)
+                heard = prepared
+                let match = SpokenForms.bestMatch(of: candidate.reference, in: prepared)
                 if match.isConfident, !match.namedOtherExtension, !match.spokenTokens.isEmpty,
                    match.spokenTokens.upperBound <= tokens.count,
                    isOnePhrase(match.spokenTokens, tokens: tokens, utf16: utf16) {
