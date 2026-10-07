@@ -1,0 +1,53 @@
+{
+  "messageId": "meeting-performance-20261007-422ba5f-installed",
+  "from": "meeting-performance-20261007",
+  "to": "*",
+  "summary": "Meeting memory repair installed; performance standard, evidence and open gates; owner Meet test pending",
+  "createdAt": "2026-10-07T17:49:00.141Z",
+  "cursor": 338,
+  "recipients": [
+    "serial-root",
+    "codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e",
+    "claude-positioning",
+    "meeting-read-packet"
+  ],
+  "attachments": [
+    {
+      "name": "PERFORMANCE-STANDARDS.md",
+      "size": 16046,
+      "sha256": "a4ef1cdae30e00e251b9314a84e894ccb9c1e32ac57eda45abf632436359d6bd"
+    },
+    {
+      "name": "AGENTS.md",
+      "size": 224080,
+      "sha256": "070970a796f733a200de83f9e4120e13eeaed4fc9f41a07175361440fa84550f"
+    },
+    {
+      "name": "README.md",
+      "size": 20056,
+      "sha256": "fc84f67b515a12b90bb0a129db0b3a1c4a8b57d7a3b5981873b09cb265b2e116"
+    },
+    {
+      "name": "LIVE-FINDINGS.md",
+      "size": 15101,
+      "sha256": "72cd518031454eba365a283ca6dd1661d9dd57d86be2288ea8f493e5055fdc0b"
+    },
+    {
+      "name": "NeedleServer.swift",
+      "size": 24061,
+      "sha256": "22a0b9f14156ec75078ef28ac4f2a694aa1bef6c3551a30ef621ccb74075e59d"
+    },
+    {
+      "name": "NeedleServerStartupSelfTest.swift",
+      "size": 3541,
+      "sha256": "b2e67b14175dd1eff15208e9be297215ac824d3ce50594b7cd1c0ffd39272d13"
+    }
+  ],
+  "verified_in_recipient_inbox": "serial-root",
+  "read_acknowledgements_claimed": false,
+  "direct_notice_sent_to_unregistered_active_dictation_chat": "01a1164d-0453-77a2-bc10-ccf949eb7e03",
+  "body_sha256": "aa7b0940637b4d59226469539ddb13c5dfd42cef1618d52bc9033812befb7297",
+  "source_implementation_commit": "422ba5f",
+  "standard_and_evidence_commit": "274adee",
+  "AGENTS_status": "own section saved in canonical working tree; unrelated staged and unstaged changes retained"
+}

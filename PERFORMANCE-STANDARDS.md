@@ -193,6 +193,14 @@ agent read it; state unread/acknowledgement limits honestly. Keep future agents 
 through the AGENTS.md reference. Recheck file ownership before edits; never replace a
 stale whole-file snapshot or commit another agent's staged changes.
 
+The 7 October meeting handoff was broadcast to all four registered project peers as
+`meeting-performance-20261007-422ba5f-installed` (cursor338), with this standard,
+AGENTS.md, the investigation, and producer/self-test sources attached. Persistence was
+verified in a recipient inbox; the active dictation chat also received a direct notice.
+This proves delivery, not reading or agreement. The compact [relay receipt](Tests/Reports/meeting-reliability/2026-10-07-investigation/agent-relay-broadcast-result.json)
+records recipients and attachment hashes. The [owned AGENTS insertion](Tests/Reports/meeting-reliability/2026-10-07-investigation/AGENTS-performance-section.md)
+is retained separately because root AGENTS.md also contains other agents' unintegrated work.
+
 ## Installed build and artifact lifecycle
 
 On7 October the owner explicitly requested installation. `/Applications/Next Notes.app`
