@@ -1,0 +1,9 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-14131/Next Notes.app",
+  "flag": "--selftest-function-calls",
+  "exit_code": 1,
+  "sampled_peak_bytes": 578000128,
+  "aborted": false,
+  "seconds": 104.241,
+  "build_kind": "existing staged debug; installed app untouched"
+}

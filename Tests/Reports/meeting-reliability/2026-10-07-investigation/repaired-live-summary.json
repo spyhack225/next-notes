@@ -1,0 +1,12 @@
+{
+  "launch_samples": 6000,
+  "live_samples": 2836,
+  "first_live": "2026-10-07T16:53:52.066096+00:00",
+  "last_live": "2026-10-07T17:00:27.944695+00:00",
+  "live_peak_footprint_bytes": 1421119088,
+  "live_final_footprint_bytes": 1266044504,
+  "paused": false,
+  "last_sample": "2026-10-07T17:05:21.645361+00:00",
+  "latest_footprint_bytes": 1765625408,
+  "claim": "short real recording ran through save/final transcription/notes; responsiveness failed under concurrent work; not broad reliability acceptance"
+}

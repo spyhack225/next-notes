@@ -1,0 +1,3 @@
+STARTUP_REGRESSION_RESULT failures=16 launches=3 footprint=5063352
+STARTUP_REGRESSION_OK all_waiters_settled
+NEEDLE_STARTUP_OK: failed=16/16 warm_settled=16/16 launches=3/6 child=none

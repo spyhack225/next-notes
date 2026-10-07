@@ -1,0 +1,5 @@
+{
+  "Sources/NextNotes/Agent/FunctionCalling/NeedleServer.swift": "22a0b9f14156ec75078ef28ac4f2a694aa1bef6c3551a30ef621ccb74075e59d",
+  "Sources/NextNotes/Agent/FunctionCalling/NeedleServerStartupSelfTest.swift": "b2e67b14175dd1eff15208e9be297215ac824d3ce50594b7cd1c0ffd39272d13",
+  "Sources/NextNotes/Agent/FunctionCalling/FunctionCallSelfTest.swift": "801c653258f73933eb56fe34b7edca14291c77436614d3c2ef8b65b40e9cf14c"
+}

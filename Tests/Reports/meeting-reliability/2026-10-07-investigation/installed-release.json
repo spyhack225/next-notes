@@ -1,0 +1,26 @@
+{
+  "at": "2026-10-07T17:34:26.228227+00:00",
+  "target": "/Applications/Next Notes.app",
+  "source": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-14840/Next Notes.app",
+  "source_commit": "422ba5f",
+  "installed_binary_sha256": "a00ac67934f9357c708c2c17f32ee685ee87734ff72471ed14232b4f1ba95046",
+  "matches_tested_release": true,
+  "codesign_verified": true,
+  "pid": 20456,
+  "guard_pid": 21708,
+  "guard_output": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-investigation/installed-next-meet-f3bc0f4b6a9347ec9a084379834dbbcc",
+  "monitor_limit_bytes": 2500000000,
+  "rollback": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-fix-install-a5151045eb634800bb3fcdffee49dc67/Next Notes.app",
+  "original_binary_sha256": "a43709f40a477366da87c59e67ae5d948a8392b0207ba3903ae93a58bd18e68e",
+  "old_normal_process_exited": 17128,
+  "mode": "normal owner data; no fixture or preference override",
+  "guard_history": [
+    {
+      "pid": 20457,
+      "output": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-investigation/installed-live-a5151045eb634800bb3fcdffee49dc67",
+      "ended": "owned monitor replaced with 30-minute bounded diagnostic for requested next test"
+    }
+  ],
+  "guard_duration_seconds": 1800,
+  "guard_rearmed_at": "2026-10-07T17:44:05.509295+00:00"
+}

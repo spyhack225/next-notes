@@ -1,0 +1,20 @@
+{
+  "commit": "422ba5fc2fc3d3f9494fdd170019d08f049254fa",
+  "branch": "main",
+  "owned_files": [
+    "Sources/NextNotes/Agent/FunctionCalling/NeedleServer.swift",
+    "Sources/NextNotes/Agent/FunctionCalling/FunctionCallSelfTest.swift",
+    "Sources/NextNotes/Agent/FunctionCalling/NeedleServerStartupSelfTest.swift"
+  ],
+  "foreign_staged_files_preserved": [
+    "AGENTS.md",
+    "README.md",
+    "Sources/NextNotes/Agent/Tasks/Durable/BasedOnEvidenceSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+    "Sources/NextNotes/UI/Agent/AgentView.swift",
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+    "Sources/NextNotes/UI/Agent/ToolReviewCard.swift"
+  ],
+  "reports": "retained uncommitted diagnostic artifacts",
+  "at": "2026-10-07T17:16:50.613170+00:00"
+}

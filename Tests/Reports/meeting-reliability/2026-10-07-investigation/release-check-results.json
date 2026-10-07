@@ -1,0 +1,37 @@
+[
+  {
+    "flag": "function-calls",
+    "exit_code": 1,
+    "sampled_peak_bytes": 582997080,
+    "aborted": false,
+    "seconds": 194.549
+  },
+  {
+    "flag": "meeting-health",
+    "exit_code": 0,
+    "sampled_peak_bytes": 163464392,
+    "aborted": false,
+    "seconds": 14.444
+  },
+  {
+    "flag": "meeting-integrity",
+    "exit_code": 0,
+    "sampled_peak_bytes": 188384528,
+    "aborted": false,
+    "seconds": 6.273
+  },
+  {
+    "flag": "meeting-resources",
+    "exit_code": 0,
+    "sampled_peak_bytes": 158696600,
+    "aborted": false,
+    "seconds": 7.756
+  },
+  {
+    "flag": "meeting-reconcile-llm",
+    "exit_code": 0,
+    "sampled_peak_bytes": 148341936,
+    "aborted": false,
+    "seconds": 4.173
+  }
+]

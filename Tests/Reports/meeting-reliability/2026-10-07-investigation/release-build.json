@@ -1,0 +1,7 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-14840/Next Notes.app",
+  "binary_sha256": "a00ac67934f9357c708c2c17f32ee685ee87734ff72471ed14232b4f1ba95046",
+  "source_pins_unchanged": true,
+  "uuid": "UUID: 8F85CDCD-3E0A-3814-B275-F02C864C844E (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/install-14840/Next Notes.app/Contents/MacOS/NextNotes",
+  "signature": "Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/install-14840/Next Notes.app/Contents/MacOS/NextNotes\nIdentifier=ai.pivotstudio.nextnotes\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20500 size=202009 flags=0x10000(runtime) hashes=6302+7 location=embedded\nSignature size=1744\nAuthority=Next Notes Local Signing\nSigned Time=Oct 7, 2026 at 12:46:19\u202fPM\nInfo.plist entries=22\nTeamIdentifier=not set\nRuntime Version=26.0.0\nSealed Resources version=2 rules=13 files=291\nInternal requirements count=1 size=100\nTotal signatures=1\nChosen signature=1\n"
+}

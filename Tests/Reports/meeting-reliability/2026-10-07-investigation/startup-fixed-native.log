@@ -1,0 +1,4 @@
+NATIVE_STARTUP_OK 16_concurrent_warms one_child one_completion footprint=5440184
+STARTUP_REGRESSION_RESULT failures=16 launches=3 footprint=5653176
+STARTUP_REGRESSION_OK all_waiters_settled
+NEEDLE_STARTUP_OK: failed=16/16 warm_settled=16/16 launches=3/6 child=none
