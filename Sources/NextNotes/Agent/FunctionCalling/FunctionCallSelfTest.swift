@@ -106,6 +106,9 @@ enum FunctionCallSelfTest {
     @discardableResult
     static func run() async -> Bool {
         var failures: [String] = []
+        if !(await NeedleServerStartupSelfTest.run(log: { SelfTest.diagnostic($0) })) {
+            failures.append("overlapping listening-server startup did not settle")
+        }
         /// Calls produced by a model that actually ran — Needle, or the fallback against a
         /// real resolved provider. Nothing scripted may touch this.
         ///

@@ -219,45 +219,46 @@ actor NeedleServer {
         if configuration == self.configuration, let process, let port {
             return Child(port: port, process: process)
         }
-        // A start already in flight answers this call too — two proposals a second apart
-        // must not race two 35 MB loads. The winner adopts the child and sets
-        // `configuration`; this caller simply asks again and finds it.
+        // The launch task adopts (or rejects) its child and clears itself before it
+        // completes. A waiter must never revisit a completed task whose launching
+        // caller has not resumed yet: that recursively retains async frames and can
+        // starve the caller which would clear the task.
         if let startTask {
-            _ = try? await startTask.value
+            _ = try await startTask.value
             return try await ensureRunning(configuration)
         }
         stop()
         let generationAtStart = generation
-        let task = Task { [live] in
-            try await Self.launch(configuration: configuration, live: live)
+        let started = Date()
+        let task = Task { [self] in
+            defer { startTask = nil }
+            let child = try await Self.launch(configuration: configuration, live: live)
+            guard generation == generationAtStart else {
+                // A stop overtook the launch — the feature was switched off, or the app is
+                // going away. The child is not ours to keep.
+                child.process.terminate()
+                throw ServerError.launchFailed("stopped while starting")
+            }
+            process = child.process
+            port = child.port
+            self.configuration = configuration
+            lastWorkingDirectory = configuration.workingDirectory
+            lastStartSeconds = Date().timeIntervalSince(started)
+            live.set(child.process)
+            Self.writeRecord(
+                owner: ProcessInfo.processInfo.processIdentifier,
+                child: child.process.processIdentifier,
+                port: child.port,
+                in: configuration.workingDirectory
+            )
+            child.process.terminationHandler = { [weak self] finished in
+                let pid = finished.processIdentifier
+                Task { await self?.childExited(pid: pid) }
+            }
+            return child
         }
         startTask = task
-        defer { startTask = nil }
-        let started = Date()
-        let child = try await task.value
-        guard generation == generationAtStart else {
-            // A stop overtook the launch — the feature was switched off, or the app is
-            // going away. The child is not ours to keep.
-            child.process.terminate()
-            throw ServerError.launchFailed("stopped while starting")
-        }
-        process = child.process
-        port = child.port
-        self.configuration = configuration
-        lastWorkingDirectory = configuration.workingDirectory
-        lastStartSeconds = Date().timeIntervalSince(started)
-        live.set(child.process)
-        Self.writeRecord(
-            owner: ProcessInfo.processInfo.processIdentifier,
-            child: child.process.processIdentifier,
-            port: child.port,
-            in: configuration.workingDirectory
-        )
-        child.process.terminationHandler = { [weak self] finished in
-            let pid = finished.processIdentifier
-            Task { await self?.childExited(pid: pid) }
-        }
-        return child
+        return try await task.value
     }
 
     /// The child died on its own. Clears the state so the next turn starts a fresh one, and
