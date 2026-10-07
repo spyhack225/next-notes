@@ -1,0 +1,78 @@
+{
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-67200",
+      "allocatedKiB": 226332
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-67618",
+      "allocatedKiB": 226376
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-67992",
+      "allocatedKiB": 226388
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-69920",
+      "allocatedKiB": 226544
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-70415",
+      "allocatedKiB": 226608
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-70727",
+      "allocatedKiB": 226608
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-71472",
+      "allocatedKiB": 226632
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-71880",
+      "allocatedKiB": 226648
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-72444",
+      "allocatedKiB": 226664
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-72737",
+      "allocatedKiB": 226632
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-72950",
+      "allocatedKiB": 226664
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-73250",
+      "allocatedKiB": 226672
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-73459",
+      "allocatedKiB": 226676
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-73683",
+      "allocatedKiB": 226692
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-73950",
+      "allocatedKiB": 226696
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-74149",
+      "allocatedKiB": 226696
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-74441",
+      "allocatedKiB": 121136
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-double.wav",
+      "allocatedKiB": 3788
+    }
+  ],
+  "totalAllocatedKiB": 3750452,
+  "retained": "Final useful signed release bundle install-75337, shared build/model caches, original source pins, task patch, compact reports and golden text. No branches/worktrees were created. Existing owner changes and installed app retained."
+}

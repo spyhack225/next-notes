@@ -1,0 +1,46 @@
+{
+  "Sources/NextNotes/Core/DictationController.swift": {
+    "original": "f6c9d652f1a97a8938f5d03cab25f376c809782c6d056ab924f59fe8515b781d",
+    "current": "2b83111328c010dc80147033a4a98509f0cc416ba17ffd2dcf521a1825d891a9"
+  },
+  "Sources/NextNotes/Formatting/CleanupRouter.swift": {
+    "original": "c6b2bec430b6af535e62afa6b001c0d7e31ee9a52c5c5c6066b143471d67bba1",
+    "current": "9d0f47608fc0a42935bd2348cb381fb038743d5877e4c93f6d10a42bb23aae1f"
+  },
+  "Sources/NextNotes/Formatting/CleanupTrace.swift": {
+    "original": "2487e29a96618ad8997a4c0ebc8b995d6c82a905340970bbc736ab9ab6fb50df",
+    "current": "2285079b94e26f07a34e27888360a6c1cfd12d141142de3420510bb36857cb20"
+  },
+  "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": {
+    "original": "7e278d0530c2b1072fd33fd81e06f20bc73286604a1490db47cc7f30bfa88292",
+    "current": "d4b198f5e74cd673e7aef75c047fa52b5d4fa758522c35472fc83ff94f249f81"
+  },
+  "Sources/NextNotes/Formatting/IncrementalCleanup.swift": {
+    "original": "04cbf3698db2a223cc83e80f360a78528f7049819601929888e61db66f8512bb",
+    "current": "0c58fcf789a97949f3375540df27e6c39b2d7f9603e0cea25eb765a2c6a44615"
+  },
+  "Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift": {
+    "original": "f90bd364e1c897b0388477a8be7f212bf1ddb9ed5ab87f57ff0fdb301b515bd0",
+    "current": "70197eb57f569316733ff1356321871d0944a36722f3cd29e86f974810281e6e"
+  },
+  "Sources/NextNotes/Formatting/StructurePlanner.swift": {
+    "original": "002b3aebfe505bcf9e05edd01d66f90ce266f7514c8580ffbc81138e52eb3a97",
+    "current": "e35cfee5863be36d134810b520b0ff4f4cb9adbd68a6858d1fa13772dac592b9"
+  },
+  "Sources/NextNotes/Formatting/TextFormatter.swift": {
+    "original": "50dd78631a79bc21547d51f81d6b72642cc776c3b1952daa8387eeb91d8d3710",
+    "current": "3938208348c3016a3a13478b3b3b489bc04c4b1492af151a78389e06903f802c"
+  },
+  "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+    "original": "9ec9e8fd687e90d6c113df93d8ddb0c69d57dca037022c3f7cae5523d4cca083",
+    "current": "b7242913d9a2be864b327f53b71915e1820c8d2a7c0b3f06453edf8d5292c251"
+  },
+  "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift": {
+    "original": "44af0be97556394c1bb124e0bfafd7d01c6f35de5cb4c3762864464015261b75",
+    "current": "cfbd48faaf8a64b33bc398aba66a994c57f928d19f2ef5811409a07e386d678a"
+  },
+  "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": {
+    "original": "71e9355eaac154123663c5bc5d2432a63d1ebcaa8aac6f74537e17e9ed80ce67",
+    "current": "19f4198ce17590756380818554126739b521161592a37be44dbe79069cefabff"
+  }
+}

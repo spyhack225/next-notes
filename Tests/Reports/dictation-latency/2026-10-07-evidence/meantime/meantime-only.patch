@@ -1,0 +1,246 @@
+--- a/Sources/NextNotesDictionary/SpokenForms.swift
++++ b/Sources/NextNotesDictionary/SpokenForms.swift
+@@ -231,6 +231,17 @@
+         "yaml": ["yaml", "yml"],
+     ]
+ 
++    /// The inverse of the same contract table, queried for every unmatched word
++    /// of a scoring window. Keep all claimants: aliases such as "typescript"
++    /// belong to more than one extension.
++    private static let extensionClaimants: [String: Set<String>] = {
++        var claims: [String: Set<String>] = [:]
++        for (ext, aliases) in extensionAliases {
++            for word in [ext] + aliases { claims[word, default: []].insert(ext) }
++        }
++        return claims
++    }()
++
+     /// How a path segment is said out loud. Scoped to path segments rather than applied to
+     /// every token, because "config" inside a name is usually the word and not an
+     /// abbreviation anybody expands.
+@@ -530,11 +541,15 @@
+         let keys: [PhoneticKey?]
+ 
+         public init(_ spoken: String) {
+-            var all: [SpokenToken] = []
++            self.init(tokens: SpokenForms.tokenize(spoken: spoken))
++        }
++
++        /// The tagger already needs these exact tokens and their source offsets.
++        /// Build its loose-match data only when needed, without tokenizing again.
++        init(tokens all: [SpokenToken]) {
+             var kept: [String] = []
+             var keptIndices: [Int] = []
+             var keys: [PhoneticKey?] = []
+-            all = SpokenForms.tokenize(spoken: spoken)
+             for (index, token) in all.enumerated() where !SpokenForms.isFiller(token.text) {
+                 keptIndices.append(index)
+                 kept.append(token.text)
+@@ -652,10 +667,14 @@
+                in: kept,
+                range: range,
+                consumed: consumed
+-           ) {
++        ) {
+             namedExtension = true
+             for i in run { consumed[i] = true }
+         } else {
++            // Without a name token or this candidate's extension, the result is
++            // necessarily .none. Most windows are unrelated prose: avoid searching
++            // every other extension's aliases for an answer we already cannot use.
++            guard matched > 0 else { return .none }
+             for i in range where !consumed[i] {
+                 if Self.namesSomeOtherExtension(kept[i], than: name.ext) {
+                     namedOtherExtension = true
+@@ -671,20 +690,28 @@
+         if namedExtension { score += 0.08 }
+         if namedOtherExtension { score -= 0.15 }
+ 
+-        let leftover = range.filter { !consumed[$0] }.count
++        // Every candidate visits up to six windows per transcript token. Count and
++        // locate consumed words in one scan, without allocating two arrays per window.
++        var leftover = 0
++        var lower: Int?
++        var upper: Int?
++        for i in range {
++            if consumed[i] {
++                if lower == nil { lower = i }
++                upper = i + 1
++            } else {
++                leftover += 1
++            }
++        }
+         if leftover > 2 { score -= 0.03 * Double(leftover - 2) }
+         score = min(1.0, max(0.0, score))
+ 
+         // The span is closed over every consumed index rather than over the run starts,
+         // because a run consumed more than its first token: "a p i" is one match and three
+         // words, and a caller highlighting `spokenTokens` has to cover all three.
+-        let touched = range.filter { consumed[$0] }
+-        let lower = touched.first ?? range.lowerBound
+-        let upper = (touched.last ?? range.lowerBound) + 1
+-
+         return Match(
+             score: score,
+-            spokenTokens: lower..<upper,
++            spokenTokens: (lower ?? range.lowerBound)..<(upper ?? range.lowerBound + 1),
+             matchedTokenCount: matched,
+             nameTokenCount: name.nameTokens.count,
+             namedExtension: namedExtension,
+@@ -734,6 +761,9 @@
+                 )
+                 guard match.score > best.score else { continue }
+                 best = heard.remapped(match)
++                // Scores are clamped to one, and enumeration already follows the
++                // contracted earliest/shortest tie order. No later window can win.
++                if best.score == 1 { return best }
+             }
+         }
+ 
+@@ -1026,8 +1056,9 @@
+             // rejecting login/logout, and the arithmetic is integer so the port cannot
+             // disagree about a rounding step.
+             let shared = sharedPrefixLength(candidate, lowered)
++            guard shared >= 3 else { continue }
+             let longest = max(candidate.count, lowered.count)
+-            if shared >= 3, shared * 10 >= longest * 7 { return (i, 0.8) }
++            if shared * 10 >= longest * 7 { return (i, 0.8) }
+         }
+         return nil
+     }
+@@ -1048,16 +1079,10 @@
+     /// extension is checked first by the caller, so "typescript" against a .ts file never
+     /// reaches here even though it also aliases .tsx.
+     static func namesSomeOtherExtension(_ word: String, than ext: String?) -> Bool {
+-        for (key, aliases) in extensionAliases {
+-            if key == ext { continue }
+-            if key == word || aliases.contains(word) {
+-                // Only report it when the candidate's own extension does not claim the same
+-                // word, or "typescript" beside a .tsx file would read as naming .ts.
+-                if let ext, extensionAliases[ext]?.contains(word) == true { continue }
+-                return true
+-            }
+-        }
+-        return false
++        // Only report it when the candidate's own extension does not claim the same
++        // word, or "typescript" beside a .tsx file would read as naming .ts.
++        if let ext, extensionAliases[ext]?.contains(word) == true { return false }
++        return extensionClaimants[word]?.contains { $0 != ext } == true
+     }
+ }
+ 
+--- a/Sources/NextNotesDictionary/FileReferences.swift
++++ b/Sources/NextNotesDictionary/FileReferences.swift
+@@ -155,7 +155,9 @@
+         guard !tokens.isEmpty else { return untouched }
+         let words = tokens.map { $0.text.precomposedStringWithCanonicalMapping }
+         let utf16 = Array(text.utf16)
+-        let heard = SpokenForms.Heard(text)
++        // Exact-only and already-resolved names need no phonetic preparation. If a
++        // loose match is needed, reuse the exact pass's tokens once for this call.
++        var heard: SpokenForms.Heard?
+ 
+         func word(_ index: Int) -> String? { words.indices.contains(index) ? words[index] : nil }
+ 
+@@ -166,7 +168,9 @@
+             // Exact spans first; the loose match only for a name that appears nowhere exactly.
+             var spans = exactSpans(of: name.joined, in: words, tokens: tokens, utf16: utf16).map { (span: $0, exact: true, score: 1.0, looseExt: false, looseFull: false) }
+             if spans.isEmpty, position < looseMatchLimit {
+-                let match = SpokenForms.bestMatch(of: candidate.reference, in: heard)
++                let prepared = heard ?? SpokenForms.Heard(tokens: tokens)
++                heard = prepared
++                let match = SpokenForms.bestMatch(of: candidate.reference, in: prepared)
+                 if match.isConfident, !match.namedOtherExtension, !match.spokenTokens.isEmpty,
+                    match.spokenTokens.upperBound <= tokens.count,
+                    isOnePhrase(match.spokenTokens, tokens: tokens, utf16: utf16) {
+--- a/Sources/NextNotes/Formatting/SpokenStructure.swift
++++ b/Sources/NextNotes/Formatting/SpokenStructure.swift
+@@ -282,6 +282,9 @@
+ 
+     private struct Pattern {
+         let regex: String
++        /// Immutable patterns are reused by every scan. Matching keeps its own
++        /// per-call state; recompiling the same grammar is not transcript work.
++        let expression: NSRegularExpression?
+         let classify: @Sendable (String) -> Kindly?
+         /// True for a discourse marker that stands for the whole short clause it sits in.
+         /// "Open up this first thing first." is four words of throat-clearing announcing
+@@ -291,6 +294,7 @@
+ 
+         init(_ regex: String, swallowsClause: Bool = false, _ classify: @escaping @Sendable (String) -> Kindly?) {
+             self.regex = regex
++            self.expression = try? NSRegularExpression(pattern: regex, options: [.caseInsensitive])
+             self.classify = classify
+             self.swallowsClause = swallowsClause
+         }
+@@ -438,10 +442,7 @@
+         var markers: [Marker] = []
+ 
+         for pattern in patterns {
+-            guard let regex = try? NSRegularExpression(
+-                pattern: pattern.regex,
+-                options: [.caseInsensitive]
+-            ) else { continue }
++            guard let regex = pattern.expression else { continue }
+             regex.enumerateMatches(in: text, options: [], range: whole) { match, _, _ in
+                 guard let match else { return }
+                 let matched = ns.substring(with: match.range)
+@@ -2073,4 +2074,3 @@
+         }
+     }
+ }
+-
+--- a/Tests/NextNotesDictionaryTests/SpokenFormsTests.swift
++++ b/Tests/NextNotesDictionaryTests/SpokenFormsTests.swift
+@@ -287,6 +287,29 @@
+         }
+     }
+ 
++    @Test("extension-only scores and the first perfect window retain their evidence")
++    func scoringShortcutsPreserveEvidence() {
++        // A candidate's own extension contributes even when its stem was not said.
++        // An unrelated extension with no stem match contributes nothing at all.
++        let own = SpokenForms.score(spoken: "typescript", against: "loginHandler.ts")
++        #expect(Self.isClose(own.score, 0.08))
++        #expect(own.matchedTokenCount == 0 && own.nameTokenCount == 2)
++        #expect(own.namedExtension && !own.namedOtherExtension)
++        #expect(own.spokenTokens == 0..<1)
++        let unrelated = SpokenForms.score(spoken: "markdown", against: "loginHandler.ts")
++        #expect(unrelated.score == 0 && unrelated.spokenTokens.isEmpty)
++        #expect(!unrelated.namedExtension && !unrelated.namedOtherExtension)
++
++        // A later extension or repeated name cannot replace the first score of one.
++        // FileReferences reads the following extension separately, as before.
++        let best = SpokenForms.bestMatch(
++            of: "loginHandler.ts",
++            in: "the login handler dot ts and the login handler dot ts"
++        )
++        #expect(best.score == 1 && best.spokenTokens == 1..<3)
++        #expect(best.matchedTokenCount == 2 && !best.namedExtension)
++    }
++
+     @Test("the bias budget is merged exactly as the contract says")
+     func bias() throws {
+         let vectors = try Self.load()
+--- a/Sources/NextNotes/Formatting/CleanupRouter.swift
++++ b/Sources/NextNotes/Formatting/CleanupRouter.swift
+@@ -211,7 +211,9 @@
+         )
+         // Asked of the full scope whatever Stage C was allowed to render, because "did the
+         // speaker speak structure" is a question about the speaker, not about this pass.
+-        let markersBeforeModel = SpokenStructure.containsMarkers(afterRules)
++        // The full-scope pass above already scanned this exact text and records
++        // the same marker predicate, even when formatting is disabled.
++        let markersBeforeModel = beforeModel.markersSeen
+ 
+         // Stage D is started *here*, before Stage B is awaited, and finished after it.
+         //
+@@ -356,7 +358,7 @@
+         // route, the model route, and the fallback a rejected or timed-out model lands on.
+         // That is the point of it — structure the speaker asked for out loud must not depend
+         // on which engine happened to run, and before this it depended on nothing else.
+-        let structured = SpokenStructure.apply(
++        let structured = text == afterRules ? beforeModel : SpokenStructure.apply(
+             to: text,
+             target: target,
+             isEnabled: formatsLists

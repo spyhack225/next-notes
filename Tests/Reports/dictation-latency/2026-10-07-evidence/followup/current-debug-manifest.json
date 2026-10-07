@@ -1,0 +1,11 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-21823/Next Notes.app",
+  "executable_sha256": "de2ae9337b4d76ae1df5cc42c027f29580b500f3d6243faede456cefedfaac1d",
+  "config": "debug",
+  "checks": [
+    "CLEANUP_ROUTER_OK"
+  ],
+  "optimized_performance_acceptance": false,
+  "native_KV_fixed_fixture_bundle": "install-20224",
+  "source_manifest": "followup-source-sha256.json"
+}

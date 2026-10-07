@@ -1,0 +1,63 @@
+2026-10-07 16:54:33.084 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.drain · 0.000s
+2026-10-07 16:54:33.101 I  NextNotes[33472:b4aed] [ai.pivotstudio.nextnotes:speech] Parakeet: final 121.2s audio, 30 segment(s), key-up awaited-inflight in 0.017s
+2026-10-07 16:54:33.101 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.transcribe · 0.017s
+2026-10-07 16:54:33.101 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.keyUp_to_asr_final · 0.022s
+2026-10-07 16:54:33.109 I  NextNotes[33472:b4afa] [ai.pivotstudio.nextnotes:speech] cleanup router · semantic miniCPM · 266 words · long, self-correction
+2026-10-07 16:54:33.476 I  NextNotes[33472:b4cc1] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.36s · prompt 1315 (reused 1297) · out 9
+2026-10-07 16:54:39.271 I  NextNotes[33472:b4a48] [ai.pivotstudio.nextnotes:speech] cleanup structure · layout plan not used (the layout pass ran out of time after 6.0s)
+2026-10-07 16:54:39.271 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.names · 0.000s
+2026-10-07 16:54:39.271 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.cleanup · 6.170s
+2026-10-07 16:54:39.271 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.asr_final_to_cleanup · 6.170s
+2026-10-07 16:54:39.271 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:speech] dictation tail · drain 0.00s · transcribe 0.02s · names 0.00s · cleanup 6.17s
+2026-10-07 16:54:39.283 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.cleanup_to_injection · 0.000s
+2026-10-07 16:54:39.283 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.keyUp_to_injection · 6.204s
+2026-10-07 16:54:39.283 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH: round=1 engine=miniCPM hold=121.18s first=645ms visibleWords=266 ASRfinal=22ms ready=6204ms finalWords=266 head=30 answeredHead=30 fallback=none layout=6.000s cached=1297 model=0.365s
+2026-10-07 16:54:39.283 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH_TARGET: round=1 startup=330ms polishedUnder2s=false liveAtRelease=true layoutOutcome=the layout pass ran out of time after 6.0s
+2026-10-07 16:54:39.284 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH_WER: round=1 raw=0.051 final=0.051
+2026-10-07 16:54:43.519 I  NextNotes[33472:b524a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.51s · prompt 1318 (reused 1297) · out 12
+2026-10-07 16:54:47.087 I  NextNotes[33472:b4af2] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.38s · prompt 1317 (reused 1297) · out 11
+2026-10-07 16:54:50.848 I  NextNotes[33472:b4aee] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.37s · prompt 1316 (reused 1297) · out 10
+2026-10-07 16:54:55.016 I  NextNotes[33472:b5252] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.41s · prompt 1318 (reused 1297) · out 12
+2026-10-07 16:54:59.188 I  NextNotes[33472:b4afa] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.38s · prompt 1316 (reused 1297) · out 10
+2026-10-07 16:55:03.419 I  NextNotes[33472:b4aee] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.44s · prompt 1319 (reused 1297) · out 13
+2026-10-07 16:55:07.146 I  NextNotes[33472:b524a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.36s · prompt 1315 (reused 1297) · out 9
+2026-10-07 16:55:11.067 I  NextNotes[33472:b5252] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.38s · prompt 1317 (reused 1297) · out 11
+2026-10-07 16:55:14.444 I  NextNotes[33472:b524a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.43s · prompt 1317 (reused 1297) · out 11
+2026-10-07 16:55:18.498 I  NextNotes[33472:b4af0] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.40s · prompt 1316 (reused 1297) · out 10
+2026-10-07 16:55:22.353 I  NextNotes[33472:b4b32] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.46s · prompt 1319 (reused 1297) · out 13
+2026-10-07 16:55:25.872 I  NextNotes[33472:b4af2] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.38s · prompt 1315 (reused 1297) · out 9
+2026-10-07 16:55:29.674 I  NextNotes[33472:b5252] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.39s · prompt 1316 (reused 1297) · out 10
+2026-10-07 16:55:33.128 I  NextNotes[33472:b5252] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.34s · prompt 1314 (reused 1297) · out 8
+2026-10-07 16:55:36.985 I  NextNotes[33472:b5252] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.39s · prompt 1317 (reused 1297) · out 11
+2026-10-07 16:55:44.364 I  NextNotes[33472:b4b32] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.74s · prompt 1328 (reused 1297) · out 22
+2026-10-07 16:55:47.696 I  NextNotes[33472:b4afa] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.39s · prompt 1317 (reused 1297) · out 11
+2026-10-07 16:55:51.522 I  NextNotes[33472:b4a48] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.40s · prompt 1316 (reused 1297) · out 10
+2026-10-07 16:55:55.613 I  NextNotes[33472:b4aee] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.40s · prompt 1318 (reused 1297) · out 12
+2026-10-07 16:55:59.774 I  NextNotes[33472:b4a48] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.36s · prompt 1316 (reused 1297) · out 10
+2026-10-07 16:56:04.062 I  NextNotes[33472:b4a48] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.45s · prompt 1319 (reused 1297) · out 13
+2026-10-07 16:56:07.733 I  NextNotes[33472:b4b32] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.35s · prompt 1315 (reused 1297) · out 9
+2026-10-07 16:56:11.688 I  NextNotes[33472:b4aee] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.38s · prompt 1317 (reused 1297) · out 11
+2026-10-07 16:56:14.986 I  NextNotes[33472:b5a4a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.40s · prompt 1317 (reused 1297) · out 11
+2026-10-07 16:56:19.102 I  NextNotes[33472:b4b32] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.38s · prompt 1316 (reused 1297) · out 10
+2026-10-07 16:56:22.932 I  NextNotes[33472:b524a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.43s · prompt 1319 (reused 1297) · out 13
+2026-10-07 16:56:26.447 I  NextNotes[33472:b5a4a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.36s · prompt 1315 (reused 1297) · out 9
+2026-10-07 16:56:30.303 I  NextNotes[33472:b5a4a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.41s · prompt 1316 (reused 1297) · out 10
+2026-10-07 16:56:33.735 I  NextNotes[33472:b5279] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.34s · prompt 1314 (reused 1297) · out 8
+2026-10-07 16:56:37.577 I  NextNotes[33472:b4af2] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.39s · prompt 1317 (reused 1297) · out 11
+2026-10-07 16:56:40.460 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.drain · 0.000s
+2026-10-07 16:56:40.505 I  NextNotes[33472:b5252] [ai.pivotstudio.nextnotes:speech] Parakeet: final 121.2s audio, 30 segment(s), key-up awaited-inflight in 0.045s
+2026-10-07 16:56:40.505 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.transcribe · 0.045s
+2026-10-07 16:56:40.505 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.keyUp_to_asr_final · 0.046s
+2026-10-07 16:56:40.517 I  NextNotes[33472:b524a] [ai.pivotstudio.nextnotes:speech] cleanup router · semantic miniCPM · 266 words · long, self-correction
+2026-10-07 16:56:40.889 I  NextNotes[33472:b5a4a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.37s · prompt 1315 (reused 1297) · out 9
+2026-10-07 16:56:46.764 I  NextNotes[33472:b5252] [ai.pivotstudio.nextnotes:speech] cleanup structure · layout plan not used (the layout pass ran out of time after 6.0s)
+2026-10-07 16:56:46.765 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.names · 0.000s
+2026-10-07 16:56:46.765 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.cleanup · 6.260s
+2026-10-07 16:56:46.765 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.asr_final_to_cleanup · 6.260s
+2026-10-07 16:56:46.765 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:speech] dictation tail · drain 0.00s · transcribe 0.04s · names 0.00s · cleanup 6.26s
+2026-10-07 16:56:46.776 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.cleanup_to_injection · 0.000s
+2026-10-07 16:56:46.776 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:metrics] span · dictation.keyUp_to_injection · 6.317s
+2026-10-07 16:56:46.776 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH: round=2 engine=miniCPM hold=121.17s first=480ms visibleWords=266 ASRfinal=46ms ready=6317ms finalWords=266 head=30 answeredHead=30 fallback=none layout=6.000s cached=1297 model=0.370s
+2026-10-07 16:56:46.776 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH_TARGET: round=2 startup=0ms polishedUnder2s=false liveAtRelease=true layoutOutcome=the layout pass ran out of time after 6.0s
+2026-10-07 16:56:46.777 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH_WER: round=2 raw=0.051 final=0.051
+2026-10-07 16:56:46.778 I  NextNotes[33472:b4a29] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH_OK: full finishing path reached isolated insertion twice

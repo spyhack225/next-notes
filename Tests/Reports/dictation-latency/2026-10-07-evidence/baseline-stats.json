@@ -1,0 +1,190 @@
+{
+ "runs": {
+  "filed": 263,
+  "with_cleanup_record": 86,
+  "engines": {
+   "Parakeet (batch)": 261,
+   "Parakeet (batch) \u00b7 Command": 2
+  },
+  "process_seconds_all": {
+   "n": 263,
+   "p50": 3.376,
+   "p90": 9.958,
+   "max": 30.741
+  },
+  "process_seconds_model_cleaned": {
+   "n": 78,
+   "p50": 4.429,
+   "p90": 13.475,
+   "max": 22.478
+  },
+  "words_model_cleaned": {
+   "n": 78,
+   "p50": 33.0,
+   "p90": 126.0,
+   "max": 403.0
+  }
+ },
+ "cleanup": {
+  "model_attempts": 78,
+  "accepted": 54,
+  "salvaged": 4,
+  "rejected": 4,
+  "timed_out": 10,
+  "timeout_rate": 0.128,
+  "seconds_total": 458.4,
+  "seconds_wasted_timeout_or_rejected": 100.8,
+  "wasted_share": 0.22,
+  "seconds": {
+   "n": 78,
+   "p50": 4.159,
+   "p90": 12.867,
+   "max": 21.817
+  },
+  "sessionPrewarmed_all": {
+   "None": 39,
+   "True": 30,
+   "False": 9
+  },
+  "sessionPrewarmed_on_timeouts": {
+   "None": 8,
+   "True": 2
+  },
+  "assumedWarmth_all": {
+   "None": 55,
+   "staged": 14,
+   "cold": 3,
+   "warmProcess": 6
+  },
+  "chunked_runs": 9,
+  "precleaned_runs": 4,
+  "layout_asked": 13,
+  "layout_timed_out": 7,
+  "layout_plan_used": 2
+ },
+ "spans": {
+  "dictation.asr_final_to_cleanup": {
+   "n": 9,
+   "p50": 3.175,
+   "p90": 17.124,
+   "max": 22.049
+  },
+  "dictation.cleanup": {
+   "n": 9,
+   "p50": 3.175,
+   "p90": 17.124,
+   "max": 22.049
+  },
+  "dictation.cleanup_to_injection": {
+   "n": 9,
+   "p50": 0.014,
+   "p90": 0.183,
+   "max": 0.391
+  },
+  "dictation.drain": {
+   "n": 10,
+   "p50": 0.005,
+   "p90": 0.011,
+   "max": 0.013
+  },
+  "dictation.keyDown_to_capture": {
+   "n": 10,
+   "p50": 0.045,
+   "p90": 0.238,
+   "max": 1.215
+  },
+  "dictation.keyUp_to_asr_final": {
+   "n": 10,
+   "p50": 0.022,
+   "p90": 0.402,
+   "max": 21.267
+  },
+  "dictation.names": {
+   "n": 9,
+   "p50": 0.0,
+   "p90": 0.001,
+   "max": 0.003
+  },
+  "dictation.speech_to_first_partial": {
+   "n": 9,
+   "p50": 1.581,
+   "p90": 2.209,
+   "max": 2.267
+  },
+  "dictation.transcribe": {
+   "n": 10,
+   "p50": 0.006,
+   "p90": 0.33,
+   "max": 0.346
+  }
+ },
+ "span_notes": {
+  "dictation.speech_to_first_partial": {
+   "key-up": 1
+  }
+ },
+ "holds": {
+  "total": 40,
+  "outcomes": {
+   "inserted": 35,
+   "command": 2,
+   "empty": 1,
+   "tap": 1,
+   "emptySpeech": 1
+  },
+  "lost_share": 0.025,
+  "silent_loss_share": 0.125,
+  "keyUp_to_text_ms": {
+   "n": 35,
+   "p50": 4208,
+   "p90": 17460,
+   "max": 25685
+  },
+  "keyDown_to_capture_ms": {
+   "n": 40,
+   "p50": 58.5,
+   "p90": 157,
+   "max": 1221
+  },
+  "dropped_buffers": 0,
+  "preclean_fallback": 0,
+  "press_refused": {
+   "finishing": 1
+  },
+  "press_refused_finishing_per_100": 2.5
+ },
+ "dictionary": {
+  "correction_rules": 26,
+  "duplicate_rules": 0,
+  "duplicated": []
+ },
+ "gates": {
+  "D-13 pipelined holds": {
+   "holds": 40,
+   "press_refused_by_state": {
+    "finishing": 1
+   },
+   "refused_finishing": 1,
+   "refused_finishing_per_100_holds": 2.5,
+   "threshold_per_100": 3.0,
+   "observation_days": 10,
+   "days_required": 7,
+   "verdict": "not enough data",
+   "shortfall": "60 more owner hold(s) (have 40)"
+  },
+  "D-14 per-pass ASR lane": {
+   "holds_examined": 40,
+   "meetings_with_transcribe_rows": 1,
+   "holds_overlapping_a_meeting": 0,
+   "overlaps_with_window_wait_ge_5s": 0,
+   "worst_window_wait_in_an_overlap_s": 0.0,
+   "meeting_wait_threshold_s": 5.0,
+   "dictation_side_lane_wait_recorded": true,
+   "dictation_starts_with_lane_wait_ge_1s": 0,
+   "worst_dictation_start_lane_wait_s": 0.007,
+   "dictation_wait_threshold_s": 1.0,
+   "occurrences_required": 3,
+   "verdict": "won't do (evidence)"
+  }
+ }
+}

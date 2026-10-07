@@ -1,0 +1,142 @@
+[
+  {
+    "id": "787B6BAA-FD12-47F0-97C4-3710C230073C",
+    "date": "2026-10-07T15:34:12Z",
+    "engine": "Parakeet (batch)",
+    "audioSeconds": 5.087321996688843,
+    "processSeconds": 13.072833061218262,
+    "words": 11,
+    "cleanup": {
+      "engine": "miniCPM",
+      "route": "semantic",
+      "seconds": 12.858102917671204,
+      "modelSeconds": 12.829539060592651,
+      "modelRan": false,
+      "cleanupModelResident": true,
+      "sessionPrewarmed": true,
+      "assumedWarmth": "staged",
+      "guardVerdict": "not reached",
+      "fallbackReason": "the cleanup model ran out of time",
+      "chunks": 1
+    }
+  },
+  {
+    "id": "F34FE182-51C2-46FD-8187-9F295EFB1AE3",
+    "date": "2026-10-07T15:34:34Z",
+    "engine": "Parakeet (batch)",
+    "audioSeconds": 3.233755946159363,
+    "processSeconds": 0.037788987159729004,
+    "words": 8,
+    "cleanup": {
+      "engine": "miniCPM",
+      "route": "rules",
+      "seconds": 0.007333993911743164
+    }
+  },
+  {
+    "id": "943BB9DD-3370-429F-9ECF-64921751BC41",
+    "date": "2026-10-07T15:35:12Z",
+    "engine": "Parakeet (batch)",
+    "audioSeconds": 35.88763201236725,
+    "processSeconds": 6.876335024833679,
+    "words": 108,
+    "cleanup": {
+      "engine": "miniCPM",
+      "route": "semantic",
+      "seconds": 6.721594929695129,
+      "modelSeconds": 6.7062458992004395,
+      "modelRan": true,
+      "cleanupModelResident": true,
+      "guardVerdict": "accepted",
+      "chunks": 1,
+      "precleanFallback": "a sentence finished earlier was changed by the speech model while you were still speaking, so all of it was tidied at the end",
+      "promptTokens": 1416,
+      "cachedTokens": 0,
+      "completionTokens": 119,
+      "structurePlanSeconds": 5.840167045593262,
+      "structurePlanRejected": "a numbered block started at sentence 2, expected 3",
+      "structurePlanPrewarmed": true
+    }
+  },
+  {
+    "id": "BCFC7F29-9531-41F0-9D33-7461CCB9F883",
+    "date": "2026-10-07T15:35:48Z",
+    "engine": "Parakeet (batch)",
+    "audioSeconds": 23.78435504436493,
+    "processSeconds": 2.4947279691696167,
+    "words": 58,
+    "cleanup": {
+      "engine": "miniCPM",
+      "route": "semantic",
+      "seconds": 2.4746639728546143,
+      "modelSeconds": 2.224044919013977,
+      "modelRan": true,
+      "cleanupModelResident": true,
+      "guardVerdict": "accepted",
+      "chunks": 1,
+      "precleanFallback": "a sentence finished earlier was changed by the speech model while you were still speaking, so all of it was tidied at the end",
+      "promptTokens": 1361,
+      "cachedTokens": 1279,
+      "completionTokens": 71,
+      "structurePlanSeconds": 2.4672560691833496,
+      "structurePlanRejected": "the layout was the one the text already had",
+      "structurePlanPrewarmed": true
+    }
+  },
+  {
+    "id": "F6F8E68D-367D-4E35-98A3-0128ADBD07DE",
+    "date": "2026-10-07T15:36:01Z",
+    "engine": "Parakeet (batch)",
+    "audioSeconds": 2.694939970970154,
+    "processSeconds": 0.356037974357605,
+    "words": 5,
+    "cleanup": {
+      "engine": "miniCPM",
+      "route": "semantic",
+      "seconds": 0.3122199773788452,
+      "modelSeconds": 0.3083990812301636,
+      "modelRan": true,
+      "cleanupModelResident": true,
+      "guardVerdict": "accepted",
+      "chunks": 1,
+      "promptTokens": 1294,
+      "cachedTokens": 1279,
+      "completionTokens": 6
+    }
+  },
+  {
+    "id": "B736F19D-E29F-4D58-98D4-1155BB1A283C",
+    "date": "2026-10-07T15:36:17Z",
+    "engine": "Parakeet (batch) \u00b7 Command",
+    "audioSeconds": 8.829698920249939,
+    "processSeconds": 1.3649910688400269,
+    "words": 26,
+    "cleanup": {}
+  },
+  {
+    "id": "441D1598-C6E8-459A-8505-52ADA33C705A",
+    "date": "2026-10-07T15:37:39Z",
+    "engine": "Parakeet (batch)",
+    "audioSeconds": 72.94773697853088,
+    "processSeconds": 4.766528010368347,
+    "words": 187,
+    "cleanup": {
+      "engine": "miniCPM",
+      "route": "semantic",
+      "seconds": 4.743259072303772,
+      "modelSeconds": 7.006438970565796,
+      "modelRan": true,
+      "cleanupModelResident": true,
+      "sessionPrewarmed": false,
+      "assumedWarmth": "warmProcess",
+      "guardVerdict": "accepted",
+      "chunks": 2,
+      "precleanFallback": "a sentence finished earlier was changed by the speech model while you were still speaking, so all of it was tidied at the end",
+      "promptTokens": 1381,
+      "cachedTokens": 1279,
+      "completionTokens": 82,
+      "structurePlanSeconds": 4.73592025,
+      "structurePlanRejected": "the layout pass ran out of time after 4.7s"
+    }
+  }
+]

@@ -1,0 +1,10 @@
+{
+  "Sources/NextNotesDictionary/SpokenForms.swift": "6e67c2cc1f300c777197e84220db5c0194c5f6440133ae234db4b8011895b611",
+  "Sources/NextNotesDictionary/FileReferences.swift": "085cc360999f6994db4d384337dd7a0448d5df71c5b632f68a0207adfa9a4f4e",
+  "Tests/NextNotesDictionaryTests/SpokenFormsTests.swift": "f6f96e3c8f293f78d5a6a487805934a3fdbe75432d25a178a7826fff0a50d4dd",
+  "Tests/NextNotesDictionaryTests/FileReferencesTests.swift": "24270144fcd129f600cf7e12b23692ddb4900ed1445cd5a12f2b8c85e46847af",
+  "Sources/NextNotes/Context/ScreenContext.swift": "53cda27312ddbfe0f0eae8533544d488afd0a5060792482cae4b902ba87deb68",
+  "Sources/NextNotes/Formatting/SpokenStructure.swift": "dcb69b44d5896b18d323c58e2db2d941dde433564c9d9f446a1f88094bf50c01",
+  "Sources/NextNotes/Formatting/CleanupRouter.swift": "9d0f47608fc0a42935bd2348cb381fb038743d5877e4c93f6d10a42bb23aae1f",
+  "Sources/NextNotes/Formatting/Targets/OutputProfile.swift": "ce5df0a3e1f4c31cc455e408c2cf91f69c2856297dd83deaa3a2eb85253c3ac5"
+}

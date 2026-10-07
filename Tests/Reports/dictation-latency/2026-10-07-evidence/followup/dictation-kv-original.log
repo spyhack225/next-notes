@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-19572/Next Notes.app/Contents/MacOS/NextNotes --selftest-llm-prefix-cache
+2026-10-07 13:32:48.851 NextNotes[20155:217144] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+LLM_PREFIX_CACHE_WRONG: cancelled dictation discarded native-success prefix: reused0, expected649
+LLM_PREFIX_CACHE_FAILED: 1 problem(s)

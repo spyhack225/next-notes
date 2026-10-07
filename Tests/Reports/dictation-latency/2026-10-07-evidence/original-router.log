@@ -1,0 +1,8 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-67200/Next Notes.app/Contents/MacOS/NextNotes --selftest-cleanup-router
+2026-10-07 08:42:25.162 NextNotes[67495:4109517] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  pre-clean matching rejects equivalent whitespace
+  pre-clean matching rejects equivalent whitespace
+  pre-clean matching rejects equivalent whitespace
+  pre-clean matching accepts a prefix ending inside a word
+  tail cleanup waits behind the head and loses its finished polishing
+CLEANUP_ROUTER_FAILED: 5 case(s)

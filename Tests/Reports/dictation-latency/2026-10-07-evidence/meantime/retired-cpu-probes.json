@@ -1,0 +1,14 @@
+[
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-meantime-20261007/check",
+    "sha256": "616a1c6fe85f747af8fbade95d220f25e0061a04fdc9b88c498c5b9b5947c28b",
+    "bytes": 691400,
+    "reason": "completed CPU probes; source drivers, original producers, vectors and results retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-meantime-20261007/structure-check",
+    "sha256": "f2753a1b756379c98615eda5fbee34f3c9cf237a782cbfbe4e0c83424f005275",
+    "bytes": 461504,
+    "reason": "completed CPU probes; source drivers, original producers, vectors and results retained"
+  }
+]

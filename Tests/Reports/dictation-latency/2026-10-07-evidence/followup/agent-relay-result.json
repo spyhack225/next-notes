@@ -1,0 +1,24 @@
+{
+  "registered_agent": "dictation-performance-20261007",
+  "session": "01a1164d-0453-77a2-bc10-ccf949eb7e03",
+  "messages": [
+    {
+      "id": "dictation-performance-20261007-window",
+      "cursor": 339
+    },
+    {
+      "id": "dictation-performance-20261007-evidence",
+      "cursor": 340
+    }
+  ],
+  "recipients": [
+    "serial-root",
+    "codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e",
+    "claude-positioning",
+    "meeting-read-packet",
+    "meeting-performance-20261007"
+  ],
+  "acknowledgement_claimed": false,
+  "heavy_test_window_agreed": false,
+  "installed_process_untouched": 20456
+}

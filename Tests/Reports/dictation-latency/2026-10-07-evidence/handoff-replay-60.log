@@ -1,0 +1,4 @@
+DICTATION_SEGMENTS_GOLD: full-buffer WER 0.044
+DICTATION_SEGMENTS_REPLAY: ends-300ms hold 60.5s, passes 79 (15 segment), busy 8.4s (14%), partials 67, first 505 ms, lag mean 0.16s max 0.42s, key-up awaited-inflight 100 ms (engine 100 ms), disagreement vs one full pass 0.007, independent WER 0.051
+DICTATION_SEGMENTS_REPLAY: speech-to-keyup hold 60.2s, passes 79 (15 segment), busy 8.3s (14%), partials 67, first 502 ms, lag mean 0.16s max 0.41s, key-up tail-pass 89 ms (engine 89 ms), disagreement vs one full pass 0.007, independent WER 0.051
+DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean

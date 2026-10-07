@@ -1,0 +1,11 @@
+{
+  "commit": "35559e4a16c023a1114a9ecc28cdc7910e7ecc1a",
+  "files": [
+    "Sources/NextNotesDictionary/SpokenForms.swift",
+    "Sources/NextNotesDictionary/FileReferences.swift",
+    "Sources/NextNotes/Formatting/SpokenStructure.swift",
+    "Tests/NextNotesDictionaryTests/SpokenFormsTests.swift"
+  ],
+  "foreign_staged_diff_unchanged": true,
+  "foreign_staged_diff_sha256": "4904fc0627306f7a5b87707af92fd2025fb9f8ccf3725e72f624897b616e18e0"
+}

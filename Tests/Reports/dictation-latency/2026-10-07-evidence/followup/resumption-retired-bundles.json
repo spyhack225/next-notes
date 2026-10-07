@@ -1,0 +1,49 @@
+{
+  "at": "2026-10-07T18:02:40.854126+00:00",
+  "bundles": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-17575",
+      "bytes": 231568178,
+      "executable_sha256": "4a4eb0a47f715f37da40c5b55fd8cc5397754c4bd125ef55886463fd03e8a5f2",
+      "reason": "Superseded own original/fixed debug check; exact regression logs, baseline source and current patch retained; current install-21823 kept"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-18785",
+      "bytes": 231575506,
+      "executable_sha256": "83848c2035558a8239a0e3af5caa17b0b71b0d0f86b5eb347993916cd11e1563",
+      "reason": "Superseded own original/fixed debug check; exact regression logs, baseline source and current patch retained; current install-21823 kept"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-19073",
+      "bytes": 231596386,
+      "executable_sha256": "589536a628c04626afa02a3bbf5c50b3413a4262b0e7d39d67398b5ae88d0746",
+      "reason": "Superseded own original/fixed debug check; exact regression logs, baseline source and current patch retained; current install-21823 kept"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-19572",
+      "bytes": 231624018,
+      "executable_sha256": "3d23d36be478226f0c7004a55665e6bcf01fa24a356831cdbb4c72d8cc33ac08",
+      "reason": "Superseded own original/fixed debug check; exact regression logs, baseline source and current patch retained; current install-21823 kept"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-20224",
+      "bytes": 231624162,
+      "executable_sha256": "adc0db2617c377999598c54aba335e580eaaeee1f222b492c3ca6a706b52a1de",
+      "reason": "Superseded own original/fixed debug check; exact regression logs, baseline source and current patch retained; current install-21823 kept"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-21511",
+      "bytes": 231658642,
+      "executable_sha256": "49d3ae03f4605668f640f8c4256fe975bc027e7e63e1afa9819f1d8ab46bc86f",
+      "reason": "Superseded own original/fixed debug check; exact regression logs, baseline source and current patch retained; current install-21823 kept"
+    }
+  ],
+  "bytes": 1389646892,
+  "active_processes_checked": true,
+  "retained": [
+    "install-21823 current useful debug",
+    "install-15518 measured release",
+    "install-75337 prior optimized rollback"
+  ],
+  "other_agent_artifacts_untouched": true
+}

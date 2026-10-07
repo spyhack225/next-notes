@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-73950/Next Notes.app/Contents/MacOS/NextNotes --selftest-dictation-segments
+2026-10-07 09:36:51.349 NextNotes[74148:4185574] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+DICTATION_SEGMENTS_WRONG: unchanged frozen prefix ran the full rules pass 2 times, expected 1
+DICTATION_SEGMENTS_FAILED: 1 pure failure(s)

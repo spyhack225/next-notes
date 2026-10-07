@@ -1,0 +1,10 @@
+run-selftest: open -n -W /Users/sergekadjo/Library/Caches/NextNotesBuild/install-11422/Next Notes.app --args --selftest-dictation-segments /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Fixtures/meetings/en-dialogue.wav --dictation-polish miniCPM --dictation-polish-warm --dictation-gold /Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-gold.txt --dictation-polish-output /Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/full-sparse-layout --selftest-out /tmp/nextnotes-selftest-12898.txt
+DICTATION_POLISH_PREPARE: resident=true seconds=29.732
+DICTATION_POLISH: round=1 engine=miniCPM hold=60.59s first=541ms visibleWords=133 ASRfinal=48ms ready=4525ms finalWords=133 head=15 fallback=none layout=4.454s cached=1297 model=0.428s
+DICTATION_POLISH_TARGET: round=1 startup=23232ms polishedUnder2s=false liveAtRelease=true layoutOutcome=a list item quoted 9 announcement words, outside 1…8
+DICTATION_POLISH_WER: round=1 raw=0.051 final=0.051
+DICTATION_POLISH: round=2 engine=miniCPM hold=60.59s first=510ms visibleWords=133 ASRfinal=51ms ready=4948ms finalWords=133 head=15 fallback=none layout=4.800s cached=0 model=1.137s
+DICTATION_POLISH_TARGET: round=2 startup=0ms polishedUnder2s=false liveAtRelease=true layoutOutcome=the layout pass ran out of time after 4.8s
+DICTATION_POLISH_WER: round=2 raw=0.051 final=0.066
+DICTATION_POLISH_OK: full finishing path reached isolated insertion twice
+DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean

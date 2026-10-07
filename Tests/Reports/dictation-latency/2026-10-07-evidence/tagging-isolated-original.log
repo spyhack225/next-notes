@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-72737/Next Notes.app/Contents/MacOS/NextNotes --selftest-cleanup-router
+2026-10-07 09:24:15.172 NextNotes[72944:4171700] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  polishing off skips captured context and loses file tagging in the actual finishing path
+CLEANUP_ROUTER_FAILED: 1 case(s)

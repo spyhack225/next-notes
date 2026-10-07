@@ -1,0 +1,1098 @@
+--- a/Sources/NextNotes/Core/DictationController.swift
++++ b/Sources/NextNotes/Core/DictationController.swift
+@@ -460,7 +460,7 @@
+         // key-down. Resolving it here rather than at injection time is the whole point:
+         // formatting a list as Slack bullets and then dropping it into Mail is worse than
+         // not formatting at all.
+-        let target = OutputProfileStore.shared.capturedProfile
++        let target = referenceProfile ?? OutputProfileStore.shared.capturedProfile
+         // Rules first, then the engine this hold already would have built — on every
+         // transcript unless the user opted into skipping it while the Mac is busy. The
+         // picker, the S1-takes-no-instructions rule, "grammar on means Apple alone" and the
+@@ -503,7 +503,7 @@
+             fixesGrammar: settings.cleanupFixesGrammar
+         )
+         guard settings.cleanupEnabled, engine == .apple || engine == .miniCPM else { return nil }
+-        let rules: @Sendable (String) -> String = { RuleBasedFormatter().apply($0) }
++        let rules: @Sendable (String) -> String = { RuleBasedFormatter().apply($0, isFinal: false) }
+         if let cleanupPieces {
+             return IncrementalCleanupSession(semantic: cleanupPieces().preclean, rules: rules)
+         }
+@@ -517,7 +517,7 @@
+                 engine,
+                 preferences: settings.cleanupPreferences,
+                 fixesGrammar: settings.cleanupFixesGrammar,
+-                target: OutputProfileStore.shared.capturedProfile,
++                target: referenceProfile ?? OutputProfileStore.shared.capturedProfile,
+                 context: .empty
+             ),
+             rules: rules
+@@ -893,6 +893,208 @@
+     private let cleanupPieces: (@MainActor @Sendable () -> CleanupPieces)?
+     private let contextCapture: (@MainActor @Sendable () async -> ScreenContext)?
+     private let referenceProfile: OutputProfile?
++
++    /// Actual pre-clean producer and finishing consumer, with no model or owner history.
++    static func incrementalClosureFailures() async -> [String] {
++        guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else {
++            return ["incremental closure fixture requires isolated preferences"]
++        }
++        struct RecordingFormatter: TextFormatter {
++            let inputs: LockedBox<[String]>
++            func format(_ raw: String) async -> String {
++                inputs.value.append(raw)
++                return raw.uppercased()
++            }
++        }
++        let settings = Settings.shared
++        let old = (settings.cleanupEnabled, settings.cleanupEngine, settings.cleanupFixesGrammar)
++        let root = FileManager.default.temporaryDirectory.appendingPathComponent("DictationClosure-\(UUID().uuidString)")
++        defer {
++            settings.cleanupEnabled = old.0
++            settings.cleanupEngine = old.1
++            settings.cleanupFixesGrammar = old.2
++            try? FileManager.default.removeItem(at: root)
++        }
++        settings.cleanupEnabled = true
++        settings.cleanupEngine = .apple
++        settings.cleanupFixesGrammar = true
++        let inputs = LockedBox<[String]>([])
++        let semantic = RecordingFormatter(inputs: inputs)
++        let trace = CleanupTrace()
++        let usage = UsageLog(directory: root)
++        var delivered = ""
++        let controller = DictationController(
++            insert: { text, _ in delivered = text; return .superseded },
++            record: { _ in }, log: .selfTest, outcome: { _ in }, usage: usage,
++            cleanupPieces: { CleanupPieces(preclean: semantic, pass: { head in
++                CleanupRouter(semantic: semantic, engine: .apple, trace: trace,
++                              head: head, pressureSample: { .idle })
++            }) },
++            contextCapture: { .empty }
++        )
++        guard let producer = controller.makeIncrementalCleanup() else {
++            return ["actual controller did not create its pre-clean producer"]
++        }
++        var failures: [String] = []
++        let first = "The first sentence is ready."
++        let open = first + " The next sentence is still"
++        await producer.notePartial(open, committed: open)
++        let early = await producer.head()
++        for task in early.cleaned { _ = await task.value }
++        if early.rawPrefix != first {
++            failures.append("actual pre-clean manufactures a full stop and closes an unfinished sentence")
++        }
++        let final = open + " being spoken."
++        await producer.notePartial(final, committed: final)
++        let head = await producer.head()
++        for task in head.cleaned { _ = await task.value }
++        controller.incrementalCleanup = producer
++        controller.transcript = final
++        controller.holdStarted = Date().addingTimeInterval(-30)
++        controller.releasedAt = Date()
++        controller.state = .finishing
++        controller.captureDrainTask = Task { true }
++        await controller.runTail(session: controller.session, audio: nil)
++        usage.flush()
++        if inputs.value != [first, "The next sentence is still being spoken."]
++            || trace.snapshot.precleanedGroups != 2 || delivered != final.uppercased() {
++            failures.append("actual finishing consumer repeats full cleanup after an unchanged committed prefix grows")
++        }
++        return failures
++    }
++
++    /// Real-time file audio through the real recognizer, live consumer, pre-clean producer
++    /// and complete finishing path. Only context, history and external insertion are
++    /// isolated. This measures text ready for insertion, not an Accessibility delivery.
++    static func runPolishingReplay(
++        path: String, choice: CleanupEngineChoice, warmFirst: Bool,
++        log: @MainActor (String) -> Void
++    ) async -> Bool {
++        guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else { return false }
++        let rate = 16_000
++        guard let samples = try? AudioConversion.monoSamples(
++            fromFileAt: URL(fileURLWithPath: (path as NSString).expandingTildeInPath),
++            sampleRate: Double(rate)), samples.count > rate else {
++            log("DICTATION_POLISH_FAILED: could not read the audio fixture")
++            return false
++        }
++        let gold = SelfTest.value(after: "--dictation-gold").flatMap {
++            try? String(contentsOfFile: ($0 as NSString).expandingTildeInPath, encoding: .utf8)
++        }
++        let settings = Settings.shared
++        let old = (settings.cleanupEnabled, settings.cleanupEngine, settings.cleanupFixesGrammar,
++                   settings.cleanupFormatsLists, settings.cleanupSkipsModelWhenBusy,
++                   settings.cleanupTone, settings.cleanupContext)
++        let root = FileManager.default.temporaryDirectory.appendingPathComponent("DictationPolish-\(UUID().uuidString)")
++        defer {
++            settings.cleanupEnabled = old.0; settings.cleanupEngine = old.1
++            settings.cleanupFixesGrammar = old.2; settings.cleanupFormatsLists = old.3
++            settings.cleanupSkipsModelWhenBusy = old.4
++            settings.cleanupTone = old.5; settings.cleanupContext = old.6
++            try? FileManager.default.removeItem(at: root)
++        }
++        settings.cleanupEnabled = true; settings.cleanupEngine = choice
++        settings.cleanupFixesGrammar = true; settings.cleanupFormatsLists = true
++        settings.cleanupSkipsModelWhenBusy = false
++        settings.cleanupTone = .balanced; settings.cleanupContext = .general
++        if warmFirst, choice == .miniCPM {
++            let began = Date()
++            let ready = await MiniCPMModels.preload()
++            log(String(format: "DICTATION_POLISH_PREPARE: resident=%@ seconds=%.3f",
++                       String(ready), Date().timeIntervalSince(began)))
++        }
++        let profile = OutputProfile(bundleID: "fixture.dictation", displayName: "the fixture",
++                                    capabilities: [.markdown, .bullets, .numbered, .code])
++        var ok = true
++        for round in 1...2 {
++            var delivered = ""
++            var run: DictationRun?
++            var firstAt: Date?
++            var finalAt: Date?
++            let usage = UsageLog(directory: root.appendingPathComponent("round-\(round)"))
++            let controller = DictationController(
++                insert: { text, _ in delivered = text; return .superseded },
++                record: { run = $0 }, log: .selfTest, outcome: { _ in }, usage: usage,
++                contextCapture: { .empty }, referenceProfile: profile
++            )
++            controller.stageCleanupSessions()
++            let engine = ParakeetEngine()
++            let stream: AsyncThrowingStream<TranscriptionChunk, Error>
++            let startupBegan = Date()
++            do { stream = try await engine.start() } catch {
++                log("DICTATION_POLISH_FAILED: recognition could not start")
++                return false
++            }
++            guard let format = await engine.preferredInputFormat() else { return false }
++            let startupMs = Date().timeIntervalSince(startupBegan) * 1000
++            controller.engine = engine
++            controller.incrementalCleanup = controller.makeIncrementalCleanup()
++            let producer = controller.incrementalCleanup
++            controller.state = .listening
++            let began = Date()
++            controller.holdStarted = began
++            controller.consumeTask = Task { @MainActor in
++                do {
++                    for try await chunk in stream {
++                        if !chunk.text.isEmpty, firstAt == nil { firstAt = Date() }
++                        if chunk.isFinal { finalAt = Date() }
++                        await controller.acceptTranscriptChunk(chunk, session: controller.session)
++                    }
++                } catch { ok = false }
++            }
++            let clock = ContinuousClock()
++            let start = clock.now
++            var index = 0
++            while index < samples.count {
++                let end = min(index + rate / 10, samples.count)
++                // Real audio time, not a fast batch that hides whether work fits in speech.
++                try? await clock.sleep(until: start + .seconds(Double(end) / Double(rate)))
++                guard let buffer = AVAudioPCMBuffer(pcmFormat: format,
++                    frameCapacity: AVAudioFrameCount(end - index)),
++                    let channel = buffer.floatChannelData?.pointee else { return false }
++                buffer.frameLength = AVAudioFrameCount(end - index)
++                for offset in 0..<(end - index) { channel[offset] = samples[index + offset] }
++                await engine.feed(AudioChunk(buffer: buffer))
++                index = end
++            }
++            let released = Date()
++            let visibleWords = Self.wordCount(controller.transcript)
++            controller.releasedAt = released
++            controller.state = .finishing
++            controller.captureDrainTask = Task { true }
++            await controller.runTail(session: controller.session, audio: nil)
++            let readyMs = Date().timeIntervalSince(released) * 1000
++            let record = run?.cleanup
++            log(String(format: "DICTATION_POLISH: round=%d engine=%@ hold=%.2fs first=%.0fms visibleWords=%d ASRfinal=%.0fms ready=%.0fms finalWords=%d head=%d answeredHead=%d fallback=%@ layout=%.3fs cached=%d model=%.3fs",
++                round, choice.rawValue, released.timeIntervalSince(began),
++                firstAt.map { $0.timeIntervalSince(began) * 1000 } ?? -1, visibleWords,
++                finalAt.map { $0.timeIntervalSince(released) * 1000 } ?? -1,
++                readyMs, Self.wordCount(delivered), record?.precleanedGroups ?? 0,
++                record?.precleanAnsweredGroups ?? -1, record?.precleanFallback ?? "none", record?.structurePlanSeconds ?? 0,
++                record?.cachedTokens ?? 0, record?.modelSeconds ?? 0))
++            log(String(format: "DICTATION_POLISH_TARGET: round=%d startup=%.0fms polishedUnder2s=%@ liveAtRelease=%@ layoutOutcome=%@",
++                       round, startupMs, String(readyMs <= 2_000), String(visibleWords > 0),
++                       record?.structurePlanRejected ?? "accepted or not requested"))
++            if let gold {
++                log(String(format: "DICTATION_POLISH_WER: round=%d raw=%.3f final=%.3f",
++                    round, DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: controller.transcript),
++                    DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: delivered)))
++            }
++            if let output = SelfTest.value(after: "--dictation-polish-output") {
++                try? delivered.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)
++            }
++            if delivered.isEmpty || firstAt == nil || finalAt == nil { ok = false }
++            // Join the same owned groups after measuring; no pre-clean survives the fixture.
++            if let producer {
++                let head = await producer.head()
++                for task in head.cleaned { _ = await task.value }
++            }
++            usage.flush()
++        }
++        log(ok ? "DICTATION_POLISH_OK: full finishing path reached isolated insertion twice"
++               : "DICTATION_POLISH_FAILED: incomplete live or final output")
++        return ok
++    }
+ 
+     /// Actual finishing path with an already recognized sentence; tests context admission,
+     /// narrowing, dictionary, tagging, history and delivery without a microphone or model.
+@@ -1292,11 +1494,7 @@
+                     do {
+                         for try await chunk in chunkStream {
+                             guard self.session == session else { return }
+-                            if !chunk.text.isEmpty, let trace = self.firstPartialTrace {
+-                                trace.end()
+-                                self.firstPartialTrace = nil
+-                            }
+-                            self.transcript = chunk.text
++                            await self.acceptTranscriptChunk(chunk, session: session)
+                         }
+                     } catch {
+                         guard self.session == session else { return }
+@@ -1319,6 +1517,59 @@
+         a.commonFormat == b.commonFormat
+             && abs(a.sampleRate - b.sampleRate) < 0.5
+             && a.channelCount == b.channelCount
++    }
++
++    private func stageCleanupSessions() {
++        // Wake the Apple cleanup model while the key is still down: a session staged here
++        // and reused by `FoundationModelFormatter.clean` measured 0.94s versus 4.69s cold
++        // (see `CleanupSessionWarmer`). Skipped for Command Mode, which never reaches this
++        // formatter at all, and for a hold whose settings would not land on Apple's model
++        // regardless — cleanup off, or S1-mini with grammar repair off. Built with `.empty`
++        // screen context because the real context is narrowed against the transcript, which
++        // does not exist yet; `CleanupSessionWarmer.take(instructions:)` simply will not
++        // hand out a session staged for the wrong prompt, so a guess that misses costs
++        // nothing beyond the wasted prewarm. Fired on its own task — never awaited here —
++        // so staging can never delay the capture this function starts below.
++        //
++        // Also staged when MiniCPM is the engine: Apple is its guard and fallback, and the
++        // fallback is exactly the call that answers when MiniCPM is not resident or the
++        // lane is busy — a cold Apple call there measured 6–9 s.
++        let stagedEngine = CleanupRouter.preferredEngine(
++            choice: Settings.shared.cleanupEngine,
++            fixesGrammar: Settings.shared.cleanupFixesGrammar
++        )
++        if Settings.shared.cleanupEnabled,
++           stagedEngine == .apple
++               || (stagedEngine == .miniCPM && FoundationModelFormatter.isAvailable) {
++            let instructions = CleanupInstructions.system(
++                for: Settings.shared.cleanupPreferences,
++                fixesGrammar: Settings.shared.cleanupFixesGrammar,
++                target: referenceProfile ?? OutputProfileStore.shared.capturedProfile
++            )
++            // The layout pass is a second call to the same model with different
++            // instructions, and it is the one that was timing out cold. Staged on the same
++            // hold, and only when formatting is actually switched on.
++            let layout = Settings.shared.cleanupPreferences.formatsLists
++                ? StructurePlanPrompt.system
++                : nil
++            Task {
++                await CleanupSessionWarmer.shared.stage(instructions: instructions)
++                if let layout { await CleanupSessionWarmer.shared.stage(instructions: layout) }
++            }
++        }
++    }
++
++    /// One producer for both the live stream and the file replay acceptance fixture.
++    private func acceptTranscriptChunk(_ chunk: TranscriptionChunk, session: Int) async {
++        guard self.session == session else { return }
++        if !chunk.text.isEmpty, let trace = firstPartialTrace {
++            trace.end()
++            firstPartialTrace = nil
++        }
++        transcript = chunk.text
++        if !chunk.isFinal, let producer = incrementalCleanup {
++            await producer.notePartial(chunk.text, committed: chunk.committedText)
++        }
+     }
+ 
+     private func beginDictation(intent: RecordingIntent) {
+@@ -1376,43 +1627,7 @@
+             processID: contextOrigin?.app.processIdentifier,
+             originBundleID: contextOrigin?.app.bundleIdentifier
+         )
+-        // Wake the Apple cleanup model while the key is still down: a session staged here
+-        // and reused by `FoundationModelFormatter.clean` measured 0.94s versus 4.69s cold
+-        // (see `CleanupSessionWarmer`). Skipped for Command Mode, which never reaches this
+-        // formatter at all, and for a hold whose settings would not land on Apple's model
+-        // regardless — cleanup off, or S1-mini with grammar repair off. Built with `.empty`
+-        // screen context because the real context is narrowed against the transcript, which
+-        // does not exist yet; `CleanupSessionWarmer.take(instructions:)` simply will not
+-        // hand out a session staged for the wrong prompt, so a guess that misses costs
+-        // nothing beyond the wasted prewarm. Fired on its own task — never awaited here —
+-        // so staging can never delay the capture this function starts below.
+-        //
+-        // Also staged when MiniCPM is the engine: Apple is its guard and fallback, and the
+-        // fallback is exactly the call that answers when MiniCPM is not resident or the
+-        // lane is busy — a cold Apple call there measured 6–9 s.
+-        let stagedEngine = CleanupRouter.preferredEngine(
+-            choice: Settings.shared.cleanupEngine,
+-            fixesGrammar: Settings.shared.cleanupFixesGrammar
+-        )
+-        if case .dictation = intent, Settings.shared.cleanupEnabled,
+-           stagedEngine == .apple
+-               || (stagedEngine == .miniCPM && FoundationModelFormatter.isAvailable) {
+-            let instructions = CleanupInstructions.system(
+-                for: Settings.shared.cleanupPreferences,
+-                fixesGrammar: Settings.shared.cleanupFixesGrammar,
+-                target: OutputProfileStore.shared.capturedProfile
+-            )
+-            // The layout pass is a second call to the same model with different
+-            // instructions, and it is the one that was timing out cold. Staged on the same
+-            // hold, and only when formatting is actually switched on.
+-            let layout = Settings.shared.cleanupPreferences.formatsLists
+-                ? StructurePlanPrompt.system
+-                : nil
+-            Task {
+-                await CleanupSessionWarmer.shared.stage(instructions: instructions)
+-                if let layout { await CleanupSessionWarmer.shared.stage(instructions: layout) }
+-            }
+-        }
++        if intent.kind == .dictation { stageCleanupSessions() }
+         state = .starting
+         // An embedder a search loaded is not left beside the dictation for its idle timer.
+         Task { await EmbeddingRuntime.shared.stopNow() }
+@@ -1661,18 +1876,7 @@
+                     do {
+                         for try await chunk in chunkStream {
+                             guard self.session == session else { return }
+-                            if !chunk.text.isEmpty, let trace = self.firstPartialTrace {
+-                                trace.end()
+-                                self.firstPartialTrace = nil
+-                            }
+-                            self.transcript = chunk.text
+-                            // D-12: the final chunk is not a partial — the tail is what
+-                            // reads it, and the tail is what matches the pre-cleans against
+-                            // it. One hop to the session's own actor, where the rules pass
+-                            // and the grouping run; nothing here waits on the model.
+-                            if !chunk.isFinal, let session = self.incrementalCleanup {
+-                                await session.notePartial(chunk.text, committed: chunk.committedText)
+-                            }
++                            await self.acceptTranscriptChunk(chunk, session: session)
+                         }
+                     } catch {
+                         guard self.session == session else { return }
+--- a/Sources/NextNotes/Formatting/CleanupRouter.swift
++++ b/Sources/NextNotes/Formatting/CleanupRouter.swift
+@@ -159,6 +159,19 @@
+     /// cleaned the way it always was and the record says so. The parameter wins over the
+     /// head the router was built with, which is how a hold passes its own.
+     func format(_ raw: String, head carried: CleanupHead? = nil) async -> String {
++        await withTaskCancellationHandler {
++            await finish(raw, head: carried)
++        } onCancel: {
++            // The outer finishing deadline / a new hold must reach the same owned
++            // pre-cleans even while this router is awaiting its tail.
++            for task in carried?.cleaned ?? [] { task.cancel() }
++        }
++    }
++
++    private func finish(_ raw: String, head carried: CleanupHead?) async -> String {
++        // No group remains useful after this formatter returns, including empty/rules
++        // outcomes. Cancellation is forwarded without waiting for native completion.
++        defer { for task in carried?.cleaned ?? [] { task.cancel() } }
+         let began = Date()
+         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+         guard !trimmed.isEmpty else { return trimmed }
+@@ -267,6 +280,7 @@
+             // zero groups used rather than left silent, because the work was done and then
+             // thrown away and the record should say which.
+             if let carried, !carried.stageA.isEmpty { precleanedGroups = 0 }
++            for task in carried?.cleaned ?? [] { task.cancel() }
+             text = beforeModel.text
+         case .semantic:
+             if beforeModel.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+@@ -292,15 +306,25 @@
+                     // The existing head deadline may have expired while this independent
+                     // tail was still running. Take any answer its SAME producer has now
+                     // published; do not add another grace or wait for unfinished work.
++                    var answeredGroups = 0
+                     for (index, completed) in head.completed.enumerated() where pieces.indices.contains(index) {
+                         if let landed = completed.value,
+                            !landed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                             pieces[index] = landed
++                            answeredGroups += 1
+                         }
+                     }
++                    if head.completed.count == head.cleaned.count {
++                        trace?.notePrecleanAnsweredGroups(answeredGroups)
++                    }
+                     answered = CleanedText.joined(pieces + (tail.isEmpty ? [] : [tail]))
++                    // Keep every answer that arrived during tail polishing. Once the
++                    // immutable result is assembled, unfinished groups cannot affect it:
++                    // stop them now, before a possible layout wait / the next hold.
++                    for task in head.cleaned { task.cancel() }
+                 case .unusable(let reason):
+                     precleanFallback = reason
++                    for task in carried?.cleaned ?? [] { task.cancel() }
+                     answered = await semantic.format(beforeModel.text)
+                 case .none:
+                     answered = await semantic.format(beforeModel.text)
+@@ -357,13 +381,27 @@
+         // paragraph breaks, and enumerations announced without numbers at all.
+         var planRejection: String?
+         if let planTask, let planner = structurePlanner {
+-            let outcome = await resolveLayoutPlan(
+-                planTask,
+-                answered: planAnswered,
+-                sentences: planSentences,
+-                began: planBegan,
+-                waitIsBounded: decision.usesModel
+-            )
++            let outcome: StructurePlanOutcome
++            if !applied.isEmpty {
++                // Post-cleanup rules have already rendered the structure that wins.
++                // This plan cannot affect the result, so do not spend its remaining
++                // budget waiting to reject it. Keep the authoritative formatting.
++                planTask.cancel()
++                let ready = planAnswered.value
++                outcome = .failed(
++                    "the rules had already laid the text out",
++                    seconds: ready?.seconds ?? Self.seconds(ContinuousClock.now - planBegan),
++                    prewarmed: ready?.prewarmed
++                )
++            } else {
++                outcome = await resolveLayoutPlan(
++                    planTask,
++                    answered: planAnswered,
++                    sentences: planSentences,
++                    began: planBegan,
++                    waitIsBounded: decision.usesModel
++                )
++            }
+             let sentences = SpokenStructure.sentenceSplit(text)
+             planRejection = outcome.rejection
+             if let plan = outcome.plan {
+@@ -392,11 +430,6 @@
+                         } else {
+                             planRejection = "the layout was the one the text already had"
+                         }
+-                    } else if planRejection == nil, !applied.isEmpty {
+-                        // The rules found the list while the model was still thinking.
+-                        // Deterministic and already right wins, and the record says so
+-                        // rather than reporting a plan that was never consulted.
+-                        planRejection = "the rules had already laid the text out"
+                     } else {
+                         planRejection = planRejection ?? "the layout could not be rendered"
+                     }
+@@ -468,8 +501,8 @@
+         guard let head, !head.stageA.isEmpty else { return .none }
+         guard let remainder = Self.remainder(of: text, afterPrefix: head.rawPrefix) else {
+             return .unusable(
+-                "a sentence finished earlier was changed by the speech model while you were "
+-                    + "still speaking, so all of it was tidied at the end"
++                "the final text no longer matched the sentences prepared while you were "
++                    + "speaking, so all of it was tidied at the end"
+             )
+         }
+         return .usable(head: head, remainder: remainder)
+--- a/Sources/NextNotes/Formatting/CleanupTrace.swift
++++ b/Sources/NextNotes/Formatting/CleanupTrace.swift
+@@ -116,6 +116,12 @@
+         mutate { $0.precleanedGroups = count }
+     }
+ 
++    /// Nonempty formatter answers available when the head is selected. This may
++    /// include a formatter's own fallback; it is not a model-quality verdict.
++    func notePrecleanAnsweredGroups(_ count: Int) {
++        mutate { $0.precleanAnsweredGroups = count }
++    }
++
+     func notePrecleanFallback(_ reason: String) {
+         mutate { $0.precleanFallback = $0.precleanFallback ?? reason }
+     }
+@@ -366,6 +372,10 @@
+     /// `precleanFallback` when it did and the rules were enough on their own. Old rows
+     /// decode as nil.
+     var precleanedGroups: Int?
++    /// Selected head groups whose formatter returned a nonempty answer before final
++    /// selection. Includes formatter fallbacks, never proves accepted semantic repair.
++    /// Nil in old records and for legacy heads without completion boxes.
++    var precleanAnsweredGroups: Int?
+     /// Why a hold's pre-cleaned groups could not be used: a sentence one of them was built
+     /// from was revised by the speech model before the key came up. The whole dictation is
+     /// then cleaned in one pass, as it always was. Nil on a run that never had a group to
+--- a/Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift
++++ b/Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift
+@@ -79,14 +79,18 @@
+             failures.append("late-head fixture never entered the actual pre-clean producer")
+             return failures
+         }
++        let lateTrace = CleanupTrace()
+         let lateOutput = await CleanupRouter(
+             semantic: JoinHead(started: tailStarted, task: lateHead), engine: .apple,
+-            rules: KeepAsIsFormatter(), precleanGrace: .milliseconds(10)
++            rules: KeepAsIsFormatter(), trace: lateTrace, precleanGrace: .milliseconds(10)
+         ).format(spoken + " The remaining sentence arrives.", head: producedHead)
+         if lateOutput != "THE FIRST SENTENCE IS READY. THE REMAINING SENTENCE ARRIVES." {
+             failures.append("router discards a polished head that completed during tail cleanup")
+         }
+         _ = await lateHead.value
++        if lateTrace.snapshot.precleanAnsweredGroups != 1 {
++            failures.append("completed-head measurement misses the answer retained during tail polishing")
++        }
+ 
+         // Apple's response can be executing native work that ignores cancellation.
+         // Exercise the real formatter's deadline, then release that same response so
+@@ -116,6 +120,266 @@
+             failures.append("Apple cleanup deadline waits for a response that ignores cancellation")
+         }
+         failures += await DictationController.fileTaggingLatencyFailures()
++        failures += await DictationController.incrementalClosureFailures()
++        failures += await cancelledPrecleanFailures()
++        failures += await layoutDeadlineFailures()
++        failures += await unusedPrecleanFailures()
++        failures += await expiredPrecleanFailures()
++        failures += await supersededLayoutFailures()
++        return failures
++    }
++
++    private static func supersededLayoutFailures() async -> [String] {
++        struct HeldPlanner: StructurePlanning {
++            let entered: CleanupAdmission
++            let release: CleanupAdmission
++            let returned: CleanupAdmission
++            let cancelled: LockedBox<Bool>
++            var planName: String { "fixture" }
++            func plan(for sentences: [String], deadline: Duration?) async -> StructurePlanOutcome {
++                await withTaskCancellationHandler {
++                    entered.admit()
++                    _ = await release.wait()
++                    returned.admit()
++                    return .failed("fixture released", seconds: 0)
++                } onCancel: { cancelled.value = true }
++            }
++        }
++        struct Cleaned: TextFormatter {
++            let plannerEntered: CleanupAdmission
++            let text: String
++            func format(_ raw: String) async -> String {
++                _ = await plannerEntered.wait()
++                return text
++            }
++        }
++        let raw = "We have the first point to review the login page before the next release because people cannot find the recovery button. We have the second point to check the settings page because the save button does not stay visible while scrolling through the options. We have the third point to check the welcome page because the introductory text needs a clearer explanation of what happens next. The whole update should be ready for review tomorrow."
++        let cleaned = "First point, review the login page before the next release because people cannot find the recovery button. Second point, check the settings page because the save button does not stay visible while scrolling through the options. Third point, check the welcome page because the introductory text needs a clearer explanation of what happens next. The whole update should be ready for review tomorrow."
++        let target = OutputProfile(bundleID: "fixture", displayName: "fixture", capabilities: [.markdown, .bullets, .numbered])
++        let before = SpokenStructure.apply(to: raw, target: target, isEnabled: true)
++        let after = SpokenStructure.apply(to: cleaned, target: target, isEnabled: true)
++        guard before.applied.isEmpty, !after.applied.isEmpty,
++              StructurePlan.isWorthPlanning(sentences: SpokenStructure.sentenceSplit(raw),
++                                            wordCount: SentenceChunker.wordCount(raw), sawMarkers: before.markersSeen) else {
++            return ["superseded layout fixture did not exercise structure found after cleanup"]
++        }
++        let entered = CleanupAdmission(), release = CleanupAdmission(), returned = CleanupAdmission()
++        let cancelled = LockedBox(false)
++        let planner = HeldPlanner(entered: entered, release: release, returned: returned, cancelled: cancelled)
++        let trace = CleanupTrace()
++        let began = ContinuousClock.now
++        let output = await CleanupRouter(
++            semantic: Cleaned(plannerEntered: entered, text: cleaned), engine: .apple,
++            rules: KeepAsIsFormatter(), formatsLists: true, targetRendersLists: true,
++            target: target, trace: trace, structurePlanner: planner,
++            layoutWait: { _ in .seconds(1) }, layoutGrace: .seconds(1)
++        ).format(raw)
++        let elapsed = ContinuousClock.now - began
++        let stopped = cancelled.value
++        release.admit(); _ = await returned.wait()
++        var failures: [String] = []
++        if elapsed >= .milliseconds(500) {
++            failures.append("router waits for a layout plan after its own rules already produced the final structure")
++        }
++        if output != after.text || !stopped || trace.snapshot.structureSource != "rules" {
++            failures.append("superseded layout cancellation loses the authoritative rendered list")
++        }
++        return failures
++    }
++
++    private static func expiredPrecleanFailures() async -> [String] {
++        struct Held: TextFormatter {
++            let entered: CleanupAdmission
++            let release: CleanupAdmission
++            let cancelled: LockedBox<Bool>
++            let calls: LockedBox<Int>
++            func format(_ raw: String) async -> String {
++                calls.value += 1
++                return await withTaskCancellationHandler {
++                    entered.admit()
++                    _ = await release.wait()
++                    return raw.uppercased()
++                } onCancel: { cancelled.value = true }
++            }
++        }
++        let entered = CleanupAdmission(), release = CleanupAdmission()
++        let cancelled = LockedBox(false), calls = LockedBox(0)
++        let producer = IncrementalCleanupSession(
++            semantic: Held(entered: entered, release: release, cancelled: cancelled, calls: calls),
++            rules: { $0 })
++        let first = "The first sentence is ready."
++        let second = "The next sentence is ready."
++        await producer.notePartial(first, committed: first)
++        _ = await withBoundedWait(.seconds(1)) { await entered.wait() }
++        let all = first + " " + second
++        await producer.notePartial(all, committed: all)
++        let head = await producer.head()
++        let expiredTrace = CleanupTrace()
++        let output = await CleanupRouter(
++            semantic: KeepAsIsFormatter(), engine: .apple, rules: KeepAsIsFormatter(),
++            trace: expiredTrace, precleanGrace: .milliseconds(10), head: head
++        ).format(all)
++        let stoppedAtDelivery = cancelled.value
++        release.admit()
++        for task in head.cleaned { _ = await task.value }
++        var failures: [String] = []
++        if expiredTrace.snapshot.precleanedGroups != 2 || expiredTrace.snapshot.precleanAnsweredGroups != 0 {
++            failures.append("expired-head measurement reports pending groups as completed answers")
++        }
++        if output != all || !stoppedAtDelivery {
++            failures.append("a usable head whose grace expired keeps entered cleanup active after delivery")
++        }
++        if calls.value != 1 {
++            failures.append("queued expired head cleanup starts after its result can no longer be used")
++        }
++
++        // A new hold / outer finishing deadline can cancel the router while its tail
++        // still has native work entered. Cancellation must reach the carried head now.
++        let headEntered = CleanupAdmission(), headRelease = CleanupAdmission()
++        let tailEntered = CleanupAdmission(), tailRelease = CleanupAdmission()
++        let headCancelled = LockedBox(false)
++        let other = IncrementalCleanupSession(
++            semantic: Held(entered: headEntered, release: headRelease,
++                           cancelled: headCancelled, calls: LockedBox(0)), rules: { $0 })
++        await other.notePartial(first, committed: first)
++        _ = await withBoundedWait(.seconds(1)) { await headEntered.wait() }
++        let carried = await other.head()
++        let tail = Held(entered: tailEntered, release: tailRelease,
++                        cancelled: LockedBox(false), calls: LockedBox(0))
++        let router = CleanupRouter(semantic: tail, engine: .apple,
++                                   rules: KeepAsIsFormatter(), head: carried)
++        let finishing = Task { await router.format(all) }
++        _ = await withBoundedWait(.seconds(1)) { await tailEntered.wait() }
++        finishing.cancel()
++        let forwarded = headCancelled.value
++        headRelease.admit(); tailRelease.admit()
++        _ = await finishing.value
++        for task in carried.cleaned { _ = await task.value }
++        if !forwarded {
++            failures.append("cancelling actual finishing router leaves its carried pre-clean entered")
++        }
++        return failures
++    }
++
++    private static func unusedPrecleanFailures() async -> [String] {
++        struct Held: TextFormatter {
++            let entered: CleanupAdmission
++            let release: CleanupAdmission
++            let cancelled: LockedBox<Bool>
++            func format(_ raw: String) async -> String {
++                await withTaskCancellationHandler {
++                    entered.admit()
++                    _ = await release.wait()
++                    return raw
++                } onCancel: { cancelled.value = true }
++            }
++        }
++        var failures: [String] = []
++        for usesRules in [false, true] {
++            let entered = CleanupAdmission(), release = CleanupAdmission()
++            let cancelled = LockedBox(false)
++            let producer = IncrementalCleanupSession(
++                semantic: Held(entered: entered, release: release, cancelled: cancelled), rules: { $0 })
++            let committed = "The original sentence is ready."
++            await producer.notePartial(committed, committed: committed)
++            _ = await withBoundedWait(.seconds(1)) { await entered.wait() }
++            let head = await producer.head()
++            let trace = CleanupTrace()
++            let output = await CleanupRouter(
++                semantic: KeepAsIsFormatter(), engine: .apple, rules: KeepAsIsFormatter(),
++                skipsModelWhenBusy: usesRules, trace: trace, head: head,
++                pressureSample: { usesRules ? .simulated(notesBusy: true) : .idle }
++            ).format("The revised sentence is ready.")
++            let stopped = cancelled.value
++            release.admit()
++            for task in head.cleaned { _ = await task.value }
++            if !stopped || output != "The revised sentence is ready."
++                || trace.snapshot.route != (usesRules ? "rules" : "semantic") {
++                failures.append(usesRules
++                    ? "rules router discards a head but leaves its model job active"
++                    : "prefix rejection leaves the discarded pre-clean competing with full cleanup")
++            }
++        }
++        return failures
++    }
++
++    private static func layoutDeadlineFailures() async -> [String] {
++        let entered = CleanupAdmission()
++        let release = CleanupAdmission()
++        let returned = CleanupAdmission()
++        var planner = AppleStructurePlanner()
++        planner.draftCall = {
++            entered.admit()
++            _ = await release.wait()
++            returned.admit()
++            return StructurePlanDraft(blocks: [])
++        }
++        let actual = planner
++        let task = Task {
++            await actual.plan(for: ["The first sentence.", "The next sentence."],
++                              deadline: .milliseconds(10))
++        }
++        _ = await withBoundedWait(.seconds(1)) { await entered.wait() }
++        let outcome = await withBoundedWait(.milliseconds(150)) { await task.value }
++        release.admit()
++        _ = await returned.wait()
++        _ = await task.value
++        if outcome?.rejection?.contains("ran out of time") != true {
++            return ["actual layout planner deadline waits for an uncancellable response"]
++        }
++        return []
++    }
++
++    private static func cancelledPrecleanFailures() async -> [String] {
++        let entered = CleanupAdmission()
++        let release = CleanupAdmission()
++        let returned = CleanupAdmission()
++        let cancelled = LockedBox(false)
++        let fallback = LockedBox(0)
++        struct Apple: TextFormatter {
++            let calls: LockedBox<Int>
++            func format(_ raw: String) async -> String {
++                calls.value += 1
++                return raw
++            }
++        }
++        let formatter = MiniCPMCleanupFormatter(
++            preferences: CleanupPreferences(tone: .balanced, formatsLists: false, context: .general),
++            runner: { raw, admission in
++                admission.admit()
++                entered.admit()
++                return try await withTaskCancellationHandler {
++                    _ = await release.wait()
++                    returned.admit()
++                    try Task.checkCancellation()
++                    return MiniCPMPass(text: raw)
++                } onCancel: { cancelled.value = true }
++            },
++            apple: Apple(calls: fallback), filePresent: { true }, resident: { true }, warm: {}
++        )
++        let producer = IncrementalCleanupSession(semantic: formatter, rules: { $0 })
++        let text = "The first sentence is ready."
++        await producer.notePartial(text, committed: text)
++        _ = await withBoundedWait(.seconds(1)) { await entered.wait() }
++        let head = await producer.head()
++        await producer.cancel()
++        let stopped = await withBoundedWait(.milliseconds(150)) {
++            for task in head.cleaned { _ = await task.value }
++            return true
++        }
++        let wasCancelled = cancelled.value
++        let appleCalls = fallback.value
++        // Always join this same fixture responder; it ignores cancellation until released.
++        release.admit()
++        _ = await returned.wait()
++        for task in head.cleaned { _ = await task.value }
++        var failures: [String] = []
++        if stopped != true || !wasCancelled {
++            failures.append("cancelling actual pre-clean leaves its admitted model job running")
++        }
++        if appleCalls != 0 || fallback.value != 0 {
++            failures.append("cancelled pre-clean starts an Apple fallback that the next hold competes with")
++        }
+         return failures
+     }
+ }
+--- a/Sources/NextNotes/Formatting/IncrementalCleanup.swift
++++ b/Sources/NextNotes/Formatting/IncrementalCleanup.swift
+@@ -187,6 +187,7 @@
+     /// and returns its text as spoken rather than sitting in the queue.
+     func cancel() {
+         cancelled.value = true
++        for group in groups { group.task.cancel() }
+     }
+ 
+     // MARK: - Grouping
+@@ -214,7 +215,7 @@
+         let completed = LockedBox<String?>(nil)
+         let task = Task(priority: .utility) { [lane, cancelled] in
+             let answer = await lane.run {
+-                if cancelled.value { return group }
++                if cancelled.value || Task.isCancelled { return group }
+                 return await semantic.format(group)
+             }
+             completed.value = answer
+--- a/Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift
++++ b/Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift
+@@ -328,7 +328,7 @@
+ 
+     func format(_ raw: String) async -> String {
+         let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+-        guard !trimmed.isEmpty else { return trimmed }
++        guard !trimmed.isEmpty, !Task.isCancelled else { return trimmed }
+         guard filePresent() else {
+             Log.speech.info(
+                 "\(MiniCPMModels.spec.displayName, privacy: .public) is not downloaded — Apple answers cleanup"
+@@ -364,6 +364,11 @@
+         // Phase 1: admission. Refusal (busy, loading, live ASR holds the lane) closes it
+         // immediately; nothing here queues behind another job.
+         let admitted = await withBoundedWait(admissionGrace) { await admission.wait() } ?? false
++        guard !Task.isCancelled else {
++            job.cancel()
++            admission.close()
++            return trimmed
++        }
+         guard admitted else {
+             job.cancel()
+             admission.close()
+@@ -380,6 +385,10 @@
+         let began = Date()
+         let budget = Self.timeout(for: trimmed)
+         let outcome = await withBoundedWait(budget) { await job.result }
++        guard !Task.isCancelled else {
++            job.cancel()
++            return trimmed
++        }
+         let seconds = Date().timeIntervalSince(began)
+         switch outcome {
+         case nil:
+@@ -424,6 +433,7 @@
+ 
+     /// Apple always works from the original transcript, never from MiniCPM's output.
+     private func answerWithApple(_ trimmed: String) async -> String {
++        guard !Task.isCancelled else { return trimmed }
+         trace?.noteEngineUsed("apple")
+         return await apple.format(trimmed)
+     }
+--- a/Sources/NextNotes/Formatting/StructurePlanner.swift
++++ b/Sources/NextNotes/Formatting/StructurePlanner.swift
+@@ -120,6 +120,8 @@
+     /// False shows the model every sentence whole. The probe uses it to check that the
+     /// elision costs no accuracy; production never turns it off.
+     var elides = true
++    /// Nil in production; exercises the actual planner deadline without model assets.
++    var draftCall: (@Sendable () async throws -> StructurePlanDraft)? = nil
+ 
+     /// Three tenths of a second per sentence, floored at three and a half and capped at six.
+     ///
+@@ -137,7 +139,7 @@
+ 
+     func plan(for sentences: [String], deadline requested: Duration?) async -> StructurePlanOutcome {
+         let began = Date()
+-        guard FoundationModelFormatter.isAvailable else {
++        guard draftCall != nil || FoundationModelFormatter.isAvailable else {
+             return .failed(
+                 FoundationModelFormatter.unavailableReason
+                     ?? "Apple\u{2019}s on-device model is unavailable",
+@@ -154,45 +156,47 @@
+         // `catch` path below still carries it when the deadline wins the race.
+         let prewarmedBox = LockedBox<Bool?>(nil)
+         do {
+-            let draft = try await withThrowingTaskGroup(of: StructurePlanDraft.self) { group in
+-                group.addTask {
+-                    // The session staged while the key was still down, if there is one for
+-                    // exactly this prompt. Same trade as the cleanup pass, and the same
+-                    // measurement behind it: the first call in a process pays the model
+-                    // waking up, and that is most of the three seconds this pass used to
+-                    // spend before it timed out.
+-                    let staged = await CleanupSessionWarmer.shared
+-                        .take(instructions: StructurePlanPrompt.system)
+-                    prewarmedBox.value = staged != nil
+-                    let session = staged
+-                        ?? LanguageModelSession(instructions: StructurePlanPrompt.system)
+-                    let response = try await session.respond(
+-                        to: StructurePlanPrompt.user(sentences: sentences, eliding: elides),
+-                        generating: StructurePlanDraft.self,
+-                        options: GenerationOptions(
+-                            // A layout is not a creative task; the same passage should be
+-                            // laid out the same way twice.
+-                            temperature: 0.1,
+-                            maximumResponseTokens: 500
+-                        )
++            // A native response may ignore cancellation. Bound the caller without
++            // joining that response at the deadline; cancel the same retained task.
++            let response = Task<StructurePlanDraft, Error> {
++                if let draftCall { return try await draftCall() }
++                // The session staged while the key was still down, if there is one for
++                // exactly this prompt. Same trade as the cleanup pass, and the same
++                // measurement behind it: the first call in a process pays the model
++                // waking up, and that is most of the three seconds this pass used to
++                // spend before it timed out.
++                let staged = await CleanupSessionWarmer.shared
++                    .take(instructions: StructurePlanPrompt.system)
++                prewarmedBox.value = staged != nil
++                let session = staged
++                    ?? LanguageModelSession(instructions: StructurePlanPrompt.system)
++                let response = try await session.respond(
++                    to: StructurePlanPrompt.user(sentences: sentences, eliding: elides),
++                    generating: StructurePlanDraft.self,
++                    options: GenerationOptions(
++                        // A layout is not a creative task; the same passage should be
++                        // laid out the same way twice.
++                        temperature: 0.1,
++                        maximumResponseTokens: 500
+                     )
+-                    // D-06: a completed layout answer is Apple-model activity, whether the
+-                    // plan it carried is later used or turned down — the model ran either
+-                    // way, and the warmth window reads that. Never
+-                    // `MainActor.assumeIsolated` from a child task.
+-                    await MainActor.run { AppleModelWarmth.noteActivity() }
+-                    return response.content
+-                }
+-                group.addTask {
+-                    try await Task.sleep(for: deadline)
+-                    throw PlanError.timedOut
+-                }
+-                guard let first = try await group.next() else { throw PlanError.timedOut }
+-                group.cancelAll()
+-                return first
+-            }
++                )
++                // D-06: a completed layout answer is Apple-model activity, whether the
++                // plan it carried is later used or turned down — the model ran either
++                // way, and the warmth window reads that. Never
++                // `MainActor.assumeIsolated` from a child task.
++                await MainActor.run { AppleModelWarmth.noteActivity() }
++                return response.content
++            }
++            let outcome = await withTaskCancellationHandler {
++                await withBoundedWait(deadline) { await response.result }
++            } onCancel: { response.cancel() }
++            guard let outcome else {
++                response.cancel()
++                throw PlanError.timedOut
++            }
++            let draft = try outcome.get()
++            let seconds = Date().timeIntervalSince(began)
+             let plan = draft.plan
+-            let seconds = Date().timeIntervalSince(began)
+             if let problem = plan.rejection(sentenceCount: sentences.count) {
+                 return .failed(problem, seconds: seconds, prewarmed: prewarmedBox.value)
+             }
+--- a/Sources/NextNotes/Formatting/TextFormatter.swift
++++ b/Sources/NextNotes/Formatting/TextFormatter.swift
+@@ -57,7 +57,7 @@
+     /// while the key is still down and needs the answer inside an actor — calls it directly.
+     /// One implementation, so the text a pre-cleaned group is matched against is written by
+     /// the same code as the text the key-up pass matches it against. (D-12.)
+-    func apply(_ raw: String) -> String {
++    func apply(_ raw: String, isFinal: Bool = true) -> String {
+         var text = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+         guard !text.isEmpty else { return text }
+ 
+@@ -66,7 +66,9 @@
+         text = collapseRepeats(in: text)
+         text = collapseWhitespace(in: text)
+         text = capitalizeSentences(in: text)
+-        text = ensureTerminalPunctuation(in: text)
++        // A frozen audio segment can end in the middle of a sentence. Only the final
++        // transcript owns its missing full stop; pre-clean must see the open boundary.
++        if isFinal { text = ensureTerminalPunctuation(in: text) }
+ 
+         return text
+     }
+--- a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
++++ b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+@@ -1099,10 +1099,14 @@
+                 position += 1
+             }
+         } catch {
+-            // A failed decode or a cancellation mid-generation leaves the native context in
+-            // a state this code did not build; drop both halves of the cache together.
+-            llama_memory_clear(llama_get_memory(context), true)
+-            kvTokens = []
++            // Cooperative cancellation is checked at a token boundary; each successful
++            // native decode has already appended its exact tokens above. Preserve that
++            // same prefix, as the streaming producer does. An actual decode failure
++            // still leaves unknown state and must clear both native memory and ledger.
++            if !(error is CancellationError) {
++                llama_memory_clear(llama_get_memory(context), true)
++                kvTokens = []
++            }
+             throw error
+         }
+ 
+--- a/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift
++++ b/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift
+@@ -489,6 +489,8 @@
+         }
+         failures += await cancellationReuseFailures(runtime, system: system,
+             firstUser: firstUser, promptTokens: stats6.promptTokens)
++        failures += await dictationCancellationReuseFailures(runtime, system: system,
++            user: firstUser, promptTokens: stats6.promptTokens)
+         _ = await runtime.shutdown()
+ 
+         if failures.isEmpty {
+@@ -551,6 +553,55 @@
+         return failures
+     }
+ 
++    /// Exercise the same non-streaming entrance MiniCPM cleanup uses. Cancel only
++    /// after the last successful native prefill chunk, before any sampled output.
++    private static func dictationCancellationReuseFailures(
++        _ runtime: NotesModelRuntime, system: String, user: String, promptTokens: Int
++    ) async -> [String] {
++        await runtime.resetPrefixCacheForTesting()
++        let probe = PrefixCacheCancellationProbe(atChunk: (promptTokens + 127) / 128)
++        await runtime.setPrefillChunkObserverForTesting { probe.decoded() }
++        let file = await runtime.spec.fileURL
++        let admitted = LockedBox(0)
++        // The observer cancels its current task; give this call its own task so the
++        // fixture's cleanup and successor remain active and can join this producer.
++        let cancelled = Task {
++            do {
++                _ = try await runtime.completeForDictationCleanup(
++                    file: file, system: system, user: user, maxTokens: generationBudget,
++                    admitted: { admitted.value += 1 })
++                return false
++            } catch is CancellationError { return true }
++            catch { return false }
++        }
++        let didCancel = await cancelled.value
++        await runtime.setPrefillChunkObserverForTesting(nil)
++        guard probe.didCancel, didCancel, admitted.value == 1 else {
++            return ["actual dictation generation did not cancel after successful native prefill"]
++        }
++        do {
++            let successor = try await runtime.completeForDictationCleanup(
++                file: file, system: system, user: user, maxTokens: generationBudget, admitted: {})
++            guard let stats = await runtime.prefillStatsForTesting() else {
++                return ["cancelled dictation successor has no native prefill counters"]
++            }
++            var failures: [String] = []
++            if stats.reused != stats.promptTokens - 1 || stats.decoded != 1 {
++                failures.append("cancelled dictation discarded native-success prefix: reused\(stats.reused), expected\(stats.promptTokens - 1)")
++            }
++            await runtime.resetPrefixCacheForTesting()
++            let control = try await runtime.completeForDictationCleanup(
++                file: file, system: system, user: user, maxTokens: generationBudget, admitted: {})
++            if successor.completion.text.isEmpty
++                || successor.completion.text != control.completion.text {
++                failures.append("cancelled dictation successor differs from the actual cleared-context control")
++            }
++            return failures
++        } catch {
++            return ["cancelled dictation successor failed: \(error.localizedDescription)"]
++        }
++    }
++
+     // MARK: - Fixtures and helpers
+ 
+     /// At least 600 tokens: a paragraph repeated enough times that the shared prefix dwarfs
+--- a/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
+@@ -21,7 +21,13 @@
+ 
+         var replayOK = true
+         if let wavPath {
+-            replayOK = await replay(path: wavPath, goldPath: SelfTest.value(after: "--dictation-gold"), log: log)
++            if let polish = SelfTest.value(after: "--dictation-polish") {
++                replayOK = await DictationController.runPolishingReplay(
++                    path: wavPath, choice: polish == "apple" ? .apple : .miniCPM,
++                    warmFirst: CommandLine.arguments.contains("--dictation-polish-warm"), log: log)
++            } else {
++                replayOK = await replay(path: wavPath, goldPath: SelfTest.value(after: "--dictation-gold"), log: log)
++            }
+         }
+         let ok = failures.isEmpty && replayOK
+         log(ok

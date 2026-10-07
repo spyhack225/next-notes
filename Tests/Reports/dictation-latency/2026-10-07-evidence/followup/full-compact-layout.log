@@ -1,0 +1,6 @@
+run-selftest: open -n -W /Users/sergekadjo/Library/Caches/NextNotesBuild/install-9397/Next Notes.app --args --selftest-dictation-segments /Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Fixtures/meetings/en-dialogue.wav --dictation-polish miniCPM --dictation-polish-warm --dictation-polish-output /Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/full-compact-layout --selftest-out /tmp/nextnotes-selftest-10425.txt
+DICTATION_POLISH_PREPARE: resident=true seconds=10.207
+DICTATION_POLISH: round=1 engine=miniCPM hold=60.59s first=617ms visibleWords=133 ASRfinal=76ms ready=4969ms finalWords=133 head=15 fallback=none layout=4.800s cached=0 model=2.504s
+DICTATION_POLISH: round=2 engine=miniCPM hold=60.59s first=496ms visibleWords=133 ASRfinal=37ms ready=4775ms finalWords=133 head=15 fallback=none layout=4.702s cached=1297 model=0.497s
+DICTATION_POLISH_OK: full finishing path reached isolated insertion twice
+DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean

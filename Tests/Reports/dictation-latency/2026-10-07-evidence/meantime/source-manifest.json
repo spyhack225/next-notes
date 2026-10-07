@@ -1,0 +1,22 @@
+{
+  "Sources/NextNotesDictionary/SpokenForms.swift": {
+    "original_sha256": "6e67c2cc1f300c777197e84220db5c0194c5f6440133ae234db4b8011895b611",
+    "current_sha256": "98b04399c83be40742f4d9640c5f5550ac71f4280273b6657e3b040dcb276bc3"
+  },
+  "Sources/NextNotesDictionary/FileReferences.swift": {
+    "original_sha256": "085cc360999f6994db4d384337dd7a0448d5df71c5b632f68a0207adfa9a4f4e",
+    "current_sha256": "bedbcca9fc7809845eed9ee35b10ef336879ceb144099562fbd603b110b6482e"
+  },
+  "Sources/NextNotes/Formatting/SpokenStructure.swift": {
+    "original_sha256": "dcb69b44d5896b18d323c58e2db2d941dde433564c9d9f446a1f88094bf50c01",
+    "current_sha256": "ff8c82a0af8d646ffaaef590499aafab24daaa91c710195a8df7c763ce3a4712"
+  },
+  "Tests/NextNotesDictionaryTests/SpokenFormsTests.swift": {
+    "original_sha256": "f6f96e3c8f293f78d5a6a487805934a3fdbe75432d25a178a7826fff0a50d4dd",
+    "current_sha256": "8a52f29daeecfb5daa27279abf6d4762cad6bfe038e276782aa7c5787a21230e"
+  },
+  "Sources/NextNotes/Formatting/CleanupRouter.swift": {
+    "original_sha256": "9d0f47608fc0a42935bd2348cb381fb038743d5877e4c93f6d10a42bb23aae1f",
+    "current_sha256": "055c740f3e37291d7567db88c69dc76ce92d0c78106eb50fc01300306b1a075a"
+  }
+}

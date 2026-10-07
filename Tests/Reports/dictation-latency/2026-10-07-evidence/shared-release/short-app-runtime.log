@@ -1,0 +1,33 @@
+2026-10-07 16:50:22.558 I  NextNotes[33275:b3e72] [ai.pivotstudio.nextnotes:speech] Parakeet: loading models from disk
+2026-10-07 16:50:44.041 I  NextNotes[33275:b3e72] [ai.pivotstudio.nextnotes:speech] Parakeet: ready in 21.5s
+2026-10-07 16:50:47.766 I  NextNotes[33275:b3e72] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not loaded yet — Apple answers; loading in the background
+2026-10-07 16:50:51.465 I  NextNotes[33275:b3edb] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not loaded yet — Apple answers; loading in the background
+2026-10-07 16:50:52.055 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.drain · 0.001s
+2026-10-07 16:50:52.112 I  NextNotes[33275:b3e71] [ai.pivotstudio.nextnotes:speech] Parakeet: final 8.0s audio, 2 segment(s), key-up awaited-inflight in 0.054s
+2026-10-07 16:50:52.113 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.transcribe · 0.059s
+2026-10-07 16:50:52.113 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.keyUp_to_asr_final · 0.064s
+2026-10-07 16:50:52.116 I  NextNotes[33275:b3e71] [ai.pivotstudio.nextnotes:speech] cleanup router · semantic miniCPM · 20 words · short and clean
+2026-10-07 16:50:52.684 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.names · 0.000s
+2026-10-07 16:50:52.684 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.cleanup · 0.571s
+2026-10-07 16:50:52.684 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.asr_final_to_cleanup · 0.571s
+2026-10-07 16:50:52.684 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:speech] dictation tail · drain 0.00s · transcribe 0.06s · names 0.00s · cleanup 0.57s
+2026-10-07 16:50:52.696 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.cleanup_to_injection · 0.000s
+2026-10-07 16:50:52.696 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.keyUp_to_injection · 0.647s
+2026-10-07 16:50:52.699 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH: round=1 engine=miniCPM hold=8.01s first=519ms visibleWords=20 ASRfinal=63ms ready=647ms finalWords=20 head=2 answeredHead=2 fallback=none layout=0.000s cached=0 model=0.000s
+2026-10-07 16:50:52.699 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH_TARGET: round=1 startup=21488ms polishedUnder2s=true liveAtRelease=true layoutOutcome=accepted or not requested
+2026-10-07 16:50:56.412 I  NextNotes[33275:b4152] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not loaded yet — Apple answers; loading in the background
+2026-10-07 16:51:00.117 I  NextNotes[33275:b3e75] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not loaded yet — Apple answers; loading in the background
+2026-10-07 16:51:00.701 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.drain · 0.000s
+2026-10-07 16:51:00.760 I  NextNotes[33275:b3edb] [ai.pivotstudio.nextnotes:speech] Parakeet: final 8.0s audio, 2 segment(s), key-up awaited-inflight in 0.059s
+2026-10-07 16:51:00.760 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.transcribe · 0.059s
+2026-10-07 16:51:00.760 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.keyUp_to_asr_final · 0.059s
+2026-10-07 16:51:00.762 I  NextNotes[33275:b3e72] [ai.pivotstudio.nextnotes:speech] cleanup router · semantic miniCPM · 20 words · short and clean
+2026-10-07 16:51:01.268 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.names · 0.000s
+2026-10-07 16:51:01.268 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.cleanup · 0.508s
+2026-10-07 16:51:01.268 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.asr_final_to_cleanup · 0.508s
+2026-10-07 16:51:01.268 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:speech] dictation tail · drain 0.00s · transcribe 0.06s · names 0.00s · cleanup 0.51s
+2026-10-07 16:51:01.278 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.cleanup_to_injection · 0.000s
+2026-10-07 16:51:01.278 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:metrics] span · dictation.keyUp_to_injection · 0.577s
+2026-10-07 16:51:01.278 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH: round=2 engine=miniCPM hold=8.00s first=490ms visibleWords=20 ASRfinal=59ms ready=577ms finalWords=19 head=2 answeredHead=2 fallback=none layout=0.000s cached=0 model=0.000s
+2026-10-07 16:51:01.278 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH_TARGET: round=2 startup=0ms polishedUnder2s=true liveAtRelease=true layoutOutcome=accepted or not requested
+2026-10-07 16:51:01.279 I  NextNotes[33275:b3e65] [ai.pivotstudio.nextnotes:app] selftest · DICTATION_POLISH_OK: full finishing path reached isolated insertion twice

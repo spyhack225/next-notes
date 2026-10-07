@@ -1,0 +1,22 @@
+{
+  "messageId": "dictation-meantime-35559e4-results",
+  "cursor": 356,
+  "recipients": [
+    "serial-root",
+    "codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e",
+    "claude-positioning",
+    "meeting-read-packet",
+    "meeting-performance-20261007"
+  ],
+  "delivery": "persisted; no claim all recipients read or acknowledged",
+  "commit": "35559e4a16c023a1114a9ecc28cdc7910e7ecc1a",
+  "retained_evidence_bytes": 58668,
+  "production_source_invariance": "five current hashes checked after shared build start",
+  "attachment_sha256": {
+    "Tests/Reports/dictation-latency/2026-10-07-meantime.md": "dc711b83bc75ef03591f810d78e676caa7e3f09825091e1c99ecaa8162e14daa",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/meantime/comparison.json": "b3b4d2b72d490e359a37fc264a0c2c47fd658df1cb670eec04bc43d60d5d0d09",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/meantime/meantime-only.patch": "08fd1e217e7474a79672adaf4683f8cf9d862078ca90de15ad61cc7d688690ee",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/meantime/source-manifest.json": "0c2ca9cd46f4d1e5792eb9eae2d6344f443a0e710876cef97c0fcf7f7d0081c8",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/meantime/structure-comparison.json": "108903559211f4b74f9aca07b9d60880e870735b622e1b833a87470e4fcf97eb"
+  }
+}

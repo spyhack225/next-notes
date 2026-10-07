@@ -1,0 +1,26 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-74149/Next Notes.app/Contents/MacOS/NextNotes --selftest-dictation-segments Tests/Fixtures/meetings/en-dialogue.wav --dictation-gold /Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-gold.txt
+2026-10-07 09:46:05.388 NextNotes[74896:4195560] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[09:46:06.252] [INFO] [FluidAudio.AsrModels] Downloading ASR models to: /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3
+[09:46:06.252] [INFO] [FluidAudio.AsrModels] ASR models already present at: /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3
+[09:46:06.252] [INFO] [FluidAudio.AsrModels] Loading ASR models from: /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3
+[09:46:06.257] [INFO] [FluidAudio.DownloadUtils] Host environment: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[09:46:06.259] [INFO] [FluidAudio.DownloadUtils] Found parakeet-tdt-0.6b-v3 locally, no download needed
+[09:46:06.364] [INFO] [FluidAudio.DownloadUtils] Compiled model Preprocessor.mlmodelc in 105.25 ms :: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[09:46:06.365] [INFO] [FluidAudio.AsrModels] Loaded Preprocessor.mlmodelc with compute units: cpuOnly
+[09:46:06.365] [INFO] [FluidAudio.DownloadUtils] Found parakeet-tdt-0.6b-v3 locally, no download needed
+[09:46:30.439] [INFO] [FluidAudio.DownloadUtils] Compiled model Encoder.mlmodelc in 24068.66 ms :: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[09:46:30.440] [INFO] [FluidAudio.AsrModels] Loaded Encoder.mlmodelc with compute units: cpuAndNeuralEngine
+[09:46:30.443] [INFO] [FluidAudio.DownloadUtils] Found parakeet-tdt-0.6b-v3 locally, no download needed
+[09:46:30.589] [INFO] [FluidAudio.DownloadUtils] Compiled model Decoder.mlmodelc in 146.55 ms :: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[09:46:30.590] [INFO] [FluidAudio.DownloadUtils] Found parakeet-tdt-0.6b-v3 locally, no download needed
+[09:46:30.694] [INFO] [FluidAudio.DownloadUtils] Compiled model JointDecisionv3.mlmodelc in 103.95 ms :: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[09:46:30.694] [INFO] [FluidAudio.AsrModels] Loaded JointDecisionv3.mlmodelc
+[09:46:30.702] [INFO] [FluidAudio.AsrModels] Loaded vocabulary with 8192 tokens from /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-tdt-0.6b-v3/parakeet_vocab.json
+[09:46:30.702] [INFO] [FluidAudio.AsrModels] Successfully loaded all ASR models with optimized compute units
+[09:46:30.704] [INFO] [FluidAudio.ASR] Loading AsrManager with provided models
+[09:46:30.704] [INFO] [FluidAudio.ASR] AsrManager loaded successfully with provided models
+[09:46:30.708] [DEBUG] [FluidAudio.ChunkProcessor] ChunkProcessor using worker pool of size 4
+DICTATION_SEGMENTS_GOLD: full-buffer WER 0.044
+DICTATION_SEGMENTS_REPLAY: ends-300ms hold 60.5s, passes 79 (15 segment), busy 14.7s (24%), partials 67, first 488 ms, lag mean 0.24s max 0.64s, key-up awaited-inflight 276 ms (engine 276 ms), disagreement vs one full pass 0.007, independent WER 0.051
+DICTATION_SEGMENTS_REPLAY: speech-to-keyup hold 60.2s, passes 79 (15 segment), busy 22.2s (37%), partials 66, first 731 ms, lag mean 0.35s max 1.05s, key-up tail-pass 295 ms (engine 295 ms), disagreement vs one full pass 0.007, independent WER 0.051
+DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean

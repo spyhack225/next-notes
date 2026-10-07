@@ -1,0 +1,30 @@
+[
+  {
+    "flag": "cleanup-router",
+    "exitCode": 0,
+    "verdicts": [
+      "CLEANUP_ROUTER_OK"
+    ]
+  },
+  {
+    "flag": "capture",
+    "exitCode": 0,
+    "verdicts": [
+      "CAPTURE_OK"
+    ]
+  },
+  {
+    "flag": "island",
+    "exitCode": 0,
+    "verdicts": [
+      "ISLAND_OK: 2 display(s), notched, placement notch, state machine behaves"
+    ]
+  },
+  {
+    "flag": "dictation",
+    "exitCode": 0,
+    "verdicts": [
+      "DICTATION_OK: every hold came back to idle"
+    ]
+  }
+]

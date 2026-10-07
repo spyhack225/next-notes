@@ -1,0 +1,61 @@
+run-selftest: open -n -W /Users/sergekadjo/Library/Caches/NextNotesBuild/install-8082/Next Notes.app --args --selftest-cleanup plan --selftest-out /tmp/nextnotes-selftest-12789.txt
+  live dictation config: cleanup on, engine Apple Foundation Model, grammar on, in the same pass
+  spoken structure: lists, quotations, code and tables all render
+
+=== plan (live Apple layout pass) ===
+  warmup: 3.677s (ungraded cold start)
+P1-bare-sequence-is-prose	3.487s	turned down (a list block had 1 item(s); a list needs at least 2)
+  want: three bare imperatives with no announcement are prose, not a list
+  in  : Ship the installer tonight. Write the release note tomorrow. Tell the beta group when both are done.
+  ship: Ship the installer tonight. Write the release note tomorrow. Tell the beta group when both are done.
+P2-counted-no-envelope	3.245s	turned down (a list block had 1 item(s); a list needs at least 2)
+  want: counted out loud without any envelope still becomes a list
+  in  : The first thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. The third thing is telling the beta group when both are done.
+  ship: The first thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. The third thing is telling the beta group when both are done.
+P3-fr-enumeration	1.498s	prose
+  want: a French enumeration with no markers becomes a list
+  in  : Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  ship: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+P4-fr-announced	1.769s	turned down (a list block had 1 item(s); a list needs at least 2)
+  want: a French announcer plus uncounted items becomes a list
+  in  : J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  ship: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+P5-prose-stays-prose	1.500s	prose
+  want: ordinary prose with no enumeration is never laid out as a list
+  in  : We finished the review this morning and everyone signed off on the plan. The release is scheduled for Friday afternoon as discussed. I will send the notes round once the build is green. There is nothing else outstanding on my side at the moment.
+  ship: We finished the review this morning and everyone signed off on the plan. The release is scheduled for Friday afternoon as discussed. I will send the notes round once the build is green. There is nothing else outstanding on my side at the moment.
+P6-mixed-prose-and-list	3.609s	turned down (the layout pass ran out of time after 3.5s)
+  want: an intro and a sign-off stay prose around the list they frame
+  in  : Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+  ship: Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+CLEANUP_PLAN_SUMMARY: n=6 median=3.245s max=3.609s
+
+  plan: P2-counted-no-envelope: rendered layout is missing "1. "
+      got: The first thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. The third thing is telling the beta group when both are done.
+  plan: P2-counted-no-envelope: rendered layout is missing "2. "
+      got: The first thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. The third thing is telling the beta group when both are done.
+  plan: P2-counted-no-envelope: rendered layout is missing "3. "
+      got: The first thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. The third thing is telling the beta group when both are done.
+  plan: P3-fr-enumeration: rendered layout is missing "1. "
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout is missing "2. "
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout is missing "3. "
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout still contains "Premièrement,"
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout still contains "Deuxièmement,"
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P4-fr-announced: rendered layout is missing "1. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P4-fr-announced: rendered layout is missing "2. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P4-fr-announced: rendered layout is missing "3. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P6-mixed-prose-and-list: rendered layout is missing "1. "
+      got: Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+  plan: P6-mixed-prose-and-list: rendered layout is missing "2. "
+      got: Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+  plan: P6-mixed-prose-and-list: rendered layout is missing "3. "
+      got: Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+CLEANUP_FAILED: 14 assertion(s)

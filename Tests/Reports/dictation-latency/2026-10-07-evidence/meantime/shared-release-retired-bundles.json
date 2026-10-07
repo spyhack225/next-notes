@@ -1,0 +1,14 @@
+[
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-75337",
+    "binary_sha256": "2048a1262e82fe15794b1b8dcb50fc94eaef138d015504acbaf8937ad54bbdc0",
+    "allocated_bytes": 124043264,
+    "reason": "superseded task-owned staged bundle; optimized shared candidate passes actual cleanup router and structure; source/log pins retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-21823",
+    "binary_sha256": "de2ae9337b4d76ae1df5cc42c027f29580b500f3d6243faede456cefedfaac1d",
+    "allocated_bytes": 232591360,
+    "reason": "superseded task-owned staged bundle; optimized shared candidate passes actual cleanup router and structure; source/log pins retained"
+  }
+]

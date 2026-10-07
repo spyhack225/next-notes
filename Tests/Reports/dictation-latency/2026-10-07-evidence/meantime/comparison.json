@@ -1,0 +1,51 @@
+{
+  "checks" : 2183,
+  "failures" : [
+
+  ],
+  "measurements" : [
+    {
+      "candidates" : 200,
+      "case" : "no names",
+      "new_ms" : [
+        38.330360999999996,
+        38.034638999999999
+      ],
+      "old_ms" : [
+        81.193111000000002,
+        81.936596999999992
+      ]
+    },
+    {
+      "candidates" : 200,
+      "case" : "name early",
+      "new_ms" : [
+        40.082889000000002,
+        39.928791666666669
+      ],
+      "old_ms" : [
+        87.069846999999996,
+        86.435291666666672
+      ]
+    },
+    {
+      "case" : "tag",
+      "looseLimit" : 0,
+      "new_ms" : 0.71352766666666678,
+      "old_ms" : 1.0106803333333334
+    },
+    {
+      "case" : "tag",
+      "looseLimit" : 5,
+      "new_ms" : 2.4845276666666667,
+      "old_ms" : 3.7581109999999995
+    },
+    {
+      "case" : "tag",
+      "looseLimit" : 9223372036854775807,
+      "new_ms" : 13.043388999999999,
+      "old_ms" : 25.930860999999997
+    }
+  ],
+  "scope" : "actual Foundation-only original\/current producers; no models, microphone, app or external insertion"
+}

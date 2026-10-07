@@ -1,0 +1,34 @@
+{
+  "Sources/NextNotes/Core/DictationController.swift": {
+    "original": "f6c9d652f1a97a8938f5d03cab25f376c809782c6d056ab924f59fe8515b781d",
+    "current": "4e4de9315d0949f19c4c30ef4fe6fcaed897a1f4f7f93c2fe551c0f7c60a2306"
+  },
+  "Sources/NextNotes/Formatting/CleanupRouter.swift": {
+    "original": "c6b2bec430b6af535e62afa6b001c0d7e31ee9a52c5c5c6066b143471d67bba1",
+    "current": "e07113363b5f94c6b557a52c4e01f372e78a5d4ce1e75f99760369a622bc985c"
+  },
+  "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": {
+    "original": "7e278d0530c2b1072fd33fd81e06f20bc73286604a1490db47cc7f30bfa88292",
+    "current": "929a6dc2d7a90d79765c6e4f95d44b0c1f95e03d030c2328e5e059643ea8bf65"
+  },
+  "Sources/NextNotes/Formatting/IncrementalCleanup.swift": {
+    "original": "04cbf3698db2a223cc83e80f360a78528f7049819601929888e61db66f8512bb",
+    "current": "9f36e9f44348b17ae50776c815a9452f12d8de670dcb784801a36566c99b1fed"
+  },
+  "Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift": {
+    "original": "f90bd364e1c897b0388477a8be7f212bf1ddb9ed5ab87f57ff0fdb301b515bd0",
+    "current": "70197eb57f569316733ff1356321871d0944a36722f3cd29e86f974810281e6e"
+  },
+  "Sources/NextNotes/Formatting/StructurePlanner.swift": {
+    "original": "002b3aebfe505bcf9e05edd01d66f90ce266f7514c8580ffbc81138e52eb3a97",
+    "current": "e35cfee5863be36d134810b520b0ff4f4cb9adbd68a6858d1fa13772dac592b9"
+  },
+  "Sources/NextNotes/Formatting/TextFormatter.swift": {
+    "original": "50dd78631a79bc21547d51f81d6b72642cc776c3b1952daa8387eeb91d8d3710",
+    "current": "3938208348c3016a3a13478b3b3b489bc04c4b1492af151a78389e06903f802c"
+  },
+  "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": {
+    "original": "71e9355eaac154123663c5bc5d2432a63d1ebcaa8aac6f74537e17e9ed80ce67",
+    "current": "19f4198ce17590756380818554126739b521161592a37be44dbe79069cefabff"
+  }
+}

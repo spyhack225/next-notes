@@ -1,0 +1,1 @@
+Okay, the plan is to ship the installer on Friday. Right, and then we write the release note together.

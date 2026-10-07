@@ -1,0 +1,3 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-20224/Next Notes.app/Contents/MacOS/NextNotes --selftest-llm-prefix-cache
+2026-10-07 13:34:57.905 NextNotes[20628:335207] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+LLM_PREFIX_CACHE_OK: reused 646/666 tokens, prefill 3.72s → 0.32s; stable prompt front 90% (was 73% before P1-28)

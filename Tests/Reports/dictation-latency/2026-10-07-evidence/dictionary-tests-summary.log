@@ -1,0 +1,7 @@
+✔ Test "the best window of a sentence is the contracted one" passed after 0.371 seconds.
+✔ Test "variants and bias phrases come out in the contracted order" passed after 0.370 seconds.
+✔ Test "the loose match only runs for the names the caller allows" passed after 0.371 seconds.
+✔ Suite VectorTests passed after 0.371 seconds.
+✔ Test "every format, name shape and sentence shape on a crowded screen" with 137 test cases passed after 0.389 seconds.
+✔ Suite SpokenFormsTests passed after 0.390 seconds.
+✔ Test run with 30 tests in 2 suites passed after 0.390 seconds.

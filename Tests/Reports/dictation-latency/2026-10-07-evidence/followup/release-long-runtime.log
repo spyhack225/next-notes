@@ -1,0 +1,89 @@
+Filtering the log data using "processIdentifier == 16799 AND (composedMessage CONTAINS "not admitted" OR composedMessage CONTAINS "cleanup timed out" OR composedMessage CONTAINS "cleanup rejected" OR composedMessage CONTAINS "generated in" OR composedMessage CONTAINS "not loaded yet")"
+Timestamp               Ty Process[PID:TID]
+2026-10-07 12:53:03.535 I  NextNotes[16799:291ba] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup timed out after 8.00s of generation — Apple answers
+2026-10-07 12:53:08.527 I  NextNotes[16799:27d39] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:53:08.799 I  NextNotes[16799:291b7] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (admission took longer than 0.25 seconds) — Apple answers
+2026-10-07 12:53:18.683 I  NextNotes[16799:29255] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:53:27.900 I  NextNotes[16799:29512] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup timed out after 8.02s of generation — Apple answers
+2026-10-07 12:53:37.457 I  NextNotes[16799:29224] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:53:37.768 I  NextNotes[16799:291b7] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (admission took longer than 0.25 seconds) — Apple answers
+2026-10-07 12:53:49.436 I  NextNotes[16799:291b7] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:53:54.236 I  NextNotes[16799:291b9] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (the model is busy with other work) — Apple answers
+2026-10-07 12:54:05.116 I  NextNotes[16799:291bb] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:54:05.590 I  NextNotes[16799:291bb] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:54:17.044 I  NextNotes[16799:29224] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:54:18.756 I  NextNotes[16799:291b7] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (admission took longer than 0.25 seconds) — Apple answers
+2026-10-07 12:54:28.391 I  NextNotes[16799:291ba] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:54:36.510 I  NextNotes[16799:29f46] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup timed out after 8.07s of generation — Apple answers
+2026-10-07 12:54:46.283 I  NextNotes[16799:29afb] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:54:46.394 I  NextNotes[16799:29afb] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:54:56.145 I  NextNotes[16799:29f46] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:54:56.713 I  NextNotes[16799:29522] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (the model is busy with other work) — Apple answers
+2026-10-07 12:54:58.546 I  NextNotes[16799:29512] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 3.81s · prompt 1315 (reused 928) · out 9
+2026-10-07 12:55:07.611 I  NextNotes[16799:2979e] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:55:09.694 I  NextNotes[16799:2a183] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.005s · generated in 2.07s · prompt 1319 (reused 1297) · out 13
+2026-10-07 12:55:10.814 I  NextNotes[16799:2979e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 0.96s · prompt 1315 (reused 1297) · out 9
+2026-10-07 12:55:12.031 I  NextNotes[16799:291ba] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 0.76s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:55:13.039 I  NextNotes[16799:2a183] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.002s · generated in 0.53s · prompt 1314 (reused 1297) · out 8
+2026-10-07 12:55:14.654 I  NextNotes[16799:291ba] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.065s · generated in 1.33s · prompt 1317 (reused 1297) · out 11
+2026-10-07 12:55:17.467 I  NextNotes[16799:2a183] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.054s · generated in 2.37s · prompt 1328 (reused 1297) · out 22
+2026-10-07 12:55:18.402 I  NextNotes[16799:2a187] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.84s · prompt 1317 (reused 1297) · out 11
+2026-10-07 12:55:20.801 I  NextNotes[16799:2979e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.56s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:55:21.966 I  NextNotes[16799:2979e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.96s · prompt 1318 (reused 1297) · out 12
+2026-10-07 12:55:23.015 I  NextNotes[16799:2979e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.03s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:55:24.610 I  NextNotes[16799:2979e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.17s · prompt 1319 (reused 1297) · out 13
+2026-10-07 12:55:25.563 I  NextNotes[16799:291b7] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 0.88s · prompt 1315 (reused 1297) · out 9
+2026-10-07 12:55:26.794 I  NextNotes[16799:291b7] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.012s · generated in 1.04s · prompt 1317 (reused 1297) · out 11
+2026-10-07 12:55:28.256 I  NextNotes[16799:2979e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 1.44s · prompt 1317 (reused 1297) · out 11
+2026-10-07 12:55:29.536 I  NextNotes[16799:2979e] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 1.24s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:55:31.414 I  NextNotes[16799:2a187] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.008s · generated in 1.52s · prompt 1319 (reused 1297) · out 13
+2026-10-07 12:55:32.203 I  NextNotes[16799:2a410] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.68s · prompt 1315 (reused 1297) · out 9
+2026-10-07 12:55:33.872 I  NextNotes[16799:2a410] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.07s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:55:35.337 I  NextNotes[16799:291b7] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 0.81s · prompt 1314 (reused 1297) · out 8
+2026-10-07 12:55:37.933 I  NextNotes[16799:2a410] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.00s · prompt 1317 (reused 1297) · out 11
+2026-10-07 12:55:42.710 I  NextNotes[16799:2a625] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:55:47.547 I  NextNotes[16799:2a410] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:55:55.682 I  NextNotes[16799:291ba] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup timed out after 8.04s of generation — Apple answers
+2026-10-07 12:56:06.334 I  NextNotes[16799:2a8cc] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:56:15.039 I  NextNotes[16799:2a705] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup timed out after 8.32s of generation — Apple answers
+2026-10-07 12:56:24.646 I  NextNotes[16799:2a627] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:56:24.859 I  NextNotes[16799:29b06] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:56:34.101 I  NextNotes[16799:2a410] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:56:34.102 I  NextNotes[16799:2a410] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:56:43.336 I  NextNotes[16799:29224] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:56:43.341 I  NextNotes[16799:29224] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:56:53.728 I  NextNotes[16799:2a410] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:56:53.733 I  NextNotes[16799:2a7c6] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:57:02.798 I  NextNotes[16799:2a410] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:57:02.817 I  NextNotes[16799:2aeaa] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:57:13.595 I  NextNotes[16799:2a187] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:57:13.877 I  NextNotes[16799:2a187] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:57:23.047 I  NextNotes[16799:2ad3a] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:57:31.454 I  NextNotes[16799:2aeaa] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup timed out after 8.01s of generation — Apple answers
+2026-10-07 12:57:40.764 I  NextNotes[16799:2b2f6] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:57:41.207 I  NextNotes[16799:2afe0] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (live speech recognition holds the lane) — Apple answers
+2026-10-07 12:57:49.661 I  NextNotes[16799:2ad06] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup timed out after 8.27s of generation — Apple answers
+2026-10-07 12:57:58.451 I  NextNotes[16799:2ad06] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:58:01.784 I  NextNotes[16799:2b635] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:58:24.149 I  NextNotes[16799:2b635] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (admission took longer than 0.25 seconds) — Apple answers
+2026-10-07 12:58:47.873 I  NextNotes[16799:2a7c6] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:59:05.654 I  NextNotes[16799:2b646] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup timed out after 9.73s of generation — Apple answers
+2026-10-07 12:59:20.849 I  NextNotes[16799:2b89f] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:59:21.297 I  NextNotes[16799:2b646] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B not admitted (admission took longer than 0.25 seconds) — Apple answers
+2026-10-07 12:59:31.254 I  NextNotes[16799:2bc00] [ai.pivotstudio.nextnotes:speech] Foundation model cleanup failed (on-device cleanup timed out) — falling back
+2026-10-07 12:59:39.642 I  NextNotes[16799:2bc08] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.007s · generated in 8.30s · prompt 1317 (reused 1024) · out 11
+2026-10-07 12:59:42.209 I  NextNotes[16799:2bd90] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 2.55s · prompt 1328 (reused 1297) · out 22
+2026-10-07 12:59:43.415 I  NextNotes[16799:2c29a] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.02s · prompt 1317 (reused 1297) · out 11
+2026-10-07 12:59:44.579 I  NextNotes[16799:2c29b] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.002s · generated in 1.05s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:59:45.671 I  NextNotes[16799:2bc08] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 1.08s · prompt 1318 (reused 1297) · out 12
+2026-10-07 12:59:46.802 I  NextNotes[16799:2bc08] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.003s · generated in 1.12s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:59:47.986 I  NextNotes[16799:2c484] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.17s · prompt 1319 (reused 1297) · out 13
+2026-10-07 12:59:49.048 I  NextNotes[16799:2bd90] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 0.98s · prompt 1315 (reused 1297) · out 9
+2026-10-07 12:59:50.067 I  NextNotes[16799:2bd90] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.003s · generated in 0.93s · prompt 1317 (reused 1297) · out 11
+2026-10-07 12:59:51.319 I  NextNotes[16799:2c482] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.001s · generated in 1.21s · prompt 1317 (reused 1297) · out 11
+2026-10-07 12:59:52.425 I  NextNotes[16799:2bd90] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.06s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:59:53.783 I  NextNotes[16799:2bd90] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.31s · prompt 1319 (reused 1297) · out 13
+2026-10-07 12:59:54.866 I  NextNotes[16799:2c482] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 0.96s · prompt 1315 (reused 1297) · out 9
+2026-10-07 12:59:56.019 I  NextNotes[16799:2bd90] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.000s · generated in 1.05s · prompt 1316 (reused 1297) · out 10
+2026-10-07 12:59:57.264 I  NextNotes[16799:2c484] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.022s · generated in 0.92s · prompt 1314 (reused 1297) · out 8
+2026-10-07 12:59:58.419 I  NextNotes[16799:2c484] [ai.pivotstudio.nextnotes:speech] MiniCPM5-2B cleanup · admitted in 0.006s · generated in 1.02s · prompt 1317 (reused 1297) · out 11

@@ -1,0 +1,72 @@
+[
+  {
+    "flag": "cleanup-router",
+    "exitCode": 0,
+    "verdicts": [
+      "CLEANUP_ROUTER_OK"
+    ]
+  },
+  {
+    "flag": "dictation-segments",
+    "exitCode": 0,
+    "verdicts": [
+      "DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean"
+    ]
+  },
+  {
+    "flag": "capture",
+    "exitCode": 0,
+    "verdicts": [
+      "CAPTURE_OK"
+    ]
+  },
+  {
+    "flag": "stream",
+    "exitCode": 0,
+    "verdicts": [
+      "STREAM_OK"
+    ]
+  },
+  {
+    "flag": "cleanup-structure",
+    "exitCode": 0,
+    "verdicts": [
+      "CLEANUP_STRUCTURE_OK"
+    ]
+  },
+  {
+    "flag": "commandkey",
+    "exitCode": 0,
+    "verdicts": [
+      "COMMANDKEY_OK"
+    ]
+  },
+  {
+    "flag": "ui-strings",
+    "exitCode": 0,
+    "verdicts": [
+      "UI_STRINGS_OK"
+    ]
+  },
+  {
+    "flag": "meeting-resume",
+    "exitCode": 0,
+    "verdicts": [
+      "MEETING_RESUME_OK: 4/4 resumable meetings reached .done with notes; no temp audio released early; 4 write(s) for 100 segments, flushed to 100; a trailing write inside the interval, cancelled by the exit"
+    ]
+  },
+  {
+    "flag": "meeting-backlog",
+    "exitCode": 0,
+    "verdicts": [
+      "MEETING_BACKLOG_OK: 0 s lost behind a slow transcriber over 180s of input"
+    ]
+  },
+  {
+    "flag": "duplex",
+    "exitCode": 0,
+    "verdicts": [
+      "DUPLEX_OK"
+    ]
+  }
+]

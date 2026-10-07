@@ -1,0 +1,26 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-30744/Next Notes.app",
+  "binary_sha256": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+  "config": "optimized shared release",
+  "source_sha256": {
+    "Sources/NextNotes/Core/DictationController.swift": "2b83111328c010dc80147033a4a98509f0cc416ba17ffd2dcf521a1825d891a9",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": "055c740f3e37291d7567db88c69dc76ce92d0c78106eb50fc01300306b1a075a",
+    "Sources/NextNotes/Formatting/IncrementalCleanup.swift": "0c58fcf789a97949f3375540df27e6c39b2d7f9603e0cea25eb765a2c6a44615",
+    "Sources/NextNotes/Formatting/StructurePlanner.swift": "e35cfee5863be36d134810b520b0ff4f4cb9adbd68a6858d1fa13772dac592b9",
+    "Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift": "70197eb57f569316733ff1356321871d0944a36722f3cd29e86f974810281e6e",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "b7242913d9a2be864b327f53b71915e1820c8d2a7c0b3f06453edf8d5292c251",
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": "9d1eeb804086b1a0c962745266d0695e86a75040fbbe79563993baf6d7518fc8",
+    "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": "19f4198ce17590756380818554126739b521161592a37be44dbe79069cefabff",
+    "Sources/NextNotesDictionary/SpokenForms.swift": "98b04399c83be40742f4d9640c5f5550ac71f4280273b6657e3b040dcb276bc3",
+    "Sources/NextNotesDictionary/FileReferences.swift": "bedbcca9fc7809845eed9ee35b10ef336879ceb144099562fbd603b110b6482e",
+    "Sources/NextNotes/Formatting/SpokenStructure.swift": "ff8c82a0af8d646ffaaef590499aafab24daaa91c710195a8df7c763ce3a4712"
+  },
+  "fixture_sha256": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/short.wav": "c76b7a33697157bd5a6e12a4c94712a86b02ed582cf556c02f57e7a34c85d74a",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/long.wav": "3745a8213262bd047ebf85cf47123055c4c234e59cd8a01b64c9bd34f6c9da07",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-double-gold.txt": "44e72543d9d157609e708c5e82cce8d6231531ad4e5361f6be4e4050225d71cc"
+  },
+  "scope": "actual Parakeet and finishing controller/router, isolated context/history/usage and insertion; does not verify physical capture, external field or model quality from OK alone",
+  "host": "owner normal apps retained; no other development compiler/model diagnostics; baseline swap about6GB and load2; not a pristine controlled host",
+  "development_gate_min_free_gb": 8
+}

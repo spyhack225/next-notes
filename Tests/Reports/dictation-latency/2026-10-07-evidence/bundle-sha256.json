@@ -1,0 +1,21 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-75337/Next Notes.app",
+  "binarySHA256": "2048a1262e82fe15794b1b8dcb50fc94eaef138d015504acbaf8937ad54bbdc0",
+  "configuration": "release",
+  "buildSeconds": 669.13,
+  "sourcePins": {
+    "Makefile": "b0f1af8632403a73de7a7e0473678e3143cecc860c5344670d127d65525befa9",
+    "Sources/NextNotes/Core/AudioCaptureHub.swift": "8e9fe3f5e404b0bfd0140eac9268b4ae4e7829079717f2821a76f536ce6bcdaa",
+    "Sources/NextNotes/Core/DictationController.swift": "f6c9d652f1a97a8938f5d03cab25f376c809782c6d056ab924f59fe8515b781d",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": "c6b2bec430b6af535e62afa6b001c0d7e31ee9a52c5c5c6066b143471d67bba1",
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": "9d1eeb804086b1a0c962745266d0695e86a75040fbbe79563993baf6d7518fc8",
+    "Sources/NextNotes/Transcription/StreamingASR.swift": "5298d20dad241a2b67fb922d8fceecdd6c218f67ec853bdb14af3a385e341815",
+    "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": "71e9355eaac154123663c5bc5d2432a63d1ebcaa8aac6f74537e17e9ed80ce67",
+    "Sources/NextNotes/UI/Dictation/DictationView.swift": "b08172cdb4b1a1f18e25957ab36adb82ffe115db5293e6b2c1ee3d9b0b140c5c",
+    "Sources/NextNotes/Formatting/FoundationModelFormatter.swift": "96839fe4cdc15acffe4469c0eeb954851c4083cb145ab68b3679229e1950fd5f",
+    "Sources/NextNotes/Formatting/IncrementalCleanup.swift": "04cbf3698db2a223cc83e80f360a78528f7049819601929888e61db66f8512bb",
+    "Sources/NextNotes/UI/Island/IslandPanel.swift": "48ac5bbef24cf8bed30132b82a7791f29cf7765ff78bc5ad5dcc1b4b0f0b6652",
+    "Sources/NextNotes/NextNotesApp.swift": "3ac0ed23444249009f950639d8a3b1905644bb2e7b1ad5f08039669b25984fac",
+    "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": "7e278d0530c2b1072fd33fd81e06f20bc73286604a1490db47cc7f30bfa88292"
+  }
+}

@@ -1,0 +1,7 @@
+{
+  "Tests/Fixtures/meetings/en-dialogue.wav": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+  "Tests/Fixtures/meetings/scripts/en-dialogue.txt": "150d6e74f23ef058ec51dcd980c1129dec070a68db78995e18480075b40ba559",
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-gold.txt": "0b7465741fe4a5fb780a941f78d946935acb6e84bbd26d9d74205af3d5a19e2b",
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-double.wav": "3745a8213262bd047ebf85cf47123055c4c234e59cd8a01b64c9bd34f6c9da07",
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-double-gold.txt": "44e72543d9d157609e708c5e82cce8d6231531ad4e5361f6be4e4050225d71cc"
+}

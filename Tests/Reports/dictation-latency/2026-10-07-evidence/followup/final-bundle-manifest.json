@@ -1,0 +1,11 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-15518/Next Notes.app",
+  "executableSha256": "fde1e658bfe61711e1f51ced2ccd427e3457298902821b208af3b39118a56b19",
+  "build": "make app CONFIG=release; reused shared optimized cache after compiler completed",
+  "sourceManifest": "measured-release-source-sha256.json",
+  "measuredBoundary": "text ready for isolated insertion, excludes hardware capture and external delivery",
+  "ownerAppKilledByTask": false,
+  "ownerAppInstalledByTask": false,
+  "ownerAppPID1529PresentBeforeFinalReplays": false,
+  "laterUnverifiedChange": "expired/cancelled carried-head regression scaffold; not in measured release"
+}

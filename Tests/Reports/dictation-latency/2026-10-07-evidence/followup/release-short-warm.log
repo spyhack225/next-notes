@@ -1,0 +1,7 @@
+DICTATION_POLISH_PREPARE: resident=true seconds=19.170
+DICTATION_POLISH: round=1 engine=miniCPM hold=8.00s first=734ms visibleWords=20 ASRfinal=82ms ready=2240ms finalWords=20 head=2 fallback=none layout=0.000s cached=0 model=0.000s
+DICTATION_POLISH_TARGET: round=1 startup=2597ms polishedUnder2s=false liveAtRelease=true layoutOutcome=accepted or not requested
+DICTATION_POLISH: round=2 engine=miniCPM hold=8.01s first=1630ms visibleWords=20 ASRfinal=576ms ready=14961ms finalWords=20 head=1 fallback=none layout=0.000s cached=0 model=13.496s
+DICTATION_POLISH_TARGET: round=2 startup=2ms polishedUnder2s=false liveAtRelease=true layoutOutcome=accepted or not requested
+DICTATION_POLISH_OK: full finishing path reached isolated insertion twice
+DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean

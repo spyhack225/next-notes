@@ -1,0 +1,22 @@
+{
+  "Tests/Fixtures/meetings/en-dialogue.wav": {
+    "bytes": 1938776,
+    "sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203"
+  },
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/short.wav": {
+    "bytes": 256044,
+    "sha256": "c76b7a33697157bd5a6e12a4c94712a86b02ed582cf556c02f57e7a34c85d74a"
+  },
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-followup-20261007/long.wav": {
+    "bytes": 3877508,
+    "sha256": "3745a8213262bd047ebf85cf47123055c4c234e59cd8a01b64c9bd34f6c9da07"
+  },
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-gold.txt": {
+    "bytes": 760,
+    "sha256": "0b7465741fe4a5fb780a941f78d946935acb6e84bbd26d9d74205af3d5a19e2b"
+  },
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-latency-20261007/en-dialogue-double-gold.txt": {
+    "bytes": 1521,
+    "sha256": "44e72543d9d157609e708c5e82cce8d6231531ad4e5361f6be4e4050225d71cc"
+  }
+}

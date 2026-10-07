@@ -232,6 +232,28 @@ recognition replay, a pre-clean count, a different model's answer or a pressure 
 Historical architecture estimates, model-only speeds and competitor marketing numbers
 remain labelled as such. They must not override newer measured contracts or stored choices.
 
+Seven dictation producer repairs now have original/fixed regression evidence: partial
+rules manufactured sentence endings; session cancellation missed entered cleanup;
+Apple layout deadlines joined an uncancellable response; rejected heads kept running;
+expired usable heads admitted work after delivery; nonstreaming cancellation discarded
+valid native KV; and the router waited for a plan after its own rules had already rendered
+final structure. The latest actual router cases fail3 and1 before repair and pass afterward.
+The actual native dictation runtime entry originally reused0/649tokens after cancellation;
+the repair reuses649, decodes one and matches a cleared-context control exactly. Genuine
+decode errors still clear cache. This private S1 runtime proof is not MiniCPM quality or
+the20tokens/s ASR+voice floor. All formatting features, schema and deadlines are retained.
+
+An owner11-word hold spent128ms finishing ASR and12.86s in cleanup. Earlier optimized
+full-path public replays under competing load also remain slow (warm8s/121s holds ready
+in14.96/40.89s). They predate the latest three repairs and are not clean paired speed proof.
+Selected pre-clean group counts include rules fallback; the additive optional
+`precleanAnsweredGroups` records selected nonempty completion boxes, also including
+formatter fallbacks. Neither proves accepted semantic repairs. Ordinary-prose native
+layout quality and universal2s polished delivery remain open. Coordinate the next optimized
+consumer checks and sequential complete-path replays through agent-relay; do not replace
+the installed app or contend with the owner's pending Meet check. Exact logs and source
+pins are in the linked follow-up/evidence.
+
 ## Long-call quality and identity acceptance — 7 October 2026
 
 The latest [Zoom audit](Tests/Reports/meeting-reliability/2026-10-07-zoom-audit/README.md)
@@ -272,6 +294,24 @@ recording/usage seam. A bounded global metrics ring that drops the middle of a l
 cannot establish a complete soak. Do not add a second metrics ledger or unbounded samples
 as a substitute for meaningful whole-session counters and sampling-coverage metadata.
 
+
+The [meantime CPU optimization](Tests/Reports/dictation-latency/2026-10-07-meantime.md)
+integrates commit35559e4: spoken-name scoring, lazy file-tag preparation and immutable
+compiled spoken-structure patterns. Exact original/current producer and actual narrowing
+consumer comparisons pass2,183checks; the existing structure corpus,32profile/toggle
+comparisons and four concurrent scanner suites pass. Optimized public fixtures narrow
+200candidates in38–40ms instead of81–87ms and tag67loose names in13.04ms instead of25.93ms.
+An unchanged-text structure reuse fixture drops6.29ms to1.81ms; two actual router reuse
+expressions remain in the canonical working tree. These are implementation CPU savings,
+not complete polished delivery or reference-machine ASR+voice throughput acceptance.
+
+The owner has now completed a responsive40m05Zoom call. The meeting agent acknowledged
+stable sources including35559e4 and owns the agreed development-heavy window for one
+shared optimized build, actual cleanup-router/structure checks and sequential notes replay.
+Dictation has released its light-check claim and runs no competing compiler/model.
+The remaining native dictation quality, live UI, external delivery and universal2s targets
+remain open. Use the new report's source pins and task patch; preserve foreign staging.
+
 Native comparison on the same copied transcript fails factuality across MiniCPM
 whole/three-part, Apple, Qwen3-4B and Qwen3.5-4B outputs (63/160/162/261/98s). Bigger or
 slower is not a quality guarantee. Qwen3.5 invents a deadline. No default is promoted.
@@ -294,3 +334,15 @@ inherited open gate. Normal startup shows the real owner history and leaves all 
 original meeting files unchanged. Passive startup footprint spans889–894MB, not a new
 meeting soak. Nonstreaming notes do not expose first-token/prefill timing; comparisons
 are not reference-machine ASR+voice throughput proof or causal speed improvements.
+
+
+[Current shared dictation verification](Tests/Reports/dictation-latency/2026-10-07-shared-release.md)
+uses installed-equivalent30744 with all retained repairs. Actual router/structure and
+ dictation/hygiene/capture pass. Warm 8s holds reach isolated insertion in128/116ms;
+121s holds still take6.20/6.32s: recognition22/46ms, tail generation365/370ms and a
+rejected six-second layout wait. Live text exists at release in every run. Retained
+cleanup timings principally cover round2 and reuse1,297tokens; answered-head counts
+may include fallback. Cold startup21.5s, long-layout quality, universal2s and external
+delivery stay open. No paired quiet speedup or ASR+voice throughput-floor claim.
+All owned diagnostics joined and the development claim is released. Full formatting,
+schema, validation and budgets remain; CPU improvements are in the installed build.

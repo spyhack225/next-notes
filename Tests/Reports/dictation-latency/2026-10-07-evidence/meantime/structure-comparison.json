@@ -1,0 +1,35 @@
+{
+  "comparisons" : 32,
+  "concurrent_current_suite_runs" : 4,
+  "failures" : [
+
+  ],
+  "maintained_original_and_current_structure_suite" : true,
+  "measurements" : [
+    {
+      "case" : 0,
+      "characters" : 809,
+      "new_reuse_ms" : 0.37677909999999998,
+      "new_scan_ms" : 0.37313750000000001,
+      "old_scan_ms" : 0.61602499999999993,
+      "old_three_scans_ms" : 1.8371749999999998
+    },
+    {
+      "case" : 1,
+      "characters" : 4050,
+      "new_reuse_ms" : 1.8140542,
+      "new_scan_ms" : 1.8774625,
+      "old_scan_ms" : 2.1098792000000004,
+      "old_three_scans_ms" : 6.2879583999999999
+    },
+    {
+      "case" : 2,
+      "characters" : 58,
+      "new_reuse_ms" : 0.0339917,
+      "new_scan_ms" : 0.034129199999999998,
+      "old_scan_ms" : 0.26752920000000002,
+      "old_three_scans_ms" : 0.7977708
+    }
+  ],
+  "scope" : "actual original\/current pure producers; diagnostic sinks supplied; reuse timing is a stage fixture, not whole router\/model\/UI acceptance"
+}
