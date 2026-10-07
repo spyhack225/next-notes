@@ -32,6 +32,9 @@ struct NotesGenerator: Sendable {
         let collapsedGroups: Int
         /// Facts left out after the collapse pass, always with a visible line.
         let droppedFacts: Int
+        /// A map/collapse response stopped at its limit. Retained facts are useful,
+        /// but a completed reduce cannot establish that the whole meeting was covered.
+        var incompleteFacts = false
 
         var tokensPerSecond: Double {
             duration > 0 ? Double(generatedTokens) / duration : 0
@@ -301,6 +304,7 @@ struct NotesGenerator: Sendable {
 
         var facts: [String] = []
         var generated = 0
+        var incompleteFacts = false
         // Every chunk's facts share one reduce window with the brief, so the budget is
         // split before asking: a fixed 600-token allowance per chunk is what used to
         // overflow the reduce on any meeting past half an hour.
@@ -330,6 +334,7 @@ struct NotesGenerator: Sendable {
                 maxTokens: factBudget
             )
             generated += completion.generatedTokens
+            incompleteFacts = incompleteFacts || completion.finishedByLimit
             let cleaned = NotesFormatter.stripThinking(completion.text)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             if !cleaned.isEmpty { facts.append(cleaned) }
@@ -383,6 +388,7 @@ struct NotesGenerator: Sendable {
                     maxTokens: max(150, groupTokens / 2)
                 )
                 generated += completion.generatedTokens
+                incompleteFacts = incompleteFacts || completion.finishedByLimit
                 let cleaned = NotesFormatter.stripThinking(completion.text)
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 // An empty answer never deletes facts.
@@ -422,19 +428,26 @@ struct NotesGenerator: Sendable {
         let body = brief.isEmpty
             ? NotesFormatter.emptySection(NotesPrompts.relatedHeading, in: markdown)
             : markdown
+        // Carry the extraction producer's limit through the actual notes result.
+        // No new generation/retry: this reports a coverage limitation, not recovery.
+        let coverage = incompleteFacts ? Self.incompleteFactsNotice + "\n\n" : ""
         return Result(
-            markdown: dropped > 0
+            markdown: coverage + (dropped > 0
                 ? body + NotesPrompts.truncatedLine(dropped: dropped, of: totalParts) + "\n"
-                : body,
+                : body),
             providerID: provider.id,
             generatedTokens: generated,
             duration: Date().timeIntervalSince(began),
             usedMapReduce: true,
             chunks: chunks.count,
             collapsedGroups: collapsedGroups,
-            droppedFacts: dropped
+            droppedFacts: dropped,
+            incompleteFacts: incompleteFacts
         )
     }
+
+    static let incompleteFactsNotice =
+        "_Some parts were only partly summarized. Decisions and actions may be missing._"
 
     /// One notes answer, retried once at double the allowance when the model ran out of
     /// room (M-13).

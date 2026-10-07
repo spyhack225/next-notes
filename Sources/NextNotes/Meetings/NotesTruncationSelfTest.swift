@@ -120,6 +120,31 @@ enum NotesTruncationSelfTest {
             }
         }
 
+        // A completed reduce must preserve the map producer's incomplete coverage.
+        // The native Zoom replay hit two map limits and silently lost this fact.
+        do {
+            let provider = TruncationNotesProvider(contextTokens: 8_192, cutFacts: true)
+            let result = try await NotesGenerator(provider: provider)
+                .notes(for: meeting, segments: longTranscriptSegments(), brief: .empty)
+            let maps = provider.calls.filter { $0.system == NotesPrompts.mapSystem }
+            let reduces = provider.calls.filter { $0.system == NotesPrompts.reduceSystem }
+            check("the cut-facts fixture did not reach the actual map producer",
+                  result.usedMapReduce && !maps.isEmpty)
+            check("a whole reduce lost the earlier extraction limit", result.incompleteFacts)
+            check("partial extraction still looks complete to the notes reader",
+                  result.markdown.hasPrefix(NotesGenerator.incompleteFactsNotice))
+            check("the extraction warning added a model pass",
+                  maps.count == result.chunks && reduces.count == 1
+                    && provider.calls.count == maps.count + reduces.count)
+            check("the extraction warning invented dropped-fact counts",
+                  result.droppedFacts == 0)
+            check("the no-context contract changed after partial extraction",
+                  result.markdown.contains("## \(NotesPrompts.relatedHeading)\n\(NotesPrompts.emptyMarker)"))
+            write("NOTES_TRUNCATION factsCut=true maps=\(maps.count) reduce=\(reduces.count)")
+        } catch {
+            failures.append("the cut-facts actual generator threw: \(error)")
+        }
+
         // d. The cap scales with the meeting: a 10-minute call keeps 1,000 tokens and a
         // 60-minute one 2,000, with the ceiling above that.
         check("a 10-minute meeting did not get 1,000 tokens",
@@ -215,14 +240,17 @@ final class TruncationNotesProvider: LLMProvider, @unchecked Sendable {
     let contextTokens: Int
     let alwaysCut: Bool
     let cutFirstCallOnly: Bool
+    let cutFacts: Bool
 
     private let lock = NSLock()
     private var recorded: [(system: String, user: String, maxTokens: Int)] = []
 
-    init(contextTokens: Int, alwaysCut: Bool = false, cutFirstCallOnly: Bool = false) {
+    init(contextTokens: Int, alwaysCut: Bool = false, cutFirstCallOnly: Bool = false,
+         cutFacts: Bool = false) {
         self.contextTokens = contextTokens
         self.alwaysCut = alwaysCut
         self.cutFirstCallOnly = cutFirstCallOnly
+        self.cutFacts = cutFacts
     }
 
     var calls: [(system: String, user: String, maxTokens: Int)] {
@@ -238,13 +266,14 @@ final class TruncationNotesProvider: LLMProvider, @unchecked Sendable {
             recorded.append((system, user, maxTokens))
             return recorded.count - 1
         }
-        // The map step's job is "write only what was said", and a list of facts cut at the
-        // end is still facts — so the one pass M-13 never retries is answered plainly,
-        // whatever the cut flags say.
+        // Retained partial facts remain useful, but their incomplete coverage must
+        // survive the reduce. Existing answer-only cut flags do not affect extraction.
         if system == NotesPrompts.mapSystem || system == NotesPrompts.collapseSystem {
             let part = LongformNotesProvider.partNumber(in: user) ?? (index + 1)
             let text = "- Speaker 1: FACT-P\(part) — call point \(part) was agreed."
-            return LLMCompletion(text: text, generatedTokens: max(1, text.count / 4), duration: 0)
+            return LLMCompletion(text: text,
+                generatedTokens: cutFacts ? maxTokens : max(1, text.count / 4),
+                duration: 0, finishedByLimit: cutFacts)
         }
         let cut = alwaysCut || (cutFirstCallOnly && index == 0)
         // What a cut-off answer looks like: the first two sections written, the third

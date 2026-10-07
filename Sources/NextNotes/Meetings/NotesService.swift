@@ -208,6 +208,7 @@ final class NotesService {
                 seconds: Date().timeIntervalSince(began),
                 note: "mapReduce=\(result.usedMapReduce) chunks=\(result.chunks)"
                     + " collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)"
+                    + " incompleteFacts=\(result.incompleteFacts)"
             )
             Log.llm.info("""
                 notes for "\(meeting.title, privacy: .public)" — \

@@ -45,7 +45,11 @@ enum MeetingNotesReplaySelfTest {
                 .notes(for: meeting, segments: segments, brief: .empty)
             write("NOTES_REPLAY_RESULT seconds=\(result.duration) tokens=\(result.generatedTokens)"
                 + " mapReduce=\(result.usedMapReduce) chunks=\(result.chunks)"
-                + " collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)")
+                + " collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)"
+                + " incompleteFacts=\(result.incompleteFacts)")
+            UsageLog.shared.flush()
+            let usage = try JSONEncoder().encode(UsageLog.shared.load())
+            write("NOTES_REPLAY_USAGE " + String(decoding: usage, as: UTF8.self))
             // Caller directs this output to its private diagnostic file. Do not publish
             // owner speech or generated content in a repository report or relay message.
             write("NOTES_REPLAY_MARKDOWN_BEGIN\n\(result.markdown)\nNOTES_REPLAY_MARKDOWN_END")
