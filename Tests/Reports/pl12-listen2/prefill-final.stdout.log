@@ -1,0 +1,2 @@
+2026-10-08 19:42:47.893 NextNotes[4018:3477587] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+INTERACTIVE_PREFILL_OK

@@ -1,0 +1,71 @@
+{
+  "scope": "Only five authored fixture turns; original owned PID4065 private usage log; no owner-store read",
+  "source_sha256": "b4eab53af21cd40e621d5a578254e3e11d3a807208374634b20d3f12471576d8",
+  "rows": [
+    {
+      "turnID": "F37B0DD5-6014-4B1F-8849-A19021ED8B40",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null,
+      "ttftMs": 19091,
+      "warm": false
+    },
+    {
+      "turnID": "21090AEB-3668-46FA-9BDF-3E0743D1EDE8",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "promptTokens": 1146,
+      "cachedTokens": 1145,
+      "completionTokens": 47,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null,
+      "ttftMs": 123,
+      "warm": true
+    },
+    {
+      "turnID": "12DBCAC1-73D3-4818-AA51-F411E237CE79",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "promptTokens": 1216,
+      "cachedTokens": 1215,
+      "completionTokens": 44,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null,
+      "ttftMs": 141,
+      "warm": true
+    },
+    {
+      "turnID": "2BDB710C-844C-48B8-ABB2-999DAE15D039",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "promptTokens": 1283,
+      "cachedTokens": 1282,
+      "completionTokens": 47,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null,
+      "ttftMs": 1639,
+      "warm": true
+    },
+    {
+      "turnID": "E8F04B8C-DD6C-4938-9A9E-9CFBD731E394",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "promptTokens": 1348,
+      "cachedTokens": 1332,
+      "completionTokens": 42,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null,
+      "ttftMs": 385,
+      "warm": true
+    }
+  ]
+}

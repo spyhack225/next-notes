@@ -1,0 +1,86 @@
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_APPLE_FIRST_RESULT=voice+0.984s text=Hello
+VOICE_PREPARE_PARTIAL=revision 1 text=Hello
+VOICE_PREPARE_PARTIAL=revision 2 text=Hello there
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_started elapsed_s=0.000
+Voice speculation started revision=2
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_PREPARE_PARTIAL=revision 3 text=Hello there. please
+VOICE_PREPARE_PARTIAL=revision 4 text=Hello there. please tell
+Voice speculation canceled revision=2
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_cancel_requested elapsed_s=0.980
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=cancellation_to_speculation_end elapsed_s=0.980 duration_s=0.000
+VOICE_PREPARE_PARTIAL=revision 5 text=Hello there. please tell me
+VOICE_PREPARE_PARTIAL=revision 6 text=Hello there. please tell me bri
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_warmup_done elapsed_s=1.065 duration_s=1.064
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_task_end elapsed_s=1.065 duration_s=0.085
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_started elapsed_s=0.000
+Voice speculation started revision=6
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=route_session_staged elapsed_s=0.001
+VOICE_PREPARE_PARTIAL=revision 7 text=Hello there. please tell me brief
+VOICE_PREPARE_PARTIAL=revision 8 text=Hello there. please tell me briefly what
+Voice speculation canceled revision=6
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_cancel_requested elapsed_s=1.441
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=cancellation_to_speculation_end elapsed_s=1.444 duration_s=0.003
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_task_end elapsed_s=1.526 duration_s=0.085
+VOICE_PREPARE_PARTIAL=revision 9 text=Hello there. please tell me briefly what a
+VOICE_PREPARE_PARTIAL=revision 10 text=Hello there. please tell me briefly what a ha
+VOICE_PREPARE_PARTIAL=revision 11 text=Hello there. please tell me briefly what a haik
+VOICE_PREPARE_PARTIAL=revision 12 text=Hello there. please tell me briefly what a haiku
+VOICE_FRONTEND_TIMING gen=3 revision=12 event=speculation_started elapsed_s=0.000
+Voice speculation started revision=12
+VOICE_FRONTEND_TIMING gen=3 revision=12 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=12 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=12 event=route_session_fresh elapsed_s=0.003
+VOICE_PREPARE_PARTIAL=revision 13 text=Hello there. please tell me briefly what a haiku is
+Voice speculation canceled revision=12
+VOICE_FRONTEND_TIMING gen=3 revision=12 event=speculation_cancel_requested elapsed_s=0.143
+VOICE_FRONTEND_TIMING gen=3 revision=12 event=cancellation_to_speculation_end elapsed_s=0.143 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=12 event=native_task_end elapsed_s=0.144 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=speculation_started elapsed_s=0.000
+Voice speculation started revision=13
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=route_session_fresh elapsed_s=0.002
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=speculation_hit headstart_date_s=0.429 elapsed_s=0.429
+Voice speculation hit revision=13 headstart=0.429s
+VOICE_FILE_MAX_PACING_LAG=0.525194709 seconds
+VOICE_EOU_PREPARE=6.85517692565918s
+VOICE_PIPELINE_SPAN=voice.eou_prepare 6.855s session
+VOICE_EOU_STARTUP_BUFFERED=60 chunks / 76095 frames
+VOICE_EOU_FIRST_PROCESS=0.00035190582275390625s lag=6.8508100509643555s
+VOICE_MODEL_PARTIAL=voice+7.180s text=hello apple=false
+VOICE_MODEL_PARTIAL=voice+7.225s text=hello there apple=false
+VOICE_MODEL_PARTIAL=voice+7.441s text=hello there please apple=false
+VOICE_MODEL_PARTIAL=voice+7.560s text=hello there please tell apple=false
+VOICE_MODEL_PARTIAL=voice+7.641s text=hello there please tell me apple=false
+VOICE_MODEL_PARTIAL=voice+7.843s text=hello there please tell me brie apple=false
+VOICE_MODEL_PARTIAL=voice+7.883s text=hello there please tell me brief apple=false
+VOICE_MODEL_PARTIAL=voice+7.915s text=hello there please tell me briefly apple=false
+VOICE_MODEL_PARTIAL=voice+8.017s text=hello there please tell me briefly what apple=false
+VOICE_MODEL_PARTIAL=voice+8.230s text=hello there please tell me briefly what a apple=false
+VOICE_MODEL_PARTIAL=voice+8.266s text=hello there please tell me briefly what a haik apple=false
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=typed_route_collect_done elapsed_s=4.145 duration_s=4.143
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=answer_session_fresh elapsed_s=4.147
+VOICE_MODEL_PARTIAL=voice+8.358s text=hello there please tell me briefly what a haiku apple=false
+VOICE_MODEL_PARTIAL=voice+8.450s text=hello there please tell me briefly what a haiku is apple=false
+VOICE_MODEL_EOU=sinceVoiceEnd 5.966s appleRevisionAge nones text=hello there please tell me briefly what a haiku is
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=first_answer_text elapsed_s=7.277
+Voice clause start 1791503164.198 token=1 backing=AVSpeechBacking characters=46
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 6.852s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=4 revision=13 event=native_task_end elapsed_s=8.948
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 1.772s first-audio
+VOICE_PIPELINE_TRANSCRIPT=Hello there. Please tell me briefly what a haiku is.
+VOICE_PIPELINE_REPLY=Hey there, I hear you’re curious about haiku — that’s a lovely thing to explore. A haiku is a short poem with three lines, usually about nature or feelings, where the first, second, and third lines have a set number of syllables. Let me know if you’d like to try one together.
+VOICE_PIPELINE_ASR_FEED=chunks 60, frames 76095, peak 0.7814636, results 17
+VOICE_PIPELINE_APPLE_MODE=fast true, firstResult 0.9836390018463135
+VOICE_PIPELINE_MODEL_PARTIALS=13, last hello there please tell me briefly what a haiku is
+VOICE_PIPELINE_EOU_QUEUE=firstProcess 0.00035190582275390625, resets 0, drops 0
+VOICE_PIPELINE_VOICE_TO_ENDPOINT=1.561100959777832
+VOICE_PIPELINE_ENDPOINT_TO_FIRST_AUDIO=8.68225109577179
+VOICE_PIPELINE_INPUT_TO_FIRST_AUDIO=13.205113053321838
+VOICE_PIPELINE_WRONG: file speech did not end from local EOU model: vad
+VOICE_PIPELINE_FAILED

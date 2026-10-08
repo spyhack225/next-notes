@@ -1,0 +1,195 @@
+{
+  "unchanged_resident_fixture": true,
+  "unchanged_original_prefill_body": true,
+  "source_invariance_after_tests": true,
+  "checks": {
+    "resident-red": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-red.stdout.log",
+      "stdout_sha256": "64d632824d1bdc8aea0b2671b57d342c94b69437923b92c0bf8a2b8c98117ac1",
+      "stdout_markers": [
+        "RESIDENT_PREFILL_FAILED: 5 problem(s)"
+      ],
+      "exit": 1,
+      "file": "Tests/Reports/pl12-listen2/resident-red.log",
+      "sha256": "5ff6b2d4832524ade61091f0cb726ce3c9db2275409928fd8e354a3fbb070f6d",
+      "markers": [
+        "RESIDENT_PREFILL_FAILED: 5 problem(s)"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-green": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-green.stdout.log",
+      "stdout_sha256": "007d83eb4af0586c26759b2dfdc1b74feacad7dfd7887012f313ea83f176d8c8",
+      "stdout_markers": [
+        "RESIDENT_PREFILL_OK"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/resident-green.log",
+      "sha256": "a006f5a4545eafba6e6d8bf184c5d11ef2a36763a76a22023decc4245c2badb6",
+      "markers": [
+        "RESIDENT_PREFILL_OK"
+      ],
+      "nested_browser_failures": 0
+    },
+    "prefill-final": {
+      "stdout_file": "Tests/Reports/pl12-listen2/prefill-final.stdout.log",
+      "stdout_sha256": "1ee647898349dc5609513234ddb4edf9e81be488756dcc92d978ac28cab6215f",
+      "stdout_markers": [
+        "INTERACTIVE_PREFILL_OK"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/prefill-final.log",
+      "sha256": "c6f44c56abcabaa01a66a98080797345bb082baede831b6b02e8b6666e9eb5a7",
+      "markers": [
+        "INTERACTIVE_PREFILL_OK"
+      ],
+      "nested_browser_failures": 0
+    },
+    "route-resident-final": {
+      "stdout_file": "Tests/Reports/pl12-listen2/route-resident-final.stdout.log",
+      "stdout_sha256": "39bf9a39d7a8b9b9eb4129b41a4f4ddd7e62c5ab284e4e282ce45df075eb3f02",
+      "stdout_markers": [
+        "VOICE_PREPARATION_OK"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/route-resident-final.log",
+      "sha256": "3b356f856ed77e8a69e183dd2193bc1a774d9a45f48d8161d0f32d22cd432afb",
+      "markers": [
+        "VOICE_PREPARATION_OK"
+      ],
+      "nested_browser_failures": 0
+    },
+    "mini-after-final": {
+      "stdout_file": "Tests/Reports/pl12-listen2/mini-after-final.stdout.log",
+      "stdout_sha256": "25ecd301ea5366f24fdea725c0009580b946be828b4705f501e109b53ba4322a",
+      "stdout_markers": [
+        "VOICE_LATENCY_FAILED: run 1: explicit answering file pin did not reach the committed consumer and joined native answer pass"
+      ],
+      "exit": 1,
+      "file": "Tests/Reports/pl12-listen2/mini-after-final.log",
+      "sha256": "0fdffb2be1e210cb3f069239c371020762bb4e073a0f839d0d2e0843d3d7e3f0",
+      "markers": [
+        "VOICE_LATENCY_FAILED: run 1: explicit answering file pin did not reach the committed consumer and joined native answer pass"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-partials": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-partials.stdout.log",
+      "stdout_sha256": "f0ddfc703233f45142ac155bb7b6b73d4c9946f0c4363a129849e2eccecc326d",
+      "stdout_markers": [
+        "VOICE_PREPARATION_OK",
+        "VOICE_SPECULATION_COURTESY_OK: 15 actual buffer/consumer cases; scripted generation",
+        "VOICE_SPECULATION_USAGE_OK: 5 cases, 9 actual recorder rows; scripted generation",
+        "VOICE_SPECULATION_OK"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/resident-partials.log",
+      "sha256": "c0c3dfb53e8487b0a8c44caf361113c2360ed4f8443b87c28ebb1b8e94bdb48e",
+      "markers": [
+        "VOICE_PREPARATION_OK"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-pipeline": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-pipeline.stdout.log",
+      "stdout_sha256": "156657b56c2737393cf689d1829c1e45e532570f2835f08f431282c92136f423",
+      "stdout_markers": [
+        "VOICE_PIPELINE_FAILED"
+      ],
+      "exit": 1,
+      "file": "Tests/Reports/pl12-listen2/resident-pipeline.log",
+      "sha256": "4ed69e02c643ad7a99dc46ea8b4d8c7692e59051312223a3d4bf1dcde914fdf4",
+      "markers": [
+        "VOICE_PIPELINE_FAILED"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-routing": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-routing.stdout.log",
+      "stdout_sha256": "b8099ce483baf60843e2d5ceb9daf13b8c8ecf7d533d404f7859a1182d4cbcd8",
+      "stdout_markers": [
+        "VOICE_TURN_ROUTING_OK"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/resident-routing.log",
+      "sha256": "8552f51fab0dbb9094973bf60f8982cd232ba9f45268aca5853a3b7478ac034d",
+      "markers": [
+        "VOICE_TURN_ROUTING_OK"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-concurrent": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-concurrent.stdout.log",
+      "stdout_sha256": "858e1d1eeb20decc33d41838166f433232b80423ac1ac8d05a3964d9d5c327b5",
+      "stdout_markers": [
+        "CONCURRENT_VOICE_OK",
+        "CONCURRENT_VOICE_OK"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/resident-concurrent.log",
+      "sha256": "54fb25e1fa92561d93a53ec88e1ea36c0679f50fc338c6fc41640d3fb793a39b",
+      "markers": [
+        "CONCURRENT_VOICE_OK"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-conversation": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-conversation.stdout.log",
+      "stdout_sha256": "8d38d17b16e45d3c1f642436d28a1b231f24a08e62b54a7ea73cafd03a563b4d",
+      "stdout_markers": [
+        "VOICE_CONVERSATION_OK",
+        "VOICE_CONVERSATION_OK"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/resident-conversation.log",
+      "sha256": "915a11149a7a36565e3bcd8e7f4fad86322c97de62d175344a22d74302b5d7cc",
+      "markers": [
+        "VOICE_CONVERSATION_OK"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-duplex": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-duplex.stdout.log",
+      "stdout_sha256": "5bdd3d3e4079c67122d31b6e9eac423ba2bfaf7d7d2aa637b390f5ae478759e3",
+      "stdout_markers": [
+        "DUPLEX_OK"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/resident-duplex.stdout.log",
+      "sha256": "5bdd3d3e4079c67122d31b6e9eac423ba2bfaf7d7d2aa637b390f5ae478759e3",
+      "markers": [
+        "DUPLEX_OK"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-prefix": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-prefix.stdout.log",
+      "stdout_sha256": "e44814e2cde2ca686081a8162616aa76ef6008588b2d189c215aa6c39cb30e66",
+      "stdout_markers": [
+        "LLM_PREFIX_CACHE_FAILED: 1 problem(s)"
+      ],
+      "exit": 1,
+      "file": "Tests/Reports/pl12-listen2/resident-prefix.log",
+      "sha256": "e44814e2cde2ca686081a8162616aa76ef6008588b2d189c215aa6c39cb30e66",
+      "markers": [
+        "LLM_PREFIX_CACHE_FAILED: 1 problem(s)"
+      ],
+      "nested_browser_failures": 0
+    },
+    "resident-isolation": {
+      "stdout_file": "Tests/Reports/pl12-listen2/resident-isolation.stdout.log",
+      "stdout_sha256": "7f279f931a4226eb28722887e7a56665de1c639f41623244aede44826d7f1450",
+      "stdout_markers": [
+        "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+        "TOOLLOOP_PRODUCTION_FAILED"
+      ],
+      "exit": 0,
+      "file": "Tests/Reports/pl12-listen2/resident-isolation.log",
+      "sha256": "bdf2f0270abe8506ce90678238919b627a6242e9d014d274e2c4d0e5ecf32f23",
+      "markers": [
+        "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged"
+      ],
+      "nested_browser_failures": 18
+    }
+  }
+}

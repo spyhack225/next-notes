@@ -1,0 +1,2 @@
+2026-10-08 19:42:38.241 NextNotes[3969:3468769] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+RESIDENT_PREFILL_OK

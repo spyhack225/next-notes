@@ -881,11 +881,41 @@ actor NotesModelRuntime {
         )
     }
 
-    /// RED scaffold for the explicit partial-prefill diagnostic. No sampler runs.
+    /// Fill the same interactive prompt/context without constructing a sampler.
+    /// The reservation and compute ticket end when preparation ends. Commit still
+    /// revalidates exact rendered tokens, including at least one fresh-logits token.
     func prepareInteractiveConversation(
-        system: String, messages: [LLMChatMessage], maxTokens: Int
+        system: String, messages: [LLMChatMessage], maxTokens: Int,
+        residentOnly: Bool = false, onAdmitted: (@Sendable () -> Void)? = nil
     ) async throws -> PrefillStats {
-        throw LlamaError.notLoaded
+        // Optional partials must not initiate uncancellable weight/context startup.
+        // Check before reservation, and again after any reservation/lane wait.
+        guard !residentOnly || (model != nil && vocabulary != nil && context != nil) else {
+            throw LlamaError.notLoaded
+        }
+        return try await withLane(.realtimeAgent) { jobID in
+            guard !residentOnly || (model != nil && vocabulary != nil && context != nil) else {
+                throw LlamaError.notLoaded
+            }
+            onAdmitted?()
+            if !residentOnly { try await loadIfNeeded(schedulerJobID: jobID) }
+            defer { lastUse = Date(); scheduleIdleUnload() }
+            guard let vocabulary else { throw LlamaError.notLoaded }
+            let prompt = Self.render(forFamily: family, system: system, messages: messages)
+            let tokens = try tokenizePrompt(prompt, vocabulary: vocabulary)
+            guard maxTokens >= 0, tokens.count <= contextTokens - Self.contextHeadroom,
+                  maxTokens <= contextTokens - tokens.count - Self.contextHeadroom else {
+                throw LlamaError.inputTooLong
+            }
+            guard !residentOnly || contextSize >= tokens.count + maxTokens + Self.contextHeadroom else {
+                throw LlamaError.notLoaded
+            }
+            let context = try ensureContext(promptTokens: tokens.count, maxTokens: maxTokens)
+            _ = try await preparePrefix(tokens, context: context, jobID: jobID)
+            try Task.checkCancellation()
+            guard let stats = lastPrefillStats else { throw LlamaError.decodeFailed }
+            return stats
+        }
     }
 
     private func streamPrompt(

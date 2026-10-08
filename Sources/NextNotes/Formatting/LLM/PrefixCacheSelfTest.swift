@@ -57,6 +57,9 @@ enum PrefixCacheSelfTest {
     }
 
     static func runSelfTest() async -> Bool {
+        if CommandLine.arguments.contains("--interactive-prefill-resident") {
+            return await residentPrefillChecks()
+        }
         if CommandLine.arguments.contains("--interactive-prefill") {
             return await interactivePrefillChecks()
         }
@@ -219,6 +222,56 @@ enum PrefixCacheSelfTest {
         SelfTest.diagnostic(failures.isEmpty ? "NATIVE_STREAM_FINISH_OK"
                           : "NATIVE_STREAM_FINISH_FAILED: \(failures.count) problem(s)")
         return failures.isEmpty
+    }
+
+    /// Additive real producer admission: optional partials cannot initiate cold
+    /// weights/context work and strand the existing cancelled speculative owner.
+    private static func residentPrefillChecks() async -> Bool {
+        guard S1MiniModels.spec.isDownloaded else {
+            SelfTest.diagnostic("RESIDENT_PREFILL_ABSENT")
+            return false
+        }
+        let runtime = NotesModelRuntime(spec: S1MiniModels.spec, gpuLayers: 0)
+        let messages: [LLMChatMessage] = [.init(role: .user, content: "First question.")]
+        var problems: [String] = []
+        func refused() async -> Bool {
+            do {
+                _ = try await runtime.prepareInteractiveConversation(system: fixtureSystem(), messages: messages,
+                    maxTokens: generationBudget, residentOnly: true)
+                return false
+            } catch LlamaError.notLoaded { return true }
+            catch { return false }
+        }
+        if !(await refused()) { problems.append("cold partial initiated native preparation") }
+        if await runtime.loadAttemptCount != 0 { problems.append("cold partial entered actual weight loader") }
+        do {
+            try await runtime.prepare() // weights only, independently required setup
+            if !(await refused()) { problems.append("weights-only partial initiated cold context/prefill") }
+            if await runtime.loadAttemptCount != 1 { problems.append("resident refusal changed load count") }
+            _ = try await runtime.prepareInteractiveConversation(system: fixtureSystem(), messages: messages,
+                maxTokens: generationBudget)
+            let ready = try await runtime.prepareInteractiveConversation(system: fixtureSystem(), messages: messages,
+                maxTokens: generationBudget, residentOnly: true)
+            if ready.decoded != 1 || ready.reused != ready.promptTokens - 1 {
+                problems.append("prepared resident admission failed exact cache reuse")
+            }
+            let beforeGrowth = await runtime.prefillStatsForTesting()
+            do {
+                _ = try await runtime.prepareInteractiveConversation(system: fixtureSystem(), messages: messages,
+                    maxTokens: 2048, residentOnly: true)
+                problems.append("partial admitted context growth")
+            } catch LlamaError.notLoaded {} catch { problems.append("context growth had wrong refusal") }
+            if await runtime.prefillStatsForTesting() != beforeGrowth {
+                problems.append("refused context growth changed committed prefix state")
+            }
+            let result = await drain(await runtime.streamInteractiveConversation(system: fixtureSystem(),
+                messages: messages, maxTokens: generationBudget))
+            if result.error != nil || result.text.isEmpty { problems.append("resident successor failed actual sampling") }
+        } catch { problems.append("resident setup failed: \(error.localizedDescription)") }
+        if !(await runtime.finishTermination()) { problems.append("resident owner termination failed") }
+        for p in problems { SelfTest.diagnostic("RESIDENT_PREFILL_WRONG: \(p)") }
+        SelfTest.diagnostic(problems.isEmpty ? "RESIDENT_PREFILL_OK" : "RESIDENT_PREFILL_FAILED: \(problems.count) problem(s)")
+        return problems.isEmpty
     }
 
     /// Real private native owner: prefill-only -> revised prefix -> committed sampling.

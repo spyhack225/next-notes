@@ -362,17 +362,18 @@ actor FrontendResponder {
                 return
             }
             Self.emitTiming(timing, "speculation_barrier_done", durationFrom: barrierStarted)
-            let stream = await self.unsharedStream(system: system, messages: messages,
-                                                   maxTokens: maxTokens, drain: nil, timing: timing, routeOnly: routeOnly)
-            do {
-                for try await delta in stream {
-                    try Task.checkCancellation()
-                    guard timing.id >= self.abandonedGeneration else { break }
-                    await buffer.append(delta)
-                }
-                await buffer.complete(error: nil)
-            } catch {
-                await buffer.complete(error: error)
+            if routeOnly, CommandLine.arguments.contains("--voice-latency-prefill"),
+               self.latencyAnswerProvider is LlamaLLMProvider {
+                // Diagnostic-only child of this same producer. Complete its route
+                // buffer before joining preparation; commit never waits on this join.
+                async let prefilling: Void = self.preparePartialAnswer(
+                    system: system, messages: messages, maxTokens: maxTokens, timing: timing)
+                await self.fillSpeculativeBuffer(buffer, system: system, messages: messages,
+                    maxTokens: maxTokens, timing: timing, routeOnly: routeOnly)
+                _ = await prefilling
+            } else {
+                await self.fillSpeculativeBuffer(buffer, system: system, messages: messages,
+                    maxTokens: maxTokens, timing: timing, routeOnly: routeOnly)
             }
         }
         speculation = Speculation(key: key, epoch: revision, startedAt: Date(), timing: timing,
@@ -534,8 +535,7 @@ actor FrontendResponder {
                 String(format: "hit headstart=%.3f", lead))
             let buffered = await speculation.buffer.stream(cancelProducer: speculation.producer)
             if speculation.routeOnly {
-                return resumePreparedRoute(buffered, speculation: speculation,
-                    system: system, messages: messages, maxTokens: maxTokens)
+                return resumePreparedRoute(buffered, speculation: speculation, maxTokens: maxTokens)
             }
             return buffered
         }
@@ -562,7 +562,7 @@ actor FrontendResponder {
     /// The same nativeGeneration/drain owner now tracks the committed answer.
     private func resumePreparedRoute(
         _ buffered: AsyncThrowingStream<String, Error>, speculation: Speculation,
-        system: String, messages: [LLMChatMessage], maxTokens: Int
+        maxTokens: Int
     ) -> AsyncThrowingStream<String, Error> {
         let timing = speculation.timing
         let producer = speculation.producer
@@ -607,6 +607,48 @@ actor FrontendResponder {
             producer.cancel()
         }
         return stream
+    }
+
+    private func fillSpeculativeBuffer(
+        _ buffer: SpeculativeVoiceBuffer, system: String, messages: [LLMChatMessage],
+        maxTokens: Int, timing: GenerationTiming, routeOnly: Bool
+    ) async {
+        let stream = await unsharedStream(system: system, messages: messages,
+            maxTokens: maxTokens, drain: nil, timing: timing, routeOnly: routeOnly)
+        do {
+            for try await delta in stream {
+                try Task.checkCancellation()
+                guard timing.id >= abandonedGeneration else { break }
+                await buffer.append(delta)
+            }
+            await buffer.complete(error: nil)
+        } catch {
+            await buffer.complete(error: error)
+        }
+    }
+
+    private func preparePartialAnswer(
+        system: String, messages: [LLMChatMessage], maxTokens: Int, timing: GenerationTiming
+    ) async {
+        guard Self.partialRouteDiagnostic,
+              CommandLine.arguments.contains("--voice-latency-prefill"),
+              let local = latencyAnswerProvider as? LlamaLLMProvider,
+              let plan = LocalVoiceSplitResponse.answerPlan(system: system, messages: messages) else { return }
+        let answerMessages = plan.history.map { LLMChatMessage(role: $0.role, content: $0.content) }
+            + [LLMChatMessage(role: .user, content: plan.latestUser)]
+        Self.emitTiming(timing, "prefill_handoff")
+        do {
+            let stats = try await local.runtime.prepareInteractiveConversation(
+                system: plan.instructions, messages: answerMessages, maxTokens: maxTokens,
+                residentOnly: true, onAdmitted: { Self.emitTiming(timing, "prefill_native_admitted") })
+            Self.emitTiming(timing, "prefill_done prompt=\(stats.promptTokens) reused=\(stats.reused) decoded=\(stats.decoded) native_s=\(stats.seconds)")
+        } catch LlamaError.notLoaded {
+            Self.emitTiming(timing, "prefill_skip_not_prepared")
+        } catch {
+            // Failed/cancelled preparation is never an answer or routing success.
+            // The committed stream revalidates through its original runtime entry.
+            Self.emitTiming(timing, error is CancellationError ? "prefill_cancelled" : "prefill_failed")
+        }
     }
 
     private static func waitForPriorInference(_ prior: Task<Void, Never>?) async -> Bool {

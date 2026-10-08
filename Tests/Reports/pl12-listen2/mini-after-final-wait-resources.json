@@ -1,0 +1,18 @@
+{
+  "scope": "one owned process, including warmup; 1s sampled maxima, not continuous peaks; Apple service/child costs excluded",
+  "pid": null,
+  "environment": {
+    "sw_vers": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal_start": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap_start": "vm.swapusage: total = 8192.00M  used = 6808.12M  free = 1383.88M  (encrypted)",
+    "disk_start": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 192001364  12103368    95% 2475437 121033680    2%   /System/Volumes/Data",
+    "load_start": "19:03  up 1 day,  8:15, 1 user, load averages: 5.02 4.69 5.17",
+    "thermal_end": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap_end": "vm.swapusage: total = 8192.00M  used = 6600.12M  free = 1591.88M  (encrypted)",
+    "load_end": "19:23  up 1 day,  8:35, 1 user, load averages: 2.88 3.24 4.01"
+  },
+  "rows": [],
+  "peak_rss": null,
+  "peak_footprint": null
+}

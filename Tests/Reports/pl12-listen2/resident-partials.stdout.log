@@ -1,0 +1,293 @@
+2026-10-08 19:45:50.409 NextNotes[4748:3516946] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_cancel_requested elapsed_s=0.014
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=cancellation_to_speculation_end elapsed_s=0.014 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=6 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=6 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=6 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=6 event=speculation_hit headstart_date_s=0.003 elapsed_s=0.003
+VOICE_FRONTEND_TIMING gen=4 revision=8 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=8 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=8 event=testing_generator_returned elapsed_s=0.000
+VOICE_PREPARATION_START words=1 seconds=0.0179685
+VOICE_FRONTEND_TIMING gen=4 revision=8 event=speculation_cancel_requested elapsed_s=0.014
+VOICE_FRONTEND_TIMING gen=4 revision=8 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=9 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=9 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=9 event=testing_generator_returned elapsed_s=0.000
+VOICE_PREPARATION_START words=2 seconds=0.018040417
+VOICE_FRONTEND_TIMING gen=5 revision=9 event=speculation_cancel_requested elapsed_s=0.014
+VOICE_FRONTEND_TIMING gen=5 revision=9 event=cancellation_to_speculation_end elapsed_s=0.014 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=10 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=10 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=10 event=testing_generator_returned elapsed_s=0.000
+VOICE_PREPARATION_START words=3 seconds=0.017335792
+VOICE_FRONTEND_TIMING gen=6 revision=10 event=speculation_cancel_requested elapsed_s=0.014
+VOICE_FRONTEND_TIMING gen=6 revision=10 event=cancellation_to_speculation_end elapsed_s=0.014 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=11 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=11 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=11 event=testing_generator_returned elapsed_s=0.000
+VOICE_PREPARATION_START words=4 seconds=0.01785875
+VOICE_FRONTEND_TIMING gen=7 revision=11 event=speculation_cancel_requested elapsed_s=0.086
+VOICE_FRONTEND_TIMING gen=7 revision=11 event=cancellation_to_speculation_end elapsed_s=0.086 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=13 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=13 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=13 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=13 event=speculation_hit headstart_date_s=0.007 elapsed_s=0.007
+VOICE_FRONTEND_TIMING gen=9 revision=16 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=16 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=16 event=testing_generator_returned elapsed_s=0.000
+VOICE_PIPELINE_SPAN=agent.barge_in_to_tts_stopped 0.000s 
+VOICE_FRONTEND_TIMING gen=9 revision=16 event=speculation_hit headstart_date_s=0.027 elapsed_s=0.027
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.003s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=speculation_cancel_requested elapsed_s=0.014
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=cancellation_to_speculation_end elapsed_s=0.014 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=22 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=22 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=22 event=testing_generator_returned elapsed_s=0.000
+VOICE_PIPELINE_SPAN=agent.barge_in_to_tts_stopped 0.000s 
+VOICE_FRONTEND_TIMING gen=11 revision=22 event=speculation_hit headstart_date_s=0.019 elapsed_s=0.019
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=12 revision=26 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=12 revision=26 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=12 revision=26 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=12 revision=26 event=speculation_cancel_requested elapsed_s=0.002
+VOICE_FRONTEND_TIMING gen=12 revision=26 event=cancellation_to_speculation_end elapsed_s=0.002 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=13 revision=28 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=13 revision=28 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=13 revision=28 event=testing_generator_returned elapsed_s=0.000
+VOICE_PIPELINE_SPAN=agent.barge_in_to_tts_stopped 0.000s 
+VOICE_FRONTEND_TIMING gen=13 revision=28 event=speculation_hit headstart_date_s=0.019 elapsed_s=0.019
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=14 revision=32 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=14 revision=32 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=14 revision=32 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=14 revision=32 event=speculation_cancel_requested elapsed_s=0.002
+VOICE_FRONTEND_TIMING gen=14 revision=32 event=cancellation_to_speculation_end elapsed_s=0.002 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=15 revision=34 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=15 revision=34 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=15 revision=34 event=testing_generator_returned elapsed_s=0.000
+VOICE_PIPELINE_SPAN=agent.barge_in_to_tts_stopped 0.000s 
+VOICE_FRONTEND_TIMING gen=15 revision=34 event=speculation_hit headstart_date_s=0.019 elapsed_s=0.019
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=16 revision=39 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=16 revision=39 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=16 revision=39 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=16 revision=39 event=speculation_hit headstart_date_s=0.008 elapsed_s=0.008
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=17 revision=43 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=17 revision=43 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=17 revision=43 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=17 revision=43 event=speculation_hit headstart_date_s=0.007 elapsed_s=0.007
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=18 revision=47 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=18 revision=47 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=18 revision=47 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=18 revision=47 event=speculation_cancel_requested elapsed_s=0.007
+VOICE_FRONTEND_TIMING gen=19 revision=48 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=18 revision=47 event=cancellation_to_speculation_end elapsed_s=0.007 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=19 revision=48 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=19 revision=48 event=testing_generator_returned elapsed_s=0.000
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=20 revision=51 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=20 revision=51 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=20 revision=51 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=20 revision=51 event=speculation_cancel_requested elapsed_s=0.003
+VOICE_FRONTEND_TIMING gen=20 revision=51 event=cancellation_to_speculation_end elapsed_s=0.003 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=21 revision=53 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=21 revision=53 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=21 revision=53 event=testing_generator_returned elapsed_s=0.000
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=22 revision=56 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=22 revision=56 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=22 revision=56 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=22 revision=56 event=speculation_cancel_requested elapsed_s=0.007
+VOICE_FRONTEND_TIMING gen=23 revision=57 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=22 revision=56 event=cancellation_to_speculation_end elapsed_s=0.007 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=23 revision=57 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=23 revision=57 event=testing_generator_returned elapsed_s=0.000
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.015 elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_cancel_requested elapsed_s=0.012
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=cancellation_to_speculation_end elapsed_s=0.012 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_hit headstart_date_s=0.015 elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=speculation_cancel_requested elapsed_s=0.013
+VOICE_FRONTEND_TIMING gen=5 revision=7 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=7 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=cancellation_to_speculation_end elapsed_s=0.013 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=7 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=9 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=9 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=9 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=9 event=speculation_hit headstart_date_s=0.015 elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.015 elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.015 elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.015 elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.011 elapsed_s=0.011
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.012
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.012 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.013
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.013 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.013
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.013 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.013
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.013 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.017 elapsed_s=0.017
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_hit headstart_date_s=0.015 elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=5 revision=7 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=6 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=7 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=7 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=8 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=8 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=8 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=8 event=speculation_cancel_requested elapsed_s=0.011
+VOICE_FRONTEND_TIMING gen=7 revision=9 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=8 event=cancellation_to_speculation_end elapsed_s=0.011 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=9 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=9 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=10 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=10 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=10 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=10 event=speculation_cancel_requested elapsed_s=0.015
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=10 event=cancellation_to_speculation_end elapsed_s=0.015 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=testing_generator_returned elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=speculation_hit headstart_date_s=0.012 elapsed_s=0.012
+VOICE_PREPARATION_OK
+VOICE_SESSION_DIVERGENCE: field=effectsHeld event=partial reducer=true legacy=false
+VOICE_SESSION_DIVERGENCE: field=floor event=partial reducer=true legacy=false
+VOICE_SESSION_DIVERGENCE: field=floor event=inputActivity reducer=true legacy=false
+VOICE_SPECULATION_COURTESY_OK: 15 actual buffer/consumer cases; scripted generation
+VOICE_SPECULATION_USAGE_OK: 5 cases, 9 actual recorder rows; scripted generation
+VOICE_SPECULATION_OK

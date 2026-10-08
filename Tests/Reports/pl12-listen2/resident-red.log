@@ -1,0 +1,6 @@
+RESIDENT_PREFILL_WRONG: cold partial initiated native preparation
+RESIDENT_PREFILL_WRONG: cold partial entered actual weight loader
+RESIDENT_PREFILL_WRONG: weights-only partial initiated cold context/prefill
+RESIDENT_PREFILL_WRONG: partial admitted context growth
+RESIDENT_PREFILL_WRONG: refused context growth changed committed prefix state
+RESIDENT_PREFILL_FAILED: 5 problem(s)

@@ -1,0 +1,164 @@
+2026-10-08 19:43:02.712 NextNotes[4059:3511304] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_warmup_done elapsed_s=0.004 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=partial_route_ready elapsed_s=0.005
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_task_end elapsed_s=0.005
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_hit headstart_date_s=0.072 elapsed_s=0.072
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=partial_route_committed_answer elapsed_s=0.076
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=first_answer_text elapsed_s=0.076
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=prepared_route_consumer_end elapsed_s=0.076
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.007s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE matched routes=1 answers=1
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_hit headstart_date_s=0.052 elapsed_s=0.052
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=partial_route_committed_answer elapsed_s=0.052
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=first_answer_text elapsed_s=0.052
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=prepared_route_consumer_end elapsed_s=0.053
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE canonical routes=1 answers=1
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_cancel_requested elapsed_s=0.053
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=cancellation_to_speculation_end elapsed_s=0.053 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=native_task_end elapsed_s=0.001
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.003s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE final-revised routes=2 answers=1
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=speculation_cancel_requested elapsed_s=0.049
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=cancellation_to_speculation_end elapsed_s=0.049 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=speculation_hit headstart_date_s=0.051 elapsed_s=0.051
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=partial_route_committed_answer elapsed_s=0.051
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=first_answer_text elapsed_s=0.052
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=prepared_route_consumer_end elapsed_s=0.052
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE partial-revised routes=2 answers=1
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=speculation_cancel_requested elapsed_s=0.050
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=cancellation_to_speculation_end elapsed_s=0.050 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=native_task_end elapsed_s=0.001
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE empty routes=2 answers=1
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=speculation_cancel_requested elapsed_s=0.052
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=cancellation_to_speculation_end elapsed_s=0.052 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=native_task_end elapsed_s=0.001
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.003s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE context routes=2 answers=1
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=speculation_hit headstart_date_s=0.051 elapsed_s=0.051
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=partial_route_ready elapsed_s=0.067
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=native_task_end elapsed_s=0.067
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=partial_route_committed_answer elapsed_s=0.068
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=first_answer_text elapsed_s=0.068
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=prepared_route_consumer_end elapsed_s=0.068
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.019s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE pending routes=1 answers=1
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.031
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.031 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.040
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.040 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.037 elapsed_s=0.037
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=partial_route_committed_answer elapsed_s=0.038
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=first_answer_text elapsed_s=0.038
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=prepared_route_consumer_end elapsed_s=0.038
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.033 elapsed_s=0.033
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=prepared_route_consumer_end elapsed_s=0.033
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.040 elapsed_s=0.040
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=prepared_route_consumer_end elapsed_s=0.040
+VOICE_PREPARATION_OK
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=notAddressedToMe task=none
+VOICE_SPLIT_ROUTE intent=startExternalTask task=none

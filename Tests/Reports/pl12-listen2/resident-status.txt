@@ -1,0 +1,13 @@
+resident-red exit=1
+resident-green exit=0
+prefill-final exit=0
+route-resident-final exit=0
+mini-after-final exit=1
+resident-partials exit=0
+resident-pipeline exit=1
+resident-routing exit=0
+resident-concurrent exit=0
+resident-conversation exit=0
+resident-duplex exit=0
+resident-prefix exit=1
+resident-isolation exit=0

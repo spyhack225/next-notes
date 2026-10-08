@@ -1,0 +1,22 @@
+{
+  "Sources/NextNotes/Activation/AgentCaptureController.swift": {
+    "same_as_commit": "c6d850c6",
+    "region": "whole file",
+    "sha256": "b9cb1bb2624d305c41af1924bbfa561061243fc50b00d5f95e26ca04529346e6"
+  },
+  "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": {
+    "same_as_commit": "fb1e6210",
+    "region": "whole file",
+    "sha256": "bf009a06abfc0d6be349bdb8f95fd9d03e21cb70eb2da029ee7ecd0aa9147495"
+  },
+  "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+    "same_as_commit": "9e5e510b",
+    "region": "    private func streamPrompt(",
+    "sha256": "2e65170d4f317f50ef07ed90fd9caae0389b87526add55a141452cad8268f641"
+  },
+  "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift": {
+    "same_as_commit": "9e5e510b",
+    "region": "    // MARK: - Part A, pure",
+    "sha256": "fa4e5770d4e230a8953fa175c75d7da5cf293900b87b56a93aa37c35801d0981"
+  }
+}
