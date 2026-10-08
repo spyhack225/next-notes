@@ -259,17 +259,17 @@ enum CatchUpPresentationSelfTest {
         defer { defaults.removePersistentDomain(forName: suite) }
         let audio = LongFormRenderer.audioDirectory.appendingPathComponent("Your morning catch-up 2026-10-08.m4a")
         let words = "Good morning.\n\nI noticed Ms. Rivera\u{2019}s email from Tuesday is still waiting on a reply.\n\nThe design review moved to 10.\n\nWant me to send the reminders?"
-        func task(_ id: String, _ minutes: Double, audio: Bool, text: String) -> AgentTask {
+        func task(_ id: String, _ minutes: Double, withAudio: Bool, text: String) -> AgentTask {
             AgentTask(id: id, objective: "Your morning catch-up", source: AgentTask.scheduledSource,
                       createdAt: Date().addingTimeInterval(-minutes * 60), status: .completed, result: text,
-                      artifacts: audio ? [audio.absoluteString] : [], scheduleID: routine,
+                      artifacts: withAudio ? [audio.absoluteString] : [], scheduleID: routine,
                       finishedAt: Date().addingTimeInterval(-minutes * 60))
         }
         let library = CatchUpLibrary(
             tasks: { [
-                task("ready", 90, audio: true, text: words),
-                task("preparing", 100, audio: false, text: words),
-                task("older", 60 * 30, audio: false, text: "Welcome back.\n\nNothing needs you today."),
+                task("ready", 90, withAudio: true, text: words),
+                task("preparing", 100, withAudio: false, text: words),
+                task("older", 60 * 30, withAudio: false, text: "Welcome back.\n\nNothing needs you today."),
             ] },
             catchUpScheduleIDs: { [routine] in [routine] },
             fileExists: { _ in true }, measure: { _ in 96 }, defaults: defaults, offers: Recorder())
