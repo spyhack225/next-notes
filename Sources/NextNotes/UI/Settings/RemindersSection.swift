@@ -11,7 +11,14 @@ struct RemindersSection: View {
     @State private var store = ScheduleStore.shared
     @State private var error: String?
 
+    /// Catch-up first: it is the one a person turns on by name, and it is made of the same
+    /// reminders switch below.
     var body: some View {
+        CatchUpSettingsSection()
+        remindersSection
+    }
+
+    private var remindersSection: some View {
         Section {
             Toggle(isOn: $settings.agentSchedulesEnabled) {
                 rowLabel("Reminders", "Things you ask to be reminded of, at the time you said.")
