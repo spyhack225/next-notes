@@ -267,8 +267,8 @@ enum CatchUpPresentationSelfTest {
         }
         let library = CatchUpLibrary(
             tasks: { [
-                task("ready", 90, withAudio: true, text: words),
-                task("preparing", 100, withAudio: false, text: words),
+                task("ready", 40, withAudio: true, text: words),
+                task("preparing", 2, withAudio: false, text: words),
                 task("older", 60 * 30, withAudio: false, text: "Welcome back.\n\nNothing needs you today."),
             ] },
             catchUpScheduleIDs: { [routine] in [routine] },
@@ -290,6 +290,17 @@ enum CatchUpPresentationSelfTest {
             }
             do { try png.write(to: root.appendingPathComponent("catch-up-cards-\(name).png")) }
             catch { failures.append("catch-up: preview write: \(error.localizedDescription)") }
+        }
+        // The Settings section on its own, at the width the pane meets in the main window.
+        let form = Form { CatchUpSettingsSection() }
+            .formStyle(.grouped)
+            .frame(width: 560, height: 420)
+            .background(DS.Color.window)
+        if let png = render(form, width: 560) {
+            do { try png.write(to: root.appendingPathComponent("catch-up-settings.png")) }
+            catch { failures.append("catch-up: preview write: \(error.localizedDescription)") }
+        } else {
+            failures.append("catch-up: the settings preview did not render")
         }
         return failures
     }
