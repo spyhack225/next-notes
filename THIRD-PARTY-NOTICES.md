@@ -72,10 +72,11 @@ which the AGPL here neither extends nor restricts.
 | Apple on-device models, Parakeet TDT, Gemma 4 E4B, S1-mini, the wake-word model | speech and language model weights | each publisher's own |
 | Needle 3 (`Cactus-Compute/needle3`) — `needle3.cact` weights (35.3 MB) | on-device function-calling model | Apache-2.0 |
 | Needle 3 — `macos-arm64/needle` (825 KB) | the engine that runs those weights, kept resident as a child process (`needle --serve`) while the feature is in use | Apache-2.0 |
+| Google Workspace CLI (`googleworkspace/cli`, `gws`) | separate executable for the app's Google sign-in; candidate archive pins are inherited and not release-verified in this work | Apache-2.0, as recorded by the inherited packet; actual release contents remain unverified |
 | Any GGUF the user chooses from the Hugging Face Hub | model weights | whatever that repository states; gated repositories require the user to accept the publisher's terms first |
 
-The Needle engine is the only **executable** in this table rather than a set of weights, so
-it is called out separately: it is Apache-2.0, which is one-way compatible with
+The Needle engine and Google Workspace CLI are **executables** rather than weights;
+neither is linked into the app. The Needle engine is Apache-2.0, which is one-way compatible with
 AGPL-3.0-or-later, it is never committed, and it runs as a separate process rather than being
 linked in. Verified against the Hub's own metadata on 2026-09-20 (`license: apache-2.0`,
 `gated: false`).
@@ -84,5 +85,5 @@ Check a model's own terms before redistributing weights.
 
 ## Cloud services
 
-OpenRouter, Google Workspace (`gws`), Composio and any MCP server the user configures are
+OpenRouter, Google's Workspace APIs, Composio and any MCP server the user configures are
 optional, opt-in, and reached over the network. They are services, not code in this work.

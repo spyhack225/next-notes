@@ -43,6 +43,9 @@ enum GoogleSource: String, Sendable, CaseIterable {
     static func effective(cli: GoogleWorkspaceCLI = .shared) async -> GoogleSource {
         let (stored, fixture) = await MainActor.run { (Settings.shared.googleSource, macForTesting != nil) }
         if let stored { return stored }
+        // A selected app grant remains the route even when revoked; resolving from a
+        // failed CLI probe must not silently switch the next call to another account.
+        if GoogleTokenStore.appSignInSelected || GoogleTokenStore.hasRefreshToken { return .googleSignIn }
         // A self-test answers from its fixture and never asks the owner's `gws`.
         if SelfTest.isRunning { return fixture ? .thisMac : .googleSignIn }
         if let cached = cache.value() { return cached }
@@ -69,16 +72,28 @@ enum GoogleSource: String, Sendable, CaseIterable {
         let workspace = await cli.authState()
         switch source {
         case .googleSignIn:
-            return Status(state: workspace, gaps: [:])
+            return Status(state: workspace, gaps: GoogleTokenStore.hasRefreshToken || GoogleTokenStore.appSignInSelected
+                ? scopeGaps(granted: GoogleTokenStore.grantedScopes, tools: allTools) : [:])
         case .thisMac:
             let setup = await MacAccounts.shared.setup()
             let state: WorkspaceAuthState = setup.accountFound ? .signedIn(method: macMethod) : .signedOut
             var gaps = setup.gaps()
+            if GoogleTokenStore.hasRefreshToken || GoogleTokenStore.appSignInSelected {
+                gaps.merge(scopeGaps(granted: GoogleTokenStore.grantedScopes, tools: googleOnlyTools)) { _, new in new }
+            }
             if !workspace.isSignedIn {
                 for tool in googleOnlyTools { gaps[tool] = needsGoogleSignInSentence(for: "") }
             }
             return Status(state: state, gaps: gaps)
         }
+    }
+
+    static func scopeGaps(granted: Set<String>, tools: [String]) -> [String: String] {
+        Dictionary(uniqueKeysWithValues: tools.compactMap { tool in
+            guard let capability = GoogleCapability.needed(byTool: tool),
+                  !capability.isGranted(by: granted, readOnly: tool == "get_agenda") else { return nil }
+            return (tool, capability.permissionSentence)
+        })
     }
 
     static func authState(cli: GoogleWorkspaceCLI = .shared) async -> WorkspaceAuthState {
