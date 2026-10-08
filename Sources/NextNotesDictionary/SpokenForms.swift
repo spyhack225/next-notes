@@ -397,11 +397,10 @@ public enum SpokenForms {
 
         /// True when either key of one matches either key of the other.
         public func matches(_ other: PhoneticKey) -> Bool {
-            let mine = [primary, alternate ?? primary]
-            let theirs = [other.primary, other.alternate ?? other.primary]
             guard !primary.isEmpty, !other.primary.isEmpty else { return false }
-            for a in mine where theirs.contains(a) { return true }
-            return false
+            if primary == other.primary || primary == other.alternate { return true }
+            guard let alternate else { return false }
+            return alternate == other.primary || alternate == other.alternate
         }
     }
 
