@@ -1169,6 +1169,9 @@ final class AgentSession {
         let role: String
         let text: String
         var contextKind: String? = nil
+        /// Identity of a background result already brought into this conversation.
+        /// Optional keeps old saved rows readable; this conveys no action authority.
+        var contextTaskID: String? = nil
         /// Successful tool results made available to this answer, not evidence for every claim.
         var toolResultIDs: [String]? = nil
         /// Existing conversation row carries only the answer claims and source descriptors.
@@ -1611,7 +1614,7 @@ final class AgentSession {
     }
 
     @discardableResult
-    func recordAssistant(_ text: String, contextKind: String? = nil,
+    func recordAssistant(_ text: String, contextKind: String? = nil, contextTaskID: String? = nil,
                          toolResultIDs: [String]? = nil,
                          source: AgentUtteranceSource? = nil,
                          messageID: UUID? = nil, at: Date? = nil,
@@ -1637,7 +1640,8 @@ final class AgentSession {
         let message = Message(
             id: messageID ?? UUID(),
             role: "assistant", text: storedText,
-            contextKind: contextKind, toolResultIDs: verifiedIDs.isEmpty ? nil : Array(verifiedIDs),
+            contextKind: contextKind, contextTaskID: contextTaskID,
+            toolResultIDs: verifiedIDs.isEmpty ? nil : Array(verifiedIDs),
             knowledgeClaims: retainsSourceRows ? knowledgeClaims : nil,
             knowledgeCitations: retainsSourceRows ? knowledgeCitations : nil, at: at ?? Date(), source: source?.rawValue,
             speechDelivery: source == .voice ? VoiceSpeechDelivery() : nil)

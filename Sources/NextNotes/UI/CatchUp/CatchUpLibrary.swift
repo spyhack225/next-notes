@@ -14,12 +14,37 @@ import Observation
 protocol CatchUpOfferActing {
     /// Opens the conversation and sends `text` as the person's own words.
     func say(_ text: String)
+    func say(_ text: String, for entry: CatchUpEntry)
+}
+
+extension CatchUpOfferActing {
+    // Existing presentation recorders can still record the ordinary user words.
+    func say(_ text: String, for entry: CatchUpEntry) { say(text) }
 }
 
 struct LiveCatchUpOfferActing: CatchUpOfferActing {
+    private let session: AgentSession?
+    private let open: @MainActor () -> Void
+    private let submit: @MainActor (String) -> Void
+
+    init(session: AgentSession? = nil,
+         open: @escaping @MainActor () -> Void = { NavigationState.shared.showConversation() },
+         submit: @escaping @MainActor (String) -> Void = {
+             text in Task { await RealtimeAgent.shared.handleLive(text, source: .text) }
+         }) {
+        self.session = session
+        self.open = open
+        self.submit = submit
+    }
+
     func say(_ text: String) {
-        NavigationState.shared.showConversation()
-        Task { await RealtimeAgent.shared.handleLive(text, source: .text) }
+        open()
+        submit(text)
+    }
+
+    func say(_ text: String, for entry: CatchUpEntry) {
+        (session ?? .shared).recordBackgroundTask(entry.text, taskID: entry.id)
+        say(text)
     }
 }
 
@@ -239,7 +264,41 @@ final class CatchUpLibrary {
     func acceptOffer(_ entry: CatchUpEntry) {
         guard let offer = openOffer(for: entry) else { return }
         closeOffer(entry)
-        offers.say(offer.yesText)
+        offers.say(offer.yesText, for: entry)
+    }
+}
+
+/// The existing file transport, replaced by a recorder in headless checks.
+@MainActor
+protocol CatchUpAudioPlaying: AnyObject {
+    var duration: TimeInterval { get }
+    var currentTime: TimeInterval { get }
+    var isPlaying: Bool { get }
+    func prepareToPlay() -> Bool
+    func play() -> Bool
+    func pause()
+    func stop()
+}
+
+extension AVAudioPlayer: CatchUpAudioPlaying {}
+
+struct CatchUpPlaybackActivity {
+    var activationIdle = true
+    var dictating = false
+    var recording = false
+    var speaking = false
+    var callActive = false
+
+    var permitsPlayback: Bool {
+        activationIdle && !dictating && !recording && !speaking && !callActive
+    }
+
+    @MainActor static var live: Self {
+        Self(activationIdle: ActivationController.shared.mode == .idle,
+             dictating: AppDelegate.current?.controller.state.isActive ?? false,
+             recording: MeetingController.shared.isRecording,
+             speaking: RealtimeAudioSession.shared.isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking,
+             callActive: CallDetector.shared.current != nil)
     }
 }
 
@@ -261,7 +320,15 @@ final class CatchUpPlayer {
     /// A plain sentence when the file would not open, cleared by the next Play.
     private(set) var problem: String?
 
-    @ObservationIgnored private var player: AVAudioPlayer?
+    @ObservationIgnored private var player: (any CatchUpAudioPlaying)?
+    @ObservationIgnored private let activity: @MainActor () -> CatchUpPlaybackActivity
+    @ObservationIgnored private let makePlayer: @MainActor (URL) throws -> any CatchUpAudioPlaying
+
+    init(activity: @escaping @MainActor () -> CatchUpPlaybackActivity = { .live },
+         makePlayer: @escaping @MainActor (URL) throws -> any CatchUpAudioPlaying = { try AVAudioPlayer(contentsOf: $0) }) {
+        self.activity = activity
+        self.makePlayer = makePlayer
+    }
     @ObservationIgnored private var ticker: Task<Void, Never>?
 
     var progress: Double { duration > 0 ? min(1, elapsed / duration) : 0 }
@@ -279,9 +346,9 @@ final class CatchUpPlayer {
     func play(_ entry: CatchUpEntry) {
         stop()
         problem = nil
-        guard let url = entry.audioURL else { return }
+        guard let url = entry.audioURL, permitPlayback() else { return }
         do {
-            let next = try AVAudioPlayer(contentsOf: url)
+            let next = try makePlayer(url)
             guard next.prepareToPlay(), next.play() else { throw CocoaError(.fileReadUnknown) }
             player = next
             playingID = entry.id
@@ -302,8 +369,8 @@ final class CatchUpPlayer {
         elapsed = player?.currentTime ?? elapsed
     }
 
-    private func resume(_ player: AVAudioPlayer) {
-        guard player.play() else { return }
+    private func resume(_ player: any CatchUpAudioPlaying) {
+        guard permitPlayback(), player.play() else { return }
         isPlaying = true
         tick()
     }
@@ -326,18 +393,32 @@ final class CatchUpPlayer {
         ticker = Task { @MainActor [weak self] in
             while !Task.isCancelled {
                 try? await Task.sleep(for: .milliseconds(250))
-                guard let self, let player = self.player, !Task.isCancelled else { return }
-                self.elapsed = player.currentTime
-                if ActivationController.shared.mode != .idle {
-                    self.pause()
-                    return
-                }
-                if !player.isPlaying {
-                    // Finished: leave the row at its start, not stuck on "playing".
-                    self.stop()
-                    return
-                }
+                guard let self, self.player != nil, !Task.isCancelled else { return }
+                self.pollPlayback()
+                if !self.isPlaying { return }
             }
         }
+    }
+
+
+    /// No await: read the same activity facts before opening/starting/resuming a file
+    /// and on the existing tick. Never resumes automatically when the activity ends.
+    private func permitPlayback() -> Bool {
+        guard activity().permitsPlayback else {
+            problem = "Finish talking or recording, then try Play again."
+            return false
+        }
+        problem = nil
+        return true
+    }
+
+    func pollPlayback() {
+        guard isPlaying, let player else { return }
+        elapsed = player.currentTime
+        if !permitPlayback() {
+            pause()
+            return
+        }
+        if !player.isPlaying { stop() }
     }
 }

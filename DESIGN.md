@@ -1,0 +1,9 @@
+Catch-up saved audio and conversation handoff
+
+OutputScheduler starts text replies through RealtimeAudioSession and its streaming speech buffer. Sessionless scheduled delivery uses that same text path. CatchUpTemplate renders the saved file offline through LongFormRenderer; it never plays it. AgentSpeechSynthesizer's backing contract takes text and owns clause tokens, pause/resume and first-audio/completion receipts. It has no saved-file transport. PCMProbeSpeechBacking is SelfTest-only, ignores text and loads a bounded 3–25 second WAV into memory; it is not a production long-form file player.
+
+A safe saved-file entry would need file streaming, seek/pause ownership, completion binding and real PCM echo reference across the existing voice lifecycle. That is larger than a small entry point. This change therefore uses the brief's conservative option: retain the existing file player, with one synchronous activity predicate before Play and Resume and in the existing 250 ms tick. Dictation, recording, calls, spoken output and non-idle activation refuse/interrupt it; it stays paused until another tap. No new timer, queue, model pass or gate on the microphone/model/speaker path. The existing player still lacks the echo reference; idle wake-listening protection and immediate sub-tick interruption remain open.
+
+The offer handoff receives the entry, records its exact text as backgroundTask context through AgentSession, then submits the ordinary user turn. Optional task identity lives on the existing conversation row, so retained rows suppress duplicate recording in the same session. An idle/new conversation needs its own context row to ground the new yes. This adds no second conversation store or effect authority. The normal tool executor and approval card still govern sends.
+
+Island Playing/Pause presentation belongs to the parallel UI agent; this worktree does not edit island or view hooks.
