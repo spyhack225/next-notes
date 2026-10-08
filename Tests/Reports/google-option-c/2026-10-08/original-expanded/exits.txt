@@ -1,0 +1,2 @@
+task-authority exit=0
+google-connect exit=1

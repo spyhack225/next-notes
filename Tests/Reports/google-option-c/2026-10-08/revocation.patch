@@ -1,0 +1,11 @@
+--- fixed/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
++++ mutation/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
+@@ -73,7 +73,7 @@
+                 refreshCount += 1
+                 return response.accessToken
+             } catch GoogleCalendarError.tokenRequestFailed(let status, _, let code)
+-                where status == 400 && code == "invalid_grant" {
++                where status == 400 {
+                 guard generation == started else { throw CancellationError() }
+                 if let clearTokenForTesting { clearTokenForTesting() }
+                 else { GoogleTokenStore.clear() }

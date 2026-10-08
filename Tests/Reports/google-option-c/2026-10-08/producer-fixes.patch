@@ -1,0 +1,45 @@
+--- draft/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
++++ fixed/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
+@@ -49,11 +49,16 @@
+     private(set) var refreshCount = 0
+ 
+     func token(clientID: String, clientSecret: String) async throws -> String {
++        try Task.checkCancellation()
+         let refresh = refreshTokenForTesting?() ?? (refreshTokenForTesting == nil ? GoogleTokenStore.refreshToken : nil)
+         guard let refresh else { throw GoogleCalendarError.notSignedIn }
+         let identity = Identity(clientID: clientID, secret: clientSecret, refresh: refresh)
+         if let cached, cached.identity == identity, cached.expiry > Date().addingTimeInterval(60) { return cached.token }
+-        if let inFlight, inFlight.identity == identity { return try await inFlight.task.value }
++        if let inFlight, inFlight.identity == identity {
++            let token = try await inFlight.task.value
++            try Task.checkCancellation()
++            return token
++        }
+         if inFlight != nil { invalidate() }
+         let started = generation
+         let requestID = UUID()
+@@ -78,7 +83,11 @@
+         }
+         inFlight = (requestID, identity, task)
+         defer { if inFlight?.id == requestID { inFlight = nil } }
+-        return try await task.value
++        let token = try await task.value
++        // A shared refresh survives one cancelled waiter, but its result must not
++        // carry that waiter into executable backing after cancellation.
++        try Task.checkCancellation()
++        return token
+     }
+     func invalidate() {
+         generation += 1
+--- draft/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift
++++ fixed/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift
+@@ -59,6 +59,9 @@
+     /// Revocation retains the selected route, so a later call cannot switch to an unrelated
+     /// CLI login. Only the person's explicit Disconnect forgets that choice.
+     static func clear(forgetSelection: Bool = false) {
++        // Raw grants predate the preference. Preserve their route before deleting
++        // the last credential evidence; a later call must still refuse a foreign login.
++        if !forgetSelection, !appSignInSelected, hasRefreshToken { appSignInSelected = true }
+         SecItemDelete(baseQuery as CFDictionary)
+         if forgetSelection { appSignInSelected = false }
+     }

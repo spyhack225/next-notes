@@ -1,0 +1,11 @@
+--- fixed/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
++++ mutation/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
+@@ -471,7 +471,7 @@
+         let executable: URL
+         var additions: [String: String] = [:]
+         if appSignedIn {
+-            guard let managed = managedExecutable() else { throw WorkspaceCLIError.notInstalled }
++            guard let managed = managedExecutable() ?? testingExecutable else { throw WorkspaceCLIError.notInstalled }
+             executable = managed
+             if let capability = GoogleCapability.needed(byArguments: arguments),
+                !capability.isGranted(by: GoogleTokenStore.grantedScopes, readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {

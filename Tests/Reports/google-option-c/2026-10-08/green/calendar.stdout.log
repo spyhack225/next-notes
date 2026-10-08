@@ -1,0 +1,2 @@
+2026-10-08 18:43:45.372 NextNotes[86084:2979285] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+CALENDAR_OK: isolated Google error consumers behave
