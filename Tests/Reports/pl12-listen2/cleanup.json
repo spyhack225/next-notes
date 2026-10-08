@@ -1,0 +1,38 @@
+{
+  "time_utc": "2026-10-08T23:54:31.000423+00:00",
+  "scope": "Exact owned scratch after wrapper/sampler exited; only known owned PID-scoped self-test temp roots. No foreign/cache/model cleanup.",
+  "native_temp": [
+    {
+      "pid": 4065,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-4065",
+      "result": "removed exact exited owned PID root"
+    },
+    {
+      "pid": 69994,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-69994",
+      "result": "removed exact exited owned PID root"
+    },
+    {
+      "pid": 74855,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-74855",
+      "result": "removed exact exited owned PID root"
+    },
+    {
+      "pid": 77970,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-77970",
+      "result": "removed exact exited owned PID root"
+    },
+    {
+      "pid": 79724,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-79724",
+      "result": "removed exact exited owned PID root"
+    },
+    {
+      "pid": 90067,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-90067",
+      "result": "removed exact exited owned PID root"
+    }
+  ],
+  "scratch": "removed",
+  "auxiliary_temp_scope": "Auxiliary fixtures use their own normal deferred cleanup; unidentified temp roots were not swept."
+}
