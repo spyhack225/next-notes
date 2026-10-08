@@ -1,0 +1,99 @@
+{
+  "at": "2026-10-08T20:24:22.045527+00:00",
+  "exit": -15,
+  "wallSeconds": 135.24622416700004,
+  "guardReason": "reviewed compiler-only reported free below50",
+  "originalOwnerEightUnchanged": true,
+  "ownerStatusCountsBefore": {
+    "done": 16
+  },
+  "sourceInvariant": true,
+  "sourceCount": 1177,
+  "remainingOwnedPIDs": [],
+  "ordinarySwap8Crossed": false,
+  "profile": "explicit diagnostic optimized batch32/singlejob; initialfree55/ongoing50/swap6/disk8/summed5GB/1200s; no inference or owner app launch",
+  "phaseReceipts": [
+    {
+      "phase": "compile",
+      "errorType": null,
+      "exit": -15,
+      "observationDetails": [],
+      "drain": {
+        "observationDetails": [],
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [],
+        "seconds": 0.20654304200434126,
+        "sent": [
+          {
+            "pid": 32219,
+            "processStart": 2523015072395,
+            "signal": 15
+          },
+          {
+            "pid": 32909,
+            "processStart": 2525581656833,
+            "signal": 15
+          },
+          {
+            "pid": 32910,
+            "processStart": 2525598708797,
+            "signal": 15
+          },
+          {
+            "pid": 32917,
+            "processStart": 2525608664396,
+            "signal": 15
+          }
+        ]
+      }
+    }
+  ],
+  "samples": 402,
+  "peakSampledOwnedFootprintBytes": 726141856,
+  "compilerArm": "Diagnostic native backend/cache reuse; release-O/batch32/jobs1, WMO disabled; runtime performance parity UNPROVEN; repo build default unchanged",
+  "protectedDependencyAndSwiftBuildInputsUnchanged": true,
+  "frontendBatchPrimaryCounts": [
+    32
+  ],
+  "mainDriverProven": true,
+  "frontendScopeObservations": [
+    {
+      "scope": "dependency",
+      "moduleKnown": true,
+      "identityValid": true,
+      "primaryFileCount": 4,
+      "optimized": true,
+      "wholeModuleFlagPresent": false,
+      "mainCompileBatchProof": false
+    },
+    {
+      "scope": "dependency",
+      "moduleKnown": true,
+      "identityValid": true,
+      "primaryFileCount": 31,
+      "optimized": true,
+      "wholeModuleFlagPresent": false,
+      "mainCompileBatchProof": false
+    },
+    {
+      "scope": "dependency",
+      "moduleKnown": true,
+      "identityValid": true,
+      "primaryFileCount": 0,
+      "optimized": true,
+      "wholeModuleFlagPresent": false,
+      "mainCompileBatchProof": false
+    },
+    {
+      "scope": "main-compile",
+      "moduleKnown": true,
+      "identityValid": true,
+      "primaryFileCount": 32,
+      "optimized": true,
+      "wholeModuleFlagPresent": false,
+      "mainCompileBatchProof": true
+    }
+  ],
+  "installed": false
+}

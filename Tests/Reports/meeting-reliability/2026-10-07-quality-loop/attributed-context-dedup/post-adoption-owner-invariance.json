@@ -1,0 +1,16 @@
+{
+  "at": "2026-10-08T20:21:08.880512+00:00",
+  "normalProcesses": [
+    {
+      "pid": 29701,
+      "path": "/Applications/Next Notes.app/Contents/MacOS/NextNotes",
+      "processStart": 2498682948715,
+      "footprintBytes": 689720848,
+      "residentBytes": 1604321280
+    }
+  ],
+  "installedSHA": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+  "ownerEightUnchanged": true,
+  "newCandidateInstalled": false,
+  "uiReadback": "ScreenCaptureKit capture unavailable; process/SHA only, not physical UI"
+}

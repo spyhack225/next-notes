@@ -1,0 +1,155 @@
+{
+  "at": "2026-10-08T20:27:20.827354+00:00",
+  "largestChargedProcesses": [
+    {
+      "pid": 1871,
+      "name": "Codex (Renderer)",
+      "processStart": 31240047629,
+      "footprintBytes": 1113198120,
+      "residentBytes": 847986688
+    },
+    {
+      "pid": 24536,
+      "name": "Claude Helper (Renderer)",
+      "processStart": 304849087818,
+      "footprintBytes": 719506720,
+      "residentBytes": 634585088
+    },
+    {
+      "pid": 29701,
+      "name": "NextNotes",
+      "processStart": 2498682948715,
+      "footprintBytes": 690867728,
+      "residentBytes": 92078080
+    },
+    {
+      "pid": 1864,
+      "name": "codex",
+      "processStart": 31226253295,
+      "footprintBytes": 529811088,
+      "residentBytes": 236191744
+    },
+    {
+      "pid": 1535,
+      "name": "ChatGPT",
+      "processStart": 30651281544,
+      "footprintBytes": 451677520,
+      "residentBytes": 309002240
+    },
+    {
+      "pid": 1641,
+      "name": "Codex (Service)",
+      "processStart": 30770680626,
+      "footprintBytes": 371066584,
+      "residentBytes": 62980096
+    },
+    {
+      "pid": 1950,
+      "name": "Codex (Renderer)",
+      "processStart": 31593252142,
+      "footprintBytes": 353339360,
+      "residentBytes": 88244224
+    },
+    {
+      "pid": 1573,
+      "name": "Spotify Helper (Renderer)",
+      "processStart": 30720166002,
+      "footprintBytes": 326190904,
+      "residentBytes": 63275008
+    },
+    {
+      "pid": 15285,
+      "name": "com.apple.WebKit.WebContent",
+      "processStart": 1846118676377,
+      "footprintBytes": 263308440,
+      "residentBytes": 150388736
+    },
+    {
+      "pid": 24504,
+      "name": "Claude Helper",
+      "processStart": 304833584447,
+      "footprintBytes": 257836376,
+      "residentBytes": 60047360
+    },
+    {
+      "pid": 19999,
+      "name": "Codex (Renderer)",
+      "processStart": 205367433909,
+      "footprintBytes": 256542664,
+      "residentBytes": 76677120
+    },
+    {
+      "pid": 934,
+      "name": "Wispr Flow",
+      "processStart": 29927257799,
+      "footprintBytes": 249497928,
+      "residentBytes": 118226944
+    },
+    {
+      "pid": 24486,
+      "name": "Claude",
+      "processStart": 304777011286,
+      "footprintBytes": 247040568,
+      "residentBytes": 236847104
+    },
+    {
+      "pid": 33483,
+      "name": "claude",
+      "processStart": 2527742625221,
+      "footprintBytes": 240698784,
+      "residentBytes": 351830016
+    },
+    {
+      "pid": 33182,
+      "name": "claude",
+      "processStart": 2526125347125,
+      "footprintBytes": 237569464,
+      "residentBytes": 284721152
+    },
+    {
+      "pid": 1547,
+      "name": "Spotify",
+      "processStart": 30680125520,
+      "footprintBytes": 216991832,
+      "residentBytes": 89882624
+    },
+    {
+      "pid": 1298,
+      "name": "Wispr Flow Helper (Renderer)",
+      "processStart": 30224792946,
+      "footprintBytes": 210782440,
+      "residentBytes": 39862272
+    },
+    {
+      "pid": 15291,
+      "name": "com.apple.WebKit.WebContent",
+      "processStart": 1846136687260,
+      "footprintBytes": 175408256,
+      "residentBytes": 42008576
+    },
+    {
+      "pid": 15290,
+      "name": "com.apple.WebKit.WebContent",
+      "processStart": 1846136062796,
+      "footprintBytes": 173294624,
+      "residentBytes": 31686656
+    },
+    {
+      "pid": 24543,
+      "name": "Claude Helper",
+      "processStart": 304889092415,
+      "footprintBytes": 156485096,
+      "residentBytes": 107560960
+    }
+  ],
+  "NextNotes": [
+    {
+      "pid": 29701,
+      "name": "NextNotes",
+      "processStart": 2498682948715,
+      "footprintBytes": 690867728,
+      "residentBytes": 92078080
+    }
+  ],
+  "scope": "one current sample; charges not unique physical RAM; no allocation cause established"
+}

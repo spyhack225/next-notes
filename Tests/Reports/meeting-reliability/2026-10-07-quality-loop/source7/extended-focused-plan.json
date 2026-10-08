@@ -1,5 +1,5 @@
 {
-  "driverSHA": "1254bace3e93072a619f1ade832f5e00feddb3e89f16edbbae863c133123cf1c",
+  "driverSHA": "98e9e48377be72f2639bdd5e2df8e07f58ab9069d5c8b59f65a1ab8f599daffe",
   "cases": {
     "bounded-audio": [
       [
@@ -219,6 +219,7 @@
         "--selftest-meeting-topic-merge"
       ],
       [
+        "MEETING_ATTRIBUTED_CONTEXT_DEDUP_OK",
         "MEETING_TOPIC_MERGE_OK"
       ]
     ],
@@ -237,8 +238,65 @@
       [
         "PCM_RECONFIGURATION_OK"
       ]
+    ],
+    "capture": [
+      [
+        "--selftest-capture"
+      ],
+      [
+        "CAPTURE_OK"
+      ]
+    ],
+    "stream": [
+      [
+        "--selftest-stream"
+      ],
+      [
+        "STREAM_OK"
+      ]
+    ],
+    "cleanup-structure": [
+      [
+        "--selftest-cleanup-structure"
+      ],
+      [
+        "CLEANUP_STRUCTURE_OK"
+      ]
+    ],
+    "commandkey": [
+      [
+        "--selftest-commandkey"
+      ],
+      [
+        "COMMANDKEY_OK"
+      ]
+    ],
+    "dictation-hygiene": [
+      [
+        "--selftest-dictation-hygiene"
+      ],
+      [
+        "DICTATION_HYGIENE_OK"
+      ]
+    ],
+    "ui-strings": [
+      [
+        "--selftest-ui-strings"
+      ],
+      [
+        "UI_STRINGS_OK"
+      ]
+    ],
+    "pcm-callback": [
+      [
+        "--selftest-pcm-callback"
+      ],
+      [
+        "PCM_CALLBACK_OK"
+      ]
     ]
   },
-  "state": "predeclared; all UNRUN",
-  "guard": "unchanged existing model-free signed-candidate driver; no model/owner writes; all joins before next child"
+  "state": "ALL UNRUN; no signed source1177candidate",
+  "guard": "unchanged signed model-free driver; peer792 corrected flags; require topic50+185 markers; joined children/owner8/source/default invariance",
+  "notIncluded": "Real microphone/native Parakeet/model/physical insertion require separate exact-candidate coordinated admission; unknown latency flag excluded"
 }

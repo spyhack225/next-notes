@@ -1,0 +1,10 @@
+{
+  "commit": "c6d850c696747ac1097208b6abc01edd7c7355ae",
+  "changedFiles": 104,
+  "sourceCount": 1177,
+  "foreignStagedPathsPreserved": 56,
+  "indexEntriesAndAbsencesPreserved": true,
+  "ownIndexAligned": true,
+  "installation": false,
+  "scope": "Three-file producer and generic regression, reports/docs. NativeAppUNRUN. Private185payloads/logs retained outside repo. Immutable TranscriptBoundary exact EOF witness excluded from whitespace check, product source checks pass."
+}

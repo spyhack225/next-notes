@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-08T20:31:49.200193+00:00",
+  "candidateProduced": false,
+  "nativeFunctionalChecks": "UNRUN",
+  "newInstallation": false,
+  "actualMainBatchPrimaryCounts": [
+    32
+  ],
+  "actualMainDriverProven": true,
+  "peakSampledOwnedFootprintBytes": 726141856,
+  "guardReason": "reviewed compiler-only reported free below50",
+  "wallSeconds": 135.24622416700004,
+  "minimumReportedFreePercent": 48,
+  "firstMachine": {
+    "phase": "compile",
+    "elapsed": 0.14132662500196602,
+    "summedOwnedFootprintBytes": 409816,
+    "swapGiB": 4.1259765625,
+    "reportedFreePercent": 60,
+    "diskFreeGiB": 10.197303771972656
+  },
+  "lastMachine": {
+    "phase": "compile",
+    "elapsed": 134.44944370801386,
+    "summedOwnedFootprintBytes": 676645840,
+    "swapGiB": 3.930419921875,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 10.217639923095703
+  },
+  "sourceCount": 1177,
+  "sourceInvariant": true,
+  "ownerEightUnchanged": true,
+  "protectedCacheInputsUnchanged": true,
+  "remainingOwnedPIDs": [],
+  "meaning": "Main optimized32file/singlejob diagnostic transport proved; no completed product/runtime performance equivalence. Guard refusal retained; no automaticretry/capincrease. Starting resource/runtime/source review required after user restart.",
+  "cleanup": "Original/repaired/current useful products retained; no new full bundle/dSYM to retire. Shared partial native cache retained for reuse. Earlier owned456404992B+90112Bduplicate stage retired, private index files removed."
+}

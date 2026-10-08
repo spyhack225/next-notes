@@ -19,3 +19,25 @@ def classify_frontend(command, expected_start, current_usage):
     if compile_job and (primary_count < 1 or primary_count > 32 or whole or not optimized):
         return data, 'owned dependency optimized batch proof refused'
     return data, None
+
+
+def classify_driver(command, expected_start, current_usage):
+    tokens = command.split()
+    if not tokens or tokens[0].rsplit('/', 1)[-1] not in ('swiftc', 'swift-driver'):
+        return None, None
+    names = [tokens[i + 1] for i, token in enumerate(tokens[:-1]) if token == '-module-name']
+    if len(names) != 1:
+        return None, None
+    valid = bool(current_usage and current_usage.get('processStart') == expected_start)
+    jobs = []
+    modes = []
+    for i, token in enumerate(tokens):
+        if token == '-j' and i + 1 < len(tokens):
+            jobs.append(tokens[i + 1])
+        elif token.startswith('-j') and token[2:].isdigit():
+            jobs.append(token[2:])
+        if token in ('-whole-module-optimization','-wmo','-no-whole-module-optimization'):
+            modes.append(token)
+    proof = valid and bool(jobs) and jobs[-1] == '1' and bool(modes) and modes[-1] == '-no-whole-module-optimization'
+    data = {'scope':'main-driver' if names == ['NextNotes'] else 'dependency-driver', 'identityValid':valid, 'singleJobBatchDriverProof':proof, 'lastJobs':int(jobs[-1]) if jobs and jobs[-1].isdigit() else None}
+    return data, None if proof else 'owned single-job non-WMO driver proof refused'
