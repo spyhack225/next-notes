@@ -1,0 +1,101 @@
+{
+  "scope": "Exact helper original/fixed, table/rusage substituted, no signals or OS children",
+  "results": {
+    "unreadable": {
+      "original": {
+        "live": [
+          101
+        ],
+        "unresolved": [],
+        "errors": [],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "live attribution unavailable",
+            "expectedStart": 2002,
+            "observedStart": null,
+            "isRoot": false
+          }
+        ]
+      },
+      "fixed": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "live attribution unavailable",
+            "expectedStart": 2002,
+            "observedStart": null,
+            "isRoot": false
+          }
+        ]
+      }
+    },
+    "recycled": {
+      "original": {
+        "live": [
+          101
+        ],
+        "unresolved": [],
+        "errors": [],
+        "details": []
+      },
+      "fixed": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned process start mismatch"
+        ],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "process start mismatch",
+            "expectedStart": 2002,
+            "observedStart": 9999,
+            "isRoot": false
+          }
+        ]
+      }
+    }
+  },
+  "checks": [
+    [
+      "unreadable original false absence reproduced",
+      true
+    ],
+    [
+      "unreadable fixed pinned orphan refusal",
+      true
+    ],
+    [
+      "unreadable foreign ancestry never admitted",
+      true
+    ],
+    [
+      "recycled original false absence reproduced",
+      true
+    ],
+    [
+      "recycled fixed pinned orphan refusal",
+      true
+    ],
+    [
+      "recycled foreign ancestry never admitted",
+      true
+    ]
+  ],
+  "passed": 6,
+  "total": 6
+}

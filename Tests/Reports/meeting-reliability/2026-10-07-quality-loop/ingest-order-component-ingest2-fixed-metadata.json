@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-08T07:40:26.865973+00:00",
+  "phase": "fixed",
+  "exit": -15,
+  "wallSeconds": 2.769755665998673,
+  "guardReason": "owned attribution unavailable",
+  "sourceInvariant": true,
+  "sourceCount": 1175,
+  "drain": {
+    "remainingOwnedPIDs": [],
+    "unresolvedPIDs": [],
+    "errors": [],
+    "seconds": 0.21103491599933477,
+    "sent": [
+      {
+        "pid": 387,
+        "processStart": 1426148342904,
+        "signal": 15
+      },
+      {
+        "pid": 392,
+        "processStart": 1426150342607,
+        "signal": 15
+      }
+    ]
+  },
+  "lifecycleErrorType": null,
+  "samples": 47,
+  "peakSampledOwnedFootprintBytes": 153945768,
+  "scope": "Whole actual ContextStore/Extractor; exact Session.add/reader/Cadence; substituted capture/wake/store/bus transport/model. Normal8/min6.5/free55+50/1GB;12s compiler/10s run. No native Session/owner/model proof",
+  "installation": false
+}

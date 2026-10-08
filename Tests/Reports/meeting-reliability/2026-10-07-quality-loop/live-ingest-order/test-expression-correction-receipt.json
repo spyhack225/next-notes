@@ -1,0 +1,32 @@
+{
+  "scope": "ONLY common test construction expression changed to explicitly typed index/source/return and local expressions. Same400 rows, literal strings, start/end/source/order and every assertion.",
+  "parentAttempt1": {
+    "originalCompileSeconds": 2.69,
+    "originalCompileVerdict": "FAIL fixture type checking",
+    "fixedCompile": false,
+    "runtime": false,
+    "guardTriggered": false,
+    "descendantsJoined": true
+  },
+  "correctionPatchSHA256": "7c80c554fb939e2ae6e4f22b81920fa6082d9e9380a59371a2ec67e740a96177",
+  "oldComponentPinsSHA256": "395507292a082b517cb644b97b4340423bb129a59445c44a6223d78af267904a",
+  "newComponentPinsSHA256": "2ded63edb836fc07976c889fb74fc5e586840661b5bac554a99ee0589c9160f9",
+  "changedPinnedFiles": [
+    "original/MeetingContextIngestOrderSelfTest.swift",
+    "fixed/MeetingContextIngestOrderSelfTest.swift"
+  ],
+  "unchangedProducerAndBoundaryPins": 18,
+  "oldFixtureSHA256": "d87ac6b87d6cf53b5239ce2acd9052f24d683cbf72d7e45c083c449a53c4a49d",
+  "newFixtureSHA256": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91",
+  "maintainedPatchSHA256": "3df6e2f95851e996a7e32c29bff92f1d5bcee5e7c70b2f39de268daf8b31a034",
+  "commandsSHA256": "ca3f517fac4de94b8dcf852726a4afcbd902338dd972d77fb4005b128435fe7d",
+  "commandsUnchanged": true,
+  "preservedLogSHA256": "5d9078d782fa7826344eabe2b902106c64614f24bcaf7358fac4a02bb6fa26ad",
+  "archive": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/attempt1-test-expression-compile-failure",
+  "producerPatchUnchanged": "fda8bdbfcfb142b76fa72eda28e236f67972d6abba4e94181739ff797ec2e0fd",
+  "clockFollowupExcluded": true,
+  "canonicalSourcesChanged": false,
+  "childCompilerExecuted": false,
+  "modelsLoaded": false,
+  "freshOriginalFixedVerdict": "NOT_EXECUTED"
+}

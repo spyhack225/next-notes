@@ -1,0 +1,145 @@
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift
+@@ -0,0 +1,142 @@
++import Foundation
++
++/// Real isolated context Store/ingest/bus-consumer/cadence/reader/save flow. No model.
++/// The separate component pins Session.add; this fixture does not claim real capture.
++@MainActor enum MeetingContextIngestOrderSelfTest {
++    private actor Capture: MeetingContextCompleter {
++        var values: [MeetingContextReconciler.Snapshot] = []
++        func refine(_ snapshot: MeetingContextReconciler.Snapshot) async -> MeetingContextReconciler.Suggestion {
++            values.append(snapshot); return .empty
++        }
++        func latest() -> MeetingContextReconciler.Snapshot? { values.last }
++        func count() -> Int { values.count }
++    }
++    static func run(write: (String) -> Void) async -> Bool {
++        guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-ingest-order",
++              Settings.shared.usesHarnessPreferencesForTesting else {
++            write("MEETING_INGEST_ORDER_FAILED: isolated settings required"); return false
++        }
++        let prior = Settings.shared.meetingLiveUnderstanding
++        Settings.shared.meetingLiveUnderstanding = true
++        defer { Settings.shared.meetingLiveUnderstanding = prior }
++        var checks = 0, wrong = 0
++        func check(_ label: String, _ value: Bool) {
++            checks += 1; if !value { wrong += 1 }
++            write("MEETING_INGEST_ORDER_CHECK case=\(label) pass=\(value)")
++        }
++        func segment(_ start: Double, _ end: Double, _ text: String, _ source: AudioSource,
++                     kind: TranscriptKind? = nil) -> TranscriptSegment {
++            TranscriptSegment(start: start, end: end, text: text, source: source, kind: kind)
++        }
++        func fixture() -> (Meeting, MeetingStore, MeetingContextStore, Capture) {
++            let meeting = Meeting(title: "Authored ingestion fixture", start: Date(), status: .recording)
++            let backing = MeetingStore.isolated()
++            precondition(backing.save(meeting))
++            let capture = Capture()
++            let context = MeetingContextStore.isolatedForTesting(store: backing, completer: capture,
++                                                                 optionalAdmission: { true })
++            return (meeting, backing, context, capture)
++        }
++        func remove(_ meeting: Meeting, _ backing: MeetingStore, _ context: MeetingContextStore) {
++            context.reset()
++            try? FileManager.default.removeItem(at: backing.directory(for: meeting.id).deletingLastPathComponent())
++        }
++        // Exact full-array shape delivered by original Session.add after a late track insert.
++        do {
++            let (meeting, backing, context, capture) = fixture()
++            defer { remove(meeting, backing, context) }
++            let mic = segment(10, 40, "Let's talk about newer microphone evidence.", .mic)
++            let late = segment(0, 40, "I will ask the customer about timing.", .system)
++            context.ingest([mic], meeting: meeting)
++            check("late-cadence-before", !context.reconcileScheduledForTesting)
++            context.ingest([late, mic], meeting: meeting)
++            check("late-system-present-before-bus", context.recentEvidenceSegments(for: meeting.id).contains { $0 == late })
++            check("late-system-keeps-source", context.current?.commitments.contains {
++                $0.text == late.text && $0.source == .system && !$0.isAuthoritative
++            } == true)
++            check("late-cadence-counts-unique-before-bus", context.reconcileScheduledForTesting)
++            let priorEvidence = context.recentEvidenceSegments(for: meeting.id)
++            context.ingestFinal(TranscriptEvent(meetingID: meeting.id, source: late.source,
++                text: late.text, start: late.start, end: late.end, isFinal: true))
++            check("late-bus-exactly-once", context.recentEvidenceSegments(for: meeting.id) == priorEvidence)
++            check("late-order", context.recentEvidenceSegments(for: meeting.id).map(\.start) == [0, 10])
++            await context.runReconcileForTesting()
++            let captured = await capture.latest()
++            check("late-actual-cadence-one-completer", await capture.count() == 1)
++            check("late-actual-reader-order", captured?.recentSegments.map(\.start) == [0, 10])
++            check("late-save-readback", context.load(meetingID: meeting.id)?.commitments.map(\.text)
++                  == context.current?.commitments.map(\.text))
++            check("no-model-action-created", context.current?.candidateActions.isEmpty == true)
++        }
++        // Existing shared key includes track, so identical words cannot borrow mic authority.
++        do {
++            let (meeting, backing, context, _) = fixture()
++            defer { remove(meeting, backing, context) }
++            let mic = segment(10, 35, "I will ask for the report.", .mic)
++            let far = segment(10, 35, mic.text, .system)
++            context.ingest([mic], meeting: meeting)
++            for _ in 0..<4 { context.ingest([mic], meeting: meeting) }
++            check("repeated-single-no-cadence", !context.reconcileScheduledForTesting)
++            context.ingest([far], meeting: meeting)
++            check("same-words-cross-track-two-evidence", context.recentEvidenceSegments(for: meeting.id).count == 2)
++            check("same-words-cross-track-sources", Set(context.recentEvidenceSegments(for: meeting.id).map(\.source)) == Set([.mic, .system]))
++            check("same-words-still-below-cadence", !context.reconcileScheduledForTesting)
++            context.ingest([segment(5, 20, "Let's talk about the earlier event.", .system)], meeting: meeting)
++            check("new-unique-single-crosses-cadence", context.reconcileScheduledForTesting)
++            let before = context.recentEvidenceSegments(for: meeting.id)
++            context.ingestFinal(TranscriptEvent(meetingID: UUID(), source: .mic,
++                text: "I will ignore another meeting.", start: 1, end: 100, isFinal: true))
++            context.ingestFinal(TranscriptEvent(meetingID: meeting.id, source: .mic,
++                text: "Uncommitted provisional", start: 1, end: 100, isFinal: false))
++            check("unrelated-and-provisional-refused", context.recentEvidenceSegments(for: meeting.id) == before)
++        }
++        // Bus-only late speech must not change newest-complete-row budget semantics.
++        do {
++            let (meeting, backing, context, capture) = fixture()
++            defer { remove(meeting, backing, context) }
++            let recent = segment(200, 270, "Newest complete customer question.", .mic)
++            context.ingest([recent], meeting: meeting)
++            let older = segment(100, 105, String(repeating: "Old detail ", count: 400), .system)
++            context.ingestFinal(TranscriptEvent(meetingID: meeting.id, source: older.source,
++                text: older.text, start: older.start, end: older.end, isFinal: true))
++            await context.runReconcileForTesting()
++            if let snapshot = await capture.latest() {
++                let reader = MeetingContextReconciler.ModelCompleter.readerSegments(snapshot.recentSegments, endingAt: snapshot.now)
++                check("late-oversize-not-newest", reader.map(\.text) == [recent.text])
++                check("post-session-clock-latest-end", snapshot.now == recent.end)
++            } else { check("budget-snapshot-captured", false) }
++        }
++        // Bound the existing evidence domain by speech time, with late bus and command input.
++        do {
++            let (meeting, backing, context, capture) = fixture()
++            defer { remove(meeting, backing, context) }
++            let rows = (0..<400).map { segment(Double($0), Double($0 + 1), "Complete row \($0).", $0 % 2 == 0 ? .mic : .system) }
++            context.ingest(rows, meeting: meeting)
++            context.ingestFinal(TranscriptEvent(meetingID: meeting.id, source: .system,
++                text: "Old arrived after newest.", start: 2.5, end: 3, isFinal: true))
++            let command = segment(500, 501, "Excluded command", .mic, kind: .agentCommand)
++            context.ingest([command], meeting: meeting)
++            await context.runReconcileForTesting()
++            if let snapshot = await capture.latest() {
++                check("evidence-cap-retains-newest", snapshot.recentSegments.map(\.start).last == 399)
++                check("time-window-refuses-old", snapshot.recentSegments.allSatisfy { $0.start >= snapshot.now - 180 })
++                check("command-excluded", !snapshot.recentSegments.contains { $0.kind == .agentCommand })
++                let reader = MeetingContextReconciler.ModelCompleter.readerSegments(snapshot.recentSegments, endingAt: snapshot.now)
++                check("reader-newest-end-preserved", reader.last?.start == 399)
++                let prompt = MeetingContextReconciler.ModelCompleter.prompt(context: snapshot.context,
++                    now: snapshot.now, segments: reader)
++                let section = prompt.components(separatedBy: "(source is app metadata, not model output):\n").last ?? ""
++                check("reader-complete-budget", section.count <= MeetingContextReconciler.windowCharacterCap
++                      && section.contains("[segment 0,"))
++                let oversizedNewest = segment(400, 401, String(repeating: "z", count: 3_001), .mic)
++                check("oversized-newest-refused", MeetingContextReconciler.ModelCompleter.readerSegments(
++                    reader + [oversizedNewest], endingAt: 401).isEmpty)
++            } else { check("bounded-snapshot-captured", false) }
++            let own = context.recentEvidenceSegments(for: meeting.id)
++            check("evidence-last32-in-speech-order", own.count == 32 && own.map(\.start) == Array(368..<400).map(Double.init))
++        }
++        write("MEETING_INGEST_ORDER_SCOPE actualStore=true actualBusConsumer=true actualReader=true substitutedCompleter=true nativeSession=false nativeCapture=false modelIntent=false")
++        write("MEETING_INGEST_ORDER_\(wrong == 0 ? "OK" : "FAILED"): \(wrong)/\(checks) checks wrong")
++        return wrong == 0
++    }
++}

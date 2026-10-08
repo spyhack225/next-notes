@@ -1,0 +1,25 @@
+{
+  "state": "READ_ONLY_REVISED_DRIVER_REVIEW_READY_FOR_COORDINATED_NATIVE; NO_NATIVE_VERDICT",
+  "driverSHA256": "72f2ed9d04ee410013307442fdbbcd6e099bfe146ecefccdcdb3371971c7039b",
+  "exactASTSubstitutedRegression": "focused-lifecycle-substituted-result.json",
+  "regressionChecks": 17,
+  "regressionFailures": 0,
+  "sourceNativeScope": "No Source/compiler/model/OS child/native launch by reviewing agent. External ownership/time/Child/AppKit subprocess substituted; actual APIs remain unverified.",
+  "resolvedInitialComments": [
+    "Continuous drain discovers and quits late pinned apps once perPID/start.",
+    "Bounded cleanup continues after observation/quit exceptions while retaining error/refusal.",
+    "rootRefused latches in drain.",
+    "TIMEOUT and ABSENT included in negative marker scan.",
+    "Last required marker enforced; any negative marker prevents acceptance.",
+    "Post-drain source/owner/log read exceptions produce refused metadata.",
+    "Original8 owner pre/post hashes checked; active owner meeting status causes no-child refusal."
+  ],
+  "countsToInspectFromActualLog": {
+    "participantContracts": 22,
+    "speakerProjection": 81,
+    "pauseBoundary": 72,
+    "boundedAuthoredCases": 19,
+    "isolationDefaults": "dynamic; unchanged, not fixed33"
+  },
+  "remaining": "Actual pinned PID/start AppKit quit/drain/no-late-descendant native proof; per-case model-free memory sample limits; no words/noise/ASR/global-diarization/workload promotion. Finals needs separate real Parakeet budget."
+}

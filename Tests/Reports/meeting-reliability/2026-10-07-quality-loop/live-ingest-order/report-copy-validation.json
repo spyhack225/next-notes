@@ -1,0 +1,13 @@
+{
+  "copiedComponentPins": 20,
+  "mismatches": [],
+  "firstToCorrectedChangedFiles": [
+    "original/MeetingContextIngestOrderSelfTest.swift",
+    "fixed/MeetingContextIngestOrderSelfTest.swift"
+  ],
+  "onlyCommonTestExpressionChanged": true,
+  "producerPatchSHA256": "fda8bdbfcfb142b76fa72eda28e236f67972d6abba4e94181739ff797ec2e0fd",
+  "modelsLoadedByChild": false,
+  "compilerExecutedByChild": false,
+  "frozenCacheChangedByReport": false
+}

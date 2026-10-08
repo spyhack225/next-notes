@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-08T07:55:54.896551+00:00",
+  "beforeSHA": "72f2ed9d04ee410013307442fdbbcd6e099bfe146ecefccdcdb3371971c7039b",
+  "afterSHA": "5b87437228b0f171c755e5d4ffb1a77b0c7cd8db8ed6e1aef7cf2df1bc424ea6",
+  "change": "One model-free ingest-order case after producer same25 component proof; lifecycle loop byte unchanged",
+  "newExpectedMarker": "MEETING_INGEST_ORDER_OK",
+  "expectedChecks": 25,
+  "scope": "Plan unexecuted signed-app entry, not real capture or model meaning"
+}

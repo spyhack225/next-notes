@@ -1,0 +1,112 @@
+--- OwnedCompilerProcess.before-observation-race.py
++++ OwnedCompilerProcess.py
+@@ -9,20 +9,56 @@
+ import time
+ 
+ 
+-def observe(child, owned, listing, usage, *, root_refused=False):
++def observe(child, owned, listing, usage, *, root_refused=False, details=None):
+     rows = [row for row in listing() if not row[3].startswith('Z')]
+     by_pid = {row[0]: row for row in rows}
+     facts = {}
+     problems = []
+     unresolved = []
++    retired = set()
++    confirmation = None
++    confirmation_error = None
++    confirmed_once = False
++
++    def note(pid, kind, observed=None):
++        if details is not None and len(details) < 64:
++            details.append({'pid': pid, 'kind': kind,
++                            'expectedStart': owned.get(pid),
++                            'observedStart': observed,
++                            'isRoot': pid == child.pid})
++
++    def read_fact(pid):
++        nonlocal confirmation, confirmation_error, confirmed_once
++        fact = usage(pid)
++        if fact is not None and fact.get('processStart'):
++            return fact
++        if not confirmed_once:
++            confirmed_once = True
++            try:
++                confirmation = {row[0]: row for row in listing()}
++            except Exception as error:
++                confirmation_error = type(error).__name__
++        if confirmation is not None:
++            row = confirmation.get(pid)
++            if row is None or row[3].startswith('Z'):
++                retired.add(pid)
++                by_pid.pop(pid, None)
++                note(pid, 'confirmed absent' if row is None else 'confirmed zombie')
++                return None
++        note(pid, 'live attribution unavailable' if confirmation is not None
++             else 'confirmation listing failed: ' + str(confirmation_error))
++        return None
+ 
+     def admit(pid):
+-        fact = usage(pid)
++        fact = read_fact(pid)
++        if pid in retired:
++            return False
+         if fact is None or not fact.get('processStart'):
+             problems.append('owned attribution unavailable')
+             unresolved.append(pid)
+             return False
+         if pid in owned and fact['processStart'] != owned[pid]:
++            note(pid, 'process start mismatch', fact['processStart'])
+             problems.append('owned process start mismatch')
+             unresolved.append(pid)
+             return False
+@@ -34,7 +70,7 @@
+     # A recycled PID is never an ancestry seed and cannot admit its foreign children.
+     for pid in list(owned):
+         if pid in by_pid:
+-            fact = usage(pid)
++            fact = read_fact(pid)
+             if fact and fact.get('processStart') == owned[pid]:
+                 facts[pid] = fact
+ 
+@@ -63,7 +99,7 @@
+     for _ in range(len(rows) + 1):
+         added = False
+         for pid, parent, group, stat, args in rows:
+-            if pid in facts or pid in unresolved:
++            if pid in facts or pid in unresolved or pid in retired:
+                 continue
+             if parent in facts or (group == child.pid and group_allowed):
+                 if admit(pid):
+@@ -82,11 +118,12 @@
+     began = now()
+     errors = []
+     sent = set()
++    observation_details = []
+     remaining = []
+     unresolved = []
+     while now() - began < seconds:
+         try:
+-            live, unresolved, problems = observe(child, owned, listing, usage, root_refused=root_refused)
++            live, unresolved, problems = observe(child, owned, listing, usage, root_refused=root_refused, details=observation_details)
+             errors.extend(problems)
+             if child.pid in unresolved:
+                 root_refused = True
+@@ -124,7 +161,7 @@
+         pause(.1)  # Bounded disposable CLI drain, never a product-path wait.
+     # One final rescan catches a child spawned during the previous signal interval.
+     try:
+-        live, unresolved, problems = observe(child, owned, listing, usage, root_refused=root_refused)
++        live, unresolved, problems = observe(child, owned, listing, usage, root_refused=root_refused, details=observation_details)
+         errors.extend(problems)
+         remaining = [pid for pid, group, fact in live]
+     except Exception as error:
+@@ -134,7 +171,8 @@
+     child.poll()
+     if child.returncode is None:
+         unresolved.append(child.pid)
+-    return {'remainingOwnedPIDs': sorted(set(remaining)),
++    return {'observationDetails': observation_details,
++            'remainingOwnedPIDs': sorted(set(remaining)),
+             'unresolvedPIDs': sorted(set(unresolved), key=str),
+             'errors': sorted(set(errors)), 'seconds': now() - began,
+             'sent': [{'pid': pid, 'processStart': start, 'signal': int(sig)}

@@ -1,0 +1,196 @@
+{
+  "state": "PREDECLARED_READ_ONLY_PLAN; NO_NATIVE_LAUNCH_OR_BEHAVIOR_VERDICT",
+  "scope": "Source7 focused full-app entry acceptance; model-free means signed native app with external inference substituted, not hardware model quality. Original/fixed component proof remains separately scoped.",
+  "cases": [
+    {
+      "case": "bounded-audio",
+      "args": [
+        "--selftest-meeting-bounded-audio"
+      ],
+      "marker": "MEETING_BOUNDED_AUDIO_OK",
+      "secondary": [
+        "MEETING_BOUNDED_AUDIO_SCOPE",
+        "MEETING_BOUNDED_AUDIO_TRANSPORT"
+      ],
+      "modelFree": true,
+      "persistence": "Authored temporary CAFs removed on return; harness Settings required; scripted ASR. No owner Meetings writes.",
+      "expected": "19 authored cases, both channels, all raw cuts/PCM/final transport, fallback/replacement/read-error/cancellation; all checks pass.",
+      "default": "Explicit bounded guard true only here; pause flag guard false; original arrays used as baseline."
+    },
+    {
+      "case": "pause-experiment",
+      "args": [
+        "--selftest-meeting-quiet-input",
+        "--meeting-quiet-pause-boundaries",
+        "--meeting-quiet-pause-experiment"
+      ],
+      "marker": "MEETING_PAUSE_BOUNDARIES_OK",
+      "secondary": [
+        "MEETING_PAUSE_BOUNDARIES mode=digital-zero-experiment checks=72 failures=0"
+      ],
+      "modelFree": true,
+      "persistence": "No corpus loading/capture/owner store; actual actor with injected empty ASR and joined cancel/flush.",
+      "expected": "72 checks zero failures; shared RMS negatives unchanged; burst/16000/319 packet schedules.",
+      "default": "Only explicit quiet-input+pause flag changes window policy; bounded guard false."
+    },
+    {
+      "case": "participant-contracts",
+      "args": [
+        "--selftest-meeting-participant-observation",
+        "contracts"
+      ],
+      "marker": "MEETING_PARTICIPANT_OBSERVATION_OK",
+      "secondary": [
+        "contracts checks=22 physical-observation-unverified"
+      ],
+      "modelFree": true,
+      "persistence": "Generic contract inputs; no actual AX/browser read and no private observation save.",
+      "expected": "22 checks; authority/unique target/URL negatives; no names assigned.",
+      "default": "Explicit requested flag admission negatives exercised."
+    },
+    {
+      "case": "meeting-context",
+      "args": [
+        "--selftest-meeting-context"
+      ],
+      "marker": "MEETING_CONTEXT_OK",
+      "secondary": [
+        "MEETING_SPEAKER_PROJECTION_PRE_RENAME_OK",
+        "MEETING_SPEAKER_PROJECTION_OK checks=81"
+      ],
+      "modelFree": true,
+      "persistence": "Temporary isolated MeetingStore/context roots and injected no-op reconciler; actual commit/rename/save/audio release/fresh reader; temporary root cleanup.",
+      "expected": "Projection81 including prior51; all context outer checks green. No native clustering/voice binding.",
+      "default": "Bounded/pause flags absent: original array/RMS guards false; speaker projection tests actual consumer, not native clustering."
+    },
+    {
+      "case": "meeting-resume",
+      "args": [
+        "--selftest-meeting-resume"
+      ],
+      "marker": "MEETING_RESUME_OK",
+      "secondary": [],
+      "modelFree": true,
+      "persistence": "Temporary isolated meetings, authored silence CAF, fake pipeline stages and injected watchdog/clock boundaries; may emit harness metrics.",
+      "expected": "4/4 resumable stage flows and retained transcript-throttle/writer failures green; intentional waits include2s and2x5.6s.",
+      "default": "Original array/RMS guards false; normal resume planner/persistence regressions retained."
+    },
+    {
+      "case": "meeting-backlog",
+      "args": [
+        "--selftest-meeting-backlog"
+      ],
+      "marker": "MEETING_BACKLOG_OK",
+      "secondary": [
+        "MEETING_BACKLOG_COVERED",
+        "MEETING_BACKLOG_CALLS"
+      ],
+      "modelFree": true,
+      "persistence": "180s synthetic in-memory audio; injected1.5s ASR; harness metrics only.",
+      "expected": "At least99% non-silent coverage, <=.1s lost, no dropped seconds/spans, merge reduces calls; roughly half-minute intentional schedule.",
+      "default": "Original array/RMS guards false; validates original actor policy/backlog."
+    },
+    {
+      "case": "audio-retention",
+      "args": [
+        "--selftest-audio-retention"
+      ],
+      "marker": "AUDIO_RETENTION_OK",
+      "secondary": [],
+      "modelFree": true,
+      "persistence": "Isolated stores/temporary CAFs; injected free space/clock; actual writer/file IO.",
+      "expected": "Alignment,72h retention, retention/start disk guards, save/write refusal/sweep exclusions preserved.",
+      "default": "Original array/RMS guards false; no native ASR."
+    },
+    {
+      "case": "meeting-tap-retry",
+      "args": [
+        "--selftest-meeting-tap-retry"
+      ],
+      "marker": "MEETING_TAP_RETRY_OK",
+      "secondary": [],
+      "modelFree": true,
+      "persistence": "Isolated MeetingStore; real Session seams injected mic permission/tap/native call; overrides restored.",
+      "expected": "Late join2failures then success, first-capture clock,10attempt exhaustion, Stop cancels retry; no later model handoff.",
+      "default": "Original array/RMS guards false; no actual microphone/process tap."
+    },
+    {
+      "case": "owner-isolation",
+      "args": [
+        "--selftest-store-isolation"
+      ],
+      "marker": "STORE_ISOLATION_OK",
+      "secondary": [],
+      "modelFree": true,
+      "persistence": "Reads owner store/default snapshots; writes harness suites/temp generic model fixtures; scripted agent flows, host readiness and loopback HTTP discovery.",
+      "expected": "All watched21files and dynamic defaults unchanged; count33 historical/environment-specific, not fixed. Report/reject any embedded negative verdict.",
+      "default": "Original array/RMS guards false; does not include owner Meetings tree in SelfTestStoreGuard."
+    },
+    {
+      "case": "meeting-finals",
+      "args": [
+        "--selftest-meeting-finals",
+        "<explicit pinned fixtures directory>"
+      ],
+      "marker": "MEETING_FINALS_OK",
+      "secondary": [],
+      "modelFree": false,
+      "persistence": "Reads3external WAVs+manifest; segments in memory, no MeetingStore; real Parakeet queue runtime/model cache/harness usage.",
+      "expected": "Real live+final ASR language/word recall/windows/RTF; missing fixtures/model emits ABSENT and no quality pass.",
+      "default": "No bounded/pause modifier admissible under this requested flag; original production arrays/RMS exercised. SEPARATE native resource/call/time budget required."
+    }
+  ],
+  "modelFreeGuard": {
+    "maxSwapGiB": 8,
+    "minDiskFreeGiB": 6.5,
+    "minimumStartReportedFreePercent": 55,
+    "minimumOngoingReportedFreePercent": 50,
+    "maxSummedOwnedFootprintBytes": 1000000000,
+    "externalSeconds": 90,
+    "AppKitDrainSeconds": 30,
+    "internalSelfTestTimeoutSeconds": 150,
+    "sampling": "Exact pinned owned process start identities; sample coverage/peak limits reported; summed footprint not unique physical RAM."
+  },
+  "requiredAcceptance": [
+    "Exact candidate binary SHA/strict deep signature/source pins unchanged; one flag per process; no install.",
+    "No guard/refusal/errors; process exit0; required markers and counts; final expected diagnostic verdict; no negative FAILED/MISSING/SILENT/TIMEOUT/ABSENT marker accepted as success.",
+    "AppKit quit/drain on external refusal; no signals to app; every exact owned descendant joins before any further launch.",
+    "Separate owner exact original8 meeting/input/output file pins plus watched stores/defaults before+after batch; StoreIsolation alone excludes Meetings tree.",
+    "No blanket product quality/speed/memory/voice-binding promotion from scripted results."
+  ],
+  "invalidFlags": [
+    "--selftest-meeting-pause-boundary",
+    "--selftest-meeting-pause-boundaries"
+  ],
+  "driverReadOnlyReview": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-seventh-focused-guarded.py",
+    "sha256": "f21781a54c05c3af99e99e791ca02393a6b639a622a610b6d3b04338a76ea9b9",
+    "state": "UNLAUNCHED_REPAIR_REQUIRED",
+    "normal": "Normal finish polls launcher and all independently pinned live/unresolved descendants; exact path/start checked before AppKit quit; observer only, no signal-drain called.",
+    "gaps": [
+      "Quit is attempted only once before drain: late newly observed exact app receives no quit.",
+      "One observe/quit exception aborts drain instead of bounded re-observation/cleanup of independently pinned revalidated apps.",
+      "Retain rootRefused if root attribution becomes unresolved inside drain.",
+      "Presence-only marker scan should enforce final marker/counts/negative markers.",
+      "Post-drain source/log observation failures must retain a refused metadata verdict, not silently lose evidence."
+    ],
+    "internalWatchdog": "Current app watchdog uses exit(1); keep internal150 above external90+30drain. Never treat internal timeout as safe AppKit quit."
+  },
+  "sourcePins": {
+    "Sources/NextNotes/NextNotesApp.swift": "b91f52f7a2f2f45dcbf254fcecaa3f6e8c650e619e946a83201e016a2c41f7d5",
+    "Sources/NextNotes/Core/AudioConversion.swift": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+    "Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift": "37c798f66f1c8d2999421f6c6a1429eca0887d49e7bbec11592df908d1daec51",
+    "Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift": "da9e449e521d70dbe346727d96b2610c291b7b71b98c97afe141d450e83be8cd",
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift": "9a69c9e5a688d92437c26242db745178928f957ced02a3bb16691b87425214d5",
+    "Sources/NextNotes/Meetings/MeetingFinalsSelfTest.swift": "07ed2d4090fe51ccb9cff6193d28a032fd8b01c22eb2cea54717db21fbdfacbd",
+    "Sources/NextNotes/Meetings/MeetingResumeSelfTest.swift": "10d4caa3654808762633c674618537c99e646572dfc02ea427d61039aa8f7186",
+    "Sources/NextNotes/Meetings/MeetingBacklogSelfTest.swift": "98ffdc053702a9a45ea80b0d39f76b0b59a979d0b6d80f0748568bd767c0c5eb",
+    "Sources/NextNotes/Meetings/AudioRetentionSelfTest.swift": "be8f347fe10fd19b1cfe1bf6dfabe5ef2131de694bad637c290e19a0f5382d9a",
+    "Sources/NextNotes/Meetings/MeetingTapRetrySelfTest.swift": "be8605841315948ee0530ebff8330628aaf5bbd8f78a035b78e5affca73faa4d",
+    "Sources/NextNotes/Support/StoreIsolationSelfTest.swift": "c250852308694648c0382577f6bcf9b917d99d22477962c36b903d0b84717d92",
+    "Sources/NextNotes/Support/SelfTestStoreGuard.swift": "dc2733998fbb09ce1128d2f5dfeb9ce782e821ec2ef752330dab5c5a2de63eed",
+    "Scripts/run-selftest.sh": "0106a222d0a09872adf3f428e2ea76dabb94aba565c23f97510ffed4346e68c4"
+  }
+}

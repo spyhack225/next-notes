@@ -1,0 +1,111 @@
+{
+  "at": "2026-10-08T07:35:36.147867+00:00",
+  "scope": "post-joined current process snapshot; no causal timeline or summed physical capacity claim; no process stopped",
+  "largestSampledFootprints": [
+    {
+      "pid": 1871,
+      "name": "Codex (Renderer)",
+      "processStart": 31240047629,
+      "footprintBytes": 1124814280,
+      "rssBytes": 994951168
+    },
+    {
+      "pid": 99741,
+      "name": "com.apple.Virtualization.VirtualMachine",
+      "processStart": 1413309134287,
+      "footprintBytes": 905725776,
+      "rssBytes": 273022976
+    },
+    {
+      "pid": 12014,
+      "name": "Google Chrome Helper (Renderer)",
+      "processStart": 89971095933,
+      "footprintBytes": 877254200,
+      "rssBytes": 194609152
+    },
+    {
+      "pid": 11596,
+      "name": "Google Chrome Helper (Renderer)",
+      "processStart": 89043498900,
+      "footprintBytes": 696650584,
+      "rssBytes": 169279488
+    },
+    {
+      "pid": 31982,
+      "name": "NextNotes",
+      "processStart": 466489713701,
+      "footprintBytes": 666783104,
+      "rssBytes": 78069760
+    },
+    {
+      "pid": 11821,
+      "name": "Google Chrome Helper (Renderer)",
+      "processStart": 89228090837,
+      "footprintBytes": 534808880,
+      "rssBytes": 191905792
+    },
+    {
+      "pid": 10562,
+      "name": "Google Chrome",
+      "processStart": 83026121237,
+      "footprintBytes": 510266248,
+      "rssBytes": 287391744
+    },
+    {
+      "pid": 1864,
+      "name": "codex",
+      "processStart": 31226253295,
+      "footprintBytes": 463717864,
+      "rssBytes": 260751360
+    },
+    {
+      "pid": 24536,
+      "name": "Claude Helper (Renderer)",
+      "processStart": 304849087818,
+      "footprintBytes": 463211520,
+      "rssBytes": 131842048
+    },
+    {
+      "pid": 12438,
+      "name": "Google Chrome Helper (Renderer)",
+      "processStart": 92786407959,
+      "footprintBytes": 449956264,
+      "rssBytes": 239747072
+    },
+    {
+      "pid": 1535,
+      "name": "ChatGPT",
+      "processStart": 30651281544,
+      "footprintBytes": 446909704,
+      "rssBytes": 285671424
+    },
+    {
+      "pid": 1641,
+      "name": "Codex (Service)",
+      "processStart": 30770680626,
+      "footprintBytes": 401491672,
+      "rssBytes": 58916864
+    },
+    {
+      "pid": 11820,
+      "name": "Google Chrome Helper (Renderer)",
+      "processStart": 89226367493,
+      "footprintBytes": 400623776,
+      "rssBytes": 162873344
+    },
+    {
+      "pid": 1950,
+      "name": "Codex (Renderer)",
+      "processStart": 31593252142,
+      "footprintBytes": 356648928,
+      "rssBytes": 101040128
+    },
+    {
+      "pid": 10581,
+      "name": "Google Chrome Helper",
+      "processStart": 83148804299,
+      "footprintBytes": 340952816,
+      "rssBytes": 60243968
+    }
+  ]
+}

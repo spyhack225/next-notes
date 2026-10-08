@@ -1,0 +1,54 @@
+{
+  "audit": "read-only source review; no compiler/model/canonical write",
+  "concreteBlockers": [],
+  "callers": [
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingSession.swift",
+      "kind": "sole production batch ingest caller",
+      "current": "full sorted transcript",
+      "proposed": "same exact wake-processed incoming final as existing bus event"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextBusBridge.swift",
+      "kind": "production separate bus-final consumer",
+      "behavior": "same ingestFinal and existing shared source-aware keys; no transport change"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift",
+      "kind": "one explicit isolated fixture batch"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift",
+      "kind": "explicit fixture batches, including replace then replay"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "kind": "isolated optional admission fixtures; first singleton then cumulative batch preserves shared dedup"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingActionIntentProductionReplaySelfTest.swift",
+      "kind": "explicit reconstructed transcript batch; no input target/prompt change"
+    }
+  ],
+  "resetLoad": {
+    "resetAndReplace": "same task cancellation, current assignment, key clear, evidence clear, cadence reset; obsolete count cursor removed",
+    "newMeeting": "same ID mismatch clears keys/buffer/cadence; same current empty context construction",
+    "load": "read-only decoder returns committed context; it does not restore current/cursor/keys in either variant",
+    "replaceReplay": "clearing keys permits explicit full batch to populate buffer while extractor existing text dedup preserves retained rows; same baseline behavior",
+    "pendingResults": "same cancellation/meeting-ID guards retained; no new restore/recovery contract"
+  },
+  "equalStart": "strict > insertion appends after equal-start rows, matching existing Session.insertSegment stable arrival order; no speaker/end-time reordering",
+  "dedupAuthority": "existing start|end|source|text key unchanged; source-distinct same speech survives evidence; key deliberately still omits speaker/kind, unchanged limitation",
+  "extraction": "only newly keyed rows reach existing extractor once; no candidate construction is added. Extractor commitment/decision/topic lists still dedup by text only, a pre-existing structured attribution limit separate from source-labelled evidence.",
+  "boundedBuffer": "each unique noncommand insert searches <=360 rows, briefly <=361, then evicts oldest start; late obsolete row at capacity is evicted rather than displacing newest. No production history scan.",
+  "reader": "same 180s window/command exclusion, latest32 evidence view and complete-labelled character budget; source indices refer same selected rows. Oversized newest refusal unchanged.",
+  "clockScope": "late-arrival append-order failure is addressed. Equal-start or overlapping latest-start row whose end is not maximum end remains outside this patch; maximum-end followup excluded.",
+  "unexecutedConsumerGaps": [
+    "native complete Session and real capture/ASR",
+    "actual bus scheduler/subscriber transport",
+    "production MeetingStore backing",
+    "equal-start case runtime assertion beyond comparator audit",
+    "Mini/Qwen semantic recall",
+    "long-history latency/full-duplex resource behavior"
+  ]
+}

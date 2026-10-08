@@ -1,0 +1,109 @@
+{
+  "executed": false,
+  "pins": {
+    "original/MeetingContextStore.swift": {
+      "SHA256": "5053281af6db8a3bf223512ba792d90afedce4939fe6d71077fce350c6dd3daa",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/original/MeetingContextStore.swift",
+      "scope": "whole exact file"
+    },
+    "original/MeetingContext.swift": {
+      "SHA256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContext.swift",
+      "scope": "whole exact file"
+    },
+    "original/MeetingContextExtractor.swift": {
+      "SHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextExtractor.swift",
+      "scope": "whole exact file"
+    },
+    "original/TranscriptModels.swift": {
+      "SHA256": "d33552054590043edcdf220470f7152dccf5a377ecd5aedb4f5d273be0635835",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingModels.swift",
+      "scope": "Exact production AudioSource/TranscriptKind/TranscriptSegment prefix; unrelated meeting/calendar schema excluded."
+    },
+    "original/TranscriptEvent.swift": {
+      "SHA256": "8ea6cf8a85c79689f4e5a4da52dafb4121441cef20e71889510f5e12f6e03804",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Transcription/TranscriptBus.swift",
+      "scope": "Exact event model; bus transport is substituted explicitly."
+    },
+    "original/MeetingContextReconciler.swift": {
+      "SHA256": "ed5dabb3e7c7f7ad5b0dcbc7460fdf13b582e0d0fd325f7606c4dd71bf484dec",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "scope": "Exact cadence/snapshot/suggestion/window/enable/reader/prompt methods; model resolver/inference absent. apply boundary accepts only empty suggestion. No semantic output graded."
+    },
+    "original/SessionAdapter.swift": {
+      "SHA256": "073a7172c6001d940f827909ddab206ddbf2f0bf5a3be7148483f21553ea1878",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/original/MeetingSession.swift",
+      "scope": "Exact add/insertSegment bodies in model-free adapter. Capture/wake identity, latency, writer/throttle, ASR and app controller boundaries substituted explicitly. Publication recorded, bus consumer delivered deterministically later; no actual async bridge/capture proof."
+    },
+    "original/Boundaries.swift": {
+      "SHA256": "568cdc80b9312edccedc9b4fd31e70f8c198507d335e5e52227f8c8817a511d8",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/Boundaries.swift",
+      "scope": "Component boundaries/driver; no owner/model runtime linked."
+    },
+    "original/Main.swift": {
+      "SHA256": "3b6b52494249b95c7270474c522c60fc1e13849918454677aa863fa45ef2fdf9",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/Main.swift",
+      "scope": "Component boundaries/driver; no owner/model runtime linked."
+    },
+    "original/MeetingContextIngestOrderSelfTest.swift": {
+      "SHA256": "d87ac6b87d6cf53b5239ce2acd9052f24d683cbf72d7e45c083c449a53c4a49d",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/MeetingContextIngestOrderSelfTest.swift",
+      "scope": "Same maintained actual Store/consumer/cadence/reader test for both variants; no assertions changed."
+    },
+    "fixed/MeetingContextStore.swift": {
+      "SHA256": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/fixed/MeetingContextStore.swift",
+      "scope": "whole exact file"
+    },
+    "fixed/MeetingContext.swift": {
+      "SHA256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContext.swift",
+      "scope": "whole exact file"
+    },
+    "fixed/MeetingContextExtractor.swift": {
+      "SHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextExtractor.swift",
+      "scope": "whole exact file"
+    },
+    "fixed/TranscriptModels.swift": {
+      "SHA256": "d33552054590043edcdf220470f7152dccf5a377ecd5aedb4f5d273be0635835",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingModels.swift",
+      "scope": "Exact production AudioSource/TranscriptKind/TranscriptSegment prefix; unrelated meeting/calendar schema excluded."
+    },
+    "fixed/TranscriptEvent.swift": {
+      "SHA256": "8ea6cf8a85c79689f4e5a4da52dafb4121441cef20e71889510f5e12f6e03804",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Transcription/TranscriptBus.swift",
+      "scope": "Exact event model; bus transport is substituted explicitly."
+    },
+    "fixed/MeetingContextReconciler.swift": {
+      "SHA256": "ed5dabb3e7c7f7ad5b0dcbc7460fdf13b582e0d0fd325f7606c4dd71bf484dec",
+      "origin": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "scope": "Exact cadence/snapshot/suggestion/window/enable/reader/prompt methods; model resolver/inference absent. apply boundary accepts only empty suggestion. No semantic output graded."
+    },
+    "fixed/SessionAdapter.swift": {
+      "SHA256": "1d59058808639ace531c8ec4a471e71773c76e1df23aa40d563e3ecdd7a3a110",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/fixed/MeetingSession.swift",
+      "scope": "Exact add/insertSegment bodies in model-free adapter. Capture/wake identity, latency, writer/throttle, ASR and app controller boundaries substituted explicitly. Publication recorded, bus consumer delivered deterministically later; no actual async bridge/capture proof."
+    },
+    "fixed/Boundaries.swift": {
+      "SHA256": "568cdc80b9312edccedc9b4fd31e70f8c198507d335e5e52227f8c8817a511d8",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/Boundaries.swift",
+      "scope": "Component boundaries/driver; no owner/model runtime linked."
+    },
+    "fixed/Main.swift": {
+      "SHA256": "3b6b52494249b95c7270474c522c60fc1e13849918454677aa863fa45ef2fdf9",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/Main.swift",
+      "scope": "Component boundaries/driver; no owner/model runtime linked."
+    },
+    "fixed/MeetingContextIngestOrderSelfTest.swift": {
+      "SHA256": "d87ac6b87d6cf53b5239ce2acd9052f24d683cbf72d7e45c083c449a53c4a49d",
+      "origin": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/MeetingContextIngestOrderSelfTest.swift",
+      "scope": "Same maintained actual Store/consumer/cadence/reader test for both variants; no assertions changed."
+    }
+  },
+  "noModels": true,
+  "clockFollowupIncluded": false,
+  "expectedOriginal": "Original source regression failures retained; not executed yet.",
+  "scope": "Whole actual ContextStore/Extractor/models and exact Session.add/insertSegment/reader/cadence bodies; substituted module startup/capture/bus publication/controller/wake/store/runtime boundaries. No native Session/model/store fixture claim."
+}

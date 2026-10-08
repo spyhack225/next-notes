@@ -1,0 +1,37 @@
+INGEST_COMPONENT_CHECK case=actual-session-ordered-insert pass=true
+INGEST_COMPONENT_CHECK case=actual-caller-keeps-late-source-before-bus pass=false
+INGEST_COMPONENT_CHECK case=actual-caller-cadence-before-bus pass=false
+INGEST_COMPONENT_CHECK case=actual-caller-source-authority pass=false
+INGEST_COMPONENT_CHECK case=existing-publication-tasks-delivered pass=true
+INGEST_COMPONENT_CHECK case=existing-bus-consumer-dedups pass=false
+INGEST_COMPONENT_CHECK case=existing-bus-consumer-speech-order pass=false
+MEETING_INGEST_ORDER_CHECK case=late-cadence-before pass=true
+MEETING_INGEST_ORDER_CHECK case=late-system-present-before-bus pass=false
+MEETING_INGEST_ORDER_CHECK case=late-system-keeps-source pass=false
+MEETING_INGEST_ORDER_CHECK case=late-cadence-counts-unique-before-bus pass=false
+MEETING_INGEST_ORDER_CHECK case=late-bus-exactly-once pass=false
+MEETING_INGEST_ORDER_CHECK case=late-order pass=false
+MEETING_INGEST_ORDER_CHECK case=late-actual-cadence-one-completer pass=true
+MEETING_INGEST_ORDER_CHECK case=late-actual-reader-order pass=false
+MEETING_INGEST_ORDER_CHECK case=late-save-readback pass=true
+MEETING_INGEST_ORDER_CHECK case=no-model-action-created pass=true
+MEETING_INGEST_ORDER_CHECK case=repeated-single-no-cadence pass=true
+MEETING_INGEST_ORDER_CHECK case=same-words-cross-track-two-evidence pass=false
+MEETING_INGEST_ORDER_CHECK case=same-words-cross-track-sources pass=false
+MEETING_INGEST_ORDER_CHECK case=same-words-still-below-cadence pass=true
+MEETING_INGEST_ORDER_CHECK case=new-unique-single-crosses-cadence pass=false
+MEETING_INGEST_ORDER_CHECK case=unrelated-and-provisional-refused pass=true
+MEETING_INGEST_ORDER_CHECK case=late-oversize-not-newest pass=false
+MEETING_INGEST_ORDER_CHECK case=post-session-clock-latest-end pass=false
+MEETING_INGEST_ORDER_CHECK case=evidence-cap-retains-newest pass=false
+MEETING_INGEST_ORDER_CHECK case=time-window-refuses-old pass=true
+MEETING_INGEST_ORDER_CHECK case=command-excluded pass=true
+MEETING_INGEST_ORDER_CHECK case=reader-newest-end-preserved pass=false
+MEETING_INGEST_ORDER_CHECK case=reader-complete-budget pass=true
+MEETING_INGEST_ORDER_CHECK case=oversized-newest-refused pass=true
+MEETING_INGEST_ORDER_CHECK case=evidence-last32-in-speech-order pass=false
+MEETING_INGEST_ORDER_SCOPE actualStore=true actualBusConsumer=true actualReader=true substitutedCompleter=true nativeSession=false nativeCapture=false modelIntent=false
+MEETING_INGEST_ORDER_FAILED: 14/25 checks wrong
+INGEST_COMPONENT_CHECK case=unchanged-maintained-regression pass=false
+INGEST_COMPONENT_SCOPE actualContextStore=true exactSessionAddBody=true exactReader=true substitutedCapture=true substitutedWake=true substitutedBusTransport=true substitutedMeetingStore=true nativeSession=false modelIntent=false
+INGEST_COMPONENT_FAILED: 6 wrong

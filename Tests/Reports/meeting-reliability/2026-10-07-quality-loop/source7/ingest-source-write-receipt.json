@@ -1,0 +1,28 @@
+{
+  "at": "2026-10-08T07:55:12.231513+00:00",
+  "paths": [
+    "Sources/NextNotes/Meetings/MeetingSession.swift",
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+    "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift",
+    "Sources/NextNotes/NextNotesApp.swift"
+  ],
+  "before": {
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "078c99ef680f889aa3678ff8fb43a5cfe124a909b741cd2487b98debc11c077b",
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": "5053281af6db8a3bf223512ba792d90afedce4939fe6d71077fce350c6dd3daa",
+    "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift": null,
+    "Sources/NextNotes/NextNotesApp.swift": "b91f52f7a2f2f45dcbf254fcecaa3f6e8c650e619e946a83201e016a2c41f7d5"
+  },
+  "after": {
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+    "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91",
+    "Sources/NextNotes/NextNotesApp.swift": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8"
+  },
+  "producerPatchSHA": "fda8bdbfcfb142b76fa72eda28e236f67972d6abba4e94181739ff797ec2e0fd",
+  "indexInvariant": true,
+  "sourceWritesJoined": true,
+  "componentFixedSame25Passed": true,
+  "nativeAppProof": false,
+  "installed": false,
+  "scope": "Reviewed exact producer patch, typed unchanged maintained fixture, surgical standard-syntax App hook; broader overlap clock patch excluded"
+}

@@ -1,0 +1,63 @@
+{
+  "canonicalSourcesChanged": false,
+  "compilerExecuted": false,
+  "modelsLoaded": false,
+  "productionPatchSHA256": "fda8bdbfcfb142b76fa72eda28e236f67972d6abba4e94181739ff797ec2e0fd",
+  "producerFiles": [
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingSession.swift",
+      "beforeSHA256": "078c99ef680f889aa3678ff8fb43a5cfe124a909b741cd2487b98debc11c077b",
+      "afterSHA256": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "beforeSHA256": "5053281af6db8a3bf223512ba792d90afedce4939fe6d71077fce350c6dd3daa",
+      "afterSHA256": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200"
+    }
+  ],
+  "sourcePins": [
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "SHA256": "65d422c38a8c62c9f0b57c7a8587792b76fb0bf95079360117f9f10c24aa8d95"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextBusBridge.swift",
+      "SHA256": "e96883f34413cfb82d528fe3b11578e02dd97f49f253c356919f0cfb87f04d5f"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextExtractor.swift",
+      "SHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContext.swift",
+      "SHA256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingModels.swift",
+      "SHA256": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Transcription/TranscriptBus.swift",
+      "SHA256": "22e061958f3b7c9d2bb7e9f9c443ca67b0c50a125e3b3bfd9845d7877b26b387"
+    }
+  ],
+  "boundedClockFollowup": {
+    "patchSHA256": "07ad75625b85e658db4692d35bd0206263df5e9d4bb84f2459cea0e6cd4541c7",
+    "beforeSHA256": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+    "afterSHA256": "6a98612da1ab605198428b545f05d268a12c0f6d676a6f55bce17633bb16662e",
+    "scope": "Separate overlapping-track post-session clock contract; <=360 retained ends only, not full-history scan.",
+    "adoption": "EXCLUDED from component fixed and maintained acceptance; observation only, root separate authority required."
+  },
+  "originalFixedVerdict": "NOT_EXECUTED",
+  "maintainedFixture": {
+    "sourceSHA256": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91",
+    "patchSHA256": "3df6e2f95851e996a7e32c29bff92f1d5bcee5e7c70b2f39de268daf8b31a034",
+    "nativeStoreIntended": true,
+    "nativeExecuted": false
+  },
+  "AppHook": {
+    "beforeSHA256": "f1835c5a00d09096bbee57a020eaddbe5ed23e6dfa5ba69ff9fd33cdc7efcfd9",
+    "patchSHA256": "5c8f3e6ea9790dac1d4aeb17cf4d04cf822d993091bd2740b9aadf0bf22a4b17"
+  },
+  "testExpressionCorrectionReceipt": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/test-expression-correction-receipt.json"
+}

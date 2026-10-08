@@ -1,0 +1,16 @@
+{
+  "componentVerdict": "PASS_FIXED_AFTER_ORIGINAL_RED",
+  "originalMaintainedFailed": 14,
+  "fixedMaintainedFailed": 0,
+  "maintainedChecks": 25,
+  "originalDirectProducerFailed": 5,
+  "fixedDirectProducerFailed": 0,
+  "frozenComponentManifestSHA256": "2ded63edb836fc07976c889fb74fc5e586840661b5bac554a99ee0589c9160f9",
+  "producerPatchSHA256": "fda8bdbfcfb142b76fa72eda28e236f67972d6abba4e94181739ff797ec2e0fd",
+  "appProofPending": true,
+  "semanticRecallProof": false,
+  "nativeSessionProof": false,
+  "actualBusTransportProof": false,
+  "clockOverlapFollowupIncluded": false,
+  "report": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-loop/live-ingest-order"
+}

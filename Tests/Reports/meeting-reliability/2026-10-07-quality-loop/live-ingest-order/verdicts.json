@@ -1,0 +1,78 @@
+{
+  "original": {
+    "producerFailureCases": [
+      "actual-caller-keeps-late-source-before-bus",
+      "actual-caller-cadence-before-bus",
+      "actual-caller-source-authority",
+      "existing-bus-consumer-dedups",
+      "existing-bus-consumer-speech-order"
+    ],
+    "producerFailureCount": 5,
+    "maintainedFailureCases": [
+      "late-system-present-before-bus",
+      "late-system-keeps-source",
+      "late-cadence-counts-unique-before-bus",
+      "late-bus-exactly-once",
+      "late-order",
+      "late-actual-reader-order",
+      "same-words-cross-track-two-evidence",
+      "same-words-cross-track-sources",
+      "new-unique-single-crosses-cadence",
+      "late-oversize-not-newest",
+      "post-session-clock-latest-end",
+      "evidence-cap-retains-newest",
+      "reader-newest-end-preserved",
+      "evidence-last32-in-speech-order"
+    ],
+    "maintainedFailed": 14,
+    "maintainedTotal": 25,
+    "aggregateChecksAreNotDistinctFailures": true,
+    "compile": "PASS",
+    "runtime": "EXPECTED_RED"
+  },
+  "fixed": {
+    "verdict": "PASS_COMPONENT",
+    "compile": "PASS",
+    "compileSeconds": 3.7387369999996736,
+    "runtime": "PASS",
+    "runtimeSeconds": 0.4637821249998524,
+    "maintainedFailed": 0,
+    "maintainedTotal": 25,
+    "coupledFailed": 0,
+    "coupledChecks": 7,
+    "aggregateMaintainedCheck": true,
+    "sourceInvariant": true,
+    "sourceCount": 1175,
+    "guardTriggered": false,
+    "descendantsJoined": true,
+    "signalsSent": false,
+    "confirmedAbsentCompilerDescendant": [
+      {
+        "pid": 1712,
+        "kind": "confirmed absent",
+        "expectedStart": 1444996089401,
+        "observedStart": null,
+        "isRoot": false
+      }
+    ],
+    "nativeAppProof": "PENDING_SOURCE7_BUILD"
+  },
+  "clockFollowupIncluded": false,
+  "sourceScope": "Whole actual ContextStore/Extractor, exact Session.add/insertSegment and actual reader/cadence bodies; substituted capture, wake, controller, MeetingStore, bus transport and model boundaries.",
+  "nativeSession": false,
+  "nativeBusTransport": false,
+  "actualMeetingStore": false,
+  "modelMeaning": false,
+  "canonicalSourcesWrittenByChild": false,
+  "fixedHistoricalRefusedPhase": {
+    "verdict": "NOT_EXECUTED",
+    "compilationAttempt": "GUARD_REFUSED",
+    "reason": "owned attribution unavailable",
+    "compilerExit": -15,
+    "seconds": 2.769755665998673,
+    "descendantsJoined": true,
+    "producerVerdict": null,
+    "nextAttempt": "PENDING_ROOT"
+  },
+  "sameFrozen20Pins": true
+}

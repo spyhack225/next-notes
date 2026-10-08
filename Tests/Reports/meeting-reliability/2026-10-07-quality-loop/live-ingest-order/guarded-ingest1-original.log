@@ -1,0 +1,7 @@
+/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/component/original/MeetingContextIngestOrderSelfTest.swift:113:95: error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+111 |             let (meeting, backing, context, capture) = fixture()
+112 |             defer { remove(meeting, backing, context) }
+113 |             let rows = (0..<400).map { segment(Double($0), Double($0 + 1), "Complete row \($0).", $0 % 2 == 0 ? .mic : .system) }
+    |                                                                                               `- error: the compiler is unable to type-check this expression in reasonable time; try breaking up the expression into distinct sub-expressions
+114 |             context.ingest(rows, meeting: meeting)
+115 |             context.ingestFinal(TranscriptEvent(meetingID: meeting.id, source: .system,

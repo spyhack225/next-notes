@@ -1,0 +1,51 @@
+--- a/MeetingContextIngestOrderSelfTest.swift
++++ b/MeetingContextIngestOrderSelfTest.swift
+@@ -110,7 +110,13 @@
+         do {
+             let (meeting, backing, context, capture) = fixture()
+             defer { remove(meeting, backing, context) }
+-            let rows = (0..<400).map { segment(Double($0), Double($0 + 1), "Complete row \($0).", $0 % 2 == 0 ? .mic : .system) }
++            let rows: [TranscriptSegment] = (0..<400).map { (index: Int) -> TranscriptSegment in
++                let start = Double(index)
++                let end = Double(index + 1)
++                let text = "Complete row \(index)."
++                let source: AudioSource = index % 2 == 0 ? .mic : .system
++                return segment(start, end, text, source)
++            }
+             context.ingest(rows, meeting: meeting)
+             context.ingestFinal(TranscriptEvent(meetingID: meeting.id, source: .system,
+                 text: "Old arrived after newest.", start: 2.5, end: 3, isFinal: true))
+--- a/component/original/MeetingContextIngestOrderSelfTest.swift
++++ b/component/original/MeetingContextIngestOrderSelfTest.swift
+@@ -110,7 +110,13 @@
+         do {
+             let (meeting, backing, context, capture) = fixture()
+             defer { remove(meeting, backing, context) }
+-            let rows = (0..<400).map { segment(Double($0), Double($0 + 1), "Complete row \($0).", $0 % 2 == 0 ? .mic : .system) }
++            let rows: [TranscriptSegment] = (0..<400).map { (index: Int) -> TranscriptSegment in
++                let start = Double(index)
++                let end = Double(index + 1)
++                let text = "Complete row \(index)."
++                let source: AudioSource = index % 2 == 0 ? .mic : .system
++                return segment(start, end, text, source)
++            }
+             context.ingest(rows, meeting: meeting)
+             context.ingestFinal(TranscriptEvent(meetingID: meeting.id, source: .system,
+                 text: "Old arrived after newest.", start: 2.5, end: 3, isFinal: true))
+--- a/component/fixed/MeetingContextIngestOrderSelfTest.swift
++++ b/component/fixed/MeetingContextIngestOrderSelfTest.swift
+@@ -110,7 +110,13 @@
+         do {
+             let (meeting, backing, context, capture) = fixture()
+             defer { remove(meeting, backing, context) }
+-            let rows = (0..<400).map { segment(Double($0), Double($0 + 1), "Complete row \($0).", $0 % 2 == 0 ? .mic : .system) }
++            let rows: [TranscriptSegment] = (0..<400).map { (index: Int) -> TranscriptSegment in
++                let start = Double(index)
++                let end = Double(index + 1)
++                let text = "Complete row \(index)."
++                let source: AudioSource = index % 2 == 0 ? .mic : .system
++                return segment(start, end, text, source)
++            }
+             context.ingest(rows, meeting: meeting)
+             context.ingestFinal(TranscriptEvent(meetingID: meeting.id, source: .system,
+                 text: "Old arrived after newest.", start: 2.5, end: 3, isFinal: true))

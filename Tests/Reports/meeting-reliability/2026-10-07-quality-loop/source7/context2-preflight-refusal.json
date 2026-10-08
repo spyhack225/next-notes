@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-08T07:39:33.752101+00:00",
+  "variant": "original",
+  "status": "UNRUN_PREFLIGHT_REFUSAL",
+  "requiredReportedFreePercent": 55,
+  "subsequentSnapshotPercent": 52,
+  "subsequentSnapshotIsAdmission": false,
+  "childLaunched": false,
+  "compiledOrRuntimeVerdict": null,
+  "sourceCandidateInstalled": false,
+  "heavyReleased": true,
+  "originalTestExpressionCompileFailureRetained": true,
+  "nativeNotesThresholdChange": false
+}

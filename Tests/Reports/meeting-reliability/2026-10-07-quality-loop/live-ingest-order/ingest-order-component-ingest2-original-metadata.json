@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-08T07:39:55.346203+00:00",
+  "phase": "original",
+  "exit": 0,
+  "wallSeconds": 3.7934272499987856,
+  "guardReason": null,
+  "sourceInvariant": true,
+  "sourceCount": 1175,
+  "drain": {
+    "remainingOwnedPIDs": [],
+    "unresolvedPIDs": [],
+    "errors": [],
+    "seconds": 0.06445958399854135,
+    "sent": []
+  },
+  "lifecycleErrorType": null,
+  "samples": 62,
+  "peakSampledOwnedFootprintBytes": 154764920,
+  "scope": "Whole actual ContextStore/Extractor; exact Session.add/reader/Cadence; substituted capture/wake/store/bus transport/model. Normal8/min6.5/free55+50/1GB;12s compiler/10s run. No native Session/owner/model proof",
+  "installation": false
+}

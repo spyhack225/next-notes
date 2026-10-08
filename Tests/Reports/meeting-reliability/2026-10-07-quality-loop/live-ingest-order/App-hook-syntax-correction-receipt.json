@@ -1,0 +1,10 @@
+{
+  "scope": "Only async negation syntax in proposed App launcher hook changed to repository-standard parenthesized await. Same flag, Task, MainActor, helper/write closure, failure assignment and termination. No input/assertion/producer change. Hook is absent from executed component compile.",
+  "originalHookSHA256": "5c8f3e6ea9790dac1d4aeb17cf4d04cf822d993091bd2740b9aadf0bf22a4b17",
+  "correctedHookSHA256": "4e7fa97c1060da9b9220b56da45475565a218875276d9150124ede79e5f4033b",
+  "originalHookPreserved": true,
+  "frozenComponentChanged": false,
+  "canonicalSourcesChangedByChild": false,
+  "compilerExecutedByChild": false,
+  "nativeHookCompiled": false
+}

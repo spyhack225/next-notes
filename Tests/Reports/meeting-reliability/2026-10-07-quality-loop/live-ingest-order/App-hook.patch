@@ -1,0 +1,16 @@
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -2853,6 +2853,13 @@
+             SelfTest.requestTermination()
+             return true
+         }
++        if arguments.contains("--selftest-meeting-ingest-order") {
++            Task { @MainActor in
++                SelfTest.failed = !await MeetingContextIngestOrderSelfTest.run(write: writePrivateSelfTest)
++                SelfTest.requestTermination()
++            }
++            return true
++        }
+         if arguments.contains("--selftest-meeting-reconcile-llm") {
+             Task { @MainActor in
+                 let existing = MeetingContextReconciler.runSelfTest(reportVerdict: false)

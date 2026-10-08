@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-08T07:21:14.755899+00:00",
+  "phase": "original",
+  "exit": 1,
+  "wallSeconds": 2.6900217500005965,
+  "guardReason": null,
+  "samples": 45,
+  "peakSampledFootprintBytes": 106807992,
+  "peakSampledResidentBytes": 180256768,
+  "remainingOwnedPIDs": [],
+  "models": false,
+  "compilerOptions": "same optimized WMO/j1 original/fixed; one frontend avoids primary-file fanout",
+  "samplingScope": "direct child/descendants plus exact cache compiler command paths; summed phase footprint guard; driver attempt1 did not prove frontend coverage",
+  "scope": "reviewed model-free actual-source component; substituted nativequeue/usage/tally/latency sinks; whole actual Store/Extractor and exact Session.add body; substituted native capture/wake/store/bus transport/model; no native actual Session or owner data; process samples not continuous peaks;ordinary8swap/6.5disk/55reportedfree start/50ongoing/1GBfootprint; 12s compiler or10s run"
+}

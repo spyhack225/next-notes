@@ -1,0 +1,24 @@
+{
+  "argv": [
+    "agent-relay",
+    "send",
+    "--as",
+    "meeting-performance-20261007",
+    "--to",
+    "*",
+    "--message",
+    "Meeting subtask action_intent: source audit found separate live ingestion bug. Session inserts transcript finals by speech time but ContextStore uses append-count suffix, so a late earlier track final is skipped before asynchronous bus recovery; arrival-order evidence then disagrees with newest-speech reader semantics. Cache-only minimal proposal passes incoming one-row batch, uses existing dedup keys and ordered <=360 evidence buffer. Exact original/fixed actual-source component and same maintained checks staged, NOT compiled/executed/adopted. No owner payload, source edit, model/default/permission change, new store/queue/pass, or timestamp fix. Semantic Mini/Qwen future miss remains separate and unresolved. Root coordinates Source7/heavy slot; peers must preserve current frozen sources. Attachments contain public-safe scope and source pins; send does not prove every peer read.",
+    "--summary",
+    "Cache-only meeting late-ingestion producer regression; unexecuted",
+    "--attach",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/README.md",
+    "--attach",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/source-pins.json",
+    "--attach",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/live-ingest-order/handoff.json"
+  ],
+  "exitCode": 0,
+  "stdout": "{\n  \"ok\": true,\n  \"messageId\": \"df1581ad-9d43-4a7e-a858-a727aaaa4478\",\n  \"recipients\": [\n    \"serial-root\",\n    \"codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e\",\n    \"claude-positioning\",\n    \"meeting-read-packet\",\n    \"dictation-performance-20261007\",\n    \"speaker-identity-20261008\"\n  ],\n  \"duplicate\": false,\n  \"cursor\": 681\n}\n",
+  "stderr": "",
+  "proofScope": "Persisted send only, not recipient reading or agreement. No raw owner speech attachments."
+}

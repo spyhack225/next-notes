@@ -1,0 +1,70 @@
+{
+  "at": "2026-10-08T07:56:37.583253+00:00",
+  "files": {
+    "OwnedCompilerProcess.py": {
+      "sha256": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+      "bytes": 8167
+    },
+    "OwnedCompilerProcess.before-observation-race.py": {
+      "sha256": "11f94a5cf1ebac080146a8396537a18838ab31cf032236e529670d41ff8fde0a",
+      "bytes": 6022
+    },
+    "OwnedCompilerProcess.before-orphan-refusal.py": {
+      "sha256": "a16a1f82984755e8d2d753303f616568c18dc5ebea2fe19fcca7be09d81f55ec",
+      "bytes": 7682
+    },
+    "OwnedCompilerProcess.observation-race-review.patch": {
+      "sha256": "3065f550b3b37a082680858e2f39934d70ad3e94eb271c3b291dea8542ead873",
+      "bytes": 4710
+    },
+    "OwnedCompilerProcess.orphan-review.patch": {
+      "sha256": "7672b3375847310d2fc27f51709ede24d3fe927a57faa0bd1c8d6968f5877822",
+      "bytes": 1316
+    },
+    "OwnedCompilerProcess.final-review.json": {
+      "sha256": "f0b99e1202992cbca37d731170b228cc69827a82b066aa8d5fdb233ed664e851",
+      "bytes": 850
+    },
+    "OwnedCompilerProcessCheck.py": {
+      "sha256": "e06120b31b4f52c7cb6779040ffe76624edf623b7bce63a5f3fdf8577ba80b7d",
+      "bytes": 4302
+    },
+    "OwnedCompilerDriverRegression.py": {
+      "sha256": "4d015fc9f3068b68fc07a4223e9b0de146e579894113e5b56cae5a35ab34c31e",
+      "bytes": 4167
+    },
+    "OwnedCompilerDriverRegression.result.json": {
+      "sha256": "85ff5e81cf84bcd7a6292118c6ee05ee33c4ad806fce6dfabd71bc49a90f9cc0",
+      "bytes": 1363
+    },
+    "OwnedCompilerObservationRaceCheck.py": {
+      "sha256": "3ef8605d4ff17348d3680a4d75bc48356c16c94615deec2e50fed76a0f8a1ce4",
+      "bytes": 2916
+    },
+    "observation-race.json": {
+      "sha256": "49790dc838723d3488ed04bb50d1437ea5fb824fd60ab1927b72b5c13fc8f8d4",
+      "bytes": 3799
+    },
+    "OwnedCompilerOrphanCheck.py": {
+      "sha256": "bd1bd3fdb2f49448238ea1441b3630085104cb97d507377aaa37c06a4dc44ec3",
+      "bytes": 1803
+    },
+    "OwnedCompilerOrphanCheck.py.result.json": {
+      "sha256": "5d78eb1667b9a85f2c77f8d3721648fc8e77b7b5dbba8a1c7d685f71459e892c",
+      "bytes": 1984
+    },
+    "meeting-seventh-release-guarded.py": {
+      "sha256": "24a6d9aae1b0d570191c06d166bc6de71b6b14bfeb6cbd6e37ae822665952c75",
+      "bytes": 6644
+    },
+    "meeting-ingest-order-component3-guarded.py": {
+      "sha256": "dbaa2a09f9fca17b157933febede2e49926cf5845400c1a049ae4865377640be",
+      "bytes": 6277
+    },
+    "meeting-seventh-focused-guarded.py": {
+      "sha256": "5b87437228b0f171c755e5d4ffb1a77b0c7cd8db8ed6e1aef7cf2df1bc424ea6",
+      "bytes": 10028
+    }
+  },
+  "scope": "Disposable CLI monitor corrections; native focused driver unrun, no product resource gate change"
+}

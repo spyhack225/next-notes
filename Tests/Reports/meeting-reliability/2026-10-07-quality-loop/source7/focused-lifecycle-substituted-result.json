@@ -1,0 +1,210 @@
+{
+  "scope": "Exact AST discover/quit_apps/finally body from unlaunched driver; external observe/listing/usage/AppKit command/time/Child substituted. No OS child, native/compiler/model, Source edit or signal. This proves loop transitions only, not macOS identity APIs/osascript/AppKit/real descendants.",
+  "driverSHA256": "72f2ed9d04ee410013307442fdbbcd6e099bfe146ecefccdcdb3371971c7039b",
+  "extractedDrainSHA256": "ad5786732b4d90b6d5cd3788fff11728e43de1ff5c4a0af56847ed6a396902ba",
+  "results": [
+    {
+      "case": "normal",
+      "checks": [
+        {
+          "label": "request-once-per-pinned-app",
+          "pass": true
+        },
+        {
+          "label": "clean-join-no-quit",
+          "pass": true
+        }
+      ],
+      "passed": true,
+      "drain": {
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [],
+        "AppKitQuitRequests": [],
+        "seconds": 0
+      },
+      "substitutedQuitPIDs": []
+    },
+    {
+      "case": "late",
+      "checks": [
+        {
+          "label": "request-once-per-pinned-app",
+          "pass": true
+        },
+        {
+          "label": "both-initial-and-late-app-quit",
+          "pass": true
+        },
+        {
+          "label": "late-app-joined",
+          "pass": true
+        }
+      ],
+      "passed": true,
+      "drain": {
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [],
+        "AppKitQuitRequests": [
+          {
+            "pid": 101,
+            "processStart": 1010,
+            "exit": 0,
+            "accepted": true
+          },
+          {
+            "pid": 202,
+            "processStart": 2020,
+            "exit": 0,
+            "accepted": true
+          }
+        ],
+        "seconds": 0.2
+      },
+      "substitutedQuitPIDs": [
+        101,
+        202
+      ]
+    },
+    {
+      "case": "observation-recovery",
+      "checks": [
+        {
+          "label": "request-once-per-pinned-app",
+          "pass": true
+        },
+        {
+          "label": "recovered-exact-cleanup",
+          "pass": true
+        },
+        {
+          "label": "error-remains-refusal",
+          "pass": true
+        }
+      ],
+      "passed": true,
+      "drain": {
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [
+          "drain observation: RuntimeError"
+        ],
+        "AppKitQuitRequests": [
+          {
+            "pid": 101,
+            "processStart": 1010,
+            "exit": 0,
+            "accepted": true
+          }
+        ],
+        "seconds": 0.2
+      },
+      "substitutedQuitPIDs": [
+        101
+      ]
+    },
+    {
+      "case": "quit-refusal",
+      "checks": [
+        {
+          "label": "request-once-per-pinned-app",
+          "pass": true
+        },
+        {
+          "label": "refused-request-at-most-once",
+          "pass": true
+        },
+        {
+          "label": "unjoined-blocks-launch",
+          "pass": true
+        }
+      ],
+      "passed": true,
+      "drain": {
+        "remainingOwnedPIDs": [
+          101
+        ],
+        "unresolvedPIDs": [],
+        "errors": [
+          "AppKit cleanup: RuntimeError",
+          "AppKit drain not joined; no signals or further launch"
+        ],
+        "AppKitQuitRequests": [
+          {
+            "pid": 101,
+            "processStart": 1010,
+            "exit": 0,
+            "accepted": false
+          }
+        ],
+        "seconds": 30.000000000000156
+      },
+      "substitutedQuitPIDs": [
+        101
+      ]
+    },
+    {
+      "case": "recycled",
+      "checks": [
+        {
+          "label": "request-once-per-pinned-app",
+          "pass": true
+        },
+        {
+          "label": "no-quit-to-recycled-start",
+          "pass": true
+        },
+        {
+          "label": "identity-refusal-retained",
+          "pass": true
+        }
+      ],
+      "passed": true,
+      "drain": {
+        "remainingOwnedPIDs": [
+          101
+        ],
+        "unresolvedPIDs": [],
+        "errors": [
+          "AppKit cleanup: RuntimeError",
+          "AppKit drain not joined; no signals or further launch"
+        ],
+        "AppKitQuitRequests": [],
+        "seconds": 30.000000000000156
+      },
+      "substitutedQuitPIDs": []
+    },
+    {
+      "case": "root-refusal",
+      "checks": [
+        {
+          "label": "request-once-per-pinned-app",
+          "pass": true
+        },
+        {
+          "label": "root-refusal-stays-latched",
+          "pass": true
+        },
+        {
+          "label": "root-error-remains-refusal",
+          "pass": true
+        }
+      ],
+      "passed": true,
+      "drain": {
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [
+          "root unavailable"
+        ],
+        "AppKitQuitRequests": [],
+        "seconds": 0.1
+      },
+      "substitutedQuitPIDs": []
+    }
+  ],
+  "passed": true,
+  "checks": 17,
+  "failures": 0
+}

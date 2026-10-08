@@ -1,0 +1,63 @@
+--- a/Sources/NextNotes/Meetings/MeetingSession.swift
++++ b/Sources/NextNotes/Meetings/MeetingSession.swift
+@@ -973,7 +973,7 @@
+ 
+         let candidatesBefore = MeetingContextStore.shared.current?.candidateActions.count ?? 0
+         let contextTrace = LatencyTrace.start(.meetingTranscriptToContext)
+-        MeetingContextStore.shared.ingest(segments, meeting: meeting)
++        MeetingContextStore.shared.ingest([incoming], meeting: meeting)
+         contextTrace.end(note: incoming.source.rawValue)
+         let candidatesAfter = MeetingContextStore.shared.current?.candidateActions.count ?? 0
+         if candidatesAfter > candidatesBefore {
+--- a/Sources/NextNotes/Meetings/MeetingContextStore.swift
++++ b/Sources/NextNotes/Meetings/MeetingContextStore.swift
+@@ -23,7 +23,6 @@
+     static let fileName = "context.json"
+ 
+     private(set) var current: MeetingContext?
+-    @ObservationIgnored private var lastSegments = 0
+     /// Dedupes Session ingest against bus finals (and bus against itself).
+     @ObservationIgnored private var ingestedKeys: Set<String> = []
+     /// The model's short, source-labelled evidence buffer, bounded independently of the full
+@@ -83,12 +82,11 @@
+         if current?.meetingID != meeting.id {
+             ingestedKeys.removeAll()
+             recentSegments.removeAll()
+-            lastSegments = 0
+             resetReconcileCadence()
+         }
+-        let fresh = segments.suffix(from: min(lastSegments, segments.count))
+-        lastSegments = segments.count
+-        let novel = fresh.filter { ingestedKeys.insert(Self.key(for: $0)).inserted }
++        // Session supplies its exact new final; bulk callers supply a batch. The
++        // shared keys also dedupe later bus delivery, independent of speech order.
++        let novel = segments.filter { ingestedKeys.insert(Self.key(for: $0)).inserted }
+         guard !novel.isEmpty else { return }
+ 
+         var context = current?.meetingID == meeting.id
+@@ -201,7 +199,6 @@
+         reconcileTask?.cancel()
+         reconcileTask = nil
+         current = context
+-        lastSegments = 0
+         ingestedKeys.removeAll()
+         recentSegments.removeAll()
+         resetReconcileCadence()
+@@ -236,11 +233,12 @@
+     // MARK: - Occasional reconcile
+ 
+     private func noteIngest(_ segments: [TranscriptSegment]) {
+-        recentSegments.append(contentsOf: segments.filter { $0.kind != .agentCommand })
+-        if recentSegments.count > MeetingContextReconciler.evidenceBufferSegments {
+-            recentSegments.removeFirst(
+-                recentSegments.count - MeetingContextReconciler.evidenceBufferSegments
+-            )
++        for segment in segments where segment.kind != .agentCommand {
++            let index = recentSegments.firstIndex { $0.start > segment.start } ?? recentSegments.endIndex
++            recentSegments.insert(segment, at: index)
++            if recentSegments.count > MeetingContextReconciler.evidenceBufferSegments {
++                recentSegments.removeFirst(recentSegments.count - MeetingContextReconciler.evidenceBufferSegments)
++            }
+         }
+         cadence.noteIngest(
+             speechSeconds: segments.reduce(0) { partial, segment in

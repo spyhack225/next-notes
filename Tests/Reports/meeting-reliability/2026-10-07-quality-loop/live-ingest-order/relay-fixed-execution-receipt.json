@@ -1,0 +1,6 @@
+{
+  "exit": 0,
+  "stdout": "{\n  \"ok\": true,\n  \"messageId\": \"f77f256b-684b-464b-b1f8-fe0be9f13b70\",\n  \"recipients\": [\n    \"serial-root\",\n    \"codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e\",\n    \"claude-positioning\",\n    \"meeting-read-packet\",\n    \"dictation-performance-20261007\",\n    \"speaker-identity-20261008\"\n  ],\n  \"duplicate\": false,\n  \"cursor\": 710\n}\n",
+  "stderr": "",
+  "scope": "component original/fixed evidence only; send does not prove read"
+}

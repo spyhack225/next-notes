@@ -1,0 +1,6 @@
+{
+  "exit": 0,
+  "stdout": "{\n  \"ok\": true,\n  \"messageId\": \"ea6ab07e-5b2e-40ba-9448-6cd4448604f1\",\n  \"recipients\": [\n    \"serial-root\",\n    \"codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e\",\n    \"claude-positioning\",\n    \"meeting-read-packet\",\n    \"dictation-performance-20261007\",\n    \"speaker-identity-20261008\"\n  ],\n  \"duplicate\": false,\n  \"cursor\": 706\n}\n",
+  "stderr": "",
+  "scope": "public-safe original verdict and fixed guard refusal; does not prove receipt/read"
+}

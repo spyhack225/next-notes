@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-08T07:57:35.767484+00:00",
+  "paragraph": "\nSource7 meeting producer adoption, 2026-10-08: exact late-track Session sorted insertion versus context append cursor is reproduced; original5 coupled/14of25 maintained failures, corrected all coupled/25of25 pass through actual Store/Extractor and copied exact Session/reader with declared substitutions. Working source supplies exact incoming finals, reuses source-aware keys and maintains chronological order only in the existing360-row buffer. Broader overlap clock/model semantic recall are separate. Bounded audio/pause and participant coverage source is applied but full-app/native acceptance and owner installation are pending; exact SelfTest guards retain ordinary paths. Monitor lifecycle repairs have original/fixed authored controls, not product performance proof. Read [Source7 adoption](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/ADOPTION.md); coordinate shared task-store release readiness before owner launch and broadcast real verdicts through agent-relay.\n",
+  "targets": [
+    "AGENTS.md",
+    "PERFORMANCE-STANDARDS.md"
+  ],
+  "scope": "Append only root-owned paragraph; foreign staged AGENTS remains untouched"
+}

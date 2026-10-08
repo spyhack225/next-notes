@@ -1,0 +1,71 @@
+{
+  "at": "2026-10-08T07:31:02.337934+00:00",
+  "patchSHA256": "6cd721afa5d4dcdfbfdcb96c56d5ce4754e9972fcdbdc5d66942f9eace0d077a",
+  "files": [
+    {
+      "path": "Sources/NextNotes/Core/AudioConversion.swift",
+      "beforeSHA256": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1",
+      "afterSHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+      "newFile": false
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+      "beforeSHA256": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182",
+      "afterSHA256": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+      "newFile": false
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "beforeSHA256": "74642199c443d4035dc97457fac8574339b7aba3674f30f5e0422d1beadc784b",
+      "afterSHA256": "c7257dae2ee0d70d5c32911b22baf9caa916bae84e782b565365f3a901680541",
+      "newFile": false
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "beforeSHA256": "7545dba4792ab61009918236cd2146c22c1d7e4e7f6f63fd1164d512003eccd1",
+      "afterSHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "newFile": false
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift",
+      "beforeSHA256": null,
+      "afterSHA256": "37c798f66f1c8d2999421f6c6a1429eca0887d49e7bbec11592df908d1daec51",
+      "newFile": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "beforeSHA256": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+      "afterSHA256": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701",
+      "newFile": false
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+      "beforeSHA256": "f4acc499df59cbaf3d706ee8714553d773b9edf5ae015549246f7d0a1fda1070",
+      "afterSHA256": "5cb3aeabf3a9c7ddb1aa3f42be33ae18577e6fbc09c44a6e4358b2b0cfe6e13d",
+      "newFile": false
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift",
+      "beforeSHA256": null,
+      "afterSHA256": "da9e449e521d70dbe346727d96b2610c291b7b71b98c97afe141d450e83be8cd",
+      "newFile": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift",
+      "beforeSHA256": "fb2b370241d1bdf91ef5e037a962763aa80777dabf648721635a4d43926994ba",
+      "afterSHA256": "e1205c5b18450482b1ec5470d38ad0be6fd32ee91a769190cac73203ff8b7009",
+      "newFile": false
+    },
+    {
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "beforeSHA256": "f1835c5a00d09096bbee57a020eaddbe5ed23e6dfa5ba69ff9fd33cdc7efcfd9",
+      "afterSHA256": "b91f52f7a2f2f45dcbf254fcecaa3f6e8c650e619e946a83201e016a2c41f7d5",
+      "newFile": false
+    }
+  ],
+  "gitIndexByteIdentical": true,
+  "writerJoined": true,
+  "defaultOffScope": "Actual ordinary final/diarization array bodies retained; bounded and pause exact SelfTest opt-ins only",
+  "nativeCompilerWordNoiseIOAndDiarizerAcceptance": "OPEN",
+  "installation": false
+}

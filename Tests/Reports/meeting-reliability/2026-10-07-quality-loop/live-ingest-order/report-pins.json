@@ -1,0 +1,294 @@
+{
+  "App-hook-syntax-corrected.patch": {
+    "SHA256": "4e7fa97c1060da9b9220b56da45475565a218875276d9150124ede79e5f4033b",
+    "bytes": 693
+  },
+  "App-hook-syntax-correction-receipt.json": {
+    "SHA256": "170c83588071dc3354f27792a6755df06f642d2c8fb25f6eb472b1f695a3b355",
+    "bytes": 659
+  },
+  "App-hook.patch": {
+    "SHA256": "5c8f3e6ea9790dac1d4aeb17cf4d04cf822d993091bd2740b9aadf0bf22a4b17",
+    "bytes": 691
+  },
+  "MeetingContextIngestOrderSelfTest.swift": {
+    "SHA256": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91",
+    "bytes": 10314
+  },
+  "README.md": {
+    "SHA256": "1e49e3d85dc4b038aa6fb79f39658fa0eb5122ee74d80fb5ce5cec8755983323",
+    "bytes": 6036
+  },
+  "call-site-audit.json": {
+    "SHA256": "5a5aa0ebcc7810eec664ee14c3c43d449c8d5b36457c15b39646dc1a11ddbff3",
+    "bytes": 3521
+  },
+  "component-commands.json": {
+    "SHA256": "ca3f517fac4de94b8dcf852726a4afcbd902338dd972d77fb4005b128435fe7d",
+    "bytes": 4121
+  },
+  "component-source/fixed/Boundaries.swift": {
+    "SHA256": "568cdc80b9312edccedc9b4fd31e70f8c198507d335e5e52227f8c8817a511d8",
+    "bytes": 3887
+  },
+  "component-source/fixed/Main.swift": {
+    "SHA256": "3b6b52494249b95c7270474c522c60fc1e13849918454677aa863fa45ef2fdf9",
+    "bytes": 3006
+  },
+  "component-source/fixed/MeetingContext.swift": {
+    "SHA256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690",
+    "bytes": 5237
+  },
+  "component-source/fixed/MeetingContextExtractor.swift": {
+    "SHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+    "bytes": 11554
+  },
+  "component-source/fixed/MeetingContextIngestOrderSelfTest.swift": {
+    "SHA256": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91",
+    "bytes": 10314
+  },
+  "component-source/fixed/MeetingContextReconciler.swift": {
+    "SHA256": "ed5dabb3e7c7f7ad5b0dcbc7460fdf13b582e0d0fd325f7606c4dd71bf484dec",
+    "bytes": 6979
+  },
+  "component-source/fixed/MeetingContextStore.swift": {
+    "SHA256": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+    "bytes": 15812
+  },
+  "component-source/fixed/SessionAdapter.swift": {
+    "SHA256": "1d59058808639ace531c8ec4a471e71773c76e1df23aa40d563e3ecdd7a3a110",
+    "bytes": 3196
+  },
+  "component-source/fixed/TranscriptEvent.swift": {
+    "SHA256": "8ea6cf8a85c79689f4e5a4da52dafb4121441cef20e71889510f5e12f6e03804",
+    "bytes": 1313
+  },
+  "component-source/fixed/TranscriptModels.swift": {
+    "SHA256": "d33552054590043edcdf220470f7152dccf5a377ecd5aedb4f5d273be0635835",
+    "bytes": 2638
+  },
+  "component-source/original/Boundaries.swift": {
+    "SHA256": "568cdc80b9312edccedc9b4fd31e70f8c198507d335e5e52227f8c8817a511d8",
+    "bytes": 3887
+  },
+  "component-source/original/Main.swift": {
+    "SHA256": "3b6b52494249b95c7270474c522c60fc1e13849918454677aa863fa45ef2fdf9",
+    "bytes": 3006
+  },
+  "component-source/original/MeetingContext.swift": {
+    "SHA256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690",
+    "bytes": 5237
+  },
+  "component-source/original/MeetingContextExtractor.swift": {
+    "SHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+    "bytes": 11554
+  },
+  "component-source/original/MeetingContextIngestOrderSelfTest.swift": {
+    "SHA256": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91",
+    "bytes": 10314
+  },
+  "component-source/original/MeetingContextReconciler.swift": {
+    "SHA256": "ed5dabb3e7c7f7ad5b0dcbc7460fdf13b582e0d0fd325f7606c4dd71bf484dec",
+    "bytes": 6979
+  },
+  "component-source/original/MeetingContextStore.swift": {
+    "SHA256": "5053281af6db8a3bf223512ba792d90afedce4939fe6d71077fce350c6dd3daa",
+    "bytes": 15731
+  },
+  "component-source/original/SessionAdapter.swift": {
+    "SHA256": "073a7172c6001d940f827909ddab206ddbf2f0bf5a3be7148483f21553ea1878",
+    "bytes": 3194
+  },
+  "component-source/original/TranscriptEvent.swift": {
+    "SHA256": "8ea6cf8a85c79689f4e5a4da52dafb4121441cef20e71889510f5e12f6e03804",
+    "bytes": 1313
+  },
+  "component-source/original/TranscriptModels.swift": {
+    "SHA256": "d33552054590043edcdf220470f7152dccf5a377ecd5aedb4f5d273be0635835",
+    "bytes": 2638
+  },
+  "component-source-pins.json": {
+    "SHA256": "2ded63edb836fc07976c889fb74fc5e586840661b5bac554a99ee0589c9160f9",
+    "bytes": 8147
+  },
+  "executed-proof.json": {
+    "SHA256": "91524d299ca35f6db6655850be0a30c121a08efe8effd7ce1a1aecb3b85faf5d",
+    "bytes": 727
+  },
+  "guarded-ingest1-original.log": {
+    "SHA256": "5d9078d782fa7826344eabe2b902106c64614f24bcaf7358fac4a02bb6fa26ad",
+    "bytes": 997
+  },
+  "guarded-ingest2-fixed.log": {
+    "SHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "guarded-ingest2-original-run.log": {
+    "SHA256": "5035e8544536c07076135728d48f91cd4b272f2110a82e6432ca4fb08f799641",
+    "bytes": 2798
+  },
+  "guarded-ingest2-original.log": {
+    "SHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "guarded-ingest3-fixed-run.log": {
+    "SHA256": "e7efd38ab7603877c5f037a9f3e905277bf21e45a481ecb113e54db37140313e",
+    "bytes": 2769
+  },
+  "guarded-ingest3-fixed.log": {
+    "SHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "ingest-order-component-ingest1-original-admission.json": {
+    "SHA256": "e70f5b4e48f1255babe73cd619ddc0b9baf043b90a659f04fc022fd3030309ea",
+    "bytes": 138
+  },
+  "ingest-order-component-ingest1-original-memory.json": {
+    "SHA256": "49c2680a284d812647d4e45313593ec6f85c711b5ebbf551b4a6b97ea32160db",
+    "bytes": 11691
+  },
+  "ingest-order-component-ingest1-original-metadata.json": {
+    "SHA256": "3b7fc47ed58b0bed64e5f96404389ba465fe3755a90c7698d3a05ebda1e8683e",
+    "bytes": 951
+  },
+  "ingest-order-component-ingest2-fixed-admission.json": {
+    "SHA256": "894418ce65797aabb6331c3163fb6a12787c74d10a1049d0073a4a0d193bdb1e",
+    "bytes": 140
+  },
+  "ingest-order-component-ingest2-fixed-memory.json": {
+    "SHA256": "9f0f572c5c0c86378505c6b0d1f822e0229f42f3691f3b43132e4b9863361953",
+    "bytes": 7379
+  },
+  "ingest-order-component-ingest2-fixed-metadata.json": {
+    "SHA256": "93a5142e9c027a15acce776129864100b789c7a1a950a957de8b6dd037787759",
+    "bytes": 902
+  },
+  "ingest-order-component-ingest2-original-admission.json": {
+    "SHA256": "e353ca0ac5ca697d11afa9b0701048db9a6f54531027f7c454a880644f7db011",
+    "bytes": 139
+  },
+  "ingest-order-component-ingest2-original-memory.json": {
+    "SHA256": "99c4c58627360ab84477042c61431c481e01e0ad5504f5c0ddd1301eba4217c3",
+    "bytes": 9729
+  },
+  "ingest-order-component-ingest2-original-metadata.json": {
+    "SHA256": "f3f79366c2f8b3d16a15c9a112cef5141c14f7adde4d660e730a0d48f87b51fb",
+    "bytes": 679
+  },
+  "ingest-order-component-ingest2-original-run-admission.json": {
+    "SHA256": "787f26088ccb6d966199f98fe99bab85c0bda3ae9eeb3727820a5bf9a7807604",
+    "bytes": 140
+  },
+  "ingest-order-component-ingest2-original-run-memory.json": {
+    "SHA256": "371f20a3e454204832ce22943aed334f7bcf59f0cd8c6548da44170b7fe8177c",
+    "bytes": 307
+  },
+  "ingest-order-component-ingest2-original-run-metadata.json": {
+    "SHA256": "d140a1c5cc8936bd798129de616039ccf0c6adc517da008d8876e73935698053",
+    "bytes": 679
+  },
+  "ingest-order-component-ingest3-fixed-admission.json": {
+    "SHA256": "a1714c607f70f3addf7c14681ac4bba60752f959470f6a46c93bb1dbd7221a52",
+    "bytes": 141
+  },
+  "ingest-order-component-ingest3-fixed-memory.json": {
+    "SHA256": "dd73d048f1437f24917bf9ee83f88a8d7d2288f48777e009ba6d9fa745740d28",
+    "bytes": 9332
+  },
+  "ingest-order-component-ingest3-fixed-metadata.json": {
+    "SHA256": "23a76ac0a8dad7b6a16b2c00b24001b5856756339cc7cfb416089d2e540586c7",
+    "bytes": 891
+  },
+  "ingest-order-component-ingest3-fixed-run-admission.json": {
+    "SHA256": "cab21317bface1b29382137d60ba8b9de9ef6299069d0777abbb67a4c5b580e9",
+    "bytes": 140
+  },
+  "ingest-order-component-ingest3-fixed-run-memory.json": {
+    "SHA256": "d0f2bb7287a9fd2080b55fad4797f745fbfd22e617935d0608d7e1dc7fafc136",
+    "bytes": 306
+  },
+  "ingest-order-component-ingest3-fixed-run-metadata.json": {
+    "SHA256": "4596e7f8a97773773ebb2d2a58c215be7f695f69e03e43ea01de328d61bc21dc",
+    "bytes": 733
+  },
+  "initial-fixture-compile-failure/MeetingContextIngestOrderSelfTest.swift": {
+    "SHA256": "d87ac6b87d6cf53b5239ce2acd9052f24d683cbf72d7e45c083c449a53c4a49d",
+    "bytes": 10064
+  },
+  "initial-fixture-compile-failure/commands.json": {
+    "SHA256": "ca3f517fac4de94b8dcf852726a4afcbd902338dd972d77fb4005b128435fe7d",
+    "bytes": 4121
+  },
+  "initial-fixture-compile-failure/component-source-pins.json": {
+    "SHA256": "395507292a082b517cb644b97b4340423bb129a59445c44a6223d78af267904a",
+    "bytes": 8147
+  },
+  "initial-fixture-compile-failure/guarded-ingest1-original.log": {
+    "SHA256": "5d9078d782fa7826344eabe2b902106c64614f24bcaf7358fac4a02bb6fa26ad",
+    "bytes": 997
+  },
+  "initial-fixture-compile-failure/maintained-selftest.patch": {
+    "SHA256": "f8e8a4b0731be3698c60849634bee2a2254f152a9c6006744d8b6c52c0fb3988",
+    "bytes": 10311
+  },
+  "initial-fixture-compile-failure/producer-source-pins.json": {
+    "SHA256": "a799f5384537b0b30b2bae040de11d73e575909a256baa59943f0a817bd6ecbb",
+    "bytes": 3118
+  },
+  "maintained-selftest.patch": {
+    "SHA256": "3df6e2f95851e996a7e32c29bff92f1d5bcee5e7c70b2f39de268daf8b31a034",
+    "bytes": 10567
+  },
+  "producer-source/fixed/MeetingContextStore.swift": {
+    "SHA256": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+    "bytes": 15812
+  },
+  "producer-source/fixed/MeetingSession.swift": {
+    "SHA256": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+    "bytes": 60236
+  },
+  "producer-source/original/MeetingContextStore.swift": {
+    "SHA256": "5053281af6db8a3bf223512ba792d90afedce4939fe6d71077fce350c6dd3daa",
+    "bytes": 15731
+  },
+  "producer-source/original/MeetingSession.swift": {
+    "SHA256": "078c99ef680f889aa3678ff8fb43a5cfe124a909b741cd2487b98debc11c077b",
+    "bytes": 60234
+  },
+  "producer.patch": {
+    "SHA256": "fda8bdbfcfb142b76fa72eda28e236f67972d6abba4e94181739ff797ec2e0fd",
+    "bytes": 3199
+  },
+  "relay-broadcast-receipt.json": {
+    "SHA256": "bb04a47e8305b12794c6bba46ac53a7e85cd2f6f3aed3eb1fa21872d3ac1bb97",
+    "bytes": 2131
+  },
+  "relay-fixed-execution-receipt.json": {
+    "SHA256": "f89d41f17433e865285e007574b6f6cd6887673a5455106956edcf1c822d74ab",
+    "bytes": 491
+  },
+  "relay-original-execution-receipt.json": {
+    "SHA256": "db8fe9b1e560d1fb4a02c69a0c0e5058228aa7d71a4f4d6fb73c0218b3462ef3",
+    "bytes": 508
+  },
+  "report-copy-validation.json": {
+    "SHA256": "1a4985cb00feb2830d1a10a2bb95a06bd5c0978413eec3f8b7e9b7c365b1838a",
+    "bytes": 444
+  },
+  "source-pins.json": {
+    "SHA256": "a91855b34e00a0e4735cd538cfc801de382618d172150e296dbd16cb14b69983",
+    "bytes": 3323
+  },
+  "test-expression-correction-receipt.json": {
+    "SHA256": "ba6d2a73889fca80cf5c809a11ff6d24ad0fb41a70794bcc706e221359626a84",
+    "bytes": 1840
+  },
+  "test-expression-correction.patch": {
+    "SHA256": "7c80c554fb939e2ae6e4f22b81920fa6082d9e9380a59371a2ec67e740a96177",
+    "bytes": 3061
+  },
+  "verdicts.json": {
+    "SHA256": "5c192e822da21e14f6989c22007f9ecc7bd803abeb04929634d769606fa71af9",
+    "bytes": 2495
+  }
+}
