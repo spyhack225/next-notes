@@ -1,0 +1,14 @@
+{
+  "ok": true,
+  "swapGb": 8.003046875,
+  "load": 3.09,
+  "freeGb": 7.263916015625,
+  "path": "/",
+  "reasons": [],
+  "unknown": [],
+  "scope": "explicitrelay541 ASR-onlyshort exception; max8 prior refusal retained",
+  "at": "2026-10-08T04:20:14.597148+00:00",
+  "maxSeconds": 90,
+  "maxFootprintBytes": 3000000000,
+  "termination": "Exact owned PID NSRunningApplication terminate -> existing AppKit drain; no signal teardown"
+}

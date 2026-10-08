@@ -1,0 +1,27 @@
+{
+  "scope": "Scripted actual append/flush/final producer plus emittedJSON readback; hypotheses are not native word proof",
+  "failedChecks": [
+    "MEETING_QUIET_CHECK case=approved-full.final check=proposed-tail-forwarding pass=false",
+    "MEETING_QUIET_CHECK case=approved-full.final check=proposed-consumer-tail pass=false",
+    "MEETING_QUIET_CHECK case=approved-alone.live check=proposed-tail-forwarding pass=false",
+    "MEETING_QUIET_CHECK case=approved-alone.live check=proposed-consumer-tail pass=false",
+    "MEETING_QUIET_CHECK case=approved-alone.final check=proposed-tail-forwarding pass=false",
+    "MEETING_QUIET_CHECK case=approved-alone.final check=proposed-consumer-tail pass=false"
+  ],
+  "scopes": [
+    "MEETING_QUIET_OBSERVATION case=digital-zero tier=live scope=existing-digital-zero-control tailReached=false consumerTail=false demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=digital-zero tier=final scope=existing-digital-zero-control tailReached=false consumerTail=false demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=dc-below-floor-observation tier=live scope=dc-not-demonstrated-speech-proposed-conservative-admission-observation tailReached=false consumerTail=false demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=dc-below-floor-observation tier=final scope=dc-not-demonstrated-speech-proposed-conservative-admission-observation tailReached=false consumerTail=false demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=above-floor tier=live scope=existing-above-floor-forwarding-control tailReached=true consumerTail=true demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=above-floor tier=final scope=existing-above-floor-forwarding-control tailReached=true consumerTail=true demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=loud-with-quiet-suffix tier=live scope=existing-mixed-amplitude-forwarding-control tailReached=true consumerTail=true demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=loud-with-quiet-suffix tier=final scope=existing-mixed-amplitude-forwarding-control tailReached=true consumerTail=true demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=approved-full tier=live scope=forwarding-hypothesis-native-words-unverified tailReached=true consumerTail=true demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=approved-full tier=final scope=forwarding-hypothesis-native-words-unverified tailReached=false consumerTail=false demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=approved-alone tier=live scope=forwarding-hypothesis-native-words-unverified tailReached=false consumerTail=false demonstratedSpeech=false",
+    "MEETING_QUIET_OBSERVATION case=approved-alone tier=final scope=forwarding-hypothesis-native-words-unverified tailReached=false consumerTail=false demonstratedSpeech=false",
+    "MEETING_QUIET_INPUT_SCOPE scriptedForwarding=true nativeQualityPass=false provenProductRegression=false dcAdmissionRequirement=false ownerCapture=false nativeRun=false",
+    "MEETING_QUIET_INPUT_FAILED: 6/50 checks failed"
+  ]
+}

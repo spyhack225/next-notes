@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "swapGb": 8.4823046875,
+  "load": 3.67,
+  "freeGb": 6.317417144775391,
+  "path": "/",
+  "reasons": [],
+  "unknown": [],
+  "scope": "Explicit coordinated one-off NONMODEL contracts only; no ASR/LLM/compiler",
+  "relayConfirmation": 535,
+  "at": "2026-10-08T04:12:22.795935+00:00",
+  "temporaryOutputBudgetBytes": 20000000
+}

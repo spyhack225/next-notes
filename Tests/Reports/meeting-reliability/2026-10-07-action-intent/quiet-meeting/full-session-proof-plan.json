@@ -1,0 +1,17 @@
+{
+  "scope": "Full actual MeetingSession capture/writer/Stop and existing FinalTranscriptService save/readback plan only; no Sources/compiler/native work",
+  "seams": {
+    "session": "MeetingStore.isolated + AudioCaptureHub(probe:true), permission override + SystemAudioCapture start override, actual MeetingAudioWriter constructor, actual start/stop",
+    "captureOrigin": "Existing captureHostOriginForTesting after hasBegunCapture returns actual mach hostorigin; no new clock/seam required",
+    "mic": "feedForTesting Float32mono16k actual52566samples with hostTime=origin; match savedCAF channel0 rawFloat samplehash to input; capture uses actualhubconversion/drain",
+    "system": "Retain overridden tap callback until afterstart then deliver SAME host-stamped52566PCM samples; actual source.systemPacket origin/advanceOrigin; savedCAF channel1 hash and length checked",
+    "inference": "Root-owned native TranscriptionQueue override records exact samplehash/domain/callcounts then invokes existing lane; no fabricated words/extraadmission/provisional confirmation",
+    "readback": "Await stop and existing finaltask end; fresh MeetingStore reader verifies originalactual0word vs fixed7word pertrack, source/mic/system and absolute0\u20133.285375range, audiointegrity and no capturegap",
+    "final": "Existing FinalTranscriptService.shared receives isolated store through actual Pipeline; observe isRunning(id) and completion. Alternative local service with injected transcribe can verify same real final writer but stops before actual session handoff."
+  },
+  "importantPipelineContract": "Even meetingsFinalPass=false, afterTranscribing forces shared FinalTranscriptService when savedAudio exists and liveTranscript empty. Do not use settingsFalse to claim finalstage suppressed or accidentally start unclaimed nativework. Original containsSpeech refuses sameallquiet live/final windows; fixed native run with qualityflagtrue must coordinate actual final calls.",
+  "settings": "Harness-only settings/guard; keepAudio=true, diarize=false, notesAutoGenerate=false, meetingLiveUnderstanding=false; restore all prior values. Set finalpass=true for actual saved-final comparison, expected2tracks nativecalls afterStop undercandidate. No ownercontroller/store seeded.",
+  "domain": "Each track52566samples atorigin0, >4800minimum so no padding. Short live2s/1.285375cuts can merge; recordactual forwardedhashes, do not infercallcountfromcutpoints. FinalCAF read may includeintertrackpadding if hostconversion rounds start; assertactualdomain first, do not silentlycroprepair. DateISO8601 boundary compared after actualsavedcodec, not unsaved fractionalstart.",
+  "bounds": "Read-only capture origin; one isolated capture fixture, no new productpass/queue/store/model/VAD; await existing captured tasks, no readiness/admissiongate added to product",
+  "nativeAcceptance": "No model load until rootnativewindow. Quiet7word recovery/sourcepersist, actualdigitalzero/noise behavior and reference16GBASRvoice ambient workload all distinct gates."
+}

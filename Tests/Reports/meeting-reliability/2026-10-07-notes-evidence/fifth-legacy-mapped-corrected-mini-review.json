@@ -1,0 +1,587 @@
+{
+  "mode": "mapped8192",
+  "trace_usage_validation": "PASS",
+  "calls": [
+    {
+      "feature": "meeting.notes.map",
+      "pass": "map",
+      "promptTokens": 6251,
+      "completionTokens": 600,
+      "totalMs": 43966,
+      "finishReason": "length",
+      "truncated": true,
+      "call": 1,
+      "duration": 22.37869095802307,
+      "maxTokens": 600,
+      "raw_present": true
+    },
+    {
+      "feature": "meeting.notes.map",
+      "pass": "map",
+      "promptTokens": 6040,
+      "completionTokens": 600,
+      "totalMs": 83427,
+      "finishReason": "length",
+      "truncated": true,
+      "call": 2,
+      "duration": 62.90180003643036,
+      "maxTokens": 600,
+      "raw_present": true
+    },
+    {
+      "feature": "meeting.notes.map",
+      "pass": "map",
+      "promptTokens": 722,
+      "completionTokens": 462,
+      "totalMs": 27138,
+      "finishReason": "stop",
+      "truncated": false,
+      "call": 3,
+      "duration": 24.432982087135315,
+      "maxTokens": 600,
+      "raw_present": true
+    },
+    {
+      "feature": "meeting.notes.reduce",
+      "pass": "reduce",
+      "promptTokens": 2229,
+      "completionTokens": 198,
+      "totalMs": 20939,
+      "finishReason": "stop",
+      "truncated": false,
+      "call": 4,
+      "duration": 10.891593098640442,
+      "maxTokens": 1600,
+      "raw_present": true
+    }
+  ],
+  "workflow_seconds": 187.3931679725647,
+  "generated_tokens": 1860,
+  "incomplete_facts": true,
+  "whole_production_byte_identity": false,
+  "brief": "empty copied replay; original raw prompt unavailable",
+  "filtered_source_count": 519,
+  "captured_source_count": 519,
+  "renderer_source_pin_matches": true,
+  "captured_transcript_byte_parity": true,
+  "all_filtered_source_lines_in_input": true,
+  "gold_rows": [
+    {
+      "gold_id": "prototype_experience",
+      "source_ids": [
+        104,
+        105,
+        106,
+        107,
+        108,
+        109
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "owner_scaled_experience",
+      "source_ids": [
+        298,
+        301,
+        305,
+        308,
+        318,
+        322
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": false,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": false,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": "reduce"
+    },
+    {
+      "gold_id": "future_followup",
+      "source_ids": [
+        410,
+        412,
+        416
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "answered_handoff",
+      "source_ids": [
+        323,
+        346,
+        350,
+        352,
+        353,
+        356,
+        360,
+        365,
+        366,
+        371,
+        372
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "stage_distinctions",
+      "source_ids": [
+        212,
+        213,
+        250,
+        251,
+        252,
+        255
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "illustrative_smallbatch",
+      "source_ids": [
+        257,
+        259
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "budget_bom_tools",
+      "source_ids": [
+        98,
+        235,
+        236,
+        239,
+        243,
+        247,
+        263,
+        278,
+        279
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "supplier_link_verification",
+      "source_ids": [
+        449,
+        450,
+        451,
+        452,
+        453,
+        454,
+        455
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "ai_prototype_engineering",
+      "source_ids": [
+        469,
+        470,
+        471,
+        472,
+        473,
+        474,
+        475,
+        476,
+        477,
+        478,
+        479,
+        480,
+        481,
+        482
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "map",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "crossdisciplinary_iteration",
+      "source_ids": [
+        489,
+        492,
+        495,
+        501,
+        502,
+        504,
+        506,
+        509,
+        510,
+        511,
+        512,
+        513,
+        516,
+        517
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "map",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": null
+        },
+        {
+          "stage": "reduce",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": false,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": false,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "reduce",
+      "first_reviewed_error": "reduce"
+    }
+  ],
+  "semantic_review_complete": true,
+  "gold_checks_passed": false,
+  "semantic_quality_proven": false,
+  "marker_limit": "marker_present is lexical only; missing semantic annotations remain null, never PASS",
+  "audio_accuracy_proven": false,
+  "reviewed_boundary_summary": {
+    "first_loss_map_count": 9,
+    "first_loss_reduce_count": 1,
+    "complete_map_gold_count": 1,
+    "complete_final_gold_count": 0,
+    "raw_maps_assembled_into_reduce_unchanged": true,
+    "first_five_raw_reduce_sections_preserved": true,
+    "ambiguous_exact_speaker_binding_gold_count": 2,
+    "specific_experience_transfer_confirmed": false,
+    "new_deadline_observed": false,
+    "collapse_calls": 0,
+    "dropped_groups": 0,
+    "root_reported_wall_seconds": 188.862
+  }
+}

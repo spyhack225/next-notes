@@ -1,0 +1,83 @@
+{
+  "scope": "Original exact public producer-selected quiet window; reference/native emitted words reviewed, no fixed producer acceptance",
+  "pins": {
+    "full": "76c16c4ffd310a9e9b1b87841a8211a7ae738e92868b02b8141c578a1f726dc4",
+    "window": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+    "gold": "107739e03bcd73a4f92760f69415abef6b674de4da8b18c4d6fc848e3fec4013"
+  },
+  "sourceIntervalSamples": [
+    916800,
+    969366
+  ],
+  "sampleCount": 52566,
+  "seconds": 3.285375,
+  "reference": {
+    "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Diagnostics/MeetingQualityReview/3B92EA32-9D55-4622-A2D6-810B044792FF/quality-loop/fifth-quiet-source-window.reference.txt",
+    "rawSHA256": "78b88eb98455ae7520b48abb2f52613e78e8a67f190de35489cfee11a6a8dd09",
+    "metrics": {
+      "referenceWordCount": 7,
+      "hypothesisWordCount": 7,
+      "editDistance": 0,
+      "WER": 0.0,
+      "exactWholeClause": true,
+      "containsExactOrderedClause": true,
+      "normalizedWordsSHA256": "e5112ff975236fab86f01493e94f6f0b3d41e1ed8c3a06b1d94e60c843f905c7"
+    }
+  },
+  "actualMeeting": {
+    "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Diagnostics/MeetingQualityReview/3B92EA32-9D55-4622-A2D6-810B044792FF/quality-loop/fifth-quiet-exact-meeting-gate.log",
+    "rawSHA256": "1c7c66e636873cfc739241eb7415f6f0a340ad5b42e5dfda16df6f73e1459a91",
+    "segmentCount": 0,
+    "metrics": {
+      "referenceWordCount": 7,
+      "hypothesisWordCount": 0,
+      "editDistance": 7,
+      "WER": 1.0,
+      "exactWholeClause": false,
+      "containsExactOrderedClause": false,
+      "normalizedWordsSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "extraDictationReplays": [
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Diagnostics/MeetingQualityReview/3B92EA32-9D55-4622-A2D6-810B044792FF/quality-loop/fifth-quiet-source-window.complete-file+300ms.txt",
+      "present": true,
+      "SHA256": "ad19b8cc2deb82c31378eef9b6262d5f620332381cdc995f470ec3a2c82585f2",
+      "metrics": {
+        "referenceWordCount": 7,
+        "hypothesisWordCount": 1,
+        "editDistance": 6,
+        "WER": 0.8571428571428571,
+        "exactWholeClause": false,
+        "containsExactOrderedClause": false,
+        "normalizedWordsSHA256": "87765da6ccf0668238c1d27c35692e11b4cee9c0e5cd5713a3f6e462d48e9730"
+      }
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Diagnostics/MeetingQualityReview/3B92EA32-9D55-4622-A2D6-810B044792FF/quality-loop/fifth-quiet-source-window.complete-file.txt",
+      "present": true,
+      "SHA256": "2042722727510fc1ae585cd8d7458befbbc7e43e693a41a1e1fcbc92ed1dc8fc",
+      "metrics": {
+        "referenceWordCount": 7,
+        "hypothesisWordCount": 2,
+        "editDistance": 6,
+        "WER": 0.8571428571428571,
+        "exactWholeClause": false,
+        "containsExactOrderedClause": false,
+        "normalizedWordsSHA256": "29ee296942bbc08591bb146f60702f61bcccc667c27f12d02e90d9389644c9dd"
+      }
+    }
+  ],
+  "originalRecognizableWordsSkippedBySharedGate": true,
+  "exactSevenWordReferenceVerified": true,
+  "cropAlignment": "Complete last independently rendered turn lies in selected57.3-end source window; old57.78crop remained ambiguous",
+  "boundaryScope": {
+    "reference": "ParakeetModels manager direct fresh decoder, skips meeting admission/queue; full52566 samples, >4800 floor, no input padding",
+    "meeting": "ChunkedTranscriber1s append/merge/flush -> shared containsSpeech; rows source.system; no fullMeetingSession writer/store",
+    "extraDictation": "2engine replays; one appends4800digitalzero samples, one fullselectedinput; these extra model passes do not establish meeting speed",
+    "loader": "separate process loader/runtime state may differ; recognition proof is not paired latency/default promotion"
+  },
+  "fixedProductProof": false,
+  "noiseWorkloadAcceptance": false,
+  "fullSessionAcceptance": false
+}

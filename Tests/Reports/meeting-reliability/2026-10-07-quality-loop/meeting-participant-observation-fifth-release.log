@@ -1,0 +1,3 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-participant-observation contracts
+2026-10-08 00:12:28.741 NextNotes[80040:1414229] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_PARTICIPANT_OBSERVATION_OK: contracts checks=19 physical-observation-unverified

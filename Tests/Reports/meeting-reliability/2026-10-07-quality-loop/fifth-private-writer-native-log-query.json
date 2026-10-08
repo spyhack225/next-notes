@@ -1,0 +1,36 @@
+[
+  {
+    "process": 81243,
+    "startLocal": "2026-10-08 00:24:02",
+    "endLocal": "2026-10-08 00:25:38",
+    "queryExit": 0,
+    "jsonError": null,
+    "totalProcessLogEntries": 256,
+    "diagnosticMarkerCounts": {
+      "NOTES_REPLAY_PASS": 0,
+      "NOTES_REPLAY_MARKDOWN_BEGIN": 0,
+      "NOTES_REPLAY_EVIDENCE": 0,
+      "NOTES_REPLAY_USAGE": 0,
+      "NOTES_REPLAY_RESULT": 0
+    },
+    "privacyVerdict": "retained process entries only; no independent sentinel, historical mirrors not erased",
+    "rawSystemLogSaved": false
+  },
+  {
+    "process": 81478,
+    "startLocal": "2026-10-08 00:26:12",
+    "endLocal": "2026-10-08 00:28:25",
+    "queryExit": 0,
+    "jsonError": null,
+    "totalProcessLogEntries": 248,
+    "diagnosticMarkerCounts": {
+      "NOTES_REPLAY_PASS": 0,
+      "NOTES_REPLAY_MARKDOWN_BEGIN": 0,
+      "NOTES_REPLAY_EVIDENCE": 0,
+      "NOTES_REPLAY_USAGE": 0,
+      "NOTES_REPLAY_RESULT": 0
+    },
+    "privacyVerdict": "retained process entries only; no independent sentinel, historical mirrors not erased",
+    "rawSystemLogSaved": false
+  }
+]

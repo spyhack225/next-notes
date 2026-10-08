@@ -1,0 +1,7 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app/Contents/MacOS/NextNotes --selftest-notes-longform
+2026-10-08 00:12:39.623 NextNotes[80219:1415424] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+NOTES_LONGFORM cases=a chunks=12 collapsed=2 dropped=0
+NOTES_LONGFORM chunks8k=6000 mapOverhead=210
+APPLE_FM_TOKENS text=124 tokens=25
+APPLE_FM_TOKENS text=148 tokens=37
+NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, single pass intact, overflow retried, window-derived chunks

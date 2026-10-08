@@ -1,0 +1,159 @@
+{
+  "scope": "Source decision characterization/proposals only; no compiler/native/canonical writes",
+  "originalSourceSHA256": "391f07d1572fed07523804e8399b25557654bc1983b0bd9a1796431d26b6e29d",
+  "plainCandidateSHA256": "2414e931d22e335a0ce79a955ef9a681a9429373dab7b01e079d942114589c20",
+  "finiteProposalPatchSHA256": "622ee6d8f974883f9141f71a9065f9029cc7a30f2f153c9e6a644545b76a63a6",
+  "finiteCharacterization": [
+    {
+      "id": "digital-zero",
+      "samples": 1600,
+      "originalAdmission": false,
+      "plainCandidateAdmission": false,
+      "isolatedFiniteProposalAdmission": false,
+      "realCapturedNonfiniteObserved": false
+    },
+    {
+      "id": "signed-zero",
+      "samples": 1600,
+      "originalAdmission": false,
+      "plainCandidateAdmission": false,
+      "isolatedFiniteProposalAdmission": false,
+      "realCapturedNonfiniteObserved": false
+    },
+    {
+      "id": "quiet-signal",
+      "samples": 1600,
+      "originalAdmission": false,
+      "plainCandidateAdmission": true,
+      "isolatedFiniteProposalAdmission": true,
+      "realCapturedNonfiniteObserved": false
+    },
+    {
+      "id": "nan-only",
+      "samples": 1600,
+      "originalAdmission": false,
+      "plainCandidateAdmission": true,
+      "isolatedFiniteProposalAdmission": false,
+      "realCapturedNonfiniteObserved": false
+    },
+    {
+      "id": "infinity-only",
+      "samples": 1600,
+      "originalAdmission": true,
+      "plainCandidateAdmission": true,
+      "isolatedFiniteProposalAdmission": false,
+      "realCapturedNonfiniteObserved": false
+    },
+    {
+      "id": "mixed-finite-nan",
+      "samples": 1600,
+      "originalAdmission": true,
+      "plainCandidateAdmission": true,
+      "isolatedFiniteProposalAdmission": false,
+      "realCapturedNonfiniteObserved": false
+    },
+    {
+      "id": "nonfinite-remainder",
+      "samples": 1686,
+      "originalAdmission": false,
+      "plainCandidateAdmission": true,
+      "isolatedFiniteProposalAdmission": false,
+      "realCapturedNonfiniteObserved": false
+    },
+    {
+      "id": "only-nonzero-remainder",
+      "samples": 1686,
+      "originalAdmission": false,
+      "plainCandidateAdmission": true,
+      "isolatedFiniteProposalAdmission": true,
+      "realCapturedNonfiniteObserved": false
+    }
+  ],
+  "conversionProducer": "AudioConversion.samples(of:) directly copiesFloatchannel, preservingNaN/Inf; AudioConversion.convert checksconverterstatus/framecount but no finitePCM validation. No actual capturedNaN/Inf observed.",
+  "finiteProposalLimit": "Reject entire nonfinite window, never replace/clamp/strip its samples. Existing silentSkipped label would still conflate invalid withsilence; no production type/outcome/layer added and no accepted finite-error-handling fix. Keep proposal isolated.",
+  "pauseFinding": "Current RMS treats quietonly ascontinuoussilence and cuts min2s/10s. Complete cuts partition allsamples, so only contextfragmentationrisk confirmed. Admissionrepair byitself doesnotrepair pause semantics.",
+  "smallestPauseAlternative": "Track above-floor speech sincewindowstart before permitting minpause cut; quietonly holds toexistinghardmax5/14.5. Mixed loud-to-quiet stillfalsepause, so narrowalternativeisnotgeneral fix. Notstaged/applied.",
+  "generalPauseAlternative": "Meeting-specific digitalzero pause predicate would avoid quietonlyANDmixedfalsepause but noisyrealpauseswould waitmax; native accuracy, latency/workload constraints needed. Do notchange shared frameIsSilent RMS helper usedbydictation.",
+  "actualNativeControlFiles": [
+    {
+      "id": "original-live-part1",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/pause-native-controls/original-live-part1.wav",
+      "samples": 32000,
+      "localRangeSamples": [
+        0,
+        32000
+      ],
+      "originalGlobalRangeSamples": [
+        916800,
+        948800
+      ],
+      "SHA256": "be0f0a583e3aac38aaac830d6b372891f3956f1ce8928a3179c36d9b33046862",
+      "wordReference": "Only concatenated orderedparts have independently complete7word reference; individualparts have no wordalignment and are not graded against wholeclause",
+      "rootNativeArgs": [
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/pause-native-controls/original-live-part1.wav",
+        "--dictation-complete-audio",
+        "--dictation-asr-output",
+        "<fresh private prefix for original-live-part1>"
+      ]
+    },
+    {
+      "id": "original-live-part2",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/pause-native-controls/original-live-part2.wav",
+      "samples": 20566,
+      "localRangeSamples": [
+        32000,
+        52566
+      ],
+      "originalGlobalRangeSamples": [
+        948800,
+        969366
+      ],
+      "SHA256": "06427052195324b36b377d87dfd7496d45372362ca9a87b2caa5750993103ae7",
+      "wordReference": "Only concatenated orderedparts have independently complete7word reference; individualparts have no wordalignment and are not graded against wholeclause",
+      "rootNativeArgs": [
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/pause-native-controls/original-live-part2.wav",
+        "--dictation-complete-audio",
+        "--dictation-asr-output",
+        "<fresh private prefix for original-live-part2>"
+      ]
+    },
+    {
+      "id": "full-window-context-control",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/pause-native-controls/full-window-context-control.wav",
+      "samples": 52566,
+      "localRangeSamples": [
+        0,
+        52566
+      ],
+      "originalGlobalRangeSamples": [
+        916800,
+        969366
+      ],
+      "SHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+      "wordReference": "Only concatenated orderedparts have independently complete7word reference; individualparts have no wordalignment and are not graded against wholeclause",
+      "rootNativeArgs": [
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/pause-native-controls/full-window-context-control.wav",
+        "--dictation-complete-audio",
+        "--dictation-asr-output",
+        "<fresh private prefix for full-window-context-control>"
+      ]
+    }
+  ],
+  "comparison": "Ordered raw native references of2originalliveparts concatenated versus samefull3.285window7word reference. Separate engine extra passes/loader state; no helper success infers wordaccuracy. Candidate actuallive/final withsamefullPCM mustreportrealcuts/calls/words, not fullcontext directpassaslivepass.",
+  "fullSessionPlan": "full-session-proof-plan.json",
+  "adoption": false,
+  "finiteCharacterizationScope": "Static source decision characterization, not compiled original/fixed verdict; remainder controls use1686samples (5complete20msframes +86sampletail)",
+  "actualSourceFixture": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/MeetingQuietInputSelfTest.boundary-characterization.swift",
+    "patch": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/boundary-characterization-fixture.patch",
+    "patchSHA256": "fd542d1365272e2efa633bbccb42732cfe424934ccb2cb814be2e1fa85c02a61",
+    "beforeSHA256": "ca7d6fe4fe5ae9b2daed19c85cfcc080d546b9515612ed4a586b0457916ad859",
+    "optionalFlag": "--meeting-quiet-boundaries",
+    "scope": "Actual containsSpeech/frameIsSilent/cutPoints calls; samplehash exactpartition, no native invalidPCM, no helperqualityPASS",
+    "compiled": false,
+    "executed": false
+  }
+}

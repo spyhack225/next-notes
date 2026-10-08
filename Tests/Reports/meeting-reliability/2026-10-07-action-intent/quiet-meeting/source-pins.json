@@ -1,0 +1,9 @@
+{
+  "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": "391f07d1572fed07523804e8399b25557654bc1983b0bd9a1796431d26b6e29d",
+  "Sources/NextNotes/Meetings/MeetingFinalPass.swift": "f4acc499df59cbaf3d706ee8714553d773b9edf5ae015549246f7d0a1fda1070",
+  "Sources/NextNotes/Meetings/MeetingSession.swift": "b75f80571fdbcc213add98cb7e988756629318f6e478859c6d667769deff95f2",
+  "Sources/NextNotes/Meetings/FinalTranscriptService.swift": "a7e8e6bd45f2eef27839249a8fea018745eb5054d5d5f75861c76df87fb7b445",
+  "Sources/NextNotes/Meetings/MeetingTranscribeTally.swift": "eab6cb2bc194ce3a21a6ffb549c3a1f6e27f9ae74d4756cbcfce673bce017c8b",
+  "Sources/NextNotes/NextNotesApp.swift": "fd47fae76ef9639b95f877672b4cecc6e273e6f93097a42370701d00c167f44a",
+  "Sources/NextNotes/Core/AudioConversion.swift": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1"
+}

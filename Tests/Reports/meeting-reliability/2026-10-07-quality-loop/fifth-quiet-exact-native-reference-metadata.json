@@ -1,0 +1,19 @@
+{
+  "experiment": "fifth-quiet-exact-native-reference",
+  "exit": 0,
+  "wall_seconds": 30.196933291997993,
+  "markers": [],
+  "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2",
+  "startedAt": "2026-10-08T04:20:14.637664+00:00",
+  "endedAt": "2026-10-08T04:20:44.835259+00:00",
+  "pids": [
+    80919
+  ],
+  "memorySamples": 14,
+  "peakSampledFootprintBytes": 204899840,
+  "peakSampledResidentBytes": 645513216,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "Direct native exact7word reference verified; samePCM actualmeeting0segments; original sharedgate loss confirmed. No fixed/noise/workload/fullSession proof.",
+  "guardReason": null,
+  "guardScope": "explicit short ASR only,90s/3GB process footprint/system9GBswap; no product gate"
+}

@@ -1821,6 +1821,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             runNotesLongformSelfTest()
             return true
         }
+        if arguments.contains("--selftest-notes-replay-trace") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingNotesReplaySelfTest.runTraceForwardingSelfTest(write: writeSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-meeting-notes-replay") {
             Task { @MainActor in
                 guard let input = SelfTest.value(after: "--selftest-meeting-notes-replay"),
@@ -1841,7 +1848,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 SelfTest.failed = !(await MeetingNotesReplaySelfTest.run(
                     input: input, provider: provider, window: rawWindow.flatMap(Int.init),
                     write: writePrivateSelfTest,
-                    sourceIndices: arguments.contains("--notes-source-indices")))
+                    sourceIndices: arguments.contains("--notes-source-indices"),
+                    tracePasses: arguments.contains("--notes-trace-passes")))
                 SelfTest.requestTermination()
             }
             return true
@@ -1923,6 +1931,17 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                     .map { URL(fileURLWithPath: $0, isDirectory: true) }
                 SelfTest.failed = !(await MeetingActionInputContractSelfTest.run(
                     privateFixture: fixture, write: writePrivateSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-quiet-input") {
+            Task { @MainActor in
+                let corpus = SelfTest.value(after: "--meeting-quiet-corpus")
+                    .map { URL(fileURLWithPath: $0, isDirectory: true) }
+                SelfTest.failed = !(await MeetingQuietInputSelfTest.run(
+                    directory: corpus, native: arguments.contains("--meeting-quiet-native"),
+                    write: writePrivateSelfTest))
                 SelfTest.requestTermination()
             }
             return true

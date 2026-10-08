@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-08T03:55:45.308664+00:00",
+  "scope": "fifth initial release compiler admission; explicit coordinated gate, not default10GB",
+  "swapGb": 7.870234375,
+  "load": 2.25,
+  "freeGb": 7.376029968261719,
+  "maxSwapGb": 8,
+  "minFreeGb": 6.5,
+  "passed": true,
+  "heavyClaim": "meeting-performance-20261007",
+  "compilerSession": 1274,
+  "sourceGapJoined": true
+}

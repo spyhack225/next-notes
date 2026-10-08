@@ -286,3 +286,12 @@ swap7.977GB/free6.707GB. Reference hardware capacity is not ASR/voice soak or de
 acceptance. A full310-file matching duplicate current bundle is removed only after no
 active executable uses its path, reclaiming140,738,560 allocated bytes. Installed useful
 build, repaired rollback, original crash reproduction, comparison and candidate remain.
+
+
+## Fifth coherent source and causal diagnostics
+
+Fifth source loop: fourth producer fixes are integrated in1af0ca2; fourth signed476d remains uninstalled. Cache-only component probe of the dictation captured-audio boundary fails original2 and passes fixed4 with the same distinct PCM-word fixture; ASR remains substituted, so native quiet-word quality is not passed. The coherent fifth source gap adopts only the four reviewed peer paths and root diagnostic forwarding/quiet fixture. Runtime/scheduler phase implementation stays cache-only until the actual native baseline fixture establishes the original failure. Compiler admission uses an explicit max8GB-swap/free6.5GB gate at7.870GB swap and7.376GB free; no model/native work overlaps compilation.
+
+Zero captured/queued drops does not establish ASR word coverage: live and final meeting producers share an RMS-based admission predicate. The approved public attenuated tail is below its0.01 floor and classified as skipped; actual native word loss remains unverified. DC is an observation, not demonstrated speech or an admission requirement. Scripted markers establish forwarding only. Do not adopt a nonzero-only or lower-volume production rule without native recognizable-word, silence/noise/hallucination, workload and full recording-save proof. Exact existing-pass private replay tracing adds no production pass/prompt/budget change. Whole-reader replay with brief.empty is a controlled topology, not byte-identical original owner inference;8192 mapped replay is a separate compression diagnostic.
+
+Compile/native verdicts are pending. No new owner installation occurred.

@@ -1,0 +1,22 @@
+{
+  "scope": "Root native fifth original proof, independent complete lastturn in exact producerwindow; not fixed/noise/fullSession/workload acceptance",
+  "privateReviewMetadataPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Diagnostics/MeetingQualityReview/3B92EA32-9D55-4622-A2D6-810B044792FF/quality-loop/fifth-quiet-native-word-review.json",
+  "privateReviewSHA256": "0ea30f5a181fca94490900dfd7da9a5d06db1973914064155e6a43d715fbaff7",
+  "sourceIntervalSamples": [
+    916800,
+    969366
+  ],
+  "sampleCount": 52566,
+  "referenceWordCount": 7,
+  "referenceEditDistance": 0,
+  "actualMeetingSegmentCount": 0,
+  "originalRecognizableWordsSkippedBySharedGate": true,
+  "originalProposedDiagnosticFailures": {
+    "failed": 6,
+    "checks": 50,
+    "source": "root-reported fifth diagnostic hypothesis verdict; retain separately, not nativewordproof"
+  },
+  "candidateApplied": false,
+  "candidateCompiled": false,
+  "candidateNativeRun": false
+}

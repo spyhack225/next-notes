@@ -473,3 +473,28 @@ swap7.977GB/free6.707GB. Reference hardware capacity is not ASR/voice soak or de
 acceptance. A full310-file matching duplicate current bundle is removed only after no
 active executable uses its path, reclaiming140,738,560 allocated bytes. Installed useful
 build, repaired rollback, original crash reproduction, comparison and candidate remain.
+
+
+### Quiet speech and exact pass causality — fifth loop
+
+Keep amplitude segmentation hints separate from proven recognition coverage. The meeting live/final admission gate can refuse below0.01 RMS blocks despite saved audio and zero queue drops. Offline source-algorithm classification is not actual native recognition. A DC/sine control and fabricated ASR marker cannot prove a spoken phrase; whole final/live agreement is circular when both use the same admission gate. Native direct recognition and the actual meeting consumer must receive identical pinned PCM, with independently aligned words, silence/noise controls and complete elapsed cost. Any conservative admission change remains a hypothesis until those controls and fullSession persistence/workload proof pass.
+
+Copied note diagnostics may wrap only existing calls, forwarding the exact tokenizer, plain/grammar arguments, current recorder, completion/error and cancellation once. Keep raw prompts/replies private. Record map/reduce topology, callcount, feature/pass and first-loss source intervals. A copied replay using brief.empty differs from original production context; disclose it. Neither schema validity nor unused output allowance proves semantic coverage. Retain both missing facts and fabricated claims. The fifth compiler starts under explicit max8/free6.5 coordination at7.870GB swap/7.376GB free; default10GB and ASR/voice soak are not claimed.
+
+
+Fifth native findings: direct recognition of the independently aligned52,566sample quiet window recovers7/7words, but the actual meeting gate emits0segments before ASR. Zero capture/queue loss therefore cannot certify word coverage. The actual dictation engine still emits1or2words on the same input; no quiet fix is declared. Test noise/silence and complete isolated MeetingSession capture/final/save/fresh readback before adopting conservative admission. RMS pause fragmentation requires native emitted-word evidence, including mixed loud/quiet speech, rather than complete partition alone.
+
+Signed7b3c7349 has1,171 invariant pins and19 focused native flags reportingOK; isolated owner21files/33defaults stay unchanged and embedded browser18 failures remain. It is uninstalled. The whole copied legacy note pass reads13,062prompt tokens and returns175/1,600allowed tokens with normal stop; missing substantive facts are already absent from its raw reply. Its empty brief differs from original production context. A second intended8,192window run supplied an unsupported modifier and is retained only as a whole observation, not mapped acceptance. Full timings/resource limits and remaining gates are in [fifth native acceptance](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/fifth-native-acceptance.md). No model/default, prompt/budget or extra production pass is promoted.
+
+
+Fifth corrected semantic review: three native map calls and one reduce preserve all519
+source lines and raw intermediate replies, yet final complete coverage remains0/10.
+Nine material distinctions first fail at map and one at reduce; first two maps spend
+their600-token limit copying opening speech and filler. Disclosure is not recovery.
+Direct native zero/DC/noise controls emit no words; explicit complete-audio engine
+extras hallucinate two words on digital zero. Quiet7/7 direct versus0 actual meeting
+segments establishes the admission failure, not an adopted fix. Read the
+[fifth acceptance report](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/fifth-native-acceptance.md).
+The obsolete fourth candidate is safely removed with125,845,504allocated bytes
+reclaimed. Sixth source experiments and the actual speaker-name save repair remain
+uncompiled and uninstalled; preserve default prompts/roles until native acceptance.

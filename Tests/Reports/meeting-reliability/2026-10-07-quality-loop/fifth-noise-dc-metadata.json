@@ -1,0 +1,19 @@
+{
+  "experiment": "fifth-noise-dc",
+  "exit": 0,
+  "wall_seconds": 8.498805417002586,
+  "markers": [],
+  "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2",
+  "startedAt": "2026-10-08T04:45:28.765663+00:00",
+  "endedAt": "2026-10-08T04:45:37.265026+00:00",
+  "pids": [
+    83249
+  ],
+  "memorySamples": 4,
+  "peakSampledFootprintBytes": 176325856,
+  "peakSampledResidentBytes": 252280832,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "manual review pending",
+  "guardReason": null,
+  "guardScope": "explicit short ASR only,90s/3GB process footprint/system8GBswap; no product gate"
+}

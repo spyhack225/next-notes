@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "swapGb": 7.940546875,
+  "load": 4.52,
+  "freeGb": 6.619419097900391,
+  "path": "/",
+  "reasons": [],
+  "unknown": [],
+  "scope": "normalmax8 existingwhole-note private exactpass trace; ASR children joined",
+  "at": "2026-10-08T04:24:03.015544+00:00"
+}

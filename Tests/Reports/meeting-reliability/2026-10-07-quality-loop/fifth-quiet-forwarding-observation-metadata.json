@@ -1,0 +1,17 @@
+{
+  "experiment": "fifth-quiet-forwarding-observation",
+  "exit": 1,
+  "wall_seconds": 1.191616417003388,
+  "markers": [],
+  "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2",
+  "startedAt": "2026-10-08T04:13:57.171095+00:00",
+  "endedAt": "2026-10-08T04:13:58.371337+00:00",
+  "pids": [],
+  "memorySamples": 0,
+  "peakSampledFootprintBytes": null,
+  "peakSampledResidentBytes": null,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "Scripted6/50proposed-forwarding failures retained; digitalzero/above/mixed/domain/readback controls green, native recognizableword regression still unrun",
+  "nativeModelCalls": 0,
+  "asrBoundary": "injected synthetic ASR"
+}

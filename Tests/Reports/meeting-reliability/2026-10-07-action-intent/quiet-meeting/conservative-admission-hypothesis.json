@@ -1,0 +1,59 @@
+{
+  "scope": "Candidate only; native noise/hallucination/workload acceptance pending. Existing queues/lanes/minimums/cut sizes unchanged. No canonical Sources/compiler/model",
+  "sourceBeforeSHA256": "391f07d1572fed07523804e8399b25557654bc1983b0bd9a1796431d26b6e29d",
+  "candidateSHA256": "2414e931d22e335a0ce79a955ef9a681a9429373dab7b01e079d942114589c20",
+  "patchSHA256": "e096ddbdddf74806d8f44fd9fbc45626a006bf4f14d876a0fbde66dff50feea4",
+  "seed": 90400946008,
+  "noiseDistribution": "Python Random(seed) uniform +/-0.005sqrt3, quantized PCM16; source generator pinned for repeatability",
+  "controls": [
+    {
+      "id": "digital-zero",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/noise-controls/digital-zero.wav",
+      "fileSHA256": "a62a61c81510c24108d64deb0fc4f7e4641c7fcc40450325008c403d0f3e4867",
+      "samples": 52566,
+      "seconds": 3.285375,
+      "max20msFrameRMS": 0.0,
+      "remainderSamples": 86,
+      "authoredScope": "public generated non-speech transport/noise; no owner audio",
+      "requiredAdmission": false,
+      "expectedNativeLexicalWordCount": 0,
+      "directNativeGrade": "actual raw lexical hallucination observation; empty is expected, successful marker neverprovesempty",
+      "originalSharedGate": false,
+      "candidateSharedGate": false
+    },
+    {
+      "id": "dc-005",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/noise-controls/dc-005.wav",
+      "fileSHA256": "54235a22e144fd98ad22d53a821b844bffb29976b5eac8a75bbb814f1b0e1e3f",
+      "samples": 52566,
+      "seconds": 3.285375,
+      "max20msFrameRMS": 0.0050048828125,
+      "remainderSamples": 86,
+      "authoredScope": "public generated non-speech transport/noise; no owner audio",
+      "requiredAdmission": false,
+      "expectedNativeLexicalWordCount": 0,
+      "directNativeGrade": "actual raw lexical hallucination observation; empty is expected, successful marker neverprovesempty",
+      "originalSharedGate": false,
+      "candidateSharedGate": true
+    },
+    {
+      "id": "seeded-low-rms-noise",
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/noise-controls/seeded-low-rms-noise.wav",
+      "fileSHA256": "c59ef2d48381671ba0ce0ca285ee179cc1758237b9afadbd8d57bd136082df9c",
+      "samples": 52566,
+      "seconds": 3.285375,
+      "max20msFrameRMS": 0.005281747235747875,
+      "remainderSamples": 86,
+      "authoredScope": "public generated non-speech transport/noise; no owner audio",
+      "requiredAdmission": false,
+      "expectedNativeLexicalWordCount": 0,
+      "directNativeGrade": "actual raw lexical hallucination observation; empty is expected, successful marker neverprovesempty",
+      "originalSharedGate": false,
+      "candidateSharedGate": true
+    }
+  ],
+  "quietNativeOriginal": "Parent verified exact52566window direct7words/editDistance0 and actualmeeting0segments; raw retained private fifth-quiet-native-word-review.json",
+  "adoption": "NOT accepted: noise native lexicals/callcost, representative ambient16GBASRvoice workload, fullSessionactualsave/readback and related regressions remain required",
+  "signedZero": "!=0 rejects+0/-0, includes all remainder samples; nonfinite input behavior unchanged unproved capture boundary",
+  "generatorSHA256": "52b9a2452b6735701f42349149f6272b8eeb341d0b130125b921e5b543496c60"
+}

@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-08T05:04:08.095715+00:00",
+  "canonicalWriter": "root",
+  "nativeStatus": "uncompiled; experiments require explicit SelfTest opt-in",
+  "items": [
+    {
+      "patch": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/session-fixture/admission-experiment.patch",
+      "sha256": "081eb9577275db2721598bb2f614004a87bb374a6487693cbdae9d5468da6431",
+      "before": {
+        "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": "391f07d1572fed07523804e8399b25557654bc1983b0bd9a1796431d26b6e29d"
+      },
+      "after": {
+        "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182"
+      }
+    },
+    {
+      "patch": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/session-fixture/session-fixture-experiment-update.patch",
+      "sha256": "33b47528cc3db1e21c7e2ceb6df7a471311d3413a1f13afd6374beb8592f4028",
+      "before": {
+        "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift": "36def613e1ce2658e017b1e899dce34ec1170e0b86c8ce3ceaeda71b6cc40494"
+      },
+      "after": {
+        "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift": "b22ed5ee23bb99f870712f723545e494d876b7b3c903e684240b753b60f4bb3c"
+      }
+    },
+    {
+      "patch": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-notes-pass-trace-jy_ttt5y/prompt-hypothesis/opt-in/combined-opt-in-and-fixture.patch",
+      "sha256": "a693b88b6d7eb651510bee33994c6a4e13325c657e9b1241f6e3e69124b0b79d",
+      "before": {
+        "Sources/NextNotes/Meetings/NotesPrompts.swift": "4d786959e395cdd3c590113532e9b75e30e79d5fcfbc00a97dfb0470188a53d4",
+        "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift": "1d959d44a7a96c9e0f49747c799604b35c297ca7e56eeef46e2bb803f8f78517",
+        "Sources/NextNotes/NextNotesApp.swift": "0f8d1295c1bee4f2b02ec320cd46ccf9a2d875f730b0e33f52af344378581beb",
+        "Sources/NextNotes/Meetings/NotesPromptContractSelfTest.swift": null
+      },
+      "after": {
+        "Sources/NextNotes/Meetings/NotesPrompts.swift": "f606d07f3299f3dbb499b00f81bd9b61c7f5ba6b4a7030065efffb98effee064",
+        "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift": "1907e7e5c0e6a116abb8d8cbb06bae1f6d2ac8b4806ce23ae9f05353cc6df811",
+        "Sources/NextNotes/NextNotesApp.swift": "f1835c5a00d09096bbee57a020eaddbe5ed23e6dfa5ba69ff9fd33cdc7efcfd9",
+        "Sources/NextNotes/Meetings/NotesPromptContractSelfTest.swift": "1dd5381ac20c57e92a4156640189930fe9e5ba92c9f22296afd405e52993342e"
+      }
+    }
+  ],
+  "rootAgentDisablePreserved": true
+}

@@ -1,0 +1,186 @@
+[
+  {
+    "flag": "notes-replay-trace",
+    "exit": 0,
+    "wall_seconds": 3.1065924579961575,
+    "markers": [
+      "NOTES_REPLAY_TRACE_OK"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-topic-merge",
+    "exit": 0,
+    "wall_seconds": 2.033515124996484,
+    "markers": [
+      "MEETING_TOPIC_MERGE_OK"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-participant-observation",
+    "exit": 0,
+    "wall_seconds": 1.3080685419990914,
+    "markers": [
+      "MEETING_PARTICIPANT_OBSERVATION_OK: contracts checks=19 physical-observation-unverified"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-action-input-contract",
+    "exit": 0,
+    "wall_seconds": 1.3889729579968844,
+    "markers": [
+      "MEETING_ACTION_INPUT_CONTRACT_OK"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "notes-evidence",
+    "exit": 0,
+    "wall_seconds": 1.4465418339968892,
+    "markers": [
+      "NOTES_EVIDENCE_OK: checks=33 failures=0; semantic quality requires native review",
+      "NOTES_EXTRACTIVE_CONTRACT_OK: checks=36 failures=0; semantic classification and readability unproven"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-performance",
+    "exit": 0,
+    "wall_seconds": 1.3765335829957621,
+    "markers": [
+      "MEETING_PERFORMANCE_OK: 19 actual-session/persistence and bounded-coverage checks"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-context",
+    "exit": 0,
+    "wall_seconds": 1.5869671670006937,
+    "markers": [
+      "MEETING_SPEAKER_PROJECTION_OK checks=51",
+      "MEETING_CONTEXT_OK: extraction and the authority split hold"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-reconcile-llm",
+    "exit": 0,
+    "wall_seconds": 1.3244227090035565,
+    "markers": [
+      "MEETING_RECONCILE_LLM_OK: existing grounding and optional pressure admission"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-resources",
+    "exit": 0,
+    "wall_seconds": 2.5394267920055427,
+    "markers": [
+      "MEETING_RESOURCES_OK"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "notes-longform",
+    "exit": 0,
+    "wall_seconds": 2.6517820419976488,
+    "markers": [
+      "NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, single pass intact, overflow retried, window-derived chunks"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "notes-truncation",
+    "exit": 0,
+    "wall_seconds": 1.3487999999997555,
+    "markers": [
+      "NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "notes-context",
+    "exit": 0,
+    "wall_seconds": 1.4300780830017175,
+    "markers": [
+      "NOTES_CONTEXT_OK: assembly, consent gates, window accounting, map purity and index safety hold"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "wall_seconds": 2.4234692079990054,
+    "markers": [
+      "USAGE_LOG_OK: 27 cases"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-health",
+    "exit": 0,
+    "wall_seconds": 1.702338666000287,
+    "markers": [
+      "MEETING_HEALTH_OK: 90 checks; actual capture, writer, durable warning and notification producers"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-integrity",
+    "exit": 0,
+    "wall_seconds": 1.5240373749984428,
+    "markers": [
+      "MEETING_INTEGRITY_OK: 67 checks; recording restart through final pass, notes, done and fresh reader"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "meeting-agent-evidence",
+    "exit": 0,
+    "wall_seconds": 1.3248245840004529,
+    "markers": [
+      "MEETING_EVIDENCE_OK: 89 checks"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "cleanup-router",
+    "exit": 0,
+    "wall_seconds": 7.589626583001518,
+    "markers": [
+      "CLEANUP_ROUTER_OK"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "dictation-segments",
+    "exit": 0,
+    "wall_seconds": 1.3075675829968532,
+    "markers": [
+      "DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "island",
+    "exit": 0,
+    "wall_seconds": 5.467530791000172,
+    "markers": [
+      "ISLAND_OK: 2 display(s), notched, placement notch, state machine behaves"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "wall_seconds": 31.650006000003486,
+    "markers": [
+      "TOOLLOOP_PRODUCTION_R02_MISSING calls=5 asks=1 saved=1 deniedSaved=0",
+      "STORE_ISOLATION_OK: 21 files and 33 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_FAILED"
+    ],
+    "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2"
+  }
+]

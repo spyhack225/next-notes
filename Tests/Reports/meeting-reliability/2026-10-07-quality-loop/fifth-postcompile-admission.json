@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-08T04:09:19.443244+00:00",
+  "passed": false,
+  "swapGb": 8.7479296875,
+  "load": 6.01,
+  "freeGb": 6.306800842285156,
+  "maxSwapGb": 8,
+  "minFreeGb": 6.5,
+  "compilerJoined": true,
+  "modelOrNativeStarted": false
+}

@@ -1,0 +1,81 @@
+{
+  "scope": "Cache-only actual isolated session source implementation. No canonical Source/compiler/native execution. Candidate admission remains separate/unaccepted.",
+  "sourceBeforePins": {
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "b75f80571fdbcc213add98cb7e988756629318f6e478859c6d667769deff95f2",
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift": "5952643d3b531627ce685c68f93d0c060e4f903d18e6fd4f89febd020f5082a1",
+    "Sources/NextNotes/Meetings/FinalTranscriptService.swift": "a7e8e6bd45f2eef27839249a8fea018745eb5054d5d5f75861c76df87fb7b445"
+  },
+  "routeBeforeSHA256": "ca7d6fe4fe5ae9b2daed19c85cfcc080d546b9515612ed4a586b0457916ad859",
+  "inputManifest": {
+    "path": "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E",
+    "manifestSHA256": "b61361547cea3f22a11f6f6ddf4796640458f2245f97a6aa18e0ccb1f06b62e1",
+    "manifest": {
+      "cases": [
+        {
+          "id": "quiet",
+          "file": "session-quiet.wav",
+          "SHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+          "speech": true,
+          "samples": 52566
+        },
+        {
+          "id": "loud",
+          "file": "session-loud.wav",
+          "SHA256": "775e0278dc520ec43dffee297e2d7673225e5a62c193afbd8c769db51f4c885b",
+          "speech": true,
+          "samples": 52566
+        },
+        {
+          "id": "mixed",
+          "file": "session-mixed.wav",
+          "SHA256": "f9afd30cba2011ff379fcbe3b7929fdbb0f83766e302d4ebb78f33df5c010a1a",
+          "speech": true,
+          "samples": 52566
+        },
+        {
+          "id": "digital-zero",
+          "file": "session-digital-zero.wav",
+          "SHA256": "a62a61c81510c24108d64deb0fc4f7e4641c7fcc40450325008c403d0f3e4867",
+          "speech": false,
+          "samples": 52566
+        },
+        {
+          "id": "dc",
+          "file": "session-dc.wav",
+          "SHA256": "54235a22e144fd98ad22d53a821b844bffb29976b5eac8a75bbb814f1b0e1e3f",
+          "speech": false,
+          "samples": 52566
+        },
+        {
+          "id": "noise",
+          "file": "session-noise.wav",
+          "SHA256": "c59ef2d48381671ba0ce0ca285ee179cc1758237b9afadbd8d57bd136082df9c",
+          "speech": false,
+          "samples": 52566
+        }
+      ],
+      "gold": "session-gold.txt",
+      "goldSHA256": "107739e03bcd73a4f92760f69415abef6b674de4da8b18c4d6fc848e3fec4013"
+    }
+  },
+  "stagedPins": {
+    "session-fixture.patch": "ae92509af6b55c0a15117d5b2672135d22686d296d8826c0e416988326abbd8c",
+    "session-final-dependencies.patch": "0aeeeb4a95594011ce4fa94664228b15903d3cf22fcf9665b5bb3c8f5f96480c",
+    "ChunkedTranscriber.admission-experiment.swift": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182",
+    "MeetingQuietSessionSelfTest.swift": "09cdbfc287b8db7e6cacb46c03eb41ba8908d11d3ffe721f3f233b4fb8a15af7",
+    "FinalTranscriptService.swift": "7545dba4792ab61009918236cd2146c22c1d7e4e7f6f63fd1164d512003eccd1",
+    "session-route.patch": "a8fc0edc0d4d1b6efab89a8b639b67f516cb0fd73debcb97dc856ddfc67c3054",
+    "MeetingSession.swift": "078c99ef680f889aa3678ff8fb43a5cfe124a909b741cd2487b98debc11c077b",
+    "admission-experiment.patch": "081eb9577275db2721598bb2f614004a87bb374a6487693cbdae9d5468da6431",
+    "MeetingPipeline.swift": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535"
+  },
+  "defaultScripted": "All6controls; injectedASR literalTransportfixture/empty words only; actualcapture/write/Stop/localfinal/save/freshreadback. No native modelload expected.",
+  "defaultNative": "Quiet case only6max existingcalls; explicit --meeting-quiet-session-only quiet,loud,mixed,digital-zero,dc,noise expands6boundedcases, <=6calls/case. Independentlygold7wordliveANDfinalpertrack require nativeASR not script.",
+  "joining": "RealStop assigns same injected finalservice mapTask; diagnosticretainedhandle avoids fastcompletiongetterrace, getter guardedsafeconfiguredUUIDstore/ID/harness/quietflags. Await samehandle.value before readback/cleanup. No duplicate finalpass/newtask/map. ReleaseQuietSessionFixture clears capturedreference/configuredID only aftermapempty/join; original native-termination getter guard remains unchanged.",
+  "productionDefault": "OptionalSession testfinalservice acceptedonlySelfTest; defaultnil Pipeline resolves originalshared atsame runbranch. No sharedsingletoninitialization by diagnosticgetter/configure.",
+  "settings": "Harness preferences restored keep/final/diarize/notes/live/wake; capture/transcribe/permission overrides restored. Previouscontext restored.",
+  "timeDomain": "Actual captureHostOriginForTesting stamps both16kFloat tracks0; CAFbothchannelshash exact52566PCM; actual forwardedinputhash domain includes mergeddefaultcuts and finalwindow; copied inputs retained.",
+  "cleanup": "Only joined generatedNextNotesMeetingResumeTest-UUID store removed; hub/tap/Stop/final tasks completed; inputcorpus retained for acceptance.",
+  "pending": "Compile/typechecking, native noise/cost controls, original/fixed sameactualSession verdicts,16GBASRvoice liveworkload; no semanticpermissionauthority fromsystemspeech.",
+  "experiment": "admission-experiment-handoff.json; normal production body unchanged. OriginalSession quiet0 expecteddiagnosticloss; experimentalnative7pertrackrequired, no modelwordPASSfromscript."
+}

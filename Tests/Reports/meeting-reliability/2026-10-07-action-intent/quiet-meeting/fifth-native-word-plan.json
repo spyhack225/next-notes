@@ -1,0 +1,81 @@
+{
+  "scope": "Cache-only command/metadata plan against frozen fifth source; no source fixture edits, compiler or native calls",
+  "app": "<root-pinned fifth executable>",
+  "commands": [
+    {
+      "id": "independent-selected-window",
+      "args": [
+        "--selftest-dictation-segments",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window.wav",
+        "--dictation-complete-audio",
+        "--dictation-gold",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window-gold.txt",
+        "--dictation-asr-output",
+        "<private diagnostic directory>/quiet-source-window"
+      ],
+      "realCallPath": "direct ParakeetModels.shared.manager().transcribe(full untrimmed PCM,fresh TdtDecoderState) then2ParakeetEngine complete-audio replays; not queue-direct and not timing-equivalent meeting speed proof",
+      "referenceOutput": "<private diagnostic directory>/quiet-source-window.reference.txt",
+      "extraEngineOutputs": [
+        "<private diagnostic directory>/quiet-source-window.complete-file+300ms.txt",
+        "<private diagnostic directory>/quiet-source-window.complete-file.txt"
+      ],
+      "grade": "Independently supplied7word last-turn gold vs captured raw reference; report exact normalized clause and WER, not replay marker alone"
+    },
+    {
+      "id": "actual-live-shared-gate",
+      "args": [
+        "--selftest-transcribe",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window.wav"
+      ],
+      "realCallPath": "actual ChunkedTranscriber1s append/queue/flush/shared containsSpeech; no MeetingSession audio writer/store",
+      "rawLog": "private stdout; current existing flag also mirrors public system log, so only approved PUBLIC input used",
+      "grade": "Compare raw emitted segment words/source/time with independent reference; TRANSCRIBE_OK0is gate loss observation not qualitypass"
+    },
+    {
+      "id": "actual-final-existing-diagnostic",
+      "args": [
+        "--selftest-meeting-quiet-input",
+        "--meeting-quiet-corpus",
+        "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E",
+        "--meeting-quiet-native"
+      ],
+      "scope": "existing native mode direct ambiguous2.805375s crop+actual MeetingFinalPass on SAME crop; useful gate observation, cannot claim complete7word cropaligned acceptance"
+    }
+  ],
+  "fallback": {
+    "condition": "Selected complete-reference window lacks exact7word recognition",
+    "args": [
+      "--selftest-dictation-segments",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-clause.wav",
+      "--dictation-complete-audio",
+      "--dictation-gold",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-whole-gold.txt",
+      "--dictation-asr-output",
+      "<private diagnostic directory>/quiet-whole-reference"
+    ],
+    "scope": "Full60.585375s reference+2engine replays; this changes context/input, report separately not narrow same-window proof"
+  },
+  "publicOutputCriteria": {
+    "pins": "source commit/bundle/executable/input/gold/window samplebounds/model artifact",
+    "runtime": "actual native calls, refused counts,lane/timing scope,memory samples,gate and completion/cut/errors",
+    "wordQuality": "referenceWordCount7, exactNormalizedClause boolean, clause edit counts/WER, matched ordered wordcount; hashes of captured raw reference/segments, private filepaths only; no owner speech",
+    "producerBeforeAfter": "original native direct samewindow establishes clause; original live/final emits no clause due gate; fixed samewindow emits independently referenced clause via actualproducer and freshsavedconsumers. Generic fake/empty-marker booleans do notsubstitute",
+    "negativeQuality": "exact digitalzero skipped; deterministic quiet noise/DC ambient native lexical words and calls reported without requiring admission; any added hallucination remains failure/open",
+    "scopeLimits": "existing live file seam excludes fullMeetingSession capture/writer/store; crop notwordaligned; fullinput changedcontext; native noise/workload/fullsession16GBASRvoice acceptance remains pending"
+  },
+  "noiseWorkloadPlan": {
+    "smallestControls": "same-length3.285375s digitalzero,0.005DC and seeded lowRMS comfort-noise originals/fixed, nativeoutput must not invent lexicalspeech; admission is observation-only",
+    "productGate": "quiet speech recovery plus no introduced spurious transcript or destructive wake actions; preserving recorder audio never by itself proves transcriptaccuracy",
+    "loadProof": "representative ambient mic + digitallysilent system with speech on both tracks on16GBAir, ASR+voice overlap; record admittedcalls/min,cpu,queued/dropaudio,memory/swap and speechlag vs original; one narrow call cannot claim soak/throughputfloor",
+    "forbiddenShortcut": "No accepted nonzero-admission requirement, threshold lowering, queue/pass/store addition or silence-policy promotion until observed native constraints support producerrepair"
+  },
+  "currentFlagFact": {
+    "dictation-reference-output": "not present/read in frozen canonical source",
+    "dictation-asr-output": "existing explicit prefix controls raw3output files"
+  },
+  "sourcePins": {
+    "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": "be5f2cfb0b1f20a2f8455f5e17b3b2f8f87929b97a416748367964717f992570",
+    "Sources/NextNotes/NextNotesApp.swift": "0f8d1295c1bee4f2b02ec320cd46ccf9a2d875f730b0e33f52af344378581beb"
+  },
+  "executed": false
+}

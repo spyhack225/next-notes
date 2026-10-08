@@ -1,0 +1,19 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-topic-merge --meeting-topic-merge-corpus /private/tmp/NextNotesMeetingActionIntentReplay-3a31d9b2-d250-4b12-be4b-b82f97a8624c
+2026-10-08 00:12:26.844 NextNotes[80011:1413955] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_TOPIC_MERGE_CASE id=placeholder-11 priorTopics=11 afterTopics=11 priorUnresolved=11 afterUnresolved=11 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=placeholder-13 priorTopics=13 afterTopics=13 priorUnresolved=13 afterUnresolved=13 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=shared-token-9 priorTopics=9 afterTopics=10 priorUnresolved=9 afterUnresolved=10 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=shared-token-13 priorTopics=13 afterTopics=14 priorUnresolved=13 afterUnresolved=14 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=empty priorTopics=9 afterTopics=9 priorUnresolved=9 afterUnresolved=9 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=exact-duplicate priorTopics=9 afterTopics=9 priorUnresolved=9 afterUnresolved=9 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=enrichment priorTopics=9 afterTopics=10 priorUnresolved=9 afterUnresolved=9 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=capacity priorTopics=40 afterTopics=40 priorUnresolved=40 afterUnresolved=40 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=capacity-duplicate priorTopics=40 afterTopics=40 priorUnresolved=40 afterUnresolved=40 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=old-explanation-3-real-window priorTopics=11 afterTopics=11 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-explanation-1-real-window priorTopics=9 afterTopics=10 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-explanation-3-real-window priorTopics=11 afterTopics=11 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-hypothetical-order-real-window priorTopics=13 afterTopics=13 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-customer-followup-real-window priorTopics=13 afterTopics=13 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-answered-question-real-window priorTopics=13 afterTopics=14 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_RESULT fixtures=15 checks=185 failed=0 modelCalls=0 semanticQuality=false
+MEETING_TOPIC_MERGE_OK

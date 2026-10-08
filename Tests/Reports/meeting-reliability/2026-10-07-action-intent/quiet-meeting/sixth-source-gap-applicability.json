@@ -1,0 +1,11 @@
+{
+  "canonicalFixtureBeforeSHA256": "2a6052c785dc29d15f815b58b664a13aa93dab4d885ba14616a8111ae6a9ff93",
+  "cacheFixtureAfterSHA256": "09cdbfc287b8db7e6cacb46c03eb41ba8908d11d3ffe721f3f233b4fb8a15af7",
+  "updatePatchSHA256": "33b47528cc3db1e21c7e2ceb6df7a471311d3413a1f13afd6374beb8592f4028",
+  "alreadyAppliedDependencies": {
+    "MeetingSession.swift": true,
+    "MeetingPipeline.swift": true,
+    "FinalTranscriptService.swift": true
+  },
+  "scope": "Read-only root source-gap observation; root already applied3dependencies+base fixture; child wrote cache update only"
+}

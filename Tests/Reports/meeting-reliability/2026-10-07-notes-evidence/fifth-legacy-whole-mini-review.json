@@ -1,0 +1,476 @@
+{
+  "mode": "whole",
+  "trace_usage_validation": "PASS",
+  "calls": [
+    {
+      "feature": "meeting.notes.single",
+      "pass": "single",
+      "promptTokens": 13062,
+      "completionTokens": 175,
+      "totalMs": 77060,
+      "finishReason": "stop",
+      "truncated": false,
+      "call": 1,
+      "duration": 18.345809936523438,
+      "maxTokens": 1600,
+      "raw_present": true
+    }
+  ],
+  "workflow_seconds": 89.26646101474762,
+  "generated_tokens": 175,
+  "incomplete_facts": false,
+  "whole_production_byte_identity": false,
+  "brief": "empty copied replay; original raw prompt unavailable",
+  "filtered_source_count": 519,
+  "captured_source_count": 519,
+  "renderer_source_pin_matches": true,
+  "captured_transcript_byte_parity": true,
+  "all_filtered_source_lines_in_input": true,
+  "gold_rows": [
+    {
+      "gold_id": "prototype_experience",
+      "source_ids": [
+        104,
+        105,
+        106,
+        107,
+        108,
+        109
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "owner_scaled_experience",
+      "source_ids": [
+        298,
+        301,
+        305,
+        308,
+        318,
+        322
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "future_followup",
+      "source_ids": [
+        410,
+        412,
+        416
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "answered_handoff",
+      "source_ids": [
+        323,
+        346,
+        350,
+        352,
+        353,
+        356,
+        360,
+        365,
+        366,
+        371,
+        372
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "stage_distinctions",
+      "source_ids": [
+        212,
+        213,
+        250,
+        251,
+        252,
+        255
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "illustrative_smallbatch",
+      "source_ids": [
+        257,
+        259
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "budget_bom_tools",
+      "source_ids": [
+        98,
+        235,
+        236,
+        239,
+        243,
+        247,
+        263,
+        278,
+        279
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "supplier_link_verification",
+      "source_ids": [
+        449,
+        450,
+        451,
+        452,
+        453,
+        454,
+        455
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "ai_prototype_engineering",
+      "source_ids": [
+        469,
+        470,
+        471,
+        472,
+        473,
+        474,
+        475,
+        476,
+        477,
+        478,
+        479,
+        480,
+        481,
+        482
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": true,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    },
+    {
+      "gold_id": "crossdisciplinary_iteration",
+      "source_ids": [
+        489,
+        492,
+        495,
+        501,
+        502,
+        504,
+        506,
+        509,
+        510,
+        511,
+        512,
+        513,
+        516,
+        517
+      ],
+      "exact_source_lines_in_input": true,
+      "stages": [
+        {
+          "stage": "input",
+          "marker_present": true,
+          "semantic_present": true,
+          "contradiction": false,
+          "attribution_correct": true,
+          "past_future_correct": true
+        },
+        {
+          "stage": "single",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        },
+        {
+          "stage": "markdown",
+          "marker_present": false,
+          "semantic_present": false,
+          "contradiction": false,
+          "attribution_correct": null,
+          "past_future_correct": null
+        }
+      ],
+      "first_reviewed_loss": "single",
+      "first_reviewed_error": null
+    }
+  ],
+  "semantic_review_complete": true,
+  "gold_checks_passed": false,
+  "semantic_quality_proven": false,
+  "marker_limit": "marker_present is lexical only; missing semantic annotations remain null, never PASS",
+  "audio_accuracy_proven": false,
+  "comparison": {
+    "prior_controlled_markdown_exact_equal": true,
+    "raw_substantive_first_five_sections_equal_assembled": true,
+    "only_related_context_filler_changes": true,
+    "prior_controlled_workflow_seconds": 63.192022919654846,
+    "current_workflow_seconds": 89.26646101474762,
+    "paired_benchmark": false,
+    "original_owner_production_byte_identity": false,
+    "original_owner_production_raw_prompt_retained": false
+  },
+  "narrow_supported_checks": {
+    "source_background_attribution_supported": true,
+    "supporting_source_ids": [
+      83,
+      89
+    ],
+    "broad_ai_design_not_engineering_supported": true,
+    "no_new_deadline_observed": true,
+    "no_owner_experience_transfer_observed_in_this_copied_reply": true
+  },
+  "verdict": "FAIL: material completeness/qualified-attribution gold; first loss at raw single completion, not formatter",
+  "gold_presence_definition": "True means complete configured material criterion; broad topic survival alone is partial, not PASS"
+}

@@ -1,0 +1,11 @@
+{
+  "ok": true,
+  "swapGb": 7.932734375,
+  "load": 8.73,
+  "freeGb": 7.2691497802734375,
+  "path": "/",
+  "reasons": [],
+  "unknown": [],
+  "scope": "alternate8192 legacycompression exactpass trace; wholejoined/no ASR",
+  "at": "2026-10-08T04:26:13.429179+00:00"
+}

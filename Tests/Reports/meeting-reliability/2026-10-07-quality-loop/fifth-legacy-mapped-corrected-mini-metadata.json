@@ -1,0 +1,20 @@
+{
+  "experiment": "fifth-legacy-mapped-corrected-mini",
+  "exit": 0,
+  "wall_seconds": 188.8622600000017,
+  "markers": [
+    "NOTES_REPLAY_RESULT mode=legacy seconds=187.3931679725647 tokens=1860 mapReduce=true chunks=3 collapsed=0 dropped=0 incompleteFacts=true",
+    "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+  ],
+  "candidateSHA": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2",
+  "startedAt": "2026-10-08T04:48:07.466950+00:00",
+  "endedAt": "2026-10-08T04:51:16.332796+00:00",
+  "pids": [
+    83500
+  ],
+  "memorySamples": 89,
+  "peakSampledFootprintBytes": 509512296,
+  "peakSampledResidentBytes": 2076999680,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "manual review pending"
+}

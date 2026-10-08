@@ -1,0 +1,100 @@
+[
+  {
+    "at": "2026-10-08T04:20:16.812793+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 204899840,
+    "residentBytes": 241762304
+  },
+  {
+    "at": "2026-10-08T04:20:18.852562+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143705624,
+    "residentBytes": 349863936
+  },
+  {
+    "at": "2026-10-08T04:20:20.898588+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143672856,
+    "residentBytes": 565575680
+  },
+  {
+    "at": "2026-10-08T04:20:22.946436+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143672856,
+    "residentBytes": 645513216
+  },
+  {
+    "at": "2026-10-08T04:20:24.987712+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143672856,
+    "residentBytes": 645513216
+  },
+  {
+    "at": "2026-10-08T04:20:27.035231+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143623704,
+    "residentBytes": 645251072
+  },
+  {
+    "at": "2026-10-08T04:20:29.085007+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143623704,
+    "residentBytes": 645251072
+  },
+  {
+    "at": "2026-10-08T04:20:31.129573+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143623704,
+    "residentBytes": 645152768
+  },
+  {
+    "at": "2026-10-08T04:20:33.178428+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143509016,
+    "residentBytes": 645087232
+  },
+  {
+    "at": "2026-10-08T04:20:35.219494+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143509016,
+    "residentBytes": 645087232
+  },
+  {
+    "at": "2026-10-08T04:20:37.263124+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 143509016,
+    "residentBytes": 645349376
+  },
+  {
+    "at": "2026-10-08T04:20:39.314390+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 113345808,
+    "residentBytes": 250200064
+  },
+  {
+    "at": "2026-10-08T04:20:41.421007+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 120325392,
+    "residentBytes": 257343488
+  },
+  {
+    "at": "2026-10-08T04:20:43.481158+00:00",
+    "pid": 80919,
+    "processStart": 1137927609132,
+    "footprintBytes": 120374544,
+    "residentBytes": 257392640
+  }
+]

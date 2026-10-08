@@ -1,0 +1,18 @@
+{
+  "scope": "Read-only actual source audit; no compiled/native recognition proof",
+  "confirmed": {
+    "admission": "Every complete 320-sample frame must have RMS below 0.01 to refuse the full >=1600-sample window",
+    "live": "append keeps complete PCM; flush enqueues whole residual; transcribeWindow refuses before injected/native call",
+    "final": "MeetingFinalPass repeats the same containsSpeech refusal",
+    "quietSuffix": "Forwarded intact when any complete frame in the queued batch passes threshold",
+    "pause": "Low amplitude also treated as pause by nextCut/cutPoints; semantic/ASR fragmentation effect not proved",
+    "recording": "MeetingSession writes accepted packets before transcriber admission",
+    "telemetry": "silentSkipped counts windows but duration0; droppedAudioSeconds excludes these amplitude skips",
+    "acceptance": "Final60percent live word comparison cannot expose speech missing from both tiers"
+  },
+  "hypothesis": "Separate pause hint from irreversible ASR admission; conservative digital-zero boundary remains proposed only, with native noise/hallucination/workload controls required",
+  "sourcePins": "source-pins.json",
+  "compilerRun": false,
+  "nativeRun": false,
+  "canonicalWrites": false
+}

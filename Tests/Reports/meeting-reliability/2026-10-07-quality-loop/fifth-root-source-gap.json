@@ -1,0 +1,22 @@
+{
+  "state": "fifth source gap applied; uncompiled",
+  "before": {
+    "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift": "f690ec68ec87a8a8cae6c84c283060672d62324fd95c6dfb9a8bdb08aa022934",
+    "Sources/NextNotes/NextNotesApp.swift": "fd47fae76ef9639b95f877672b4cecc6e273e6f93097a42370701d00c167f44a",
+    "Sources/NextNotes/Support/Usage/ModelPassRecorder.swift": "25780bc9318454a6c757639669e011e5db0eab0a2c923a094bdf16a585f3c752"
+  },
+  "after": {
+    "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift": "1d959d44a7a96c9e0f49747c799604b35c297ca7e56eeef46e2bb803f8f78517",
+    "Sources/NextNotes/NextNotesApp.swift": "0f8d1295c1bee4f2b02ec320cd46ccf9a2d875f730b0e33f52af344378581beb",
+    "Sources/NextNotes/Support/Usage/ModelPassRecorder.swift": "67e4b86881849fc542c17b0fcea13363d86c801f2a338c7b47995b613b4f16fb",
+    "Sources/NextNotes/Meetings/MeetingQuietInputSelfTest.swift": "ca7d6fe4fe5ae9b2daed19c85cfcc080d546b9515612ed4a586b0457916ad859"
+  },
+  "patches": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-notes-pass-trace-jy_ttt5y/pass-trace.patch": "d56ab6e3daee78958f75254d7c66e860cdef35bbf98cbf60f5882901e936da9d",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-notes-pass-trace-jy_ttt5y/optional-forwarding-fixture.patch": "f3e9572ecc199a844dd631d3281a11012a3c7c8a294fdd2cb156a7b2f22b5552",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/fixture.patch": "cd5793a27983d3056699c1964a7c577944e1cb22545c58a0a0ba9e939d13ebe6",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/app-flag.patch": "23fe79c1d5c9fc661535595e6b3a81ecfebc47dc212edb76f44c0c672ea799be"
+  },
+  "compilerCalls": 0,
+  "modelCalls": 0
+}

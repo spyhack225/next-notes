@@ -1,0 +1,6 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-79499/Next Notes.app/Contents/MacOS/NextNotes --selftest-notes-truncation
+2026-10-08 00:12:42.258 NextNotes[80245:1415613] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+NOTES_TRUNCATION cut calls=2 budget=2000,4000
+NOTES_TRUNCATION reduce calls=7 reduceBudget=3000,6000 parts=5
+NOTES_TRUNCATION factsCut=true maps=5 reduce=1
+NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read

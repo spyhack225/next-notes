@@ -1,0 +1,57 @@
+{
+  "scope": "Independent public TTS turn reference and exact original producer-selected PCM; no owner speech, compiler or native recognition",
+  "independentAlignmentProducer": "generate.sh concat records turn start/end from rendered PCM lengths before ASR, rounded to3decimals; no within-turn word timestamps",
+  "referenceSourcePins": {
+    "Tests/Fixtures/meetings/generate.sh": "53ba0657e606a964fa1371f9327eb9ac1ab63fe30ea81127dd090894715905de",
+    "Tests/Fixtures/meetings/manifest.json": "7590b9e401627a5944a283192a6f4a435fb8eddda4bbf742a2fbe3be356f5875",
+    "Tests/Fixtures/meetings/scripts/en-dialogue.txt": "150d6e74f23ef058ec51dcd980c1129dec070a68db78995e18480075b40ba559",
+    "Tests/Fixtures/meetings/en-dialogue.wav": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203"
+  },
+  "originalWholeGoldSHA256": "0b7465741fe4a5fb780a941f78d946935acb6e84bbd26d9d74205af3d5a19e2b",
+  "referenceLastTurn": {
+    "startSeconds": 57.709,
+    "endSeconds": 60.585,
+    "normalizedWordCount": 7,
+    "normalizedWordsSHA256": "e5112ff975236fab86f01493e94f6f0b3d41e1ed8c3a06b1d94e60c843f905c7",
+    "goldSHA256": "107739e03bcd73a4f92760f69415abef6b674de4da8b18c4d6fc848e3fec4013"
+  },
+  "cropAmbiguity": {
+    "oldAloneStartSample": 924480,
+    "oldAloneStartSeconds": 57.78,
+    "approximateMissingTurnPrefixMilliseconds": 71,
+    "canGradeFullLastClauseAgainstOldCrop": false
+  },
+  "completeReferenceWindow": {
+    "sourceFileSHA256": "76c16c4ffd310a9e9b1b87841a8211a7ae738e92868b02b8141c578a1f726dc4",
+    "sourceStartSample": 916800,
+    "sourceEndSample": 969366,
+    "samples": 52566,
+    "seconds": 3.285375,
+    "beginsAfterPreviousTurnEndSeconds": 56.909,
+    "beginsBeforeLastTurn": true,
+    "includesWholeLastTurn": true,
+    "file": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window.wav",
+    "fileSHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+    "goldFile": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window-gold.txt",
+    "currentGate": "refused by offline actual source algorithm; Swift/native verdict pending"
+  },
+  "criteria": {
+    "originalProductLoss": "Direct same selected window must recognize all7independent normalized reference words, while unchanged actual final seam refusesASR and omits those words; nonempty alone never passes",
+    "comparisonNormalization": "lowercase + punctuation/whitespace normalization only; preserve every lexical word; report ordered7word contiguous match and perword edit distance",
+    "fixedProductRecovery": "Same input/window/native model must reach actual final producer once and emit exact7word clause with source/timestamps; actual isolated MeetingSession capture/writer/save/fresh-reader must preserve audio+transcript before product-flow claim",
+    "wholeInputFallback": "If direct complete-reference window cannot recognize7word clause, run same full60.585375s file direct/native final against complete independent gold; keep narrow native cause unproven if only wholecontext recognizes",
+    "noise": "digitalzero remains skipped;0.005DC+deterministic belowfloor noise are observation-only inputs, grade any native lexical hallucination and modelcall cost; no requirement that every nonzero sample be admitted",
+    "workload": "Same existing queue/lanes/passes, bounded memory/backlog on16GBreference under ASR+voice; assess extra ambient-noise work vs original rather than claiming quiet speedup; no default/modelpromotion"
+  },
+  "compilerRun": false,
+  "nativeRun": false,
+  "productionMitigationAccepted": false,
+  "reviewDriver": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/review_native_words.py",
+    "SHA256": "a2152b54df56230d3f9aaf10301ccb2c48b62e42e9a52ea9e2606eefdc9df422",
+    "executed": false,
+    "args": "--reference-prefix <private prefix> --meeting-log <private actual transcribe log> --output <private metadata JSON>",
+    "originalWordLossGate": "raw direct reference exactly7independent words AND actual completed meeting source-bound segmentJSONempty; success markeralone/nonempty/textrepair neverpasses",
+    "plannedSourceWindowNativeDirect": "existing direct-manager untrimmed reference; no padding >4800 samples;2extra engine replays explicitly not latencycontrol"
+  }
+}

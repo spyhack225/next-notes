@@ -1,0 +1,27 @@
+{
+  "source": "Approved relay510 public repository quiet fixture; no owner audio",
+  "copiedDirectory": "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E",
+  "compilerRun": false,
+  "nativeRun": false,
+  "canonicalWrites": false,
+  "producerFixProposedOnly": true,
+  "driverScope": "Actual ChunkedTranscriber append/queue/flush + MeetingFinalPass with injected ASR; private temporary emitted segment JSON fresh-readback. Not actual MeetingSession capture/writer/store full-flow. Optional cropped direct native control + actual finals; exact crop gold alignment absent. No noise/workload acceptance. Constant0.005 DC row is observation-only and never asserts required ASR admission; approved-wave forwarding targets are explicitly unproven native-word hypotheses, not established quality regressions.",
+  "files": {
+    "quiet-final-clause-alone.wav": "6b33012b8141c80f3244d32e238b0dfb5dcd6c79434791fbf0302f18c2b80378",
+    "quiet-final-clause.wav": "76c16c4ffd310a9e9b1b87841a8211a7ae738e92868b02b8141c578a1f726dc4",
+    "quiet-final-manifest.json": "dee1884e16b2046c9345fe856b0f57f17dca1ad0ad354329a0aaf99d149af376",
+    "quiet-final-whole-gold.txt": "0b7465741fe4a5fb780a941f78d946935acb6e84bbd26d9d74205af3d5a19e2b"
+  },
+  "stagedFiles": {
+    "MeetingQuietInputSelfTest.swift": "ca7d6fe4fe5ae9b2daed19c85cfcc080d546b9515612ed4a586b0457916ad859",
+    "fixture.patch": "cd5793a27983d3056699c1964a7c577944e1cb22545c58a0a0ba9e939d13ebe6",
+    "app-flag.patch": "23fe79c1d5c9fc661535595e6b3a81ecfebc47dc212edb76f44c0c672ea799be",
+    "classify.py": "e621ea50318c4673ce1617589a9a08b3b6d9fb56c7d8d9b0672f5325f129f661",
+    "pcm-classification.json": "68384ad3dee9c1cb2fb628e5eddd52648c90ff2412abfb0ff07b10cb7abbcad6"
+  },
+  "commands": {
+    "forwarding": "<pinned-app> --selftest-meeting-quiet-input --meeting-quiet-corpus /private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E",
+    "optionalNative": "<pinned-app> --selftest-meeting-quiet-input --meeting-quiet-corpus /private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E --meeting-quiet-native"
+  },
+  "copiedBytes": 2030307
+}

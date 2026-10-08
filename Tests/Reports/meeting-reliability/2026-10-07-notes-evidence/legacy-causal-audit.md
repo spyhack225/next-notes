@@ -4,6 +4,8 @@ Read-only audit during the fourth shared release build. No source edits, compile
 
 ## What is confirmed
 
+The owner's original production notes were a **whole-reader Mini call**, not the 8,192-window alternative: 99 words, 137 generated tokens, a 14,062-token prompt, natural stop and no reported truncation. These original counters are retained in the [Zoom audit](../2026-10-07-zoom-audit/README.md). The controlled Mini whole replay below generated 175 tokens and is a different run. Do not merge these counters or claim that the original owner flow contained map/collapse passes.
+
 The retained legacy 8,192-window Mini replay contains three maps and one reduce, with no collapse or dropped groups. The first two maps each exhaust their 600-token allowance; the third stops at 462 tokens. The reduce receives a 2,229-token rendered prompt and stops at 198 generated tokens. The unchanged body and four-pass generation now disclose incomplete extraction through `incompleteFacts`; the disclosure does not recover facts. The original and disclosure replay timings are 159.56 and 125.38 seconds respectively; their matching output/pass counts do not show a semantic improvement or establish a reliable speed difference.
 
 The whole-meeting Qwen3.5 replay reports 14,516 actual prompt tokens, 340 completion tokens, `finishReason=stop`, and `truncated=false`. It uses one generation, not map/collapse/reduce. The roughly 40-minute meeting permits approximately 1,600 output tokens before window clamping, and the 32,768-token reader has sufficient space. Its unsupported deadline and missing distinctions cannot be explained by the two legacy map limits. The retained Mini whole replay is similarly thin at 175 generated tokens; its older log lacks the detailed usage row, so do not invent that row's finish/counter evidence.
@@ -27,9 +29,13 @@ The owner gold review already demonstrates omissions and incorrect attribution i
 
 The original map prompt prioritizes decisions, commitments, dates, numbers, names and unanswered questions, and requests removal of filler/repetition. There is no explicit exhaustive material-topic or qualification/tense coverage obligation. The final prompt asks for a short Summary and prohibits inferred owners/dates. Underselection, compression emphasis and semantic misclassification are plausible explanations, not experimentally isolated causes. Another broad prompt rewrite would change the symptom without locating the first broken pass.
 
-## One narrowly falsifiable experiment
+## First-loss capture: original topology first, alternative separately
 
-Run **one unchanged legacy Mini/8,192 replay** on the same guarded copied owner fixture when root owns the native test slot. Use the existing diagnostic provider wrapper to privately retain each call's exact system/user strings, requested output allowance, raw completion, actual usage and finish metadata. Forward all arguments unchanged to the installed provider. There are the same three maps and one reduce, with no new checker generation, retry, model/default promotion, queue or store. This is an observational replay, not a candidate fix.
+First run an unchanged legacy **whole-reader Mini replay**, without a forced reader window, with explicit private pass capture. Expected topology is one existing `single` generation. This is the original owner's production topology, and it localizes loss from submitted transcript to raw output to assembled notes. The copied harness supplies `.empty` brief, and the original raw production prompt is unavailable: it does not establish original production byte identity. Record any prompt/counter/body divergence from the original 137-token output and from the separate retained 175-token replay.
+
+Then run the unchanged legacy **Mini/8,192 alternative** separately on the same guarded copied fixture. Its expected topology is three maps and one reduce. This diagnoses alternate compression only; a map budget finding does not explain the owner's original whole-reader call.
+
+Use the existing diagnostic provider wrapper to privately retain each call's exact system/user strings, requested output allowance, raw completion, actual usage and finish metadata. Forward all arguments unchanged. There is no checker generation, added retry, model/default promotion, queue or store. These are two observational runs of their existing producer topologies, not extra passes in the product. If the original generator's existing overflow/length retry changes a copied run's expected topology, retain and disclose that divergence; do not suppress it to manufacture parity.
 
 Before running, pin the filtered transcript, speaker map, brief, generator/prompts, installed model and requested window. Compare the captured map inputs against the private source-linked gold, then classify every gold target at the first failing boundary:
 

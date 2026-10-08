@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-08T04:55:59.265672+00:00",
+  "state": "sixth reviewed sourcegap subset applied; uncompiled/uninstalled",
+  "before": {
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "b75f80571fdbcc213add98cb7e988756629318f6e478859c6d667769deff95f2",
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift": "5952643d3b531627ce685c68f93d0c060e4f903d18e6fd4f89febd020f5082a1",
+    "Sources/NextNotes/Meetings/FinalTranscriptService.swift": "a7e8e6bd45f2eef27839249a8fea018745eb5054d5d5f75861c76df87fb7b445",
+    "Sources/NextNotes/Meetings/MeetingQuietInputSelfTest.swift": "ca7d6fe4fe5ae9b2daed19c85cfcc080d546b9515612ed4a586b0457916ad859",
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "12bdf93d929da8a2d2ab8e6fbb531ac4c0641e6bb7ba892c400b1f1740fd7b9d",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift": "ebb904245b14a5de28468fc7a44a83db1f4fd8a0813619ef3199d8c3c8b7671d"
+  },
+  "after": {
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "078c99ef680f889aa3678ff8fb43a5cfe124a909b741cd2487b98debc11c077b",
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535",
+    "Sources/NextNotes/Meetings/FinalTranscriptService.swift": "7545dba4792ab61009918236cd2146c22c1d7e4e7f6f63fd1164d512003eccd1",
+    "Sources/NextNotes/Meetings/MeetingQuietInputSelfTest.swift": "399625c3bbbad2a832e944c75b322bcae93798314705b28f52a63b4c7e7b3d8c",
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift": "9a69c9e5a688d92437c26242db745178928f957ced02a3bb16691b87425214d5",
+    "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift": "2a6052c785dc29d15f815b58b664a13aa93dab4d885ba14616a8111ae6a9ff93"
+  },
+  "patches": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/session-fixture/session-final-dependencies.patch": "0aeeeb4a95594011ce4fa94664228b15903d3cf22fcf9665b5bb3c8f5f96480c",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/session-fixture/session-route.patch": "a8fc0edc0d4d1b6efab89a8b639b67f516cb0fd73debcb97dc856ddfc67c3054",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/session-fixture/session-fixture.patch": "cb6661aac1195f178be2b19d25872ba8713efa0113126505fad1b641646ea64e",
+    "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/rename-ui-staged.patch": "ef5ed88d6cbfc14027cf156da33c2ba06e8bbc626fca8e1a8fb5866f58e30a94"
+  },
+  "scope": "real isolated Session/finaltask diagnostic dependencies plus admitted speaker-name save producer+exact old callback regression; quiet admission/notes production prompts unchanged",
+  "compilerCalls": 0,
+  "nativeCalls": 0
+}

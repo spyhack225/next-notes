@@ -1,0 +1,7 @@
+
+
+### Quiet speech and exact pass causality — fifth loop
+
+Keep amplitude segmentation hints separate from proven recognition coverage. The meeting live/final admission gate can refuse below0.01 RMS blocks despite saved audio and zero queue drops. Offline source-algorithm classification is not actual native recognition. A DC/sine control and fabricated ASR marker cannot prove a spoken phrase; whole final/live agreement is circular when both use the same admission gate. Native direct recognition and the actual meeting consumer must receive identical pinned PCM, with independently aligned words, silence/noise controls and complete elapsed cost. Any conservative admission change remains a hypothesis until those controls and fullSession persistence/workload proof pass.
+
+Copied note diagnostics may wrap only existing calls, forwarding the exact tokenizer, plain/grammar arguments, current recorder, completion/error and cancellation once. Keep raw prompts/replies private. Record map/reduce topology, callcount, feature/pass and first-loss source intervals. A copied replay using brief.empty differs from original production context; disclose it. Neither schema validity nor unused output allowance proves semantic coverage. Retain both missing facts and fabricated claims. The fifth compiler starts under explicit max8/free6.5 coordination at7.870GB swap/7.376GB free; default10GB and ASR/voice soak are not claimed.

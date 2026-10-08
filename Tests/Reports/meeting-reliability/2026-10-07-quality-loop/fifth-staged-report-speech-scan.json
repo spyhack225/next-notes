@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-08T05:05:09.185887+00:00",
+  "base": "6a805d14a720d12f180096551ba53a15dbd2f934",
+  "pathCount": 111,
+  "uniqueNormalizedOwnerUtterancesAtLeast50Chars": 648,
+  "matches": [],
+  "scope": "exact normalized >=50-character final/live owner utterances; not semantic paraphrase or shorter excerpt detection",
+  "stagedSourceSHA256": {
+    "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift": "1d959d44a7a96c9e0f49747c799604b35c297ca7e56eeef46e2bb803f8f78517",
+    "Sources/NextNotes/Meetings/MeetingQuietInputSelfTest.swift": "ca7d6fe4fe5ae9b2daed19c85cfcc080d546b9515612ed4a586b0457916ad859",
+    "Sources/NextNotes/NextNotesApp.swift": "a16d41b6dd062efb1692bdab08c349afc35ad2d36fe379db50f1c71fb043b424",
+    "Sources/NextNotes/Support/Usage/ModelPassRecorder.swift": "67e4b86881849fc542c17b0fcea13363d86c801f2a338c7b47995b613b4f16fb"
+  },
+  "sourceDocsDiffCheck": 0
+}

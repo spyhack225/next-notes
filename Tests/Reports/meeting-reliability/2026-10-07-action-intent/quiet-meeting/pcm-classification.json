@@ -1,0 +1,288 @@
+{
+  "scope": "Offline exact PCM16/Float32 source-algorithm classification; Swift/native replay pending",
+  "liveMerging": "Live nominal cuts only; actual queue can merge adjacent windows and change admission",
+  "nativeRecognition": false,
+  "sourcePinFile": "source-pins.json",
+  "cases": [
+    {
+      "file": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-clause.wav",
+      "fileSHA256": "76c16c4ffd310a9e9b1b87841a8211a7ae738e92868b02b8141c578a1f726dc4",
+      "samples": 969366,
+      "float32SHA256": "c928dd4ecd9adb2b4aa9aa0a6c192afaa6877504d3470ab96e5111ba931dacc4",
+      "defaultNominalWindows": [
+        {
+          "startSample": 0,
+          "endSample": 58240,
+          "seconds": 3.64,
+          "maxCompleteFrameRMS": 0.2584810256958008,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "99c943ac7d64e2b95537c2c2978979003547e8ef34592b157d90c406a49e5fd2"
+        },
+        {
+          "startSample": 58240,
+          "endSample": 117120,
+          "seconds": 3.68,
+          "maxCompleteFrameRMS": 0.22097881138324738,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "f861e33f35d8d914e010d230f9e035ba9d5e98466cbb1147108272337ba9bd47"
+        },
+        {
+          "startSample": 117120,
+          "endSample": 178560,
+          "seconds": 3.84,
+          "maxCompleteFrameRMS": 0.29593443870544434,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "9d21a213abfd03b0947cb571eb3ac1fe5c32ee7d0479e91c055fda00c2b808fb"
+        },
+        {
+          "startSample": 178560,
+          "endSample": 243840,
+          "seconds": 4.08,
+          "maxCompleteFrameRMS": 0.23396486043930054,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "e62b14a9c86fe30fa95075bd96a53a99efb4ee17d9b959c40b4f6524a31ef29a"
+        },
+        {
+          "startSample": 243840,
+          "endSample": 311360,
+          "seconds": 4.22,
+          "maxCompleteFrameRMS": 0.2665694057941437,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "c41d150fdf6500d967782d04cdddb430cfa1b8e3c18985a14a80593b807f1b00"
+        },
+        {
+          "startSample": 311360,
+          "endSample": 378560,
+          "seconds": 4.2,
+          "maxCompleteFrameRMS": 0.1996394693851471,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "69ce501b8135363aae627f3c704ea1b5132cd5a80e9467fb84b645d381e5ae9d"
+        },
+        {
+          "startSample": 378560,
+          "endSample": 439680,
+          "seconds": 3.82,
+          "maxCompleteFrameRMS": 0.25584256649017334,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "8282b8488969da3df1c0c1d5e83c66fac47c19e48ab13597ff166ed7bd002287"
+        },
+        {
+          "startSample": 439680,
+          "endSample": 501760,
+          "seconds": 3.88,
+          "maxCompleteFrameRMS": 0.22926713526248932,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "3241cec9ac71d8cb874ba82fba83e02170aab4981f96ed94cd7ecbfe9e7368d2"
+        },
+        {
+          "startSample": 501760,
+          "endSample": 554880,
+          "seconds": 3.32,
+          "maxCompleteFrameRMS": 0.2628512382507324,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "2b2491a04b75f8e71b9b54305485bbf1afe96372701e78433a203195dda133de"
+        },
+        {
+          "startSample": 554880,
+          "endSample": 620480,
+          "seconds": 4.1,
+          "maxCompleteFrameRMS": 0.24776427447795868,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "6471758e5fbf228d4fb86a41fa46db8d9b399745f6c600db92cc0b37d3f3bb52"
+        },
+        {
+          "startSample": 620480,
+          "endSample": 680640,
+          "seconds": 3.76,
+          "maxCompleteFrameRMS": 0.28498727083206177,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "166d19674ba31dc851c3bab6caf59f61ddb4000b3f6ced34eca2e67802a42f17"
+        },
+        {
+          "startSample": 680640,
+          "endSample": 739200,
+          "seconds": 3.66,
+          "maxCompleteFrameRMS": 0.19549067318439484,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "7fb699626dea54ea58d487e1a1a994d4c9df093cf77238298192dff511e44f5f"
+        },
+        {
+          "startSample": 739200,
+          "endSample": 799360,
+          "seconds": 3.76,
+          "maxCompleteFrameRMS": 0.25820082426071167,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "66f753b829e4975aeba6da41492ad5379c99faf80d92fb03b0b44941a8a25bee"
+        },
+        {
+          "startSample": 799360,
+          "endSample": 855360,
+          "seconds": 3.5,
+          "maxCompleteFrameRMS": 0.1740409880876541,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "4af3f2fcc027155683368ebf7a7d2cceee14ec9e51812e2bf55a7fba55c9b941"
+        },
+        {
+          "startSample": 855360,
+          "endSample": 916800,
+          "seconds": 3.84,
+          "maxCompleteFrameRMS": 0.29757291078567505,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "da969706673069d2dc2b8add28bce86eeff0b7a9727dcdc16f3d0c9586fac191"
+        },
+        {
+          "startSample": 916800,
+          "endSample": 948800,
+          "seconds": 2.0,
+          "maxCompleteFrameRMS": 0.009000365622341633,
+          "containsSpeech": false,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 24320,
+          "float32SHA256": "e4cd36537e71a106288263b23ce29a80b7ab6b318f54ca827705b9b21364947e"
+        },
+        {
+          "startSample": 948800,
+          "endSample": 969366,
+          "seconds": 1.285375,
+          "maxCompleteFrameRMS": 0.0060592591762542725,
+          "containsSpeech": false,
+          "remainderSamples": 86,
+          "quietTailIntersectionSamples": 20566,
+          "float32SHA256": "e1e80481b57cd25c823d8dcca9d1a44822637c081281fa56ed5f45623ea4073c"
+        }
+      ],
+      "finalWindows": [
+        {
+          "startSample": 0,
+          "endSample": 178560,
+          "seconds": 11.16,
+          "maxCompleteFrameRMS": 0.29593443870544434,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "474338ee0e8d3bb10c5f1e37f9d9cc6e91ce6b832b3409c9539455a90c060f86"
+        },
+        {
+          "startSample": 178560,
+          "endSample": 378560,
+          "seconds": 12.5,
+          "maxCompleteFrameRMS": 0.2665694057941437,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "d5f65a8e0700cfa64fe34a14cbead912d607f68b6a3ea5246fee0d6e61a9d09e"
+        },
+        {
+          "startSample": 378560,
+          "endSample": 554880,
+          "seconds": 11.02,
+          "maxCompleteFrameRMS": 0.2628512382507324,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "39f5cb73b76495aebaf9495e2d4ef52946039b39fe7fc1fad89167cf1d8c269f"
+        },
+        {
+          "startSample": 554880,
+          "endSample": 739200,
+          "seconds": 11.52,
+          "maxCompleteFrameRMS": 0.28498727083206177,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "5f3b91648adf4ab365cddd4dc7e21b76e963a9f150d7b80927fdb4b6c4674d8e"
+        },
+        {
+          "startSample": 739200,
+          "endSample": 916800,
+          "seconds": 11.1,
+          "maxCompleteFrameRMS": 0.29757291078567505,
+          "containsSpeech": true,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 0,
+          "float32SHA256": "7a789c684bf172162c4be0892ca9bbe740f0b5ed782179fe7ace6eb328353511"
+        },
+        {
+          "startSample": 916800,
+          "endSample": 969366,
+          "seconds": 3.285375,
+          "maxCompleteFrameRMS": 0.009000365622341633,
+          "containsSpeech": false,
+          "remainderSamples": 86,
+          "quietTailIntersectionSamples": 44886,
+          "float32SHA256": "b46f3aeff8eb81f7d393c93302c28c1f74e131b992ff51c76577470e650f1595"
+        }
+      ]
+    },
+    {
+      "file": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/quiet-final-clause-alone.wav",
+      "fileSHA256": "6b33012b8141c80f3244d32e238b0dfb5dcd6c79434791fbf0302f18c2b80378",
+      "samples": 44886,
+      "float32SHA256": "f4cfe64989180ee1100183d78c5e20f84a0ffe43c3d10f7badb86d078a0ce9a5",
+      "defaultNominalWindows": [
+        {
+          "startSample": 0,
+          "endSample": 32000,
+          "seconds": 2.0,
+          "maxCompleteFrameRMS": 0.009000365622341633,
+          "containsSpeech": false,
+          "remainderSamples": 0,
+          "quietTailIntersectionSamples": 32000,
+          "float32SHA256": "bf65ff9e3e1cf4a066602e6cd9aa83e1d59e7c25cda19d1ef83e82aae6b37665"
+        },
+        {
+          "startSample": 32000,
+          "endSample": 44886,
+          "seconds": 0.805375,
+          "maxCompleteFrameRMS": 0.005043317563831806,
+          "containsSpeech": false,
+          "remainderSamples": 86,
+          "quietTailIntersectionSamples": 12886,
+          "float32SHA256": "a7f4edb442ce203b3e4f69e49540507d04dd7fe2ad60a0bfd4fafe62b95ce3d1"
+        }
+      ],
+      "finalWindows": [
+        {
+          "startSample": 0,
+          "endSample": 44886,
+          "seconds": 2.805375,
+          "maxCompleteFrameRMS": 0.009000365622341633,
+          "containsSpeech": false,
+          "remainderSamples": 86,
+          "quietTailIntersectionSamples": 44886,
+          "float32SHA256": "f4cfe64989180ee1100183d78c5e20f84a0ffe43c3d10f7badb86d078a0ce9a5"
+        }
+      ]
+    }
+  ]
+}

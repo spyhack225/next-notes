@@ -14,6 +14,12 @@ import Foundation
 final class ModelPassRecorder: @unchecked Sendable {
     @TaskLocal static var current: ModelPassRecorder?
 
+    /// Immutable identity for explicitly requested copied-fixture diagnostics only.
+    /// This neither snapshots mutable usage nor creates another recorder/history.
+    var replayIdentity: (feature: String, pass: String)? {
+        SelfTest.isRunning ? (feature.rawValue, pass) : nil
+    }
+
     /// Correlation for a pass whose call site cannot thread ids through directly. A routine's
     /// model is built by an environment seam that never sees the schedule, so
     /// `ScheduledRunner` installs the schedule id here and `ProviderMemoryReviewModel` reads

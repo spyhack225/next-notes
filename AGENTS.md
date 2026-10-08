@@ -2888,3 +2888,24 @@ swap7.977GB/free6.707GB. Reference hardware capacity is not ASR/voice soak or de
 acceptance. A full310-file matching duplicate current bundle is removed only after no
 active executable uses its path, reclaiming140,738,560 allocated bytes. Installed useful
 build, repaired rollback, original crash reproduction, comparison and candidate remain.
+
+
+Fifth source loop: fourth producer fixes are integrated in1af0ca2; fourth signed476d remains uninstalled. Cache-only component probe of the dictation captured-audio boundary fails original2 and passes fixed4 with the same distinct PCM-word fixture; ASR remains substituted, so native quiet-word quality is not passed. The coherent fifth source gap adopts only the four reviewed peer paths and root diagnostic forwarding/quiet fixture. Runtime/scheduler phase implementation stays cache-only until the actual native baseline fixture establishes the original failure. Compiler admission uses an explicit max8GB-swap/free6.5GB gate at7.870GB swap and7.376GB free; no model/native work overlaps compilation.
+
+Zero captured/queued drops does not establish ASR word coverage: live and final meeting producers share an RMS-based admission predicate. The approved public attenuated tail is below its0.01 floor and classified as skipped; actual native word loss remains unverified. DC is an observation, not demonstrated speech or an admission requirement. Scripted markers establish forwarding only. Do not adopt a nonzero-only or lower-volume production rule without native recognizable-word, silence/noise/hallucination, workload and full recording-save proof. Exact existing-pass private replay tracing adds no production pass/prompt/budget change. Whole-reader replay with brief.empty is a controlled topology, not byte-identical original owner inference;8192 mapped replay is a separate compression diagnostic.
+
+
+Fifth native loop: signed7b3c7349 remains uninstalled with1,171 invariant pins. Nineteen focused flags pass; isolated owner21files/33defaults remain unchanged while embedded browser18 failures stay open. Exact public52566-sample quiet speech is recognized as all7words directly but is skipped by the actual meeting admission gate, producing0segments. This confirms recognizable-word loss before model entry, not a repaired product. Conservative admission, pause fragmentation, noise/hallucination cost and complete Session/save/readback acceptance remain separate open gates. Whole copied-note trace localizes material omissions to the first model reply; an incorrectly named reader-window modifier produced a second whole call and is excluded from mapped evidence. Read [fifth native acceptance](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/fifth-native-acceptance.md). Share real original/fixed verdicts through agent-relay; preserve owner data/defaults and the source freeze while the peer runs native work.
+
+
+Fifth corrected semantic review: three native map calls and one reduce preserve all519
+source lines and raw intermediate replies, yet final complete coverage remains0/10.
+Nine material distinctions first fail at map and one at reduce; first two maps spend
+their600-token limit copying opening speech and filler. Disclosure is not recovery.
+Direct native zero/DC/noise controls emit no words; explicit complete-audio engine
+extras hallucinate two words on digital zero. Quiet7/7 direct versus0 actual meeting
+segments establishes the admission failure, not an adopted fix. Read the
+[fifth acceptance report](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/fifth-native-acceptance.md).
+The obsolete fourth candidate is safely removed with125,845,504allocated bytes
+reclaimed. Sixth source experiments and the actual speaker-name save repair remain
+uncompiled and uninstalled; preserve default prompts/roles until native acceptance.

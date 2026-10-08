@@ -1,0 +1,29 @@
+{
+  "scope": "Explicit diagnostic experiment only, sameactualSession original/fixed withinonebuild; no productionmitigation adopted",
+  "guard": [
+    "SelfTest.isRunning",
+    "SelfTest.requested==--selftest-meeting-quiet-input",
+    "CommandLine --meeting-quiet-conservative-admission"
+  ],
+  "originalSourceSHA256": "391f07d1572fed07523804e8399b25557654bc1983b0bd9a1796431d26b6e29d",
+  "originalPredicateBodySHA256": "431035515cf216d17f28d452f34d9672baf702f5e0ba673a5bdc5a5153091f65",
+  "originalPredicateBodyRetainedByteIdentical": true,
+  "experimentPatchSHA256": "081eb9577275db2721598bb2f614004a87bb374a6487693cbdae9d5468da6431",
+  "fixtureSourceSHA256": "09cdbfc287b8db7e6cacb46c03eb41ba8908d11d3ffe721f3f233b4fb8a15af7",
+  "fixturePatchSHA256": "ae92509af6b55c0a15117d5b2672135d22686d296d8826c0e416988326abbd8c",
+  "normalProduct": "Exact original RMS body remainsdefault; no pause/capture/window/lane/timer/queue/modelpass changes. Newexperimentbranches onlyexplicitSelfTest.",
+  "experiment": "Single finite-signal loop; wholeinvalidwindow refused, +/-digitalzero skipped, nonzero notclaimed speech. Existing silentSkipped invalidlabel remainsopen; realinvalidcapturednotobserved.",
+  "baselineDiagnostic": "Quiet original sameSession expects0live/finalpertrack, reports missingindependent7wordclause separately; diagnosticOK!=productqualityPASS. Old generic6/50proposedfailures unchanged outside-sessionroute. Zero providercalls asserted; all4missing stages counted explicitly, not one OR aggregate.",
+  "experimentalDiagnostic": "Same nativeinput/model/Session mustrecoverall7independentwords inactualsavedliveANDfinalpertrack, noise/DCempty andzero0calls. Scriptedcounterpartprovestransportonly. Boundscalls<=6/case andrawhashes private.",
+  "noiseEvidence": "Parentdirectnativezero/DC/seedednoise0lexicalwords; separateEnginezero2words isnotmeetingproof. Calls/ambientworkload remainopen.",
+  "compiled": false,
+  "nativeRun": false,
+  "canonicalWrites": false,
+  "sourceGapUpdate": "source-gap-applicability.json; root already applied base fixture/dependencies; latestcache delta uses existing samecanonicalfixture sourcepreimage2a6052...",
+  "commands": {
+    "original": "<sixth-pinned-app> --selftest-meeting-quiet-input --meeting-quiet-session --meeting-quiet-corpus /private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E --meeting-quiet-native",
+    "experiment": "same command plus --meeting-quiet-conservative-admission",
+    "scripted": "same commands without --meeting-quiet-native; all6controls selecteddefault, transportonly",
+    "controls": "optional --meeting-quiet-session-only quiet,loud,mixed,digital-zero,dc,noise; defaultnativequietonly <=6existingcalls"
+  }
+}

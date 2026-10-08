@@ -1,0 +1,22 @@
+[
+  {
+    "locality": "local",
+    "promptTokens": 13062,
+    "totalMs": 126329,
+    "completionTokens": 175,
+    "truncated": false,
+    "counts": {
+      "generationMs": 15726,
+      "prefillDecodedTokens": 13062,
+      "prefillMs": 110457
+    },
+    "countsEstimated": false,
+    "pass": "single",
+    "modelID": "MiniCPM5-2B",
+    "warm": true,
+    "provider": "llama",
+    "cachedTokens": 0,
+    "finishReason": "stop",
+    "feature": "meeting.notes.single"
+  }
+]

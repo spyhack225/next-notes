@@ -1,0 +1,30 @@
+{
+  "at": "2026-10-08T03:29:55.977977+00:00",
+  "commit": "1af0ca2cb485ac161e06a7eaba2e77c4f4987d65",
+  "parent": "108fb8ce4aadd356cfeeae3ae1dacd6b27d8c25b",
+  "tree": "ac37d66499f41df4169c602b1a62204925da4556",
+  "foreignIndexUnchanged": "Seven original foreign staged entry blobs preserved exactly; owned nonforeign entries aligned to committed HEAD after CAS to avoid phantom staged deletions",
+  "privateIndex": "/private/tmp/NextNotesMeetingOwnedIndex-1d07b2bd-dbf1-4b5a-801b-480358314c03",
+  "nativeCandidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25",
+  "scope": "Owned surgical source/docs/reports only; native tests use complete pinned shared working-source snapshot, not assertion of a standalone canonical-tree build",
+  "installed": false,
+  "open": [
+    "future-intent semantic recall",
+    "whole-note first-loss and factual quality",
+    "browser18 inherited failures",
+    "duplex2 inherited divergence diagnostics",
+    "physical ASR/voice performance and participant-name binding"
+  ],
+  "foreignStagedEntriesBeforeAfter": {
+    "AGENTS.md": "100644 ce8ba5941956aaebaadde35dea4ad8924899138d 0\tAGENTS.md",
+    "README.md": "100644 a1997ff64778deef1ce9c14220f058ada9087ae2 0\tREADME.md",
+    "Sources/NextNotes/Agent/Tasks/Durable/BasedOnEvidenceSelfTest.swift": "100644 2e15aa3be655c3b6a1dd961d6464afe6878d55ee 0\tSources/NextNotes/Agent/Tasks/Durable/BasedOnEvidenceSelfTest.swift",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift": "100644 6cdfc4b65a59a6d4ec8cf950e95d9109de6f3b58 0\tSources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift",
+    "Sources/NextNotes/UI/Agent/AgentView.swift": "100644 5aaf81ad6ad4f92cc91a6e08c1111f474ae21c5b 0\tSources/NextNotes/UI/Agent/AgentView.swift",
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift": "100644 2692e0c086dd3ece41d79cf83951956a5555fe71 0\tSources/NextNotes/UI/Agent/AgentWorkingCard.swift",
+    "Sources/NextNotes/UI/Agent/ToolReviewCard.swift": "100644 5c03e3197330f3d84ead982132be11449dd52175 0\tSources/NextNotes/UI/Agent/ToolReviewCard.swift"
+  },
+  "ownedIndexEntriesAligned": 315,
+  "indexAlignmentAt": "2026-10-08T03:31:14.712707+00:00",
+  "AGENTSIndexNote": "Foreign staged AGENTS blob is retained verbatim; it predates this commit\u2019s append-only meeting sections. Future integration must preserve HEAD meeting sections, never stage/merge that older whole-file blob."
+}
