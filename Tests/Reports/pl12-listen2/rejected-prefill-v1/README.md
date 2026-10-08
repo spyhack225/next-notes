@@ -1,0 +1,1 @@
+Tested first partial-prefill candidate, byte-identical to prefill-green-pins.json. Isolated native API and routing fixtures passed, but cold partial loading stranded the cancelled owner and lost a counted answer. Rejected: not suitable for production adoption. Source snapshots retained only for reproducing this failure; do not copy them over canonical sources.

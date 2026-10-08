@@ -1,0 +1,3 @@
+CONCURRENT_VOICE_OK
+VOICE_SESSION_SHADOW: events=108 divergences=0 coverage=["turnPending": 36, "output": 36, "effectsHeld": 36, "floor": 32] output_present=17 unavailable=["floor": 4]
+CONCURRENT_VOICE_OK

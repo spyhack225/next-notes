@@ -1,0 +1,13 @@
+{
+  "commit": "8eb3fbbfcb65fa2b6bad1261055d0d331db17246",
+  "source_hashes": {
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "bf009a06abfc0d6be349bdb8f95fd9d03e21cb70eb2da029ee7ecd0aa9147495",
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "88f56a0b117a0a8e3abd6a91909e0f455039932fa9e9ac78be06b9e9d5bfc47d",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "ff25a4ac0b355c4662c5421bd0b28e35e67527ae930c71fa9e47797dd8fa09ce"
+  },
+  "fixture_sha256": "fad416bbd3106925f2df12f67056859ad1525b39abdaa65ca702f0ebf0c42e0f",
+  "same_native_fixture_as_red": true,
+  "binary_sha256": "bfe9fcb7d489ddef17d1c51f1b949fe54e6ad6de15401912a48d55ee47d4e560",
+  "binary_uuid": "UUID: 6A80ECFC-4A44-3F9D-BF28-C4E82E64ED9D (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/listen2/debug/NextNotes",
+  "scope": "debug diagnostic routing and partial native prefill; no default/installation change"
+}

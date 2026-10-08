@@ -30,4 +30,8 @@ Baseline 1 s resource sampling: 108 samples, RSSmax954318848B, footprintmax54124
 
 ## Conditional prefill evidence
 
-Pending next guarded native slot. No prefill/default claim is made by the route checks above.
+Original native prefill fixture passes unchanged (`INTERACTIVE_PREFILL_OK`), and the real file-fed partial producer reaches the new entry. Its first matched Mini candidate is rejected: only4/5 L2 rows exist. A cancelled partial holds the native reservation while weight loading lasts12.299s; the next committed route hits the existing2s drain limit and speaks the error. That turn's L3=1.228s is error speech, not an answer. No absent L2 is filled with zero or dropped to create a passing five-turn distribution. Initial native consumer gate FAIL, source snapshots/pins/raw logs retained in `rejected-prefill-v1` and `mini-after-initial.*`.
+
+Matched Mini before, thinking off and unchanged sampler, n5 median/p95/min/max: L1.716/1.387/.673/1.387; L2 17.206/21.668/15.253/21.668; L3 19.774/24.334/16.347/24.334. Actual `VOICE_LATENCY_FAILED`: two VAD endpoints and counted main stall1.184s. Initial prefill after has L1n5 .679/.703/.675/.703; L2n4 4.0795/5.883/2.535/5.883 (missing answer; not a qualified comparison); raw L3n5 4.323/6.126/1.228/6.126 includes the error. One VAD endpoint and main stall.270s remain. Artifact SHA256ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd is unchanged before/initial-after.
+
+A separate additive resident-admission RED/fix/replay is queued. While-speaking preparation will require existing weights, vocabulary and adequate context before initiating native work, then recheck after the same reservation. Required committed sampling retains normal cold startup. The first API fixture body stays byte-identical; the new resident fixture adds cold/weights-only/context-growth refusal and real resident sampling. No timeout increase, retry or second store is introduced. Final native after and verdict pending.
