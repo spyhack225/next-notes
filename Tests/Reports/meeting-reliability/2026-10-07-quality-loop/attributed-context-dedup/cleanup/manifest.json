@@ -1,0 +1,30 @@
+{
+  "scope": "Compact cleanup path/hash/mode/allocated-byte receipt; no payload",
+  "files": [
+    {
+      "path": "README.md",
+      "SHA256": "3a79cf5240f63acfefebad10962859320ca3f5b57b0aedcfc11dcbd9b1e55542",
+      "bytes": 2076
+    },
+    {
+      "path": "duplicate-corpus-retired.json",
+      "SHA256": "824ee5cbb657738c93470d1ff808cadfb48e628f5b43fea6150bed6c9014d247",
+      "bytes": 1829
+    },
+    {
+      "path": "executables-retired.json",
+      "SHA256": "d3340880a051df19ec874d16bea416d9f48238ae58ad46c267f29dc0035cba39",
+      "bytes": 3004
+    },
+    {
+      "path": "final-verdict.json",
+      "SHA256": "6d64a517d131ce54462fa38f59ca6332ab7ecd5dc9215e08cb734c1ed7ae705c",
+      "bytes": 1553
+    },
+    {
+      "path": "original-private-mode-narrowing.json",
+      "SHA256": "a6a15c07301c99dc7abefb9a276d16440a73d6bcbd93fcb89b4fabb522b1c2bf",
+      "bytes": 1624
+    }
+  ]
+}

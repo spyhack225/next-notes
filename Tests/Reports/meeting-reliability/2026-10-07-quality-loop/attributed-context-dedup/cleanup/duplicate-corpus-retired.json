@@ -1,0 +1,38 @@
+{
+  "at": "2026-10-08T20:38:46.900128+00:00",
+  "removedDuplicateCorpus": "/private/tmp/NextNotesMeetingActionIntentReplay-3a038895-723b-4487-96f9-e33abd21b0d0",
+  "removedFiles": [
+    {
+      "path": "/private/tmp/NextNotesMeetingActionIntentReplay-3a038895-723b-4487-96f9-e33abd21b0d0/topic-merge-cases.json",
+      "SHA256": "65dfdd3f40507c1b1e16c8fc7ed20479037b4163e15521cf2750da388b6de269",
+      "logicalBytes": 1663,
+      "allocatedBytes": 4096,
+      "device": 16777230,
+      "inode": 174431425,
+      "retainedMatchingOriginal": "/private/tmp/NextNotesMeetingActionIntentReplay-3a31d9b2-d250-4b12-be4b-b82f97a8624c/topic-merge-cases.json",
+      "regularModeBefore": "0o600",
+      "lsofExit": 1,
+      "openHolders": 0,
+      "removedConfirmed": true
+    },
+    {
+      "path": "/private/tmp/NextNotesMeetingActionIntentReplay-3a038895-723b-4487-96f9-e33abd21b0d0/transcript.live.json",
+      "SHA256": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+      "logicalBytes": 151674,
+      "allocatedBytes": 155648,
+      "device": 16777230,
+      "inode": 174431424,
+      "retainedMatchingOriginal": "/private/tmp/NextNotesMeetingActionIntentReplay-3a31d9b2-d250-4b12-be4b-b82f97a8624c/transcript.live.json",
+      "regularModeBefore": "0o600",
+      "lsofExit": 1,
+      "openHolders": 0,
+      "removedConfirmed": true
+    }
+  ],
+  "removedFileAllocatedBytes": 159744,
+  "removedDirectoryAllocatedBytes": 0,
+  "removedAllocatedBytes": 159744,
+  "fixtureCoverage": "Same6 private cases plus unchanged9 generic cases/185 assertions; both copied payloads hash-equal to retained now-private original. Public fixture source SHA1e5efc3451ebd14787faac6d14a06094c889fe9798deb51dcc8f040966d747ed retained.",
+  "newRawLogsRetainedPrivate0600": true,
+  "noAppSignalsModelCompilerSourceIndexWrites": true
+}

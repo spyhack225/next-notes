@@ -1,0 +1,54 @@
+{
+  "at": "2026-10-08T20:38:45.613375+00:00",
+  "exactOriginalDiagnosticCorpus": "/private/tmp/NextNotesMeetingActionIntentReplay-3a31d9b2-d250-4b12-be4b-b82f97a8624c",
+  "authorization": "Explicit parent privacy narrowing of this exact owned diagnostic corpus only; no owner Meetings path, old payload bytes or shared source changed.",
+  "uid": 501,
+  "lsofExit": 1,
+  "openHolders": 0,
+  "noSymlinks": true,
+  "files": [
+    {
+      "path": ".",
+      "uid": 501,
+      "device": 16777230,
+      "inode": 174296806,
+      "kind": "directory",
+      "beforeMode": "0o755",
+      "logicalBytes": 128,
+      "SHA256": null,
+      "afterMode": "0o700",
+      "bytesAndIdentityUnchanged": true
+    },
+    {
+      "path": "topic-merge-cases.json",
+      "uid": 501,
+      "device": 16777230,
+      "inode": 174296808,
+      "kind": "regular",
+      "beforeMode": "0o644",
+      "logicalBytes": 1663,
+      "SHA256": "65dfdd3f40507c1b1e16c8fc7ed20479037b4163e15521cf2750da388b6de269",
+      "afterMode": "0o600",
+      "bytesAndIdentityUnchanged": true,
+      "hashUnchanged": true
+    },
+    {
+      "path": "transcript.live.json",
+      "uid": 501,
+      "device": 16777230,
+      "inode": 174296807,
+      "kind": "regular",
+      "beforeMode": "0o644",
+      "logicalBytes": 151674,
+      "SHA256": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+      "afterMode": "0o600",
+      "bytesAndIdentityUnchanged": true,
+      "hashUnchanged": true
+    }
+  ],
+  "regularFileCount": 2,
+  "directoryCount": 1,
+  "allRegular0600": true,
+  "allDirectories0700": true,
+  "allHashesBytesIdentitiesUnchanged": true
+}

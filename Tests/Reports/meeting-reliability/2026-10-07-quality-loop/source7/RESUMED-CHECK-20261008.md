@@ -58,3 +58,9 @@ The independently reviewed optimized/noWMO/batch32/single-job diagnostic proves 
 The unchanged installed app remains the only normal NextNotes process; sampled charge690,867,728bytes and RSS92,078,080bytes are separate measures. Current OS pressure level1 and later swap growth are later observations, not the attempted compile peak or causal attribution. Owner is asked to save/restart for a fresh validation window. No compiler cap increase or automatic retry follows; all heavy/source claims are released. Shared partial native build inputs remain useful for reuse; no new app/debug-symbol bundle exists to delete.
 
 The [exact candidate acceptance handoff](peer-default-acceptance-20261008.md) records the received dictation/PCM flags, original native word failures and corrected unknown-flag risk. The36-case model-free plan remains UNRUN; it cannot replace native default-path word/performance evidence.
+
+## Completed component cleanup and final resource check
+
+The child retires three completed component executables and the redundant two-file diagnostic corpus:1,114,112 allocated bytes. The retained original corpus directory/files are narrowed to0700/0600 after exact ownership, identity and no-holder checks; hashes, bytes and inodes remain unchanged. Compact evidence and the original replay inputs remain. See [the cleanup receipt](../attributed-context-dedup/cleanup/README.md). Combined task retirement is457,609,216 allocated bytes, not a global/APFS free-space gain.
+
+The final read-only check reports71% system memory free, swap6.699GiB and disk7.193GiB. The reviewed native9 profile still refuses its maxswap6/min-disk8 admission. No compiler/model/test or installation is attempted. The existing installed app remains PID29701. Owner restart/fresh resource admission and native acceptance remain pending; all root machine/source claims stay released.

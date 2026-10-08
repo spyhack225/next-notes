@@ -1,0 +1,60 @@
+{
+  "at": "2026-10-08T20:37:36.060577+00:00",
+  "scope": "Only3 newly completed task-owned component probe executables. Parent authorized cleanup; no app/model/compiler launched or signalled, source/index/data mutation.",
+  "integrationCommit": "c6d850c696747ac1097208b6abc01edd7c7355ae",
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/attributed-context-dedup/original-probe",
+      "SHA256": "900ff5ca729a539bce3a1b5f204e300a5afdf3d0052453c057765cf8d37ec9d0",
+      "device": 16777230,
+      "inode": 174431161,
+      "logicalBytes": 199984,
+      "allocatedBytes": 200704,
+      "linkCount": 1,
+      "lsofExit": 1,
+      "openHolders": 0,
+      "purpose": "Completed one-off component probe; integratedc6d850c/source-fixture-result pins retained, no future executable baseline needed",
+      "removedConfirmed": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/attributed-context-dedup/fixed-probe",
+      "SHA256": "12889259d97ba5bb49ac178f216dafd5ab3c93a81c2c41ec63d8df5dbf18cf35",
+      "device": 16777230,
+      "inode": 174431228,
+      "logicalBytes": 206456,
+      "allocatedBytes": 208896,
+      "linkCount": 1,
+      "lsofExit": 1,
+      "openHolders": 0,
+      "purpose": "Completed one-off component probe; integratedc6d850c/source-fixture-result pins retained, no future executable baseline needed",
+      "removedConfirmed": true
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/attributed-context-retained185/proposed-probe",
+      "SHA256": "a07d482f922d333aaa696608fec1816f452bb5d75d8cbc670b3038ad2902b817",
+      "device": 16777230,
+      "inode": 174431444,
+      "logicalBytes": 541904,
+      "allocatedBytes": 544768,
+      "linkCount": 1,
+      "lsofExit": 1,
+      "openHolders": 0,
+      "purpose": "Completed one-off component probe; integratedc6d850c/source-fixture-result pins retained, no future executable baseline needed",
+      "removedConfirmed": true
+    }
+  ],
+  "removedAllocatedBytes": 954368,
+  "removedLogicalBytes": 948344,
+  "sourceInvariant": true,
+  "sourceCount": 1177,
+  "taskOwnedModuleCacheFound": false,
+  "sharedImplicitCompilerModuleCaches": "Untouched; no explicit task modulecache in owned argv or directories",
+  "deliberatelyRetained": [
+    "All compact source pins, patches, authored fixture, compile/runtime metadata and first refusal",
+    "Original15 fixture corpus and old baseline outputs; cleanup excluded old baseline mutation",
+    "New private0700/0600 duplicate185 corpus pending parent decision: original retained corpus observed0755/0644, so no unsafe privacy assertion or old-mode change",
+    "New185 raw compiler/runtime logs remain private0600; repeat evidence retained"
+  ],
+  "duplicateCorpusRemoved": false,
+  "permissionFindingReportedToParent": true
+}
