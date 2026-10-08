@@ -1,0 +1,13 @@
+{
+  "redFailureCounts": {
+    "truncated-opening:": 1,
+    "lone-angle-eof:": 1,
+    "comparison-eof:": 1,
+    "visible-prefix-eof-": 196,
+    "release-visible-prefix-at-eof EOF:": 1,
+    "release-lone-angle-at-eof EOF:": 1
+  },
+  "unexpectedFailures": [],
+  "redBinaryUUID": "UUID: C89F7D56-A31D-3C7E-9FEA-3458DC5EE6FC (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes",
+  "redSignature": "Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/Products/Debug/NextNotes\nIdentifier=NextNotes-55554944c89f7d56a31d3c7e9fea3458dc5ee6fc\nFormat=Mach-O thin (arm64)\nCodeDirectory v=20400 size=388235 flags=0x2(adhoc) hashes=12121+7 location=embedded\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements count=0 size=12\nTotal signatures=1\nChosen signature=1"
+}

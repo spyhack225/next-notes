@@ -523,3 +523,23 @@ Resumed meeting acceptance, 2026-10-08: initial headroom checks refuse before la
 Attributed meeting context, 2026-10-08: text-only duplicate detection erases matching words from another stored speaker/source. Exact actual Extractor apply/merge50 checks fail27 before and0 after; retained actual ContextStore/parser/apply/atomic save/fresh-reader15fixtures185checks pass with declared scripted boundaries. Root applies the three-file producer/same fixture/existingTopicMergehook, current1177pins. Duplicate attribution now requires text/source/storedspeaker; actual inferred-model-summary echoes and40-row bound remain. No new store/queue/pass/action authority or automatic person identity. Native current App/bus/complete factual notes/speed proof and installation remain pending; installeded67302f unchanged. Read [attribution evidence](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/attributed-context-dedup/README.md); keep private payloads out of reports/relay and retain actual original/fixed scopes.
 
 Standalone stream-output producer repair, 8 October 2026: the same 440 decoded-piece callback/stream cases fail 542 assertions before and zero after; the original native MiniCPM vocabulary producer adds one reasoning-body failure (final RED543), and fixed chat-template passes. The scheduled runtime now retains bounded control prefixes and hides marked bodies before callbacks, preserving plain/tool bytes in the fixture, with no role/sampler/default, model-pass, await or scheduling change. Debug native notes-truncation and once-only prefix-cache pass; store-isolation's actual result is21files/0observeddefaults, which does not prove installed owner-domain preference coverage. Native hidden generation frequency, physical voice/full-duplex acceptance, non-streaming literal thinking and aggregate quality remain outside this repair. Shared missing-method prerequisite20d8f9b8 is byte-identical to canonical uncommitted source. Read [the original/fixed stream evidence](Tests/Reports/thinking-stream-producer/README.md); no model or phase promotion follows.
+
+
+Independent EOF review correction, 8 October 2026: stream commit `8e4243d6` was
+rejected because `finish` deleted ordinary incomplete marker prefixes outside hidden
+blocks, and frozen V1 explicitly expected that loss. V1 and the earlier RED/GREEN
+logs remain evidence, not visible EOF-preservation acceptance. Frozen V2 corrects
+that expectation and adds every incomplete family prefix, exact callback-position/
+EOF release, hidden/stopped negatives and rendering-OFF cases. Byte-identical
+`8e4243d6` producer RED fails201/658; fixed producer GREEN fails0/658 with the same
+V2 hash. `finish` flushes while not stopped and outside hidden blocks; no role,
+sampler/default, model pass, await, timer, queue or store is added. Four requested
+flags run once each in one FIFO slot, prefix-cache once; all final markers OK.
+Isolation still includes inherited nested browser18/`TOOLLOOP_PRODUCTION_FAILED`,
+with its own21files/0observeddefaults unchanged. Native token UTF-8 is independently
+decoded in `LlamaHelpers.piece` before this String producer; scalar fragments across
+token byte buffers are an inherited upstream limitation, not a Unicode pass claimed
+here. Physical voice/full duplex, live hidden generation, allocation/latency,
+non-streaming reasoning and broader quality remain open. Own scratch is removed;
+no install/push/merge or owner migration. Read [the explicit V1/V2 correction and
+actual RED/GREEN evidence](Tests/Reports/thinking-stream-producer-v2/README.md).

@@ -1,0 +1,9 @@
+{
+  "greenBinaryUUID": "UUID: 8ECCEE69-F2F4-3D89-8EA1-AF0FFBE8C129 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes",
+  "greenSignature": "Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/Products/Debug/NextNotes\nIdentifier=NextNotes-555549448eccee69f2f43d898ea1af0ffbe8c129\nFormat=Mach-O thin (arm64)\nCodeDirectory v=20400 size=388235 flags=0x2(adhoc) hashes=12121+7 location=embedded\nSignature=adhoc\nInfo.plist=not bound\nTeamIdentifier=not set\nSealed Resources=none\nInternal requirements count=0 size=12\nTotal signatures=1\nChosen signature=1",
+  "embeddedToolLoopWrongCount": 18,
+  "embeddedToolLoopFinalMarker": "TOOLLOOP_PRODUCTION_FAILED",
+  "historicalEmbeddedWrongCount": 18,
+  "fixtureAssertions": "658 cases, 0 failures",
+  "absenceMarkers": []
+}

@@ -1,0 +1,36 @@
+{
+  "availableKiBBefore": "10179024",
+  "noLsofHolders": true,
+  "executableSHA256Before": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes": "8f065d5e20c72b04020bdb30f22ff2994386deada4f1e8b3ba70384ea21d4444",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/llama.framework/llama": "6bac4742584e748218924337c341eac19ea1aeb3c70f982616302db7a6d8ec0c"
+  },
+  "retired": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/v5",
+      "files": 5828,
+      "allocatedBytes": 84996096
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/SDKExplicitPrecompiledModules",
+      "files": 92,
+      "allocatedBytes": 102105088
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/Products/Debug/llama.dSYM",
+      "files": 4,
+      "allocatedBytes": 154394624
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/Intermediates.noindex/NextNotes.build",
+      "files": 4120,
+      "allocatedBytes": 570793984
+    }
+  ],
+  "availableKiBAfter": "10924608",
+  "executableSHA256After": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes": "8f065d5e20c72b04020bdb30f22ff2994386deada4f1e8b3ba70384ea21d4444",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/llama.framework/llama": "6bac4742584e748218924337c341eac19ea1aeb3c70f982616302db7a6d8ec0c"
+  },
+  "scope": "Only own unheld optional caches/compile intermediates retired. Recorded allocated blocks and global available-space samples do not prove exclusive reclaimed physical bytes; peer activity may change global space."
+}

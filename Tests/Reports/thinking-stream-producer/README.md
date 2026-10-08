@@ -1,5 +1,7 @@
 # Streaming output producer repair — 8 October 2026
 
+> Correction after independent review: commit `8e4243d6` was rejected because visible unfinished marker prefixes were deleted at EOF, and V1 incorrectly expected that loss. The historical results below remain evidence of those runs, not EOF-preservation acceptance. See [the explicit V2 correction and retained fixtures](../thinking-stream-producer-v2/README.md).
+
 The original streaming producer removed complete controls inside each decoded piece, then yielded the remaining body. It had no reasoning state, so `<think>PRIVATE</think>Answer` emitted `PRIVATEAnswer`; markers split across pieces also reached callbacks. The retained native MiniCPM vocabulary case reproduced `PRIVATEAnswer<function…` at this same producer.
 
 `ChatTemplateStreamOutput` now owns that boundary in the actual `NotesModelRuntime.streamWhileScheduled` loop. It keeps only possible marker prefixes between pieces, discards text inside `<think>` blocks or Gemma thought channels, and stops at the family's turn end even when more text follows in the same piece. Nested/interleaved blocks stay hidden. Hidden bodies are discarded immediately. Ordinary pieces yield immediately; there is no extra await, queue, store, model pass, retry, sleep or downstream reply scrub. The old unused whole-output accumulator was removed.
