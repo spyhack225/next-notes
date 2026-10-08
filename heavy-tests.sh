@@ -2,7 +2,7 @@
 # bash 3.2; shell/process tests only. No builds, app, models, or live relay data.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
-wrapper=${HEAVY_WRAPPER:-$here/../heavy.sh}
+wrapper=${HEAVY_WRAPPER:-$here/heavy.sh}
 original=${HEAVY_ORIGINAL:-0}
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/heavy-tests.XXXXXX")
 export HOME="$tmp/home"
@@ -71,6 +71,99 @@ touch "$HEAVY_TEST_ROOT/entered"
 exit "${1:-0}"
 JOB
 chmod +x "$base/job.sh"
+
+# Queue fixtures use the real wrapper, fake commands, and a priority admission barrier.
+# Pausing the oldest LIVE waiter makes v2's overtaking deterministic, rather than
+# relying on unspecified kernel lock wake order. All three jobs overlap in time.
+queue="$base/heavy-queue"
+wait_ticket() {
+  local target=$1
+  for ((q=0;q<50;q++)); do
+    if [ -d "$queue" ] && rg -l "^pid=$target$" "$queue"/*.ticket >/dev/null 2>&1; then return 0; fi
+    sleep .1
+  done
+  return 1
+}
+queue_empty() {
+  local f
+  for f in "$queue"/*.ticket; do [ ! -e "$f" ] || return 1; done
+}
+queue_start() {
+  # Reset shell-background ignored signals before exec so INT/HUP traps are tested.
+  python3 -c 'import os, signal, sys; signal.signal(signal.SIGINT, signal.SIG_DFL); signal.signal(signal.SIGHUP, signal.SIG_DFL); os.execv(sys.argv[1], sys.argv[1:])' "$wrapper" "$1" >"$base/queue-$2.log" 2>&1 &
+  job=$!; pids="$pids $job"
+}
+# v2 has no tickets: its priority log still establishes that the waiter entered.
+wait_queued() {
+  local target=$1 log=$2
+  for ((q=0;q<50;q++)); do
+    if [ -d "$queue" ] && rg -l "^pid=$target$" "$queue"/*.ticket >/dev/null 2>&1; then return 0; fi
+    if rg -q 'priority hold' "$log"; then return 0; fi
+    sleep .1
+  done
+  return 1
+}
+touch "$base/root-delivery-priority"
+queue_start "echo 1 >> '$base/order'; sleep 1" first; first=$job
+label=fifo_first_waiting; check wait_queued "$first" "$base/queue-first.log"
+kill -STOP "$first"
+queue_start "echo 2 >> '$base/order'; sleep 1" second; second=$job
+label=fifo_second_waiting; check wait_queued "$second" "$base/queue-second.log"
+queue_start "echo 3 >> '$base/order'; sleep 1" third; third=$job
+label=fifo_third_waiting; check wait_queued "$third" "$base/queue-third.log"
+rm "$base/root-delivery-priority"
+sleep 3
+label=fifo_live_head_not_overtaken; check test ! -f "$base/order"
+kill -CONT "$first"
+wait "$first"; wait "$second"; wait "$third"
+printf 'FIFO_ORDER=%s\n' "$(tr '\n' ',' < "$base/order")"
+label=fifo_three_fake_jobs; check test "$(cat "$base/order")" = "$(printf '1\n2\n3')"
+label=fifo_queue_position_report; check rg -q 'queue position [23]' "$base/queue-third.log"
+label=fifo_tickets_released; check queue_empty
+# A SIGKILL cannot run traps; its retained lowest ticket must be reaped by peers.
+touch "$base/root-delivery-priority"
+queue_start 'exit 0' dead; dead=$job
+label=dead_waiter_has_ticket; check wait_ticket "$dead"
+kill -KILL "$dead"; wait "$dead" 2>/dev/null || :
+queue_start "touch '$base/dead-skipped'" skipped; skipped=$job
+rm "$base/root-delivery-priority"
+wait "$skipped"; rc=$?
+label=dead_waiter_skipped; check test "$rc" = 0
+label=dead_waiter_successor_ran; check test -f "$base/dead-skipped"
+label=dead_waiter_ticket_reaped; check queue_empty
+# Catchable signals must clean a waiting ticket immediately, without a successor.
+touch "$base/root-delivery-priority"
+for signal in TERM HUP INT; do
+  queue_start 'exit 0' "killed-$signal"; killed=$job
+  label="${signal}_waiter_has_ticket"; check wait_ticket "$killed"
+  kill -"$signal" "$killed"
+  wait "$killed" 2>/dev/null || :
+  label="${signal}_waiter_ticket_removed"; check queue_empty
+done
+rm "$base/root-delivery-priority"
+# Crash an admitted wrapper with no command descendants holding the descriptor.
+# The short fake child has already exited; a STOP freezes its parent's wait return.
+queue_start "touch '$base/crash-entered'; sleep 2" holder; holder=$job
+for ((q=0;q<100;q++)); do [ ! -f "$base/crash-entered" ] || break; sleep .1; done
+label=holder_crash_fixture_entered; check test -f "$base/crash-entered"
+kill -STOP "$holder"
+sleep 3
+kill -KILL "$holder"; wait "$holder" 2>/dev/null || :
+# SIGKILL also bypasses v2's relay cleanup. The same caller's successor must
+# proceed without intervening cleanup, preserving v2's inherited-claim behavior.
+queue_start "touch '$base/crash-recovered'" recovered; recovered=$job
+wait "$recovered"; rc=$?
+label=holder_crash_queue_proceeds; check test "$rc" = 0
+label=holder_crash_successor_ran; check test -f "$base/crash-recovered"
+label=holder_crash_ticket_reaped; check queue_empty
+# Clean the retained caller-owned fixture claim only AFTER observing recovery.
+# Recovery of a different caller's relay lease is outside the queue contract.
+relay release --as "$RELAY_ID" --scope machine build >/dev/null
+if [ "${HEAVY_QUEUE_ONLY:-0}" = 1 ]; then
+  echo "HEAVY_QUEUE_CHECKS=$checks FAILURES=$failures"
+  [ "$failures" = 0 ] && echo HEAVY_QUEUE_TESTS_OK && exit 0
+  echo HEAVY_QUEUE_TESTS_FAILED; exit 1
+fi
 
 # Same actual renamed process fixture is used against v1 and v2.
 /bin/bash -c 'exec -a swift-frontend /bin/sleep 3' &

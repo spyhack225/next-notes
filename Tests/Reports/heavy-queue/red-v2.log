@@ -1,0 +1,24 @@
+PASS fifo_first_waiting
+PASS fifo_second_waiting
+PASS fifo_third_waiting
+FAIL fifo_live_head_not_overtaken
+FIFO_ORDER=2,3,1,
+FAIL fifo_three_fake_jobs
+FAIL fifo_queue_position_report
+PASS fifo_tickets_released
+FAIL dead_waiter_has_ticket
+PASS dead_waiter_skipped
+PASS dead_waiter_successor_ran
+PASS dead_waiter_ticket_reaped
+FAIL TERM_waiter_has_ticket
+PASS TERM_waiter_ticket_removed
+FAIL HUP_waiter_has_ticket
+PASS HUP_waiter_ticket_removed
+FAIL INT_waiter_has_ticket
+PASS INT_waiter_ticket_removed
+PASS holder_crash_fixture_entered
+PASS holder_crash_queue_proceeds
+PASS holder_crash_successor_ran
+PASS holder_crash_ticket_reaped
+HEAVY_QUEUE_CHECKS=21 FAILURES=7
+HEAVY_QUEUE_TESTS_FAILED
