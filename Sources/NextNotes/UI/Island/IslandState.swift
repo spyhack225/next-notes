@@ -134,6 +134,9 @@ final class IslandState {
         case diarizing(progress: Double?)
         case summarizing(progress: Double?)
         case notesReady(meetingID: UUID, title: String)
+        /// A catch-up's audio has just finished and is waiting for a press of Play. Never
+        /// played by itself; the orb is the idle one, because nothing is running now.
+        case catchUpReady(taskID: String, title: String)
         case agentProposal(IslandProposal)
         /// P1-16: a request is waiting for the person to answer it, and the eight-second
         /// notice has already lapsed.
@@ -190,6 +193,7 @@ final class IslandState {
             case .diarizing: "diarizing"
             case .summarizing: "summarizing"
             case .notesReady: "notesReady"
+            case .catchUpReady: "catchUpReady"
             case .agentProposal: "agentProposal"
             case .pendingApproval: "pendingApproval"
             case .agentListening: "agentListening"
@@ -229,6 +233,7 @@ final class IslandState {
             case .diarizing: "diarizing"
             case .summarizing: "summarizing"
             case .notesReady(let id, _): "notes:\(id)"
+            case .catchUpReady(let id, _): "catchup:\(id)"
             case .agentProposal(let proposal): "proposal:\(proposal.id)"
             // The waiting count is in the identity on purpose: "1 waiting" becoming "2
             // waiting" is a change the island has to animate to, and a badge whose text
@@ -246,7 +251,7 @@ final class IslandState {
         /// no use as a badge.
         var demandsAttention: Bool {
             switch self {
-            case .meetingArmed, .notesReady, .agentProposal, .agentListening, .agentWorking, .agentReply: true
+            case .meetingArmed, .notesReady, .catchUpReady, .agentProposal, .agentListening, .agentWorking, .agentReply: true
             // A sentence the user has to read is no use as a badge under the notch.
             case .problem: true
             // P1-16: **deliberately false**, and the reason is in the case's own comment. A card
@@ -292,6 +297,8 @@ final class IslandState {
             // card: nothing is being processed while a person is deciding. This is the
             // table's own "present and idle — waiting on purpose".
             case .pendingApproval: .breathing
+            // Ready is idle: present and waiting on the person, nothing processing.
+            case .catchUpReady: .breathing
             case .agentListening: .listening
             case .agentWorking: .searching
             case .agentReply: .composing
@@ -371,6 +378,7 @@ final class IslandState {
         case .diarizing: MeetingStatus.diarizing.displayName
         case .summarizing: MeetingStatus.summarizing.displayName
         case .notesReady(_, let title): title
+        case .catchUpReady(_, let title): title
         case .agentProposal(let proposal): proposal.title
         case .pendingApproval(let proposal, _): proposal.title
         case .agentListening, .agentWorking, .agentReply: AgentIdentityStore.shared.name
@@ -452,6 +460,12 @@ final class IslandState {
         Notifications.shared.observe { [weak self] action in
             self?.handle(action)
         }
+        // The ready moment is shown here. A self-test run has no owner catch-ups to follow,
+        // and must not read the Agent's task list as a side effect of starting the island.
+        if !SelfTest.isRunning {
+            CatchUpLibrary.shared.onReady = { [weak self] entry in self?.announceCatchUpReady(entry) }
+            CatchUpLibrary.shared.start()
+        }
         observe()
     }
 
@@ -509,6 +523,12 @@ final class IslandState {
     /// tells them something they can already see.
     func announceNotesReady(_ meeting: Meeting) {
         push(.notesReady(meetingID: meeting.id, title: meeting.title), for: DS.Motion.islandNotice)
+    }
+
+    /// A catch-up's audio just finished. One plain line and a Play button; it never plays
+    /// itself, and it goes away on its own like every other notice.
+    func announceCatchUpReady(_ entry: CatchUpEntry) {
+        push(.catchUpReady(taskID: entry.id, title: entry.title), for: DS.Motion.islandNotice)
     }
 
     /// Phase 7's entry point: an agent wants permission to do something.
@@ -599,6 +619,15 @@ final class IslandState {
     func skip(_ event: MeetingEvent) {
         clearNotice()
         MeetingScheduler.shared.skip(event)
+    }
+
+    /// Play on the ready card: starts the audio and takes the card down. The audio is the
+    /// same file and the same player the Library row uses.
+    func playCatchUp(taskID: String) {
+        clearNotice()
+        if let entry = CatchUpLibrary.shared.entries.first(where: { $0.id == taskID }) {
+            CatchUpPlayer.shared.play(entry)
+        }
     }
 
     func openNotes(meetingID: UUID) {
