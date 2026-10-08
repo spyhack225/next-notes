@@ -1,0 +1,20 @@
+CHECKPOINT_WRONG: cancelled background checkpoint joins before ASR release
+CHECKPOINT_WRONG: cancelled owner leaves existing parked queue
+CHECKPOINT_OBSERVATION class=background before=false joinedWhileASRHeld=false cancellationWait=0.100241583 seconds
+CHECKPOINT_WRONG: cancelled background checkpoint joins before ASR release
+CHECKPOINT_WRONG: cancelled owner leaves existing parked queue
+CHECKPOINT_OBSERVATION class=background before=true joinedWhileASRHeld=false cancellationWait=0.100327708 seconds
+CHECKPOINT_WRONG: cancelled meetingLive checkpoint joins before ASR release
+CHECKPOINT_WRONG: cancelled owner leaves existing parked queue
+CHECKPOINT_OBSERVATION class=meetingLive before=false joinedWhileASRHeld=false cancellationWait=0.101021042 seconds
+CHECKPOINT_WRONG: cancelled meetingLive checkpoint joins before ASR release
+CHECKPOINT_WRONG: cancelled owner leaves existing parked queue
+CHECKPOINT_OBSERVATION class=meetingLive before=true joinedWhileASRHeld=false cancellationWait=0.100522792 seconds
+CHECKPOINT_WRONG: cancelled realtimeAgent checkpoint joins before ASR release
+CHECKPOINT_WRONG: cancelled owner leaves existing parked queue
+CHECKPOINT_OBSERVATION class=realtimeAgent before=false joinedWhileASRHeld=false cancellationWait=0.101317375 seconds
+CHECKPOINT_WRONG: cancelled realtimeAgent checkpoint joins before ASR release
+CHECKPOINT_WRONG: cancelled owner leaves existing parked queue
+CHECKPOINT_OBSERVATION class=realtimeAgent before=true joinedWhileASRHeld=false cancellationWait=0.101414666 seconds
+SCHEDULER_OK
+CHECKPOINT_FAILED: 12

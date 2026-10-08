@@ -1,0 +1,18 @@
+{
+  "observed_at_utc": "2026-10-08T00:53:00Z",
+  "model": "Mac15,12",
+  "chip": "Apple M3",
+  "memory_bytes": 17179869184,
+  "physical_cores": 8,
+  "voice_and_ASR_throughput_gate_proved": false,
+  "gate_override": {
+    "min_free_gb": 7,
+    "max_swap_gb": 8,
+    "max_load": 40
+  },
+  "pre_original_build": {
+    "free_gb": 7.588436126708984,
+    "swap_gb": 7.3422265625,
+    "load": 4.74
+  }
+}

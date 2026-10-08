@@ -1,0 +1,113 @@
+{
+  "path": "/Users/sergekadjo/Library/Logs/DiagnosticReports/NextNotes-2026-10-07-210223.ips",
+  "pid": 61033,
+  "exception": {
+    "codes": "0x0000000000000001, 0x000000019e30856c",
+    "rawCodes": [
+      1,
+      6948947308
+    ],
+    "type": "EXC_BREAKPOINT",
+    "signal": "SIGTRAP"
+  },
+  "termination": {
+    "flags": 0,
+    "code": 5,
+    "namespace": "SIGNAL",
+    "indicator": "Trace/BPT trap: 5",
+    "byProc": "exc handler",
+    "byPid": 61033
+  },
+  "frames": [
+    {
+      "symbol": "closure #1 in closure #1 in _assertionFailure(_:_:file:line:flags:)",
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "symbol": "_assertionFailure(_:_:file:line:flags:)",
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "symbol": "_fatalErrorMessage(_:_:file:line:flags:)",
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "symbol": "Character.init(_:)",
+      "sourceFile": null,
+      "sourceLine": null
+    },
+    {
+      "symbol": "RuleBasedFormatter.capitalizeSentences(in:)",
+      "sourceFile": "TextFormatter.swift",
+      "sourceLine": 139
+    },
+    {
+      "symbol": "RuleBasedFormatter.apply(_:isFinal:)",
+      "sourceFile": "TextFormatter.swift",
+      "sourceLine": 68
+    },
+    {
+      "symbol": "RuleBasedFormatter.format(_:)",
+      "sourceFile": "TextFormatter.swift",
+      "sourceLine": 52
+    },
+    {
+      "symbol": "protocol witness for TextFormatter.format(_:) in conformance RuleBasedFormatter",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    },
+    {
+      "symbol": "CleanupRouter.finish(_:head:)",
+      "sourceFile": "CleanupRouter.swift",
+      "sourceLine": 188
+    },
+    {
+      "symbol": "closure #1 in CleanupRouter.format(_:head:)",
+      "sourceFile": "CleanupRouter.swift",
+      "sourceLine": 172
+    },
+    {
+      "symbol": "partial apply for closure #1 in CleanupRouter.format(_:head:)",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    },
+    {
+      "symbol": "withTaskCancellationHandler<A, B>(operation:onCancel:)",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    },
+    {
+      "symbol": "CleanupRouter.format(_:head:)",
+      "sourceFile": "CleanupRouter.swift",
+      "sourceLine": 171
+    },
+    {
+      "symbol": "CleanupRouter.format(_:)",
+      "sourceFile": "CleanupRouter.swift",
+      "sourceLine": 150
+    },
+    {
+      "symbol": "static RuleBasedFormatter.unicodeCapitalizationFailures()",
+      "sourceFile": "TextFormatter.swift",
+      "sourceLine": 165
+    },
+    {
+      "symbol": "static CleanupRouter.runSelfTest()",
+      "sourceFile": "CleanupRouter.swift",
+      "sourceLine": 1008
+    },
+    {
+      "symbol": "closure #18 in AppDelegate.runRequestedSelfTest()",
+      "sourceFile": "NextNotesApp.swift",
+      "sourceLine": 1134
+    },
+    {
+      "symbol": "partial apply for closure #18 in AppDelegate.runRequestedSelfTest()",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    }
+  ]
+}

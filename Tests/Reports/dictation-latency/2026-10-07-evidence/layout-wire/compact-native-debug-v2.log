@@ -1,0 +1,60 @@
+  live dictation config: cleanup on, engine Apple Foundation Model, grammar on, in the same pass
+  spoken structure: lists, quotations, code and tables all render
+
+=== plan (isolated MiniCPM layout pass) ===
+CLEANUP_PLAN_COLD_PREPARE: 11.481s
+  warmup: 2.438s (ungraded cold start)
+  plan: {"blocks":[{"from":1,"stripWords":[],"announcerQuotes":[],"itemStarts":[],"to":3,"kind":"prose"}]}
+P1-bare-sequence-is-prose	0.455s	prose
+  want: three bare imperatives with no announcement are prose, not a list
+  in  : Ship the installer tonight. Write the release note tomorrow. Tell the beta group when both are done.
+  ship: Ship the installer tonight. Write the release note tomorrow. Tell the beta group when both are done.
+  plan: {"blocks":[{"from":1,"stripWords":[1,1],"announcerQuotes":["The second thing,","The third thing,"],"itemStarts":[1,3],"to":3,"kind":"numbered"}]}
+P2-counted-no-envelope	1.024s	accepted (list)
+  want: counted out loud without any envelope still becomes a list
+  in  : The first thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. The third thing is telling the beta group when both are done.
+  ship: 1. First thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. ↵ 2. Is telling the beta group when both are done.
+  plan: {"blocks":[{"from":1,"stripWords":[],"announcerQuotes":[],"itemStarts":[],"to":1,"kind":"prose"},{"from":2,"stripWords":[0,0,0],"announcerQuotes":["","",""],"itemStarts":[2,3,4],"to":4,"kind":"numbered"},{"from":5,"stripWords":[],"announcerQuotes":[],"itemStarts":[],"to":5,"kind":"prose"}]}
+P3-fr-enumeration	1.350s	turned down (only 0 of 3 proposed items were announced out loud; 2 would be needed)
+  want: a French enumeration with no markers becomes a list
+  in  : Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  ship: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: {"blocks":[{"announcerQuotes":[],"to":1,"itemStarts":[],"from":1,"stripWords":[],"kind":"prose"},{"announcerQuotes":["",""],"to":3,"itemStarts":[2,3],"from":2,"stripWords":[0,0],"kind":"numbered"},{"announcerQuotes":[],"to":4,"itemStarts":[],"from":4,"stripWords":[],"kind":"prose"}]}
+P4-fr-announced	1.131s	turned down (only 0 of 2 proposed items were announced out loud; 2 would be needed)
+  want: a French announcer plus uncounted items becomes a list
+  in  : J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  ship: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: {"blocks":[{"announcerQuotes":[],"to":4,"itemStarts":[],"from":1,"stripWords":[],"kind":"prose"}]}
+P5-prose-stays-prose	0.524s	prose
+  want: ordinary prose with no enumeration is never laid out as a list
+  in  : We finished the review this morning and everyone signed off on the plan. The release is scheduled for Friday afternoon as discussed. I will send the notes round once the build is green. There is nothing else outstanding on my side at the moment.
+  ship: We finished the review this morning and everyone signed off on the plan. The release is scheduled for Friday afternoon as discussed. I will send the notes round once the build is green. There is nothing else outstanding on my side at the moment.
+  plan: {"blocks":[{"announcerQuotes":[],"to":1,"itemStarts":[],"from":1,"stripWords":[],"kind":"prose"},{"announcerQuotes":["",""],"to":3,"itemStarts":[2,3],"from":2,"stripWords":[0,0],"kind":"numbered"},{"announcerQuotes":[],"to":5,"itemStarts":[],"from":4,"stripWords":[],"kind":"prose"}]}
+P6-mixed-prose-and-list	1.108s	accepted (list)
+  want: an intro and a sign-off stay prose around the list they frame
+  in  : Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+  ship: Okay, a few things that I need to change here. ↵  ↵ 1. Let's see how we can improve the graph first. ↵ 2. The second thing is the skills page, it seems like it needs more room. ↵  ↵ Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+CLEANUP_PLAN_SUMMARY: n=6 median=1.108s max=1.350s
+CLEANUP_PLAN_NATIVE_JOINED
+
+  plan: P2-counted-no-envelope: rendered layout is missing "3. "
+      got: 1. First thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. ↵ 2. Is telling the beta group when both are done.
+  plan: P3-fr-enumeration: rendered layout is missing "1. "
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout is missing "2. "
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout is missing "3. "
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout still contains "Premièrement,"
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout still contains "Deuxièmement,"
+      got: Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  plan: P4-fr-announced: rendered layout is missing "1. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P4-fr-announced: rendered layout is missing "2. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P4-fr-announced: rendered layout is missing "3. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P6-mixed-prose-and-list: rendered layout is missing "3. "
+      got: Okay, a few things that I need to change here. ↵  ↵ 1. Let's see how we can improve the graph first. ↵ 2. The second thing is the skills page, it seems like it needs more room. ↵  ↵ Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+CLEANUP_FAILED: 10 assertion(s)

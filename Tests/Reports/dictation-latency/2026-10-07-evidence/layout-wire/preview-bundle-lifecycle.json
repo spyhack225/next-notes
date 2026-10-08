@@ -1,0 +1,23 @@
+[
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-47042",
+    "binarySHA256": "2cceb51c6c2250e44b00839924cc9ed550b0f61c4c268342b22cde3c72e8c209",
+    "allocatedKB": 227364,
+    "joined": true,
+    "retained": "exact source, original/fixed verdicts and hashes; current54491 debug and45909 release retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-53810",
+    "binarySHA256": "f4ccbc501cdaa3b25e8a7697c8a1c3b7a6b3c34422192ae7b9cb8cfe768629c6",
+    "allocatedKB": 228240,
+    "joined": true,
+    "retained": "exact source, original/fixed verdicts and hashes; current54491 debug and45909 release retained"
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-54148",
+    "binarySHA256": "74b951e56fbcc9d89f9ee20f215f939649512149acd63e546d547c998ddd0b53",
+    "allocatedKB": 228240,
+    "joined": true,
+    "retained": "exact source, original/fixed verdicts and hashes; current54491 debug and45909 release retained"
+  }
+]

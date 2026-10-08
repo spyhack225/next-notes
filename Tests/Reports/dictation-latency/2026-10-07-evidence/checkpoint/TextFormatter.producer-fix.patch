@@ -1,0 +1,11 @@
+--- original/TextFormatter.swift
++++ fixed/TextFormatter.swift
+@@ -136,7 +136,7 @@
+ 
+         for character in text {
+             if capitalizeNext, character.isLetter {
+-                result.append(Character(character.uppercased()))
++                result.append(contentsOf: character.uppercased())
+                 capitalizeNext = false
+             } else {
+                 result.append(character)

@@ -1,0 +1,37 @@
+--- original/ComputeScheduler.swift
++++ fixed/ComputeScheduler.swift
+@@ -215,6 +215,8 @@
+     }
+ 
+     /// If `id` was preempted into `parked`, suspend until it is running again.
++    /// A cancelled parked wait leaves the existing queue without releasing the current
++    /// runner. Callers must check cancellation after return before doing native work.
+     /// No-op when this job still holds the lane.
+     func checkpoint(_ id: UUID) async {
+         // Re-check inside the continuation closure: the actor can resume us
+@@ -223,12 +225,19 @@
+         if running?.id == id { return }
+         let known = parked.contains { $0.id == id } || queued.contains { $0.id == id }
+         guard known else { return }
+-        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+-            if running?.id == id {
+-                continuation.resume(returning: true)
+-                return
+-            }
+-            resumeWaiters[id] = continuation
++        let _: Bool = await withTaskCancellationHandler {
++            await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
++                if Task.isCancelled {
++                    cancelWaiter(id)
++                    continuation.resume(returning: false)
++                } else if running?.id == id {
++                    continuation.resume(returning: true)
++                } else {
++                    resumeWaiters[id] = continuation
++                }
++            }
++        } onCancel: {
++            Task { await self.cancelWaiter(id) }
+         }
+     }
+ 

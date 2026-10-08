@@ -1,0 +1,8 @@
+CHECKPOINT_OBSERVATION class=background before=false joinedWhileASRHeld=true cancellationWait=0.002113625 seconds
+CHECKPOINT_OBSERVATION class=background before=true joinedWhileASRHeld=true cancellationWait=0.002163833 seconds
+CHECKPOINT_OBSERVATION class=meetingLive before=false joinedWhileASRHeld=true cancellationWait=0.002062459 seconds
+CHECKPOINT_OBSERVATION class=meetingLive before=true joinedWhileASRHeld=true cancellationWait=0.002064875 seconds
+CHECKPOINT_OBSERVATION class=realtimeAgent before=false joinedWhileASRHeld=true cancellationWait=0.002142792 seconds
+CHECKPOINT_OBSERVATION class=realtimeAgent before=true joinedWhileASRHeld=true cancellationWait=0.0014925 seconds
+SCHEDULER_OK
+CHECKPOINT_OK

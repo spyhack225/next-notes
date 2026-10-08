@@ -1,0 +1,10 @@
+{
+  "state": "removed from production after native quality rejection",
+  "archived_v3_source": "StructurePlanWire.frozen.swift",
+  "default_changed": false,
+  "native_quality_assertions_failed": [
+    5,
+    10,
+    6
+  ]
+}

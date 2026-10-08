@@ -136,7 +136,7 @@ struct RuleBasedFormatter: TextFormatter {
 
         for character in text {
             if capitalizeNext, character.isLetter {
-                result.append(Character(character.uppercased()))
+                result.append(contentsOf: character.uppercased())
                 capitalizeNext = false
             } else {
                 result.append(character)
@@ -149,6 +149,28 @@ struct RuleBasedFormatter: TextFormatter {
     private func ensureTerminalPunctuation(in text: String) -> String {
         guard let last = text.last, last.isLetter || last.isNumber else { return text }
         return text + "."
+    }
+
+    /// Capitalization can expand one Unicode character into several. Exercise the
+    /// actual router entrance as well as the deterministic producer, without a model.
+    static func unicodeCapitalizationFailures() async -> [String] {
+        var failures: [String] = []
+        for (raw, expected) in [
+            ("ßeta", "SSeta."),
+            ("ﬃle", "FFIle."),
+            ("one. ßeta", "One. SSeta."),
+        ] {
+            let router = CleanupRouter(semantic: KeepAsIsFormatter(), engine: .apple,
+                pressureSample: { .idle })
+            let actual = await router.format(raw)
+            if actual != expected {
+                failures.append("actual router cannot capitalize expanding Unicode: " + raw)
+            }
+            if RuleBasedFormatter().apply(raw, isFinal: false) != String(expected.dropLast()) {
+                failures.append("partial rules cannot capitalize expanding Unicode: " + raw)
+            }
+        }
+        return failures
     }
 
     /// Pinned without a model: stutter collapses, emphasis survives, fillers go.

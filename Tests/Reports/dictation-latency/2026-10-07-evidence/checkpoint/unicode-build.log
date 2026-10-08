@@ -1,0 +1,1 @@
+xcrun swiftc -swift-version 6 -O Rules.original-probe.swift UnicodeCheck.swift -o check-unicode-original

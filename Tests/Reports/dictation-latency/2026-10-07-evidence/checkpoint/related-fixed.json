@@ -1,0 +1,51 @@
+[
+  {
+    "flag": "dictation",
+    "exit_code": 0,
+    "markers": [
+      "DICTATION_OK: every hold came back to idle"
+    ]
+  },
+  {
+    "flag": "dictation-hygiene",
+    "exit_code": 0,
+    "markers": [
+      "DICTATION_HYGIENE_OK: history appends in memory, retention is opt-in, the clipboard survives"
+    ]
+  },
+  {
+    "flag": "dictation-segments",
+    "exit_code": 0,
+    "markers": [
+      "DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean"
+    ]
+  },
+  {
+    "flag": "cleanup-structure",
+    "exit_code": 0,
+    "markers": [
+      "CLEANUP_STRUCTURE_OK"
+    ]
+  },
+  {
+    "flag": "commandkey",
+    "exit_code": 0,
+    "markers": [
+      "COMMANDKEY_OK"
+    ]
+  },
+  {
+    "flag": "contention",
+    "exit_code": 0,
+    "markers": [
+      "CONTENTION_OK"
+    ]
+  },
+  {
+    "flag": "duplex",
+    "exit_code": 0,
+    "markers": [
+      "DUPLEX_OK"
+    ]
+  }
+]

@@ -1,0 +1,6 @@
+{
+  "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-57481/Next Notes.app",
+  "binary_sha256": "b9dddc679fa89f999f40fa6accd95afc742f316c576f078c29b5111c1031d6b2",
+  "scope": "first coordinated release, finishing preview + V3 diagnostic before prototype archive; no parked cancellation scaffold/fix",
+  "source_freeze": "../layout-wire/source-freeze.sha256"
+}

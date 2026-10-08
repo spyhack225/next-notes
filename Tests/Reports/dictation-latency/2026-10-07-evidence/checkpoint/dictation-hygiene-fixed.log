@@ -1,0 +1,3 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-61082/Next Notes.app/Contents/MacOS/NextNotes --selftest-dictation-hygiene
+2026-10-07 21:07:00.786 NextNotes[61630:1180822] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+DICTATION_HYGIENE_OK: history appends in memory, retention is opt-in, the clipboard survives

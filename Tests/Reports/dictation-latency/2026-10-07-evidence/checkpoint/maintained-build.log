@@ -1,0 +1,18 @@
+xcrun swiftc -swift-version 6 -O ComputeJob.swift ComputeScheduler.maintained-probe.swift MaintainedCheck.swift -o check-maintained-original
+ComputeScheduler.maintained-probe.swift:156:15: warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+154 |             return job.id
+155 |         }
+156 |         await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+    |               `- warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+157 |             resumeWaiters[job.id] = continuation
+158 |         }
+
+ComputeScheduler.maintained-probe.swift:226:15: warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+224 |         let known = parked.contains { $0.id == id } || queued.contains { $0.id == id }
+225 |         guard known else { return }
+226 |         await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+    |               `- warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+227 |             if running?.id == id {
+228 |                 continuation.resume(returning: true)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>

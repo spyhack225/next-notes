@@ -1,0 +1,7 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-60376/Next Notes.app",
+  "binary_sha256": "f85286c4a8e9a575fd38bde2a6a16f149eec4535d57a9135b8a66bb9f8db540e",
+  "source_invariant_files": 1167,
+  "config": "debug",
+  "producers": "original checkpoint and Unicode capitalization"
+}

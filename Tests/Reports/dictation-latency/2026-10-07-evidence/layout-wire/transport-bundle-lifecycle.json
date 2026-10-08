@@ -1,0 +1,23 @@
+[
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-51876",
+    "variant": "v1",
+    "binarySHA256": "ecea9a0333fd1e5fcf11996e03c83a994b4e3896ea931f4d02edbb4ed4aad0e0",
+    "allocatedKB": 227932,
+    "nativeJoined": true
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-52522",
+    "variant": "v2",
+    "binarySHA256": "c2c50acfe2eee6a701805010094b26b750b47c9ec268196559d9dffaeb17f369",
+    "allocatedKB": 228000,
+    "nativeJoined": true
+  },
+  {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-53046",
+    "variant": "v3",
+    "binarySHA256": "297af1f2f1e94f5b38c38ab1f3ce02af0494438c3df22d57304fc42ffe4624ea",
+    "allocatedKB": 228032,
+    "nativeJoined": true
+  }
+]

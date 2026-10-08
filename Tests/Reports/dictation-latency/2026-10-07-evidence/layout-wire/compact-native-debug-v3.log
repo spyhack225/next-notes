@@ -1,0 +1,52 @@
+  live dictation config: cleanup on, engine Apple Foundation Model, grammar on, in the same pass
+  spoken structure: lists, quotations, code and tables all render
+
+=== plan (isolated MiniCPM layout pass) ===
+CLEANUP_PLAN_COLD_PREPARE: 6.946s
+  warmup: 3.754s (ungraded cold start)
+  plan: {"blocks":[{"kind":"prose","from":1,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":1},{"kind":"prose","from":2,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":2},{"kind":"prose","from":3,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":3}]}
+P1-bare-sequence-is-prose	1.018s	prose
+  want: three bare imperatives with no announcement are prose, not a list
+  in  : Ship the installer tonight. Write the release note tomorrow. Tell the beta group when both are done.
+  ship: Ship the installer tonight. ↵  ↵ Write the release note tomorrow. ↵  ↵ Tell the beta group when both are done.
+  plan: {"blocks":[{"kind":"numbered","from":1,"itemStarts":[1,2,3],"stripWords":[0,0,0],"announcerQuotes":["","",""],"to":3}]}
+P2-counted-no-envelope	1.527s	accepted (list)
+  want: counted out loud without any envelope still becomes a list
+  in  : The first thing is the installer, it has to go out tonight. The second thing is the release note for tomorrow. The third thing is telling the beta group when both are done.
+  ship: 1. The first thing is the installer, it has to go out tonight. ↵ 2. The second thing is the release note for tomorrow. ↵ 3. The third thing is telling the beta group when both are done.
+  plan: {"blocks":[{"kind":"prose","from":1,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":1},{"kind":"numbered","from":2,"itemStarts":[2,4],"stripWords":[1,1],"announcerQuotes":["Premièrement,","Enfin,"],"to":4},{"kind":"prose","from":5,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":5}]}
+P3-fr-enumeration	2.029s	accepted (list)
+  want: a French enumeration with no markers becomes a list
+  in  : Voici comment je vois la sortie de crise. Premièrement, on gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. Enfin, on prévient les clients avant vendredi. C'est tout pour moi.
+  ship: Voici comment je vois la sortie de crise. ↵  ↵ 1. On gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. ↵ 2. On prévient les clients avant vendredi. ↵  ↵ C'est tout pour moi.
+  plan: {"blocks":[{"kind":"numbered","from":1,"itemStarts":[1,2,3,4],"stripWords":[0,0,0,0],"announcerQuotes":["J'ai trois points pour toi.","","",""],"to":4}]}
+P4-fr-announced	2.157s	turned down (only 0 of 4 proposed items were announced out loud; 2 would be needed)
+  want: a French announcer plus uncounted items becomes a list
+  in  : J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  ship: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: {"blocks":[{"kind":"prose","from":1,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":1},{"kind":"prose","from":2,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":2},{"kind":"prose","from":3,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":3},{"kind":"prose","from":4,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":4}]}
+P5-prose-stays-prose	1.341s	prose
+  want: ordinary prose with no enumeration is never laid out as a list
+  in  : We finished the review this morning and everyone signed off on the plan. The release is scheduled for Friday afternoon as discussed. I will send the notes round once the build is green. There is nothing else outstanding on my side at the moment.
+  ship: We finished the review this morning and everyone signed off on the plan. ↵  ↵ The release is scheduled for Friday afternoon as discussed. ↵  ↵ I will send the notes round once the build is green. ↵  ↵ There is nothing else outstanding on my side at the moment.
+  plan: {"blocks":[{"kind":"prose","from":1,"itemStarts":[],"stripWords":[],"announcerQuotes":[],"to":1},{"kind":"numbered","from":2,"itemStarts":[2,4],"stripWords":[0,0],"announcerQuotes":["",""],"to":5}]}
+P6-mixed-prose-and-list	1.495s	accepted (list)
+  want: an intro and a sign-off stay prose around the list they frame
+  in  : Okay, a few things that I need to change here. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+  ship: Okay, a few things that I need to change here. ↵  ↵ 1. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. ↵ 2. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+CLEANUP_PLAN_SUMMARY: n=6 median=1.527s max=2.157s
+CLEANUP_PLAN_NATIVE_JOINED
+
+  plan: P3-fr-enumeration: rendered layout is missing "3. "
+      got: Voici comment je vois la sortie de crise. ↵  ↵ 1. On gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. ↵ 2. On prévient les clients avant vendredi. ↵  ↵ C'est tout pour moi.
+  plan: P3-fr-enumeration: rendered layout still contains "Deuxièmement,"
+      got: Voici comment je vois la sortie de crise. ↵  ↵ 1. On gèle les embauches jusqu'en janvier. Deuxièmement, on reporte le déménagement du bureau. ↵ 2. On prévient les clients avant vendredi. ↵  ↵ C'est tout pour moi.
+  plan: P4-fr-announced: rendered layout is missing "1. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P4-fr-announced: rendered layout is missing "2. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P4-fr-announced: rendered layout is missing "3. "
+      got: J'ai trois points pour toi. D'abord on règle la facturation. Ensuite on déplace la réunion de jeudi. Pour finir on appelle le comptable.
+  plan: P6-mixed-prose-and-list: rendered layout is missing "3. "
+      got: Okay, a few things that I need to change here. ↵  ↵ 1. Let's see how we can improve the graph first. The second thing is the skills page, it seems like it needs more room. ↵ 2. Third thing on the setting page, make it more sleek and modern. That is it, thanks.
+CLEANUP_FAILED: 6 assertion(s)

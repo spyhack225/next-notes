@@ -98,6 +98,9 @@ The original island verification found an invisible panel retaining mouse interc
 | Keep ASR warm; capture before model readiness | Already wired; cold startup can still be slow and pending audio is bounded. |
 | Freeze pause segments and run only the open tail | Already wired; real audio evidence below; preserve multilingual TDT and validate forced-cut WER. |
 | Earlier first partial; immediate committed updates | Implemented here; no increase to sustained refresh frequency. |
+| Publish completed semantic text while final layout remains pending | Actual finishing router/controller original regression fails; fixed debug passes; optimized publication/physical paint acceptance remains. Final external insertion/tags/formatting stay intact. |
+| Cancel the actual parked checkpoint, not just its caller deadline | Original scheduler fails12assertions and actual native cleanup fails3owner/successor assertions. Fixed61082 passes unchanged cases, native prefix/control, races and priority tests. Owner11.447s stall attribution remains open. |
+| Compact layout transport with source-constrained grammar | Three native transports are faster in isolated warm diagnostics but fail5/10/6existing assertions. Archived after rejection; geometry does not prove semantic grouping. |
 | Live full text, notch/HUD text and raw text during polishing | Wired; native appearance still needs a normal owner dictation. |
 | Clean committed groups while speaking | Already wired; redundant parsing, matching, overlapping waits and late-result retention repaired here. |
 | Pre-clean closed spoken structures | High priority follow-up: incremental Stage A and final spoken-structure rendering can disagree, invalidating the head. Carry the existing parser state and reuse only closed, stable structures; incomplete lists/code/tables must retain final parsing. |

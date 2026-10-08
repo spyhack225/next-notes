@@ -1,0 +1,6 @@
+NATIVE_PARKED_CANCELLATION_OBSERVATION: joinedWhileASRHeld=false wait=0.250970541 seconds chunks=2 successorRefusal=the model is busy with other work
+NATIVE_PARKED_CANCELLATION_SUCCESSOR: reused=256 decoded=394 prompt=650
+NATIVE_PARKED_CANCELLATION_WRONG: cancelled actual cleanup keeps its native owner until ASR releases
+NATIVE_PARKED_CANCELLATION_WRONG: cancelled cleanup leaves its parked scheduler job
+NATIVE_PARKED_CANCELLATION_WRONG: successor still sees a retained native owner: the model is busy with other work
+NATIVE_PARKED_CANCELLATION_FAILED: 3 problem(s)

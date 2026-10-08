@@ -1,0 +1,13 @@
+SCHEDULER_WRONG: cancelled background checkpoint waits for held ASR
+SCHEDULER_WRONG: cancelled checkpoint stays parked
+SCHEDULER_WRONG: cancelled background checkpoint waits for held ASR
+SCHEDULER_WRONG: cancelled checkpoint stays parked
+SCHEDULER_WRONG: cancelled meetingLive checkpoint waits for held ASR
+SCHEDULER_WRONG: cancelled checkpoint stays parked
+SCHEDULER_WRONG: cancelled meetingLive checkpoint waits for held ASR
+SCHEDULER_WRONG: cancelled checkpoint stays parked
+SCHEDULER_WRONG: cancelled realtimeAgent checkpoint waits for held ASR
+SCHEDULER_WRONG: cancelled checkpoint stays parked
+SCHEDULER_WRONG: cancelled realtimeAgent checkpoint waits for held ASR
+SCHEDULER_WRONG: cancelled checkpoint stays parked
+SCHEDULER_FAILED

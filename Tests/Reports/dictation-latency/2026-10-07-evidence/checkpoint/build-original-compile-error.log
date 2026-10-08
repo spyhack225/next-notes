@@ -1,0 +1,237 @@
+/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-layout-20261007/bounded-build.mk:2: warning: overriding commands for target `build'
+Makefile:117: warning: ignoring old commands for target `build'
+swift build -c debug --scratch-path "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch" --jobs 2
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[Pre-planning 1 / 275]
+[Planning deferred tasks]
+[1 / 27]
+[9 / 29] SherpaOnnxKWS
+[13 / 37] NextNotesDictionary
+[18 / 33] FluidAudio
+[21 / 37]
+[23 / 37] FluidAudio
+[26 / 31] NextNotes-product
+[26 / 32] NextNotes-product
+[31 / 72]
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/NotesService.swift:187:41: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+184 |                 fallbackReason: preferred == nil ? nil : .preferredOverride
+185 |             )
+186 |             let result = try await generator.notes(for: meeting, segments: segments, brief: brief) { step in
+    |                                                                                                    |- note: 'self' implicitly strongly captured here
+    |                                                                                                    `- note: add 'self' as a capture list item to silence
+187 |                 Task { @MainActor [weak self] in
+    |                                         |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                         `- note: explicitly assign the capture list item to silence
+188 |                     guard let self, !self.terminationRequested else { return }
+189 |                     self.noteProgress(id)
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[35 / 72] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/AcousticEchoProbe.swift:129:16: warning: consider using asynchronous alternative function
+127 |         let baseline = meter.take()
+128 | 
+129 |         player.scheduleFile(file, at: nil, completionHandler: {})
+    |                `- warning: consider using asynchronous alternative function
+130 |         player.play()
+131 |         let duration = Double(file.length) / file.processingFormat.sampleRate
+
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/AVFAudio.framework/Headers/AVAudioPlayerNode.h:233:1: note: 'scheduleFile(_:at:)' declared here
+231 | 		or before the file is played completely.
+232 | */
+233 | - (void)scheduleFile:(AVAudioFile *)file atTime:(AVAudioTime * __nullable)when completionHandler:(AVAudioNodeCompletionHandler __nullable)completionHandler;
+    | `- note: 'scheduleFile(_:at:)' declared here
+234 | 
+235 | /*! @method scheduleFile:atTime:completionCallbackType:completionHandler:
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/ActionRuntime.swift:1100:19: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+1098 |             // before permission. It never reaches an owner tab or claims native DOM evidence.
+1099 |             let fixture = SelfTest.isRunning
+1100 |                 ? await AgentToolExecutor.browserPageReadbackForTesting() : (isFixture: false, url: nil as String?)
+     |                   `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+1101 |             if fixture.isFixture {
+1102 |                 observedURL = fixture.url
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/AgentAccountRead.swift:537:27: warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+535 |         if contentWords(intent).contains(where: { present.contains($0) }) { return true }
+536 |         let nouns = Set(accountNouns(intent))
+537 |         if present.filter { nouns.contains($0) }.count >= 2 { return true }
+    |                           `- warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+538 |         return promisesToRead(present)
+539 |     }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/AgentRefusalGuard.swift:212:13: warning: variable 'words' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+210 |         var out: [String] = []
+211 |         var current = ""
+212 |         var words = reply.lowercased().split(separator: " ", omittingEmptySubsequences: false)
+    |             `- warning: variable 'words' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+213 |         for index in words.indices {
+214 |             let word = words[index]
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[36 / 72] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:332:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+330 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+331 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+332 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+333 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+334 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:422:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+420 |                 "owner variant fresh manager did not hold actual saved work")
+421 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+422 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+423 |             check(context.isStillValid != nil && !valid,
+424 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[37 / 72] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingResourceSelfTest.swift:39:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 37 |             }
+ 38 |             await writer.finish()
+ 39 |             let state = await writer.resourceSnapshot()
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 40 |             let mic = try AudioConversion.samples(fromFileAt: url, sampleRate: Double(rate),
+ 41 |                                                   channel: MeetingAudioWriter.micChannel)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingResourceSelfTest.swift:69:28: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 67 |             check("written paired originals did not authorize recovery", paired)
+ 68 |             await coverage.append([Float](repeating: 0.1, count: 8 * rate), from: .mic)
+ 69 |             let advanced = await coverage.resourceSnapshot()
+    |                            `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 70 |             check("late/trim fixture did not advance file cursor", advanced.writtenFrames >= 4 * rate)
+ 71 |             let trimmed = await coverage.append(oneSecond, from: .system,
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingResourceSelfTest.swift:78:32: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 76 |             let later = await coverage.append([Float](repeating: 0.2, count: 7 * rate),
+ 77 |                                               from: .system, requireWritten: true)
+ 78 |             let writtenLater = await coverage.resourceSnapshot()
+    |                                `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 79 |             check("catch-up packet was not actually written", writtenLater.writtenFrames >= 9 * rate)
+ 80 |             check("later successful saving erased missing-original recovery fact", !later)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingResourceSelfTest.swift:84:30: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 82 |             check("only queued current mic originals authorized recovery", !safeMic)
+ 83 |             let cleanLater = await coverage.append(oneSecond, from: .system, requireWritten: true)
+ 84 |             let cleanState = await coverage.resourceSnapshot()
+    |                              `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 85 |             check("later untrimmed originals were not actually written", cleanState.writtenFrames == 10 * rate)
+ 86 |             check("untrimmed successful packet erased prior source loss", !cleanLater)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingResourceSelfTest.swift:165:27: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+163 |                 write: { _, _ in throw NSError(domain: NSPOSIXErrorDomain, code: Int(ENOSPC)) })
+164 |             await failed.append([Float](repeating: 0.1, count: 6 * rate), from: .mic, startFrame: 0)
+165 |             let refused = await failed.resourceSnapshot()
+    |                           `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+166 |             await failed.append([Float](repeating: 0.2, count: rate), from: .system)
+167 |             await failed.finish()
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingResourceSelfTest.swift:168:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+166 |             await failed.append([Float](repeating: 0.2, count: rate), from: .system)
+167 |             await failed.finish()
+168 |             let after = await failed.resourceSnapshot()
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+169 |             check("write rejection is latched", refused.writeFailed && after.writeFailed)
+170 |             check("write rejection releases residual samples and capacity", refused.queuedBytes == 0 && refused.queueCapacityBytes == 0)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingSession.swift:421:24: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 419 |         await writer?.finish()
+ 420 |         if let saved = writer?.resourceSnapshot() { recordSavedAudioCoverage(saved) }
+ 421 |         if let saved = await writer?.resourceSnapshot(), saved.writtenFrames > 0 {
+     |                        `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 422 |             var integrity = meeting.captureIntegrity ?? .init()
+ 423 |             integrity.recordCaptured(until: startedAt.addingTimeInterval(Double(saved.writtenFrames) / ChunkedTranscriber.sampleRate))
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[40 / 72] NextNotes-product
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift:1710:44: warning: immutable value 'tool' was never used; consider replacing with '_' or removing it [#NoUsage]
+1708 |               var task = task(id: taskID), task.status == .waitingForInput,
+1709 |               case .input(let request) = task.pendingInteraction,
+1710 |               requestID == request.id, let tool = inputTool(task: task, request: request),
+     |                                            `- warning: immutable value 'tool' was never used; consider replacing with '_' or removing it [#NoUsage]
+1711 |               let key = request.argumentName else { return false }
+1712 |         task.arguments[key] = text
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskACPActivityHeartbeatSelfTest.swift:47:13: warning: initialization of immutable value 'sessionID' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 45 |         let warning = "\nNext Notes could not independently verify the effect. Inspect the target before retrying."
+ 46 |         let start = Date(timeIntervalSince1970: 1_700_000_000)
+ 47 |         let sessionID = "fixture-acp-activity-heartbeat"
+    |             `- warning: initialization of immutable value 'sessionID' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 48 | 
+ 49 |         for mode in ["accepted", "rejected-save", "fresh-primary-held", "released-running-row", "burst-small", "burst-history"] {
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/Tasks/Durable/TaskACPActivityHeartbeatSelfTest.swift:133:13: warning: 'phaseArmed' mutated after capture by sendable closure
+ 94 |             // Existing callback landmarks only; no extra persistence, query or await.
+ 95 |             let oldMigrationBoundary = store.migrationBoundaryForTesting
+ 96 |             var phaseArmed = false, phaseOrderValid = true
+    |                 `- note: variable defined here
+ 97 |             var primaryBegan: ContinuousClock.Instant?, primaryCommitted: ContinuousClock.Instant?
+ 98 |             var primaryBeginCount = 0, primaryCommitCount = 0
+    :
+131 |                 }
+132 |             }
+133 |             defer { phaseArmed = false; store.migrationBoundaryForTesting = oldMigrationBoundary }
+    |             `- warning: 'phaseArmed' mutated after capture by sendable closure
+134 |             defer {
+135 |                 if ownsStallProbe { stallProbe.stop(); stallProbe.landingForTesting = oldLandingObserver }
+    :
+155 |                 }
+156 |             }
+157 |             ACPAgentBackend.activityHandledForTesting = { taskID, admitted, milliseconds in
+    |                                                         `- note: variable captured by sendable closure
+158 |                 callbackTaskIDs.append(taskID)
+159 |                 handled.append(admitted)
+160 |                 callbackMilliseconds.append(milliseconds)
+161 |                 if burst, phaseArmed {
+    |                           `- note: capturing use
+162 |                     let finished = ContinuousClock.now
+163 |                     if let began = primaryBegan, let committed = primaryCommitted,
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[41 / 72] NextNotes-product
+error: SwiftCompile normal arm64 /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift failed with a nonzero exit code. Command line:     cd /Users/sergekadjo/Documents/Claude/Projects
+    builtin-SwiftPerFileCompile PrefixCacheSelfTest.swift
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift:1687:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+1685 |         let committed = await frontend.stream(
+1686 |             system: system, messages: firstRequest, maxTokens: 64, commitRevision: 2)
+1687 |         Task {
+     |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+     |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+1688 |             for try await _ in committed {}
+1689 |         }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift:309:48: error: 'inSeconds' is inaccessible due to 'fileprivate' protection level
+307 |         check(deniedAdmission.value == 0, "refused successor enters native generation")
+308 |         SelfTest.diagnostic("NATIVE_PARKED_CANCELLATION_OBSERVATION: joinedWhileASRHeld=\(releasedOwner) "
+309 |             + "wait=\(began.duration(to: .now).inSeconds)s chunks=\(decodedChunks.value) "
+    |                                                `- error: 'inSeconds' is inaccessible due to 'fileprivate' protection level
+310 |             + "successorRefusal=\(successorRefusal)")
+311 |         await ComputeScheduler.shared.release(asrID)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift:2520:9: note: 'inSeconds' declared here
+2518 |     /// The duration in seconds as a `Double`. `components.seconds` alone drops the
+2519 |     /// sub-second part, which is most of a warm prefill.
+2520 |     var inSeconds: Double {
+     |         `- note: 'inSeconds' declared here
+2521 |         Double(components.seconds) + Double(components.attoseconds) / 1e18
+2522 |     }
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+Failed frontend command:
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -filelist /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/sources-2 -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/FoundationModelLLMProvider.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/GBNFGrammar.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/GGUFMetadata.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LLMProvider.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LlamaArchitectures.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LlamaBackend.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LlamaHelpers.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LlamaLLMProvider.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LlamaLoadProbe.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LocalVoiceDecision.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LocalVoiceFrontendSelfTest.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LocalVoiceFrontendSpeculationSelfTest.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LocalVoicePrompt.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/LocalVoicePromptProbe.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/NotesModels.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/OpenAICompatibleLLMProvider.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/OpenRouterLLMProvider.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/OpenRouterReasoning.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/LLM/PrefixReuse.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/S1MiniFormatter.swift -primary-file /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Formatting/SentenceChunker.swift -supplementary-output-file-map /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/supplementaryOutputs-17 -target arm64-apple-macos26.0 -module-can-import-version FoundationModels 2.0.68.1 0 -module-can-import-version ScreenCaptureKit 740.62.1 1.0.0 -disable-cross-import-overlay-search -swift-module-cross-import Darwin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/Darwin.swiftcrossimport/xlocale.swiftoverlay -swift-module-cross-import FoundationModels /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/FoundationModels.framework/Modules/FoundationModels.swiftcrossimport/AppKit.swiftoverlay -swift-module-cross-import FoundationModels /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/FoundationModels.framework/Modules/FoundationModels.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import LocalAuthentication /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/LocalAuthentication.framework/Modules/LocalAuthentication.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import LocalAuthentication /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/LocalAuthentication.framework/Modules/LocalAuthentication.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import ScreenCaptureKit /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/ScreenCaptureKit.framework/Modules/ScreenCaptureKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import ScreenCaptureKit /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/ScreenCaptureKit.framework/Modules/ScreenCaptureKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import UserNotifications /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Library/Frameworks/UserNotifications.framework/Modules/UserNotifications.swiftcrossimport/AppIntents.swiftoverlay -swift-module-cross-import WebKit /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/System/Cryptexes/OS/System/Library/Frameworks/WebKit.framework/Modules/WebKit.swiftcrossimport/SwiftUI.swiftoverlay -swift-module-cross-import WebKit /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/System/Library/Frameworks/WebKit.framework/Modules/WebKit.swiftcrossimport/SwiftUI.swiftoverlay -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libFoundationModelsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#FoundationModelsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libObservationMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#ObservationMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libPreviewsMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#PreviewsMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftMacros -load-resolved-plugin /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins/libSwiftUIMacros.dylib\#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server\#SwiftUIMacros -disable-implicit-swift-modules -Xcc -fno-implicit-modules -Xcc -fno-implicit-module-maps -explicit-swift-module-map-file /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NextNotes-dependencies-1.json -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -I /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug -Isystem /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib -F /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug/PackageFrameworks -F /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug -F /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks -module-cache-path /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/SwiftExplicitPrecompiledModules -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=5 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -validate-clang-modules-once -clang-build-session-file /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /Users/sergekadjo/Documents/Claude/Projects -enable-anonymous-context-mangled-names -file-compilation-dir /Users/sergekadjo/Documents/Claude/Projects -Xcc -fmodule-map-file\=/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/MachTaskSelfWrapper/include/module.modulemap -Xcc -fmodule-map-file\=/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FastClusterWrapper/include/module.modulemap -Xcc -fmodule-map-file\=/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/SpeexEcho/include/module.modulemap -Xcc -fmodule-map-file\=/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/GeneratedModuleMaps/SherpaOnnxKWS.modulemap -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -ivfsstatcache -Xcc /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/SDKStatCaches.noindex/macosx27.0-26A425-a0facfad118c1a7a18f0aad9463f65497231f6df4def33e022ae2eb8f782df1a.sdkstatcache -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/MachTaskSelfWrapper/include -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FastClusterWrapper/include -Xcc -I/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/SpeexEcho/include -Xcc -I/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/SherpaOnnxKWS/include -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Debug/include -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/DerivedSources-normal/arm64 -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/DerivedSources/arm64 -Xcc -I/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name NextNotes -package-name speechify -const-gather-protocols-file /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NextNotes_const_extract_protocols.json -disable-clang-spi -clang-target arm64-apple-macos27.0 -target-sdk-version 27.0 -target-sdk-name macosx27.0 -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -parse-as-library -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/FoundationModelLLMProvider.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/GBNFGrammar.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/GGUFMetadata.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LLMProvider.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaArchitectures.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaBackend.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaHelpers.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaLLMProvider.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaLoadProbe.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoiceDecision.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoiceFrontend.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoiceFrontendSelfTest.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoiceFrontendSpeculationSelfTest.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoicePrompt.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoicePromptProbe.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NotesModelRuntime.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NotesModels.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/OpenAICompatibleLLMProvider.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/OpenRouterLLMProvider.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/OpenRouterReasoning.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/PrefixCacheSelfTest.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/PrefixReuse.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/MiniCPMCleanupFormatter.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/S1MiniFormatter.o -o /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/SentenceChunker.o -debug-module-path /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Intermediates.noindex/NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NextNotes.swiftmodule -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/FoundationModelLLMProvider.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/GBNFGrammar.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/GGUFMetadata.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LLMProvider.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaArchitectures.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaBackend.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaHelpers.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaLLMProvider.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LlamaLoadProbe.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoiceDecision.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoiceFrontend.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoiceFrontendSelfTest.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoiceFrontendSpeculationSelfTest.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoicePrompt.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/LocalVoicePromptProbe.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NotesModelRuntime.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/NotesModels.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/OpenAICompatibleLLMProvider.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/OpenRouterLLMProvider.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/OpenRouterReasoning.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/PrefixCacheSelfTest.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/PrefixReuse.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/MiniCPMCleanupFormatter.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/S1MiniFormatter.o -index-unit-output-path /NextNotes.build/Debug/NextNotes-p.build/Objects-normal/arm64/SentenceChunker.o -index-store-path /Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out -index-system-modules
+[42 / 72] NextNotes-product
+error: Build failed
+make: *** [build] Error 1

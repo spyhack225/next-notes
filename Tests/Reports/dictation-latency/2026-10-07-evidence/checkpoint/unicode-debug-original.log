@@ -1,0 +1,2 @@
+UNICODE_ACTUAL_RULES_BEGIN
+Swift/Character.swift:177: Fatal error: Can't form a Character from a String containing more than one extended grapheme cluster

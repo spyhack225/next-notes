@@ -1,0 +1,87 @@
+[
+  {
+    "path": "StructurePlanWire.v1.swift",
+    "bytes": 11112,
+    "sha256": "ae1627ce2e1ac44cde6ba0f8841292bbaec0ce2a092c453c707108e0df2b6688"
+  },
+  {
+    "path": "StructurePlanWire.v2.swift",
+    "bytes": 10653,
+    "sha256": "815124d31453c4d4b13e33c19c91a4a991948b2a4df5158c91199af03553a801"
+  },
+  {
+    "path": "compact-native-debug.log",
+    "bytes": 5986,
+    "sha256": "e9cfd00f2a1a434df8bbf7de463bc8a598dfb443ac8f9b417bffc00520c1b0f9"
+  },
+  {
+    "path": "compact-native-debug-v2.log",
+    "bytes": 7522,
+    "sha256": "03d78b31665824906a5576fbd613488e6bd1ddce2f231c33b4a48dcb54c80d4b"
+  },
+  {
+    "path": "compact-native-debug-v3.log",
+    "bytes": 6591,
+    "sha256": "e281fdbbacba5109fd0a58c33d698afb932c9bd528388ceb1ee415113e4f1b11"
+  },
+  {
+    "path": "router-debug-v3.log",
+    "bytes": 347,
+    "sha256": "6a454a9e31e8a3c62e036806215e7f152a111065df562eed28c3622c4ac5b55b"
+  },
+  {
+    "path": "preview-maintained-original-router.log",
+    "bytes": 461,
+    "sha256": "d5bf5775904505cf4786edb521fa286c7e7f9bb7bc40f716c240aef0b8f617db"
+  },
+  {
+    "path": "preview-fixed-router.log",
+    "bytes": 347,
+    "sha256": "8013b9c280d0bc8ee40457b28ed7349f0d139442416539681b76292f19613354"
+  },
+  {
+    "path": "DictationController.maintained-original.swift",
+    "bytes": 140938,
+    "sha256": "7fa5a4dd9c7b5d20f1090a8ad6edae40b5d074766ff5cf055d78ae60eafbfec3"
+  },
+  {
+    "path": "CleanupRouter.maintained-original.swift",
+    "bytes": 184101,
+    "sha256": "1c6e610f5e003b7b314d2da6f52e597890811a3b15d8bfb492ac5ea4d94a7b5a"
+  },
+  {
+    "path": "source-freeze.sha256",
+    "bytes": 570,
+    "sha256": "823ac74e91426012731c3740ea7dfccff815b70fc04072271af25dedcefbf32d"
+  },
+  {
+    "path": "transport-bundle-lifecycle.json",
+    "bytes": 744,
+    "sha256": "6e7295f502216c127162e27751c5af77d10afc6a1baee124c6eb453d7d8dec0f"
+  },
+  {
+    "path": "preview-bundle-lifecycle.json",
+    "bytes": 1005,
+    "sha256": "ba6aead6825713c35fafe8f6146c32cd0fc85d1b569f94eb399a2ad24438c4f0"
+  },
+  {
+    "path": "StructurePlanWire.frozen.swift",
+    "bytes": 10398,
+    "sha256": "649b1a14047d1fc79bc789f93f709fc5c4c6ad8d9e11f9a0083330e287113feb"
+  },
+  {
+    "path": "StructurePlanner.frozen.swift",
+    "bytes": 18866,
+    "sha256": "26ce0f081b53c2d30fbfe038e268d93d41cb34a052b827e70afc4759e774b8ac"
+  },
+  {
+    "path": "CleanupRouter.frozen.swift",
+    "bytes": 184246,
+    "sha256": "3b9a90f4ba80238475de32572d592b49c811bb2a04ca02dc218d0653d7702247"
+  },
+  {
+    "path": "DictationController.frozen.swift",
+    "bytes": 141921,
+    "sha256": "9269d43dee37690c87b9e330c59ea9d9a74ba73de9fb5691dc5af1345a50d194"
+  }
+]

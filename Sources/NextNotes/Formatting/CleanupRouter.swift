@@ -69,6 +69,7 @@ struct CleanupRouter: TextFormatter {
     /// What a hold tidied while the key was still down (D-12). Nil for every pass that did
     /// not come from a live hold, which is every pass today.
     private let head: CleanupHead?
+    private var progress: (@Sendable (String) -> Void)?
 
     /// How long the key-up pass waits for a pre-clean that has not landed yet.
     ///
@@ -147,6 +148,14 @@ struct CleanupRouter: TextFormatter {
     /// The pass a hold runs, using whatever head it collected while the key was down.
     func format(_ raw: String) async -> String {
         await format(raw, head: head)
+    }
+
+    /// Displays completed cleanup while the final layout is still running. This
+    /// synchronous sink must not wait for UI or insert text into another app.
+    func reportingProgress(_ sink: @escaping @Sendable (String) -> Void) -> Self {
+        var copy = self
+        copy.progress = sink
+        return copy
     }
 
     /// What a dictation pass does, and how much of it this hold had already done. (D-12.)
@@ -335,6 +344,9 @@ struct CleanupRouter: TextFormatter {
         var laidOut = structured.text
         var applied = beforeModel.applied.isEmpty ? structured.applied : beforeModel.applied
         var source = applied.isEmpty ? "none" : "rules"
+        if planTask != nil, applied.isEmpty, planAnswered.value == nil, !Task.isCancelled {
+            progress?(laidOut)
+        }
 
         // Stage D. The model is shown the finished text as numbered sentences and asked for
         // an arrangement — never for words.
@@ -937,6 +949,7 @@ extension CleanupRouter {
     @discardableResult
     static func runSelfTest() async -> Bool {
         var failures: [String] = []
+        failures += await RuleBasedFormatter.unicodeCapitalizationFailures()
 
         let s1 = preferredEngine(choice: .s1Mini, fixesGrammar: false)
         if s1 != .s1Mini {
@@ -1144,6 +1157,7 @@ extension CleanupRouter {
         failures += RuleBasedFormatter.selfTestFailures()
         failures += SentenceChunker.selfTestFailures()
         failures += await StructurePlan.selfTestFailures()
+        failures += await DictationController.finishingPreviewFailures()
         failures += await MiniCPMCleanupFormatter.selfTestFailures()
         failures += salvageFailures()
         failures += traceFailures()

@@ -61,8 +61,8 @@ protocol ComputeScheduling: Sendable {
 /// - Cooperative park/resume for a body that calls `checkpoint` after a
 ///   higher-priority job has preempted it.
 /// - `NotesModelRuntime` acquires `.background` around load and generation.
-/// - Dictation ASR acquires `.realtimeASR` (`ParakeetEngine` for the whole
-///   start→finish window; Apple via `DictationController`).
+/// - Dictation ASR acquires `.realtimeASR` per Parakeet inference pass (and
+///   cold model load); Apple holds it via `DictationController`.
 /// - Meeting ASR acquires `.realtimeASR` per window in `TranscriptionQueue`
 ///   (the shared Parakeet lane for both mic and system tracks).
 ///
@@ -78,8 +78,8 @@ protocol ComputeScheduling: Sendable {
 /// Windows is out of scope.
 actor ComputeScheduler: ComputeScheduling {
     /// Process-wide lane. Notes generation and (later) diarization share it;
-    /// ASR acquires `.realtimeASR` from ParakeetEngine / the Apple path in
-    /// DictationController / meeting `TranscriptionQueue` (one hold per window).
+    /// ASR acquires `.realtimeASR` per Parakeet pass, via the Apple controller
+    /// path, or per meeting `TranscriptionQueue` window.
     static let shared = ComputeScheduler()
 
     private var queued: [ComputeJob] = []
@@ -200,6 +200,8 @@ actor ComputeScheduler: ComputeScheduling {
     }
 
     /// If `id` was preempted into `parked`, suspend until it is running again.
+    /// A cancelled parked wait leaves the existing queue without releasing the current
+    /// runner. Callers must check cancellation after return before doing native work.
     /// No-op when this job still holds the lane.
     func checkpoint(_ id: UUID) async {
         // Re-check inside the continuation closure: the actor can resume us
@@ -208,12 +210,19 @@ actor ComputeScheduler: ComputeScheduling {
         if running?.id == id { return }
         let known = parked.contains { $0.id == id } || queued.contains { $0.id == id }
         guard known else { return }
-        await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
-            if running?.id == id {
-                continuation.resume(returning: true)
-                return
+        let _: Bool = await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+                if Task.isCancelled {
+                    cancelWaiter(id)
+                    continuation.resume(returning: false)
+                } else if running?.id == id {
+                    continuation.resume(returning: true)
+                } else {
+                    resumeWaiters[id] = continuation
+                }
             }
-            resumeWaiters[id] = continuation
+        } onCancel: {
+            Task { await self.cancelWaiter(id) }
         }
     }
 
@@ -247,6 +256,12 @@ actor ComputeScheduler: ComputeScheduling {
             busy.insert(job.workClass)
         }
         return ComputeOccupancy(running: running?.workClass, busy: busy)
+    }
+
+    /// Test-only observation of the existing registered parked wait, not a lane grant.
+    func hasCheckpointWaiterForTesting(_ workClass: WorkClass) -> Bool {
+        guard SelfTest.isRunning else { return false }
+        return parked.contains { $0.workClass == workClass && resumeWaiters[$0.id] != nil }
     }
 
     /// Whether any job of `workClass` is running, queued, or parked.
@@ -310,6 +325,84 @@ extension ComputeScheduler {
     /// window. This probe stays on the in-memory scheduler — it does not
     /// drive Parakeet or a meeting — and still prints `SCHEDULER_OK` when
     /// the yield / acquire / release contract holds.
+    private static func cancelledCheckpointFailures() async -> [String] {
+        var failures: [String] = []
+        for workClass in [WorkClass.background, .meetingLive, .realtimeAgent] {
+            for beforeRegistration in [false, true] {
+                let scheduler = ComputeScheduler()
+                let owner = await scheduler.acquire(workClass)
+                let asr = await scheduler.acquire(.realtimeASR)
+                let joined = LockedBox(false)
+                let cancelled = LockedBox(false)
+                let gate = AsyncStream<Void>.makeStream()
+                let producer = Task {
+                    if beforeRegistration { for await _ in gate.stream { break } }
+                    await scheduler.checkpoint(owner)
+                    cancelled.value = Task.isCancelled
+                    joined.value = true
+                }
+                if beforeRegistration {
+                    producer.cancel()
+                    gate.continuation.finish()
+                } else {
+                    let registered = await awaitCheckpointCondition {
+                        await scheduler.hasCheckpointWaiterForTesting(workClass)
+                    }
+                    if !registered { failures.append("actual checkpoint waiter did not register") }
+                    producer.cancel()
+                }
+                let finished = await awaitCheckpointCondition { joined.value }
+                let occupancy = await scheduler.occupancy()
+                if !finished { failures.append("cancelled \(workClass.rawValue) checkpoint waits for held ASR") }
+                if occupancy.isBusy(workClass) { failures.append("cancelled checkpoint stays parked") }
+                if occupancy.running != .realtimeASR || !occupancy.realtimeASRBusy {
+                    failures.append("cancelled checkpoint touches the higher-priority ASR owner")
+                }
+                await scheduler.release(asr)
+                await producer.value
+                await scheduler.release(owner)
+                let afterJoin = await scheduler.occupancy()
+                if !cancelled.value || !afterJoin.busy.isEmpty {
+                    failures.append("cancelled checkpoint does not join cleanly")
+                }
+            }
+        }
+        for index in 0..<20 {
+            let scheduler = ComputeScheduler()
+            let owner = await scheduler.acquire(.background)
+            let asr = await scheduler.acquire(.realtimeASR)
+            let producer = Task { await scheduler.checkpoint(owner) }
+            let registered = await awaitCheckpointCondition {
+                await scheduler.hasCheckpointWaiterForTesting(.background)
+            }
+            if !registered { failures.append("race checkpoint waiter did not register") }
+            if index.isMultiple(of: 2) {
+                producer.cancel()
+                await scheduler.release(asr)
+            } else {
+                await scheduler.release(asr)
+                producer.cancel()
+            }
+            await producer.value
+            await scheduler.release(owner)
+            if !(await scheduler.occupancy()).busy.isEmpty {
+                failures.append("release/cancel ordering leaks a scheduler job")
+            }
+        }
+        return failures
+    }
+
+    private static func awaitCheckpointCondition(
+        _ condition: @escaping @Sendable () async -> Bool
+    ) async -> Bool {
+        let deadline = ContinuousClock.now.advanced(by: .milliseconds(100))
+        repeat {
+            if await condition() { return true }
+            try? await Task.sleep(for: .milliseconds(1))
+        } while ContinuousClock.now < deadline
+        return await condition()
+    }
+
     @discardableResult
     static func runSelfTest() async -> Bool {
         var failures: [String] = []
@@ -446,6 +539,8 @@ extension ComputeScheduler {
         let agentID = await agent.value
         await fairness.release(agentID)
         await fairness.release(backgroundID)
+
+        failures += await cancelledCheckpointFailures()
 
         for failure in failures {
             print("SCHEDULER_WRONG: \(failure)")

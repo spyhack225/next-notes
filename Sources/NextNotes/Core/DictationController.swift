@@ -730,6 +730,8 @@ final class DictationController {
     /// whether the model was prewarmed and whether its pass timed out.
     private var lastHoldCleanupRecord: CleanupRecord?
     private var lastHoldCleanupTimedOut = false
+    /// First cleanup-ready publication, not a physical paint receipt.
+    private var firstFinishingPreviewAt: Date?
 
     /// What the current recording will do after transcription. Command Mode captures the
     /// selection on key-down so a later focus change can be detected instead of overwriting
@@ -872,6 +874,88 @@ final class DictationController {
     private let requestMicrophone: @MainActor () async -> Bool
     private let speechDetector: @Sendable (AVAudioPCMBuffer) -> Int
     private let cleanupPieces: (@MainActor @Sendable () -> CleanupPieces)?
+
+    private func showFinishingPreview(_ text: String, session: Int) {
+        guard self.session == session, state == .finishing, !text.isEmpty else { return }
+        if firstFinishingPreviewAt == nil { firstFinishingPreviewAt = Date() }
+        if transcript != text { transcript = text }
+    }
+
+    /// Actual tail/router/UI data path, held before layout completion. No owner
+    /// history, microphone or destination is touched.
+    static func finishingPreviewFailures() async -> [String] {
+        guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else {
+            return ["finishing preview fixture requires isolated preferences"]
+        }
+        struct Polish: TextFormatter {
+            let text: String
+            func format(_ raw: String) async -> String { text }
+        }
+        let settings = Settings.shared
+        let wasEnabled = settings.cleanupEnabled
+        settings.cleanupEnabled = true
+        let root = FileManager.default.temporaryDirectory
+            .appendingPathComponent("DictationPreview-\(UUID().uuidString)")
+        defer {
+            settings.cleanupEnabled = wasEnabled
+            try? FileManager.default.removeItem(at: root)
+        }
+        let raw = ("The project is ready for review. We have finished the first draft. "
+            + "Everyone can check the updated version today. "
+            + String(repeating: "We will consider every detail carefully before sending it to the whole team. ", count: 4))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let polished = raw.uppercased()
+        let release = AsyncStream<Void>.makeStream()
+        let shown = AsyncStream<Void>.makeStream()
+        let planner = ScriptedStructurePlanner { sentences in
+            for await _ in release.stream { break }
+            return StructurePlanOutcome(plan: StructurePlan(blocks: [
+                .init(kind: .prose, from: 1, to: 1),
+                .init(kind: .prose, from: 2, to: sentences.count),
+            ]), rejection: nil, seconds: 0)
+        }
+        let usage = UsageLog(directory: root)
+        var delivered = ""
+        let controller = DictationController(
+            formatter: CleanupRouter(semantic: Polish(text: polished), engine: .apple,
+                rules: KeepAsIsFormatter(), formatsLists: true,
+                structurePlanner: planner, pressureSample: { .idle }),
+            insert: { text, _ in delivered = text; return .superseded },
+            record: { _ in }, log: .selfTest, outcome: { _ in }, usage: usage)
+        controller.transcript = raw
+        controller.holdStarted = Date().addingTimeInterval(-30)
+        controller.releasedAt = Date()
+        controller.state = .finishing
+        withObservationTracking { _ = controller.transcript } onChange: { shown.continuation.yield(()) }
+        let tail = Task { await controller.runTail(session: controller.session, audio: nil) }
+        let visible = await withBoundedWait(.milliseconds(250)) {
+            for await _ in shown.stream { return true }
+            return false
+        }
+        var failures: [String] = []
+        if visible != true || controller.transcript != polished || !delivered.isEmpty {
+            failures.append("actual controller keeps raw text hidden behind final layout instead of showing completed cleanup")
+        }
+        release.continuation.yield(())
+        release.continuation.finish()
+        shown.continuation.finish()
+        await tail.value
+        usage.flush()
+        if !delivered.contains("\n\n") || delivered.replacingOccurrences(of: "\n\n", with: " ") != polished {
+            failures.append("finishing preview changes or prematurely delivers final formatting")
+        }
+        controller.state = .finishing
+        controller.transcript = "New hold"
+        let oldSession = controller.session
+        controller.session += 1
+        controller.showFinishingPreview("Old preview", session: oldSession)
+        if controller.transcript != "New hold" { failures.append("stale preview overwrites a successor hold") }
+        controller.state = .idle
+        controller.showFinishingPreview("Late preview", session: controller.session)
+        if controller.transcript != "New hold" { failures.append("late preview revives a completed hold") }
+        return failures
+    }
+
 
     /// The last hold that ended with nothing typed, with its audio (D-03).
     ///
@@ -1123,6 +1207,7 @@ final class DictationController {
         lastHoldWords = 0
         lastHoldCleanupRecord = nil
         lastHoldCleanupTimedOut = false
+        firstFinishingPreviewAt = nil
         engineName = Settings.shared.engine.displayName
         transcript = ""
         level = 0
@@ -1352,6 +1437,7 @@ final class DictationController {
         lastHoldWords = 0
         lastHoldCleanupRecord = nil
         lastHoldCleanupTimedOut = false
+        firstFinishingPreviewAt = nil
         keyDownToCaptureSeconds = nil
         releasedDuringStartup = nil
         dropIncrementalCleanup()
@@ -1843,13 +1929,23 @@ final class DictationController {
             var head: CleanupHead?
             if let session = self.incrementalCleanup { head = await session.head() }
             self.incrementalCleanup = nil
-            let formatter: any TextFormatter
+            var formatter: any TextFormatter
+            let progressActive = LockedBox(true)
             if let cleanupPieces {
                 formatter = cleanupPieces().pass(head)
             } else {
                 formatter = activeFormatter(context: screen, trace: trace, head: head)
             }
-            if let formatted = await withBoundedWait(limits.cleanup, { await formatter.format(raw) }) {
+            if let router = formatter as? CleanupRouter {
+                formatter = router.reportingProgress { [weak self] text in
+                    Task { @MainActor [weak self] in
+                        guard progressActive.value else { return }
+                        self?.showFinishingPreview(text, session: session)
+                    }
+                }
+            }
+            let finalFormatter = formatter
+            if let formatted = await withBoundedWait(limits.cleanup, { await finalFormatter.format(raw) }) {
                 cleaned = formatted
             } else {
                 cleanupTimedOut = true
@@ -1860,6 +1956,8 @@ final class DictationController {
                 trace.noteOutput(raw, seconds: Date().timeIntervalSince(began) - narrowedAt)
                 log.speechError("cleanup did not finish within \(String(describing: self.limits.cleanup)) — using the raw transcript")
             }
+            progressActive.value = false
+            showFinishingPreview(cleaned, session: session)
             cleanupRecord = trace.snapshot
         }
         // Stashed for the hold row (D-01b): whether the cleanup pass hit its deadline,
@@ -1907,6 +2005,7 @@ final class DictationController {
         // rewrite the reference it writes.
         let output = await tagFileReferences(in: corrected, screen: screen)
         guard self.session == session else { return }
+        showFinishingPreview(output, session: session)
 
         // Recorded before injection, deliberately. If the text cannot be placed, the
         // Dictation list is the other way back to it, and an utterance that is hard to

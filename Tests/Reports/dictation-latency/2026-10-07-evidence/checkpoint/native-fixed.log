@@ -1,0 +1,3 @@
+NATIVE_PARKED_CANCELLATION_OBSERVATION: joinedWhileASRHeld=true wait=0.002373167 seconds chunks=2 successorRefusal=live speech recognition holds the lane
+NATIVE_PARKED_CANCELLATION_SUCCESSOR: reused=256 decoded=394 prompt=650
+NATIVE_PARKED_CANCELLATION_OK

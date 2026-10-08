@@ -1,0 +1,36 @@
+xcrun swiftc -swift-version 6 -O ComputeJob.swift ComputeScheduler.original-probe.swift CheckpointCheck.swift -o check-original
+ComputeScheduler.original-probe.swift:156:15: warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+154 |             return job.id
+155 |         }
+156 |         await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+    |               `- warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+157 |             resumeWaiters[job.id] = continuation
+158 |         }
+
+ComputeScheduler.original-probe.swift:226:15: warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+224 |         let known = parked.contains { $0.id == id } || queued.contains { $0.id == id }
+225 |         guard known else { return }
+226 |         await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+    |               `- warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+227 |             if running?.id == id {
+228 |                 continuation.resume(returning: true)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+xcrun swiftc -swift-version 6 -O ComputeJob.swift ComputeScheduler.fixed-probe.swift CheckpointCheck.swift -o check-fixed
+ComputeScheduler.fixed-probe.swift:156:15: warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+154 |             return job.id
+155 |         }
+156 |         await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+    |               `- warning: result of call to 'withCheckedContinuation(function:_:)' is unused [#NoUsage]
+157 |             resumeWaiters[job.id] = continuation
+158 |         }
+
+ComputeScheduler.fixed-probe.swift:226:15: warning: result of call to 'withTaskCancellationHandler(operation:onCancel:)' is unused [#NoUsage]
+224 |         let known = parked.contains { $0.id == id } || queued.contains { $0.id == id }
+225 |         guard known else { return }
+226 |         await withTaskCancellationHandler {
+    |               `- warning: result of call to 'withTaskCancellationHandler(operation:onCancel:)' is unused [#NoUsage]
+227 |             await withCheckedContinuation { (continuation: CheckedContinuation<Bool, Never>) in
+228 |                 if Task.isCancelled {
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
