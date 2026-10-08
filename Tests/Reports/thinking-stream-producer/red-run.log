@@ -1,0 +1,21 @@
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+{"flag": "chat-template", "command": ["/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes", "--selftest-chat-template", "--selftest-out", "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review/Tests/Reports/thinking-stream-producer/red-chat-template.log"], "exitCode": 1, "marker": "CHAT_TEMPLATE_FAILED: 543 problem(s)"}

@@ -1,0 +1,18 @@
+{
+  "phase": "red",
+  "binarySHA256": "95d1bb9614a4990f0d6ab67a27b813f3246442101b8b168136afa9a2ab4b2b3a",
+  "fixtureSHA256": "2e8009db5d72670706f7e934a21eda9d9e74c22aeb86fb2fcac9aac19cd88dc4",
+  "checks": [
+    {
+      "flag": "chat-template",
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes",
+        "--selftest-chat-template",
+        "--selftest-out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review/Tests/Reports/thinking-stream-producer/red-chat-template.log"
+      ],
+      "exitCode": 1,
+      "marker": "CHAT_TEMPLATE_FAILED: 543 problem(s)"
+    }
+  ]
+}

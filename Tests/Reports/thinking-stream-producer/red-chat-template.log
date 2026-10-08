@@ -1,0 +1,635 @@
+CHAT_TEMPLATE_STREAM: 440 cases, 542 failures; decoded pieces -> producer callbacks -> completed stream
+chat-template · stream marker-chatmlThinking-<|im_start|>-1: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-1: forbidden text reached a callback
+chat-template · stream marker-chatmlThinking-<|im_start|>-2: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-2: forbidden text reached a callback
+chat-template · stream marker-chatmlThinking-<|im_start|>-3: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-3: forbidden text reached a callback
+chat-template · stream marker-chatmlThinking-<|im_start|>-4: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-4: forbidden text reached a callback
+chat-template · stream marker-chatmlThinking-<|im_start|>-5: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-5: forbidden text reached a callback
+chat-template · stream marker-chatmlThinking-<|im_start|>-6: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-7: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-8: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-9: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-10: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<|im_start|>-11: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-<think>-1: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatmlThinking-<think>-1: forbidden text reached a callback
+chat-template · stream marker-chatmlThinking-<think>-2: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatmlThinking-<think>-3: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatmlThinking-<think>-4: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatmlThinking-<think>-5: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatmlThinking-<think>-6: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatmlThinking-</think>-1: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-</think>-1: forbidden text reached a callback
+chat-template · stream marker-chatmlThinking-</think>-2: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-</think>-3: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-</think>-4: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-</think>-5: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-</think>-6: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatmlThinking-</think>-7: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream stop-and-tail-chatmlThinking: “Answer<|im_end|>ignoredignored”, expected “Answer”
+chat-template · stream marker-chatml-<|im_start|>-1: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-1: forbidden text reached a callback
+chat-template · stream marker-chatml-<|im_start|>-2: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-2: forbidden text reached a callback
+chat-template · stream marker-chatml-<|im_start|>-3: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-3: forbidden text reached a callback
+chat-template · stream marker-chatml-<|im_start|>-4: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-4: forbidden text reached a callback
+chat-template · stream marker-chatml-<|im_start|>-5: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-5: forbidden text reached a callback
+chat-template · stream marker-chatml-<|im_start|>-6: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-7: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-8: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-9: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-10: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<|im_start|>-11: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-<think>-1: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatml-<think>-1: forbidden text reached a callback
+chat-template · stream marker-chatml-<think>-2: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatml-<think>-3: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatml-<think>-4: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatml-<think>-5: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatml-<think>-6: “Before<think>After”, expected “Before”
+chat-template · stream marker-chatml-</think>-1: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-</think>-1: forbidden text reached a callback
+chat-template · stream marker-chatml-</think>-2: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-</think>-3: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-</think>-4: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-</think>-5: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-</think>-6: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-chatml-</think>-7: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream stop-and-tail-chatml: “Answer<|im_end|>ignoredignored”, expected “Answer”
+chat-template · stream marker-minicpm5-<|im_start|>-1: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-1: forbidden text reached a callback
+chat-template · stream marker-minicpm5-<|im_start|>-2: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-2: forbidden text reached a callback
+chat-template · stream marker-minicpm5-<|im_start|>-3: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-3: forbidden text reached a callback
+chat-template · stream marker-minicpm5-<|im_start|>-4: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-4: forbidden text reached a callback
+chat-template · stream marker-minicpm5-<|im_start|>-5: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-5: forbidden text reached a callback
+chat-template · stream marker-minicpm5-<|im_start|>-6: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-7: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-8: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-9: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-10: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<|im_start|>-11: “Before<|im_start|>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-<think>-1: “Before<think>After”, expected “Before”
+chat-template · stream marker-minicpm5-<think>-1: forbidden text reached a callback
+chat-template · stream marker-minicpm5-<think>-2: “Before<think>After”, expected “Before”
+chat-template · stream marker-minicpm5-<think>-3: “Before<think>After”, expected “Before”
+chat-template · stream marker-minicpm5-<think>-4: “Before<think>After”, expected “Before”
+chat-template · stream marker-minicpm5-<think>-5: “Before<think>After”, expected “Before”
+chat-template · stream marker-minicpm5-<think>-6: “Before<think>After”, expected “Before”
+chat-template · stream marker-minicpm5-</think>-1: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-</think>-1: forbidden text reached a callback
+chat-template · stream marker-minicpm5-</think>-2: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-</think>-3: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-</think>-4: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-</think>-5: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-</think>-6: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-minicpm5-</think>-7: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream stop-and-tail-minicpm5: “Answer<|im_end|>ignoredignored”, expected “Answer”
+chat-template · stream marker-llama3-<|begin_of_text|>-1: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-1: forbidden text reached a callback
+chat-template · stream marker-llama3-<|begin_of_text|>-2: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-2: forbidden text reached a callback
+chat-template · stream marker-llama3-<|begin_of_text|>-3: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-4: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-5: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-6: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-7: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-8: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-9: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-10: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-11: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-12: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-13: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-14: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-15: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|begin_of_text|>-16: “Before<|begin_of_text|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-1: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-1: forbidden text reached a callback
+chat-template · stream marker-llama3-<|start_header_id|>-2: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-2: forbidden text reached a callback
+chat-template · stream marker-llama3-<|start_header_id|>-3: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-4: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-5: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-6: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-7: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-8: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-9: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-10: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-11: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-12: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-13: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-14: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-15: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-16: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-17: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|start_header_id|>-18: “Before<|start_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-1: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-1: forbidden text reached a callback
+chat-template · stream marker-llama3-<|end_header_id|>-2: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-2: forbidden text reached a callback
+chat-template · stream marker-llama3-<|end_header_id|>-3: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-3: forbidden text reached a callback
+chat-template · stream marker-llama3-<|end_header_id|>-4: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-5: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-6: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-7: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-8: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-9: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-10: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-11: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-12: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-13: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-14: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-15: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream marker-llama3-<|end_header_id|>-16: “Before<|end_header_id|>After”, expected “BeforeAfter”
+chat-template · stream stop-and-tail-llama3: “Answer<|eot_id|>ignoredignored”, expected “Answer”
+chat-template · stream marker-gemma-<start_of_turn>-1: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-1: forbidden text reached a callback
+chat-template · stream marker-gemma-<start_of_turn>-2: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-3: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-4: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-5: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-6: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-7: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-8: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-9: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-10: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-11: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-12: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-13: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma-<start_of_turn>-14: “Before<start_of_turn>After”, expected “BeforeAfter”
+chat-template · stream stop-and-tail-gemma: “Answer<end_of_turn>ignoredignored”, expected “Answer”
+chat-template · stream marker-gemma4-<|turn>-1: “Before<|turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|turn>-1: forbidden text reached a callback
+chat-template · stream marker-gemma4-<|turn>-2: “Before<|turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|turn>-3: “Before<|turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|turn>-4: “Before<|turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|turn>-5: “Before<|turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|turn>-6: “Before<|turn>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|think|>-1: “Before<|think|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|think|>-1: forbidden text reached a callback
+chat-template · stream marker-gemma4-<|think|>-2: “Before<|think|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|think|>-3: “Before<|think|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|think|>-4: “Before<|think|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|think|>-5: “Before<|think|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|think|>-6: “Before<|think|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|think|>-7: “Before<|think|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|think|>-8: “Before<|think|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<|channel>-1: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<|channel>-1: forbidden text reached a callback
+chat-template · stream marker-gemma4-<|channel>-2: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<|channel>-3: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<|channel>-4: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<|channel>-5: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<|channel>-6: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<|channel>-7: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<|channel>-8: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<|channel>-9: “Before<|channel>After”, expected “Before”
+chat-template · stream marker-gemma4-<channel|>-1: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<channel|>-1: forbidden text reached a callback
+chat-template · stream marker-gemma4-<channel|>-2: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<channel|>-3: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<channel|>-4: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<channel|>-5: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<channel|>-6: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<channel|>-7: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<channel|>-8: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<channel|>-9: “Before<channel|>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-<think>-1: “Before<think>After”, expected “Before”
+chat-template · stream marker-gemma4-<think>-1: forbidden text reached a callback
+chat-template · stream marker-gemma4-<think>-2: “Before<think>After”, expected “Before”
+chat-template · stream marker-gemma4-<think>-2: forbidden text reached a callback
+chat-template · stream marker-gemma4-<think>-3: “Before<think>After”, expected “Before”
+chat-template · stream marker-gemma4-<think>-4: “Before<think>After”, expected “Before”
+chat-template · stream marker-gemma4-<think>-5: “Before<think>After”, expected “Before”
+chat-template · stream marker-gemma4-<think>-6: “Before<think>After”, expected “Before”
+chat-template · stream marker-gemma4-</think>-1: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-</think>-1: forbidden text reached a callback
+chat-template · stream marker-gemma4-</think>-2: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-</think>-3: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-</think>-4: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-</think>-5: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-</think>-6: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream marker-gemma4-</think>-7: “Before</think>After”, expected “BeforeAfter”
+chat-template · stream stop-and-tail-gemma4: “Answer<turn|>ignoredignored”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-0: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-0: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-1: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-1: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-2: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-2: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-3: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-3: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-4: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-4: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-5: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-5: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-6: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-6: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-7: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-7: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-8: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-9: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-10: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-11: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-12: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-13: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-14: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-14: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-15: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-15: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-16: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-16: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-17: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-17: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-18: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-18: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-19: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-19: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-20: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-20: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-21: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-21: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-22: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-22: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-23: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-23: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-24: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-24: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-25: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-25: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-26: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-26: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-27: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-27: forbidden text reached a callback
+chat-template · stream thinking-chatmlThinking-28: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatmlThinking-28: forbidden text reached a callback
+chat-template · stream one-character-chatmlThinking: “<think>PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream unfinished-chatmlThinking: “BeforePRIVATE</thi”, expected “Before”
+chat-template · stream multiple-chatmlThinking: “APRIVATEBPRIVATEC”, expected “ABC”
+chat-template · stream stray-close-chatmlThinking: “</think>Answer”, expected “Answer”
+chat-template · stream thinking-tools-chatmlThinking: “PRIVATE<function name="x"><param name="k">v</param></function><tool_call>{"name":"x","arguments":{}}</tool_call>”, expected “<function name="x"><param name="k">v</param></function><tool_call>{"name":"x","arguments":{}}</tool_call>”
+chat-template · stream thinking-chatml-0: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-0: forbidden text reached a callback
+chat-template · stream thinking-chatml-1: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-1: forbidden text reached a callback
+chat-template · stream thinking-chatml-2: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-2: forbidden text reached a callback
+chat-template · stream thinking-chatml-3: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-3: forbidden text reached a callback
+chat-template · stream thinking-chatml-4: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-4: forbidden text reached a callback
+chat-template · stream thinking-chatml-5: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-5: forbidden text reached a callback
+chat-template · stream thinking-chatml-6: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-6: forbidden text reached a callback
+chat-template · stream thinking-chatml-7: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-7: forbidden text reached a callback
+chat-template · stream thinking-chatml-8: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-9: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-10: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-11: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-12: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-13: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-14: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-14: forbidden text reached a callback
+chat-template · stream thinking-chatml-15: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatml-15: forbidden text reached a callback
+chat-template · stream thinking-chatml-16: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatml-16: forbidden text reached a callback
+chat-template · stream thinking-chatml-17: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatml-17: forbidden text reached a callback
+chat-template · stream thinking-chatml-18: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatml-18: forbidden text reached a callback
+chat-template · stream thinking-chatml-19: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatml-19: forbidden text reached a callback
+chat-template · stream thinking-chatml-20: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatml-20: forbidden text reached a callback
+chat-template · stream thinking-chatml-21: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-chatml-21: forbidden text reached a callback
+chat-template · stream thinking-chatml-22: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-22: forbidden text reached a callback
+chat-template · stream thinking-chatml-23: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-23: forbidden text reached a callback
+chat-template · stream thinking-chatml-24: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-24: forbidden text reached a callback
+chat-template · stream thinking-chatml-25: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-25: forbidden text reached a callback
+chat-template · stream thinking-chatml-26: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-26: forbidden text reached a callback
+chat-template · stream thinking-chatml-27: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-27: forbidden text reached a callback
+chat-template · stream thinking-chatml-28: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-chatml-28: forbidden text reached a callback
+chat-template · stream one-character-chatml: “<think>PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream unfinished-chatml: “BeforePRIVATE</thi”, expected “Before”
+chat-template · stream multiple-chatml: “APRIVATEBPRIVATEC”, expected “ABC”
+chat-template · stream stray-close-chatml: “</think>Answer”, expected “Answer”
+chat-template · stream thinking-tools-chatml: “PRIVATE<function name="x"><param name="k">v</param></function><tool_call>{"name":"x","arguments":{}}</tool_call>”, expected “<function name="x"><param name="k">v</param></function><tool_call>{"name":"x","arguments":{}}</tool_call>”
+chat-template · stream thinking-minicpm5-0: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-0: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-1: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-1: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-2: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-2: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-3: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-3: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-4: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-4: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-5: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-5: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-6: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-6: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-7: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-7: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-8: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-9: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-10: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-11: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-12: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-13: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-14: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-14: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-15: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-minicpm5-15: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-16: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-minicpm5-16: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-17: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-minicpm5-17: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-18: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-minicpm5-18: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-19: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-minicpm5-19: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-20: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-minicpm5-20: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-21: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-minicpm5-21: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-22: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-22: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-23: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-23: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-24: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-24: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-25: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-25: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-26: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-26: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-27: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-27: forbidden text reached a callback
+chat-template · stream thinking-minicpm5-28: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-minicpm5-28: forbidden text reached a callback
+chat-template · stream one-character-minicpm5: “<think>PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream unfinished-minicpm5: “BeforePRIVATE</thi”, expected “Before”
+chat-template · stream multiple-minicpm5: “APRIVATEBPRIVATEC”, expected “ABC”
+chat-template · stream stray-close-minicpm5: “</think>Answer”, expected “Answer”
+chat-template · stream thinking-tools-minicpm5: “PRIVATE<function name="x"><param name="k">v</param></function><tool_call>{"name":"x","arguments":{}}</tool_call>”, expected “<function name="x"><param name="k">v</param></function><tool_call>{"name":"x","arguments":{}}</tool_call>”
+chat-template · stream thinking-gemma4-0: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-0: forbidden text reached a callback
+chat-template · stream thinking-gemma4-1: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-1: forbidden text reached a callback
+chat-template · stream thinking-gemma4-2: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-2: forbidden text reached a callback
+chat-template · stream thinking-gemma4-3: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-3: forbidden text reached a callback
+chat-template · stream thinking-gemma4-4: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-4: forbidden text reached a callback
+chat-template · stream thinking-gemma4-5: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-5: forbidden text reached a callback
+chat-template · stream thinking-gemma4-6: “<think>PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-6: forbidden text reached a callback
+chat-template · stream thinking-gemma4-7: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-7: forbidden text reached a callback
+chat-template · stream thinking-gemma4-8: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-9: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-10: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-11: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-12: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-13: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-14: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-14: forbidden text reached a callback
+chat-template · stream thinking-gemma4-15: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-gemma4-15: forbidden text reached a callback
+chat-template · stream thinking-gemma4-16: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-gemma4-16: forbidden text reached a callback
+chat-template · stream thinking-gemma4-17: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-gemma4-17: forbidden text reached a callback
+chat-template · stream thinking-gemma4-18: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-gemma4-18: forbidden text reached a callback
+chat-template · stream thinking-gemma4-19: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-gemma4-19: forbidden text reached a callback
+chat-template · stream thinking-gemma4-20: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-gemma4-20: forbidden text reached a callback
+chat-template · stream thinking-gemma4-21: “PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream thinking-gemma4-21: forbidden text reached a callback
+chat-template · stream thinking-gemma4-22: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-22: forbidden text reached a callback
+chat-template · stream thinking-gemma4-23: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-23: forbidden text reached a callback
+chat-template · stream thinking-gemma4-24: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-24: forbidden text reached a callback
+chat-template · stream thinking-gemma4-25: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-25: forbidden text reached a callback
+chat-template · stream thinking-gemma4-26: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-26: forbidden text reached a callback
+chat-template · stream thinking-gemma4-27: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-27: forbidden text reached a callback
+chat-template · stream thinking-gemma4-28: “PRIVATEAnswer”, expected “Answer”
+chat-template · stream thinking-gemma4-28: forbidden text reached a callback
+chat-template · stream one-character-gemma4: “<think>PRIVATE</think>Answer”, expected “Answer”
+chat-template · stream unfinished-gemma4: “BeforePRIVATE</thi”, expected “Before”
+chat-template · stream multiple-gemma4: “APRIVATEBPRIVATEC”, expected “ABC”
+chat-template · stream stray-close-gemma4: “</think>Answer”, expected “Answer”
+chat-template · stream thinking-tools-gemma4: “PRIVATE<function name="x"><param name="k">v</param></function><tool_call>{"name":"x","arguments":{}}</tool_call>”, expected “<function name="x"><param name="k">v</param></function><tool_call>{"name":"x","arguments":{}}</tool_call>”
+chat-template · stream gemma-thought-0: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-0: forbidden text reached a callback
+chat-template · stream gemma-thought-1: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-1: forbidden text reached a callback
+chat-template · stream gemma-thought-2: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-2: forbidden text reached a callback
+chat-template · stream gemma-thought-3: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-3: forbidden text reached a callback
+chat-template · stream gemma-thought-4: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-4: forbidden text reached a callback
+chat-template · stream gemma-thought-5: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-5: forbidden text reached a callback
+chat-template · stream gemma-thought-6: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-6: forbidden text reached a callback
+chat-template · stream gemma-thought-7: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-7: forbidden text reached a callback
+chat-template · stream gemma-thought-8: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-8: forbidden text reached a callback
+chat-template · stream gemma-thought-9: “<|channel>thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-9: forbidden text reached a callback
+chat-template · stream gemma-thought-10: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-10: forbidden text reached a callback
+chat-template · stream gemma-thought-11: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-11: forbidden text reached a callback
+chat-template · stream gemma-thought-12: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-12: forbidden text reached a callback
+chat-template · stream gemma-thought-13: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-13: forbidden text reached a callback
+chat-template · stream gemma-thought-14: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-14: forbidden text reached a callback
+chat-template · stream gemma-thought-15: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-15: forbidden text reached a callback
+chat-template · stream gemma-thought-16: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-16: forbidden text reached a callback
+chat-template · stream gemma-thought-17: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-17: forbidden text reached a callback
+chat-template · stream gemma-thought-18: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-18: forbidden text reached a callback
+chat-template · stream gemma-thought-19: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-19: forbidden text reached a callback
+chat-template · stream gemma-thought-20: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-20: forbidden text reached a callback
+chat-template · stream gemma-thought-21: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-21: forbidden text reached a callback
+chat-template · stream gemma-thought-22: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-22: forbidden text reached a callback
+chat-template · stream gemma-thought-23: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-23: forbidden text reached a callback
+chat-template · stream gemma-thought-24: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-24: forbidden text reached a callback
+chat-template · stream gemma-thought-25: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-25: forbidden text reached a callback
+chat-template · stream gemma-thought-26: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-26: forbidden text reached a callback
+chat-template · stream gemma-thought-27: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-27: forbidden text reached a callback
+chat-template · stream gemma-thought-28: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-28: forbidden text reached a callback
+chat-template · stream gemma-thought-29: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-29: forbidden text reached a callback
+chat-template · stream gemma-thought-30: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-30: forbidden text reached a callback
+chat-template · stream gemma-thought-31: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-31: forbidden text reached a callback
+chat-template · stream gemma-thought-32: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-32: forbidden text reached a callback
+chat-template · stream gemma-thought-33: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-33: forbidden text reached a callback
+chat-template · stream gemma-thought-34: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-34: forbidden text reached a callback
+chat-template · stream gemma-thought-35: “thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-thought-35: forbidden text reached a callback
+chat-template · stream gemma-thought-36: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-36: forbidden text reached a callback
+chat-template · stream gemma-thought-37: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-37: forbidden text reached a callback
+chat-template · stream gemma-thought-38: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-38: forbidden text reached a callback
+chat-template · stream gemma-thought-39: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-39: forbidden text reached a callback
+chat-template · stream gemma-thought-40: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-40: forbidden text reached a callback
+chat-template · stream gemma-thought-41: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-41: forbidden text reached a callback
+chat-template · stream gemma-thought-42: “thought
+PRIVATE
+Answer”, expected “Answer”
+chat-template · stream gemma-thought-42: forbidden text reached a callback
+chat-template · stream gemma-character-thought: “<|channel>thought
+PRIVATE
+<channel|>Answer”, expected “Answer”
+chat-template · stream gemma-unfinished: “Beforethought
+PRIVATE”, expected “Before”
+chat-template · stream nested: “PRIVATEPRIVATEPRIVATEAnswer”, expected “Answer”
+chat-template · stream interleaved-gemma: “PRIVATEthought
+PRIVATEPRIVATEAnswer”, expected “Answer”
+chat-template · stream truncated-opening: “Answer<thi”, expected “Answer”
+chat-template · MiniCPM5 native stream producer: “PRIVATEAnswer<function name="x"><param name="k">v</param></function>”
+CHAT_TEMPLATE_FAILED: 543 problem(s)

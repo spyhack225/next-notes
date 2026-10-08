@@ -1,0 +1,40 @@
+{
+  "availableKiBBefore": "10195764",
+  "executableSHA256Before": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes": "95d1bb9614a4990f0d6ab67a27b813f3246442101b8b168136afa9a2ab4b2b3a",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/llama.framework/llama": "6bac4742584e748218924337c341eac19ea1aeb3c70f982616302db7a6d8ec0c"
+  },
+  "retired": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/v5",
+      "files": 5830,
+      "allocatedBytes": 85114880
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/SDKExplicitPrecompiledModules",
+      "files": 92,
+      "allocatedBytes": 102105088
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/Products/Debug/llama.dSYM",
+      "files": 4,
+      "allocatedBytes": 154394624
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/out/Intermediates.noindex/NextNotes.build",
+      "files": 4133,
+      "allocatedBytes": 557793280
+    }
+  ],
+  "availableKiBAfter": "10380440",
+  "executableSHA256After": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes": "95d1bb9614a4990f0d6ab67a27b813f3246442101b8b168136afa9a2ab4b2b3a",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/llama.framework/llama": "6bac4742584e748218924337c341eac19ea1aeb3c70f982616302db7a6d8ec0c"
+  },
+  "secondAvailableKiBBefore": "12532948",
+  "secondAvailableKiBAfter": "13079884",
+  "executableSHA256AfterSecond": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes": "95d1bb9614a4990f0d6ab67a27b813f3246442101b8b168136afa9a2ab4b2b3a",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/llama.framework/llama": "6bac4742584e748218924337c341eac19ea1aeb3c70f982616302db7a6d8ec0c"
+  }
+}

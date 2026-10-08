@@ -264,3 +264,79 @@ enum ChatTemplate {
         return escaped
     }
 }
+
+/// The runtime's streaming output producer. Holds only possible control prefixes,
+/// and discards marked reasoning before it can reach any callback.
+struct ChatTemplateStreamOutput {
+    private let renderSpecial: Bool
+    private let turnEnd: String
+    private let markers: [String]
+    private var pending = ""
+    private var thinkDepth = 0
+    private var channelDepth = 0
+    private(set) var stopped = false
+
+    init(family: ChatTemplateFamily, renderSpecial: Bool) {
+        self.renderSpecial = renderSpecial
+        turnEnd = ChatTemplate.stopMarker(family)
+        markers = renderSpecial ? ChatTemplate.controlMarkers(family)
+            : (turnEnd.isEmpty ? [] : [turnEnd])
+    }
+
+    private var isHidden: Bool { thinkDepth > 0 || channelDepth > 0 }
+
+    mutating func consume(_ piece: String, yield: (String) -> Void) {
+        guard !stopped, !piece.isEmpty else { return }
+        pending += piece
+        // Ordinary pieces stream immediately; hidden bodies are never accumulated.
+        if !pending.contains("<") {
+            if !isHidden { yield(pending) }
+            pending = ""
+            return
+        }
+        var visible = ""
+        while !pending.isEmpty {
+            let match = markers.compactMap { marker -> (String, Range<String.Index>)? in
+                pending.range(of: marker).map { (marker, $0) }
+            }.min { $0.1.lowerBound < $1.1.lowerBound }
+            if let (marker, range) = match {
+                if !isHidden { visible += pending[..<range.lowerBound] }
+                pending = String(pending[range.upperBound...])
+                if marker == turnEnd {
+                    stopped = true
+                    pending = ""
+                    break
+                }
+                switch marker {
+                case "<think>": thinkDepth += 1
+                case "</think>": thinkDepth = max(0, thinkDepth - 1)
+                // Gemma's thought channel is <|channel>thought…<channel|>.
+                // <|think|> itself is a system switch, not an output block opener.
+                case "<|channel>": channelDepth += 1
+                case "<channel|>": channelDepth = max(0, channelDepth - 1)
+                default: break
+                }
+            } else {
+                let held = markers.map { marker in
+                    let limit = min(marker.count - 1, pending.count)
+                    guard limit > 0 else { return 0 }
+                    return (1...limit).reversed().first {
+                        pending.hasSuffix(String(marker.prefix($0)))
+                    } ?? 0
+                }.max() ?? 0
+                let safeCount = pending.count - held
+                if !isHidden { visible += pending.prefix(safeCount) }
+                pending.removeFirst(safeCount)
+                break
+            }
+        }
+        if !visible.isEmpty { yield(visible) }
+    }
+
+    mutating func finish(yield: (String) -> Void) {
+        // A retained prefix can still be a control marker. Never leak it on EOG or
+        // length exhaustion. The non-special path keeps its legacy terminator tail.
+        if !renderSpecial, !stopped, !pending.isEmpty { yield(pending) }
+        pending = ""
+    }
+}

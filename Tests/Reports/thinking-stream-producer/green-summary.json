@@ -1,0 +1,51 @@
+{
+  "phase": "green",
+  "binarySHA256": "7a0f8f71b36f1abdd990543de5ab8f1c73617821b39f009d7829a7ae1d55873e",
+  "fixtureSHA256": "2e8009db5d72670706f7e934a21eda9d9e74c22aeb86fb2fcac9aac19cd88dc4",
+  "checks": [
+    {
+      "flag": "chat-template",
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes",
+        "--selftest-chat-template",
+        "--selftest-out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review/Tests/Reports/thinking-stream-producer/green-chat-template.log"
+      ],
+      "exitCode": 0,
+      "marker": "CHAT_TEMPLATE_OK: 6 families detected and rendered; control tokens survive planner decode"
+    },
+    {
+      "flag": "notes-truncation",
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes",
+        "--selftest-notes-truncation",
+        "--selftest-out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review/Tests/Reports/thinking-stream-producer/green-notes-truncation.log"
+      ],
+      "exitCode": 0,
+      "marker": "NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read"
+    },
+    {
+      "flag": "llm-prefix-cache",
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes",
+        "--selftest-llm-prefix-cache",
+        "--selftest-out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review/Tests/Reports/thinking-stream-producer/green-llm-prefix-cache.log"
+      ],
+      "exitCode": 0,
+      "marker": "LLM_PREFIX_CACHE_OK: reused 646/666 tokens, prefill 1.38s \u2192 0.18s; stable prompt front 90% (was 73% before P1-28)"
+    },
+    {
+      "flag": "store-isolation",
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/thinking-review/debug/NextNotes",
+        "--selftest-store-isolation",
+        "--selftest-out",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/thinking-review/Tests/Reports/thinking-stream-producer/green-store-isolation.log"
+      ],
+      "exitCode": 0,
+      "marker": "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged"
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+CHAT_TEMPLATE_STREAM: 440 cases, 0 failures; decoded pieces -> producer callbacks -> completed stream
+CHAT_TEMPLATE_OK: 6 families detected and rendered; control tokens survive planner decode

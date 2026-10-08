@@ -1163,17 +1163,13 @@ actor NotesModelRuntime {
             note: "app_llm prompt_tokens=\(promptTokens.count) reused=\(reused) "
                 + "decoded=\(promptTokens.count - reused)")
 
-        var output = ""
-        var pending = ""
+        var output = ChatTemplateStreamOutput(family: family, renderSpecial: renderSpecial)
         var generated = 0
         var endedNormally = false
         var reportedFirstToken = false
         var position = llama_pos(promptTokens.count)
         var batch = llama_batch_init(1, 0, 1)
         defer { llama_batch_free(batch) }
-        // The family's own turn boundary, not ChatML's. With `renderSpecial` on, a control
-        // token that is not the vocabulary's EOG arrives as text and is held back here.
-        let turnEnd = ChatTemplate.stopMarker(family)
 
         do {
             while generated < maxTokens {
@@ -1186,40 +1182,15 @@ actor NotesModelRuntime {
                     endedNormally = true
                     break
                 }
-                var piece = LlamaHelpers.piece(
+                let piece = LlamaHelpers.piece(
                     token, vocabulary: vocabulary, renderSpecial: renderSpecial)
-                if renderSpecial {
-                    // A plain answer must not speak a family's turn or thinking markers. The
-                    // stop marker is excluded: the holdback below needs it to end the turn.
-                    for marker in ChatTemplate.controlMarkers(family) where marker != turnEnd {
-                        piece = piece.replacingOccurrences(of: marker, with: "")
-                    }
-                }
                 if !reportedFirstToken {
                     reportedFirstToken = true
                     firstTokenTrace.end(note: "app_llm")
                 }
-                output += piece
                 generated += 1
-                pending += piece
-                // Hold a suffix that could still become the family's terminator. This avoids
-                // sending its fragments into the spoken-reply bridge.
-                let maxHeld = min(turnEnd.count, pending.count)
-                let held: Int
-                if maxHeld == 0 {
-                    held = 0
-                } else {
-                    held = (1...maxHeld).reversed().first {
-                        String(pending.suffix($0)) == String(turnEnd.prefix($0))
-                    } ?? 0
-                }
-                let safeCount = pending.count - held
-                if safeCount > 0 {
-                    yield(String(pending.prefix(safeCount)))
-                    pending.removeFirst(safeCount)
-                }
-                if !turnEnd.isEmpty, pending == turnEnd {
-                    pending = ""
+                output.consume(piece, yield: yield)
+                if output.stopped {
                     endedNormally = true
                     break
                 }
@@ -1240,7 +1211,7 @@ actor NotesModelRuntime {
             }
             throw error
         }
-        if !pending.isEmpty, turnEnd.isEmpty || !pending.hasPrefix(turnEnd) { yield(pending) }
+        output.finish(yield: yield)
         // P0-20a: exact prompt, reused-prefix and generated counts, measured after the
         // stream ended so the pass is never held up by bookkeeping.
         ModelPassRecorder.current?.report(
@@ -1250,6 +1221,23 @@ actor NotesModelRuntime {
             reasoningTokens: nil,
             finishReason: endedNormally ? "stop" : "length",
             estimated: false)
+    }
+
+    /// Scripted decoded pieces at the native output boundary, with the real stream
+    /// consumer. No scheduler, model, settings or owner stores are involved.
+    nonisolated static func streamPiecesForTesting(
+        _ pieces: [String], family: ChatTemplateFamily, renderSpecial: Bool = true
+    ) -> AsyncThrowingStream<String, Error> {
+        precondition(SelfTest.isRunning)
+        return AsyncThrowingStream { continuation in
+            var output = ChatTemplateStreamOutput(family: family, renderSpecial: renderSpecial)
+            for piece in pieces {
+                output.consume(piece, yield: { continuation.yield($0) })
+                if output.stopped { break }
+            }
+            output.finish(yield: { continuation.yield($0) })
+            continuation.finish()
+        }
     }
 
     /// P0-20a: report whether this pass paid the model load, and how long it took. Shared

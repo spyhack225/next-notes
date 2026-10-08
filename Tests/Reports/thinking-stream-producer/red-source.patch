@@ -1,0 +1,279 @@
+diff --git a/Sources/NextNotes/Formatting/LLM/ChatTemplate.swift b/Sources/NextNotes/Formatting/LLM/ChatTemplate.swift
+index a7f03015..8e48f430 100644
+--- a/Sources/NextNotes/Formatting/LLM/ChatTemplate.swift
++++ b/Sources/NextNotes/Formatting/LLM/ChatTemplate.swift
+@@ -264,3 +264,47 @@ enum ChatTemplate {
+         return escaped
+     }
+ }
++
++/// The runtime's streaming output producer. Owns the holdback before any callback.
++struct ChatTemplateStreamOutput {
++    let family: ChatTemplateFamily
++    let renderSpecial: Bool
++    private var pending = ""
++    private(set) var stopped = false
++
++    init(family: ChatTemplateFamily, renderSpecial: Bool) {
++        self.family = family
++        self.renderSpecial = renderSpecial
++    }
++
++    mutating func consume(_ input: String, yield: (String) -> Void) {
++        guard !stopped else { return }
++        let turnEnd = ChatTemplate.stopMarker(family)
++        var piece = input
++        if renderSpecial {
++            for marker in ChatTemplate.controlMarkers(family) where marker != turnEnd {
++                piece = piece.replacingOccurrences(of: marker, with: "")
++            }
++        }
++        pending += piece
++        let maxHeld = min(turnEnd.count, pending.count)
++        let held = maxHeld == 0 ? 0 : (1...maxHeld).reversed().first {
++            String(pending.suffix($0)) == String(turnEnd.prefix($0))
++        } ?? 0
++        let safeCount = pending.count - held
++        if safeCount > 0 {
++            yield(String(pending.prefix(safeCount)))
++            pending.removeFirst(safeCount)
++        }
++        if !turnEnd.isEmpty, pending == turnEnd {
++            pending = ""
++            stopped = true
++        }
++    }
++
++    mutating func finish(yield: (String) -> Void) {
++        let turnEnd = ChatTemplate.stopMarker(family)
++        if !pending.isEmpty, turnEnd.isEmpty || !pending.hasPrefix(turnEnd) { yield(pending) }
++        pending = ""
++    }
++}
+diff --git a/Sources/NextNotes/Formatting/LLM/ChatTemplateSelfTest.swift b/Sources/NextNotes/Formatting/LLM/ChatTemplateSelfTest.swift
+index fa0c88fd..62c95a88 100644
+--- a/Sources/NextNotes/Formatting/LLM/ChatTemplateSelfTest.swift
++++ b/Sources/NextNotes/Formatting/LLM/ChatTemplateSelfTest.swift
+@@ -26,6 +26,7 @@ enum ChatTemplateSelfTest {
+         failures += detectionFailures()
+         failures += renderingFailures()
+         failures += runtimeFamilyFailures()
++        failures += await streamOutputFailures()
+         let s1Mini = await s1MiniControlTokenFailures()
+         failures += s1Mini
+         let miniCPM5 = await miniCPM5Failures()
+@@ -43,6 +44,88 @@ enum ChatTemplateSelfTest {
+         return failures.isEmpty
+     }
+
++    /// Same decoded-piece fixture before and after the producer repair. Inspect both
++    /// individual callbacks and the completed stream; do not scrub either in the test.
++    private static func streamOutputFailures() async -> [String] {
++        var failures: [String] = []
++        var checks = 0
++        func check(_ name: String, _ family: ChatTemplateFamily, _ pieces: [String],
++                   _ expected: String, forbidden: [String] = []) async {
++            checks += 1
++            var callbacks: [String] = []
++            do {
++                for try await piece in NotesModelRuntime.streamPiecesForTesting(pieces, family: family) {
++                    callbacks.append(piece)
++                }
++            } catch {
++                failures.append("stream \(name): unexpected error \(error)")
++            }
++            let actual = callbacks.joined()
++            if actual.utf8.elementsEqual(expected.utf8) == false {
++                failures.append("stream \(name): \(quoted(actual)), expected \(quoted(expected))")
++            }
++            if callbacks.contains(where: { piece in forbidden.contains(where: { piece.contains($0) }) }) {
++                failures.append("stream \(name): forbidden text reached a callback")
++            }
++        }
++        let families: [ChatTemplateFamily] = [
++            .chatmlThinking, .chatml, .minicpm5, .llama3, .gemma, .gemma4, .unsupported,
++        ]
++        let plain = "  Café e\u{301} 👩🏽‍💻\n2 < 3; <literal> & \"quoted\".\n"
++        let miniTool = "<function name=\"x\"><param name=\"k\">v</param></function>"
++        let qwenTool = "<tool_call>{\"name\":\"x\",\"arguments\":{}}</tool_call>"
++        for family in families {
++            await check("plain-\(family.rawValue)", family, plain.map(String.init), plain)
++            await check("tools-\(family.rawValue)", family, (miniTool + qwenTool).map(String.init), miniTool + qwenTool)
++            for marker in ChatTemplate.controlMarkers(family) {
++                for split in 1..<marker.count {
++                    let pieces = ["Before", String(marker.prefix(split)), String(marker.dropFirst(split)), "After"]
++                    let expected = marker == ChatTemplate.stopMarker(family) || marker == "<think>" || marker == "<|channel>"
++                        ? "Before" : "BeforeAfter"
++                    await check("marker-\(family.rawValue)-\(marker)-\(split)", family, pieces, expected,
++                                forbidden: [marker])
++                }
++            }
++            if !ChatTemplate.stopMarker(family).isEmpty {
++                await check("stop-and-tail-\(family.rawValue)", family,
++                            ["Answer" + ChatTemplate.stopMarker(family) + "ignored", "ignored"], "Answer")
++            }
++        }
++        for family in [ChatTemplateFamily.chatmlThinking, .chatml, .minicpm5, .gemma4] {
++            let source = "<think>PRIVATE</think>Answer"
++            for split in 0...source.count {
++                await check("thinking-\(family.rawValue)-\(split)", family,
++                            [String(source.prefix(split)), String(source.dropFirst(split))], "Answer",
++                            forbidden: ["PRIVATE", "<think>", "</think>"])
++            }
++            await check("one-character-\(family.rawValue)", family, source.map(String.init), "Answer")
++            await check("unfinished-\(family.rawValue)", family, ["Before<think>", "PRIVATE", "</thi"], "Before")
++            await check("multiple-\(family.rawValue)", family,
++                        ["A<think>PRIVATE</think>B<think>PRIVATE</think>C"], "ABC")
++            await check("stray-close-\(family.rawValue)", family, ["</thi", "nk>Answer"], "Answer")
++            await check("thinking-tools-\(family.rawValue)", family,
++                        ["<think>PRIVATE</think>" + miniTool + qwenTool], miniTool + qwenTool)
++        }
++        // Gemma's thought channel closes with <channel|>; <|think|> itself is a
++        // system switch, not the beginning of an output block.
++        let gemmaThought = "<|channel>thought\nPRIVATE\n<channel|>Answer"
++        for split in 0...gemmaThought.count {
++            await check("gemma-thought-\(split)", .gemma4,
++                        [String(gemmaThought.prefix(split)), String(gemmaThought.dropFirst(split))],
++                        "Answer", forbidden: ["PRIVATE", "thought", "<|channel>", "<channel|>"])
++        }
++        await check("gemma-character-thought", .gemma4, gemmaThought.map(String.init), "Answer")
++        await check("gemma-switch", .gemma4, ["<|think|>Answer"], "Answer")
++        await check("gemma-unfinished", .gemma4, ["Before<|channel>thought\nPRIVATE"], "Before")
++        await check("nested", .minicpm5,
++                    ["<think>PRIVATE<think>PRIVATE</think>PRIVATE</think>Answer"], "Answer")
++        await check("interleaved-gemma", .gemma4,
++                    ["<think>PRIVATE<|channel>thought\nPRIVATE</think>PRIVATE<channel|>Answer"], "Answer")
++        await check("truncated-opening", .minicpm5, ["Answer<thi"], "Answer")
++        SelfTest.diagnostic("CHAT_TEMPLATE_STREAM: \(checks) cases, \(failures.count) failures; decoded pieces -> producer callbacks -> completed stream")
++        return failures
++    }
++
+     // MARK: - Detection
+
+     private static func detectionFailures() -> [String] {
+@@ -207,6 +290,25 @@ enum ChatTemplateSelfTest {
+             return ["MiniCPM5: the native call could not be tokenized"]
+         }
+         var failures: [String] = []
++        // Native tokenizer/piece rendering feeds the same callback producer as the stream.
++        let hiddenTurn = "<think>PRIVATE</think>Answer" + call
++        if let pieces = try? LlamaHelpers.tokenize(hiddenTurn, vocabulary: vocabulary, addSpecial: false) {
++            var output = ChatTemplateStreamOutput(family: .minicpm5, renderSpecial: true)
++            var callbacks: [String] = []
++            for token in pieces {
++                output.consume(NotesModelRuntime.plannerPiece(token, vocabulary: vocabulary),
++                               yield: { callbacks.append($0) })
++            }
++            output.finish(yield: { callbacks.append($0) })
++            if !callbacks.joined().utf8.elementsEqual(("Answer" + call).utf8) {
++                failures.append("MiniCPM5 native stream producer: " + quoted(callbacks.joined()))
++            }
++            if callbacks.contains(where: { $0.contains("PRIVATE") }) {
++                failures.append("MiniCPM5 native stream producer: reasoning reached a callback")
++            }
++        } else {
++            failures.append("MiniCPM5: hidden-turn fixture could not be tokenized")
++        }
+         let delimiters: [(id: llama_token, marker: String)] = [
+             (18, "<function"),
+             (20, "<param"),
+diff --git a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+index 39f549cd..f9ba6987 100644
+--- a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
++++ b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+@@ -1163,17 +1163,13 @@ actor NotesModelRuntime {
+             note: "app_llm prompt_tokens=\(promptTokens.count) reused=\(reused) "
+                 + "decoded=\(promptTokens.count - reused)")
+
+-        var output = ""
+-        var pending = ""
++        var output = ChatTemplateStreamOutput(family: family, renderSpecial: renderSpecial)
+         var generated = 0
+         var endedNormally = false
+         var reportedFirstToken = false
+         var position = llama_pos(promptTokens.count)
+         var batch = llama_batch_init(1, 0, 1)
+         defer { llama_batch_free(batch) }
+-        // The family's own turn boundary, not ChatML's. With `renderSpecial` on, a control
+-        // token that is not the vocabulary's EOG arrives as text and is held back here.
+-        let turnEnd = ChatTemplate.stopMarker(family)
+
+         do {
+             while generated < maxTokens {
+@@ -1186,40 +1182,15 @@ actor NotesModelRuntime {
+                     endedNormally = true
+                     break
+                 }
+-                var piece = LlamaHelpers.piece(
++                let piece = LlamaHelpers.piece(
+                     token, vocabulary: vocabulary, renderSpecial: renderSpecial)
+-                if renderSpecial {
+-                    // A plain answer must not speak a family's turn or thinking markers. The
+-                    // stop marker is excluded: the holdback below needs it to end the turn.
+-                    for marker in ChatTemplate.controlMarkers(family) where marker != turnEnd {
+-                        piece = piece.replacingOccurrences(of: marker, with: "")
+-                    }
+-                }
+                 if !reportedFirstToken {
+                     reportedFirstToken = true
+                     firstTokenTrace.end(note: "app_llm")
+                 }
+-                output += piece
+                 generated += 1
+-                pending += piece
+-                // Hold a suffix that could still become the family's terminator. This avoids
+-                // sending its fragments into the spoken-reply bridge.
+-                let maxHeld = min(turnEnd.count, pending.count)
+-                let held: Int
+-                if maxHeld == 0 {
+-                    held = 0
+-                } else {
+-                    held = (1...maxHeld).reversed().first {
+-                        String(pending.suffix($0)) == String(turnEnd.prefix($0))
+-                    } ?? 0
+-                }
+-                let safeCount = pending.count - held
+-                if safeCount > 0 {
+-                    yield(String(pending.prefix(safeCount)))
+-                    pending.removeFirst(safeCount)
+-                }
+-                if !turnEnd.isEmpty, pending == turnEnd {
+-                    pending = ""
++                output.consume(piece, yield: yield)
++                if output.stopped {
+                     endedNormally = true
+                     break
+                 }
+@@ -1240,7 +1211,7 @@ actor NotesModelRuntime {
+             }
+             throw error
+         }
+-        if !pending.isEmpty, turnEnd.isEmpty || !pending.hasPrefix(turnEnd) { yield(pending) }
++        output.finish(yield: yield)
+         // P0-20a: exact prompt, reused-prefix and generated counts, measured after the
+         // stream ended so the pass is never held up by bookkeeping.
+         ModelPassRecorder.current?.report(
+@@ -1252,6 +1223,23 @@ actor NotesModelRuntime {
+             estimated: false)
+     }
+
++    /// Scripted decoded pieces at the native output boundary, with the real stream
++    /// consumer. No scheduler, model, settings or owner stores are involved.
++    nonisolated static func streamPiecesForTesting(
++        _ pieces: [String], family: ChatTemplateFamily, renderSpecial: Bool = true
++    ) -> AsyncThrowingStream<String, Error> {
++        precondition(SelfTest.isRunning)
++        return AsyncThrowingStream { continuation in
++            var output = ChatTemplateStreamOutput(family: family, renderSpecial: renderSpecial)
++            for piece in pieces {
++                output.consume(piece, yield: { continuation.yield($0) })
++                if output.stopped { break }
++            }
++            output.finish(yield: { continuation.yield($0) })
++            continuation.finish()
++        }
++    }
++
+     /// P0-20a: report whether this pass paid the model load, and how long it took. Shared
+     /// by the streaming and non-streaming entrances so both rows carry the same answer.
+     private static func reportUsageLoad(warm: Bool, began: ContinuousClock.Instant) {
