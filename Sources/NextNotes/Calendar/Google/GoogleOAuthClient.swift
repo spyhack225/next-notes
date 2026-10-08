@@ -19,9 +19,20 @@ import Network
 /// The listener binds *before* the browser opens: opening first is a race where the user is
 /// fast enough to be redirected to a port nothing is listening on.
 enum GoogleOAuthClient {
-    static let scope = "https://www.googleapis.com/auth/calendar.readonly"
     static let authorizationEndpoint = "https://accounts.google.com/o/oauth2/v2/auth"
     static let tokenEndpoint = "https://oauth2.googleapis.com/token"
+
+    static let revokeEndpoint = "https://oauth2.googleapis.com/revoke"
+    struct Endpoints: Sendable, Equatable {
+        var authorization = GoogleOAuthClient.authorizationEndpoint
+        var token = GoogleOAuthClient.tokenEndpoint
+        var revoke = GoogleOAuthClient.revokeEndpoint
+        static let google = Endpoints()
+    }
+    struct SignInResult: Sendable {
+        let refreshToken: String
+        let grantedScopes: Set<String>
+    }
 
     /// How long the browser tab is given before the listener gives the port back.
     ///
@@ -31,7 +42,12 @@ enum GoogleOAuthClient {
 
     /// Runs the whole flow and returns the refresh token, having already stored it.
     @discardableResult
-    static func signIn(clientID: String, clientSecret: String) async throws -> String {
+    static func signIn(
+        clientID: String, clientSecret: String,
+        scopes: [String] = GoogleScopes.connect, endpoints: Endpoints = .google,
+        openBrowser: @Sendable (URL) -> Void = { NSWorkspace.shared.open($0) }
+    ) async throws -> SignInResult {
+        precondition(endpoints == .google || GoogleAccessTokens.testHooksAdmitted)
         guard !clientID.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw GoogleCalendarError.noClientID
         }
@@ -48,14 +64,14 @@ enum GoogleOAuthClient {
             clientID: clientID,
             redirectURI: redirectURI,
             challenge: challenge,
-            state: state
+            state: state, scopes: scopes, endpoint: endpoints.authorization
         ) else {
             listener.cancel()
             throw GoogleCalendarError.badAuthorizationURL
         }
 
         Log.calendar.info("opening Google consent on loopback port \(port, privacy: .public)")
-        NSWorkspace.shared.open(authorizationURL)
+        openBrowser(authorizationURL)
 
         let code: String
         do {
@@ -71,7 +87,7 @@ enum GoogleOAuthClient {
             verifier: verifier,
             clientID: clientID,
             clientSecret: clientSecret,
-            redirectURI: redirectURI
+            redirectURI: redirectURI, endpoint: endpoints.token
         )
         guard let refreshToken = token.refreshToken else {
             // Google only re-issues a refresh token when consent is requested explicitly,
@@ -80,8 +96,14 @@ enum GoogleOAuthClient {
             // in an hour.
             throw GoogleCalendarError.noRefreshToken
         }
-        GoogleTokenStore.save(refreshToken: refreshToken)
-        return refreshToken
+        // Missing scope means the requested set was granted; an explicit empty field
+        // means nothing was granted. Preserve that distinction in the token record.
+        let granted = Set((token.scope ?? scopes.joined(separator: " ")).split(separator: " ").map(String.init))
+        guard GoogleTokenStore.save(refreshToken: refreshToken, grantedScopes: granted) else {
+            throw GoogleCalendarError.tokenStoreFailed
+        }
+        await GoogleAccessTokens.shared.invalidate()
+        return SignInResult(refreshToken: refreshToken, grantedScopes: granted)
     }
 
     /// Trades the stored refresh token for a fresh access token.
@@ -89,13 +111,25 @@ enum GoogleOAuthClient {
         clientID: String,
         clientSecret: String,
         refreshToken: String,
+        endpoint: String = tokenEndpoint,
         requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))? = nil
     ) async throws -> GoogleTokenResponse {
-        try await postForm(to: tokenEndpoint, fields: withSecret(clientSecret, in: [
+        precondition(endpoint == tokenEndpoint || GoogleAccessTokens.testHooksAdmitted)
+        return try await postForm(to: endpoint, fields: withSecret(clientSecret, in: [
             "client_id": clientID,
             "refresh_token": refreshToken,
             "grant_type": "refresh_token",
         ]), requestForTesting: requestForTesting)
+    }
+
+    static func revoke(refreshToken: String, endpoints: Endpoints = .google) async {
+        precondition(endpoints == .google || GoogleAccessTokens.testHooksAdmitted)
+        guard let url = URL(string: endpoints.revoke) else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/x-www-form-urlencoded", forHTTPHeaderField: "Content-Type")
+        request.httpBody = Data(formEncoded(["token": refreshToken]).utf8)
+        _ = try? await PrivateURLSession.shared.data(for: request)
     }
 
     // MARK: - Internals
@@ -105,9 +139,9 @@ enum GoogleOAuthClient {
         verifier: String,
         clientID: String,
         clientSecret: String,
-        redirectURI: String
+        redirectURI: String, endpoint: String
     ) async throws -> GoogleTokenResponse {
-        try await postForm(to: tokenEndpoint, fields: withSecret(clientSecret, in: [
+        try await postForm(to: endpoint, fields: withSecret(clientSecret, in: [
             "client_id": clientID,
             "code": code,
             "code_verifier": verifier,
@@ -134,7 +168,7 @@ enum GoogleOAuthClient {
         fields: [String: String],
         requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))? = nil
     ) async throws -> GoogleTokenResponse {
-        precondition(requestForTesting == nil || GoogleCalendarErrorSelfTest.isRequested)
+        precondition(requestForTesting == nil || GoogleCalendarErrorSelfTest.isRequested || GoogleAccessTokens.testHooksAdmitted)
         guard let url = URL(string: endpoint) else { throw GoogleCalendarError.badAuthorizationURL }
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -160,18 +194,18 @@ enum GoogleOAuthClient {
         return try JSONDecoder().decode(GoogleTokenResponse.self, from: data)
     }
 
-    private static func authorizationURL(
+    static func authorizationURL(
         clientID: String,
         redirectURI: String,
         challenge: String,
-        state: String
+        state: String, scopes: [String] = GoogleScopes.connect, endpoint: String = authorizationEndpoint
     ) -> URL? {
-        var components = URLComponents(string: authorizationEndpoint)
+        var components = URLComponents(string: endpoint)
         components?.queryItems = [
             URLQueryItem(name: "client_id", value: clientID),
             URLQueryItem(name: "redirect_uri", value: redirectURI),
             URLQueryItem(name: "response_type", value: "code"),
-            URLQueryItem(name: "scope", value: scope),
+            URLQueryItem(name: "scope", value: scopes.joined(separator: " ")),
             URLQueryItem(name: "code_challenge", value: challenge),
             URLQueryItem(name: "code_challenge_method", value: "S256"),
             // Offline plus an explicit consent screen is the only combination that reliably

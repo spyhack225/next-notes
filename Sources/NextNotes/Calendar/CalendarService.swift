@@ -154,8 +154,8 @@ final class CalendarService {
         if providersForTesting == nil {
             let settings = Settings.shared
             await google.configure(
-                clientID: settings.googleClientID,
-                clientSecret: settings.googleClientSecret,
+                clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
+                clientSecret: GoogleAppClient.current?.clientSecret ?? settings.googleClientSecret,
                 calendarIDs: settings.googleCalendarIDs
             )
         }
@@ -213,8 +213,8 @@ final class CalendarService {
     func connectGoogle() async -> CalendarAuthorizationState {
         let settings = Settings.shared
         await google.configure(
-            clientID: settings.googleClientID,
-            clientSecret: settings.googleClientSecret,
+            clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
+            clientSecret: GoogleAppClient.current?.clientSecret ?? settings.googleClientSecret,
             calendarIDs: settings.googleCalendarIDs
         )
         let state = await google.authorize()

@@ -20,6 +20,7 @@ actor GoogleCalendarProvider: CalendarProvider {
     // Default construction keeps the existing private session and Keychain behavior.
     private let requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
     private let refreshTokenForTesting: (@Sendable () -> String?)?
+    private let tokens: GoogleAccessTokens
     private let clearTokenForTesting: (@Sendable () -> Void)?
 
     init(
@@ -29,12 +30,14 @@ actor GoogleCalendarProvider: CalendarProvider {
     ) {
         let injected = requestForTesting != nil || refreshTokenForTesting != nil
             || clearTokenForTesting != nil
-        precondition(!injected || (GoogleCalendarErrorSelfTest.isRequested
+        precondition(!injected || ((GoogleCalendarErrorSelfTest.isRequested || GoogleAccessTokens.testHooksAdmitted)
             && requestForTesting != nil && refreshTokenForTesting != nil
             && clearTokenForTesting != nil))
         self.requestForTesting = requestForTesting
         self.refreshTokenForTesting = refreshTokenForTesting
         self.clearTokenForTesting = clearTokenForTesting
+        self.tokens = injected ? GoogleAccessTokens(requestForTesting: requestForTesting,
+            refreshTokenForTesting: refreshTokenForTesting, clearTokenForTesting: clearTokenForTesting) : .shared
     }
 
     private var storedRefreshToken: String? {
@@ -42,17 +45,11 @@ actor GoogleCalendarProvider: CalendarProvider {
         return GoogleTokenStore.refreshToken
     }
 
-    private var accessToken: String?
-    private var accessTokenExpiry = Date.distantPast
 
     /// Applied before every refresh by `CalendarService`.
     func configure(clientID: String, clientSecret: String, calendarIDs: [String]) {
-        if clientID != self.clientID || clientSecret != self.clientSecret {
-            // A different client is a different grant. Holding on to the old access token
-            // would keep the previous account's calendars appearing after a switch.
-            accessToken = nil
-            accessTokenExpiry = .distantPast
-        }
+        // The shared cache keys the client, secret and refresh grant, so a Calendar
+        // configuration update cannot cancel Workspace's same-grant refresh.
         self.clientID = clientID
         self.clientSecret = clientSecret
         self.calendarIDs = calendarIDs
@@ -60,17 +57,20 @@ actor GoogleCalendarProvider: CalendarProvider {
 
     func authorizationState() -> CalendarAuthorizationState {
         guard !clientID.trimmingCharacters(in: .whitespaces).isEmpty else {
-            return .disabled("Paste a Google Cloud OAuth client ID of type “Desktop app”.")
+            return .disabled(GoogleAppClient.unavailableMessage)
         }
-        return storedRefreshToken != nil ? .authorized : .needsAuthorization
+        guard storedRefreshToken != nil else { return .needsAuthorization }
+        if refreshTokenForTesting == nil, !GoogleScopes.coversCalendar(GoogleTokenStore.grantedScopes) {
+            return .disabled(GoogleCapability.calendar.permissionSentence)
+        }
+        return .authorized
     }
 
     @discardableResult
     func authorize() async -> CalendarAuthorizationState {
         do {
             _ = try await GoogleOAuthClient.signIn(clientID: clientID, clientSecret: clientSecret)
-            accessToken = nil
-            accessTokenExpiry = .distantPast
+            await tokens.invalidate()
             Log.calendar.info("Google Calendar connected")
             return .authorized
         } catch {
@@ -79,11 +79,10 @@ actor GoogleCalendarProvider: CalendarProvider {
         }
     }
 
-    func signOut() {
+    func signOut() async {
         if let clearTokenForTesting { clearTokenForTesting() }
-        else { GoogleTokenStore.clear() }
-        accessToken = nil
-        accessTokenExpiry = .distantPast
+        else { GoogleTokenStore.clear(forgetSelection: true) }
+        await tokens.invalidate()
     }
 
     /// The calendars on the account, for the checklist in Settings.
@@ -204,7 +203,7 @@ actor GoogleCalendarProvider: CalendarProvider {
     /// than the `expires_in` that came with it, one session revoked out of several — and
     /// signing out over that would throw away a refresh token that still works and demand
     /// a whole browser round of consent. So the token is dropped and the request retried
-    /// once; only a second 401, with a token minted seconds earlier, is a dead grant.
+    /// once; a second 401 is reported without claiming the refresh grant is dead.
     /// Genuine revocation is caught before this, at the refresh endpoint's `invalid_grant`.
     private func get<Value: Decodable>(_ url: URL) async throws -> Value {
         do {
@@ -213,8 +212,8 @@ actor GoogleCalendarProvider: CalendarProvider {
             do {
                 return try await fetch(url, discardingCachedToken: true)
             } catch GoogleCalendarError.accessTokenRejected {
-                signOut()
-                throw GoogleCalendarError.accessRevoked
+                // A rejected access token is not proof that the stored grant was revoked.
+                throw GoogleCalendarError.accessTokenRejected
             }
         }
     }
@@ -224,8 +223,7 @@ actor GoogleCalendarProvider: CalendarProvider {
         discardingCachedToken: Bool
     ) async throws -> Value {
         if discardingCachedToken {
-            accessToken = nil
-            accessTokenExpiry = .distantPast
+            await tokens.invalidate()
         }
         var request = URLRequest(url: url)
         request.setValue("Bearer \(try await validAccessToken())", forHTTPHeaderField: "Authorization")
@@ -257,35 +255,12 @@ actor GoogleCalendarProvider: CalendarProvider {
     /// The margin matters: a token that is valid when the request is built can expire in
     /// the time it takes to reach Google, and the failure looks like a revoked grant.
     private func validAccessToken() async throws -> String {
-        if let accessToken, accessTokenExpiry > Date().addingTimeInterval(Self.expiryMargin) {
-            return accessToken
-        }
-        guard let refreshToken = storedRefreshToken else {
-            throw GoogleCalendarError.notSignedIn
-        }
-        do {
-            let token = try await GoogleOAuthClient.refresh(
-                clientID: clientID,
-                clientSecret: clientSecret,
-                refreshToken: refreshToken,
-                requestForTesting: requestForTesting
-            )
-            accessToken = token.accessToken
-            accessTokenExpiry = Date().addingTimeInterval(TimeInterval(token.expiresIn))
-            return token.accessToken
-        } catch GoogleCalendarError.tokenRequestFailed(let status, _, let code)
-            where status == 400 && code == "invalid_grant" {
-            // "invalid_grant" is Google's way of saying the refresh token is dead: revoked,
-            // expired after six months of disuse, or invalidated by a password change.
-            signOut()
-            throw GoogleCalendarError.accessRevoked
-        }
+        try await tokens.token(clientID: clientID, clientSecret: clientSecret)
     }
 
     // MARK: - Mapping
 
     private static let maxEventsPerCalendar = 100
-    private static let expiryMargin: TimeInterval = 60
 
     private static func meetingEvent(from event: GoogleEvent, calendarName: String) -> MeetingEvent? {
         // Cancelled occurrences of a recurring series stay in the response as tombstones.
@@ -332,8 +307,8 @@ enum GoogleCalendarError: LocalizedError, Equatable {
     case noClientID
     case notSignedIn
     case accessRevoked
-    /// One request's access token came back 401. Internal to the retry in `get`; it only
-    /// reaches the user if a freshly minted token is rejected too, and then as `accessRevoked`.
+    /// A rejected API access token does not establish refresh-grant revocation.
+    case tokenStoreFailed
     case accessTokenRejected
     case noRefreshToken
     case badAuthorizationURL
@@ -347,23 +322,25 @@ enum GoogleCalendarError: LocalizedError, Equatable {
     var errorDescription: String? {
         switch self {
         case .noClientID:
-            "Add a Google OAuth client ID in Settings ▸ Calendar first."
+            GoogleAppClient.unavailableMessage
         case .notSignedIn:
             "Google Calendar isn't connected yet."
         case .accessRevoked:
             "Google revoked Next Notes' access. Connect the account again."
+        case .tokenStoreFailed:
+            "Google connected, but this Mac couldn’t save the sign-in. Please try again."
         case .accessTokenRejected:
             "Google rejected the access token."
         case .noRefreshToken:
-            "Google didn't return a refresh token. Remove Next Notes from the account's third-party access list and connect again."
+            "Google couldn’t finish connecting; please try again."
         case .badAuthorizationURL:
             "Couldn't build the Google request URL."
         case .callbackListenerFailed:
             "Couldn't listen for Google's redirect on this Mac."
         case .authorizationTimedOut:
             "The browser sign-in wasn't finished in time."
-        case .authorizationDenied(let reason):
-            "Google refused the sign-in: \(reason)."
+        case .authorizationDenied:
+            "You chose not to share, so nothing was connected."
         case .stateMismatch:
             "The sign-in response didn't match the request and was discarded."
         case .tokenRequestFailed(_, let reason, _):

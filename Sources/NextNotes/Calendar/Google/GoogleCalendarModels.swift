@@ -11,11 +11,13 @@ struct GoogleTokenResponse: Decodable, Sendable {
     /// Only present on the first exchange, and only when `access_type=offline` was asked
     /// for. A refresh never returns a new one, which is why the stored token is kept.
     let refreshToken: String?
+    let scope: String?
 
     private enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case expiresIn = "expires_in"
         case refreshToken = "refresh_token"
+        case scope
     }
 }
 
