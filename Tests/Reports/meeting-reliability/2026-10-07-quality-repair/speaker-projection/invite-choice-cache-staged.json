@@ -1,0 +1,25 @@
+{
+  "scope": "cache-only per-speaker explicit invitation choice; no canonical edits/compiler/native run/install",
+  "cache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/speaker-invite-choice-staged-0ef79eb3becd4da1afd037d9d4ee6dc4",
+  "files": {
+    "Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift": {
+      "before": "fb7eabefa11280ab747606d5b8cda47043757628be9bfd00d9e19a6588971512",
+      "after": "0ac781a3eef8a98139c4bf27e993803af0c2935a61ec488b0216f24aed5a94ee"
+    },
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift": {
+      "before": "9a69c9e5a688d92437c26242db745178928f957ced02a3bb16691b87425214d5",
+      "after": "8fd1d68354c3fdb754aa779d3fa0af6dfdc8daad3d050a0f3955b79c50f452d0"
+    }
+  },
+  "originalComparisonBoundary": "Original passive StatusChip has no selection callback. Explicit SelfTest arm substitutes its absent action only, not an old native menu producer. Existing81 prior assertions retained unchanged;14 additional checks expected (95 total if fixture setup succeeds).",
+  "expectedOriginal": "Prior81 green with --speaker-invite-original (without --speaker-rename-original); selection/draft/fresh-name/context assertions expected fail4; no current run verdict.",
+  "expectedFixed": "Same95 checks via actual sheet draft producer then existing View actual-store commit. Physical menu click/layout unverified.",
+  "duplicateNames": "Trim exact display strings and keep first occurrence; duplicate same-name invites collapse to one display choice, never distinguish persons or infer email. Case-different and email-only strings remain literal distinct choices.",
+  "missingRoster": "No chooser/chips for empty choices; text field remains manual. Audited owner Zoom had zero attendees, so this increment adds no names to that meeting.",
+  "noAdditionalStoreGrantPass": true,
+  "patchSHA256": "00b3b87988c9f5f6b72881d56eafa2ddd736f0c5cc1d42b8128496dec8b293a1",
+  "patchApplicabilityChecked": true,
+  "prior81SourceAssertionsUnchanged": true,
+  "canonicalPreimagesUnchanged": true,
+  "compilerOrNativeRun": false
+}

@@ -1,0 +1,49 @@
+{
+  "scope": "Read-only source audit; no compiler, native model, canonical source/index edit or semantic repair",
+  "sources": [
+    {
+      "path": "Sources/NextNotes/Agent/MeetingTranscriptWindows.swift",
+      "SHA256": "6825bc83661c5ab00fe1315effa40c6050cf5cdb5c698875f4c9307f4e9c4656"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/MeetingAgent.swift",
+      "SHA256": "fa516e890da48f079ecefa83f5a4a32ef1fcf77915e031f156b30df825c8fe61"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/AgentService.swift",
+      "SHA256": "dac7621e75a37b6814a4379c176f7dcb4802cdac2fa5e5fe7802ab29f2cadcd0"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/MeetingReviewFitSelfTest.swift",
+      "SHA256": "0ba12b172a69af4451f24604110075b9d5b87582c6601b601ecc44ab7c6ddbc5"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextExtractor.swift",
+      "SHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "SHA256": "65d422c38a8c62c9f0b57c7a8587792b76fb0bf95079360117f9f10c24aa8d95"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "SHA256": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingModels.swift",
+      "SHA256": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContext.swift",
+      "SHA256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+      "SHA256": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Meetings/TranscriptView.swift",
+      "SHA256": "8e3b4859e781d737e5125cf16ef0f12245713a63a0d5c959c8efac32c3669568"
+    }
+  ]
+}

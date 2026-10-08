@@ -1,0 +1,149 @@
+--- a/Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift
++++ b/Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift
+@@ -49,12 +49,26 @@
+             Form {
+                 ForEach(labels, id: \.self) { label in
+                     LabeledContent {
+-                        TextField(
+-                            label,
+-                            text: binding(for: label),
+-                            prompt: Text(label)
+-                        )
+-                        .textFieldStyle(.roundedBorder)
++                        VStack(alignment: .leading, spacing: DS.Space.xs) {
++                            TextField(
++                                label,
++                                text: binding(for: label),
++                                prompt: Text(label)
++                            )
++                            .textFieldStyle(.roundedBorder)
++                            if !invitedNames.isEmpty {
++                                Menu("Choose from invite") {
++                                    ForEach(invitedNames, id: \.self) { attendee in
++                                        Button(attendee) {
++                                            Self.chooseInvitedName(attendee, for: label,
++                                                labels: labels, suggestions: suggestions, names: &names)
++                                        }
++                                    }
++                                }
++                                .menuStyle(.borderlessButton)
++                                .font(DS.Font.caption)
++                            }
++                        }
+                         .frame(width: DS.Size.settingsFieldWidth)
+                     } label: {
+                         SpeakerLabel(name: label, color: DS.Color.speaker(named: label))
+@@ -85,13 +99,13 @@
+             }
+             .formStyle(.grouped)
+ 
+-            if !suggestions.isEmpty {
++            if !invitedNames.isEmpty {
+                 VStack(alignment: .leading, spacing: DS.Space.xs) {
+                     Text("On the invite")
+                         .font(DS.Font.sectionLabel)
+                         .foregroundStyle(DS.Color.textSecondary)
+                     FlowLayout(spacing: DS.Space.xs) {
+-                        ForEach(suggestions, id: \.self) { attendee in
++                        ForEach(invitedNames, id: \.self) { attendee in
+                             StatusChip(text: attendee, systemImage: "person")
+                         }
+                     }
+@@ -117,6 +131,29 @@
+         }
+     }
+ 
++    private var invitedNames: [String] { Self.invitedNames(suggestions) }
++
++    /// Display choices only: duplicate strings do not identify duplicate people.
++    static func invitedNames(_ suggestions: [String]) -> [String] {
++        var seen = Set<String>()
++        return suggestions.compactMap { value in
++            let name = value.trimmingCharacters(in: .whitespacesAndNewlines)
++            guard !name.isEmpty, seen.insert(name).inserted else { return nil }
++            return name
++        }
++    }
++
++    /// The per-row button and isolated save fixture use this same draft producer.
++    /// No attendance, voice or email association is inferred from an invitation.
++    @discardableResult
++    static func chooseInvitedName(_ name: String, for label: String,
++                                 labels: [String], suggestions: [String],
++                                 names: inout [String: String]) -> Bool {
++        guard labels.contains(label), invitedNames(suggestions).contains(name) else { return false }
++        names[label] = name
++        return true
++    }
++
+     private func binding(for label: String) -> Binding<String> {
+         Binding(
+             get: { names[label] ?? "" },
+--- a/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift
+@@ -362,6 +362,65 @@
+                     && !FileManager.default.fileExists(atPath: store.directory(for: fixture.meeting.id).path))
+             } catch { check("rename deleted fixture setup", false) }
+         }
++        // Invite choices are manual drafts, never attendance or voice inference.
++        // ORIGINAL had passive StatusChips and no selection handler. This explicit
++        // missing-feature arm substitutes only that absent action; it is not an old
++        // native Menu callback or proof of a physical click.
++        let useOriginalInvite = SelfTest.isRunning
++            && SelfTest.requested == "--selftest-meeting-context"
++            && CommandLine.arguments.contains("--speaker-invite-original")
++        write("MEETING_SPEAKER_INVITE_MODE: " + (useOriginalInvite
++            ? "original-no-selection-boundary" : "production-sheet-draft-method"))
++        let inviteChoices = [" Invite Alex ", "Invite Alex", "", "  ",
++                             "alex@example.invalid", "Invite ALEX"]
++        check("invite choices trim deduplicate exact display strings",
++            SpeakerNamesSheet.invitedNames(inviteChoices)
++                == ["Invite Alex", "alex@example.invalid", "Invite ALEX"])
++        check("missing invite exposes no choices", SpeakerNamesSheet.invitedNames([]).isEmpty)
++        if let fixture = seedRename("invite-selection") {
++            var current = fixture.meeting
++            current.attendees = inviteChoices
++            current.speakerNames["Speaker 2"] = "Confirmed second"
++            check("invite selection fixture metadata seed", store.save(current))
++            var draft = current.speakerNames
++            let initialDraft = draft
++            let beforeContext = fixture.context.current
++            let beforeContextBytes = try? Data(contentsOf: fixture.contextURL)
++            check("invite selection unknown label refused",
++                !SpeakerNamesSheet.chooseInvitedName("Invite Alex", for: "Foreign",
++                    labels: ["Speaker 1", "Speaker 2"], suggestions: inviteChoices, names: &draft)
++                    && draft == initialDraft)
++            check("invite selection absent name refused",
++                !SpeakerNamesSheet.chooseInvitedName("Not invited", for: "Speaker 1",
++                    labels: ["Speaker 1", "Speaker 2"], suggestions: inviteChoices, names: &draft)
++                    && draft == initialDraft)
++            check("invite selection missing roster refused",
++                !SpeakerNamesSheet.chooseInvitedName("Invite Alex", for: "Speaker 1",
++                    labels: ["Speaker 1", "Speaker 2"], suggestions: [], names: &draft)
++                    && draft == initialDraft)
++            let selected = useOriginalInvite ? false : SpeakerNamesSheet.chooseInvitedName(
++                "Invite Alex", for: "Speaker 1", labels: ["Speaker 1", "Speaker 2"],
++                suggestions: inviteChoices, names: &draft)
++            check("invite explicit row selection accepted", selected)
++            check("invite selection changes only selected draft row",
++                draft == ["Speaker 1": "Invite Alex", "Speaker 2": "Confirmed second"])
++            check("invite draft does not save names context or audio",
++                store.freshReaderForTesting().meeting(id: current.id)?.speakerNames == initialDraft
++                    && fixture.context.current == beforeContext
++                    && (try? Data(contentsOf: fixture.contextURL)) == beforeContextBytes
++                    && (try? Data(contentsOf: fixture.audioURL)) == fixtureAudio)
++            check("invite selected draft actual save accepted",
++                commitRename(draft, current, store, fixture.context) == nil)
++            check("invite actual save fresh consumer retains selected and confirmed names",
++                store.freshReaderForTesting().meeting(id: current.id)?.speakerNames
++                    == ["Speaker 1": "Invite Alex", "Speaker 2": "Confirmed second"])
++            check("invite selected name reaches actual durable context",
++                fixture.context.load(meetingID: current.id)?.questions.first?.speaker == "Invite Alex")
++            check("invite actual save retains original invitation strings",
++                store.freshReaderForTesting().meeting(id: current.id)?.attendees == inviteChoices)
++            check("invite actual save uses existing temporary audio release",
++                !FileManager.default.fileExists(atPath: fixture.audioURL.path))
++        }
+         for failure in failures { write("  MEETING_SPEAKER_PROJECTION_WRONG: \(failure)") }
+         write("MEETING_SPEAKER_PROJECTION_\(failures.isEmpty ? "OK" : "FAILED") checks=\(checks)")
+         return failures.isEmpty

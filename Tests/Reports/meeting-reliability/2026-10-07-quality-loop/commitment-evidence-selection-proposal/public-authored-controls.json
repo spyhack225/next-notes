@@ -1,0 +1,72 @@
+{
+  "scope": "Public-authored additional controls only; do not substitute for unchanged approved owner input.",
+  "speech": [
+    {
+      "start": 10,
+      "end": 12,
+      "source": "system",
+      "speaker": "Speaker A",
+      "text": "I will bring these questions to the customer review tomorrow."
+    },
+    {
+      "start": 12,
+      "end": 12.4,
+      "source": "mic",
+      "text": "Thanks."
+    },
+    {
+      "start": 13,
+      "end": 15,
+      "source": "system",
+      "speaker": "Speaker A",
+      "text": "That review will help us understand the request."
+    },
+    {
+      "start": 300,
+      "end": 304,
+      "source": "mic",
+      "text": "We are finishing the call now."
+    }
+  ],
+  "negativeRows": [
+    {
+      "case": "duplicate-later",
+      "start": 120,
+      "end": 122,
+      "source": "system",
+      "speaker": "Speaker A",
+      "text": "I will bring these questions to the customer review tomorrow."
+    },
+    {
+      "case": "same-text-other-source",
+      "start": 121,
+      "end": 123,
+      "source": "mic",
+      "text": "I will bring these questions to the customer review tomorrow."
+    },
+    {
+      "case": "same-text-other-speaker",
+      "start": 124,
+      "end": 126,
+      "source": "system",
+      "speaker": "Speaker B",
+      "text": "I will bring these questions to the customer review tomorrow."
+    },
+    {
+      "case": "historical-explanation",
+      "start": 127,
+      "end": 129,
+      "source": "system",
+      "speaker": "Speaker A",
+      "text": "The training example said, I will bring these questions to the customer review tomorrow."
+    },
+    {
+      "case": "hypothetical",
+      "start": 130,
+      "end": 132,
+      "source": "mic",
+      "text": "If asked, I will bring these questions to the customer review tomorrow."
+    }
+  ],
+  "expectation": "Every retained exact context quote may locate its unique original speech window only. No row becomes a candidate, tool proposal, ownership binding, deadline or authority without unchanged existing semantic/permission processing. Same-domain duplicate refuses an anchor; source/speaker mismatch refuses; ambiguous unknown speaker refuses rather than guess."
+}

@@ -1,0 +1,46 @@
+{
+  "verdict": "SOURCE ONLY; not compiled/invoked/applied/accepted",
+  "cache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/speaker-rename-ui-source-01ac266bf9a74ea79d9ce26040edc58e",
+  "canonical_sources_edited": false,
+  "owned_files": [
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift"
+  ],
+  "base_pins": {
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "12bdf93d929da8a2d2ab8e6fbb531ac4c0641e6bb7ba892c400b1f1740fd7b9d",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift": "ebb904245b14a5de28468fc7a44a83db1f4fd8a0813619ef3199d8c3c8b7671d"
+  },
+  "fixed_pins": {
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift": "9a69c9e5a688d92437c26242db745178928f957ced02a3bb16691b87425214d5"
+  },
+  "fixed_patch_sha256": "ef5ed88d6cbfc14027cf156da33c2ba06e8bbc626fca8e1a8fb5866f58e30a94",
+  "original_view_scaffold_sha256": "91c82e7b7e40628d31c03b686cc8a8a42b0c0a53f8149bf315ee6fe70b2bf30e",
+  "original_closure_sha256": "a377fed9c5f926ac4b486cccf9e1eec019254b5b14bf1da38347f034e81297e3",
+  "original_consumer_patch_sha256": "5d64fb55c31c7168ef57b12d5fbabf15c28ec5f183d56795b91d1bfbe0397a10",
+  "original_producer_scope": "Exact preimage sheet callback body copied byte-for-byte into explicit SelfTest-only callback; appended nil return and selector/scaffold only. Current View/default contains only fixed producer.",
+  "expected_old_failures": [
+    "metadata rejection not reported",
+    "temporary audio removed despite metadata rejection",
+    "context rejection not reported",
+    "temporary audio removed despite context rejection",
+    "injected context not refreshed on accepted save",
+    "stale sheet snapshot rewrites newer title",
+    "deleted meeting recreated"
+  ],
+  "fixed_contract": "Current existing Meeting -> accepted name save -> accepted context refresh -> unchanged audio release. Each refused boundary returns a plain message for the actual view banner; accepted names survive later context rejection.",
+  "no_new_store_retry_await_confirmation": true,
+  "physical_ui_acceptance": false,
+  "unchanged_previous_checks": 51,
+  "expected_successful_current_checks": 81,
+  "same_build_original_modifier": "--speaker-rename-original",
+  "original_command": "--selftest-meeting-context --speaker-rename-original",
+  "fixed_command": "--selftest-meeting-context",
+  "original_callback_body_sha256": "a377fed9c5f926ac4b486cccf9e1eec019254b5b14bf1da38347f034e81297e3",
+  "original_callback_preimage_byte_parity": true,
+  "same_30_fixture_inputs_and_assertions_byte_parity": true,
+  "previous_51_baseline_marker": "MEETING_SPEAKER_PROJECTION_PRE_RENAME_OK checks=51",
+  "obsolete_original_view_patch": "rename-ui-original-consumer-staged.patch (superseded, DO NOT APPLY)",
+  "native_original_verdict": "PENDING; must execute first and fail with original51 green",
+  "native_fixed_verdict": "PENDING; same81 checks through production View method"
+}

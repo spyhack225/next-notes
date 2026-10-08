@@ -1,0 +1,19 @@
+{
+  "exitCode": 0,
+  "receipt": {
+    "ok": true,
+    "messageId": "speaker-invite-choice-cache-20261008",
+    "recipients": [
+      "serial-root",
+      "codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e",
+      "claude-positioning",
+      "meeting-read-packet",
+      "meeting-performance-20261007",
+      "dictation-performance-20261007",
+      "notes-factuality-20261008"
+    ],
+    "duplicate": false,
+    "cursor": 767
+  },
+  "acknowledgementProven": false
+}

@@ -1,0 +1,61 @@
+{
+  "scope": "Retained actual native outputs plus read-only current-source analysis. New selector/fitter regression and proposal are UNEXECUTED.",
+  "fullyVisibleSemanticFailure": {
+    "case": "customer-followup-real-window",
+    "nativeModel": "MiniCPM5-2B",
+    "visibleRows": 36,
+    "primaryIndex": 30,
+    "primaryStart": 1935.178375,
+    "primarySource": "system",
+    "primaryTextSHA256": "09245d2de7c43213af622d37158be0cb1272cdbb541a01b300da14420efb9aab",
+    "primaryRetainedInCommitments": true,
+    "commitmentItems": 12,
+    "actions": 0,
+    "contextActionItemsBlockPresent": false,
+    "contextCandidateBlockPresent": false,
+    "userSHA256": "ba353d6fe53f6bc3771cea69a0678115761e520aa1828911c7d03489fa3cda39",
+    "rawSHA256": "bd79bc560d9f0f8afc579d559270c9bc6ff082bb6847fe7066581f061c01956d",
+    "latestNativeScope": "Reconstructed extractor context, not historical inference snapshots. Actual refine/parse/apply/save/fresh-reader path completed. No new replay."
+  },
+  "exactApprovedCopiedInput": {
+    "path": "/private/tmp/NextNotesMeetingActionIntentReplay-79bcb9e4-8ae5-4e75-bb06-a52dbae3454b/transcript.live.json",
+    "SHA256": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+    "rows": 770,
+    "speechRows": 760,
+    "latestEnd": 2391,
+    "primaryOccurrencesSameTextSourceSpeaker": 1
+  },
+  "readOnlyPythonFormatterAdaptation": {
+    "scope": "Metadata adaptation of existing plainText/counterText and hypothetical raw suffix. Not actual Swift selector/fitter, tokenizer, historical native review, or quality test. No owner text emitted or saved.",
+    "wholeCharacters": 47758,
+    "primaryToEndCharacters": 9339,
+    "radius30WindowRows": 22,
+    "radius30WindowCharacters": 1336,
+    "antecedentStarts": [
+      1925.658375,
+      1930.258375
+    ],
+    "windowContainsBothAntecedents": true,
+    "hypotheticalCharacterBudgets": [
+      {
+        "characters": 3000,
+        "oldSuffixContainsPrimary": false,
+        "wholeRadiusFits": true
+      },
+      {
+        "characters": 6000,
+        "oldSuffixContainsPrimary": false,
+        "wholeRadiusFits": true
+      },
+      {
+        "characters": 12000,
+        "oldSuffixContainsPrimary": true,
+        "wholeRadiusFits": true
+      }
+    ]
+  },
+  "newProofExecuted": false,
+  "producerPatchApplied": false,
+  "nativeSemanticFixed": false,
+  "nativeConsumerGap": "Historical post-meeting inference prompt/budget unavailable. Frozen copied inputs with reconstructed context must be tested through actual proposals/fit/provider callback, not Python or helper-only claims."
+}

@@ -91,3 +91,24 @@ The original callback body is copied **byte-for-byte**, including its unconditio
 `rename-ui-original-consumer-staged.patch` and the old full original View variant are superseded comparison artifacts and must **not** be applied to production. [Current scope/pins](rename-ui-staged-metadata.json) record the same-build option. Cache-only preparation and applicability checking prove source parity and patch shape; they do not prove native callbacks, rendered banner behavior or a physical save click.
 
 The [2026-10-08 provider capability and acceptance plan](PROVIDER-IDENTITY-2026-10-08.md) reviews current official Zoom/Meet APIs against existing calendar, meeting, name-sheet and projection seams. Zoom Apps roster/active-speaker access requires an authorized embedded app and host/co-host role; RTMS requires credits, app grants and host access; Meet REST entries can provide attributed speech when an artifact exists; Meet Media API currently accepts no new preview signups. This research performed no provider account call or runtime observation. Participant names, emails and automatic local voice binding remain unimplemented/unverified; the next bounded step is the existing private physical diagnostic followed by an actual observed-shape producer fixture.
+
+The [source-only observation-to-suggestions follow-on](OBSERVATION-TO-SUGGESTIONS-PLAN.md) pins the sixth native rename result: original prior51 PASS / same81 FAIL10; actual corrected production consumer same81 PASS, integrated b7c0952. Physical sheet/banner/roster proof remains open. It records diagnostic call-identity/clock and AX traversal omissions, and links a cache-only metadata correction with exact real walker/selector component fixtures. That correction has not compiled/run or entered canonical source; participant suggestions remain blocked on physical bound-meeting evidence.
+
+Subsequent root sequential component verification now confirms original FAIL6 / fixed same11 PASS. The [actual review and cache adoption checklist](PARTICIPANT-COVERAGE-ADOPTION.md) pins logs/executables and the unchanged two-target patch; both canonical baselines still match and no canonical change was made. The substituted AX/capture boundary does not prove real private JSON/native22, joined state, roster, voice association, UI or performance. [Agent-relay receipt](participant-coverage-relay-receipt.json) confirms the public-safe report was delivered to six registered peers; reading/acknowledgement is unproven.
+
+
+## Existing native recorder identity routes — current primary review
+
+[NATIVE-RECORDER-IDENTITY-NEXT.md](NATIVE-RECORDER-IDENTITY-NEXT.md) distinguishes an external native recorder from an embedded Zoom SDK client. Current Zoom policy directs AI notetakers to RTMS; its provider speech metadata requires app/media grants, credits and host access. Meet REST attributed entries are an optional post-call route when a transcript and proper Meet authorization exist; Media API preview currently accepts no new signups. The smallest next step remains a physical bound-call observation and observed-name suggestions for explicit mapping. No provider call, account/grant/UI change, source edit, compile or automatic attribution occurred in this review. Current source contains the adopted coverage fields; historical cache-only statuses above retain their original scope. Root owns native/install acceptance.
+
+Public native-recorder identity plan was sent through agent-relay under `speaker-identity-20261008` to all six other registered peers, message `speaker-native-recorder-identity-20261008-primary`, cursor716. [Receipt](native-recorder-identity-relay-receipt.json) confirms delivery only; acknowledgement/reading remains unproven.
+
+
+## Installed-associated normal launch/shutdown parity
+
+[INSTALL-STARTUP-NARROWING.md](INSTALL-STARTUP-NARROWING.md) records an exact retained App preimage matching the installed-associated source pin: normal entry/startup/termination ranges are byte-identical to current, as are task/authority/receipt source hashes. The changed NotesModelRuntime body has a narrower retained-baseline review; exact installed body was not recovered. No new normal-launch/ledger blocker was confirmed; current whole-candidate acceptance is separate. Public report sent to seven other registered peers via [agent-relay receipt](install-startup-narrowing-relay-receipt.json); reading remains unproven. No source, compiler, model, native launch or user-store action occurred.
+
+
+## Explicit invitation name choice prepared
+
+[INVITE-NAME-CHOICE-NEXT.md](INVITE-NAME-CHOICE-NEXT.md) records existing calendar-name flow and the passive-chip gap. A two-target cache candidate adds only per-row explicit selection and extends the actual save fixture after its unchanged81 checks. No automatic attribution, provider grant or missing names for the zero-attendee Zoom call is claimed. Compilation/native/physical/installed acceptance remains pending; Sources unchanged.

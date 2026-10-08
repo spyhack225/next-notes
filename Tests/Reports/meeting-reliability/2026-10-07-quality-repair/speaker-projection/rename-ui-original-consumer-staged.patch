@@ -1,0 +1,38 @@
+--- a/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
++++ b/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
+@@ -198,25 +198,20 @@
+         }
+     }
+ 
+-    /// The sheet and isolated regression use the same admitted save consumer.
+-    /// A partial save keeps its accepted names, previous context and recording.
++    /// Original sheet consumer retained verbatim for the unchanged regression.
+     @MainActor
+     static func commitSpeakerNames(_ names: [String: String], meeting: Meeting,
+                                    store: MeetingStore, contextStore: MeetingContextStore) -> String? {
+-        // The sheet can outlive another metadata edit or the meeting itself.
+-        guard var renamed = store.meeting(id: meeting.id) else {
+-            return "This meeting is no longer available. The speaker names couldn’t be saved."
+-        }
++        var renamed = meeting
+         renamed.speakerNames = names
+-        guard store.save(renamed) else {
+-            return "The speaker names couldn’t be saved."
+-        }
+-        guard contextStore.refreshSpeakers(meetingID: renamed.id) else {
+-            return "The speaker names were saved, but some meeting details couldn’t be updated."
+-        }
+-        // Speakers confirmed (M-10): release only after both existing saves accept.
+-        // The recording's kept/temporary choice and diarization guard remain owned
+-        // by the existing release rule; there is no additional retry or save here.
++        if store.save(renamed) {
++            MeetingContextStore.shared.refreshSpeakers(meetingID: renamed.id)
++        }
++        // Speakers confirmed (M-10): naming the clusters is the person saying the
++        // pass was right, which was the last thing the temporary recording was
++        // for. `releaseAudio` holds the three-line rule — a recording the user
++        // asked to keep stays kept — and refuses while a diarization problem is
++        // still offering another try.
+         store.releaseAudio(for: renamed.id)
+         return nil
+     }

@@ -1,0 +1,25 @@
+{
+  "scope": "Sanitized report-only proposal; no owner speech in artifacts",
+  "files": [
+    {
+      "path": "README.md",
+      "SHA256": "0bc8678d19775aeb8f276ae51f86e4106361094a62aeb9f1fb997da3afa05776",
+      "bytes": 7581
+    },
+    {
+      "path": "audit-metadata.json",
+      "SHA256": "1657109fb7a618a3622d64624042c4dac08d60e43fbc826959b5db2ab9a2b676",
+      "bytes": 2581
+    },
+    {
+      "path": "public-authored-controls.json",
+      "SHA256": "ab5b8edb2e35eed8aa14696d577e98d38e1f67bececf67dec2a8b70087096285",
+      "bytes": 2183
+    },
+    {
+      "path": "source-pins.json",
+      "SHA256": "61e0d3b6bfa1b9592e7946bbdef149448ef4d7c7c396336d9f0890605ab9574a",
+      "bytes": 1939
+    }
+  ]
+}

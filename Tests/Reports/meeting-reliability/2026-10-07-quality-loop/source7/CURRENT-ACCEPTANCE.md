@@ -5,7 +5,7 @@ The installed owner app remains `ed67302f`, including the previously verified st
 | Increment | Evidence | Release status |
 |---|---|---|
 | Startup allocation race | Original failure reproduced; responsible startup Task adoption repaired in prior installed build | Installed; later crashes still need their own cause evidence |
-| Late-track context ingestion | Actual working Store/Extractor and exact copied Session input: original 14/25 failed, fixed 25/25 passed; injected completer/scheduler boundaries disclosed | Minimal four-file producer/test patch prepared for source integration; exact HEAD-relative and full app native checks unrun |
+| Late-track context ingestion | Actual working Store/Extractor and exact copied Session input: original 14/25 failed, fixed 25/25 passed; injected completer/scheduler boundaries disclosed | Minimal four-file producer/test patch integrated in 69d8b512; exact HEAD-relative and full app native checks unrun |
 | Bounded saved-audio reading | Ordered PCM/time/save parity, 1,174 boundary assertions; one held-call incremental footprint 156,254,352 versus 2,261,016 bytes for 40m05 | Explicit SelfTest experiment, uncommitted/uninstalled; native ASR/global diarizer/IO/workload gates open |
 | Quiet live speech | Native original admission omits independently recognizable words; conservative admission still corrupts two live words after pause cuts | Experimental pause transport checks pass; native words/noise/click/true-pause latency open |
 | Speaker-name persistence | Actual old View callback fails 10/81; repaired save/current-row/context/fresh-reader passes 81 in sixth candidate | Sixth candidate uninstalled; physical UI and provider-to-voice identity remain open |
@@ -27,3 +27,13 @@ The first Native6 check at 09:23:21Z records reported-free 54%, required 55%, sw
 6. Verify one actual joined Zoom/Meet participant observation. Invite/roster labels can be user-selected naming hints; roster order cannot identify a voice.
 
 Reviewed patches, failed attempts and useful fifth/sixth/rollback bundles are retained explicitly. No shared model/cache/recording or obsolete app bundle was removed in this increment. The temporary integration index is disposable; source experiments remain visible for coordinated follow-up.
+
+## Integrated and retained at this handoff
+
+Commit `69d8b512` integrates four owned ingest producer/test files and reviewed reports. Working sources were not overwritten; all 56 then-existing foreign staged entries/absences were preserved. The temporary private index was removed, reclaiming 606,208 allocated bytes. The remaining Source7 audio/pause/participant experiments are explicitly retained uncommitted; no owner installation follows.
+
+The cache-only [invite-name chooser proposal](../../2026-10-07-quality-repair/speaker-projection/INVITE-NAME-CHOICE-NEXT.md) uses calendar strings already available in the existing sheet. It changes only a manually selected draft row and follows the existing Save producer. Its new native checks and physical menu are unrun; the audited ad hoc Zoom recording has zero invitees, so this proposal cannot supply its missing names.
+
+A read-only disk check reports 8,590,536 KiB available. Current installed and explicitly needed rollback/fifth/sixth comparison bundles are retained. No model, owner recording, shared cache, or bundle was removed in this handoff. Compiler/app processes were not launched by source integration.
+
+The [commitment-window proposal](../commitment-evidence-selection-proposal/README.md) preserves uniquely located, attributed utterances through the existing review selector. Its original/fixed native test is unrun. The [factuality handoff](NOTES-FACTUALITY-HANDOFF.md) keeps the fully visible model omission separate from this potential evidence-selection repair. No proposal converts keyword commitments into actions.
