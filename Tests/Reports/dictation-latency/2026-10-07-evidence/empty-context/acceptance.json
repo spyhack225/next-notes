@@ -1,0 +1,22 @@
+{
+  "atUTC": "2026-10-08T04:37:21.126454+00:00",
+  "status": "EMPTY_CONTEXT_OK582 exactcases",
+  "sourceApplied": true,
+  "nativeFixedWordQuality": false,
+  "nativePolishedLatency": false,
+  "sourcePins": {
+    "ScreenContext.original.swift": "53cda27312ddbfe0f0eae8533544d488afd0a5060792482cae4b902ba87deb68",
+    "ScreenContext.candidate.swift": "b960575cf53707e1299c7c496d827e5a9cf0704b335f2470d50ebf978721e11e",
+    "OriginalScreenContext.swift": "6522d839ccccbc125a8a638715f80fb0b60e0379864b5000f650b913aeefe6c2",
+    "Check.swift": "4fb1120be1d575ba417eaee3cfb247534fa0b87e0b741fd64197204666f3f7ee",
+    "Makefile": "04ec87f9abcc1ff417bcdd1f26b0dbfb1085e0bc0039e1e456aa8f32f82643b5",
+    "manifest.json": "e2442fe5735b405f015f439d1dfe798be8315b65b5d64af699f41552c326cbcb",
+    "compile.log": "931551fc3f8e5286a6907dbb902d28678be7b633cde33ba40e7058b05185d66f",
+    "comparison.log": "f26b2b56d83b9376c12979f9c490721abd25f2da8ba47acdf0da97ff869fd9c0",
+    "run-resource.log": "b6e0e0c3b32a3b35c2d8fbd0594fbabf2032061907b23c7ee814b9f40985ccec"
+  },
+  "scope": "Actual producer component only, no recognition call; native signedfifth input/gold/reference establishes underlying words separately",
+  "sourceAppliedAtUTC": "2026-10-08T04:53:39.628019+00:00",
+  "sourceAdoptionReceipt": "../phase/four-path-sixth-source-mutation.json",
+  "fullSignedConsumerVerification": "PENDING"
+}

@@ -1,0 +1,19 @@
+xcrun swiftc -swift-version 6 -O -I "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/release" ScreenContext.candidate.swift OriginalScreenContext.swift Check.swift "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/release/NextNotesDictionary.o" -o check
+        4.10 real         2.60 user         0.73 sys
+           172032000  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               41575  page reclaims
+               10943  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                2644  voluntary context switches
+                7285  involuntary context switches
+            89375800  instructions retired
+            51620853  cycles elapsed
+             1671528  peak memory footprint

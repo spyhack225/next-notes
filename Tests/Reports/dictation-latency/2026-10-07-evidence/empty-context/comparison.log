@@ -1,0 +1,21 @@
+{
+  "candidateMillisecondsPerCall" : [
+    2.7499999999999998e-05,
+    1.9580000000000002e-05,
+    1.916e-05,
+    1.6670000000000001e-05
+  ],
+  "checks" : 582,
+  "failures" : [
+
+  ],
+  "originalMillisecondsPerCall" : [
+    1.8749125,
+    1.92538666,
+    2.0032375,
+    1.85554167
+  ],
+  "scope" : "Actual ScreenContext producer, actual signed-fifth NextNotesDictionary module\/object; component only, no model\/ASR\/physical delivery",
+  "sink" : 0
+}
+EMPTY_CONTEXT_OK

@@ -1,0 +1,14 @@
+{
+  "status": "CACHE ONLY, UNCOMPILED, UNAPPLIED",
+  "producer": "ScreenContext.narrowed(toMentionsIn:limit:)",
+  "originalSHA256": "53cda27312ddbfe0f0eae8533544d488afd0a5060792482cae4b902ba87deb68",
+  "candidateSHA256": "b960575cf53707e1299c7c496d827e5a9cf0704b335f2470d50ebf978721e11e",
+  "canonicalSourceWrites": false,
+  "required": [
+    "Same actual source with actual dictionary module; no Heard/matching stub",
+    "Exact every ScreenContext field and all limits; populated candidate cases unchanged",
+    "Original/current 121s-length Unicode transcript allocation/time measurement, not whole-delivery claim",
+    "Existing actual context/router/owner isolation checks in coherent signed candidate"
+  ],
+  "preserved": "Nonpositive-limit branch, all metadata, zero mentioned names, model/ASR/tagging features"
+}

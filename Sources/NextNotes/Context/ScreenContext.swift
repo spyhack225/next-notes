@@ -247,6 +247,19 @@ struct ScreenContext: Sendable, Hashable {
             )
         }
 
+        // No candidates can match. Avoid tokenizing and building phonetic keys for
+        // every transcript word when the captured context supplied no names.
+        guard !candidates.isEmpty else {
+            return ScreenContext(
+                bundleID: bundleID,
+                appName: appName,
+                ordered: [],
+                projectRoot: projectRoot,
+                truncation: truncation,
+                elapsed: elapsed
+            )
+        }
+
         var plausible: [(candidate: CandidateName, score: Double)] = []
         var rest: [CandidateName] = []
         // Tokenized once. Two hundred candidates against one transcript is two hundred
