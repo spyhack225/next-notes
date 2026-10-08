@@ -19,5 +19,10 @@
   "greenProducerSHA256": "d0761ef9a2ed92144021aa222bf94298360e910e04087022584c71f7fd9f4a79",
   "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swiftSHA256": "37f90aa2f5a9c9e2fdafc28aa691d7c52e036aa0352ea35ce0ee86100a90f5ae",
   "Sources/NextNotes/Formatting/LLM/LlamaHelpers.swiftSHA256": "c77b839bc067e7bf13213beb212e217fda56996ac925881503af0f0670cfee5c",
-  "Package.resolvedSHA256": "15231fee19604b7e1f5f830db65cf5d91291bb3a14e8d479b15137ab84e6842f"
+  "Package.resolvedSHA256": "15231fee19604b7e1f5f830db65cf5d91291bb3a14e8d479b15137ab84e6842f",
+  "compressedPatchSHA256": {
+    "red-source.patch": "6c3a2290443ceaf6278096dd8e17289d49fd57cfc5b69081815994c78fff3750",
+    "fix-source.patch": "5820a3a543331e9a7cea9da47712b6768423cc7fdfddeb00279b3734fed415b7"
+  },
+  "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swiftSHA256": "3840527463054b7a94921299189af5717e1a34cf04ab29361b93206e08456da9"
 }
