@@ -1,0 +1,54 @@
+{
+  "caseCount": 9,
+  "parityFailures": [],
+  "originalRetentionRequirementMet": false,
+  "candidateRetentionRequirementMet": false,
+  "retention": [
+    {
+      "case": "short padding",
+      "oldPeak": 2080,
+      "newPeak": 2080
+    },
+    {
+      "case": "all quiet",
+      "oldPeak": 32000,
+      "newPeak": 32000
+    },
+    {
+      "case": "pause",
+      "oldPeak": 137600,
+      "newPeak": 137600
+    },
+    {
+      "case": "hard rewind",
+      "oldPeak": 496000,
+      "newPeak": 496000
+    },
+    {
+      "case": "121s segments",
+      "oldPeak": 1936000,
+      "newPeak": 1936000
+    },
+    {
+      "case": "failed first pass",
+      "oldPeak": 137600,
+      "newPeak": 137600
+    },
+    {
+      "case": "quiet tail after commit",
+      "oldPeak": 105600,
+      "newPeak": 105600
+    },
+    {
+      "case": "held segment and tail",
+      "oldPeak": 89600,
+      "newPeak": 89600
+    },
+    {
+      "case": "failed held segment fallback",
+      "oldPeak": 89600,
+      "newPeak": 89600
+    }
+  ],
+  "scope": "Actual engine/segmenter with native ASR, scheduler and converter boundaries substituted; real AV buffers. No native accuracy or end-to-end latency claim."
+}

@@ -1,0 +1,10 @@
+{
+  "old": "604e80f67ee299e37ac1c1cb5c4dd4885f195b3d",
+  "new": "c5d295bc1c15b36240cb418f814dc211128348c1",
+  "paths": [
+    "Sources/NextNotesDictionary/SpokenForms.swift"
+  ],
+  "foreignStagedSHA256": "a95a56feed170210aba2a320010f073d3e2cb35b3c379a2db889f3d07aba6e2d",
+  "sourceBytesUnchanged": true,
+  "verification": "4487 exact-output component assertions plus31 unchanged SwiftTesting tests in2suites/137filecases, isolated package target."
+}

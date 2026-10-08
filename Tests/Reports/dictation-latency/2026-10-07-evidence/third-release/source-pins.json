@@ -1,0 +1,8 @@
+{
+  "Sources/NextNotes/Formatting/IncrementalCleanup.swift": "42af5a20da34dc29c16f550d3b056bdb1389cd3be0c4282a604ca1af3f033285",
+  "Sources/NextNotes/Formatting/CleanupRouter.swift": "0df1c6e6f5d248f5b7585ee64e5fb2c2a5af6bf2ef6719945781da442d735db6",
+  "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": "391f07d1572fed07523804e8399b25557654bc1983b0bd9a1796431d26b6e29d",
+  "Sources/NextNotes/Transcription/DictationSegmenter.swift": "5c9782b0c3f7e915126c53361a1beac5528435d5002ac2847c773bf8e4ef6196",
+  "Sources/NextNotes/UI/Dictation/LiveDictationText.swift": "6f1d7bac601d4e8f78edbc585863db4a99bfad261a4d9cc92bda6dcd5ca0b656",
+  "Sources/NextNotesDictionary/SpokenForms.swift": "c0a65a2200ab892047ea403e6cb036322f223c167222dce7d4fdac5834221f98"
+}

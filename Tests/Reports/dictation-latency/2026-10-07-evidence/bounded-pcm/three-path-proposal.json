@@ -1,0 +1,21 @@
+{
+  "paths": {
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": {
+      "before": "9d1eeb804086b1a0c962745266d0695e86a75040fbbe79563993baf6d7518fc8",
+      "after": "68aef5cc99d0b7e630673cdf1e33e427eb4da467da9d4e22246333ef3d734da1"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmenter.swift": {
+      "before": "5c9782b0c3f7e915126c53361a1beac5528435d5002ac2847c773bf8e4ef6196",
+      "after": "215ef83b73014c1bffbcda9f8446798613e12c1f929593078f2c09fb9f4a5e3b"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": {
+      "before": "19f4198ce17590756380818554126739b521161592a37be44dbe79069cefabff",
+      "after": "277da2b4a992a887b0670eb90b451a037f19f7badd8d4796572a00f884328a8a"
+    }
+  },
+  "actualProducerCompositeCases": 18,
+  "parityFailures": 0,
+  "nativeModelBoundary": "substituted in pure proof",
+  "nativeOriginalFixedReplay": "required before accuracy/latency claim",
+  "canonicalApplied": false
+}

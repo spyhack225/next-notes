@@ -1,0 +1,16 @@
+{
+  "signedAppSHA256": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53",
+  "sourceInvariant": true,
+  "passed": [
+    "cleanup-router including actual cancelled preclean waiter",
+    "dictation-segments pure control tests",
+    "island production consumer tests"
+  ],
+  "precleanWaiterJoinedWhileOwnerHeldMilliseconds": 1.833625,
+  "nativeModelSpeedBenchmark": false,
+  "physicalMicrophoneOrPaintAcceptance": false,
+  "dictionaryPackageSuites": "pending",
+  "ownerInstalledAppChanged": false,
+  "integration": "604e80f",
+  "pending": "Untracked segmented-ASR/live UI prerequisites and mixed controller/router/runtime changes retained; clean HEAD build not established."
+}

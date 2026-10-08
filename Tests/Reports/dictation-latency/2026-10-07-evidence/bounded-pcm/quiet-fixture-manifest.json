@@ -1,0 +1,23 @@
+{
+  "sourceSHA256": "656a33055dc9164d87002cdff9a10251f0862aa6c0c3cea21a3e5a6d8c17d86d",
+  "sourceScope": "Public repository en-dialogue speech, first8s. No owner recording.",
+  "attenuationGain": 0.03481879879863326,
+  "maxQuietFrameRMS": 0.008999370514183784,
+  "silenceFloor": 0.01,
+  "nativeRecognitionVerdict": "pending",
+  "independentGold": "not supplied; do not equate full-pass disagreement with independent WER",
+  "files": {
+    "quiet-speech-alone.wav": {
+      "samples": 128000,
+      "sha256": "58ae049638dec962426c4c071cacb2caeeede9cc2f85aa32b4775e0445d5d575"
+    },
+    "loud-then-quiet-speech.wav": {
+      "samples": 265600,
+      "sha256": "6bab6ce7d00d1225ece5464313983bc6c0264a6d33ce2a1ae83ed96fe4c16431"
+    },
+    "loud-then-loud-control.wav": {
+      "samples": 265600,
+      "sha256": "e115654432646c22e344d76ab02b0f86bf87e249ad5e2da1598754520743f8f9"
+    }
+  }
+}

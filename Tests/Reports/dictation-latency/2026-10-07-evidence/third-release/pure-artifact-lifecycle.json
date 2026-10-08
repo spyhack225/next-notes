@@ -1,0 +1,20 @@
+{
+  "artifacts": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-phonetic-allocation-20261008/check",
+      "sha256": "138dcc2725227c40e006546a1a380d18cda5a1c6d48eecc71131abc36eff9a8f",
+      "allocatedBytes": 696320,
+      "sourceAndResultsArchived": true,
+      "activeProcessMatches": 0
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-preclean-cancel-20261008/check-maintained",
+      "sha256": "611a7c2e3f304ff1a736535afbd984512301ec54f6dba38d33490a3526f7b3c3",
+      "allocatedBytes": 180224,
+      "sourceAndResultsArchived": true,
+      "activeProcessMatches": 0
+    }
+  ],
+  "reclaimedAllocatedBytes": 876544,
+  "scope": "Completed owned pure probe executables only; exact sources/build commands/output retained in committed evidence. No model/app/scratch/store deleted."
+}

@@ -1,0 +1,235 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -29,6 +29,9 @@
+     nonisolated static let emitsPartialsWhileHeld = true
+ 
+     private var samples: [Float] = []
++    /// Absolute start of retained uncommitted PCM. Retry audio belongs to AudioCounter.
++    private var sampleOffset = 0
++    private var sampleCount: Int { sampleOffset + samples.count }
+     private var continuation: AsyncThrowingStream<TranscriptionChunk, Error>.Continuation?
+ 
+     // MARK: Segments
+@@ -37,7 +40,8 @@
+     /// Cuts found but not transcribed yet, in order.
+     private var pendingCuts: [Int] = []
+     /// The frozen text of every transcribed segment, in order.
+-    private var committedTexts: [String] = []
++    private var committedText = ""
++    private var committedSegments = 0
+     /// Where the transcribed segments end: the start of the open tail.
+     private var committedEnd = 0
+ 
+@@ -246,25 +250,25 @@
+             resetSession()
+         }
+ 
+-        guard samples.count >= ParakeetInput.minimumCapturedSamples else {
+-            Log.speech.info("Parakeet: skipped — only \(self.samples.count) samples captured")
++        guard sampleCount >= ParakeetInput.minimumCapturedSamples else {
++            Log.speech.info("Parakeet: skipped — only \(self.sampleCount) samples captured")
+             return
+         }
+ 
+         // Every complete frame, so "was anything said after this pass" sees the last word.
+-        _ = segmenter.advance(over: samples)
+-        let total = samples.count
+-        let committed = joined(committedTexts)
++        _ = segmenter.advance(over: samples, sampleOffset: sampleOffset)
++        let total = sampleCount
++        let committed = committedText
+         let plan = ParakeetKeyUp.plan(
+             committedEnd: committedEnd,
+-            hasCommitted: !committedTexts.isEmpty,
++            hasCommitted: committedSegments > 0,
+             tail: tailPartial.map { ParakeetKeyUp.Pass(isSegment: false, start: $0.start, end: $0.end) },
+             inflight: inflight?.pass,
+             lastSpeechEnd: segmenter.lastSpeechEnd
+         )
+ 
+         do {
+-            var texts = committedTexts
++            var texts = committedText.isEmpty ? [] : [committedText]
+             switch plan {
+             case .reuseTail:
+                 texts.append(tailPartial?.text ?? "")
+@@ -298,7 +302,7 @@
+             diagnostics.finalText = text
+             Log.speech.info("""
+                 Parakeet: final \(Double(total) / 16_000, format: .fixed(precision: 1))s audio, \
+-                \(self.committedTexts.count) segment(s), key-up \(plan.name, privacy: .public) \
++                \(self.committedSegments) segment(s), key-up \(plan.name, privacy: .public) \
+                 in \(waited, format: .fixed(precision: 3))s
+                 """)
+             continuation?.yield(
+@@ -318,10 +322,12 @@
+     }
+ 
+     private func resetSession() {
+-        samples.removeAll(keepingCapacity: true)
++        samples.removeAll(keepingCapacity: false)
++        sampleOffset = 0
+         segmenter = DictationSegmenter()
+         pendingCuts = []
+-        committedTexts = []
++        committedText = ""
++        committedSegments = 0
+         committedEnd = 0
+         lastTailRequestAt = 0
+         tailRequested = false
+@@ -339,18 +345,18 @@
+     /// Cuts and tail requests for the audio just fed, and the worker if it is idle.
+     private func schedule() {
+         guard let session = activeSession, !finishing else { return }
+-        let scan = segmenter.advance(over: samples)
++        let scan = segmenter.advance(over: samples, sampleOffset: sampleOffset)
+         pendingCuts += scan.cuts
+         let spokeSinceRequest = segmenter.lastSpeechEnd > lastTailRequestAt
+-        let tailLength = samples.count - committedEnd
++        let tailLength = sampleCount - committedEnd
+         let interval = diagnostics.partials.isEmpty && lastTailRequestAt == 0
+             ? Int(StreamingASR.dictationFirstPartialSeconds * 16_000)
+             : partialIntervalSamples
+         if tailLength >= ParakeetInput.minimumModelSamples, spokeSinceRequest,
+-           scan.speechEnded || samples.count - lastTailRequestAt >= interval {
++           scan.speechEnded || sampleCount - lastTailRequestAt >= interval {
+             // End of speech starts the tail pass at once: by key-up it is usually done.
+             tailRequested = true
+-            lastTailRequestAt = samples.count
++            lastTailRequestAt = sampleCount
+         }
+         if worker == nil, !pendingCuts.isEmpty || tailRequested {
+             worker = Task { [weak self] in await self?.drain(session: session) }
+@@ -360,7 +366,7 @@
+     /// Runs segment passes (in order) and then the newest tail pass, one at a time.
+     private func drain(session: Int) async {
+         while activeSession == session, !finishing, let pass = nextPass() {
+-            let audio = Array(samples[pass.start..<pass.end])
++            let audio = Array(samples[(pass.start - sampleOffset)..<(pass.end - sampleOffset)])
+             let task = Task { [weak self] () -> String? in
+                 await self?.modelPass(audio, isSegment: pass.isSegment)
+             }
+@@ -373,16 +379,24 @@
+                 pendingCuts.removeFirst()
+                 // A failed segment pass leaves its audio in the open tail.
+                 guard let text else { continue }
+-                committedTexts.append(text)
++                if !text.isEmpty {
++                    if !committedText.isEmpty { committedText.append(" ") }
++                    committedText.append(text)
++                }
++                committedSegments += 1
+                 committedEnd = pass.end
++                // Only a successful segment can retire PCM. In-flight passes already
++                // own copied audio; failures keep every uncommitted sample for key-up.
++                samples = Array(samples[(committedEnd - sampleOffset)...])
++                sampleOffset = committedEnd
+                 tailPartial = nil
+                 // Publish the frozen prefix now, even if another tail pass is needed.
+                 // Hiding this behind that pass delayed both the live UI and pre-cleaning.
+                 emitPartial(end: pass.end)
+                 if segmenter.lastSpeechEnd > committedEnd,
+-                   samples.count - committedEnd >= ParakeetInput.minimumModelSamples {
++                   sampleCount - committedEnd >= ParakeetInput.minimumModelSamples {
+                     tailRequested = true
+-                    lastTailRequestAt = samples.count
++                    lastTailRequestAt = sampleCount
+                 }
+             } else if let text, !text.isEmpty {
+                 tailPartial = (pass.start, pass.end, text)
+@@ -399,19 +413,19 @@
+         guard tailRequested else { return nil }
+         tailRequested = false
+         // A tail with no speech in it (a segment just took the last words) needs no pass.
+-        guard samples.count - committedEnd >= ParakeetInput.minimumModelSamples,
++        guard sampleCount - committedEnd >= ParakeetInput.minimumModelSamples,
+               segmenter.lastSpeechEnd > committedEnd else { return nil }
+-        return ParakeetKeyUp.Pass(isSegment: false, start: committedEnd, end: samples.count)
++        return ParakeetKeyUp.Pass(isSegment: false, start: committedEnd, end: sampleCount)
+     }
+ 
+     private func emitPartial(end: Int) {
+-        var texts = committedTexts
++        var texts = committedText.isEmpty ? [] : [committedText]
+         if let tail = tailPartial, tail.start == committedEnd { texts.append(tail.text) }
+         let text = joined(texts)
+         guard !text.isEmpty else { return }
+         diagnostics.partials.append((end, ProcessInfo.processInfo.systemUptime))
+         continuation?.yield(
+-            TranscriptionChunk(text: text, isFinal: false, committedText: joined(committedTexts))
++            TranscriptionChunk(text: text, isFinal: false, committedText: committedText)
+         )
+     }
+ 
+@@ -434,7 +448,7 @@
+     /// The key-up pass over `[from, to)`. On the second manager, so it never queues behind
+     /// a stale partial still running on the first.
+     private func keyUpPass(from: Int, to: Int) async throws -> String {
+-        let audio = Array(samples[from..<to])
++        let audio = Array(samples[(from - sampleOffset)..<(to - sampleOffset)])
+         let manager = try await ParakeetModels.shared.keyUpManager()
+         var text = try await transcribe(ParakeetInput.padded(audio), with: manager, isSegment: false)
+         // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s floor. Padding
+--- a/Sources/NextNotes/Transcription/DictationSegmenter.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmenter.swift
+@@ -86,7 +86,8 @@
+ 
+     /// Scans every complete frame of `buffer` not scanned before. `buffer` is the whole hold
+     /// so far (absolute offsets), and only ever grows.
+-    mutating func advance(over buffer: [Float]) -> Scan {
++    mutating func advance(over buffer: [Float], sampleOffset: Int = 0) -> Scan {
++        precondition(sampleOffset >= 0 && sampleOffset <= scanned)
+         var scan = Scan()
+         let minSegment = samples(rule.minSegmentSeconds)
+         let longSegment = samples(rule.longSegmentSeconds)
+@@ -95,8 +96,9 @@
+         let longPause = samples(rule.longPauseSeconds)
+         let endOfSpeech = samples(rule.endOfSpeechSeconds)
+ 
+-        while scanned + Self.frameSamples <= buffer.count {
+-            let frame = buffer[scanned..<(scanned + Self.frameSamples)]
++        while scanned + Self.frameSamples <= sampleOffset + buffer.count {
++            let localStart = scanned - sampleOffset
++            let frame = buffer[localStart..<(localStart + Self.frameSamples)]
+             let frameEnd = scanned + Self.frameSamples
+             let energy = AudioConversion.rms(of: frame)
+             if ChunkedTranscriber.frameIsSilent(rms: energy) {
+--- a/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
+@@ -4,8 +4,10 @@
+ 
+ /// `--selftest-dictation-segments [wav]`: the dictation segment rule, the key-up plan and
+ /// the committed-boundary pre-clean, without a model. With a WAV, it also replays that file
+-/// through the real `ParakeetEngine` at real-time pace — once ending 300 ms after the last
+-/// word, once ending on it — and prints engine busy time, partial lag, key-up → final and
++/// through the real `ParakeetEngine` at real-time pace. `--dictation-complete-audio` keeps
++/// every input sample in the reference and both replays (file ending, plus 300 ms silence).
++/// The historical default endings use the RMS gate and cannot prove quiet final-word retention.
++/// Prints engine busy time, partial lag, key-up → final and
+ /// the word disagreement with one full-buffer pass. `--dictation-gold <text>` also
+ /// reports WER against an independent plain transcript (not the model's own answer).
+ /// Prints `DICTATION_SEGMENTS_OK` /
+@@ -291,7 +293,11 @@
+         }
+         var segmenter = DictationSegmenter()
+         _ = segmenter.advance(over: audio)
+-        let lastWord = segmenter.lastSpeechEnd
++        let completeAudio = CommandLine.arguments.contains("--dictation-complete-audio")
++        let lastWord = completeAudio ? audio.count : segmenter.lastSpeechEnd
++        if completeAudio {
++            log("DICTATION_SEGMENTS_INPUT: full file, \(audio.count) samples; RMS ending is diagnostic only")
++        }
+         guard lastWord > 0 else {
+             log("DICTATION_SEGMENTS_REPLAY_ABSENT: no speech in \(path)")
+             return false
+@@ -322,8 +328,8 @@
+ 
+         var ok = true
+         let endings: [(String, [Float])] = [
+-            ("ends-300ms", Array(audio[0..<lastWord]) + silence(0.3)),
+-            ("speech-to-keyup", Array(audio[0..<lastWord])),
++            (completeAudio ? "complete-file+300ms" : "ends-300ms", Array(audio[0..<lastWord]) + silence(0.3)),
++            (completeAudio ? "complete-file" : "speech-to-keyup", Array(audio[0..<lastWord])),
+         ]
+         for (name, held) in endings {
+             guard let line = await replayOnce(held, reference: full, gold: gold) else {

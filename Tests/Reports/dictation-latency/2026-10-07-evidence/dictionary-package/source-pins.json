@@ -1,0 +1,11 @@
+{
+  "Sources/NextNotesDictionary/DictionaryEntry.swift": "7b3d62d5fe4435b591723b2ba619cb659dfe46ffb1b4d2350fe8bcb5fe9a8426",
+  "Sources/NextNotesDictionary/FileReferences.swift": "bedbcca9fc7809845eed9ee35b10ef336879ceb144099562fbd603b110b6482e",
+  "Sources/NextNotesDictionary/SpokenForms.swift": "c0a65a2200ab892047ea403e6cb036322f223c167222dce7d4fdac5834221f98",
+  "Sources/NextNotesDictionary/DictionaryCorrector.swift": "41b40e0a6c13e529952854641a01032c9787b3af6091142f0637c769ba8f32f0",
+  "Tests/NextNotesDictionaryTests/SpokenFormsTests.swift": "8a52f29daeecfb5daa27279abf6d4762cad6bfe038e276782aa7c5787a21230e",
+  "Tests/NextNotesDictionaryTests/spoken-forms-test-vectors.json": "4e4f35da5cff5689e5bd515ec929f7b4d2909898e87bb52aaeb163d54af4dd60",
+  "Tests/NextNotesDictionaryTests/FileReferencesTests.swift": "24270144fcd129f600cf7e12b23692ddb4900ed1445cd5a12f2b8c85e46847af",
+  "Tests/NextNotesDictionaryTests/VectorTests.swift": "3054011efc7c9a78509c26f40d1be6cd03ed2e99f4fdab1afaf8ced7644df119",
+  "Tests/NextNotesDictionaryTests/dictionary-test-vectors.json": "3c4fbf43422dd24c9a92ba2d987fde1f4ee14fddfa15724894ff6a84777302ff"
+}

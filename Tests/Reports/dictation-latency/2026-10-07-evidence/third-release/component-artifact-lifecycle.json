@@ -1,0 +1,36 @@
+{
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/check-original",
+      "allocatedBytes": 274432,
+      "binarySHA256": "47defa9dab27ba6fa112634cc5321a013d792978621dde8e8b499d28010daba2",
+      "processCheck": "No owned executable/compiler uses exact path; parent fixture compilers/probes already joined."
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/check-fixed",
+      "allocatedBytes": 274432,
+      "binarySHA256": "249df7215e783bc6d83278dc0064f2d9de5c166a5cdeab9cb584533162b11a0a",
+      "processCheck": "No owned executable/compiler uses exact path; parent fixture compilers/probes already joined."
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/check-prefix",
+      "allocatedBytes": 290816,
+      "binarySHA256": "3191832e3038037db1ec7a9ab326b008659f1a28688db4be8bbf61c61b99993d",
+      "processCheck": "No owned executable/compiler uses exact path; parent fixture compilers/probes already joined."
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-bounded-pcm-20261008/check-combined",
+      "allocatedBytes": 290816,
+      "binarySHA256": "bd345c9766470b62a219789b3d59840f8daa493855699bdbb5e7fcedeb0a7ff3",
+      "processCheck": "No owned executable/compiler uses exact path; parent fixture compilers/probes already joined."
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-dictionary-package-20261008/scratch",
+      "allocatedBytes": 78213120,
+      "binarySHA256": null,
+      "processCheck": "No owned executable/compiler uses exact path; parent fixture compilers/probes already joined."
+    }
+  ],
+  "allocatedBytesReclaimed": 79343616,
+  "preserved": "Exact source/Make/manifests/pins/results in reports and cache. Current68784/62791/61082 and owner/rollback bundles, shared scratch, models and user data untouched."
+}

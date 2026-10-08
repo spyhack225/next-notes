@@ -1,6 +1,6 @@
 # Dictation pipeline audit — 2026-10-07
 
-Scope: the macOS production path in the current canonical working tree, including its pre-existing, uncommitted latency work. Reference hardware: this Mac is Mac15,12 (M3 Air), 16 GB. Owner histories were read only as timing fields, counts and enums. No dictated text, recordings or account material was exported. Synthetic repository fixtures supply the audio tests.
+Scope: the macOS production path in the current canonical working tree, including its pre-existing, uncommitted latency work. Reference hardware: this Mac is Mac15,12 (M3 Air), 16 GB. Owner history is analyzed locally; retained evidence contains timing fields, counts and verdicts. No dictated text, owner recordings or account material is exported. Public repository speech and deterministic tone/noise fixtures supply the tests.
 
 ## Finding
 
@@ -29,7 +29,7 @@ Next Notes' retained timing ring has only 9–10 relevant samples. Median drain 
 
 The normal input tap requests 2,048 native frames: about 43–46 ms at 48/44.1 kHz. A bounded delivery worker resamples with `AVAudioConverter` to 16 kHz, mono Float32 for Parakeet. The engine's FluidAudio converter takes its fast extraction path for that format; it is not normally resampling a second time. Compare mode intentionally captures Apple's int16 format and adapts for Parakeet.
 
-Capture order is preserved by one audio stream and one feeding task. Thirty seconds of pending PCM can accumulate during startup; exceeding that cap drops newer packets and counts them. The 180-second retained recording cap belongs to retry/compare storage, not to the normal engine feed. It does not truncate a successful long dictation, but it prevents complete retry/comparison of a longer recording. The engine separately retains the complete hold in memory.
+Capture order is preserved by one audio stream and one feeding task. Thirty seconds of pending PCM can accumulate during startup; exceeding that cap drops newer packets and counts them. The 180-second retained recording cap belongs to retry/compare storage, not to the normal engine feed. It does not truncate a successful long dictation, but it prevents complete retry/comparison of a longer recording. The signed baseline engine separately retains the complete hold in memory. The 8 October source candidate discards only successfully transcribed committed prefixes from that ASR array; absolute offsets preserve all remaining/backlogged audio. Its native acceptance is pending.
 
 **Confirmed accuracy defect:** immediate hub unsubscribe invalidated its worker and discarded already accepted packets at release. An isolated actual hub callback held packet zero while packets one and two queued. Original Stop reported success but delivered `[0]`; corrected Stop delivers `[0,1,2]`. The controller now stops admission synchronously and joins the existing delivery drain before closing its audio stream. No fixed settle delay was added. The same boundary covers release during startup. The callback and stream have their existing finite bounds. This proves accepted software packets are preserved; it does not prove preservation of hardware samples that have not yet reached the tap when capture stops. Requested callback size is not a measurement of the device's actual I/O period.
 
@@ -119,6 +119,10 @@ The original island verification found an invisible panel retaining mouse interc
 | Adaptive faster partial refresh | Could reduce the one-second steady cadence; measure encoder duty and ASR/voice/cleanup contention before increasing sustained inference frequency. |
 | Preserve unreported hardware audio at key-up | Timestamp a final callback covering the boundary rather than adding a guessed sleep; requires actual microphone/acoustic/rapid-turn proof. |
 | Recognition-time term bias for Parakeet | Could improve names, but extra CTC/enhancement passes need latency, hallucination and corpus evidence; existing dictionary correction remains. |
+| Discard successfully committed recognition PCM | Implemented in the source candidate through the existing array/absolute offset, preserving failed/backlogged and retry audio.18 original/current actual-engine cases preserve slices/events/results with substituted native boundaries. Native replay pending. |
+| Reuse the committed transcript string | Implemented in the same candidate; replaces its array rather than adding a second store. Empty/Unicode/failed/overlapping cases match. Native consumer proof pending. |
+| Scalar phonetic matches | Integratedc5d295b;4487 component assertions and31 unchanged dictionary tests pass. Context narrowing saves16–18ms on the measured200-candidate fixture, without changing tags/scores. |
+| Full-audio quiet speech benchmark | New explicit diagnostic retains all reference/input audio. The historical RMS-trimmed replay cannot prove quiet-tail accuracy. Native speech controls remain pending. |
 | Reduce capture callback size or adopt sink input | Existing opt-in sink needs actual microphone/route/rapid-turn proof; don't guess from a requested tap buffer size. |
 | Move history append off main actor | Possible small win; needs serialized mutation ordering and durability proof. |
 | Remove paste/app-activation settle waits | Small ceiling versus cleanup; requires destination-specific effect evidence before changing delivery reliability. |
@@ -170,3 +174,10 @@ Removed 17 confirmed obsolete task bundles plus the disposable doubled WAV after
 ### Latest complete-path evidence
 
 The [continuation report](2026-10-07-live-preview-and-layout-wire.md) now includes signed62791's two real-time121s replays: raw recognition47/36ms, completed cleanup publication423/424ms, final6433/6320ms; all30 heads retained and raw/final WER5.1%. Layout hits its unchanged6s timeout twice. Early observable publication is verified; physical paint/insertion and the universal2s polished target remain open. Short final2251/1863ms still exposes a head wait, and fresh-process ASR startup22.732s is distinct from live-text latency after start. Pre-clean heads currently omit their attempt trace; zero model/cache counters cannot classify those waits. Small cancelled-waiter, RMS reuse and bounded visible-text candidates preserve content and await final signed consumer verification.
+
+
+## 8 October continuation and source adoption
+
+The source candidate now uses absolute sample offsets to discard successfully committed PCM and a single accumulated committed string/count. The18 original/current cache-only engine cases preserve all audio inputs, stream events, final strings and key-up plans. Normally drained121s peak logical PCM falls7.744MB→0.2784MB; a failed/backlogged model pass still retains needed audio. This is not native WER, native latency or total-process memory proof. The exact three-path patch is applied only after all peer native/compiler work joins, with all original hashes matching signed68784; signed fourth-build verification remains pending.
+
+The accuracy evidence is still insufficient to declare parity with Wispr. Owner history has13 edited rows but only one retains both original ASR and final output; that one has normalized edit distance6/15 before cleanup versus1/15 afterward. A user edit may rewrite intent, so this is feedback rather than independent acoustic ground truth. It supports retaining semantic cleanup while fixing its speed; it is not a general quality benchmark. The21 Oct7 non-command timing rows show14over2s, median3.207s and98.05% median cleanup fraction among slow rows. Four of six layouts time out. See [the current exact evidence and acceptance](2026-10-07-live-preview-and-layout-wire.md).

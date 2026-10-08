@@ -1,0 +1,12 @@
+{
+  "readScope": "Read-only owner run metadata on Oct7 UTC; command routes excluded. Historical installed build, not staged68784 benchmark.",
+  "rows": 21,
+  "over2Seconds": 14,
+  "medianProcessSeconds": 3.207087993621826,
+  "maxProcessSeconds": 13.072833061218262,
+  "slowMedianCleanupFraction": 0.9805355209131585,
+  "layoutAsked": 6,
+  "layoutTimeouts": 4,
+  "residentShortOver10Seconds": 2,
+  "latestDate": "2026-10-07T23:53:20Z"
+}

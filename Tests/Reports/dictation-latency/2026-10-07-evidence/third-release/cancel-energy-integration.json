@@ -1,0 +1,13 @@
+{
+  "old": "c934ccfbed51d29fd4f27ef38d8dc6ab6295bef1",
+  "new": "604e80f67ee299e37ac1c1cb5c4dd4885f195b3d",
+  "paths": [
+    "Sources/NextNotes/Formatting/IncrementalCleanup.swift",
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift"
+  ],
+  "foreignStagedSHA256": "a95a56feed170210aba2a320010f073d3e2cb35b3c379a2db889f3d07aba6e2d",
+  "sourceBytesUnchanged": true,
+  "signedAppSHA256": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53",
+  "remaining": "Dictionary package checks, live UI/ASR mixed integration, native PCM and two-second final target open."
+}
