@@ -42,6 +42,20 @@ actor FrontendResponder {
     }
     func voiceLatencyAnswerProvider() -> (any LLMProvider)? { latencyAnswerProvider }
 
+    // Script only the external SDK route; validation, split answer, slot and
+    // committed coordinator consumers still run through their actual seams.
+    private var partialRouteForTesting: (@Sendable ([LLMChatMessage]) async throws -> LocalVoiceRoute)?
+    @discardableResult
+    func setPartialRouteForTesting(
+        _ route: (@Sendable ([LLMChatMessage]) async throws -> LocalVoiceRoute)?
+    ) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-latency",
+              CommandLine.arguments.contains("--voice-latency-partials"),
+              CommandLine.arguments.contains("--voice-latency-partial-route") else { return false }
+        partialRouteForTesting = route
+        return true
+    }
+
     private var prepared = false
     private var prepareTask: Task<Void, Error>?
     /// Prepared when user speech begins, then consumed by the committed turn.
@@ -592,7 +606,7 @@ actor FrontendResponder {
         if deliveryPhrase, timing.id != nextGenerationTimingID {
             return AsyncThrowingStream { $0.finish(throwing: CancellationError()) }
         }
-        if let generationForTesting, !retainingGenerationOwnerForTesting {
+        if let generationForTesting, !retainingGenerationOwnerForTesting, partialRouteForTesting == nil {
             Self.emitTiming(timing, "testing_generator_returned")
             return generationForTesting(system, messages, maxTokens)
         }
@@ -607,7 +621,7 @@ actor FrontendResponder {
                     // A live turn cannot race an unfinished warmup in Foundation
                     // Models. Both operations share one local inference service.
                     let warmupStarted = ContinuousClock.now
-                    if ownedTestingGenerator == nil {
+                    if ownedTestingGenerator == nil, partialRouteForTesting == nil {
                         if deliveryPhrase {
                             // Join an already-owned warmup, but do not add a discarded
                             // preparation inference to a delivery phrase.
@@ -666,7 +680,7 @@ actor FrontendResponder {
                             continuation.finish()
                             return
                         }
-                        if let reason = FoundationModelFormatter.unavailableReason {
+                        if partialRouteForTesting == nil, let reason = FoundationModelFormatter.unavailableReason {
                             throw FrontendError.unavailable(reason)
                         }
                         let session: LanguageModelSession?
@@ -793,6 +807,13 @@ actor FrontendResponder {
         guard let routePlan = LocalVoiceSplitResponse.routePlan(messages: messages) else {
             throw FrontendError.unavailable("split_route_missing_latest_user")
         }
+        let route: LocalVoiceRoute
+        if let partialRouteForTesting {
+            if timing.id == nextGenerationTimingID { VoiceLatencyTimeline.shared.mark(.routeStarted) }
+            route = try await partialRouteForTesting(messages)
+            try Task.checkCancellation()
+            if timing.id == nextGenerationTimingID { VoiceLatencyTimeline.shared.mark(.routeDone) }
+        } else {
         let stagedRoute = takeStagedSplitSession(.route, plan: routePlan, generation: timing.id)
         let routeSession = stagedRoute ?? LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: routePlan))
         if timing.id == nextGenerationTimingID {
@@ -820,7 +841,8 @@ actor FrontendResponder {
         if timing.id == nextGenerationTimingID {
             VoiceLatencyTimeline.shared.mark(.routeDone)
         }
-        let route = routeResponse.content
+        route = routeResponse.content
+        }
         // Log the decision boundary, not private conversation content. A live
         // routing failure must be distinguishable from an answer-stage failure.
         Log.agent.info("voice route · \(String(describing: route.intent), privacy: .public)")
@@ -945,7 +967,15 @@ actor FrontendResponder {
             }
             previous = current
         }
-        if let local = provider as? LlamaLLMProvider {
+        if partialRouteForTesting != nil, let generationForTesting {
+            let messages = plan.history.map { LLMChatMessage(role: $0.role, content: $0.content) }
+                + [LLMChatMessage(role: .user, content: plan.latestUser)]
+            var current = ""
+            for try await delta in generationForTesting(plan.instructions, messages, maxTokens) {
+                current += delta
+                try consume(current)
+            }
+        } else if let local = provider as? LlamaLLMProvider {
             let messages = plan.history.map { LLMChatMessage(role: $0.role, content: $0.content) }
                 + [LLMChatMessage(role: .user, content: plan.latestUser)]
             // The runtime's producer Task inherits this recorder at stream creation,

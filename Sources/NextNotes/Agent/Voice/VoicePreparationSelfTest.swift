@@ -7,6 +7,9 @@ import NextNotesDictionary
 @MainActor
 enum VoicePreparationSelfTest {
     static func run() async -> [String] {
+        if CommandLine.arguments.contains("--voice-latency-partial-route") {
+            return await VoicePartialRouteSelfTest.run()
+        }
         let coordinator = VoiceConversationCoordinator.shared
         let capture = AgentCaptureController.shared
         let frontend = FrontendResponder.shared
@@ -359,6 +362,163 @@ enum VoicePreparationSelfTest {
                 try? await Task.sleep(for: .milliseconds(2))
             }
             return false
+        }
+    }
+}
+
+/// Diagnostic partials through Coordinator -> the actual split collector/validator ->
+/// committed stream -> speech. Only the Apple route and answer generators are scripted.
+@MainActor
+enum VoicePartialRouteSelfTest {
+    static func run() async -> [String] {
+        var wrong: [String] = []
+        let coordinator = VoiceConversationCoordinator.shared
+        let frontend = FrontendResponder.shared
+        let capture = AgentCaptureController.shared
+        let speech = RecordingSpeechBacking()
+        AgentSpeechSynthesizer.shared.useTestingBacking(speech)
+        let words = "Explain a haiku briefly"
+        for mode in ["matched", "canonical", "final-revised", "partial-revised", "empty", "context", "pending"] {
+            await capture.endSession(source: .done)
+            coordinator.resetForTesting()
+            await frontend.clearStagedTurn()
+            AgentSession.shared.forgetAllConversations()
+            await capture.beginSession(captureAudio: false)
+            speech.reset()
+            let source = Source(held: mode == "pending")
+            await frontend.setGenerationForTesting { _, messages, _ in source.answer(messages) }
+            guard await frontend.setPartialRouteForTesting({ messages in try await source.route(messages) }) else {
+                wrong.append("scripted split boundary was refused")
+                break
+            }
+            let history = AgentSession.shared.messages.count
+            let tasks = AgentTaskManager.shared.tasks.count
+            coordinator.prepareResponseIfUseful(words)
+            if !(await source.wait(routes: 1)) { wrong.append("\(mode): stable partial did not enter real split collector") }
+            // A bounded test settle lets the original producer expose its premature
+            // answer. This is test synchronization, never a production debounce.
+            try? await Task.sleep(for: .milliseconds(30))
+            if source.answers != 0 { wrong.append("\(mode): answer generation started before commit") }
+            if !speech.spoken.isEmpty || AgentSession.shared.messages.count != history
+                || AgentTaskManager.shared.tasks.count != tasks {
+                wrong.append("\(mode): partial produced speech/history/tool work")
+            }
+            var final = words
+            var expectedRoutes = 1
+            if mode == "canonical" { final = " Explain a haiku briefly! " }
+            if mode == "final-revised" { final += " in French"; expectedRoutes = 2 }
+            if mode == "partial-revised" {
+                final += " in French"
+                coordinator.prepareResponseIfUseful(final)
+                expectedRoutes = 2
+                if !(await source.wait(routes: 2)) { wrong.append("revised partial was blocked by the canceled producer") }
+                try? await Task.sleep(for: .milliseconds(30))
+                if source.answers != 0 { wrong.append("revised partial started answer before commit") }
+            }
+            if mode == "empty" { coordinator.prepareResponseIfUseful(""); expectedRoutes = 2 }
+            if mode == "context" {
+                AgentSession.shared.recordAssistant("A previous unrelated fact.", source: .voice)
+                expectedRoutes = 2
+            }
+            let commit = Task { await coordinator.handle(final) }
+            if mode == "pending" {
+                try? await Task.sleep(for: .milliseconds(30))
+                if source.routes != 1 || source.answers != 0 { wrong.append("pending commit rerouted or answered before route completion") }
+                source.release()
+            }
+            let turn = await commit.value
+            let expectedWords = mode == "canonical" ? words : final.trimmingCharacters(in: .whitespacesAndNewlines)
+            let expected = "Prepared \(expectedWords)."
+            if source.routes != expectedRoutes || source.answers != 1 {
+                wrong.append("\(mode): expected \(expectedRoutes) routes/one committed answer, got \(source.routes)/\(source.answers)")
+            }
+            if turn.delegated || turn.reply != expected
+                || speech.spoken.joined(separator: " ").trimmingCharacters(in: .whitespacesAndNewlines) != expected {
+                wrong.append("\(mode): committed answer did not reach real reply/speech consumer")
+            }
+            SelfTest.diagnostic("VOICE_PARTIAL_ROUTE_CASE \(mode) routes=\(source.routes) answers=\(source.answers)")
+        }
+        await capture.endSession(source: .done)
+        coordinator.resetForTesting()
+        await frontend.clearStagedTurn()
+        await frontend.setPartialRouteForTesting(nil)
+        await frontend.setGenerationForTesting(nil)
+        AgentSpeechSynthesizer.shared.restoreSystemBacking()
+        wrong += await frontendCases()
+        return wrong
+    }
+
+    private static func frontendCases() async -> [String] {
+        var wrong: [String] = []
+        let system = VoiceConversationCoordinator.systemPrompt
+        let words = "Explain a haiku briefly"
+        let prefix = "Work status:\nNo tasks.\n\nLatest user speech:\n"
+        for mode in ["identity", "courtesy", "sealed", "control", "invalid"] {
+            let frontend = FrontendResponder()
+            let source = Source(intent: mode == "control" ? .notAddressedToMe : mode == "invalid" ? .startExternalTask : .answerQuestion)
+            await frontend.setGenerationForTesting { _, messages, _ in source.answer(messages) }
+            _ = await frontend.setPartialRouteForTesting { messages in try await source.route(messages) }
+            let ids = UsageCorrelation(turnID: UUID(), conversationID: UUID())
+            let messages: [LLMChatMessage] = [.init(role: .user, content: prefix + words)]
+            await ModelPassRecorder.$correlation.withValue(ids) {
+                await frontend.speculate(system: system, messages: messages, maxTokens: 256, revision: 1)
+            }
+            _ = await source.wait(routes: 1)
+            try? await Task.sleep(for: .milliseconds(30))
+            if source.answers != 0 { wrong.append("\(mode): uncommitted frontend sampled answer") }
+            await frontend.cancelSpeculation(through: 0) // stale cancellation preserves the slot
+            let final = mode == "courtesy" ? [.init(role: LLMChatMessage.Role.user, content: prefix + words + " please")] : messages
+            let commitIDs = mode == "identity" ? UsageCorrelation(turnID: UUID(), conversationID: ids.conversationID) : ids
+            let stream = await ModelPassRecorder.$correlation.withValue(commitIDs) {
+                await frontend.stream(system: system, messages: final, maxTokens: 256, commitRevision: 2)
+            }
+            do {
+                var reply = ""
+                for try await piece in stream { reply += piece }
+                if mode == "invalid" { wrong.append("invalid route escaped the real validator") }
+                else if mode == "control" {
+                    if source.answers != 0 || !reply.contains("not_addressed") { wrong.append("complete control started an answer or lost its payload") }
+                } else if source.answers != 1 { wrong.append("\(mode): commit sampled more than once") }
+            } catch {
+                if mode != "invalid" { wrong.append("\(mode): committed stream failed: \(error.localizedDescription)") }
+            }
+            let expectedRoutes = ["identity", "courtesy"].contains(mode) ? 2 : 1
+            if source.routes != expectedRoutes { wrong.append("\(mode): exact request/identity admission used \(source.routes) routes, expected \(expectedRoutes)") }
+            if mode == "sealed" {
+                await frontend.speculate(system: system, messages: messages, maxTokens: 256, revision: 1)
+                try? await Task.sleep(for: .milliseconds(20))
+                if source.routes != 1 { wrong.append("sealed revision restarted routing") }
+            }
+            await frontend.clearStagedTurn()
+        }
+        return wrong
+    }
+
+    final class Source: @unchecked Sendable {
+        private let lock = NSLock()
+        private var routeCount = 0
+        private var answerCount = 0
+        private var held: Bool
+        private let intent: LocalVoiceRoute.Intent
+        init(held: Bool = false, intent: LocalVoiceRoute.Intent = .answerQuestion) { self.held = held; self.intent = intent }
+        var routes: Int { lock.withLock { routeCount } }
+        var answers: Int { lock.withLock { answerCount } }
+        func release() { lock.withLock { held = false } }
+        func route(_ messages: [LLMChatMessage]) async throws -> LocalVoiceRoute {
+            lock.withLock { routeCount += 1 }
+            while lock.withLock({ held }) { try await Task.sleep(for: .milliseconds(2)) }
+            try Task.checkCancellation()
+            return LocalVoiceRoute(intent: intent, taskNumber: nil, objective: "", acknowledgement: "", approvalDecision: "", approvalChange: "")
+        }
+        func answer(_ messages: [LLMChatMessage]) -> AsyncThrowingStream<String, Error> {
+            lock.withLock { answerCount += 1 }
+            let words = messages.last?.content.components(separatedBy: "Latest user speech:\n").last ?? "missing"
+            return AsyncThrowingStream { c in c.yield("Prepared \(words)."); c.finish() }
+        }
+        func wait(routes count: Int) async -> Bool {
+            let deadline = ContinuousClock.now.advanced(by: .milliseconds(500))
+            while routes < count && ContinuousClock.now < deadline { try? await Task.sleep(for: .milliseconds(2)) }
+            return routes >= count
         }
     }
 }

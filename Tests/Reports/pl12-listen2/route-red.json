@@ -1,0 +1,24 @@
+{
+  "fixture_sha256": "982488e3b99589617826cd54a62c6042a117b3b3ae4e47084fbe97c30a2da315",
+  "problems": [
+    "VOICE_PREPARATION_WRONG: matched: answer generation started before commit",
+    "VOICE_PREPARATION_WRONG: canonical: answer generation started before commit",
+    "VOICE_PREPARATION_WRONG: final-revised: answer generation started before commit",
+    "VOICE_PREPARATION_WRONG: final-revised: expected 2 routes/one committed answer, got 2/2",
+    "VOICE_PREPARATION_WRONG: partial-revised: answer generation started before commit",
+    "VOICE_PREPARATION_WRONG: revised partial started answer before commit",
+    "VOICE_PREPARATION_WRONG: partial-revised: expected 2 routes/one committed answer, got 2/2",
+    "VOICE_PREPARATION_WRONG: empty: answer generation started before commit",
+    "VOICE_PREPARATION_WRONG: empty: expected 2 routes/one committed answer, got 2/2",
+    "VOICE_PREPARATION_WRONG: context: answer generation started before commit",
+    "VOICE_PREPARATION_WRONG: context: expected 2 routes/one committed answer, got 2/2",
+    "VOICE_PREPARATION_WRONG: identity: uncommitted frontend sampled answer",
+    "VOICE_PREPARATION_WRONG: identity: commit sampled more than once",
+    "VOICE_PREPARATION_WRONG: courtesy: uncommitted frontend sampled answer",
+    "VOICE_PREPARATION_WRONG: courtesy: exact request/identity admission used 1 routes, expected 2",
+    "VOICE_PREPARATION_WRONG: sealed: uncommitted frontend sampled answer"
+  ],
+  "problem_count": 16,
+  "marker": "VOICE_PREPARATION_FAILED",
+  "scope": "missing diagnostic feature; ordinary buffered drafting is not a precommit speech/effect bug"
+}

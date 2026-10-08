@@ -1,0 +1,305 @@
+heavy: queue position 2, waiting
+gate: waiting (swap 5799M, load 6, free 11G, memory 43%)
+warning: 'listen2': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[Using on-disk description]
+[1 / 17] FluidAudio
+[2 / 6] NextNotes-product
+[5 / 9] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/Agent/Voice/VoicePreparationSelfTest.swift:411:23: warning: 'final' mutated after capture by sendable closure
+404 |                 wrong.append("\(mode): partial produced speech/history/tool work")
+405 |             }
+406 |             var final = words
+    |                 `- note: variable defined here
+407 |             var expectedRoutes = 1
+408 |             if mode == "canonical" { final = " Explain a haiku briefly! " }
+409 |             if mode == "final-revised" { final += " in French"; expectedRoutes = 2 }
+410 |             if mode == "partial-revised" {
+411 |                 final += " in French"
+    |                       `- warning: 'final' mutated after capture by sendable closure
+412 |                 coordinator.prepareResponseIfUseful(final)
+413 |                 expectedRoutes = 2
+    :
+421 |                 expectedRoutes = 2
+422 |             }
+423 |             let commit = Task { await coordinator.handle(final) }
+    |                               |                          `- note: capturing use
+    |                               `- note: variable captured by sendable closure
+424 |             if mode == "pending" {
+425 |                 try? await Task.sleep(for: .milliseconds(30))
+[6 / 17] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift:117:29: warning: 'currentMode' mutated after capture by sendable closure
+ 62 |         var currentManager: AgentTaskManager?, owned: Task<Void, Never>?, probe: ApprovalProbe?
+ 63 |         var created = false, installedContext = false, contextRejected = false, contextReads = 0
+ 64 |         var installedRoute = false, currentMode = "", staleAdvanced = false
+    |                                     `- note: variable defined here
+ 65 |         var routeObservations = 0, matchedRoutes = 0
+ 66 |         var staleBefore: Int?, staleAfter: Int?
+    :
+ 86 |         do {
+ 87 |             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false); created = true
+ 88 |             guard ToolCallContextBuilder.setMeetingContextForTesting({ meeting, task in
+    |                                                                      `- note: variable captured by sendable closure
+ 89 |                 contextReads += 1
+ 90 |                 guard root.path == root.resolvingSymlinksInPath().standardizedFileURL.path,
+    :
+ 93 |                     contextRejected = true; return nil // Never fall back to owner context.
+ 94 |                 }
+ 95 |                 if currentMode == "staleCaller", !staleAdvanced,
+    |                    `- note: capturing use
+ 96 |                    let id = UUID(uuidString: task), let retained = c.captureVoiceWorkerForTesting(id: id) {
+ 97 |                     // Existing real review-context hop invalidates the original worker
+    :
+115 |             for mode in ["yes", "unheard", "no", "hold", "card", "edited", "refused", "amend", "close", "mismatch", "staleCaller", "stalePresented", "staleHeard", "model-yes", "model-negative", "model-refused", "model-stale", "model-change"] {
+116 |                 let start = checks, problemsBefore = failures.count
+117 |                 currentMode = mode; staleAdvanced = false; staleBefore = nil; staleAfter = nil
+    |                             `- warning: 'currentMode' mutated after capture by sendable closure
+118 |                 let routeBefore = routeObservations, matchedBefore = matchedRoutes
+119 |                 let directory = root.appendingPathComponent(mode, isDirectory: true)
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/Agent/Duplex/TypedDuringWorkSelfTest.swift:512:81: warning: 'scopeRaceBridge' mutated after capture by sendable closure
+ 58 |         var islandInstalled = false
+ 59 |         var scopeRaceEnabled = false, scopeRaceAdmitted = false, scopeRaceMatched = false
+ 60 |         var scopeRaceOwner: TypedWorkerTestCapture?, scopeRaceBridge: TaskBridge?
+    |                                                      `- note: variable defined here
+ 61 |         var scopeRaceBoundary: TypedSubmissionBoundary?
+ 62 |         var frontendInstalled = false
+    :
+105 |         do {
+106 |             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false); rootCreated = true
+107 |             guard ToolCallContextBuilder.setMeetingContextForTesting({ meeting, task in
+    |                                                                      `- note: variable captured by sendable closure
+108 |                 guard meeting == nil, FileManager.default.fileExists(atPath: root.path),
+109 |                       task == nil || contextManager?.task(id: task!)?.source == "text" else {
+110 |                     contextRejected = true; return nil
+111 |                 }
+112 |                 if scopeRaceEnabled, let held = scopeRaceOwner, let bridge = scopeRaceBridge,
+    |                 `- note: capturing use
+113 |                    task == held.id.uuidString, contextManager?.task(id: task!)?.status == .running {
+114 |                     // Actual review construction occurs after the broker/scope await
+    :
+510 |                 handoffModes += 1
+511 |                 print("TYPED_WORK_CASE mode=\(mode) checks=\(checks) reads=\(reads) effects=\(events.count) interrupts=\(boundary.interrupts) physicalCalendar=false")
+512 |                 scopeRaceEnabled = false; scopeRaceOwner = nil; scopeRaceBridge = nil; scopeRaceBoundary = nil
+    |                                                                                 `- warning: 'scopeRaceBridge' mutated after capture by sendable closure
+513 |                 await joinPhraseTasks() // SAME first-output Tasks before this mode's scope ends.
+514 |                 NextMemory.finishActivityContextForTesting(root: root); activityInstalled = false
+[7 / 17] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:320:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+318 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+319 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+320 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+321 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+322 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:409:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+407 |                 "owner variant fresh manager did not hold actual saved work")
+408 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+409 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+410 |             check(context.isStillValid != nil && !valid,
+411 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/Meetings/MeetingContextReconciler.swift:294:30: warning: no 'async' operations occur withi[8 / 17] NextNotes-product
+n 'await' expression [#UnnecessaryEffectMarker]
+292 |             enabled: @escaping @Sendable () async -> Bool = {
+293 |                 let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
+294 |                 let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
+    |                              `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+295 |                 return MeetingContextReconciler.isEnabled(stored: stored, choice: choice)
+296 |             },
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/listen2/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift:1474:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+1472 |         let committed = await frontend.stream(
+1473 |             system: system, messages: firstRequest, maxTokens: 64, commitRevision: 2)
+1474 |         Task {
+     |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+     |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+1475 |             for try await _ in committed {}
+1476 |         }
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[10 / 17] NextNotes-product
+[12 / 17] NextNotes-product
+[13 / 17] NextNotes-product
+[14 / 17] NextNotes-product
+[15 / 17] NextNotes-product
+[16 / 17] NextNotes-product
+[17 / 17] NextNotes-product
+Build complete! (42.47 sec)
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_warmup_done elapsed_s=0.002 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=answer_session_fresh elapsed_s=0.004
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=first_answer_text elapsed_s=0.004
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_task_end elapsed_s=0.005
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_hit headstart_date_s=0.052 elapsed_s=0.052
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE matched routes=1 answers=1
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=answer_session_fresh elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_hit headstart_date_s=0.049 elapsed_s=0.049
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE canonical routes=1 answers=1
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=answer_session_fresh elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_cancel_requested elapsed_s=0.053
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=cancellation_to_speculation_end elapsed_s=0.053 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=answer_session_fresh elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=first_answer_text elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=11 event=native_task_end elapsed_s=0.001
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE final-revised routes=2 answers=2
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=answer_session_fresh elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=speculation_cancel_requested elapsed_s=0.050
+VOICE_FRONTEND_TIMING gen=5 revision=14 event=cancellation_to_speculation_end elapsed_s=0.050 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=6 revision=15 event=speculation_hit headstart_date_s=0.053 elapsed_s=0.053
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE partial-revised routes=2 answers=2
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=answer_session_fresh elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=speculation_cancel_requested elapsed_s=0.047
+VOICE_FRONTEND_TIMING gen=7 revision=19 event=cancellation_to_speculation_end elapsed_s=0.047 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=8 revision=21 event=native_task_end elapsed_s=0.001
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE empty routes=2 answers=2
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=speculation_cancel_requested elapsed_s=0.052
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=24 event=cancellation_to_speculation_end elapsed_s=0.052 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=10 revision=25 event=native_task_end elapsed_s=0.001
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE context routes=2 answers=2
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=speculation_hit headstart_date_s=0.048 elapsed_s=0.048
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=answer_session_fresh elapsed_s=0.069
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=first_answer_text elapsed_s=0.069
+VOICE_FRONTEND_TIMING gen=11 revision=28 event=native_task_end elapsed_s=0.069
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.022s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PARTIAL_ROUTE_CASE pending routes=1 answers=1
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=answer_session_fresh elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_cancel_requested elapsed_s=0.032
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=cancellation_to_speculation_end elapsed_s=0.032 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=2 revision=2 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=answer_session_fresh elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=first_answer_text elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.038 elapsed_s=0.038
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=answer_session_fresh elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=first_answer_text elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.035 elapsed_s=0.035
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.033 elapsed_s=0.033
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=native_task_end elapsed_s=0.001
+VOICE_FRONTEND_TIMING gen=1 revision=1 event=speculation_hit headstart_date_s=0.033 elapsed_s=0.033
+VOICE_PREPARATION_WRONG: matched: answer generation started before commit
+VOICE_PREPARATION_WRONG: canonical: answer generation started before commit
+VOICE_PREPARATION_WRONG: final-revised: answer generation started before commit
+VOICE_PREPARATION_WRONG: final-revised: expected 2 routes/one committed answer, got 2/2
+VOICE_PREPARATION_WRONG: partial-revised: answer generation started before commit
+VOICE_PREPARATION_WRONG: revised partial started answer before commit
+VOICE_PREPARATION_WRONG: partial-revised: expected 2 routes/one committed answer, got 2/2
+VOICE_PREPARATION_WRONG: empty: answer generation started before commit
+VOICE_PREPARATION_WRONG: empty: expected 2 routes/one committed answer, got 2/2
+VOICE_PREPARATION_WRONG: context: answer generation started before commit
+VOICE_PREPARATION_WRONG: context: expected 2 routes/one committed answer, got 2/2
+VOICE_PREPARATION_WRONG: identity: uncommitted frontend sampled answer
+VOICE_PREPARATION_WRONG: identity: commit sampled more than once
+VOICE_PREPARATION_WRONG: courtesy: uncommitted frontend sampled answer
+VOICE_PREPARATION_WRONG: courtesy: exact request/identity admission used 1 routes, expected 2
+VOICE_PREPARATION_WRONG: sealed: uncommitted frontend sampled answer
+VOICE_PREPARATION_FAILED
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=notAddressedToMe task=none
+VOICE_SPLIT_ROUTE intent=startExternalTask task=none
