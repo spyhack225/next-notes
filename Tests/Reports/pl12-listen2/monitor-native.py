@@ -2,7 +2,8 @@
 """Read-only 1s rusage-v0 samples of exactly one owned diagnostic process."""
 import ctypes, json, subprocess, sys, time
 from pathlib import Path
-exe, output = sys.argv[1:]
+exe, output = sys.argv[1:3]
+needle = sys.argv[3] if len(sys.argv) > 3 else "--selftest-voice-latency"
 class Usage(ctypes.Structure):
     _fields_ = [('uuid', ctypes.c_uint8 * 16)] + [(n, ctypes.c_uint64) for n in ['user_time','system_time','pkg_idle_wkups','interrupt_wkups','pageins','wired_size','resident_size','phys_footprint','start','exit']]
 lib = ctypes.CDLL('/usr/lib/libproc.dylib')
@@ -16,7 +17,7 @@ while time.monotonic()-started < 1200:
     if pid is None:
         for line in command('ps','-axo','pid=,command=').splitlines():
             fields=line.strip().split(None,1)
-            if len(fields)==2 and fields[1].startswith(exe+' --selftest-voice-latency'):
+            if len(fields)==2 and fields[1].startswith(exe+' --selftest-voice-latency') and needle in fields[1]:
                 pid=int(fields[0]); environment['native_launch']={'swap':command('sysctl','vm.swapusage'),'load':command('uptime'),'thermal':command('pmset','-g','therm')}; break
         if pid is None: time.sleep(1); continue
     u=Usage()

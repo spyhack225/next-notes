@@ -481,6 +481,11 @@ enum VoiceLatencySelfTest {
         parts.append("speculation=\(turn.notes["speculation"] ?? "absent")")
         parts.append("route_staging=\(turn.notes["route_staging"] ?? "absent")")
         parts.append("answer_staging=\(turn.notes["answer_staging"] ?? "absent")")
+        if let ready = turn.notes["partial_route_ready_nanos"].flatMap(UInt64.init),
+           let endpoint = turn.marks[.endpoint]?.nanos {
+            let delta = (Double(ready) - Double(endpoint)) / 1_000_000_000
+            parts.append("partial_route_ready_vs_endpoint=\(Self.format(delta))")
+        }
         parts.append("main_stall_max=\(Self.format(turn.mainStallSeconds))")
         parts.append("stall_site=\(turn.stallSite ?? "unlabelled")")
         parts.append("eou_prepare=\(Self.format(eouPrepare))")

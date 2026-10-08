@@ -1,0 +1,9 @@
+{
+  "fixture_sha256": "982488e3b99589617826cd54a62c6042a117b3b3ae4e47084fbe97c30a2da315",
+  "same_fixture_as_red": true,
+  "scenario_count": 12,
+  "coordinator_cases": 7,
+  "direct_frontend_cases": 5,
+  "marker": "VOICE_PREPARATION_OK",
+  "scope": "real consumers, scripted external model boundaries; not native latency"
+}

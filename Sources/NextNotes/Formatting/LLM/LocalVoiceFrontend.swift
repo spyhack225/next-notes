@@ -56,6 +56,12 @@ actor FrontendResponder {
         return true
     }
 
+    private static var partialRouteDiagnostic: Bool {
+        SelfTest.isRunning && SelfTest.requested == "--selftest-voice-latency"
+            && CommandLine.arguments.contains("--voice-latency-partial-route")
+            && LocalVoiceSplitResponse.isEnabled
+    }
+
     private var prepared = false
     private var prepareTask: Task<Void, Error>?
     /// Prepared when user speech begins, then consumed by the committed turn.
@@ -180,6 +186,8 @@ actor FrontendResponder {
         let buffer: SpeculativeVoiceBuffer
         let producer: Task<Void, Never>
         let correlation: UsageCorrelation?
+        let routeOnly: Bool
+        let answerPlan: LocalVoicePrompt.Plan?
     }
     /// Monotonic timing context shared by the actor and its native producer.
     /// It carries only identifiers and durations; prompts and generated text
@@ -344,6 +352,7 @@ actor FrontendResponder {
         nextGenerationTimingID &+= 1
         let timing = GenerationTiming(id: nextGenerationTimingID, revision: revision)
         let buffer = SpeculativeVoiceBuffer()
+        let routeOnly = Self.partialRouteDiagnostic
         let correlation = ModelPassRecorder.correlation
         let producer = Task {
             let barrierStarted = ContinuousClock.now
@@ -354,7 +363,7 @@ actor FrontendResponder {
             }
             Self.emitTiming(timing, "speculation_barrier_done", durationFrom: barrierStarted)
             let stream = await self.unsharedStream(system: system, messages: messages,
-                                                   maxTokens: maxTokens, drain: nil, timing: timing)
+                                                   maxTokens: maxTokens, drain: nil, timing: timing, routeOnly: routeOnly)
             do {
                 for try await delta in stream {
                     try Task.checkCancellation()
@@ -367,7 +376,8 @@ actor FrontendResponder {
             }
         }
         speculation = Speculation(key: key, epoch: revision, startedAt: Date(), timing: timing,
-                                  buffer: buffer, producer: producer, correlation: correlation)
+                                  buffer: buffer, producer: producer, correlation: correlation, routeOnly: routeOnly,
+                                  answerPlan: routeOnly ? LocalVoiceSplitResponse.answerPlan(system: system, messages: messages) : nil)
         Self.emitTiming(timing, "speculation_started")
         traceSpeculation("started revision=\(revision)")
     }
@@ -508,7 +518,7 @@ actor FrontendResponder {
     ) async -> AsyncThrowingStream<String, Error> {
         if let commitRevision { sealSpeculation(through: commitRevision) }
         let key = RequestKey(system: system, messages: messages, maxTokens: maxTokens)
-        if let speculation, speculation.key.matchesCommitted(key),
+        if let speculation, (speculation.routeOnly ? speculation.key == key : speculation.key.matchesCommitted(key)),
            speculation.correlation == ModelPassRecorder.correlation {
             self.speculation = nil
             let previous = drainBarrier
@@ -522,7 +532,12 @@ actor FrontendResponder {
             traceSpeculation(String(format: "hit revision=%llu headstart=%.3fs", speculation.epoch, lead))
             VoiceLatencyTimeline.shared.note("speculation",
                 String(format: "hit headstart=%.3f", lead))
-            return await speculation.buffer.stream(cancelProducer: speculation.producer)
+            let buffered = await speculation.buffer.stream(cancelProducer: speculation.producer)
+            if speculation.routeOnly {
+                return resumePreparedRoute(buffered, speculation: speculation,
+                    system: system, messages: messages, maxTokens: maxTokens)
+            }
+            return buffered
         }
         if let speculation {
             let reason = speculation.key == key ? "correlation" : "mismatch"
@@ -540,6 +555,58 @@ actor FrontendResponder {
         Self.emitTiming(timing, "committed_stream_started")
         return await unsharedStream(system: system, messages: messages,
                                     maxTokens: maxTokens, drain: prior, timing: timing)
+    }
+
+    /// A matching commit consumes the existing route buffer asynchronously. A
+    /// pending route continues once; no speculative-task join is added to commit.
+    /// The same nativeGeneration/drain owner now tracks the committed answer.
+    private func resumePreparedRoute(
+        _ buffered: AsyncThrowingStream<String, Error>, speculation: Speculation,
+        system: String, messages: [LLMChatMessage], maxTokens: Int
+    ) -> AsyncThrowingStream<String, Error> {
+        let timing = speculation.timing
+        let producer = speculation.producer
+        let answerPlan = speculation.answerPlan
+        let (stream, continuation) = AsyncThrowingStream<String, Error>.makeStream()
+        let task = Task {
+            defer { Self.emitTiming(timing, "prepared_route_consumer_end", durationFrom: timing.cancelledAt) }
+            do {
+                var received = false
+                for try await chunk in buffered {
+                    try Task.checkCancellation()
+                    guard !received, mayDeliver(timing) else { throw FrontendError.typedDecisionIncomplete }
+                    received = true
+                    if case .answer(let tail) = VoiceFrontendEnvelope.parse(chunk), tail.isEmpty {
+                        guard let plan = answerPlan else {
+                            throw FrontendError.unavailable("split_answer_missing_latest_user")
+                        }
+                        let staged = latencyAnswerProvider is LlamaLLMProvider ? nil
+                            : takeStagedSplitSession(.answer, plan: plan, generation: timing.id)
+                        let session = latencyAnswerProvider is LlamaLLMProvider ? nil
+                            : (staged ?? LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: plan)))
+                        VoiceLatencyTimeline.shared.note("answer_staging", latencyAnswerProvider is LlamaLLMProvider ? "native" : staged == nil ? "fresh" : "staged")
+                        Self.emitTiming(timing, "partial_route_committed_answer")
+                        guard try await streamSplitAnswer(session: session, plan: plan, maxTokens: maxTokens,
+                            continuation: continuation, timing: timing) else { throw FrontendError.emptyResponse }
+                    } else {
+                        switch VoiceFrontendEnvelope.parse(chunk) {
+                        case .capabilities, .newWork, .decision, .revise, .cancel, .status, .notAddressed:
+                            continuation.yield(chunk)
+                        default: throw FrontendError.typedDecisionIncomplete
+                        }
+                    }
+                }
+                guard received else { throw FrontendError.typedDecisionIncomplete }
+                continuation.finish()
+            } catch { continuation.finish(throwing: error) }
+        }
+        nativeGeneration = task
+        continuation.onTermination = { @Sendable termination in
+            if case .cancelled = termination { timing.markCancellation() }
+            task.cancel()
+            producer.cancel()
+        }
+        return stream
     }
 
     private static func waitForPriorInference(_ prior: Task<Void, Never>?) async -> Bool {
@@ -579,7 +646,7 @@ actor FrontendResponder {
         maxTokens: Int,
         drain: Task<Void, Never>?,
         timing: GenerationTiming,
-        deliveryPhrase: Bool = false
+        deliveryPhrase: Bool = false, routeOnly: Bool = false
     ) async -> AsyncThrowingStream<String, Error> {
         let barrierStarted = ContinuousClock.now
         let drained = await Self.waitForPriorInference(drain)
@@ -705,7 +772,7 @@ actor FrontendResponder {
                         if useSplitDecision {
                             produced = try await self.streamSplitDecision(
                                 system: system, messages: messages, maxTokens: maxTokens, continuation: continuation,
-                                timing: timing, schedulerJob: jobID
+                                timing: timing, schedulerJob: jobID, routeOnly: routeOnly
                             )
                         } else if useTypedResponse {
                             guard let session else { throw FrontendError.typedDecisionIncomplete }
@@ -777,7 +844,7 @@ actor FrontendResponder {
         messages: [LLMChatMessage],
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
-        timing: GenerationTiming, schedulerJob: UUID?
+        timing: GenerationTiming, schedulerJob: UUID?, routeOnly: Bool = false
     ) async throws -> Bool {
         let recorder = ModelPassRecorder(
             feature: .agentVoice, pass: "frontend-route",
@@ -787,7 +854,7 @@ actor FrontendResponder {
         do {
             let produced = try await streamSplitDecisionBody(
                 system: system, messages: messages, maxTokens: maxTokens,
-                continuation: continuation, timing: timing, schedulerJob: schedulerJob)
+                continuation: continuation, timing: timing, schedulerJob: schedulerJob, routeOnly: routeOnly)
             recorder.finish(reason: "stop")
             return produced
         } catch {
@@ -802,7 +869,7 @@ actor FrontendResponder {
         messages: [LLMChatMessage],
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
-        timing: GenerationTiming, schedulerJob: UUID?
+        timing: GenerationTiming, schedulerJob: UUID?, routeOnly: Bool = false
     ) async throws -> Bool {
         guard let routePlan = LocalVoiceSplitResponse.routePlan(messages: messages) else {
             throw FrontendError.unavailable("split_route_missing_latest_user")
@@ -814,34 +881,34 @@ actor FrontendResponder {
             try Task.checkCancellation()
             if timing.id == nextGenerationTimingID { VoiceLatencyTimeline.shared.mark(.routeDone) }
         } else {
-        let stagedRoute = takeStagedSplitSession(.route, plan: routePlan, generation: timing.id)
-        let routeSession = stagedRoute ?? LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: routePlan))
-        if timing.id == nextGenerationTimingID {
-            VoiceLatencyTimeline.shared.note("route_staging", stagedRoute == nil ? "fresh" : "staged")
-            VoiceLatencyTimeline.shared.note("answer_staging", "not_requested")
-        }
-        Self.emitTiming(timing, stagedRoute == nil ? "route_session_fresh" : "route_session_staged")
-        if timing.id == nextGenerationTimingID {
-            VoiceLatencyTimeline.shared.mark(.routeStarted)
-        }
-        let routeStream = routeSession.streamResponse(
-            to: routePlan.latestUser,
-            generating: LocalVoiceRoute.self,
-            options: GenerationOptions(
-                temperature: 0.2,
-                maximumResponseTokens: LocalVoiceSplitResponse.routeMaximumResponseTokens
+            let stagedRoute = takeStagedSplitSession(.route, plan: routePlan, generation: timing.id)
+            let routeSession = stagedRoute ?? LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: routePlan))
+            if timing.id == nextGenerationTimingID {
+                VoiceLatencyTimeline.shared.note("route_staging", stagedRoute == nil ? "fresh" : "staged")
+                VoiceLatencyTimeline.shared.note("answer_staging", "not_requested")
+            }
+            Self.emitTiming(timing, stagedRoute == nil ? "route_session_fresh" : "route_session_staged")
+            if timing.id == nextGenerationTimingID {
+                VoiceLatencyTimeline.shared.mark(.routeStarted)
+            }
+            let routeStream = routeSession.streamResponse(
+                to: routePlan.latestUser,
+                generating: LocalVoiceRoute.self,
+                options: GenerationOptions(
+                    temperature: 0.2,
+                    maximumResponseTokens: LocalVoiceSplitResponse.routeMaximumResponseTokens
+                )
             )
-        )
-        // `collect()` drains the stream and materializes the non-partial
-        // Generable value. Partial snapshots are intentionally never routed.
-        let routeCollectStarted = ContinuousClock.now
-        let routeResponse = try await routeStream.collect()
-        Self.emitTiming(timing, "typed_route_collect_done", durationFrom: routeCollectStarted)
-        try Task.checkCancellation()
-        if timing.id == nextGenerationTimingID {
-            VoiceLatencyTimeline.shared.mark(.routeDone)
-        }
-        route = routeResponse.content
+            // `collect()` drains the stream and materializes the non-partial
+            // Generable value. Partial snapshots are intentionally never routed.
+            let routeCollectStarted = ContinuousClock.now
+            let routeResponse = try await routeStream.collect()
+            Self.emitTiming(timing, "typed_route_collect_done", durationFrom: routeCollectStarted)
+            try Task.checkCancellation()
+            if timing.id == nextGenerationTimingID {
+                VoiceLatencyTimeline.shared.mark(.routeDone)
+            }
+            route = routeResponse.content
         }
         // Log the decision boundary, not private conversation content. A live
         // routing failure must be distinguishable from an answer-stage failure.
@@ -871,6 +938,16 @@ actor FrontendResponder {
             payload = value
         case .notAddressedToMe: payload = FrontendDecisionPayload(intent: "not_addressed")
         case .answerQuestion: payload = FrontendDecisionPayload(intent: "answer")
+        }
+        if routeOnly {
+            // End this same native producer with one COMPLETE validated route in
+            // the existing buffer. Hold no task/ticket/reservation waiting for EOU.
+            Self.emitTiming(timing, "partial_route_ready")
+            if timing.id == nextGenerationTimingID {
+                VoiceLatencyTimeline.shared.note("partial_route_ready_nanos", String(VoiceLatencyTimeline.nowNanos()))
+            }
+            if mayDeliver(timing) { continuation.yield(try payload.controlChunk()) }
+            return true
         }
         switch route.intent {
         case .describeCapabilities, .startExternalTask, .reviseRunningTask, .cancelRunningTask, .checkTaskStatus, .answerApproval, .notAddressedToMe:

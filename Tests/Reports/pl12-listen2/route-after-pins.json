@@ -1,0 +1,12 @@
+{
+  "commit": "06e0f7be4f98853470e98be1abcd71bdde5bd728",
+  "source_hashes": {
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "bf009a06abfc0d6be349bdb8f95fd9d03e21cb70eb2da029ee7ecd0aa9147495",
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "875f0d652fe564d9e0b6880030be78eb4dbe24c70ac3bca191e72e27a6cad971",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "1d6e6b38646381474841cddff0ccc052ed63457e20120cdd1cb54cb3654f502e"
+  },
+  "binary_sha256": "c04ff737c9acc62db3cb90b54ada0ab342ba0af7601f9b18e2e32a7bc49cef64",
+  "binary_uuid": "UUID: E26AC151-1596-332F-B630-92D9A9A5154E (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/listen2/debug/NextNotes",
+  "fixture_sha256": "982488e3b99589617826cd54a62c6042a117b3b3ae4e47084fbe97c30a2da315",
+  "qualification": "route-only diagnostic, corrected Pocket, debug build"
+}
