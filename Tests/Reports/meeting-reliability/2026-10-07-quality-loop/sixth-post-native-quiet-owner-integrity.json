@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-08T06:08:11.723522+00:00",
+  "originalEightUnchanged": true,
+  "meetingStatusCounts": {
+    "done": 16
+  },
+  "source1173PinsInvariant": true,
+  "singleRootNativeQuietJoined": true,
+  "ownerChoicesScope": "selftest isolated preferences; broad store/default isolation pending sixth focused flag"
+}

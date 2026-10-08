@@ -1,0 +1,55 @@
+# Smallest observation-to-name-suggestions follow-on
+
+2026-10-08 source-only review; root-owned Source1173 remains frozen. No compiler, native process, browser, AX interaction or canonical source write occurred. Official provider feasibility remains in [the provider review](PROVIDER-IDENTITY-2026-10-08.md). This plan describes intended ownership/contracts, not an implemented roster feature.
+
+## Native prerequisite now proved
+
+The [sixth actual-consumer review](../../2026-10-07-quality-loop/sixth-speaker-rename-native-review.json) pins candidate SHA256 `8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9`. The exact original sheet callback preserved the prior51 checks and failed ten of the same81; the production `MeetingDetailView.commitSpeakerNames` passes81. It reads the current row, admits name and context saves before releasing temporary audio, and exposes failures through the existing problem state. Integrated producer commit: `b7c0952`. Physical sheet/banner clicks remain unobserved. These cases do not establish roster discovery, attribution or performance.
+
+## Actual fields and consumer boundaries
+
+| Existing producer/record | Identity and time retained | What this does not establish |
+| --- | --- | --- |
+| `CallDetector.CallActivity` | bundleID, PID, display name, `since: Date`, input/output flags | Provider meeting UUID, roster, which browser tab is joined |
+| `CallDetector.identity` | bundle-or-PID plus integer epoch second of `since` | Provider conference identity or a precise speech clock |
+| Existing `Meeting` | UUID, providerID/calendarEventID, coveringCallID, conferenceURL, start/end, invitation `[String]` | Actual attendance, participant identity, provider-to-voice association |
+| `MeetingController.session` / `MeetingSession` | Current recording object; start Date and monotonic capture host-time anchor | Current diagnostic does not read or bind these fields |
+| `TranscriptSegment` | Source track, interval, generated speaker label | A person's name or email |
+| Zoom diagnostic `Observation` | PID/launch Date, fractional wall-time interval, raw focused-window evidence | Zoom conference instance, participant IDs, speaker clock or current recording UUID |
+| Meet diagnostic `Observation` | CDP target ID, URL, fractional wall-time interval, raw AX JSON | Joined-call state, current recording UUID or audio timeline |
+
+`SpeakerNamesSheet` has one production caller, `MeetingDetailView`. It receives `labels`, invitation `suggestions: [String]` and `initialNames: [String:String]`. It shows invitation chips under “On the invite” and text fields; chips do not assign a name to a voice. Save trims typed names and calls the admitted production consumer. `NotesGenerator` already consumes the saved mapping when producing transcript/evidence; the UI says notes use these names when next written. Existing generated notes are not automatically rewritten by a rename.
+
+Precise frozen producer/consumer anchors: [diagnostic record](/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift:14), [Zoom read](/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift:81), [guarded Meet read](/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Computer/BrowserCDPClient.swift:896), [actual AX walk](/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Computer/AccessibilitySnapshot.swift:213), [detected call identity](/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/CallDetector.swift:431), [actual capture-time projection](/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingSession.swift:779), [sheet producer](/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift:13), [View wiring and admitted save](/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift:170).
+
+The suggestion list uses `ForEach(..., id: \.self)`. An observed roster may have duplicate display names, so feeding it into the existing strings verbatim would not preserve participant identity. Do not deduce that equal names are the same person. Keep candidate display suggestions distinct from any asserted roster/detail view.
+
+## Specific barriers before any physical handoff
+
+1. Zoom selection proves one running `us.zoom.xos` process. The capture reads its AX focused window, which may be its main/lobby/chat window. It checks PID/launch continuity but not conference continuity. A non-stub window is only raw evidence success.
+2. Zoom AX walks depth below8, at most40 children at each level and120 useful controls. It reads role/title/short value, flattening hierarchy; current output need not expose a provider participant key or speaking marker. `evidenceWasClipped` reports only final32,768-character truncation, not those traversal exclusions. False does not mean full roster coverage. AX read deadlines remain open. Its shared snapshot cache is safe inside the explicit diagnostic process; do not reuse it as a production observer that invalidates computer-action element IDs.
+3. Meet selection accepts HTTPS `meet.google.com` host pages including landing/lobby. Before/after reads check unique target, URL and socket; that guards navigation but not joined state. Existing local CDP must already be reachable; do not launch/reconfigure the browser for the default recording flow. Full AX reply size remains uncapped before the retained string is clipped; clipped JSON may not be parseable.
+4. Every diagnostic names array is deliberately empty and active speaker nil. There is no actual provider parser or typed participant timing producer. The retained private diagnostic directory had no physical sample at prior inventory. Generic19 is not a parser or attendance pass.
+5. Observation wall time bounds retrieval, not speech production. The live capture clock and legacy whole-second meeting date cannot be treated as equivalent. Roster suggestions do not need sample alignment; automatic binding does, with measured uncertainty and audio/source continuity.
+
+## Minimal next change, after actual observation
+
+First root coordinates one short physical Zoom and one Meet recording with known participants. Associate each private diagnostic invocation with the current Meeting UUID/covering-call identity in the private acceptance report. Independently establish which provider call is joined; record PID/launch or target/URL before and after, current recording identity, source, timing, accessible completeness and provider/app version. Do not import evidence merely because its process exists or its wall-time interval overlaps a meeting. No capture path polling, pass, extra store or provider setup is needed for this diagnostic step.
+
+Next implement a parser only for the actual retained provider shape. Use the same observation's joined-state and identity evidence as admission input. Missing IDs, unknown call state, changed process/target, ambiguous roster roles and clipped evidence must not become authoritative identity. A partial list can supply explicitly observed name suggestions without claiming everyone attended. Emails remain optional supplied values. Negative fixtures must include duplicate names, rename/rejoin, pinned non-speaker, overlapping speech and shared microphones.
+
+Then add a separate optional observed-suggestions input to the existing sheet, with plain source-specific copy such as “Seen in this call.” Preserve existing invitation chips and initialized manual mappings. A visible name is a suggestion only; it must never populate label fields by position. Keep this data transient while the sheet is open. Add optional structured participant provenance on the existing Meeting record only if actual restart/detail requirements establish that need; never overwrite invitation attendees to persist attendance.
+
+The unchanged retained provider input must fail typed suggestion admission before the parser and pass afterward. Exercise the real View/sheet suggestion consumer, existing manual commit method, a fresh store reader and context projection. Verify rejected observations cannot change names/context/audio. Native rendered suggestions and explicit user confirmation need physical acceptance separately. Provider-linked transcript/per-participant audio can be a later authorized binding slice through the same record and mapping seam; roster parsing does not complete it.
+
+Current follow-on verdict: source review/plan complete; actual provider input, parser, displayed roster suggestions, automatic speaker binding and physical performance **pending**. No executable artifacts were created; no cleanup is due for this slice.
+
+## Cache-staged diagnostic metadata correction
+
+[Owned patch](participant-coverage-cache-staged.patch) and [pins/probe scope](participant-coverage-cache-staged.json) are prepared only in the owned cache. No canonical file was edited. Patch applicability was checked against the frozen current sources; compilation and execution remain pending.
+
+The intended producer correction reports depth/children/useful-control limits from the actual AccessibilitySnapshot walker, exposes them through the existing capture text path, and records them separately from string clipping in the private diagnostic JSON. Existing capture/frame callers retain their text traversal through an overload; no added AX read, timer, model pass or roster association is introduced. Reaching the useful-control budget reports a limit reached, even when a particular tree might have no omitted controls; it never asserts a complete roster. Attribute-read failures and omitted accessibility semantics still mean no completeness proof.
+
+The Meet selector refuses an empty/root landing URL. A non-root room URL may still be a lobby, so every raw observation explicitly remains `callState: unverified`. No joined-state parser or speculative UI marker is introduced. The stdout marker states that limitation. Names remain unassigned, observed suggestions remain blocked, and existing confirmed mappings remain authoritative.
+
+The cache contains `original-coverage-probe.swift` and `fixed-coverage-probe.swift` with eleven identical public assertions. Each copies the exact original/current walker and Meet selector bodies byte-for-byte. Generic public nodes substitute only the OS attribute boundary/state; the old producer's absent metadata is explicitly represented as nil. Wide41-child, depth8 exclusion, useful120-budget and small-tree inputs check unchanged text counts plus honest coverage metadata; empty/root URLs check refusal and the existing room URL remains observable. These source-pinned component fixtures have **not compiled or run** and are not actual native AX/private-writer/physical-provider proof. A real diagnostic/private JSON consumer and physical observation remain separate acceptance requirements.

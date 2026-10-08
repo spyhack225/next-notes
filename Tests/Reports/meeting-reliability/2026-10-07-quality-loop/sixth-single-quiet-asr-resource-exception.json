@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-08T05:58:40.956072+00:00",
+  "relayReview": 599,
+  "scope": "one sixth actual isolated quiet Session explicit experiment only; public52566sample twochannel<=6existingASRcalls; no LLM/diarizer/fullCore/physical owner",
+  "guard": "max8.5GBswap/min7GBdisk/reportedfree>=60%beforelaunch,>=50%ongoing;180s/1GB sampled exactcandidatefootprint/AppKitdrain30s",
+  "priorMeasuredCost": "fifth direct same exactPCM peak sampledfoot205MB/RSS646MB; not current Session bound proof",
+  "normalGate": "last8.116GBswap/7.315GBdisk refused normalmax8; exception distinct",
+  "driver": "cache meeting-sixth-quiet-single-guarded-driver.py",
+  "state": "prepared; child not yet launched",
+  "guardAccuracy": "two-second process samples not continuous bounds; native shared ASR queue tail transitively joins every already-admitted work task in AppKit termination"
+}

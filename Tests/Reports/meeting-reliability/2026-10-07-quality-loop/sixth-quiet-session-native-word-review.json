@@ -1,0 +1,142 @@
+{
+  "at": "2026-10-08T06:03:28.381608+00:00",
+  "candidateSHA256": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "exit": 1,
+  "checks": 23,
+  "failedChecks": [
+    "MEETING_QUIET_SESSION_CHECK case=quiet check=native-live-mic-independent-words pass=false",
+    "MEETING_QUIET_SESSION_CHECK case=quiet check=native-live-system-independent-words pass=false"
+  ],
+  "publicClipWords": [
+    {
+      "stage": "live",
+      "source": "mic",
+      "text": "Great, I will send the sub- Yeah.",
+      "wordCount": 7
+    },
+    {
+      "stage": "final",
+      "source": "mic",
+      "text": "Great, I will send the summary tonight.",
+      "wordCount": 7
+    },
+    {
+      "stage": "live",
+      "source": "system",
+      "text": "Great, I will send the sub- Yeah.",
+      "wordCount": 7
+    },
+    {
+      "stage": "final",
+      "source": "system",
+      "text": "Great, I will send the summary tonight.",
+      "wordCount": 7
+    }
+  ],
+  "inputSamples": 52566,
+  "goldWords": 7,
+  "actualCuts": {
+    "live": [
+      32000,
+      20566
+    ],
+    "final": [
+      52566
+    ]
+  },
+  "nativeCalls": 6,
+  "allCallsSucceeded": true,
+  "allSourceDomainsMatched": true,
+  "calls": [
+    {
+      "laneWait": 6.0458e-05,
+      "stage": "live",
+      "SHA256": "e4cd36537e71a106288263b23ce29a80b7ab6b318f54ca827705b9b21364947e",
+      "sourceMatches": true,
+      "processingTime": 0.09302806854248047,
+      "native": true,
+      "compute": 21.681108458,
+      "succeeded": true,
+      "samples": 32000,
+      "elapsed": 21.681243959
+    },
+    {
+      "laneWait": 9.75e-06,
+      "stage": "live",
+      "SHA256": "e4cd36537e71a106288263b23ce29a80b7ab6b318f54ca827705b9b21364947e",
+      "sourceMatches": true,
+      "processingTime": 0.06800198554992676,
+      "native": true,
+      "compute": 0.068365208,
+      "succeeded": true,
+      "samples": 32000,
+      "elapsed": 21.732171333
+    },
+    {
+      "laneWait": 3.75e-06,
+      "stage": "live",
+      "SHA256": "e1e80481b57cd25c823d8dcca9d1a44822637c081281fa56ed5f45623ea4073c",
+      "sourceMatches": true,
+      "processingTime": 0.06053006649017334,
+      "native": true,
+      "compute": 0.060901666,
+      "succeeded": true,
+      "samples": 20566,
+      "elapsed": 0.060949375
+    },
+    {
+      "laneWait": 2.875e-06,
+      "stage": "live",
+      "SHA256": "e1e80481b57cd25c823d8dcca9d1a44822637c081281fa56ed5f45623ea4073c",
+      "sourceMatches": true,
+      "processingTime": 0.06008100509643555,
+      "native": true,
+      "compute": 0.060439416,
+      "succeeded": true,
+      "samples": 20566,
+      "elapsed": 0.060508167
+    },
+    {
+      "laneWait": 4.042e-06,
+      "stage": "final",
+      "SHA256": "b46f3aeff8eb81f7d393c93302c28c1f74e131b992ff51c76577470e650f1595",
+      "sourceMatches": true,
+      "processingTime": 0.06916499137878418,
+      "native": true,
+      "compute": 0.069512208,
+      "succeeded": true,
+      "samples": 52566,
+      "elapsed": 0.069585875
+    },
+    {
+      "laneWait": 3.875e-06,
+      "stage": "final",
+      "SHA256": "b46f3aeff8eb81f7d393c93302c28c1f74e131b992ff51c76577470e650f1595",
+      "sourceMatches": true,
+      "processingTime": 0.068107008934021,
+      "native": true,
+      "compute": 0.068444583,
+      "succeeded": true,
+      "samples": 52566,
+      "elapsed": 0.068518084
+    }
+  ],
+  "wallSeconds": 23.35144520799804,
+  "peakSampledFootprintBytes": 197412352,
+  "peakSampledRSSBytes": 659636224,
+  "memorySamples": 11,
+  "guardReason": null,
+  "childrenJoined": true,
+  "rawPublicClipLogSHA256": "9fe0c14889fef6df6863cdd474f99a403ac82a0048910728815556050ae612c0",
+  "resourceScope": "one reviewed max8.5/min7/reported60percentfree/180s/1GBsampledfoot isolated ASR; normalmax8 not passed",
+  "confirmedFailure": "conservative explicit admission rescues final fullclause but existing live RMS pause rule fragments quiet voiced clause, corrupting last two words; raw word count7 is not word equality",
+  "productionMeetingRuleChanged": false,
+  "broaderAcceptance": false,
+  "open": [
+    "actual pause producer repair same real Session words",
+    "loud/mixed/zero/DC/noise native controls and compute duty",
+    "paced hardware ASR+voice soak",
+    "complete note native factual arms"
+  ],
+  "diskMonitorScope": "min7GB admission only for root Session; ongoing footprint/swap/reported-memory guards, no continuous root disk measurement"
+}

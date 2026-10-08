@@ -95,3 +95,23 @@ recordings are untouched. See [cleanup receipt](sixth-obsolete-third-cleanup.jso
 Embedded browser 18 failures, physical participant-to-voice binding, complete factual
 notes/action recall, long paced ASR+voice soak and the 20 tok/s decode floor remain open.
 Provider roster data is not voice identity. See the [official-provider identity plan](../2026-10-07-quality-repair/speaker-projection/PROVIDER-IDENTITY-2026-10-08.md).
+
+
+## Native quiet Session: final recovery, live fragmentation remains failed
+
+The exact scoped native Session experiment joins in23.351s with six successful calls,
+23 checks and two word-equality failures. Final mic/system each recover all seven
+independent words. Live mic/system instead end with `sub- Yeah.`: the existing RMS
+pause rule divides the same voiced input into32,000 and20,566samples. Final uses the
+complete52,566sample clause. Seven output words do not establish seven correct words.
+
+The first existing queue compute span is21.681s including cold model preparation;
+its native processing reports0.093s. Subsequent warm native processing is0.060–0.069s.
+Eleven process samples peak at197,412,352bytes footprint and659,636,224bytes RSS, with
+no guard. These are short controlled observations, not a latency percentile, continuous
+peak or hardware ASR/voice soak. A separately reviewed one-case max8.5GBswap/min7GB
+disk/reported60%free/180s/1GBsampled-footprint profile is used; the normalmax8 gate
+remains refused. Source1,173pins and originaleightfiles stay unchanged; all16meetings
+are done before launch. No product quiet rule is promoted. The next responsible source
+is the live pause detector, with the same word/noise/cost acceptance still required.
+See [native word review](sixth-quiet-session-native-word-review.json).
