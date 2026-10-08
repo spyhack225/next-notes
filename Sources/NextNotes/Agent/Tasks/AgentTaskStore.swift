@@ -199,6 +199,16 @@ final class AgentTaskStore {
         }
     }
 
+    /// Explicit recovery uses one existing-only snapshot for canonical rows and journal.
+    /// This never repairs, creates or reloads a damaged owner.
+    func recoveredReadHistory() throws -> TaskStoreAuthorityProbe {
+        guard !failedLoad, !SelfTest.isRunning || allowsHarnessPersistence,
+              let probe = try mirror.probeAuthority(includeTasks: true, includeJournal: true),
+              probe.authority != nil else { throw TaskStoreError.authorityConflict }
+        try check(probe, witness: try? compatibilityData())
+        return probe
+    }
+
     func load() throws -> [AgentTask] {
         activityExport = nil
         do {
