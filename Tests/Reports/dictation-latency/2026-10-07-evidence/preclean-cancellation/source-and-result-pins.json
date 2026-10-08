@@ -1,0 +1,14 @@
+{
+  "IncrementalCleanup.original.swift": "0c58fcf789a97949f3375540df27e6c39b2d7f9603e0cea25eb765a2c6a44615",
+  "IncrementalCleanup.original-probe.swift": "df5c429a47c991e6a87b681e9e1fd3002313333c6cfcac6878753ba858b2a233",
+  "IncrementalCleanup.fixed-probe.swift": "251daa2f72d197affb94001eac7910ba89596540a19a88b1e40fd9284298d2a3",
+  "IncrementalCleanup.maintained-candidate.swift": "3ac47b14bf1bed9f7555eaebfdca6e72a7da2fcd2ee658e8240d99945689c91d",
+  "PrecleanCheck.swift": "b01f88c2bd4db2c9383a992f61181468ea97fcba2abecad127b42391bc7f9c46",
+  "ProbeTypes.swift": "a901566dd7d8e64944c6f700fdcef65f0ca0dd09c072508e00106bdca07a256d",
+  "SentenceChunker.swift": "9a411b7d64be49e3f1a1d8bbda69299ddbd5f3bc94fd980380336f36623cdf7d",
+  "Makefile": "b4aeee2cbc8cb210b1fa0f4ee8579a1d5fe7cc61f8ef004b73a1b2db71b6fe96",
+  "manifest.json": "6d20d7d124d424858a180c244317c899c8921f4770f1d3016f9c5a16eb361257",
+  "original-result.log": "89fc25a02ef534319e7d98ca5441252b10fb34fe5455c514bff68e05fe39e145",
+  "fixed-result.log": "39007b60e6cbe8ed8a1209c13e3bbfac07eddf7bc7e63c37a31560bbcd616aef",
+  "source-mutation-receipt.json": "4bf711a0c300577ac622eb3d6cf1c6280eee7cbb06c58bd782aa072d398254dc"
+}

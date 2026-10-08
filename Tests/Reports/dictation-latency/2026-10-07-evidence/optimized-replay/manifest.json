@@ -1,0 +1,55 @@
+{
+  "bundle": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-62791/Next Notes.app",
+  "sha256": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+  "source_files": 1167,
+  "features": "grammar/list formatting on, semantic MiniCPM route, all pre-clean groups, final layout enabled; context/history/insertion isolated",
+  "raw_word_error_rate": [
+    0.051,
+    0.051
+  ],
+  "cleaned_word_error_rate": [
+    0.051,
+    0.051
+  ],
+  "long_ms": {
+    "asr_final": [
+      47,
+      36
+    ],
+    "cleanup_publication": [
+      423,
+      424
+    ],
+    "final_ready": [
+      6433,
+      6320
+    ]
+  },
+  "short_ms": {
+    "cold_asr_startup": 22732,
+    "asr_final": [
+      63,
+      56
+    ],
+    "cleanup_publication": [
+      2222,
+      1852
+    ],
+    "final_ready": [
+      2251,
+      1863
+    ]
+  },
+  "target_polished_under_two_seconds": false,
+  "physical_paint_and_external_insertion_verified": false,
+  "children_joined": true,
+  "heavy_released": true,
+  "gate": {
+    "min_free_gb": 7,
+    "free_gb": 7.398750305175781,
+    "swap_gb": 7.64251953125,
+    "load": 2.62,
+    "normal_10gb_minimum_unmet": true
+  },
+  "log_query_empty": "No phase events returned by filtered system log; no evidence of native attempt phases supplied"
+}

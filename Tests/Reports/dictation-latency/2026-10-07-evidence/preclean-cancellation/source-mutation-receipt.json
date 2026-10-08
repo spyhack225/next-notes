@@ -1,0 +1,17 @@
+{
+  "scope": "authorized source window after native joins; no compiler/models",
+  "before": {
+    "Sources/NextNotes/Formatting/IncrementalCleanup.swift": "0c58fcf789a97949f3375540df27e6c39b2d7f9603e0cea25eb765a2c6a44615",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": "a31a7bcdf41cadb9913d46fe0ebe4f0ac09fb8104e7ddcf56fbc4e85f8cc212f",
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": "4eb846ddd17b168dda775b9a37ec27c1576fa05b315259debefa7de88d8cdcc3",
+    "Sources/NextNotes/Transcription/DictationSegmenter.swift": "1d11bedb7ba549d944480848f39643f901f34ae61698ae3dd5011fecb6295b83",
+    "Sources/NextNotes/UI/Dictation/LiveDictationText.swift": "9dc7eb10bc2c03cd525db4fa1e6b7db1003e75056cb5c2d15ab49ab9dc37e8df"
+  },
+  "after": {
+    "Sources/NextNotes/Formatting/IncrementalCleanup.swift": "42af5a20da34dc29c16f550d3b056bdb1389cd3be0c4282a604ca1af3f033285",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": "0df1c6e6f5d248f5b7585ee64e5fb2c2a5af6bf2ef6719945781da442d735db6",
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": "391f07d1572fed07523804e8399b25557654bc1983b0bd9a1796431d26b6e29d",
+    "Sources/NextNotes/Transcription/DictationSegmenter.swift": "5c9782b0c3f7e915126c53361a1beac5528435d5002ac2847c773bf8e4ef6196",
+    "Sources/NextNotes/UI/Dictation/LiveDictationText.swift": "6f1d7bac601d4e8f78edbc585863db4a99bfad261a4d9cc92bda6dcd5ca0b656"
+  }
+}

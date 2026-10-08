@@ -1,0 +1,4 @@
+PRECLEAN_MEASURE: joinedWhileFirstHeld=false wait=0.150419833 seconds semanticCalls=1
+FAIL: cancelled second task still waits behind held first task
+FAIL: cancelled second completion is not available as exact raw group
+PRECLEAN_FAILED: 2

@@ -1,0 +1,8 @@
+{
+  "case_outputs_identical": true,
+  "cases": 4000,
+  "characters": 43200,
+  "original_ms": 0.188188625,
+  "fixed_ms": 0.00257275,
+  "saved_ms_per_tail": 0.18561587499999999
+}

@@ -1,0 +1,37 @@
+{
+  "children_joined": true,
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-preclean-cancel-20261008/check-original",
+      "sha256": "c5b6591dbd2b415b23982ba05df0fecb739b7b08e35ba8b74dc62115553bdd1e",
+      "allocated_bytes": 172032
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-preclean-cancel-20261008/check-fixed",
+      "sha256": "10fa30f1a8eadd18e56f60aaac049676ca9d654bde7479d6b06fe90c9c0b7e7c",
+      "allocated_bytes": 176128
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-segmentation-energy-20261008/check-original",
+      "sha256": "b3620d2b91df7216e3009976b598524ac437588ac88714e1ae488068f6abe320",
+      "allocated_bytes": 69632
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-segmentation-energy-20261008/check-fixed",
+      "sha256": "85cbce86588330717d93f0dad286ac0ee607f18e8d9b46c76040874f7bd5024b",
+      "allocated_bytes": 69632
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-live-text-20261008/check-original",
+      "sha256": "8ceda0334c3f11141a317ed0ada04a856e9bfbd623da05b139cd0937b32fce3e",
+      "allocated_bytes": 65536
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-live-text-20261008/check-fixed",
+      "sha256": "7134b7a88c94cc6878e0a2958351616285198500ed0d9be585904915e0aff929",
+      "allocated_bytes": 65536
+    }
+  ],
+  "allocated_bytes_reclaimed": 618496,
+  "retained": "exact producer/fixture source, Makefiles, output and pins; pending maintained probe; current useful signed apps; models, owner recordings/stores and foreign artifacts untouched"
+}

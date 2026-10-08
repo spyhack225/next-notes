@@ -1,0 +1,1 @@
+xcrun swiftc -swift-version 6 -O IncrementalCleanup.maintained-production.swift SentenceChunker.swift ProbeTypes.swift MaintainedCheck.swift -o check-maintained

@@ -1,0 +1,10 @@
+{
+  "scope": "Compiled exact maintained production IncrementalCleanup source with SelfTest guard and isolated Foundation types; actual close/lane/head consumer. Signed app hook remains pending.",
+  "files": {
+    "IncrementalCleanup.maintained-production.swift": "42af5a20da34dc29c16f550d3b056bdb1389cd3be0c4282a604ca1af3f033285",
+    "MaintainedCheck.swift": "d42977379e97ced00000d283cd5fe9c724e69b6d335ffeb5fc03ac3f949183dd",
+    "maintained-compile.log": "0c915b078f15c816c1d81947f3f3e6e033d76426f5613c8ea2d81ed32629b3fd",
+    "maintained-result.log": "095385977e81d828b6a898bfc542d7bc6222965fa28f2dbe2fddce81957c7d5a",
+    "Makefile": "82676a14245648be782ac20aea734eb00e9a45a3d3da268fd03cd52479c402f1"
+  }
+}

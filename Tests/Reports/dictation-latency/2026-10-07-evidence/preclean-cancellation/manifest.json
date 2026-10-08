@@ -1,0 +1,21 @@
+{
+  "captured_results": "exact tool output, environment startup omitted",
+  "canonical_source_mutations": false,
+  "producer": "IncrementalCleanupSession.close -> PrecleanLane.run",
+  "consumer": "same CleanupHead.cleaned/completed Task outputs; not installed UI/native inference",
+  "original_verdict": "PRECLEAN_FAILED2",
+  "candidate_verdict": "PRECLEAN_OK",
+  "files": {
+    "IncrementalCleanup.original-probe.swift": "df5c429a47c991e6a87b681e9e1fd3002313333c6cfcac6878753ba858b2a233",
+    "ProbeTypes.swift": "a901566dd7d8e64944c6f700fdcef65f0ca0dd09c072508e00106bdca07a256d",
+    "check-fixed": "10fa30f1a8eadd18e56f60aaac049676ca9d654bde7479d6b06fe90c9c0b7e7c",
+    "Makefile": "b4aeee2cbc8cb210b1fa0f4ee8579a1d5fe7cc61f8ef004b73a1b2db71b6fe96",
+    "original-result.log": "89fc25a02ef534319e7d98ca5441252b10fb34fe5455c514bff68e05fe39e145",
+    "SentenceChunker.swift": "9a411b7d64be49e3f1a1d8bbda69299ddbd5f3bc94fd980380336f36623cdf7d",
+    "PrecleanCheck.swift": "b01f88c2bd4db2c9383a992f61181468ea97fcba2abecad127b42391bc7f9c46",
+    "fixed-result.log": "39007b60e6cbe8ed8a1209c13e3bbfac07eddf7bc7e63c37a31560bbcd616aef",
+    "check-original": "c5b6591dbd2b415b23982ba05df0fecb739b7b08e35ba8b74dc62115553bdd1e",
+    "IncrementalCleanup.fixed-probe.swift": "251daa2f72d197affb94001eac7910ba89596540a19a88b1e40fd9284298d2a3",
+    "IncrementalCleanup.original.swift": "0c58fcf789a97949f3375540df27e6c39b2d7f9603e0cea25eb765a2c6a44615"
+  }
+}
