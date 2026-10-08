@@ -1,0 +1,32 @@
+diff --git a/Scripts/dictation-gates.sh b/Scripts/dictation-gates.sh
+index 161bdcb..53cb99a 100755
+--- a/Scripts/dictation-gates.sh
++++ b/Scripts/dictation-gates.sh
+@@ -22,14 +22,24 @@ STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+ HEAD=$(git -C "$ROOT" rev-parse --short HEAD 2>/dev/null || echo unknown)
+ 
+ mkdir -p "$OUT" || exit 0
+-TXT=$(mktemp "$OUT/.gates.XXXXXX")
+-JSON=$(mktemp "$OUT/.gates.XXXXXX")
++TXT=""
++JSON=""
++# Every scratch file this run creates goes on every way out: success (the published files
++# were moved away from their temp names, so only $TXT is left), a failed reader, a signal.
++# `.gates.err` is deliberately not here — a failed run points the history line at it.
++cleanup() {
++  [ -n "$TXT" ] && rm -f "$TXT" "$TXT.header"
++  [ -n "$JSON" ] && rm -f "$JSON"
++}
++trap cleanup EXIT
++trap 'exit 0' HUP INT TERM
++TXT=$(mktemp "$OUT/.gates.XXXXXX") || exit 0
++JSON=$(mktemp "$OUT/.gates.XXXXXX") || exit 0
+ 
+ python3 "$ROOT/Scripts/dictation-stats.py" --gates >"$TXT" 2>"$OUT/.gates.err" || {
+   # A broken reader must not look like a verdict. Leave the previous report in place and
+   # record the failure, so the next agent sees "the report is stale" rather than "no news".
+   printf 'GATES_RUN_FAILED %s head=%s see %s\n' "$STAMP" "$HEAD" "$OUT/.gates.err" >>"$OUT/gates-history.jsonl"
+-  rm -f "$TXT" "$JSON"
+   exit 0
+ }
+ 

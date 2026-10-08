@@ -1,0 +1,73 @@
+diff --git a/Sources/NextNotes/Core/AudioCaptureHub.swift b/Sources/NextNotes/Core/AudioCaptureHub.swift
+index 195f6c4..feeec99 100644
+--- a/Sources/NextNotes/Core/AudioCaptureHub.swift
++++ b/Sources/NextNotes/Core/AudioCaptureHub.swift
+@@ -265,11 +265,20 @@ final class AudioCaptureHub {
+     /// wedged callback from pinning Stop indefinitely; false means the caller must
+     /// report an incomplete recording.
+     func unsubscribeAndDrain(_ consumer: Consumer) async -> Bool {
++        await stopAndDrain(consumer).value
++    }
++
++    /// Closes capture admission synchronously, then drains the existing delivery worker.
++    /// Key-up must stop the microphone before returning to the event tap, while the
++    /// controller keeps its audio stream open for packets already accepted by this worker.
++    func stopAndDrain(_ consumer: Consumer) -> Task<Bool, Never> {
+         let (slot, shouldStop) = takeSlot(consumer)
+         slot?.worker.stopAccepting()
+         if shouldStop { stopEngine() }
+-        guard let slot else { return true }
+-        return await slot.worker.drainAndStop(timeout: 3)
++        return Task {
++            guard let slot else { return true }
++            return await slot.worker.drainAndStop(timeout: 3)
++        }
+     }
+ 
+     // MARK: - Engine
+@@ -737,6 +746,45 @@ extension AudioCaptureHub {
+         // audio queue can return before that report reaches the meeting's loss count.
+         // Force overflow in a one-packet worker, then require the exact count at
+         // return and no delayed duplicate from its already queued report callback.
++        // The controller's real key-up boundary must retain accepted dictation packets.
++        // Block its first callback so the two final packets are certainly queued at Stop.
++        let dictationDelivery = CaptureSelfTestRecorder()
++        let callbackEntered = CleanupAdmission()
++        let resumeCallback = DispatchSemaphore(value: 0)
++        do {
++            try hub.subscribe(.dictation, outputFormat: format, onBuffer: { chunk in
++                let value = AudioConversion.samples(of: chunk.buffer).first ?? -1
++                if value == 0 {
++                    callbackEntered.admit()
++                    _ = resumeCallback.wait(timeout: .now() + 2)
++                }
++                dictationDelivery.append(value, hostTime: chunk.captureHostTime)
++            })
++            for index in 0..<3 {
++                guard let packet = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32) else { break }
++                packet.frameLength = 32
++                packet.floatChannelData?[0].initialize(repeating: Float(index), count: 32)
++                hub.feedForTesting(packet, captureHostTime: UInt64(index + 3000))
++                if index == 0,
++                   await withBoundedWait(.seconds(2), { await callbackEntered.wait() }) != true {
++                    failures.append("dictation Stop fixture never entered capture callback")
++                }
++            }
++            let stopped = DictationController.stopDictationCapture(on: hub)
++            if hub.isSubscribed(.dictation) {
++                failures.append("dictation Stop did not close microphone admission immediately")
++            }
++            resumeCallback.signal()
++            let drained = await stopped.value
++            let report = dictationDelivery.snapshot()
++            if !drained || report.values != [0, 1, 2] {
++                failures.append("dictation key-up lost accepted tail packets (\(report.values), drained=\(drained))")
++            }
++        } catch {
++            resumeCallback.signal()
++            failures.append("dictation Stop fixture failed: \(error.localizedDescription)")
++        }
++
+         let overflowAtStop = CaptureSelfTestRecorder()
+         let overflowWorker = AudioCaptureDeliveryWorker(
+             maxPending: 1,

@@ -64,6 +64,11 @@ static int parser_check(void) {
 
 int main(int argc, char **argv) {
     if (argc == 2 && strcmp(argv[1], "--parser-only") == 0) return parser_check();
+    // The default diagnostic executable cannot initialize a backend/model/context.
+    // Native arms require a distinct, explicitly reviewed compile and lifecycle scope.
+#ifndef ENABLE_NATIVE_CONTEXT_PROBE
+    return 75;
+#else
     if (argc != 4) return 64;
     unsigned ctx = (unsigned)strtoul(argv[2], NULL, 10);
     int gpu = (int)strtol(argv[3], NULL, 10);
@@ -107,4 +112,5 @@ int main(int argc, char **argv) {
     printf("{\"status\":%d,\"acceptedMetadataLines\":%u,\"refusedLines\":%u,\"priorCallbackRestored\":true}\n",
            status, accepted, refused);
     return status;
+#endif
 }

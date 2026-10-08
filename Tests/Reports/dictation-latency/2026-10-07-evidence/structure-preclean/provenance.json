@@ -1,0 +1,35 @@
+{
+  "status": "Prepared only; exact producers/splitter/lookup. Router finish is not exercised by this component; identity semantic substituted. Candidate closure not applied.",
+  "sources": {
+    "Sources/NextNotes/Formatting/TextFormatter.swift": {
+      "sourceSHA": "165d0182c9f4dc90518e27418f7ac86592d580526bc5824c2b3e4c3fd8d0a4d7",
+      "copiedSHA": "7fc69123110b5dc5e617a17dee2e1f17bc859766689734264b985ebbdf81a3ec",
+      "copiedName": "Rules.production.swift"
+    },
+    "Sources/NextNotes/Formatting/SpokenStructure.swift": {
+      "sourceSHA": "ff8c82a0af8d646ffaaef590499aafab24daaa91c710195a8df7c763ce3a4712",
+      "copiedSHA": "85b86e49e143a52242090d3aa5b797a848872c638f0af79bf9228924cd4369aa",
+      "copiedName": "SpokenStructure.production.swift"
+    },
+    "Sources/NextNotes/Formatting/SentenceChunker.swift": {
+      "sourceSHA": "bcd28cf8fe4fcb743a06c847380c29a9502cb8f548da551723b6c7975f9a313b",
+      "copiedSHA": "bcd28cf8fe4fcb743a06c847380c29a9502cb8f548da551723b6c7975f9a313b",
+      "copiedName": "SentenceChunker.production.swift"
+    },
+    "Sources/NextNotes/Formatting/Targets/OutputProfile.swift": {
+      "sourceSHA": "ce5df0a3e1f4c31cc455e408c2cf91f69c2856297dd83deaa3a2eb85253c3ac5",
+      "copiedSHA": "ce5df0a3e1f4c31cc455e408c2cf91f69c2856297dd83deaa3a2eb85253c3ac5",
+      "copiedName": "OutputProfile.production.swift"
+    },
+    "Sources/NextNotes/Formatting/IncrementalCleanup.swift": {
+      "sourceSHA": "42af5a20da34dc29c16f550d3b056bdb1389cd3be0c4282a604ca1af3f033285",
+      "copiedSHA": "8f928b50559350ab9dd52184f0ffa60d1e01bfffb94d9b2e8c41966d77fbb57f",
+      "copiedName": "IncrementalCleanup.production.swift"
+    }
+  },
+  "routerSHA": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280",
+  "controllerSHA": "48ea2657bd2e8094057415bed5082d51e6db0d2194f4feee8bbb57a9e082f0d0",
+  "scope": "Closed spoken structure, cross-boundary envelopes, final punctuation, disabled/target controls; no model/owner store/app.",
+  "fixtureSHA": "2b44af5dad4944a3344f14f7b108a3772d95974a9b11c7d8d162ecb237c384f0",
+  "recipeSHA": "fc2d26b178c09b19ba3b0ab4d09313790745d6f8a4bd81cbc74d0ce223164d80"
+}

@@ -1,0 +1,5 @@
+{"phase":"parser","kind":"compute","device":"cpu","reportedMiB":12.50000000}
+{"phase":"parser","kind":"output","device":"metal","reportedMiB":1.25000000}
+{"phase":"parser","kind":"kv","device":"cpu","reportedMiB":32.00000000}
+{"phase":"parser","kind":"recurrent","device":"cpu","reportedMiB":2.00000000}
+{"parserAccepted":4,"parserRefused":5}

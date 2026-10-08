@@ -1,0 +1,25 @@
+{
+  "utc": "2026-10-08T07:39:45.760084+00:00",
+  "status": "Cache-only exact producer metadata hypothesis, original/candidate uncompiled/unrun; no canonical change",
+  "sourceSHA": "438349e47533d917cefb73686b778c7fe4511ee98b077693e02ff2fcec8eff61",
+  "candidateSHA": "422d052b1cd0adf51fe281bcacc252c531f875a3bcc2dad2962a08c1a42fd690",
+  "hypothesis": "A held previous-session model pass returns after start() resets diagnostics and unconditionally increments current hold pass/compute counters. Text drain already checks session; actual ownership regression required.",
+  "notClaimed": [
+    "Owner second-call latency cause",
+    "Acoustic/output quality fix",
+    "Complete start/finish supersession lifecycle",
+    "Native stale-input cancellation"
+  ],
+  "boundarySubstitutions": [
+    "Native recognizer/converter/scheduler/model registry"
+  ],
+  "captureFinalFinishReservationNotChanged": true,
+  "fixtureSHA": "813671511854611782dd299b2f0d0aaacae8ec21494fa077353bc1492c7bf203",
+  "sharedBoundariesSHA": {
+    "DictationSegmenter.candidate.swift": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad",
+    "ParakeetInput.swift": "9bf9a41e99d92a0b496d955d0d464d004136884c62509fb2373ec74068995e7c",
+    "AudioConversion.swift": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1",
+    "TranscriptionEngine.swift": "78291e26cf280bf400eb5e54f0f18e4c617e7391db8a60d9cfc6172c6305949d",
+    "EngineBoundaryTypes.swift": "1168b39c694a75771985c0e6d50b6d33875275cd691520f568a9e53a6f92ff1f"
+  }
+}

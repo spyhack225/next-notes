@@ -1,0 +1,26 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -479,15 +479,20 @@
+         // Signal presence belongs to this exact inference input, not the whole hold.
+         // A hold containing speech can still have a literal-zero leading or final segment.
+         guard audio.contains(where: { $0 != 0 }) else { return "" }
++        let passSession = activeSession
+         await enterLane()
+         let started = Date()
+         do {
+             var decoderState = try TdtDecoderState()
+             let result = try await manager.transcribe(audio, decoderState: &decoderState)
+             await leaveLane()
+-            diagnostics.passes += 1
+-            if isSegment { diagnostics.segmentPasses += 1 }
+-            diagnostics.computeSeconds += Date().timeIntervalSince(started)
++            // A retired hold's native pass may finish after the next hold starts.
++            // Its words are already fenced in drain; its metrics need the same owner.
++            if activeSession == passSession {
++                diagnostics.passes += 1
++                if isSegment { diagnostics.segmentPasses += 1 }
++                diagnostics.computeSeconds += Date().timeIntervalSince(started)
++            }
+             return result.text.trimmingCharacters(in: .whitespacesAndNewlines)
+         } catch {
+             await leaveLane()

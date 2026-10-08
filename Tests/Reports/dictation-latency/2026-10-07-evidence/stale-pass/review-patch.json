@@ -1,0 +1,7 @@
+{
+  "beforeSHA": "438349e47533d917cefb73686b778c7fe4511ee98b077693e02ff2fcec8eff61",
+  "afterSHA": "8b3098127dca8362f5c4702f7a032bdda4580ab91951dca566b98dc6c6117a17",
+  "patchSHA": "6ad528c5cdff4d64b7ed406b9b64a5ceb1bcd8710d0c3709a8dd844f28b4f027",
+  "status": "Review-only; no canonical source writer",
+  "component": "OriginalRED2, fixedall6; no native output or owner latency proof"
+}

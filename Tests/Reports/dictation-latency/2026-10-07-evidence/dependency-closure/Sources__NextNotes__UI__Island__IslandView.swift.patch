@@ -1,0 +1,157 @@
+diff --git a/Sources/NextNotes/UI/Island/IslandView.swift b/Sources/NextNotes/UI/Island/IslandView.swift
+index 58679db..46b0d07 100644
+--- a/Sources/NextNotes/UI/Island/IslandView.swift
++++ b/Sources/NextNotes/UI/Island/IslandView.swift
+@@ -26,8 +26,11 @@ struct IslandView: View {
+             // A question arrives with a little bounce and a readout simply changes: the
+             // island is at the top of the screen either way, and only one of the two is
+             // asking to be looked at.
++            //
++            // Live dictation opens itself too, but it is a readout rather than a question:
++            // words arriving under the notch while someone talks should settle, not bounce.
+             .animation(
+-                reduceMotion ? nil : state.kind.demandsAttention ? DS.Motion.bouncy : DS.Motion.fluid,
++                reduceMotion ? nil : arrivesAsQuestion ? DS.Motion.bouncy : DS.Motion.fluid,
+                 value: state.kind.identity
+             )
+             .opacity(state.kind.isHidden ? 0 : 1)
+@@ -35,6 +38,8 @@ struct IslandView: View {
+             // collapsed card by that inset and the badges land below the notch — or
+             // disappear, when the card is only as tall as the inset it was padded by.
+             .ignoresSafeArea()
++            .tint(DS.Color.accent)
++            .font(DS.Font.body)
+     }
+ 
+     private var size: CGSize {
+@@ -45,6 +50,12 @@ struct IslandView: View {
+         state.isExpanded ? DS.Motion.islandExpand : DS.Motion.islandCollapse
+     }
+ 
++    /// A card that opened itself to ask something. A live dictation card also opens by
++    /// itself, but only to show the words, so it neither bounces nor squashes on arrival.
++    private var arrivesAsQuestion: Bool {
++        state.kind.demandsAttention && state.kind.dictationStage == nil
++    }
++
+     // MARK: - The card
+ 
+     @ViewBuilder
+@@ -57,7 +68,9 @@ struct IslandView: View {
+             cardContent
+                 .keyframeAnimator(
+                     initialValue: CGFloat(1),
+-                    trigger: state.isExpanded
++                    // Not for the live dictation card: the first words arriving would make
++                    // the island jump while the person is still talking.
++                    trigger: state.isExpanded && state.kind.dictationStage == nil
+                 ) { view, scale in
+                     view.scaleEffect(x: 1, y: scale, anchor: .top)
+                 } keyframes: { _ in
+@@ -77,7 +90,7 @@ struct IslandView: View {
+             .clipShape(shape)
+     }
+ 
+-    /// Black and opaque against the bezel, glass when it is floating over a window.
++    /// Fixed-light opaque surface beside the notch; theme glass over a window.
+     ///
+     /// `GlassEffectContainer` so that the card and the controls inside it are resolved as
+     /// one piece of glass while the shape is changing size, instead of each sampling what is
+@@ -156,7 +169,7 @@ struct IslandView: View {
+             VStack(alignment: .leading, spacing: DS.Space.xs) {
+                 Text(state.cardTitle)
+                     .font(DS.Font.headline)
+-                    .tracking(0)
++                    .tracking(DS.Font.wordTracking)
+                     .foregroundStyle(ink)
+                     .lineLimit(1)
+                 detail
+@@ -188,7 +201,7 @@ struct IslandView: View {
+     /// the key comes up — that is work, not recording, and the red dot would lie.
+     private var isCapturing: Bool {
+         switch state.kind {
+-        case .dictating(_, _, let capturing): capturing
++        case .dictating(_, _, let capturing, _): capturing
+         case .meetingRecording: true
+         case .agentListening: true
+         default: false
+@@ -258,7 +271,7 @@ struct IslandView: View {
+     @ViewBuilder
+     private var trailing: some View {
+         switch state.kind {
+-        case .dictating(_, let level, let capturing):
++        case .dictating(_, let level, let capturing, _):
+             // The meter answers "is it hearing me?", so it is shown only while something
+             // is actually being heard. A bar pinned at zero after the key came up reads as
+             // a dead microphone rather than as work in progress.
+@@ -286,6 +299,7 @@ struct IslandView: View {
+                 Text("\(proposal.needsCount)")
+                     .font(DS.Font.counterSmall)
+                     .monospacedDigit()
++                    .lineLimit(1)
+                     .foregroundStyle(ink)
+                     .accessibilityLabel(proposal.needsSummary ?? "")
+             }
+@@ -296,6 +310,7 @@ struct IslandView: View {
+             Text("\(waiting) waiting")
+                 .font(DS.Font.counterSmall)
+                 .monospacedDigit()
++                .lineLimit(1)
+                 .foregroundStyle(ink)
+                 .accessibilityLabel(proposalAccessibilityLabel(waiting))
+         case .agentWorking(_, let current, let total):
+@@ -304,6 +319,7 @@ struct IslandView: View {
+                 Text("\(current)/\(total)")
+                     .font(DS.Font.counterSmall)
+                     .monospacedDigit()
++                    .lineLimit(1)
+                     .foregroundStyle(ink)
+                     .contentTransition(.numericText())
+                     .accessibilityLabel("Step \(current) of \(total)")
+@@ -388,18 +404,31 @@ struct IslandView: View {
+     @ViewBuilder
+     private var detail: some View {
+         switch state.kind {
+-        case .dictating(let transcript, let level, let capturing):
+-            HStack(spacing: DS.Space.s) {
++        case .dictating(let transcript, let level, let capturing, _):
++            // The words so far, newest kept, in two lines whose height is reserved so the
++            // second line arriving moves nothing. The title above says the stage
++            // ("Listening…", "Writing it out…", "Tidying up…"), so this line is only ever
++            // the person's own words — after key-up it holds the raw text, unchanged, until
++            // the cleaned-up version is typed and the card closes.
++            HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
+                 if capturing {
+                     LevelBar(level: level)
+                         .frame(width: DS.Size.islandBarWidth)
+                 }
+-                Text(transcript.isEmpty ? (capturing ? "Listening\u{2026}" : "Transcribing\u{2026}") : transcript)
++                Text(LiveDictationText.tail(transcript, limit: DS.LiveText.islandTailCharacters))
+                     .font(DS.Font.callout)
++                    .tracking(DS.Font.wordTracking)
+                     .foregroundStyle(secondaryInk)
+-                    .lineLimit(2)
++                    .lineLimit(DS.LiveText.lines, reservesSpace: true)
+                     .truncationMode(.head)
++                    .frame(maxWidth: .infinity, alignment: .leading)
++                    .animation(reduceMotion ? nil : DS.Motion.liveText, value: transcript)
+             }
++            // One element with a name, not a live region: VoiceOver reads the words when the
++            // person goes to them, and does not announce every partial while they talk.
++            .accessibilityElement(children: .ignore)
++            .accessibilityLabel("Your words so far")
++            .accessibilityValue(LiveDictationText.hasWords(transcript) ? transcript : "None yet")
+ 
+         case .meetingRecording(let elapsed, let micLevel, let systemLevel):
+             VStack(alignment: .leading, spacing: DS.Space.xs) {
+@@ -594,8 +623,8 @@ struct IslandView: View {
+             : "Recording now."
+     }
+ 
+-    /// The island's substrate is the bezel, not the window, so its ink is fixed rather than
+-    /// semantic — `.primary` on a permanently black card resolves to black in light mode.
++    /// Both layouts consume fixed theme ink; the notch layout uses the same paired
++    /// background/foreground aliases as the shared palette.
+     private var ink: Color {
+         metrics.hugsNotch ? DS.Color.islandInk : DS.Color.text
+     }

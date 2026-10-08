@@ -1,0 +1,25 @@
+{
+  "status": "Cache helper writer joined; original unreadable/recycled known orphan false absence reproduced and fixed six assertions pass. Prior controls unchanged; no OS/compiler/model child launched.",
+  "helperSHA": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+  "driverSHA": "24a6d9aae1b0d570191c06d166bc6de71b6b14bfeb6cbd6e37ae822665952c75",
+  "beforeHelperSHA": "a16a1f82984755e8d2d753303f616568c18dc5ebea2fe19fcca7be09d81f55ec",
+  "tests": {
+    "OwnedCompilerProcessCheck.py": {
+      "passed": 11,
+      "total": 11
+    },
+    "OwnedCompilerDriverRegression.py": {
+      "passed": 8,
+      "total": 8
+    },
+    "OwnedCompilerObservationRaceCheck.py": {
+      "passed": 14,
+      "total": 14
+    },
+    "OwnedCompilerOrphanCheck.py": {
+      "passed": 6,
+      "total": 6
+    }
+  },
+  "resourceCapsChanged": false
+}

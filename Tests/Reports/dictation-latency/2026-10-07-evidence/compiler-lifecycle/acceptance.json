@@ -1,0 +1,57 @@
+{
+  "utc": "2026-10-08T08:11:08.040515+00:00",
+  "status": "Cache-only lifecycle monitor: original phase leak/late child and unreadable/recycled ownership failures reproduced; fixed39 substituted controls pass. Actual bounded component compiler exits observed; seventh guarded compiler three exact children physically joined0.208s. Historical refused native compiler cause remains unknown.",
+  "hashes": {
+    "OwnedCompilerDriverRegression.attempt1.py": "4529596b8ae0d2ee5fe2f1e2ddc5b8649c7cea1160b5614a1473933e690309c4",
+    "OwnedCompilerDriverRegression.attempt2.py": "b6cd3dc77360d9fefb38fd4eacf190db69a5d8d82dcd707c989420eb0f155efc",
+    "OwnedCompilerDriverRegression.py": "4d015fc9f3068b68fc07a4223e9b0de146e579894113e5b56cae5a35ab34c31e",
+    "OwnedCompilerObservationRaceCheck.py": "3ef8605d4ff17348d3680a4d75bc48356c16c94615deec2e50fed76a0f8a1ce4",
+    "OwnedCompilerObservationRaceCheck.py.result.json": "c77c80c1a4855840eae47801e88a8d9937c19a21fc3a3daf7a67acdfdb718c3b",
+    "OwnedCompilerOrphanCheck.py": "bd1bd3fdb2f49448238ea1441b3630085104cb97d507377aaa37c06a4dc44ec3",
+    "OwnedCompilerOrphanCheck.py.result.json": "5d78eb1667b9a85f2c77f8d3721648fc8e77b7b5dbba8a1c7d685f71459e892c",
+    "OwnedCompilerProcess.before-observation-race.py": "11f94a5cf1ebac080146a8396537a18838ab31cf032236e529670d41ff8fde0a",
+    "OwnedCompilerProcess.before-orphan-refusal.py": "a16a1f82984755e8d2d753303f616568c18dc5ebea2fe19fcca7be09d81f55ec",
+    "OwnedCompilerProcess.before-root-fence.py": "5d2f6801c95010bb829bd5a1b2722cb17187c1a88ed6494a77170a8c534df81c",
+    "OwnedCompilerProcess.final-review.json": "f0b99e1202992cbca37d731170b228cc69827a82b066aa8d5fdb233ed664e851",
+    "OwnedCompilerProcess.observation-race-review.json": "e3dd9a743decb2e502d0722d77ba774f6f5844e73c3e46b020e7462fe70ac06b",
+    "OwnedCompilerProcess.observation-race-review.patch": "3065f550b3b37a082680858e2f39934d70ad3e94eb271c3b291dea8542ead873",
+    "OwnedCompilerProcess.orphan-review.patch": "7672b3375847310d2fc27f51709ede24d3fe927a57faa0bd1c8d6968f5877822",
+    "OwnedCompilerProcess.py": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+    "OwnedCompilerProcessCheck.py": "e06120b31b4f52c7cb6779040ffe76624edf623b7bce63a5f3fdf8577ba80b7d",
+    "acceptance-before-race-followup.json": "820db152dcd819a2ee113fc5bfb65a073efebcc3ada9cda1ee025c854649ac9c",
+    "exact-loop-regression.json": "85ff5e81cf84bcd7a6292118c6ee05ee33c4ad806fce6dfabd71bc49a90f9cc0",
+    "helper-controls.json": "523072d116f872b1bf34d987fc4ff8b349692dd3834bd1a5068613fe369e1887",
+    "meeting-seventh-lifecycle-review-only.patch": "2ab02d4367bcda65a59c50b6d3a6104288448506c70ce6715dd173e210bf5c87",
+    "meeting-seventh-lifecycle-review.json": "dc0c24a3204d906a74cd39d645389f0c2a0096580ea2817721f431295193a803",
+    "meeting-seventh-release-guarded.before-lifecycle.py": "4362cc6f6411d2cc7f715009b495f4e72858c69c2aae03d1c064246caf3f09a3",
+    "meeting-seventh-release-guarded.py": "24a6d9aae1b0d570191c06d166bc6de71b6b14bfeb6cbd6e37ae822665952c75"
+  },
+  "sourcesChanged": false,
+  "nativeOrCompilerChildLaunchedByTests": false,
+  "failedFixtureScaffoldsRetained": [
+    "attempt1 omitted phaseReceipts globals",
+    "attempt2 omitted subprocess.STDOUT boundary constant"
+  ],
+  "resourceProfileChanged": false,
+  "rootIndependentReviewCursor": 693,
+  "priorAcceptancePreservedAs": "acceptance-before-race-followup.json",
+  "tests": {
+    "OwnedCompilerProcessCheck.py": {
+      "passed": 11,
+      "total": 11
+    },
+    "OwnedCompilerDriverRegression.py": {
+      "passed": 8,
+      "total": 8
+    },
+    "OwnedCompilerObservationRaceCheck.py": {
+      "passed": 14,
+      "total": 14
+    },
+    "OwnedCompilerOrphanCheck.py": {
+      "passed": 6,
+      "total": 6
+    }
+  },
+  "guardProfilesUnchangedByHelper": true
+}

@@ -1,0 +1,31 @@
+--- OwnedCompilerProcess.before-orphan-refusal.py
++++ OwnedCompilerProcess.py
+@@ -71,7 +71,16 @@
+     for pid in list(owned):
+         if pid in by_pid:
+             fact = read_fact(pid)
+-            if fact and fact.get('processStart') == owned[pid]:
++            if pid in retired:
++                continue
++            if fact is None or not fact.get('processStart'):
++                problems.append('owned attribution unavailable')
++                unresolved.append(pid)
++            elif fact['processStart'] != owned[pid]:
++                note(pid, 'process start mismatch', fact['processStart'])
++                problems.append('owned process start mismatch')
++                unresolved.append(pid)
++            else:
+                 facts[pid] = fact
+ 
+     root_row = by_pid.get(child.pid)
+@@ -86,7 +95,9 @@
+         # match before its group or ancestry can admit any new process.
+         group_allowed = child.pid in facts
+         if not group_allowed:
+-            if child.pid in owned or child.returncode is None:
++            if child.pid in unresolved:
++                group_allowed = False
++            elif child.pid in owned or child.returncode is None:
+                 group_allowed = admit(child.pid)
+             else:
+                 problems.append('unbound reaped root present')

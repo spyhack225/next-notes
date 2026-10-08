@@ -1,0 +1,77 @@
+diff --git a/Sources/NextNotes/Formatting/CleanupTrace.swift b/Sources/NextNotes/Formatting/CleanupTrace.swift
+index ca2aad7..98624df 100644
+--- a/Sources/NextNotes/Formatting/CleanupTrace.swift
++++ b/Sources/NextNotes/Formatting/CleanupTrace.swift
+@@ -116,6 +116,12 @@ final class CleanupTrace: @unchecked Sendable {
+         mutate { $0.precleanedGroups = count }
+     }
+ 
++    /// Nonempty formatter answers available when the head is selected. This may
++    /// include a formatter's own fallback; it is not a model-quality verdict.
++    func notePrecleanAnsweredGroups(_ count: Int) {
++        mutate { $0.precleanAnsweredGroups = count }
++    }
++
+     func notePrecleanFallback(_ reason: String) {
+         mutate { $0.precleanFallback = $0.precleanFallback ?? reason }
+     }
+@@ -237,6 +243,33 @@ final class CleanupTrace: @unchecked Sendable {
+         }
+     }
+ 
++    /// Which engine actually produced (or was handed) this pass's text — `miniCPM`,
++    /// `apple` — accumulated in first-use order across chunks. The settings' `engine`
++    /// says what was *chosen*; this says what *ran*, which is what the usage row files.
++    func noteEngineUsed(_ engine: String) {
++        mutate {
++            var used = $0.enginesUsed ?? []
++            if !used.contains(engine) { used.append(engine) }
++            $0.enginesUsed = used
++        }
++    }
++
++    /// Whether the cleanup model's weights were already resident when the pass asked.
++    /// False on any chunk wins: one cold group is a cold run.
++    func noteCleanupModelResident(_ resident: Bool) {
++        mutate { $0.cleanupModelResident = ($0.cleanupModelResident ?? true) && resident }
++    }
++
++    /// Exact counts from the in-process tokenizer for a local cleanup pass, summed across
++    /// chunks.
++    func noteTokens(prompt: Int, cached: Int, completion: Int) {
++        mutate {
++            $0.promptTokens = ($0.promptTokens ?? 0) + prompt
++            $0.cachedTokens = ($0.cachedTokens ?? 0) + cached
++            $0.completionTokens = ($0.completionTokens ?? 0) + completion
++        }
++    }
++
+     // MARK: - One row per sentence group (D-08)
+ 
+     /// Whether *this* group ran on a session staged for it. Filed before the call, like the
+@@ -339,6 +372,10 @@ struct CleanupRecord: Codable, Sendable, Hashable {
+     /// `precleanFallback` when it did and the rules were enough on their own. Old rows
+     /// decode as nil.
+     var precleanedGroups: Int?
++    /// Selected head groups whose formatter returned a nonempty answer before final
++    /// selection. Includes formatter fallbacks, never proves accepted semantic repair.
++    /// Nil in old records and for legacy heads without completion boxes.
++    var precleanAnsweredGroups: Int?
+     /// Why a hold's pre-cleaned groups could not be used: a sentence one of them was built
+     /// from was revised by the speech model before the key came up. The whole dictation is
+     /// then cleaned in one pass, as it always was. Nil on a run that never had a group to
+@@ -374,6 +411,14 @@ struct CleanupRecord: Codable, Sendable, Hashable {
+ 
+     var seconds: Double?
+     var modelSeconds: Double?
++    /// What actually ran (see `noteEngineUsed`). Nil on rows written before it existed.
++    var enginesUsed: [String]?
++    /// Whether the local cleanup model was resident when asked. Nil when it was never asked.
++    var cleanupModelResident: Bool?
++    /// Local cleanup token counts. Nil when no local model generated.
++    var promptTokens: Int?
++    var cachedTokens: Int?
++    var completionTokens: Int?
+ 
+     init() {}
+ 

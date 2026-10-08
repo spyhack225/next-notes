@@ -1,0 +1,43 @@
+{
+  "utc": "2026-10-08T07:42:16.159461+00:00",
+  "status": "Completed owned component/defaults comparison executables removed only after actual process executable inventory",
+  "files": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-per-pass-zero-20261008/original",
+      "sha256": "41ce5b6797d3b269c8a4af10603569ccabd6566db31dc546f71f3048502ab4df",
+      "bytes": 280168,
+      "allocatedBytes": 282624,
+      "activeExecutable": false
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-per-pass-zero-20261008/candidate",
+      "sha256": "09cd712a41b3133c06f199588bd3925d14ad50c6835337c19e437846831daf2a",
+      "bytes": 281912,
+      "allocatedBytes": 282624,
+      "activeExecutable": false
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-ready-heads-20261008/check",
+      "sha256": "4b33a57afc618c44dd2474bcd21bc3f26368b77c0c82576f1350fd35104b66a4",
+      "bytes": 185816,
+      "allocatedBytes": 188416,
+      "activeExecutable": false
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-prompt-copy-20261008/lookup-check",
+      "sha256": "4ab9f6bdce819bb3601a1a279bca0a8b70609fe8ace6179f9239468b6b3c6604",
+      "bytes": 56480,
+      "allocatedBytes": 57344,
+      "activeExecutable": false
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-native-batch-20261008/defaults-check",
+      "sha256": "57943620d931c86949c7c9f04d58ed4eb2cd64d89a1aa003adb13aca9556dc1d",
+      "bytes": 33520,
+      "allocatedBytes": 36864,
+      "activeExecutable": false
+    }
+  ],
+  "allocatedBytesReclaimed": 847872,
+  "retained": "All sources, exact commands, logs, source/framework pins and result receipts; current/fifth/rollback app bundles and all models/user recordings untouched"
+}

@@ -1,0 +1,36 @@
+{
+  "checks" : [
+    {
+      "name" : "first actual worker held across next start",
+      "pass" : true
+    },
+    {
+      "name" : "new session reset counters",
+      "pass" : true
+    },
+    {
+      "name" : "retired pass cannot stamp successor counters",
+      "pass" : false
+    },
+    {
+      "name" : "successor diagnostics count its one actual pass",
+      "pass" : false
+    },
+    {
+      "name" : "successor actual consumer receives one correct final",
+      "pass" : true
+    },
+    {
+      "name" : "same accepted model inputs and worker joined",
+      "pass" : true
+    }
+  ],
+  "inputSamples" : [
+    9000,
+    9600
+  ],
+  "scope" : "Actual copied Engine\/AV\/segmenter; native\/converter\/scheduler\/registry replaced. Original first-stream supersession lifecycle is outside this metrics claim.",
+  "stalePassCount" : 1,
+  "successorPassCount" : 2
+}
+STALE_PASS_FAILED

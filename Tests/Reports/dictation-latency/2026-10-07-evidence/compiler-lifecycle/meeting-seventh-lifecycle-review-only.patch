@@ -1,0 +1,116 @@
+--- meeting-seventh-release-guarded.before-lifecycle.py
++++ meeting-seventh-release-guarded.py
+@@ -1,5 +1,6 @@
+ from pathlib import Path
+ import subprocess,os,json,hashlib,time,ctypes,struct,re,datetime,signal
++from OwnedCompilerProcess import observe, drain
+ repo=Path('/Users/sergekadjo/Documents/Claude/Projects/speechify')
+ r=repo/'Tests/Reports/meeting-reliability/2026-10-07-quality-loop'
+ scratch=Path.home()/'Library/Caches/NextNotesBuild/scratch'
+@@ -29,67 +30,53 @@
+ gate.check_returncode();assert admission.get('ok') is True
+ before=pins();(r/'seventh-build-source-pins-before.json').write_text(json.dumps(before,indent=2)+'\n')
+ start=time.monotonic();samples=[];frames=[];guard=None;ordinaryCross=False;owned={};remaining=[]
++phaseReceipts=[];rc=125
+ for phase,argv in [('compile',['swift','build','-c','release','--scratch-path',str(scratch),'--jobs','1']),('bundle',['make','app','CONFIG=release'])]:
+  if guard:break
+- assert pins()==before,'source changed before next phase'
+- with (r/('seventh-'+phase+'-build.log')).open('w') as out:
+-  child=subprocess.Popen(argv,cwd=repo,stdout=out,stderr=subprocess.STDOUT,start_new_session=True)
+-  while True:
+-   rows=listing();ids={child.pid}
+-   for _ in range(24):
+-    added={pid for pid,parent,group,stat,args in rows if parent in ids or group==child.pid}
+-    if added<=ids:break
+-    ids |= added
+-   total=0;live=[]
+-   for pid,parent,group,stat,args in rows:
+-    if stat.startswith('Z'):continue
+-    if pid in ids or pid in owned:
+-     u=usage(pid)
+-     if u is None:
+-      if pid in ids:guard=guard or 'owned attribution unavailable'
+-      continue
+-     if pid in owned and u['processStart']!=owned[pid]:continue
+-     owned[pid]=u['processStart'];live.append((pid,group,u));total+=u['footprintBytes']
+-     samples.append({'phase':phase,'elapsed':time.monotonic()-start,'pid':pid,**u})
+-   try:frame=machine()
+-   except Exception:guard=guard or 'machine observation unavailable';frame={}
+-   frames.append({'phase':phase,'elapsed':time.monotonic()-start,'summedOwnedFootprintBytes':total,**frame})
+-   if frame.get('swapGiB',10)>8:ordinaryCross=True
+-   if frame.get('swapGiB',10)>9:guard=guard or 'reviewed compiler swap9 exception exceeded'
+-   if frame.get('diskFreeGiB',0)<6.5:guard=guard or 'disk free below6.5'
+-   if frame.get('reportedFreePercent',0)<50:guard=guard or 'reported free below50'
+-   if total>3_000_000_000:guard=guard or 'summed owned footprint above3GB'
+-   if time.monotonic()-start>1200:guard=guard or 'owned full compiler/bundle budget exceeded'
+-   if len(frames)%10==0 and pins()!=before:guard=guard or 'source freeze changed'
+-   if guard:
+-    for pid,group,u in live:
+-     current=usage(pid)
+-     if current and current['processStart']==owned[pid]:
+-      try:os.kill(pid,signal.SIGTERM)
+-      except ProcessLookupError:pass
+-    try:child.wait(timeout=3)
++ child=None;phaseError=None;drainReceipt=None;rootRefused=False
++ try:
++  assert pins()==before,'source changed before next phase'
++  with (r/('seventh-'+phase+'-build.log')).open('w') as out:
++   child=subprocess.Popen(argv,cwd=repo,stdout=out,stderr=subprocess.STDOUT,start_new_session=True)
++   while True:
++    live,unresolved,problems=observe(child,owned,listing,usage,root_refused=rootRefused)
++    if child.pid in unresolved:rootRefused=True
++    if problems or unresolved:guard=guard or ' / '.join(problems or ['ownership unresolved'])
++    total=sum(u['footprintBytes'] for pid,group,u in live)
++    for pid,group,u in live:samples.append({'phase':phase,'elapsed':time.monotonic()-start,'pid':pid,**u})
++    try:frame=machine()
++    except Exception:guard=guard or 'machine observation unavailable';frame={}
++    frames.append({'phase':phase,'elapsed':time.monotonic()-start,'summedOwnedFootprintBytes':total,**frame})
++    if frame.get('swapGiB',10)>8:ordinaryCross=True
++    if frame.get('swapGiB',10)>9:guard=guard or 'reviewed compiler swap9 exception exceeded'
++    if frame.get('diskFreeGiB',0)<6.5:guard=guard or 'disk free below6.5'
++    if frame.get('reportedFreePercent',0)<50:guard=guard or 'reported free below50'
++    if total>3_000_000_000:guard=guard or 'summed owned footprint above3GB'
++    if time.monotonic()-start>1200:guard=guard or 'owned full compiler/bundle budget exceeded'
++    if len(frames)%10==0 and pins()!=before:guard=guard or 'source freeze changed'
++    if guard:break
++    rc=child.poll()
++    if rc is not None and not live and not unresolved:break
++    if rc is not None:time.sleep(.1) # Disposable CLI join observation only.
++    try:child.wait(timeout=1)
+     except subprocess.TimeoutExpired:pass
+-    for pid,group,u in live:
+-     current=usage(pid)
+-     if current and current['processStart']==owned[pid]:
+-      try:os.kill(pid,signal.SIGKILL)
+-      except ProcessLookupError:pass
+-    child.wait(timeout=3)
+-    break
+-   rc=child.poll()
+-   if rc is not None and not live:break
+-   if rc is not None and all(pid==child.pid for pid,group,u in live):break
+-   if rc is not None:time.sleep(.2) # Diagnostic-only helper exit observation; no product delay.
+-   try:child.wait(timeout=1)
+-   except subprocess.TimeoutExpired:pass
+-  rc=child.wait()
+- if rc:break
++ except BaseException as error:
++  phaseError=type(error).__name__
++  guard=guard or 'active compiler lifecycle exception: '+phaseError
++ finally:
++  if child is not None:
++   drainReceipt=drain(child,owned,listing,usage,seconds=6,root_refused=rootRefused)
++   if drainReceipt['remainingOwnedPIDs'] or drainReceipt['unresolvedPIDs'] or drainReceipt['errors']:
++    guard=guard or 'owned compiler drain incomplete or attribution refused'
++   rc=child.returncode if child.returncode is not None else 125
++  phaseReceipts.append({'phase':phase,'errorType':phaseError,'exit':rc,'drain':drainReceipt})
++ if guard or rc:break
+ for pid,parent,group,stat,args in listing():
+  if pid in owned and not stat.startswith('Z'):
+   u=usage(pid)
+   if u and u['processStart']==owned[pid]:remaining.append(pid)
+ after=pins();(r/'seventh-build-source-pins-after.json').write_text(json.dumps(after,indent=2)+'\n')
+-meta={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'exit':rc,'wallSeconds':time.monotonic()-start,'guardReason':guard,'sourceInvariant':before==after,'sourceCount':len(before),'remainingOwnedPIDs':remaining,'ordinarySwap8Crossed':ordinaryCross,'profile':'peer reviewed relay678 compiler-only initial normal8/min6.5/free55; ongoing explicit swap9 exception/min6.5/free50/summed3GB/1200s; no inference or owner app launch','samples':len(samples),'peakSampledOwnedFootprintBytes':max((f['summedOwnedFootprintBytes'] for f in frames),default=None),'installed':False}
++meta={'at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'exit':rc,'wallSeconds':time.monotonic()-start,'guardReason':guard,'sourceInvariant':before==after,'sourceCount':len(before),'remainingOwnedPIDs':remaining,'ordinarySwap8Crossed':ordinaryCross,'profile':'peer reviewed relay678 compiler-only initial normal8/min6.5/free55; ongoing explicit swap9 exception/min6.5/free50/summed3GB/1200s; no inference or owner app launch','phaseReceipts':phaseReceipts,'samples':len(samples),'peakSampledOwnedFootprintBytes':max((f['summedOwnedFootprintBytes'] for f in frames),default=None),'installed':False}
+ (r/'seventh-build-metadata.json').write_text(json.dumps(meta,indent=2)+'\n');(r/'seventh-build-memory.json').write_text(json.dumps(samples,indent=2)+'\n');(r/'seventh-build-machine-memory.json').write_text(json.dumps(frames,indent=2)+'\n')
+ print(json.dumps(meta),flush=True)
+ assert rc==0 and not guard and not remaining and before==after,'build incomplete; no automatic retry'

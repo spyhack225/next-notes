@@ -1,0 +1,9 @@
+{
+  "status": "No OS child launched; old confirmed-disappearance refusals reproduced, fixed14 race assertions pass, prior11 helper and8 exact loop controls stay green",
+  "helperSHA": "a16a1f82984755e8d2d753303f616568c18dc5ebea2fe19fcca7be09d81f55ec",
+  "driverSHA": "24a6d9aae1b0d570191c06d166bc6de71b6b14bfeb6cbd6e37ae822665952c75",
+  "beforeHelperSHA": "11f94a5cf1ebac080146a8396537a18838ab31cf032236e529670d41ff8fde0a",
+  "resourceCapsChanged": false,
+  "childLaunched": false,
+  "scope": "One bounded confirmation listing per observation only for unavailable rusage. Confirmed absent/zombie retired, present/unknown/error and recycled starts refused. Diagnostic details omit command arguments."
+}

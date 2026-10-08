@@ -1,0 +1,1396 @@
+[
+  {
+    "name": "compile-original",
+    "argv": [
+      "xcrun",
+      "swiftc",
+      "-swift-version",
+      "6",
+      "-O",
+      "Engine.source7-original-probe.swift",
+      "AudioConversion.swift",
+      "TranscriptionEngine.swift",
+      "ParakeetInput.swift",
+      "EngineBoundaryTypes.swift",
+      "StalePassCheck.swift",
+      "DictationSegmenter.candidate.swift",
+      "-o",
+      "stale-original"
+    ],
+    "expectedExit": 0,
+    "exit": 0,
+    "gate": {
+      "ok": true,
+      "swapGb": 7.42083984375,
+      "load": 2.66,
+      "freeGb": 7.204750061035156,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "initial": {
+      "swapGiB": 7.42083984375,
+      "reportedFreePercent": 57,
+      "diskFreeGiB": 7.204746246337891
+    },
+    "guard": null,
+    "error": null,
+    "join": {
+      "observationDetails": [],
+      "remainingOwnedPIDs": [],
+      "unresolvedPIDs": [],
+      "errors": [],
+      "seconds": 0.06691937499999767,
+      "sent": []
+    },
+    "observationDetails": [
+      {
+        "pid": 2166,
+        "kind": "confirmed absent",
+        "expectedStart": 1449811405651,
+        "observedStart": null,
+        "isRoot": false
+      },
+      {
+        "pid": 2235,
+        "kind": "confirmed absent",
+        "expectedStart": null,
+        "observedStart": null,
+        "isRoot": false
+      }
+    ],
+    "wallSeconds": 4.3375857079954585,
+    "samples": [
+      {
+        "seconds": 0.03712141599680763,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 426200,
+        "residentBytes": 4718592
+      },
+      {
+        "seconds": 0.18361037499562372,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10764840,
+        "residentBytes": 38043648
+      },
+      {
+        "seconds": 0.18361162499786587,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 11076160,
+        "residentBytes": 44810240
+      },
+      {
+        "seconds": 0.33235345799766947,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10764840,
+        "residentBytes": 38043648
+      },
+      {
+        "seconds": 0.33235479099676013,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 22479472,
+        "residentBytes": 66371584
+      },
+      {
+        "seconds": 0.4974147909961175,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10764840,
+        "residentBytes": 38043648
+      },
+      {
+        "seconds": 0.49741583300055936,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 37716616,
+        "residentBytes": 103366656
+      },
+      {
+        "seconds": 0.6444704159948742,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10764840,
+        "residentBytes": 38043648
+      },
+      {
+        "seconds": 0.6444721660009236,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 64815776,
+        "residentBytes": 156024832
+      },
+      {
+        "seconds": 0.7988623329947586,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10781224,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 0.798864541000512,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 81642168,
+        "residentBytes": 187908096
+      },
+      {
+        "seconds": 0.952436540996132,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10781224,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 0.9524376249974011,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 91882168,
+        "residentBytes": 199016448
+      },
+      {
+        "seconds": 1.1038171249965671,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10781224,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 1.1038182499978575,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 94257848,
+        "residentBytes": 201818112
+      },
+      {
+        "seconds": 1.2987608749972424,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10781224,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 1.2987624579982366,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 80462448,
+        "residentBytes": 168787968
+      },
+      {
+        "seconds": 1.4568038329962292,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10781224,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 1.4568050829984713,
+        "pid": 2127,
+        "processStart": 1449775705532,
+        "footprintBytes": 88343152,
+        "residentBytes": 183386112
+      },
+      {
+        "seconds": 1.6847028749980382,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10846760,
+        "residentBytes": 38141952
+      },
+      {
+        "seconds": 1.684703790997446,
+        "pid": 2166,
+        "processStart": 1449811405651,
+        "footprintBytes": 40157856,
+        "residentBytes": 115621888
+      },
+      {
+        "seconds": 1.8378484579952783,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10846760,
+        "residentBytes": 38141952
+      },
+      {
+        "seconds": 1.8378499999962514,
+        "pid": 2166,
+        "processStart": 1449811405651,
+        "footprintBytes": 75104928,
+        "residentBytes": 178618368
+      },
+      {
+        "seconds": 1.9921544159951736,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10846760,
+        "residentBytes": 38141952
+      },
+      {
+        "seconds": 1.9921554999964428,
+        "pid": 2166,
+        "processStart": 1449811405651,
+        "footprintBytes": 83198648,
+        "residentBytes": 189005824
+      },
+      {
+        "seconds": 2.173500500000955,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10879528,
+        "residentBytes": 38174720
+      },
+      {
+        "seconds": 2.3187413749983534,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10895912,
+        "residentBytes": 38191104
+      },
+      {
+        "seconds": 2.3187426250005956,
+        "pid": 2187,
+        "processStart": 1449827969844,
+        "footprintBytes": 9175616,
+        "residentBytes": 41287680
+      },
+      {
+        "seconds": 2.465077499997278,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 10895912,
+        "residentBytes": 38191104
+      },
+      {
+        "seconds": 2.4650785829944653,
+        "pid": 2187,
+        "processStart": 1449827969844,
+        "footprintBytes": 0,
+        "residentBytes": 129515520
+      },
+      {
+        "seconds": 2.6236021660006372,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 2.623603000000003,
+        "pid": 2194,
+        "processStart": 1449832428469,
+        "footprintBytes": 60490400,
+        "residentBytes": 156729344
+      },
+      {
+        "seconds": 2.7726020829941262,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 2.7726033329963684,
+        "pid": 2194,
+        "processStart": 1449832428469,
+        "footprintBytes": 51905136,
+        "residentBytes": 137543680
+      },
+      {
+        "seconds": 2.9275720410005306,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 2.9275733749964274,
+        "pid": 2205,
+        "processStart": 1449840976242,
+        "footprintBytes": 45515400,
+        "residentBytes": 126943232
+      },
+      {
+        "seconds": 3.0771872499972233,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 3.077188290997583,
+        "pid": 2205,
+        "processStart": 1449840976242,
+        "footprintBytes": 76907192,
+        "residentBytes": 180289536
+      },
+      {
+        "seconds": 3.300321333001193,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 3.3003222909974284,
+        "pid": 2205,
+        "processStart": 1449840976242,
+        "footprintBytes": 85312184,
+        "residentBytes": 189153280
+      },
+      {
+        "seconds": 3.4516404579990194,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 3.4516417079939856,
+        "pid": 2205,
+        "processStart": 1449840976242,
+        "footprintBytes": 78856816,
+        "residentBytes": 166445056
+      },
+      {
+        "seconds": 3.606098040996585,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 3.6060991659978754,
+        "pid": 2222,
+        "processStart": 1449858878110,
+        "footprintBytes": 6455848,
+        "residentBytes": 36536320
+      },
+      {
+        "seconds": 3.7613730000011856,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 3.761374582994904,
+        "pid": 2222,
+        "processStart": 1449858878110,
+        "footprintBytes": 65061536,
+        "residentBytes": 160219136
+      },
+      {
+        "seconds": 3.911316124998848,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 11010624,
+        "residentBytes": 38289408
+      },
+      {
+        "seconds": 3.9113172910001595,
+        "pid": 2222,
+        "processStart": 1449858878110,
+        "footprintBytes": 52101720,
+        "residentBytes": 142262272
+      },
+      {
+        "seconds": 4.105963832997077,
+        "pid": 2122,
+        "processStart": 1449773251501,
+        "footprintBytes": 0,
+        "residentBytes": 39075840
+      }
+    ],
+    "frames": [
+      {
+        "seconds": 0.046550457998819184,
+        "summedOwnedFootprintBytes": 426200,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2047271728515625
+      },
+      {
+        "seconds": 0.19268383299640846,
+        "summedOwnedFootprintBytes": 21841000,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204692840576172
+      },
+      {
+        "seconds": 0.34210329099732917,
+        "summedOwnedFootprintBytes": 33244312,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204689025878906
+      },
+      {
+        "seconds": 0.5063219579969882,
+        "summedOwnedFootprintBytes": 48481456,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204689025878906
+      },
+      {
+        "seconds": 0.6537495829979889,
+        "summedOwnedFootprintBytes": 75580616,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204689025878906
+      },
+      {
+        "seconds": 0.8097270829966874,
+        "summedOwnedFootprintBytes": 92423392,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204673767089844
+      },
+      {
+        "seconds": 0.9618824999997742,
+        "summedOwnedFootprintBytes": 102663392,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204673767089844
+      },
+      {
+        "seconds": 1.1129923749977024,
+        "summedOwnedFootprintBytes": 105039072,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204673767089844
+      },
+      {
+        "seconds": 1.3116252909967443,
+        "summedOwnedFootprintBytes": 91243672,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2046661376953125
+      },
+      {
+        "seconds": 1.467053082997154,
+        "summedOwnedFootprintBytes": 99124376,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2046661376953125
+      },
+      {
+        "seconds": 1.6938763750004,
+        "summedOwnedFootprintBytes": 51004616,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204490661621094
+      },
+      {
+        "seconds": 1.8477684159952332,
+        "summedOwnedFootprintBytes": 85951688,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204490661621094
+      },
+      {
+        "seconds": 2.0016062909999164,
+        "summedOwnedFootprintBytes": 94045408,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204490661621094
+      },
+      {
+        "seconds": 2.18279729099595,
+        "summedOwnedFootprintBytes": 10879528,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204433441162109
+      },
+      {
+        "seconds": 2.3278032909947797,
+        "summedOwnedFootprintBytes": 20071528,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204410552978516
+      },
+      {
+        "seconds": 2.474128165995353,
+        "summedOwnedFootprintBytes": 10895912,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204395294189453
+      },
+      {
+        "seconds": 2.6335245829977794,
+        "summedOwnedFootprintBytes": 71501024,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2043914794921875
+      },
+      {
+        "seconds": 2.7818377079966012,
+        "summedOwnedFootprintBytes": 62915760,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2043914794921875
+      },
+      {
+        "seconds": 2.9371204159979243,
+        "summedOwnedFootprintBytes": 56526024,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 3.0866439579986036,
+        "summedOwnedFootprintBytes": 87917816,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 3.3095089999987977,
+        "summedOwnedFootprintBytes": 96322808,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 3.4619712499988964,
+        "summedOwnedFootprintBytes": 89867440,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 3.615481124994403,
+        "summedOwnedFootprintBytes": 17466472,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204265594482422
+      },
+      {
+        "seconds": 3.7719908750004834,
+        "summedOwnedFootprintBytes": 76072160,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204265594482422
+      },
+      {
+        "seconds": 3.920154499995988,
+        "summedOwnedFootprintBytes": 63112344,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204265594482422
+      },
+      {
+        "seconds": 4.1154088330004015,
+        "summedOwnedFootprintBytes": 0,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204357147216797
+      },
+      {
+        "seconds": 4.270567207997374,
+        "summedOwnedFootprintBytes": 0,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204353332519531
+      }
+    ]
+  },
+  {
+    "name": "compile-candidate",
+    "argv": [
+      "xcrun",
+      "swiftc",
+      "-swift-version",
+      "6",
+      "-O",
+      "Engine.source7-stats-candidate-probe.swift",
+      "AudioConversion.swift",
+      "TranscriptionEngine.swift",
+      "ParakeetInput.swift",
+      "EngineBoundaryTypes.swift",
+      "StalePassCheck.swift",
+      "DictationSegmenter.candidate.swift",
+      "-o",
+      "stale-candidate"
+    ],
+    "expectedExit": 0,
+    "exit": 0,
+    "gate": {
+      "ok": true,
+      "swapGb": 7.42083984375,
+      "load": 2.84,
+      "freeGb": 7.204338073730469,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "initial": {
+      "swapGiB": 7.42083984375,
+      "reportedFreePercent": 56,
+      "diskFreeGiB": 7.204338073730469
+    },
+    "guard": null,
+    "error": null,
+    "join": {
+      "observationDetails": [],
+      "remainingOwnedPIDs": [],
+      "unresolvedPIDs": [],
+      "errors": [],
+      "seconds": 0.06766537499788683,
+      "sent": []
+    },
+    "observationDetails": [
+      {
+        "pid": 2373,
+        "kind": "confirmed absent",
+        "expectedStart": null,
+        "observedStart": null,
+        "isRoot": false
+      }
+    ],
+    "wallSeconds": 3.7984941670001717,
+    "samples": [
+      {
+        "seconds": 0.037305459001800045,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 475376,
+        "residentBytes": 5275648
+      },
+      {
+        "seconds": 0.19230275000154506,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10781248,
+        "residentBytes": 38043648
+      },
+      {
+        "seconds": 0.19230383400281426,
+        "pid": 2280,
+        "processStart": 1449883038761,
+        "footprintBytes": 41632416,
+        "residentBytes": 120356864
+      },
+      {
+        "seconds": 0.3427049590027309,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10797632,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 0.3427060000030906,
+        "pid": 2280,
+        "processStart": 1449883038761,
+        "footprintBytes": 76923552,
+        "residentBytes": 181288960
+      },
+      {
+        "seconds": 0.49066279199905694,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10797632,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 0.49066508400574094,
+        "pid": 2280,
+        "processStart": 1449883038761,
+        "footprintBytes": 90374840,
+        "residentBytes": 197459968
+      },
+      {
+        "seconds": 0.6426007500049309,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10797632,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 0.6426028749992838,
+        "pid": 2280,
+        "processStart": 1449883038761,
+        "footprintBytes": 94110392,
+        "residentBytes": 201359360
+      },
+      {
+        "seconds": 0.790703584003495,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10797632,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 0.7907046670006821,
+        "pid": 2280,
+        "processStart": 1449883038761,
+        "footprintBytes": 92832440,
+        "residentBytes": 211222528
+      },
+      {
+        "seconds": 0.9409330420021433,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10797632,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 0.9409340839993092,
+        "pid": 2280,
+        "processStart": 1449883038761,
+        "footprintBytes": 86409840,
+        "residentBytes": 174948352
+      },
+      {
+        "seconds": 1.0950211250019493,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10797632,
+        "residentBytes": 38060032
+      },
+      {
+        "seconds": 1.0950223340041703,
+        "pid": 2280,
+        "processStart": 1449883038761,
+        "footprintBytes": 90899080,
+        "residentBytes": 186810368
+      },
+      {
+        "seconds": 1.2471018340002047,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10895936,
+        "residentBytes": 38174720
+      },
+      {
+        "seconds": 1.2471027920037159,
+        "pid": 2309,
+        "processStart": 1449907940423,
+        "footprintBytes": 52576904,
+        "residentBytes": 138461184
+      },
+      {
+        "seconds": 1.4009402500014403,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10895936,
+        "residentBytes": 38174720
+      },
+      {
+        "seconds": 1.400941416999558,
+        "pid": 2309,
+        "processStart": 1449907940423,
+        "footprintBytes": 79905464,
+        "residentBytes": 185548800
+      },
+      {
+        "seconds": 1.6287300840049284,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10895936,
+        "residentBytes": 38174720
+      },
+      {
+        "seconds": 1.628731084005267,
+        "pid": 2309,
+        "processStart": 1449907940423,
+        "footprintBytes": 69796464,
+        "residentBytes": 163348480
+      },
+      {
+        "seconds": 1.783812375004345,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10895936,
+        "residentBytes": 38174720
+      },
+      {
+        "seconds": 1.7838135420024628,
+        "pid": 2322,
+        "processStart": 1449920269481,
+        "footprintBytes": 24920664,
+        "residentBytes": 121765888
+      },
+      {
+        "seconds": 1.9305718750038068,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 10977856,
+        "residentBytes": 38256640
+      },
+      {
+        "seconds": 1.9305731670028763,
+        "pid": 2325,
+        "processStart": 1449923792727,
+        "footprintBytes": 52953736,
+        "residentBytes": 143081472
+      },
+      {
+        "seconds": 2.085031084003276,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11027008,
+        "residentBytes": 38305792
+      },
+      {
+        "seconds": 2.0850326670042705,
+        "pid": 2332,
+        "processStart": 1449928331360,
+        "footprintBytes": 47628936,
+        "residentBytes": 130580480
+      },
+      {
+        "seconds": 2.2398392500035698,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11027008,
+        "residentBytes": 38305792
+      },
+      {
+        "seconds": 2.239840500005812,
+        "pid": 2332,
+        "processStart": 1449928331360,
+        "footprintBytes": 68125368,
+        "residentBytes": 168902656
+      },
+      {
+        "seconds": 2.391082624999399,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11027008,
+        "residentBytes": 38305792
+      },
+      {
+        "seconds": 2.391084625000076,
+        "pid": 2341,
+        "processStart": 1449936617868,
+        "footprintBytes": 28164720,
+        "residentBytes": 79855616
+      },
+      {
+        "seconds": 2.543918167000811,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11027008,
+        "residentBytes": 38305792
+      },
+      {
+        "seconds": 2.543919250005274,
+        "pid": 2341,
+        "processStart": 1449936617868,
+        "footprintBytes": 74072760,
+        "residentBytes": 177029120
+      },
+      {
+        "seconds": 2.69693245900271,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11027008,
+        "residentBytes": 38305792
+      },
+      {
+        "seconds": 2.6969335840040003,
+        "pid": 2341,
+        "processStart": 1449936617868,
+        "footprintBytes": 84312760,
+        "residentBytes": 188006400
+      },
+      {
+        "seconds": 2.8429453749995446,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11027008,
+        "residentBytes": 38305792
+      },
+      {
+        "seconds": 2.8429466250017867,
+        "pid": 2341,
+        "processStart": 1449936617868,
+        "footprintBytes": 85328568,
+        "residentBytes": 189186048
+      },
+      {
+        "seconds": 2.9965063339986955,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11027008,
+        "residentBytes": 38305792
+      },
+      {
+        "seconds": 2.9965082090056967,
+        "pid": 2341,
+        "processStart": 1449936617868,
+        "footprintBytes": 85639792,
+        "residentBytes": 173817856
+      },
+      {
+        "seconds": 3.22431250000227,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11043392,
+        "residentBytes": 38322176
+      },
+      {
+        "seconds": 3.2243134590025875,
+        "pid": 2362,
+        "processStart": 1449954435633,
+        "footprintBytes": 61424288,
+        "residentBytes": 155484160
+      },
+      {
+        "seconds": 3.3812284170053317,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11043392,
+        "residentBytes": 38322176
+      },
+      {
+        "seconds": 3.381229667000298,
+        "pid": 2362,
+        "processStart": 1449954435633,
+        "footprintBytes": 73532088,
+        "residentBytes": 173244416
+      },
+      {
+        "seconds": 3.568464916999801,
+        "pid": 2275,
+        "processStart": 1449880943104,
+        "footprintBytes": 11043416,
+        "residentBytes": 39092224
+      }
+    ],
+    "frames": [
+      {
+        "seconds": 0.04619500000262633,
+        "summedOwnedFootprintBytes": 475376,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204338073730469
+      },
+      {
+        "seconds": 0.2019581249987823,
+        "summedOwnedFootprintBytes": 52413664,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 0.35213958399981493,
+        "summedOwnedFootprintBytes": 87721184,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 0.49995133400079794,
+        "summedOwnedFootprintBytes": 101172472,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 0.6516739590006182,
+        "summedOwnedFootprintBytes": 104908024,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 0.8012666249996983,
+        "summedOwnedFootprintBytes": 103630072,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 0.9502083340048557,
+        "summedOwnedFootprintBytes": 97207472,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2043304443359375
+      },
+      {
+        "seconds": 1.1041822500046692,
+        "summedOwnedFootprintBytes": 101696712,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204319000244141
+      },
+      {
+        "seconds": 1.2567369169992162,
+        "summedOwnedFootprintBytes": 63472840,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204139709472656
+      },
+      {
+        "seconds": 1.4107350000049337,
+        "summedOwnedFootprintBytes": 90801400,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204132080078125
+      },
+      {
+        "seconds": 1.6381499999988591,
+        "summedOwnedFootprintBytes": 80692400,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204090118408203
+      },
+      {
+        "seconds": 1.7931511670030886,
+        "summedOwnedFootprintBytes": 35816600,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.204067230224609
+      },
+      {
+        "seconds": 1.9401843340019695,
+        "summedOwnedFootprintBytes": 63931592,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2040557861328125
+      },
+      {
+        "seconds": 2.0946969170036027,
+        "summedOwnedFootprintBytes": 58655944,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204044342041016
+      },
+      {
+        "seconds": 2.2483091250032885,
+        "summedOwnedFootprintBytes": 79152376,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.204044342041016
+      },
+      {
+        "seconds": 2.4010967089998303,
+        "summedOwnedFootprintBytes": 39191728,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203983306884766
+      },
+      {
+        "seconds": 2.5538753750006435,
+        "summedOwnedFootprintBytes": 85099768,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203983306884766
+      },
+      {
+        "seconds": 2.7059843340030056,
+        "summedOwnedFootprintBytes": 95339768,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203983306884766
+      },
+      {
+        "seconds": 2.8524852090049535,
+        "summedOwnedFootprintBytes": 96355576,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203697204589844
+      },
+      {
+        "seconds": 3.006505625002319,
+        "summedOwnedFootprintBytes": 96666800,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203697204589844
+      },
+      {
+        "seconds": 3.234813834002125,
+        "summedOwnedFootprintBytes": 72467680,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203632354736328
+      },
+      {
+        "seconds": 3.3912144170026295,
+        "summedOwnedFootprintBytes": 84575480,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.2036285400390625
+      },
+      {
+        "seconds": 3.579305334002129,
+        "summedOwnedFootprintBytes": 11043416,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.203712463378906
+      },
+      {
+        "seconds": 3.730758167002932,
+        "summedOwnedFootprintBytes": 0,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.203670501708984
+      }
+    ]
+  },
+  {
+    "name": "run-original",
+    "argv": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-stale-pass-20261008/stale-original"
+    ],
+    "expectedExit": 1,
+    "exit": 1,
+    "gate": {
+      "ok": true,
+      "swapGb": 7.42083984375,
+      "load": 3.02,
+      "freeGb": 7.203655242919922,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "initial": {
+      "swapGiB": 7.42083984375,
+      "reportedFreePercent": 56,
+      "diskFreeGiB": 7.203655242919922
+    },
+    "guard": null,
+    "error": null,
+    "join": {
+      "observationDetails": [],
+      "remainingOwnedPIDs": [],
+      "unresolvedPIDs": [],
+      "errors": [],
+      "seconds": 0.06723679199785693,
+      "sent": []
+    },
+    "observationDetails": [],
+    "wallSeconds": 0.4199582500004908,
+    "samples": [
+      {
+        "seconds": 0.03550379200169118,
+        "pid": 2413,
+        "processStart": 1449975879835,
+        "footprintBytes": 81992,
+        "residentBytes": 32768
+      },
+      {
+        "seconds": 0.18908954200014705,
+        "pid": 2413,
+        "processStart": 1449975879835,
+        "footprintBytes": 0,
+        "residentBytes": 9732096
+      }
+    ],
+    "frames": [
+      {
+        "seconds": 0.044833833002485335,
+        "summedOwnedFootprintBytes": 81992,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2036285400390625
+      },
+      {
+        "seconds": 0.1982537920048344,
+        "summedOwnedFootprintBytes": 0,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.203575134277344
+      },
+      {
+        "seconds": 0.3526396669985843,
+        "summedOwnedFootprintBytes": 0,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.203575134277344
+      }
+    ]
+  },
+  {
+    "name": "run-candidate",
+    "argv": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-stale-pass-20261008/stale-candidate"
+    ],
+    "expectedExit": 0,
+    "exit": 0,
+    "gate": {
+      "ok": true,
+      "swapGb": 7.42083984375,
+      "load": 3.02,
+      "freeGb": 7.203575134277344,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "initial": {
+      "swapGiB": 7.42083984375,
+      "reportedFreePercent": 56,
+      "diskFreeGiB": 7.203575134277344
+    },
+    "guard": null,
+    "error": null,
+    "join": {
+      "observationDetails": [],
+      "remainingOwnedPIDs": [],
+      "unresolvedPIDs": [],
+      "errors": [],
+      "seconds": 0.065883916002349,
+      "sent": []
+    },
+    "observationDetails": [],
+    "wallSeconds": 0.17456200000015087,
+    "samples": [
+      {
+        "seconds": 0.03490866700303741,
+        "pid": 2456,
+        "processStart": 1449989312314,
+        "footprintBytes": 81992,
+        "residentBytes": 32768
+      }
+    ],
+    "frames": [
+      {
+        "seconds": 0.04367391699634027,
+        "summedOwnedFootprintBytes": 81992,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2035675048828125
+      },
+      {
+        "seconds": 0.10860875000071246,
+        "summedOwnedFootprintBytes": 0,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203498840332031
+      }
+    ]
+  },
+  {
+    "name": "compile-parser",
+    "argv": [
+      "xcrun",
+      "clang",
+      "-O2",
+      "-F",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/speechify/LlamaFramework/llama.xcframework/macos-arm64_x86_64",
+      "-framework",
+      "llama",
+      "-Wl,-rpath,/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/speechify/LlamaFramework/llama.xcframework/macos-arm64_x86_64",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-native-batch-20261008/ContextCapacityProbe.c",
+      "-o",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-stale-pass-20261008/allocation-parser"
+    ],
+    "expectedExit": 0,
+    "exit": 0,
+    "gate": {
+      "ok": true,
+      "swapGb": 7.42083984375,
+      "load": 3.02,
+      "freeGb": 7.203495025634766,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "initial": {
+      "swapGiB": 7.42083984375,
+      "reportedFreePercent": 57,
+      "diskFreeGiB": 7.203495025634766
+    },
+    "guard": null,
+    "error": null,
+    "join": {
+      "observationDetails": [],
+      "remainingOwnedPIDs": [],
+      "unresolvedPIDs": [],
+      "errors": [],
+      "seconds": 0.0669906249968335,
+      "sent": []
+    },
+    "observationDetails": [],
+    "wallSeconds": 0.23410662500100443,
+    "samples": [
+      {
+        "seconds": 0.036240165994968265,
+        "pid": 2498,
+        "processStart": 1449996840046,
+        "footprintBytes": 2965960,
+        "residentBytes": 15810560
+      }
+    ],
+    "frames": [
+      {
+        "seconds": 0.045482790999813005,
+        "summedOwnedFootprintBytes": 2965960,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203487396240234
+      },
+      {
+        "seconds": 0.1670974579974427,
+        "summedOwnedFootprintBytes": 0,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 7.203437805175781
+      }
+    ]
+  },
+  {
+    "name": "run-parser",
+    "argv": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-stale-pass-20261008/allocation-parser",
+      "--parser-only"
+    ],
+    "expectedExit": 0,
+    "exit": 0,
+    "gate": {
+      "ok": true,
+      "swapGb": 7.42083984375,
+      "load": 3.02,
+      "freeGb": 7.203437805175781,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "initial": {
+      "swapGiB": 7.42083984375,
+      "reportedFreePercent": 56,
+      "diskFreeGiB": 7.203437805175781
+    },
+    "guard": null,
+    "error": null,
+    "join": {
+      "observationDetails": [],
+      "remainingOwnedPIDs": [],
+      "unresolvedPIDs": [],
+      "errors": [],
+      "seconds": 0.06489737499941839,
+      "sent": []
+    },
+    "observationDetails": [],
+    "wallSeconds": 0.17461637499945937,
+    "samples": [
+      {
+        "seconds": 0.03532308300054865,
+        "pid": 2541,
+        "processStart": 1450005841357,
+        "footprintBytes": 81992,
+        "residentBytes": 32768
+      }
+    ],
+    "frames": [
+      {
+        "seconds": 0.044429833003960084,
+        "summedOwnedFootprintBytes": 81992,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.203418731689453
+      },
+      {
+        "seconds": 0.1096226250010659,
+        "summedOwnedFootprintBytes": 0,
+        "swapGiB": 7.42083984375,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 7.2033843994140625
+      }
+    ]
+  }
+]

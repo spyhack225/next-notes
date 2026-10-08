@@ -1,0 +1,382 @@
+diff --git a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+index 39f549c..02f2838 100644
+--- a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
++++ b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+@@ -341,7 +341,9 @@ actor NotesModelRuntime {
+     /// `(pendingSpec ?? spec).fileURL` is the chosen model's — applied when nothing was
+     /// running, recorded as pending behind the work in flight otherwise.
+     func select(_ model: InstalledLocalModel?) async {
+-        // An explicit per-role or benchmark choice outranks the startup saved default.
++        // An awaited explicit selection is newer than the saved one: the first load must
++        // not adopt the saved choice over it (the launch MiniCPM warm-up selected its pin
++        // and then loaded whatever the library row named).
+         didAdoptSavedSelection = true
+         useInstalledModel(model)
+     }
+@@ -414,8 +416,13 @@ actor NotesModelRuntime {
+     private func applyPendingSpec() {
+         guard let pendingSpec else { return }
+         // P1-28: A model chosen while this runtime held one: the switch, not an idle unload.
+-        noteUnload(reason: .switched)
+-        if model != nil { shutdownNow() }
++        // Only when weights were actually resident — a fresh process relabelling its
++        // never-loaded placeholder spec used to file "model=Gemma 4 E4B reason=switched"
++        // on every launch, which read as a reload ping-pong that never happened.
++        if model != nil {
++            noteUnload(reason: .switched)
++            shutdownNow()
++        }
+         spec = pendingSpec
+         self.pendingSpec = nil
+         // P0-18: a different file means a different vocabulary, so the cached token ids
+@@ -831,6 +838,20 @@ actor NotesModelRuntime {
+         }
+     }
+ 
++    /// Live context refinement is optional background work. Keep its admission
++    /// inside the existing native lane so pressure arriving while it waits cannot
++    /// turn a rejected refinement into a required model reload.
++    func completeForOptionalUse(system: String, user: String, maxTokens: Int,
++                                grammar: GBNFGrammar? = nil) async throws -> LLMCompletion {
++        try checkOptionalAdmission()
++        let completion = try await withBackgroundLane { jobID in
++            try await completeWhileScheduled(
++                jobID: jobID, system: system, user: user, maxTokens: maxTokens, grammar: grammar, optional: true)
++        }
++        try checkOptionalAdmission()
++        return completion
++    }
++
+     /// Native token stream for interactive agent answers. The task is owned by the
+     /// returned sequence, so cancelling a consumer reaches the llama loop between tokens.
+     ///
+@@ -1000,11 +1021,21 @@ actor NotesModelRuntime {
+         system: String,
+         user: String,
+         maxTokens: Int,
+-        grammar: GBNFGrammar? = nil
++        grammar: GBNFGrammar? = nil,
++        optional: Bool = false
+     ) async throws -> LLMCompletion {
++        let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
++        var reportedFirstToken = false
++        defer {
++            if !reportedFirstToken {
++                firstTokenTrace.end(note: "app_llm job=\(jobID) complete no_token=true")
++            }
++        }
++        if optional { try checkOptionalAdmission() }
+         let wasLoaded = model != nil && vocabulary != nil
+         let loadBegan = ContinuousClock.now
+-        try await loadIfNeeded(schedulerJobID: jobID)
++        try await loadIfNeeded(schedulerJobID: jobID, optional: optional)
++        if optional { try checkOptionalAdmission() }
+         Self.reportUsageLoad(warm: wasLoaded, began: loadBegan)
+         // On every exit, not just the successful one: a transcript that was too long, a
+         // failed decode or a cancelled generation leaves the weights just as resident as a
+@@ -1024,14 +1055,36 @@ actor NotesModelRuntime {
+             throw LlamaError.inputTooLong
+         }
+ 
+-        let context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
++        if optional { try checkOptionalAdmission() }
++        let contextTrace = LatencyTrace.start(.modelContext)
++        let hadContext = context != nil
++        var contextReady = false
++        let context: OpaquePointer
++        do {
++            defer {
++                contextTrace.end(note: "app_llm job=\(jobID) complete had_context=\(hadContext) ready=\(contextReady) tokens=\(contextSize)")
++            }
++            context = try ensureContext(promptTokens: promptTokens.count, maxTokens: maxTokens)
++            contextReady = true
++        }
+         // Built before the prefill, so a grammar the native parser refuses costs nothing.
+         guard let sampler = try makeSampler(vocabulary: vocabulary, grammar: grammar) else {
+             throw LlamaError.samplerFailed
+         }
+         defer { llama_sampler_free(sampler) }
+ 
+-        _ = try await preparePrefix(promptTokens, context: context, jobID: jobID)
++        let prefillTrace = LatencyTrace.start(.modelPrefill)
++        var prefillReady = false
++        do {
++            defer {
++                // A failed prefill must not borrow counts from the previous pass.
++                let counts = prefillReady ? " reused=\(lastPrefillStats?.reused ?? 0) decoded=\(lastPrefillStats?.decoded ?? 0)" : " counts=unavailable"
++                prefillTrace.end(note: "app_llm job=\(jobID) complete ready=\(prefillReady) prompt_tokens=\(promptTokens.count)" + counts)
++            }
++            _ = try await preparePrefix(promptTokens, context: context, jobID: jobID, optional: optional)
++            prefillReady = true
++        }
++        if optional { try checkOptionalAdmission() }
+ 
+         let began = Date()
+         var output = ""
+@@ -1055,9 +1108,14 @@ actor NotesModelRuntime {
+                 await ComputeScheduler.shared.checkpoint(jobID)
+                 try checkTerminationAdmission()
+ 
++                if optional { try checkOptionalAdmission() }
+ 
+                 let token = llama_sampler_sample(sampler, context, -1)
+                 if llama_vocab_is_eog(vocabulary, token) { break }
++                if !reportedFirstToken {
++                    reportedFirstToken = true
++                    firstTokenTrace.end(note: "app_llm job=\(jobID) complete")
++                }
+                 output += LlamaHelpers.piece(token, vocabulary: vocabulary)
+                 generated += 1
+                 if !turnEnd.isEmpty, output.hasSuffix(turnEnd) {
+@@ -1073,10 +1131,14 @@ actor NotesModelRuntime {
+                 position += 1
+             }
+         } catch {
+-            // A failed decode or a cancellation mid-generation leaves the native context in
+-            // a state this code did not build; drop both halves of the cache together.
+-            llama_memory_clear(llama_get_memory(context), true)
+-            kvTokens = []
++            // Cooperative cancellation is checked at a token boundary; each successful
++            // native decode has already appended its exact tokens above. Preserve that
++            // same prefix, as the streaming producer does. An actual decode failure
++            // still leaves unknown state and must clear both native memory and ledger.
++            if !(error is CancellationError) {
++                llama_memory_clear(llama_get_memory(context), true)
++                kvTokens = []
++            }
+             throw error
+         }
+ 
+@@ -1265,6 +1327,87 @@ actor NotesModelRuntime {
+             ms: ModelPassRecorder.milliseconds(began.duration(to: .now)))
+     }
+ 
++    // MARK: - Dictation cleanup admission
++
++    /// What is resident, readable without entering this actor.
++    ///
++    /// A cold `load` opens the GGUF synchronously on this actor's executor (14–49 s
++    /// measured for MiniCPM5-2B), so *any* call into the actor during it — even an
++    /// availability question — waits the whole load. Dictation cleanup reads this box
++    /// instead and answers with Apple rather than queueing behind weights.
++    struct Residency: Sendable, Equatable {
++        /// The file whose weights are open, or nil.
++        var loadedFile: URL?
++        /// A load task is in flight (the actor may be blocked inside it).
++        var loading: Bool
++    }
++
++    nonisolated let residency = LockedBox(Residency(loadedFile: nil, loading: false))
++
++    private func publishResidency() {
++        residency.value = Residency(
++            loadedFile: model == nil ? nil : spec.fileURL,
++            loading: loadTask != nil)
++    }
++
++    /// Why a dictation cleanup pass was not admitted. Thrown before anything waits.
++    struct CleanupAdmissionRefused: Error, LocalizedError {
++        let reason: String
++        var errorDescription: String? { reason }
++    }
++
++    /// One dictation cleanup pass that runs **now or not at all**.
++    ///
++    /// Admitted only when `file`'s weights are already resident, no load is in flight,
++    /// nobody owns the native context, and the scheduler grants `.realtimeAgent` without
++    /// queueing (which preempts background work but never live ASR or voice). Every
++    /// refusal is thrown before the first suspension that could wait, so the caller's
++    /// fallback (a staged Apple session) answers at once. `admitted` fires once the lane
++    /// is held — the caller's generation clock starts there, never during a queue wait.
++    ///
++    /// Does not touch `LlamaBackend`'s cleanup gate (see `AppLLMCleanupFormatter`).
++    func completeForDictationCleanup(
++        file: URL,
++        system: String,
++        user: String,
++        maxTokens: Int,
++        admitted: @Sendable () -> Void
++    ) async throws -> (completion: LLMCompletion, promptTokens: Int, cachedTokens: Int) {
++        guard !terminationRequested else { throw CleanupAdmissionRefused(reason: "quitting") }
++        guard loadTask == nil else { throw CleanupAdmissionRefused(reason: "the model is still loading") }
++        guard model != nil, vocabulary != nil, spec.fileURL == file else {
++            throw CleanupAdmissionRefused(reason: "the cleanup model is not loaded")
++        }
++        if let pendingSpec, pendingSpec.fileURL != file {
++            throw CleanupAdmissionRefused(reason: "another model is about to replace it")
++        }
++        guard !nativeOwner, nativeWaiters.isEmpty else {
++            throw CleanupAdmissionRefused(reason: "the model is busy with other work")
++        }
++        // Synchronous reservation: no suspension between the checks above and this.
++        nativeOwner = true
++        defer { releaseNativeContext() }
++        activeOperations += 1
++        defer {
++            activeOperations -= 1
++            lastUse = Date()
++        }
++        guard let jobID = await ComputeScheduler.shared.tryAcquire(.realtimeAgent) else {
++            throw CleanupAdmissionRefused(reason: "live speech recognition holds the lane")
++        }
++        do {
++            try checkTerminationAdmission()
++            admitted()
++            let completion = try await completeWhileScheduled(
++                jobID: jobID, system: system, user: user, maxTokens: maxTokens)
++            await ComputeScheduler.shared.release(jobID)
++            return (completion, lastPrefillStats?.promptTokens ?? 0, lastPrefillStats?.reused ?? 0)
++        } catch {
++            await ComputeScheduler.shared.release(jobID)
++            throw error
++        }
++    }
++
+     /// Acquires the shared background lane for the duration of `body`.
+     private func withBackgroundLane<T>(
+         _ body: (UUID) async throws -> T
+@@ -1336,6 +1479,108 @@ actor NotesModelRuntime {
+ 
+     private var queuedNativeWaiters: Int { nativeWaiters.count }
+ 
++    /// Real optional completion ownership/admission with only native loading replaced.
++    static func optionalCompletionAdmissionChecksForTesting() async -> [(String, Bool)] {
++        guard SelfTest.isRunning else { return [("optional completion isolation", false)] }
++        var checks: [(String, Bool)] = []
++        let guardian = ModelResidencyGuardian(releaseForTesting: {})
++        let missing = ModelSpec(displayName: "Admission fixture", fileName: "missing-\(UUID().uuidString).gguf",
++            url: URL(string: "http://127.0.0.1:1/no-fetch")!, expectedBytes: 1, expectedSHA256: nil)
++        let missingSelection = InstalledLocalModel(id: "admission-fixture", displayName: missing.displayName,
++            fileURL: missing.fileURL, parameterBillions: nil, quantization: nil,
++            bytes: missing.expectedBytes, isBuiltIn: false)
++        let nativeLoadsBefore = LlamaLoadProbe.fullWeightLoadCount()
++        let runtime = NotesModelRuntime(spec: missing, gpuLayers: 0, pressureSnapshot: { guardian.snapshot })
++        let loads = NativeReservationProbe()
++        await runtime.setOptionalLoadProbeForTesting { await loads.append("load") }
++        let provider = LlamaLLMProvider(modelName: "Admission fixture", runtime: runtime)
++        func request(_ id: UUID) async -> Bool {
++            // A missing custom file resets the runtime to its built-in fallback.
++            // Re-select the absent fixture for every request, including mutations
++            // of admission, so none can load an installed model on the next call.
++            await runtime.useInstalledModel(missingSelection)
++            do {
++                _ = try await MeetingContextReconciler.ModelCompleter.recordedComplete(
++                    system: "fixture", user: "fixture", provider: provider, meetingID: id,
++                    maxTokens: 1, optionalAdmission: { true })
++                return false
++            } catch is CancellationError { return true }
++            catch { return false }
++        }
++        let immediateID = UUID()
++        guardian.receive(.warning)
++        checks.append(("actual local reconcile denied under pressure", await request(immediateID)))
++        checks.append(("pressure reached native optional loader", await loads.values.isEmpty))
++        let deniedRows = UsageLog.shared.load().filter { $0.meetingID == immediateID }
++        checks.append(("denied reconcile emitted success usage", deniedRows.count == 1
++            && deniedRows.allSatisfy { $0.finishReason == "cancelled" && $0.errorClass != nil }))
++
++        guardian.receive(.normal)
++        let asr = await ComputeScheduler.shared.acquire(.realtimeASR)
++        let delayed = Task { await request(UUID()) }
++        for _ in 0..<100 {
++            if await runtime.activeOperations > 0 { break }
++            try? await Task.sleep(for: .milliseconds(5))
++        }
++        let reserved = await runtime.activeOperations > 0
++        guardian.receive(.critical)
++        await ComputeScheduler.shared.release(asr)
++        checks.append(("optional completion never reached scheduler wait", reserved))
++        checks.append(("pressure after scheduler wait admitted reconcile", await delayed.value))
++        checks.append(("scheduler-wait denial reached native loader", await loads.values.isEmpty))
++
++        guardian.receive(.normal)
++        let gate = NotesShutdownProbeGate()
++        let current = Task { try? await runtime.withLane(.background) { _ in await gate.park() } }
++        for _ in 0..<100 {
++            if await gate.started { break }
++            try? await Task.sleep(for: .milliseconds(5))
++        }
++        let held = await gate.started
++        let queued = Task { await request(UUID()) }
++        for _ in 0..<100 {
++            if await runtime.queuedNativeWaiters > 0 { break }
++            try? await Task.sleep(for: .milliseconds(5))
++        }
++        let waited = await runtime.queuedNativeWaiters > 0
++        guardian.receive(.warning)
++        await gate.release()
++        _ = await current.result
++        checks.append(("native ownership fixture did not hold and queue", held && waited))
++        checks.append(("pressure after native ownership wait admitted reconcile", await queued.value))
++        checks.append(("native-wait denial reached native loader", await loads.values.isEmpty))
++        let active = await runtime.activeOperations
++        let waiters = await runtime.queuedNativeWaiters
++        let owns = await runtime.nativeOwner
++        checks.append(("optional denial left native ownership active", active == 0 && waiters == 0 && !owns))
++
++        guardian.receive(.normal)
++        await runtime.setOptionalLoadProbeForTesting {
++            await loads.append("load")
++            guardian.receive(.warning)
++        }
++        checks.append(("pressure after optional load await claimed completion", await request(UUID())))
++        checks.append(("late pressure missed actual optional loading seam", await loads.values.count == 1))
++        guardian.receive(.critical)
++        await runtime.useInstalledModel(missingSelection)
++        let requiredAttemptsBefore = await runtime.loadAttemptCount
++        do {
++            _ = try await runtime.complete(system: "fixture", user: "fixture", maxTokens: 1)
++            checks.append(("required completion did not reach absent file", false))
++        } catch is CancellationError {
++            checks.append(("pressure suppressed required completion", false))
++        } catch LlamaError.modelMissing {
++            checks.append(("required completion retained normal loading contract",
++                           await runtime.loadAttemptCount == requiredAttemptsBefore + 1))
++        } catch {
++            checks.append(("required completion returned wrong absent-file error", false))
++        }
++        checks.append(("admission fixture opened installed native weights",
++                       LlamaLoadProbe.fullWeightLoadCount() == nativeLoadsBefore))
++        _ = await runtime.shutdown()
++        return checks
++    }
++
+     /// Deterministic reservation probe; no GGUF, permissions, or user history.
+     static func conversationSchedulingSelfTest() async -> Bool {
+         let runtime = NotesModelRuntime(spec: NotesModels.spec, gpuLayers: 0)
+@@ -1770,6 +2015,7 @@ actor NotesModelRuntime {
+         }
+         // P0-18: whatever the context held is gone; the ledger must not outlive it.
+         kvTokens = []
++        publishResidency()
+     }
+ 
+     /// The Models tab can hand this runtime a different GGUF at any moment.
+@@ -2067,7 +2313,10 @@ actor NotesModelRuntime {
+ 
+         let jobID = schedulerJobID
+         let task = Task<Void, Error> {
+-            defer { self.loadTask = nil }
++            defer {
++                self.loadTask = nil
++                self.publishResidency()
++            }
+             let loadTrace = LatencyTrace.start(.modelLoad)
+             let generation = await ModelRuntimeManager.shared.beginLoading(.notes)
+             self.setRuntimeGeneration(generation)
+@@ -2114,6 +2363,7 @@ actor NotesModelRuntime {
+             }
+         }
+         loadTask = task
++        publishResidency()
+         try await withTaskCancellationHandler {
+             try await task.value
+         } onCancel: {
+@@ -2214,6 +2464,7 @@ actor NotesModelRuntime {
+         model = loadedModel
+         vocabulary = loadedVocabulary
+         trainedContext = Int(llama_model_n_ctx_train(loadedModel))
++        publishResidency()
+         // P0-04: the file itself names its turn markers. `llama_model_chat_template` is the
+         // default template the vocabulary carries; the GGUF key is the same string and is
+         // only read when the model reports none, for architecture and pre-tokenizer too.

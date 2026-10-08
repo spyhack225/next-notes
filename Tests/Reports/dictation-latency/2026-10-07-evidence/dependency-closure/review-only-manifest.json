@@ -1,0 +1,1188 @@
+{
+  "utc": "2026-10-08T08:01:30.632012+00:00",
+  "baseHEAD": "21d94932195af9be9e308d01d9cc7c13bd78df02",
+  "status": "Review-only exact dependency inventory; no commit, index mutation, or source writer",
+  "paths": [
+    {
+      "path": "Makefile",
+      "baseSHA256": "db53a4b40362e97ca69adfc5a839bbc706aa917145d7f7280eaf38fbb03186ca",
+      "currentSHA256": "b0f1af8632403a73de7a7e0473678e3143cecc860c5344670d127d65525befa9",
+      "diffSHA256": "aed7373d2e1fa057c2d2a6754ad456a1312d01217d151960bc881de8d017b857",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -1,5 +1,8 @@",
+          "sha256": "3cc9404a8bd7394a0bfef8694a54053c4735a9bcb76ff0fb4c30fc4a4b7629c2"
+        },
+        {
+          "index": 1,
+          "header": "@@ -160,6 +163,9 @@ app: build",
+          "sha256": "04d3b58f09030e5ab473ff4b9e7c05b63f97c0d06bed0e4f26aa20d0834d59b3"
+        },
+        {
+          "index": 2,
+          "header": "@@ -255,7 +261,7 @@ acceptance:",
+          "sha256": "2a39a3fe47bf5ad8600c1735bc260172ab8733fc1d6b810576e3f604b6b34afd"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioCaptureHub.swift",
+      "baseSHA256": "7d3ef80a2e212cc692fa3e96ea9f3763be53244a55fb4ede010457806ddc2dd5",
+      "currentSHA256": "8e9fe3f5e404b0bfd0140eac9268b4ae4e7829079717f2821a76f536ce6bcdaa",
+      "diffSHA256": "8bf9159dd54587faa7219f544b8aebdca03ec9cb478d3c82ee291b91d2ab172d",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -265,11 +265,20 @@ final class AudioCaptureHub {",
+          "sha256": "23a7eeea611b11f6edae45ada8be8a5eed236c09fbfd35070d6c00945be54b83"
+        },
+        {
+          "index": 1,
+          "header": "@@ -737,6 +746,45 @@ extension AudioCaptureHub {",
+          "sha256": "1b059ff17cd2353070f1d81ce206b867223ec5aae01ff18287a5c9332b86f171"
+        }
+      ],
+      "ownerClassification": "Mixed root optional-admission and dictation changes: review exact lines before integration"
+    },
+    {
+      "path": "Sources/NextNotes/Core/DictationController.swift",
+      "baseSHA256": "b1a87ecc157c0eebc2e8ad9632f0b9c2e9a6c2c60d0c3bacd2b9bd0769e3658b",
+      "currentSHA256": "48ea2657bd2e8094057415bed5082d51e6db0d2194f4feee8bbb57a9e082f0d0",
+      "diffSHA256": "09d13f9aad7c7b3f666322f32b2843425b20ada3815ccba6c245532bea60995d",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -405,6 +405,13 @@ final class DictationController {",
+          "sha256": "7afb978020b40401517ddbe0d6bf2f438490c474102d3b8578d7ed4ee9e7c625"
+        },
+        {
+          "index": 1,
+          "header": "@@ -453,7 +460,7 @@ final class DictationController {",
+          "sha256": "0e519d5b9125a76e5b651fc751e86f0b67cc1e9c23fa66a4a6555088e4c0529d"
+        },
+        {
+          "index": 2,
+          "header": "@@ -496,7 +503,7 @@ final class DictationController {",
+          "sha256": "4e28dc39a150e5262c29bb6256ad30ab0e7aeff533eea957cd9a5dda47518d3f"
+        },
+        {
+          "index": 3,
+          "header": "@@ -510,7 +517,7 @@ final class DictationController {",
+          "sha256": "3f080adb53c73cca53d8e24a25b02721cfc5378ae249a361a52c4f074791fa7c"
+        },
+        {
+          "index": 4,
+          "header": "@@ -547,7 +554,7 @@ final class DictationController {",
+          "sha256": "2a0967a3f8817cf4a84bfdc9c7557eef7feb4b088637d8081c584aead1222599"
+        },
+        {
+          "index": 5,
+          "header": "@@ -573,7 +580,7 @@ final class DictationController {",
+          "sha256": "a315f864f1421e9d22057c632e62ac24835919d3e6aea9916a9ab94828659793"
+        },
+        {
+          "index": 6,
+          "header": "@@ -610,7 +617,12 @@ final class DictationController {",
+          "sha256": "90ba6aaf3699ee4738f0a78e21c527c07bf14cdf232429ef841cb9f58aaaa58a"
+        },
+        {
+          "index": 7,
+          "header": "@@ -634,6 +646,8 @@ final class DictationController {",
+          "sha256": "d26dc854123c3f807eaf1b9413210f281344d6e1e1db56c2afe06ba68668cfee"
+        },
+        {
+          "index": 8,
+          "header": "@@ -730,7 +744,7 @@ final class DictationController {",
+          "sha256": "3983c79b84da409c25876c45fedb54260c4581322d2184779c673d6960348fce"
+        },
+        {
+          "index": 9,
+          "header": "@@ -853,7 +867,10 @@ final class DictationController {",
+          "sha256": "faf484273cb3936fb55fe635a61cece71d0248cc5c550971a776b20798f5724c"
+        },
+        {
+          "index": 10,
+          "header": "@@ -868,12 +885,85 @@ final class DictationController {",
+          "sha256": "4e179d30b2e2f97ef4dc22904728ae0005a266dc4e32cc420b9705cf4ead5b07"
+        },
+        {
+          "index": 11,
+          "header": "@@ -956,6 +1046,199 @@ final class DictationController {",
+          "sha256": "0b16a6eec7eeab3aaf5d67700820a4f892dd05205297a7caca482d97ff0b7d87"
+        },
+        {
+          "index": 12,
+          "header": "@@ -1072,6 +1355,11 @@ final class DictationController {",
+          "sha256": "48796962a064bf2434703c2d5f1564bcc9482b556f175428d4452a6150dca216"
+        },
+        {
+          "index": 13,
+          "header": "@@ -1217,6 +1505,7 @@ final class DictationController {",
+          "sha256": "e329fd335fde66ed24edc916152df6189c1a5f623c2484b9026bc428c75405cf"
+        },
+        {
+          "index": 14,
+          "header": "@@ -1305,11 +1594,7 @@ final class DictationController {",
+          "sha256": "3f8be755391dc5b88eda92123979ffed0589d4a0ec31367759cb9aa03327e75e"
+        },
+        {
+          "index": 15,
+          "header": "@@ -1334,6 +1619,61 @@ final class DictationController {",
+          "sha256": "aaea350a37139a79dde8c9c756ddc35675d3d2393cdf5e7fd4a52ff5824e5404"
+        },
+        {
+          "index": 16,
+          "header": "@@ -1389,37 +1729,7 @@ final class DictationController {",
+          "sha256": "0ab312abbfc5163c9fef8f570587fbdb4ad587c5be2ae457f30873a45b410a68"
+        },
+        {
+          "index": 17,
+          "header": "@@ -1437,8 +1747,8 @@ final class DictationController {",
+          "sha256": "e1596fe669639984121129b0c094dd3d3bc526f79389409149345551963df29d"
+        },
+        {
+          "index": 18,
+          "header": "@@ -1553,7 +1863,10 @@ final class DictationController {",
+          "sha256": "720d40cea858df441ddca6c0bb95e1e228fbacf2945f95ef6104d23cb1f0b4bc"
+        },
+        {
+          "index": 19,
+          "header": "@@ -1570,6 +1883,13 @@ final class DictationController {",
+          "sha256": "05323541727426f727f72676c9542d3b3aa86b752d2086c2b95df30718bf19be"
+        },
+        {
+          "index": 20,
+          "header": "@@ -1659,18 +1979,7 @@ final class DictationController {",
+          "sha256": "4c2884e0beb4ffbb5fc31bf2c98b1ac9ccc79270879818f47eb26f184ffae273"
+        },
+        {
+          "index": 21,
+          "header": "@@ -1722,10 +2031,9 @@ final class DictationController {",
+          "sha256": "ebf171227461537de9fc0f0080d08f07a57e3e5a0bc8b219f42b0bf900e747bd"
+        },
+        {
+          "index": 22,
+          "header": "@@ -1736,10 +2044,12 @@ final class DictationController {",
+          "sha256": "1805e92a50f379862debda91b5a4be4ea0d2b36141fd917fc435418b37363c08"
+        },
+        {
+          "index": 23,
+          "header": "@@ -1753,7 +2063,7 @@ final class DictationController {",
+          "sha256": "70f7a54030bc0fd301e25aaf42062f1013312b6d702ee792cd657660e41c7e74"
+        },
+        {
+          "index": 24,
+          "header": "@@ -1784,12 +2094,18 @@ final class DictationController {",
+          "sha256": "5de2ebca70d1b31022fbcac20337807f9481a2b86b327e1d64839ea76eaabc2c"
+        },
+        {
+          "index": 25,
+          "header": "@@ -1803,6 +2119,16 @@ final class DictationController {",
+          "sha256": "e5d530584e7dc87069393ca3f8bfdaf4322a55594e285997b28b4f17a24f8ba5"
+        },
+        {
+          "index": 26,
+          "header": "@@ -1918,10 +2244,14 @@ final class DictationController {",
+          "sha256": "958b647509d60d139457c88813382de6cd0069a4e531018bd7f9bb77d7a143b6"
+        },
+        {
+          "index": 27,
+          "header": "@@ -1945,7 +2275,10 @@ final class DictationController {",
+          "sha256": "aa829f423611bb06bf8e1fdaaefcc7c95201e4893bced1286cce74d07f2b2948"
+        },
+        {
+          "index": 28,
+          "header": "@@ -1956,6 +2289,7 @@ final class DictationController {",
+          "sha256": "166d20601a9fd6de7a9a08470861c9411ca7db1241282e74421e399139f34861"
+        },
+        {
+          "index": 29,
+          "header": "@@ -2015,6 +2349,7 @@ final class DictationController {",
+          "sha256": "bbb840d631b31db8faaf670fa0a1801af8a189fc072f0a669327428190b8dea4"
+        },
+        {
+          "index": 30,
+          "header": "@@ -2046,10 +2381,10 @@ final class DictationController {",
+          "sha256": "a3eb4ff2d14d2733cee0ae1c14ac67915945bdd9ba161c7902a010fd5cbbe03a"
+        },
+        {
+          "index": 31,
+          "header": "@@ -2117,6 +2452,7 @@ final class DictationController {",
+          "sha256": "c874c282a338c620a1ec5f4d0df5049eda533071491b42eb9fb9c4a2e5b8831f"
+        },
+        {
+          "index": 32,
+          "header": "@@ -2284,6 +2620,7 @@ final class DictationController {",
+          "sha256": "f01500c293f9ad10b5f7f5139911917eb254fd036fbdae373db3546b4d99be52"
+        },
+        {
+          "index": 33,
+          "header": "@@ -2457,6 +2794,7 @@ final class DictationController {",
+          "sha256": "a0159da580c81f62e975f897ddd8a537127e4166a24f1146b0e9867d08f39978"
+        }
+      ],
+      "ownerClassification": "Mixed root optional-admission and dictation changes: review exact lines before integration"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupRouter.swift",
+      "baseSHA256": "e2a0fa3378a85d1d393f38a7da4e6625061772d1fcad6becc75c8792a8b100ea",
+      "currentSHA256": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280",
+      "diffSHA256": "9d1ca81d68919e0071874ad6a43c8683e77b29b2754f7127b96a47af729c5312",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -45,6 +45,7 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "5c41d5bb5a9597daf4ef4dbcfcf426198a489bd187dd333954c5dd3aa31a218b"
+        },
+        {
+          "index": 1,
+          "header": "@@ -69,7 +70,6 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "8ae8405eea407b53537b86d858e1fae2649b24db5bebc1117aae8cf25f0c5fca"
+        },
+        {
+          "index": 2,
+          "header": "@@ -168,6 +168,19 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "5d836e3a92d3ec2915e50a7e3ad77923e0d6c4de3fbdb05959044feded380367"
+        },
+        {
+          "index": 3,
+          "header": "@@ -207,7 +220,9 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "7697390bd7aedba7d0525da403a3d1dea7c3e47a71570a88daabdfc7a0c0518f"
+        },
+        {
+          "index": 4,
+          "header": "@@ -236,7 +251,7 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "052161d60f2069e945304228e28b787f9c2c23fcd2e8525b6a28f07fd7c4a4a5"
+        },
+        {
+          "index": 5,
+          "header": "@@ -248,210 +263,241 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "26ab4e23e903a76d181850e9b95bd7a814380e64ba6befe1fe269266d6f58adf"
+        },
+        {
+          "index": 6,
+          "header": "@@ -465,24 +511,37 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "3568284ca8ef413d0029ee8e9aae74b55dbb20fef58fd07b99945a7edee27706"
+        },
+        {
+          "index": 7,
+          "header": "@@ -493,7 +552,7 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "4baa10770fab7f7c2c7c9b38fde027b0781e45f679b5bdfa28b0992fb9806e20"
+        },
+        {
+          "index": 8,
+          "header": "@@ -508,27 +567,30 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "8e35a12d03dc5104aee9a2da3b17aeb1c75dde1981a0c24b89fd78746c00c974"
+        },
+        {
+          "index": 9,
+          "header": "@@ -557,8 +619,10 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "2b1c17bc942086e58a8a20cc61b2dc8c53ada9a3f2c0bd5424d6308b54ffaa04"
+        },
+        {
+          "index": 10,
+          "header": "@@ -567,10 +631,11 @@ struct CleanupRouter: TextFormatter {",
+          "sha256": "aec72c7eb7962175024343ba41b63bf95ab54cb1e865c2a81188b56f0a24ce33"
+        },
+        {
+          "index": 11,
+          "header": "@@ -948,7 +1013,7 @@ extension CleanupRouter {",
+          "sha256": "5bc2a77d424fc93e7928bb5de9b44871db479d991af1248d346514a77d89175e"
+        },
+        {
+          "index": 12,
+          "header": "@@ -1148,6 +1213,37 @@ extension CleanupRouter {",
+          "sha256": "21d38ea2b5e1daf84ed93b3515ba47ea094f1aca06b31a0ca9743e79d16374c6"
+        },
+        {
+          "index": 13,
+          "header": "@@ -2780,6 +2876,37 @@ extension CleanupRouter {",
+          "sha256": "2cb99f2fb342be2950aafd798858cd3f00155d256ec0b298eb8c228a783c3802"
+        },
+        {
+          "index": 14,
+          "header": "@@ -3566,4 +3693,3 @@ private struct GroupScriptedFormatter: TextFormatter {",
+          "sha256": "ac5e694b31073a785430cfa759073ef776ce7cc7a9a4b3f113bddc13c7562864"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/ParakeetEngine.swift",
+      "baseSHA256": "50e8315f91e2e1f1bc66cf6bd55b89b81846c0005a08ed7219efdfa60c5440e8",
+      "currentSHA256": "438349e47533d917cefb73686b778c7fe4511ee98b077693e02ff2fcec8eff61",
+      "diffSHA256": "b753326e044c7721f48ba2fa315e5b3b0963c627985cfa7258bf6074b30ad7e6",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -5,46 +5,87 @@ import Foundation",
+          "sha256": "b4bc5a4a1446c4646a9e1ac4aa9a18ac7ec3e578239c46315e3bf7dc05ad155c"
+        },
+        {
+          "index": 1,
+          "header": "@@ -55,16 +96,25 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "7e2530ff235a7a24aa008190098898a7d0518106d7df5270c2d6d060e4f5d0ef"
+        },
+        {
+          "index": 2,
+          "header": "@@ -73,15 +123,17 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "8a57620c7f739bb782940c427be038a3bb19688838458d2553b2f9afdab52637"
+        },
+        {
+          "index": 3,
+          "header": "@@ -89,24 +141,23 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "178a9d0f6d87173860aca8bcfb48a401c02500a6c8edad02d876c95c5b58a077"
+        },
+        {
+          "index": 4,
+          "header": "@@ -128,6 +179,7 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "ce006c4c11ea826ddf83d69eab984d5acd5e8a09cda746b6ab0ce08a9306d247"
+        },
+        {
+          "index": 5,
+          "header": "@@ -138,7 +190,6 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "cfc4c0c0bffd4d56c06b365e34cfcfb717d8cf3056733bb7630ba802af431edb"
+        },
+        {
+          "index": 6,
+          "header": "@@ -148,7 +199,7 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "07b1deb73a2b7f8693b76af6b5256f7475b0beedc553caa8edfcaf900e34b233"
+        },
+        {
+          "index": 7,
+          "header": "@@ -161,23 +212,24 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "cb8d0c03dfbf0153e56fd1ca278cbb8af88e4c5b4b404f2aec62da2b739aba6f"
+        },
+        {
+          "index": 8,
+          "header": "@@ -194,86 +246,87 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "6ee11e89f36c0bfb06935590fa98b0c651d71fec9d7a88d6dd61ee9b45a08220"
+        },
+        {
+          "index": 9,
+          "header": "@@ -282,67 +335,245 @@ actor ParakeetEngine: TranscriptionEngine {",
+          "sha256": "c82fecc6c993b66a2265cb45f42031c27ed3dd71bd66e7219ea413320c803c7d"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/StreamingASR.swift",
+      "baseSHA256": "52c21fa123dd38ca21bc1811ada67da65cff0ec8d2c3c095bb12198683482333",
+      "currentSHA256": "5298d20dad241a2b67fb922d8fceecdd6c218f67ec853bdb14af3a385e341815",
+      "diffSHA256": "87d56126ac359599860efb74ac1da71aa68721b76fd610face6f38ac38d9c3b5",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -4,21 +4,16 @@ import Foundation",
+          "sha256": "c8271ad843990eea4d329df36ca12ecc26154a6d8f69d4822223c14dbfe93a42"
+        },
+        {
+          "index": 1,
+          "header": "@@ -82,8 +77,17 @@ enum StreamingASR {",
+          "sha256": "0ff1afc65161d4bcf672c5dd6b02e3f5d55c6fe0771f4dd7c27a57efb83c26fa"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift",
+      "baseSHA256": null,
+      "currentSHA256": "a008b588450a607b242a3f71f445eff9bcd520f3db01ebb9a54d42e5e77dd157",
+      "diffSHA256": "d497edf88fc77a87f60cb5a8433a407cd40485d2194d8ef65afcfceb5c04e70b",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -0,0 +1,489 @@",
+          "sha256": "177f8b4f32c2830f1a073143d9b36ef9c36c6377a29fd52daf9d92549ada1a8d"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictation/DictationView.swift",
+      "baseSHA256": "77a9f18b652846c80cac2f58febd7b718db3b7f9f05904aac64d0ee50dc5e8d4",
+      "currentSHA256": "b08172cdb4b1a1f18e25957ab36adb82ffe115db5293e6b2c1ee3d9b0b140c5c",
+      "diffSHA256": "644e055b9e5f5804289e1c11a3390ad4a4b2bf6b953c9df3a31d8c726df9797d",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -83,6 +83,7 @@ struct DictationView: View {",
+          "sha256": "26c7066732aff9f66dbcfa923ad57a72754208de834d9a192f2655c642bf6cef"
+        },
+        {
+          "index": 1,
+          "header": "@@ -95,6 +96,13 @@ struct DictationView: View {",
+          "sha256": "c7d56a271aae05a28c9fa7ca8693cdc36c1d3877d80b05ce327f6045296bb3fa"
+        },
+        {
+          "index": 2,
+          "header": "@@ -104,7 +112,9 @@ struct DictationView: View {",
+          "sha256": "ff7fae514b259584a81cfb7e32d398a713c173834b84d045230691140661ee4e"
+        },
+        {
+          "index": 3,
+          "header": "@@ -180,6 +190,38 @@ struct DictationView: View {",
+          "sha256": "67889f03ae53b8800fdd1a911c2a3343576dc53258e36c3eecfd038908084588"
+        },
+        {
+          "index": 4,
+          "header": "@@ -196,6 +238,7 @@ struct DictationView: View {",
+          "sha256": "cda48511c937dc505dd6ac807071775944393e3c2e7d84e515d5e35e67f5f3e3"
+        },
+        {
+          "index": 5,
+          "header": "@@ -303,11 +346,18 @@ struct DictationView: View {",
+          "sha256": "e72b6e8d920508e8580842d73815d866c37d186a70c02eb4d79988131a2854e2"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/FoundationModelFormatter.swift",
+      "baseSHA256": "8aabf97bd7bec0ca32a01948ba82bb23916592d14d3ea95ff9ba91caf818e999",
+      "currentSHA256": "96839fe4cdc15acffe4469c0eeb954851c4083cb145ab68b3679229e1950fd5f",
+      "diffSHA256": "4cd124461bee1f9a34b51e81eb4f4f811a92dd21a51e7cbef9ecc92129c418b9",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -142,53 +142,57 @@ struct FoundationModelFormatter: TextFormatter {",
+          "sha256": "3b1ec457ce0eae8ac0939b16dab02cbed987365a4e165dd9cb03f1b8b94d520c"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/IncrementalCleanup.swift",
+      "baseSHA256": "42af5a20da34dc29c16f550d3b056bdb1389cd3be0c4282a604ca1af3f033285",
+      "currentSHA256": "42af5a20da34dc29c16f550d3b056bdb1389cd3be0c4282a604ca1af3f033285",
+      "diffSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "hunks": [],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Island/IslandPanel.swift",
+      "baseSHA256": "5b6f2f5daf29f9bef2d325aeaed8bb2065af3abfdecc6e97d1b45065bc631a02",
+      "currentSHA256": "48ac5bbef24cf8bed30132b82a7791f29cf7765ff78bc5ad5dcc1b4b0f0b6652",
+      "diffSHA256": "1542d6cfeab5f977d5e4defe6fc83425f506ebeff93f4617b13c4f7bb5d0713b",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -126,7 +126,10 @@ final class IslandPanel: NSPanel {",
+          "sha256": "a35cb97baa78631a97a97720a3574f8917770a24bae709cf536256ef885025d7"
+        },
+        {
+          "index": 1,
+          "header": "@@ -191,6 +194,9 @@ final class IslandPanel: NSPanel {",
+          "sha256": "60408043d755d908239157fadce49ea93b11b166abf035236e8987d1f6b4a2dd"
+        }
+      ],
+      "ownerClassification": "Mixed root optional-admission and dictation changes: review exact lines before integration"
+    },
+    {
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "baseSHA256": "ce05f8dced4fa5970ab6e6ad910c557364197829e3d2343a507c1d96911b1ec7",
+      "currentSHA256": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8",
+      "diffSHA256": "0e4db79caf83358fefec2f6b79ec1df445bcc0d057a204e55a335d9af4ab4c60",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -1,5 +1,6 @@",
+          "sha256": "d21b48cf79ba484410953acf7693fc24b028ea5049c9e0686d1542237f8f79f5"
+        },
+        {
+          "index": 1,
+          "header": "@@ -11,14 +12,30 @@ import SwiftUI",
+          "sha256": "cc328240b657e0b728b20615322b044f933c3eadea2bfc3e153e1fccf146fc42"
+        },
+        {
+          "index": 2,
+          "header": "@@ -110,6 +127,27 @@ enum SelfTest {",
+          "sha256": "d44e2b6c11756d68ee31897db241bc9a6f380bec194d94dfa26ac9062d4b54f9"
+        },
+        {
+          "index": 3,
+          "header": "@@ -125,9 +163,31 @@ enum SelfTest {",
+          "sha256": "4ce498ab0e2047dc46a2b5c1306f4839f37fa948b4250f1127cacd8423b3c06f"
+        },
+        {
+          "index": 4,
+          "header": "@@ -424,7 +484,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {",
+          "sha256": "9b7f11fbf59e36ebb04fe119cb5330941b803d2b262de84078a1e316113e0cd6"
+        },
+        {
+          "index": 5,
+          "header": "@@ -662,11 +731,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {",
+          "sha256": "6c5b3d70b7289aa55ae06cc36468fe936a8fd61ac4611e948c001988e7044af6"
+        },
+        {
+          "index": 6,
+          "header": "@@ -851,6 +925,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {",
+          "sha256": "b5d64737a4f4edc74fcbfe9746ffb4575239aceed5e2868ad33caf6c4f681921"
+        },
+        {
+          "index": 7,
+          "header": "@@ -1286,8 +1383,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {",
+          "sha256": "ac98871e4fdce8be9d5f21457315e67ee0357bbb809d237307ce8b3fd121b0df"
+        },
+        {
+          "index": 8,
+          "header": "@@ -1335,8 +1439,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {",
+          "sha256": "4974e64b6bc32c732b7455a191157b7ac4a31bf9c35f0d880f251c4a31815158"
+        },
+        {
+          "index": 9,
+          "header": "@@ -1382,7 +1508,91 @@ final class AppDelegate: NSObject, NSApplicationDelegate {",
+          "sha256": "b15eae0a7d87b4cd67650731407aa5610bb134e4fb16ecf8f60416f5f64edf04"
+        },
+        {
+          "index": 10,
+          "header": "@@ -1394,7 +1604,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {",
+          "sha256": "feee6a505f20e2d070bcffae996f8be1b0c22e2923f4326dd64374488a3dc33d"
+        },
+        {
+          "index": 11,
+          "header": "@@ -1953,8 +2167,20 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "95e5a9605a2deb0e47d89dd8bb34577171d85281675fc87153f73c83d263b37c"
+        },
+        {
+          "index": 12,
+          "header": "@@ -2024,6 +2250,13 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "1986fa48d638bda6237d60d2aeb21f25b308ba017b3374ebd676c8252303d487"
+        },
+        {
+          "index": 13,
+          "header": "@@ -2632,14 +2865,38 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "2f0970d9fde07ebbe649dfd7e8cde0b826dcd881c79a5ff51f5f53b01fd44061"
+        },
+        {
+          "index": 14,
+          "header": "@@ -3417,6 +3674,11 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "05692a0094c75b15350875242fe0f23161093efa3befc7be57a49f439d5f8476"
+        },
+        {
+          "index": 15,
+          "header": "@@ -3758,7 +4020,13 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "30df1dfe7951f47217b3e46dc8b61a5635021ccf85db4f68d17ec5f48ee8c958"
+        },
+        {
+          "index": 16,
+          "header": "@@ -4581,13 +4849,29 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "9f9cb54f9618a0938a8ffea8dc69fb12cae5bde6330b12c36d87fdb1932d24be"
+        },
+        {
+          "index": 17,
+          "header": "@@ -5162,6 +5446,30 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "061dbbee637db3ce1ac06958bdaa9d20fb1f31fd1ff4bfd23feae7f061de0501"
+        },
+        {
+          "index": 18,
+          "header": "@@ -5245,6 +5553,8 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "0eb929a7238c71f0eade41206faa892257e0958ce983470c6f80911cf92c3087"
+        },
+        {
+          "index": 19,
+          "header": "@@ -5258,6 +5568,10 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "c1bfd8560de7320c0cfae1757eace5bf2f1ca01fb8d0e5fd865079cb9b90fc2e"
+        },
+        {
+          "index": 20,
+          "header": "@@ -6011,6 +6325,7 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "3b7af71ee71f14fd1711877bb8d72eae7e6ff4c119eb6036d8fd42f701850f77"
+        },
+        {
+          "index": 21,
+          "header": "@@ -6038,7 +6353,13 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "2450440a18eb2fc846ca886e1aadcdb7a99a10c2deb491f72f980dcb3fc7e646"
+        },
+        {
+          "index": 22,
+          "header": "@@ -6050,6 +6371,9 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "8691d25eabb118f25063f77ef4dbbf25a1596716fcfcb758ab89aa559262785b"
+        },
+        {
+          "index": 23,
+          "header": "@@ -6058,6 +6382,11 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "dc13f666612871a7529b3357f44c65b2b6715b5868369c8215b4588e94d42041"
+        },
+        {
+          "index": 24,
+          "header": "@@ -6071,6 +6400,87 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "71d2b92513289f7dc9b4c5569da437cc8d67155bdbed5ebc383bb24010bec6e4"
+        },
+        {
+          "index": 25,
+          "header": "@@ -7073,6 +7483,10 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "8880f285954c76b2efdc77b7da63ea0a3d6a4f5b924d3d7f8972905febc0d732"
+        },
+        {
+          "index": 26,
+          "header": "@@ -7462,6 +7876,7 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "aff23cfb0e461a500b77536976ffa82152f7a387ced1310f43441d76e8993e8e"
+        },
+        {
+          "index": 27,
+          "header": "@@ -7907,6 +8322,9 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "f78b5f32a95b9ed46d0908d39219684e447d354a31f99bd3a756303f1d78384d"
+        },
+        {
+          "index": 28,
+          "header": "@@ -7923,9 +8341,6 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "190d919ea355a49648a66c88321605b581a0624ebe9baacf03f6b6309a8f06e2"
+        },
+        {
+          "index": 29,
+          "header": "@@ -9519,6 +9934,12 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "d1af72b1a4352420a06eec1839edcea47aa40597628174da8658aa8787aa3fc8"
+        },
+        {
+          "index": 30,
+          "header": "@@ -9808,6 +10229,7 @@ if arguments.contains(\"--selftest-voice-playback-resume-receipt\") {",
+          "sha256": "eefa7f796f970d6d2ec8e98503d7ef28248a0973962d2da8bed865350d2ef114"
+        }
+      ],
+      "ownerClassification": "Mixed root optional-admission and dictation changes: review exact lines before integration"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift",
+      "baseSHA256": null,
+      "currentSHA256": "9443d0375d6d1785b2eefb202e5346b9433d0f1c839c74f40950fe9e65a00744",
+      "diffSHA256": "312a936f4e0cc039cc1cea36c56d3ac0640f71068caa6099dd0a53ceb2b68ea8",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -0,0 +1,489 @@",
+          "sha256": "f06e506a37679d94c36e3889a40817f24314fe0e88a979bb7f213a2df8e6cb26"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/DictationSegmenter.swift",
+      "baseSHA256": null,
+      "currentSHA256": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad",
+      "diffSHA256": "5e6246b12e6fd2827912c966f28ba74c9bde81dfd8d557235b321d76b739717f",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -0,0 +1,157 @@",
+          "sha256": "34d1424d0feb2dc81c6a1f5bde3f484e30a6870fd34ecd93995e283315313fcb"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictation/LiveDictationText.swift",
+      "baseSHA256": null,
+      "currentSHA256": "6f1d7bac601d4e8f78edbc585863db4a99bfad261a4d9cc92bda6dcd5ca0b656",
+      "diffSHA256": "6fd01549fa7f5a140909fdc9e375f7d670a5e3d7e9688abb5a2e7cbdfe3efcf5",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -0,0 +1,87 @@",
+          "sha256": "5e5140083de1630d7551aefc2a7dd3d3454cc221734f0c506aad0d508c8a7a02"
+        }
+      ],
+      "ownerClassification": "Candidate dictation dependency; initial task diff is historical evidence, not blanket ownership authority"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift",
+      "baseSHA256": "1d6e6b38646381474841cddff0ccc052ed63457e20120cdd1cb54cb3654f502e",
+      "currentSHA256": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607",
+      "diffSHA256": "e28d6ae1625c88a8d5c286a9ffef3a9ae74a5cb97baa63413feb43dd52c70ef6",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -341,7 +341,9 @@ actor NotesModelRuntime {",
+          "sha256": "acb5bdddde1932cfb50d716d0431a919bff43d6498ca29c0bdc5c6fb39b2bfa5"
+        },
+        {
+          "index": 1,
+          "header": "@@ -414,8 +416,13 @@ actor NotesModelRuntime {",
+          "sha256": "6cd699e6dfc20071fcaec6ae3d80de20e4a061362555b9feb6244e669cdf2a95"
+        },
+        {
+          "index": 2,
+          "header": "@@ -831,6 +838,20 @@ actor NotesModelRuntime {",
+          "sha256": "d8124331b90ee225ba74af2345a48b2f454671deebb5414cb550393df09fb74c"
+        },
+        {
+          "index": 3,
+          "header": "@@ -1000,11 +1021,21 @@ actor NotesModelRuntime {",
+          "sha256": "15cbb531cb461c01bd441fd280679b7313d19d94ea60451649e39ea297eb430e"
+        },
+        {
+          "index": 4,
+          "header": "@@ -1024,14 +1055,36 @@ actor NotesModelRuntime {",
+          "sha256": "41f61ffe0184ce3f522bd45344d40f6c00acdd7436ef41db7ce819ed851e885f"
+        },
+        {
+          "index": 5,
+          "header": "@@ -1055,9 +1108,14 @@ actor NotesModelRuntime {",
+          "sha256": "85cc42682da02c9462a422aac6825a12a786459840c28f0be2ed43599868eb9e"
+        },
+        {
+          "index": 6,
+          "header": "@@ -1073,10 +1131,14 @@ actor NotesModelRuntime {",
+          "sha256": "a857004e72eaa8749e605febb639fa13cf29b42c0717dea8dbc6ea0abb93f97f"
+        },
+        {
+          "index": 7,
+          "header": "@@ -1265,6 +1327,87 @@ actor NotesModelRuntime {",
+          "sha256": "4abfa38b350330ea483014d18f6e3362f6f857450602f12eb375b38b531a92f1"
+        },
+        {
+          "index": 8,
+          "header": "@@ -1336,6 +1479,108 @@ actor NotesModelRuntime {",
+          "sha256": "7daa9e5505568fa887bcfa88d712ca49c0e589bcb619ca840c43e160e90ac0c7"
+        },
+        {
+          "index": 9,
+          "header": "@@ -1770,6 +2015,7 @@ actor NotesModelRuntime {",
+          "sha256": "9b247ff28619ef47b32eea57db131e8e009b4d5b837c8e6dd9862ba4aec38b76"
+        },
+        {
+          "index": 10,
+          "header": "@@ -2067,7 +2313,10 @@ actor NotesModelRuntime {",
+          "sha256": "3fd69d82b15deb9b1351651c342f0551e3e9f3e808c94d55dd6560aaea604f8c"
+        },
+        {
+          "index": 11,
+          "header": "@@ -2114,6 +2363,7 @@ actor NotesModelRuntime {",
+          "sha256": "0ee02e8c3b28bac2656cccb23dc88bb589e2380ba6bb3c9e9c16101e5080c8f3"
+        },
+        {
+          "index": 12,
+          "header": "@@ -2214,6 +2464,7 @@ actor NotesModelRuntime {",
+          "sha256": "641e6be51805fabd504e6b9d2b88053198061b7b3181c33da8927ff53fb4b7a3"
+        }
+      ],
+      "ownerClassification": "Mixed root optional-admission and dictation changes: review exact lines before integration"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift",
+      "baseSHA256": "44af0be97556394c1bb124e0bfafd7d01c6f35de5cb4c3762864464015261b75",
+      "currentSHA256": "f83014670aee7c2b3df69a7414b49edc0f1f9ed731c23b77873fb7188169aade",
+      "diffSHA256": "ae85200392f81a8aabd7f1cf73e6e1c2aebda77dc48cc3c6a7e077f8b29fe524",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -57,6 +57,9 @@ enum PrefixCacheSelfTest {",
+          "sha256": "146750a3ea94cdb9abd3bace41734f5e10bfb40745d4f7dd7e4759ed5c4e6e51"
+        },
+        {
+          "index": 1,
+          "header": "@@ -218,6 +221,163 @@ enum PrefixCacheSelfTest {",
+          "sha256": "d12a90620e9e616364dc4e2375997349d7c2eb9aba746c9712fed8a773a92374"
+        },
+        {
+          "index": 2,
+          "header": "@@ -489,6 +649,8 @@ enum PrefixCacheSelfTest {",
+          "sha256": "e936b0af09590eefad2a5da61b069447a478b8595bf731cf580419f272ef71a3"
+        },
+        {
+          "index": 3,
+          "header": "@@ -551,6 +713,55 @@ enum PrefixCacheSelfTest {",
+          "sha256": "59220fe46072986b9a549a3a9a888c0effaad3c27feeb5dd5a8820521037676f"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/Core/Compute/ComputeScheduler.swift",
+      "baseSHA256": "ed43c7aaeafb6f023882ff70bb02f5056ce1a1279f8501d8623fe0a8abc13715",
+      "currentSHA256": "029d064485194aaa262b22666454ff289bd428516abfbc86b6cbeb34cfb2e09d",
+      "diffSHA256": "3c9a270a1f03a9e756d21d1de880c100b480001dbbcfce511fc71aa5b88dc861",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -189,6 +189,21 @@ actor ComputeScheduler: ComputeScheduling {",
+          "sha256": "7339bf4a58310d71a4e88ebf374858b599b8bc2e69a167890f959d02b67fe248"
+        },
+        {
+          "index": 1,
+          "header": "@@ -210,6 +225,11 @@ actor ComputeScheduler: ComputeScheduling {",
+          "sha256": "08cd3ed6236d6674b008fe16944a412f93553032eb4792699cdeec38ceeba7e5"
+        },
+        {
+          "index": 2,
+          "header": "@@ -540,6 +560,30 @@ extension ComputeScheduler {",
+          "sha256": "592cbf3076612b0742c406ecf7a1805fdb4f55c80054737a2b3dbf9334c387b7"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupTrace.swift",
+      "baseSHA256": "f98fa4b2277f40468dded0a59368eb9b9fa985de55c28726cd16c369d9897820",
+      "currentSHA256": "2285079b94e26f07a34e27888360a6c1cfd12d141142de3420510bb36857cb20",
+      "diffSHA256": "b3441fc515d5ea5d85ea9fc921dc63dfc1062b8a92a020afb7cca70b632e4e63",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -116,6 +116,12 @@ final class CleanupTrace: @unchecked Sendable {",
+          "sha256": "dbb5080b4b3cb45a7005a4a5760f9d28fe9369ab9f360cef9730dade0821d0fe"
+        },
+        {
+          "index": 1,
+          "header": "@@ -237,6 +243,33 @@ final class CleanupTrace: @unchecked Sendable {",
+          "sha256": "309f66a67637d2d5b96bc43cc5845d0dfaaf89f5f4075cbf9d17c0b0bd26a42d"
+        },
+        {
+          "index": 2,
+          "header": "@@ -339,6 +372,10 @@ struct CleanupRecord: Codable, Sendable, Hashable {",
+          "sha256": "d7de72425a61968e5c4b196567957a2bd674f07f965e42e0a0ec9a5b46b962c3"
+        },
+        {
+          "index": 3,
+          "header": "@@ -374,6 +411,14 @@ struct CleanupRecord: Codable, Sendable, Hashable {",
+          "sha256": "46416d99bb8f210771e1345a527bf04a420a1cbdf9edc604d3c7bf4fc2c670df"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift",
+      "baseSHA256": "e40c7bc6ee9b01da4f208e00d1d226089abd03010b87a77a2747eabf4d7128b7",
+      "currentSHA256": "70197eb57f569316733ff1356321871d0944a36722f3cd29e86f974810281e6e",
+      "diffSHA256": "165f569e9632426e5356135e64c12b7dc812876d118217d874351e4b9698c948",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -45,18 +45,13 @@ enum MiniCPMModels {",
+          "sha256": "d003a53349eed792f1ec4e3ab94a7e2b766843eb23b8d7ad41bccf4db72702de"
+        },
+        {
+          "index": 1,
+          "header": "@@ -69,7 +64,7 @@ enum MiniCPMModels {",
+          "sha256": "fd0acd77f25c8dc9ecfb051475da349427207089289f053949c8de9ec4ec5e12"
+        },
+        {
+          "index": 2,
+          "header": "@@ -78,37 +73,93 @@ enum MiniCPMModels {",
+          "sha256": "4b29a422540f70b23fef11674d38dff02c85d27bc06be51a2c94cb3305206dad"
+        },
+        {
+          "index": 3,
+          "header": "@@ -127,6 +178,48 @@ enum MiniCPMModels {",
+          "sha256": "22cc82ffb0403ccb0d41f571f4827f068c3f4ccc26f37b9cc3b65714790ddcfe"
+        },
+        {
+          "index": 4,
+          "header": "@@ -144,20 +237,30 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "c72212c96a2128f055b5753ba9882ac9a5804c5f4dbfeae271cd9e1ef2dd2c45"
+        },
+        {
+          "index": 5,
+          "header": "@@ -169,9 +272,12 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "9125c44d91cfc2b1825036e18aa10a6eba4876c81b76dca76ffb34e87d6f43cf"
+        },
+        {
+          "index": 6,
+          "header": "@@ -182,13 +288,24 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "95729287d880b75cfc4f0da386d7a6910c039867124564898e95107190a9f059"
+        },
+        {
+          "index": 7,
+          "header": "@@ -200,61 +317,127 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "bb46588cf5f646c924e4500722ef0bed02e9734e31fca2f2943f04df88d594a0"
+        },
+        {
+          "index": 8,
+          "header": "@@ -273,19 +456,36 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "2f26eea4cef18f145b62aadac41d2dc444eac3ec4d9879ec3c93ef0dfc20c760"
+        },
+        {
+          "index": 9,
+          "header": "@@ -297,13 +497,112 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "f8e1f77e9e48db87c9398c4c84898d8b6cb38b739f1b840865258e7936830814"
+        },
+        {
+          "index": 10,
+          "header": "@@ -312,12 +611,12 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "b020293cabbc40266c4eb953702c9373737c78161dbacdab838aab0ea076ce7b"
+        },
+        {
+          "index": 11,
+          "header": "@@ -329,12 +628,12 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "5f2559ac1f348d9826540458fd21e5a55d2d1e350358af6da6555ab1843e5354"
+        },
+        {
+          "index": 12,
+          "header": "@@ -343,11 +642,19 @@ struct MiniCPMCleanupFormatter: TextFormatter {",
+          "sha256": "39a4dd63ef00761e8b83af78f320262256236bdd68135e1b7557c5da195936dc"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupPressureProbe.swift",
+      "baseSHA256": "68b5dd99510eea9dfa2c172be28bc3dacd78ef8de1cdad3ed65797aaea23bca7",
+      "currentSHA256": "b15bd84154f5bf0e1db380c472dd51d02853b404a628b178d62994b074e1781f",
+      "diffSHA256": "d38eb1d6fd464e1b9c642acc02d689aef8017fd9bf1685e5a7844e7a96483e03",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -17,14 +17,20 @@ enum CleanupPressureProbe {",
+          "sha256": "02c2b1d3302d3e5e348fa5c6ff1a9d114144fcd699476df8ce075c539c8360f8"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/Support/LatencyTrace.swift",
+      "baseSHA256": "b330ec2bf75f1f3af44246a8b3da0eb1d2913b25668b5b03ba9c33f2f510bcb0",
+      "currentSHA256": "b330ec2bf75f1f3af44246a8b3da0eb1d2913b25668b5b03ba9c33f2f510bcb0",
+      "diffSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "hunks": [],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Usage/UsageRecord+Dictation.swift",
+      "baseSHA256": "eb3e50c10d547dee18f4a24b3794bef932caef94dbe558fdf1babf48438519c7",
+      "currentSHA256": "a52e325b6039fe618a561843e23d7718aab397b72bcffe85885d71f495a7408a",
+      "diffSHA256": "c5dbacd293b4418811375f0f431fba625ee87a29e982da158d9a5f0c095c4d6a",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -94,6 +94,8 @@ extension UsageRecord {",
+          "sha256": "9fac63208a7ccde7947e505fff78206de8aa26aeaf0191a3a9440bf95110b2a1"
+        },
+        {
+          "index": 1,
+          "header": "@@ -102,17 +104,19 @@ extension UsageRecord {",
+          "sha256": "6ef5f6243b2da834568c03d75d5d33ef76ce130da0eef58dd2690da2f1cb3391"
+        },
+        {
+          "index": 2,
+          "header": "@@ -148,11 +152,25 @@ extension UsageRecord {",
+          "sha256": "45798d6656e583b6fb9e7af5d7d905087e7176927a29d05b03a1bde3301c537c"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/Transcription/TranscriptionEngine.swift",
+      "baseSHA256": "4f3b88c5ff2319436f8bcbaf9ebf105f0028386555073c2529d4eecda1e70f24",
+      "currentSHA256": "78291e26cf280bf400eb5e54f0f18e4c617e7391db8a60d9cfc6172c6305949d",
+      "diffSHA256": "812ca60579d76fb99903ffcc724a6f5f9d3b30a6d38d2c0d63748f8008c2158b",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -22,6 +22,10 @@ struct TranscriptionChunk: Sendable {",
+          "sha256": "e040b4e3a4d07d341dcbb58eea98474f7e1a100cff28df0b55a05139a41f9b18"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Dictation/DictationStatusBand.swift",
+      "baseSHA256": "d5792393d589f6a9138f6cc73910be7de437e993a1f921549c0467b9b7f3d689",
+      "currentSHA256": "30b4cc460ea4c597ef88340930db89b602e3320701b089582ac92a54ef363412",
+      "diffSHA256": "7fca07feebaa1777327aeee53e02053a6a34aafeb7e24eadf8cbeb97cb488e4f",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -26,6 +26,8 @@ struct DictationStatusBand: View {",
+          "sha256": "01bed27dd40ed12e1e913caf7f6fe5c202b9f87b7a25bbda2b8aaff18deec8b8"
+        },
+        {
+          "index": 1,
+          "header": "@@ -103,7 +105,12 @@ struct DictationStatusBand: View {",
+          "sha256": "0496bd4c5a18e952bd8930ecde2e2760f04f8338f6cd0def3dba33589aa1bac8"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/UI/HUDView.swift",
+      "baseSHA256": "4021b5fe8333c653501a07e2f0fc86c75d02ffc3abd8a4fd73f6615bbffc0058",
+      "currentSHA256": "d56f8e9533f4a8adfaacad6f32490d5602183e798538610d274be5aeba46d11a",
+      "diffSHA256": "f119ee8ee323914a2ca6e1e444d0ae4ef6b2ba34bf87f62072b65cc96cde0c27",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -12,10 +12,17 @@ import SwiftUI",
+          "sha256": "8bfc5792abab27e87f42b978f3925a381b0ddfc8ac2140f4671721e205779b8f"
+        },
+        {
+          "index": 1,
+          "header": "@@ -70,20 +77,27 @@ struct HUDView: View {",
+          "sha256": "81a04a61e35fedb3effedfd634cb0aab7e751bba33be180f885c61310cdcf646"
+        },
+        {
+          "index": 2,
+          "header": "@@ -96,20 +110,20 @@ struct HUDView: View {",
+          "sha256": "8efd9d809b88a692dc2ab921ddd93c5c9fb35a475c37b1204b2d28d2b4037b0f"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Island/IslandState.swift",
+      "baseSHA256": "408e4fef1431e2d88ae1638b286b57e8f3a4bf60072f36bd37d9b94f79a0fa25",
+      "currentSHA256": "2bc2eca99869d16e3f1f147966e7f731350faf6b6f19e0e3c6ae22bc3d77e048",
+      "diffSHA256": "f207d573694a24d3f89426ad063db997b28b6ad1ec0b756354a7bf898a3d85d5",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -119,7 +119,11 @@ final class IslandState {",
+          "sha256": "943d2fbe73df9a4d42ca326c54e25f099bba6505865a31f19a47b3c264032914"
+        },
+        {
+          "index": 1,
+          "header": "@@ -178,6 +182,18 @@ final class IslandState {",
+          "sha256": "2bc8d8bc5d9538127e350cf32583d55f57da268cee4aae97d861d013822935f1"
+        },
+        {
+          "index": 2,
+          "header": "@@ -221,7 +237,12 @@ final class IslandState {",
+          "sha256": "19982c402c7a322d615e848437790ab78fedd7131fa12e662564e6a3cd0ec1fe"
+        },
+        {
+          "index": 3,
+          "header": "@@ -249,6 +270,11 @@ final class IslandState {",
+          "sha256": "259f38e3ef920dd849fa15ba1d2fdfcfb069d54fe05797bb379a20c57b049474"
+        },
+        {
+          "index": 4,
+          "header": "@@ -281,7 +307,7 @@ final class IslandState {",
+          "sha256": "ba491c0304c814a17acb8aaa9656a3a8b5539889c0367e8d1c1677252d720003"
+        },
+        {
+          "index": 5,
+          "header": "@@ -364,7 +390,7 @@ final class IslandState {",
+          "sha256": "1f4474c323949e02ada7133b828e35b82952ffba530fb7aaa0e8cd5600251ead"
+        },
+        {
+          "index": 6,
+          "header": "@@ -394,6 +420,7 @@ final class IslandState {",
+          "sha256": "df95b63247eb1848129439f42021e58e5a61342b02e5473f918506e4ec82b112"
+        },
+        {
+          "index": 7,
+          "header": "@@ -702,9 +729,24 @@ final class IslandState {",
+          "sha256": "1f7eccb098b3cb4500dfec1a6eccbadc28a91e3b4c691d963df0425ab9f4dc65"
+        },
+        {
+          "index": 8,
+          "header": "@@ -788,7 +830,8 @@ final class IslandState {",
+          "sha256": "c7beb18d422eccce57238dd4c06a50d0828033f63bf8f93c69b575a03232e967"
+        },
+        {
+          "index": 9,
+          "header": "@@ -823,6 +866,7 @@ final class IslandState {",
+          "sha256": "f9b554babb352d90fba3ab1f28d827b3d95f711f2073b141011c69e65ee40eda"
+        },
+        {
+          "index": 10,
+          "header": "@@ -862,7 +906,7 @@ final class IslandState {",
+          "sha256": "2e99b4e480c78426b2d9578f8052e7857340688de441f9da90c2571061c6b3fd"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Sources/NextNotes/UI/Island/IslandView.swift",
+      "baseSHA256": "84f405ba3a039d0324eb79d7f669afd958553aba88c82fdae1a647ac6f9ca938",
+      "currentSHA256": "d1121e3a47b00e3b807f3392ac82856b61f4fef056ffcdca9dcd2192b75a8207",
+      "diffSHA256": "9742a6721fd65cb25fa421971f371796d54c6de3633036ddac5be524414be1e1",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -26,8 +26,11 @@ struct IslandView: View {",
+          "sha256": "dbc0fdefcb1ffdf18b32c1d4b71e0d1823a128a826b0de0d4d06126f50d35b7a"
+        },
+        {
+          "index": 1,
+          "header": "@@ -35,6 +38,8 @@ struct IslandView: View {",
+          "sha256": "23a42cd1833122c88ddc3e3b3b0010c4b257036451e1c4f774f2d0c99abe5112"
+        },
+        {
+          "index": 2,
+          "header": "@@ -45,6 +50,12 @@ struct IslandView: View {",
+          "sha256": "7007a04c43467558f5278d9635ff061e054e3cd2ee0a9de2f11fcd700407d011"
+        },
+        {
+          "index": 3,
+          "header": "@@ -57,7 +68,9 @@ struct IslandView: View {",
+          "sha256": "6f8c1fac7097ab03867ff85e75b099e6af446fe3d44ad090316bd01ade0dbefa"
+        },
+        {
+          "index": 4,
+          "header": "@@ -77,7 +90,7 @@ struct IslandView: View {",
+          "sha256": "6b6659dc787a679466e941b5584200a07c3ac1de221dbfd305df53f7f0c18ccd"
+        },
+        {
+          "index": 5,
+          "header": "@@ -156,7 +169,7 @@ struct IslandView: View {",
+          "sha256": "470601298ebcd280ba10490520c012e8901c8128bc5b84fe1339bbe6c93cc7fc"
+        },
+        {
+          "index": 6,
+          "header": "@@ -188,7 +201,7 @@ struct IslandView: View {",
+          "sha256": "292c35a98c29c132ba8723cf1b388e1b476010708c0ab03a11c967396d4ca4f7"
+        },
+        {
+          "index": 7,
+          "header": "@@ -258,7 +271,7 @@ struct IslandView: View {",
+          "sha256": "39874bb8cc4771e3e3b1072abae0d840b97da6f821989bbfc3dd42ebc44faa17"
+        },
+        {
+          "index": 8,
+          "header": "@@ -286,6 +299,7 @@ struct IslandView: View {",
+          "sha256": "0d770fb84c0d55512678fcbc20b4d293dd7f0302ffc182dda96e801bec7ab513"
+        },
+        {
+          "index": 9,
+          "header": "@@ -296,6 +310,7 @@ struct IslandView: View {",
+          "sha256": "96787d0c0ccbacc84167cdfe5223cb88ee1a89be23102adc32e10c4f0479ff67"
+        },
+        {
+          "index": 10,
+          "header": "@@ -304,6 +319,7 @@ struct IslandView: View {",
+          "sha256": "b2a0a149e2b9305d0ce4c4e2db05d6dabacad4c2852fa4c0ceb163baa5dd7ec6"
+        },
+        {
+          "index": 11,
+          "header": "@@ -388,18 +404,31 @@ struct IslandView: View {",
+          "sha256": "2cfba17c2a70fe4d03511e80c0a477b446b3926c3c7bd8377d5ba89af1bed69b"
+        },
+        {
+          "index": 12,
+          "header": "@@ -594,8 +623,8 @@ struct IslandView: View {",
+          "sha256": "9feb27f6f5e2648bca704d03a9fd9e1d3f1761a29e12ae2b01436a513cb6f932"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    },
+    {
+      "path": "Scripts/dictation-gates.sh",
+      "baseSHA256": "1376601c2273960d45c613dbd3559817f8a87bc7cf95f412ae42195cb5403ba6",
+      "currentSHA256": "847c3a5c43d4a7b3a9f71cbe90be545dc21d2319cdf1c964a3410f9dfe8d6d13",
+      "diffSHA256": "a7a0012bfbc6359252fb0f9cb0fd5be241473619a94eef1580b3850eb6ce8cb6",
+      "hunks": [
+        {
+          "index": 0,
+          "header": "@@ -22,14 +22,24 @@ STAMP=$(date -u +%Y-%m-%dT%H:%M:%SZ)",
+          "sha256": "6ecffa974eb0194612ca07ee3b7b721dfb8b7810a9e0462719047aa23ece50fa"
+        }
+      ],
+      "ownerClassification": "Candidate dependency; shared ownership requires explicit review, not blanket authority"
+    }
+  ],
+  "integrationContract": "Do not integrate an unreviewed whole-file snapshot. Root-owned optional admission hunks must be retained with accepted producer contracts; dispatch/UI/shared-file ownership reviewed line-by-line. Seventh compilation and relevant fixed/original/functional contracts required. Foreign staging remains exact.",
+  "latestSource7Applied": [
+    "per-pass-zero",
+    "ready-heads"
+  ],
+  "nativeCapacityCandidateExcluded": true,
+  "promptCopyCandidateExcluded": true,
+  "signalCadenceCandidateExcluded": true,
+  "correction": "Initial historical-path-only inventory omitted subsequent runtime/cleanup/UI dependencies; expanded before integration review. Runtime mixed ownership now explicitly included.",
+  "historicalInventoryHEAD": "dfd2ffabc35f037b2730a12274298e1079a4bee5",
+  "sourceMutation": false,
+  "source7BuildFreeze": "All1176 Sources/Resources frozen. Inventory reads files only; retired metrics candidate excluded."
+}

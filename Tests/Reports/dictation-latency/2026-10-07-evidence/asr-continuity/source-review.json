@@ -1,0 +1,45 @@
+{
+  "utc": "2026-10-08T07:37:16.876155+00:00",
+  "status": "Source-only continuity/streaming feasibility review, no acoustic or model experiment",
+  "sdkPins": {
+    "Sources/FluidAudio/ASR/Parakeet/SlidingWindow/TDT/Decoder/TdtDecoderState.swift": "594c949dd47aa9b4015054fe04386d4f4229c4888571c36052e7d4656261f087",
+    "Sources/FluidAudio/ASR/Parakeet/SlidingWindow/TDT/AsrManager+Transcription.swift": "142a4ce462ee3bcab4293ddd4191a1a2e5f6f8132ffde8ee4b1d2dc26a153ebc",
+    "Sources/FluidAudio/ASR/Parakeet/SlidingWindow/SlidingWindowAsrManager.swift": "c92425d07cb2db61a634416b10c1a721a6ef5174ed264d205f783438757839f9",
+    "Documentation/ASR/LongTranscription.md": "939e953edf7a5fc2bf011c6202248ca6d77a9fb636041868d6b32e880fd8f899"
+  },
+  "appPin": "438349e47533d917cefb73686b778c7fe4511ee98b077693e02ff2fcec8eff61",
+  "confirmed": [
+    "Each app pass allocates a fresh TdtDecoderState, retaining no linguistic context across frozen segments",
+    "SDK single-window public transcribe accepts caller state, uses isLastChunk true, and returns token timings",
+    "SDK TdtDecoderState holds reference-backed MLMultiArray hidden/cell states; its explicit deep-copy initializer is internal. A plain Swift value copy does not independently snapshot those arrays",
+    "SDK public SlidingWindowAsrManager retains decoder/token/timestamp context with overlapping windows; default geometry has11s chunk,2s left,2s right. Adopting that default would postpone first output",
+    "The app usesv3/int8/CPU+NeuralEngine. Its per-pass<=14.5s segments bypass SDK long-form overlap/merge protections; a backlog>15s can instead invoke that SDK path",
+    "The SDK documents multilingual prior drift, final quiet-window blanking and a carried-state blank trap; no naive persistence or overlap-text dedup is accepted"
+  ],
+  "options": [
+    {
+      "option": "Preserve committed-segment decoder context only",
+      "scope": "No added model pass; previews/final parallel work cannot share mutable snapshot. Reset on failure/new session. Need native language-switch/quiet/seam proof before adoption."
+    },
+    {
+      "option": "Use same-model sliding-window manager with tuned geometry",
+      "scope": "Reuses existing model/overlap/token-timing contract, but changes commitment/progressive output and may need right-context waits. Must measure latency, duplicates/omissions, language fidelity and cancellation."
+    },
+    {
+      "option": "Add bounded acoustic left-context with timestamp-bound token commitment",
+      "scope": "Use existing token timings and accepted sample positions; preserve repeated words and avoid text-only overlap heuristics. Need exact original seam failure, positional accuracy and stable final coverage."
+    },
+    {
+      "option": "Use the installed native streaming EOU model",
+      "scope": "A distinct model path requires independent language/accuracy/resource/feature acceptance. Existing download is not promotion authority."
+    }
+  ],
+  "notProven": [
+    "Owner accuracy root cause from decoder reset",
+    "Word improvement from any proposal",
+    "First-word or key-up speed improvement",
+    "Batch backlog frequency in actual owner holds"
+  ],
+  "canonicalChanges": false,
+  "roadmapConstraint": "Existing roadmap already rejects the default SlidingWindow final path (historical WER3.6%, 11s updates) and EOU-120M final path (historical WER10%, missing punctuation). Those are historical benchmarks, not new acceptance. Only a separately tested tuned same-model geometry or a feature-preserving explicit diagnostic is contemplated; no rejected default is reopened or promoted."
+}

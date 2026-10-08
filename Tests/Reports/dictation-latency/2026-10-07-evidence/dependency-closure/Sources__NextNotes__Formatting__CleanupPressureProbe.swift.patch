@@ -1,0 +1,27 @@
+diff --git a/Sources/NextNotes/Formatting/CleanupPressureProbe.swift b/Sources/NextNotes/Formatting/CleanupPressureProbe.swift
+index 04309dc..d3ddb10 100644
+--- a/Sources/NextNotes/Formatting/CleanupPressureProbe.swift
++++ b/Sources/NextNotes/Formatting/CleanupPressureProbe.swift
+@@ -17,14 +17,20 @@ enum CleanupPressureProbe {
+     ///
+     /// Reads `ComputeScheduler.shared.occupancy()` for ASR / notes busy. That
+     /// snapshot is approximate and race-tolerant — fine for routing, not a lock.
++    ///
++    /// A hold's own pre-clean never appears here: MiniCPM cleanup takes the lane with
++    /// `tryAcquire(.realtimeAgent)` or not at all, so it is never a queued `.background`
++    /// job (it used to be, behind the hold's own ASR, and read as `notesBusy` — the hold
++    /// deferring its own tail to rules). Apple pre-cleans are not on the scheduler.
+     static func sample(
+         realtimeASRBusy: Bool = false,
+-        notesBusy: Bool = false
++        notesBusy: Bool = false,
++        scheduler: ComputeScheduler = .shared
+     ) async -> CleanupComputePressure {
+         MemoryPressureFlag.shared.startIfNeeded()
+         let info = ProcessInfo.processInfo
+         let thermal = info.thermalState
+-        let occupancy = await ComputeScheduler.shared.occupancy()
++        let occupancy = await scheduler.occupancy()
+         return CleanupComputePressure(
+             memoryWarning: MemoryPressureFlag.shared.isElevated,
+             thermalElevated: thermal == .serious || thermal == .critical,

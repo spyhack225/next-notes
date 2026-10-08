@@ -1,0 +1,59 @@
+{
+  "utc": "2026-10-08T07:57:52.974376+00:00",
+  "status": "Actual copied Engine original RED2/candidate PASS6; native/converter/scheduler/model registry substituted. No canonical adoption yet.",
+  "confirmedProducerCause": "A retired hold native response returns after start resets diagnostics and unconditionally increments successor pass/compute counters. Candidate attributes metrics only when activeSession still matches the pass owner. Text drain already fences session separately.",
+  "originalCounters": {
+    "afterStale": 1,
+    "afterSecond": 2
+  },
+  "fixedCounters": {
+    "afterStale": 0,
+    "afterSecond": 1
+  },
+  "acceptedModelInputSamplesBoth": [
+    9000,
+    9600
+  ],
+  "successorConsumer": "Same one diagnostic final, actual copied Engine stream",
+  "ordinaryGateAllPassed": true,
+  "allOwnedJoined": true,
+  "guards": [
+    null,
+    null,
+    null,
+    null,
+    null,
+    null
+  ],
+  "sourceCount": 1176,
+  "sourcesInvariant": true,
+  "peakSampledDescendantFootBytes": 105039072,
+  "peakSampledDescendantRSSBytes": 211222528,
+  "parser": "Four numeric metadata lines accepted, five invalid/untrusted lines suppressed; default native arms compiled out. Native allocation remains unrun.",
+  "actualMonitorConfirmedExits": [
+    {
+      "pid": 2166,
+      "kind": "confirmed absent",
+      "expectedStart": 1449811405651,
+      "observedStart": null,
+      "isRoot": false
+    },
+    {
+      "pid": 2235,
+      "kind": "confirmed absent",
+      "expectedStart": null,
+      "observedStart": null,
+      "isRoot": false
+    },
+    {
+      "pid": 2373,
+      "kind": "confirmed absent",
+      "expectedStart": null,
+      "observedStart": null,
+      "isRoot": false
+    }
+  ],
+  "ownerSecondCallAttribution": false,
+  "nativeAccuracyOrSpeedClaim": false,
+  "wholeSupersessionLifecycleFixed": false
+}

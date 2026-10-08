@@ -1,0 +1,168 @@
+{
+  "status": "Cache-only corrected driver; exact phase-loop original failures/fixed pass and eleven helper controls pass. Actual OS proof pending. No compiler or model child launched.",
+  "hashes": {
+    "meeting-seventh-release-guarded.before-lifecycle.py": "4362cc6f6411d2cc7f715009b495f4e72858c69c2aae03d1c064246caf3f09a3",
+    "meeting-seventh-release-guarded.py": "7b08a19f250250e4fb76db589e609d9749baf7004b355b0ed1763d5909d4e4c6",
+    "OwnedCompilerProcess.py": "11f94a5cf1ebac080146a8396537a18838ab31cf032236e529670d41ff8fde0a"
+  },
+  "helperChecks": {
+    "scope": "Authored table/usage/signals/clock; no native compiler or OS process launched",
+    "checks": [
+      [
+        "already joined",
+        true
+      ],
+      [
+        "pinned root joins",
+        true
+      ],
+      [
+        "late descendant observed and joined",
+        true
+      ],
+      [
+        "recycled group PID refused without signal",
+        true
+      ],
+      [
+        "recycled unrelated PID untouched",
+        true
+      ],
+      [
+        "observation exception still drains pinned root but refuses acceptance",
+        true
+      ],
+      [
+        "signal refusal remains unjoined",
+        true
+      ],
+      [
+        "different group descendant found by ancestry",
+        true
+      ],
+      [
+        "recycled root cannot admit foreign group children",
+        true
+      ],
+      [
+        "recycled descendant cannot seed foreign ancestry",
+        true
+      ],
+      [
+        "root refusal persists after recycled root exits",
+        true
+      ]
+    ],
+    "passed": 11,
+    "total": 11
+  },
+  "exactLoopRegression": {
+    "scope": "Exact original/fixed phase loops; Popen/table/usage/signals/clock replaced, no OS compiler launched",
+    "results": {
+      "exception": {
+        "original": {
+          "remainingActualFixturePIDs": [
+            101
+          ],
+          "reportedRemaining": [],
+          "sent": [],
+          "exception": "RuntimeError",
+          "guard": null,
+          "phaseReceipts": []
+        },
+        "fixed": {
+          "remainingActualFixturePIDs": [],
+          "reportedRemaining": [],
+          "sent": [
+            101
+          ],
+          "exception": null,
+          "guard": "active compiler lifecycle exception: RuntimeError",
+          "phaseReceipts": [
+            {
+              "phase": "compile",
+              "errorType": "RuntimeError",
+              "exit": 0,
+              "drain": {
+                "remainingOwnedPIDs": [],
+                "unresolvedPIDs": [],
+                "errors": [],
+                "seconds": 0.1,
+                "sent": [
+                  {
+                    "pid": 101,
+                    "processStart": 1001,
+                    "signal": 15
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      },
+      "late": {
+        "original": {
+          "remainingActualFixturePIDs": [
+            202
+          ],
+          "reportedRemaining": [],
+          "sent": [
+            101
+          ],
+          "exception": null,
+          "guard": "reported free below50",
+          "phaseReceipts": []
+        },
+        "fixed": {
+          "remainingActualFixturePIDs": [],
+          "reportedRemaining": [],
+          "sent": [
+            101,
+            202
+          ],
+          "exception": null,
+          "guard": "reported free below50",
+          "phaseReceipts": [
+            {
+              "phase": "compile",
+              "errorType": null,
+              "exit": 0,
+              "drain": {
+                "remainingOwnedPIDs": [],
+                "unresolvedPIDs": [],
+                "errors": [],
+                "seconds": 0.2,
+                "sent": [
+                  {
+                    "pid": 101,
+                    "processStart": 1001,
+                    "signal": 15
+                  },
+                  {
+                    "pid": 202,
+                    "processStart": 2002,
+                    "signal": 15
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "checks": [
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true,
+      true
+    ],
+    "passed": 8,
+    "total": 8
+  },
+  "reviewFix": "Only successfully admitted exact process starts seed ancestry; root mismatch refuses new group admission. Root refusal persists throughout drain even after a recycled leader exits. Previously admitted descendants stay independently fenced.",
+  "capsChanged": false
+}

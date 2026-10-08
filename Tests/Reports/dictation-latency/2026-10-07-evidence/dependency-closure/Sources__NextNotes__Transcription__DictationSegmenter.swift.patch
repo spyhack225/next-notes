@@ -1,0 +1,163 @@
+diff --git a/Sources/NextNotes/Transcription/DictationSegmenter.swift b/Sources/NextNotes/Transcription/DictationSegmenter.swift
+new file mode 100644
+index 0000000..082ae0f
+--- /dev/null
++++ b/Sources/NextNotes/Transcription/DictationSegmenter.swift
+@@ -0,0 +1,157 @@
++import Foundation
++
++/// Where a held dictation is cut into segments that are transcribed once and then frozen.
++///
++/// Re-transcribing the whole hold every second is O(n²): a 120 s hold kept Parakeet busy
++/// for 82 s of it, and the key-up pass had to redo everything. Cutting the hold at pauses
++/// keeps every model pass inside one native 15 s encoder window, so the work per second of
++/// speech is constant and the key-up pass only ever sees the open tail.
++///
++/// The silence test is the meeting tier's own (`ChunkedTranscriber.frameIsSilent`, 20 ms
++/// frames, the same RMS floor), so the two paths cannot drift into different definitions of
++/// a pause. What differs is the rule's numbers, because a dictation's pauses are shorter
++/// than a meeting's turn gaps and the key-up wait is the thing being shortened:
++///
++/// - A pause of `pauseSeconds` commits once the segment holds `minSegmentSeconds`. Below
++///   that minimum a pause is ignored: a three-second floor keeps a segment long enough for
++///   the model to place punctuation, and measured on a 101 s script an eight-second floor
++///   forced mid-word hard cuts (WER 5.7% against 1.8%).
++/// - Past `longSegmentSeconds` a shorter `longPauseSeconds` gap is accepted, so a long
++///   unbroken sentence still finds a breath before the hard cap.
++/// - At `maxSegmentSeconds` (just under the 15 s encoder window, so a pass never pays
++///   FluidAudio's chunk merge) the segment is cut at its quietest 60 ms instead of at an
++///   arbitrary sample, which is where an inter-word gap is.
++/// - A pause cut lands in the middle of the pause, so both sides keep a little silence.
++///
++/// It also reports **end of speech** — `endOfSpeechSeconds` of silence after speech — which
++/// is what lets the engine transcribe the tail the moment someone stops talking rather than
++/// at key-up. People stop 200–400 ms before they let go of the key.
++///
++/// Pure and incremental: `advance(over:)` scans only frames it has not seen, so feeding the
++/// buffer in 100 ms pieces produces the same cuts as one call over the whole thing.
++struct DictationSegmenter: Sendable {
++    struct Rule: Sendable, Equatable {
++        var minSegmentSeconds: Double
++        var pauseSeconds: Double
++        var longSegmentSeconds: Double
++        var longPauseSeconds: Double
++        var maxSegmentSeconds: Double
++        var endOfSpeechSeconds: Double
++
++        /// Measured with the dictation replay harness (see the ASR latency report): 3 s /
++        /// 0.5 s, 0.3 s past 8 s, 14.5 s cap, 0.25 s end of speech.
++        static let dictation = Rule(
++            minSegmentSeconds: 3.0,
++            pauseSeconds: 0.5,
++            longSegmentSeconds: 8.0,
++            longPauseSeconds: 0.3,
++            maxSegmentSeconds: 14.5,
++            endOfSpeechSeconds: 0.25
++        )
++    }
++
++    /// What one `advance` call found.
++    struct Scan: Sendable, Equatable {
++        /// Absolute sample offsets where a segment ends, in order.
++        var cuts: [Int] = []
++        /// Speech was followed by `endOfSpeechSeconds` of silence inside this scan.
++        var speechEnded = false
++    }
++
++    static let sampleRate = 16_000
++    /// The meeting tier's frame (`ChunkedTranscriber.frameIsSilent` is judged on 20 ms).
++    static let frameSamples = 320
++
++    let rule: Rule
++
++    /// Where the open segment starts.
++    private(set) var segmentStart = 0
++    /// End of the last frame that was not silent, or 0 when none has been heard.
++    private(set) var lastSpeechEnd = 0
++    /// How far the buffer has been scanned.
++    private var scanned = 0
++    private var silenceRun = 0
++    /// The speech end the last end-of-speech event was for, so one pause fires once.
++    private var reportedSpeechEnd = 0
++    /// Energies of the last three frames, for the quietest-60 ms search.
++    private var recent: [Float] = []
++    /// Quietest 60 ms inside the hard-cut search range: its centre and summed energy.
++    private var quietest: (centre: Int, energy: Float)?
++
++    init(rule: Rule = .dictation) {
++        self.rule = rule
++    }
++
++    private func samples(_ seconds: Double) -> Int { Int(seconds * Double(Self.sampleRate)) }
++
++    /// Scans every complete frame of `buffer` not scanned before. `buffer` is the whole hold
++    /// so far (absolute offsets), and only ever grows.
++    mutating func advance(over buffer: [Float], sampleOffset: Int = 0) -> Scan {
++        precondition(sampleOffset >= 0 && sampleOffset <= scanned)
++        var scan = Scan()
++        let minSegment = samples(rule.minSegmentSeconds)
++        let longSegment = samples(rule.longSegmentSeconds)
++        let maxSegment = samples(rule.maxSegmentSeconds)
++        let pause = samples(rule.pauseSeconds)
++        let longPause = samples(rule.longPauseSeconds)
++        let endOfSpeech = samples(rule.endOfSpeechSeconds)
++
++        while scanned + Self.frameSamples <= sampleOffset + buffer.count {
++            let localStart = scanned - sampleOffset
++            let frame = buffer[localStart..<(localStart + Self.frameSamples)]
++            let frameEnd = scanned + Self.frameSamples
++            let energy = AudioConversion.rms(of: frame)
++            if ChunkedTranscriber.frameIsSilent(rms: energy) {
++                silenceRun += Self.frameSamples
++            } else {
++                silenceRun = 0
++                lastSpeechEnd = max(lastSpeechEnd, frameEnd)
++            }
++            scanned = frameEnd
++
++            if silenceRun >= endOfSpeech, lastSpeechEnd > reportedSpeechEnd {
++                reportedSpeechEnd = lastSpeechEnd
++                scan.speechEnded = true
++            }
++
++            // Quietest 60 ms, tracked only where a hard cut would be allowed to land.
++            recent.append(energy * energy)
++            if recent.count > 3 { recent.removeFirst() }
++            let length = scanned - segmentStart
++            if recent.count == 3, length - 3 * Self.frameSamples / 2 >= minSegment {
++                let sum = recent.reduce(0, +)
++                if quietest == nil || sum <= quietest!.energy {
++                    quietest = (scanned - 3 * Self.frameSamples / 2, sum)
++                }
++            }
++
++            let needed = length >= longSegment ? longPause : pause
++            // An all-quiet open segment has no observed speech/pause boundary.
++            // Cutting it every three seconds splits whispered words as if they
++            // were digital silence; keep its context until the unchanged hard cap.
++            if length >= minSegment, silenceRun >= needed,
++               lastSpeechEnd > segmentStart {
++                let cut = scanned - silenceRun / 2
++                scan.cuts.append(cut)
++                startSegment(at: cut, rewind: false)
++            } else if length >= maxSegment {
++                let cut = quietest?.centre ?? scanned
++                scan.cuts.append(cut)
++                startSegment(at: cut, rewind: true)
++            }
++        }
++        return scan
++    }
++
++    /// Opens the next segment at `cut`. A hard cut lands behind the scan position, so the
++    /// frames after it are scanned again as part of the new segment.
++    private mutating func startSegment(at cut: Int, rewind: Bool) {
++        segmentStart = cut
++        if rewind {
++            scanned = cut
++        }
++        silenceRun = 0
++        recent.removeAll(keepingCapacity: true)
++        quietest = nil
++    }
++}

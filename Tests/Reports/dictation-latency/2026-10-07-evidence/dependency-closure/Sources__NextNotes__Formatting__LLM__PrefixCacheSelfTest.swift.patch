@@ -1,0 +1,243 @@
+diff --git a/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift b/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift
+index 0bfb09d..f256210 100644
+--- a/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift
++++ b/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift
+@@ -57,6 +57,9 @@ enum PrefixCacheSelfTest {
+     }
+ 
+     static func runSelfTest() async -> Bool {
++        if CommandLine.arguments.contains("--native-parked-cancellation") {
++            return await nativeParkedCancellationChecks()
++        }
+         if CommandLine.arguments.contains("--native-stream-finish") {
+             return await nativeStreamFinishChecks()
+         }
+@@ -218,6 +221,163 @@ enum PrefixCacheSelfTest {
+         return failures.isEmpty
+     }
+ 
++    /// Same actual cleanup admission/native owner, cancelled at a registered parked
++    /// checkpoint. The ASR UUID remains held until the original assertion is checked.
++    private static func nativeParkedCancellationChecks() async -> Bool {
++        guard S1MiniModels.spec.isDownloaded else {
++            SelfTest.diagnostic("NATIVE_PARKED_CANCELLATION_ABSENT: S1-mini not downloaded")
++            return false
++        }
++        let runtime = NotesModelRuntime(spec: S1MiniModels.spec, gpuLayers: 0)
++        let system = fixtureSystem()
++        let user = "First question."
++        var failures: [String] = []
++        func check(_ valid: Bool, _ problem: String) {
++            if !valid { failures.append(problem) }
++        }
++        let warm = await drain(await runtime.streamConversation(system: system,
++            messages: [.init(role: .user, content: user)], maxTokens: generationBudget))
++        let initial = await runtime.prefillStatsForTesting()
++        guard warm.error == nil, !warm.text.isEmpty,
++              let initial, initial.promptTokens > 128 else {
++            _ = await runtime.finishTermination()
++            SelfTest.diagnostic("NATIVE_PARKED_CANCELLATION_FAILED: native warm/prompt precondition")
++            return false
++        }
++        await runtime.resetPrefixCacheForTesting()
++        let asrTask = LockedBox<Task<UUID, Never>?>(nil)
++        let decodedChunks = LockedBox(0)
++        await runtime.setPrefillChunkObserverForTesting {
++            decodedChunks.value += 1
++            if asrTask.value == nil {
++                asrTask.value = Task { await ComputeScheduler.shared.acquire(.realtimeASR) }
++            }
++        }
++        let file = await runtime.spec.fileURL
++        let admitted = LockedBox(0)
++        let joined = LockedBox(false)
++        let phaseID = CommandLine.arguments.contains("--native-phase-observation") ? UUID() : nil
++        let operation: @MainActor @Sendable () async -> String = {
++            do {
++                _ = try await runtime.completeForDictationCleanup(file: file,
++                    system: system, user: user, maxTokens: generationBudget,
++                    admitted: { admitted.value += 1 })
++                return "completed"
++            } catch is CancellationError { return "cancelled" }
++            catch { return "error: " + error.localizedDescription }
++        }
++        let producer = Task {
++            defer { joined.value = true }
++            if let phaseID {
++                return await LatencyCorrelation.$current.withValue(LatencyCorrelation(workID: phaseID)) {
++                    await operation()
++                }
++            }
++            return await operation()
++        }
++        let observerReached = await awaitParkedCondition(within: .seconds(10)) { asrTask.value != nil }
++        guard observerReached, let acquisition = asrTask.value else {
++            producer.cancel()
++            // Clearing on the same actor joins any currently executing observer.
++            await runtime.setPrefillChunkObserverForTesting(nil)
++            if let lateAcquisition = asrTask.value {
++                await ComputeScheduler.shared.release(await lateAcquisition.value)
++            }
++            _ = await producer.value
++            _ = await runtime.finishTermination()
++            SelfTest.diagnostic("NATIVE_PARKED_CANCELLATION_FAILED: native observer did not acquire ASR")
++            return false
++        }
++        let asrID = await acquisition.value
++        let parked = await awaitParkedCondition(within: .seconds(2)) {
++            await ComputeScheduler.shared.hasCheckpointWaiterForTesting(.realtimeAgent)
++        }
++        check(parked, "actual cleanup did not register its parked checkpoint")
++        let began = ContinuousClock.now
++        producer.cancel()
++        let releasedOwner = await awaitParkedCondition(within: .milliseconds(250)) { joined.value }
++        check(releasedOwner, "cancelled actual cleanup keeps its native owner until ASR releases")
++        let occupancy = await ComputeScheduler.shared.occupancy()
++        check(occupancy.running == .realtimeASR && occupancy.realtimeASRBusy,
++              "cleanup cancellation releases or replaces the actual ASR owner")
++        check(!occupancy.isBusy(.realtimeAgent), "cancelled cleanup leaves its parked scheduler job")
++        var successorRefusal = "none"
++        let deniedAdmission = LockedBox(0)
++        do {
++            _ = try await runtime.completeForDictationCleanup(file: file,
++                system: system, user: user, maxTokens: generationBudget,
++                admitted: { deniedAdmission.value += 1 })
++            failures.append("cleanup successor bypasses held ASR")
++        } catch let refusal as NotesModelRuntime.CleanupAdmissionRefused {
++            successorRefusal = refusal.reason
++        } catch { successorRefusal = error.localizedDescription }
++        check(successorRefusal == "live speech recognition holds the lane",
++              "successor still sees a retained native owner: " + successorRefusal)
++        check(deniedAdmission.value == 0, "refused successor enters native generation")
++        SelfTest.diagnostic("NATIVE_PARKED_CANCELLATION_OBSERVATION: joinedWhileASRHeld=\(releasedOwner) "
++            + "wait=\(began.duration(to: .now)) chunks=\(decodedChunks.value) "
++            + "successorRefusal=\(successorRefusal)")
++        await ComputeScheduler.shared.release(asrID)
++        let outcome = await producer.value
++        await runtime.setPrefillChunkObserverForTesting(nil)
++        check(outcome == "cancelled" && admitted.value == 1,
++              "same actual cleanup producer did not join as admitted cancellation: " + outcome)
++        if let phaseID {
++            // Same actual admitted native completion/cancel producer, no additional model pass.
++            MetricsStore.shared.flushForTesting()
++            let spans = MetricsStore.shared.spans().filter { $0.correlation?.workID == phaseID }
++            let contexts = spans.filter { $0.name == .modelContext }
++            let prefills = spans.filter { $0.name == .modelPrefill }
++            let firstTokens = spans.filter { $0.name == .modelFirstToken }
++            let parked = spans.filter { $0.name == .modelQueue && ($0.note?.hasPrefix("checkpoint job=") ?? false) }
++            check(contexts.count == 1 && contexts[0].note?.contains("ready=true") == true,
++                  "actual admitted completion omitted its context phase")
++            check(prefills.count == 1 && prefills[0].note?.contains("ready=false") == true
++                    && prefills[0].note?.contains("counts=unavailable") == true,
++                  "cancelled actual prefill omitted its phase or borrowed stale counts")
++            check(firstTokens.count == 1 && firstTokens[0].note?.contains("no_token=true") == true,
++                  "cancelled actual completion omitted its no-token observation")
++            check(parked.count == 1 && parked[0].note?.contains("cancelled=true") == true,
++                  "actual parked checkpoint omitted its single cancellation span")
++            for span in spans {
++                SelfTest.diagnostic("NATIVE_COMPLETION_PHASE: name=\(span.name.rawValue) "
++                    + "seconds=\(span.durationSeconds) note=\(span.note ?? "")")
++            }
++        }
++        let successfulPrefix = min(decodedChunks.value * 128, initial.promptTokens - 1)
++        do {
++            let successor = try await runtime.completeForDictationCleanup(file: file,
++                system: system, user: user, maxTokens: generationBudget, admitted: {})
++            let stats = await runtime.prefillStatsForTesting()
++            check(stats?.reused == successfulPrefix && successfulPrefix > 0
++                    && stats?.decoded == initial.promptTokens - successfulPrefix,
++                  "parked cancellation discards or invents successful native prefix")
++            await runtime.resetPrefixCacheForTesting()
++            let control = try await runtime.completeForDictationCleanup(file: file,
++                system: system, user: user, maxTokens: generationBudget, admitted: {})
++            check(!successor.completion.text.isEmpty && successor.completion.text == control.completion.text,
++                  "actual successor differs from cleared native control")
++            SelfTest.diagnostic("NATIVE_PARKED_CANCELLATION_SUCCESSOR: reused=\(stats?.reused ?? -1) "
++                + "decoded=\(stats?.decoded ?? -1) prompt=\(stats?.promptTokens ?? -1)")
++        } catch { failures.append("native successor failed: " + error.localizedDescription) }
++        check(await runtime.finishTermination(), "private native owner did not join termination")
++        for problem in failures { SelfTest.diagnostic("NATIVE_PARKED_CANCELLATION_WRONG: " + problem) }
++        SelfTest.diagnostic(failures.isEmpty ? "NATIVE_PARKED_CANCELLATION_OK"
++            : "NATIVE_PARKED_CANCELLATION_FAILED: \(failures.count) problem(s)")
++        return failures.isEmpty
++    }
++
++    private static func awaitParkedCondition(
++        within budget: Duration, _ condition: @escaping @Sendable () async -> Bool
++    ) async -> Bool {
++        let deadline = ContinuousClock.now.advanced(by: budget)
++        repeat {
++            if await condition() { return true }
++            try? await Task.sleep(for: .milliseconds(1))
++        } while ContinuousClock.now < deadline
++        return await condition()
++    }
++
+     // MARK: - Part A, pure
+ 
+     /// P1-28 R2: how much of the system prompt two different requests share.
+@@ -489,6 +649,8 @@ enum PrefixCacheSelfTest {
+         }
+         failures += await cancellationReuseFailures(runtime, system: system,
+             firstUser: firstUser, promptTokens: stats6.promptTokens)
++        failures += await dictationCancellationReuseFailures(runtime, system: system,
++            user: firstUser, promptTokens: stats6.promptTokens)
+         _ = await runtime.shutdown()
+ 
+         if failures.isEmpty {
+@@ -551,6 +713,55 @@ enum PrefixCacheSelfTest {
+         return failures
+     }
+ 
++    /// Exercise the same non-streaming entrance MiniCPM cleanup uses. Cancel only
++    /// after the last successful native prefill chunk, before any sampled output.
++    private static func dictationCancellationReuseFailures(
++        _ runtime: NotesModelRuntime, system: String, user: String, promptTokens: Int
++    ) async -> [String] {
++        await runtime.resetPrefixCacheForTesting()
++        let probe = PrefixCacheCancellationProbe(atChunk: (promptTokens + 127) / 128)
++        await runtime.setPrefillChunkObserverForTesting { probe.decoded() }
++        let file = await runtime.spec.fileURL
++        let admitted = LockedBox(0)
++        // The observer cancels its current task; give this call its own task so the
++        // fixture's cleanup and successor remain active and can join this producer.
++        let cancelled = Task {
++            do {
++                _ = try await runtime.completeForDictationCleanup(
++                    file: file, system: system, user: user, maxTokens: generationBudget,
++                    admitted: { admitted.value += 1 })
++                return false
++            } catch is CancellationError { return true }
++            catch { return false }
++        }
++        let didCancel = await cancelled.value
++        await runtime.setPrefillChunkObserverForTesting(nil)
++        guard probe.didCancel, didCancel, admitted.value == 1 else {
++            return ["actual dictation generation did not cancel after successful native prefill"]
++        }
++        do {
++            let successor = try await runtime.completeForDictationCleanup(
++                file: file, system: system, user: user, maxTokens: generationBudget, admitted: {})
++            guard let stats = await runtime.prefillStatsForTesting() else {
++                return ["cancelled dictation successor has no native prefill counters"]
++            }
++            var failures: [String] = []
++            if stats.reused != stats.promptTokens - 1 || stats.decoded != 1 {
++                failures.append("cancelled dictation discarded native-success prefix: reused\(stats.reused), expected\(stats.promptTokens - 1)")
++            }
++            await runtime.resetPrefixCacheForTesting()
++            let control = try await runtime.completeForDictationCleanup(
++                file: file, system: system, user: user, maxTokens: generationBudget, admitted: {})
++            if successor.completion.text.isEmpty
++                || successor.completion.text != control.completion.text {
++                failures.append("cancelled dictation successor differs from the actual cleared-context control")
++            }
++            return failures
++        } catch {
++            return ["cancelled dictation successor failed: \(error.localizedDescription)"]
++        }
++    }
++
+     // MARK: - Fixtures and helpers
+ 
+     /// At least 600 tokens: a paragraph repeated enough times that the shared prefix dwarfs

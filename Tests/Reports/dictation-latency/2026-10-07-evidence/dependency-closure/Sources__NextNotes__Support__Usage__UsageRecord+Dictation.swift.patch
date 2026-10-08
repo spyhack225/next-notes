@@ -1,0 +1,66 @@
+diff --git a/Sources/NextNotes/Support/Usage/UsageRecord+Dictation.swift b/Sources/NextNotes/Support/Usage/UsageRecord+Dictation.swift
+index c7b8215..cf13850 100644
+--- a/Sources/NextNotes/Support/Usage/UsageRecord+Dictation.swift
++++ b/Sources/NextNotes/Support/Usage/UsageRecord+Dictation.swift
+@@ -94,6 +94,8 @@ extension UsageRecord {
+             )
+         )
+         if let cleanup {
++            let answered = cleanupAnswerer(cleanup)
++            let localAnswered = cleanup.enginesUsed == ["miniCPM"]
+             rows.append(
+                 UsageRecord(
+                     v: 1,
+@@ -102,17 +104,19 @@ extension UsageRecord {
+                     feature: UsageFeature.dictationCleanup.rawValue,
+                     pass: "cleanup",
+                     round: nil,
+-                    provider: cleanupProvider(cleanup.engine).rawValue,
+-                    modelID: cleanup.engine ?? UsageProvider.rules.rawValue,
++                    provider: answered.provider.rawValue,
++                    modelID: answered.modelID,
+                     locality: "local",
+                     requestedRole: nil,
+                     requestedModel: nil,
+                     fallbackReason: cleanupFallback(cleanup.fallbackReason)?.rawValue,
+-                    warm: cleanup.sessionPrewarmed,
++                    // Apple's staged session for an Apple pass; the local model's
++                    // residency when MiniCPM answered — never one standing in for the other.
++                    warm: localAnswered ? cleanup.cleanupModelResident : cleanup.sessionPrewarmed,
+                     loadMs: nil,
+-                    promptTokens: nil,
+-                    cachedTokens: nil,
+-                    completionTokens: nil,
++                    promptTokens: cleanup.promptTokens,
++                    cachedTokens: cleanup.cachedTokens,
++                    completionTokens: cleanup.completionTokens,
+                     reasoningTokens: nil,
+                     countsEstimated: nil,
+                     ttftMs: nil,
+@@ -148,11 +152,25 @@ extension UsageRecord {
+         switch engine {
+         case "apple": .appleFM
+         case "s1Mini": .s1mini
+-        case "appLLM", "qwen": .llama
++        case "appLLM", "qwen", "miniCPM": .llama
+         default: .rules
+         }
+     }
+ 
++    /// What actually answered, not what Settings chose: a rules-route run is `rules`
++    /// whatever the engine setting says, and a MiniCPM pass that handed off to Apple is
++    /// filed as Apple. Mixed chunked runs name every engine in `modelID`.
++    private static func cleanupAnswerer(
++        _ cleanup: CleanupRecord
++    ) -> (provider: UsageProvider, modelID: String) {
++        if cleanup.route == "rules" { return (.rules, UsageProvider.rules.rawValue) }
++        if let used = cleanup.enginesUsed, let first = used.first {
++            return (cleanupProvider(used.count == 1 ? first : cleanup.engine),
++                    used.joined(separator: "+"))
++        }
++        return (cleanupProvider(cleanup.engine), cleanup.engine ?? UsageProvider.rules.rawValue)
++    }
++
+     private static func engineProvider(_ engine: SpeechEngineChoice) -> UsageProvider {
+         switch engine {
+         case .apple: .appleSpeech

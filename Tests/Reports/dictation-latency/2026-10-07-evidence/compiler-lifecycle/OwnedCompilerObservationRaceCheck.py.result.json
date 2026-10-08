@@ -1,0 +1,301 @@
+{
+  "scope": "Exact copied helper original/fixed; process tables and rusage substituted, no OS child launched",
+  "results": {
+    "root-disappears": {
+      "original": {
+        "live": [],
+        "unresolved": [
+          101
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [],
+        "listings": 1
+      },
+      "fixed": {
+        "live": [],
+        "unresolved": [],
+        "errors": [],
+        "details": [
+          {
+            "pid": 101,
+            "kind": "confirmed absent",
+            "expectedStart": 1001,
+            "observedStart": null,
+            "isRoot": true
+          }
+        ],
+        "listings": 2
+      }
+    },
+    "descendant-disappears": {
+      "original": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [],
+        "listings": 1
+      },
+      "fixed": {
+        "live": [
+          101
+        ],
+        "unresolved": [],
+        "errors": [],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "confirmed absent",
+            "expectedStart": 2002,
+            "observedStart": null,
+            "isRoot": false
+          }
+        ],
+        "listings": 2
+      }
+    },
+    "descendant-zombie": {
+      "original": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [],
+        "listings": 1
+      },
+      "fixed": {
+        "live": [
+          101
+        ],
+        "unresolved": [],
+        "errors": [],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "confirmed zombie",
+            "expectedStart": 2002,
+            "observedStart": null,
+            "isRoot": false
+          }
+        ],
+        "listings": 2
+      }
+    },
+    "present-unreadable": {
+      "original": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [],
+        "listings": 1
+      },
+      "fixed": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "live attribution unavailable",
+            "expectedStart": 2002,
+            "observedStart": null,
+            "isRoot": false
+          }
+        ],
+        "listings": 2
+      }
+    },
+    "relist-fails": {
+      "original": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [],
+        "listings": 1
+      },
+      "fixed": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "confirmation listing failed: RuntimeError",
+            "expectedStart": 2002,
+            "observedStart": null,
+            "isRoot": false
+          }
+        ],
+        "listings": 2
+      }
+    },
+    "recycled": {
+      "original": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned process start mismatch"
+        ],
+        "details": [],
+        "listings": 1
+      },
+      "fixed": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned process start mismatch"
+        ],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "process start mismatch",
+            "expectedStart": 2002,
+            "observedStart": 9999,
+            "isRoot": false
+          }
+        ],
+        "listings": 1
+      }
+    },
+    "foreign-ancestry": {
+      "original": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [],
+        "listings": 1
+      },
+      "fixed": {
+        "live": [
+          101
+        ],
+        "unresolved": [
+          202
+        ],
+        "errors": [
+          "owned attribution unavailable"
+        ],
+        "details": [
+          {
+            "pid": 202,
+            "kind": "live attribution unavailable",
+            "expectedStart": 2002,
+            "observedStart": null,
+            "isRoot": false
+          }
+        ],
+        "listings": 2
+      }
+    }
+  },
+  "checks": [
+    [
+      "root-disappears original refusal reproduced",
+      true
+    ],
+    [
+      "root-disappears fixed confirmed retirement",
+      true
+    ],
+    [
+      "descendant-disappears original refusal reproduced",
+      true
+    ],
+    [
+      "descendant-disappears fixed confirmed retirement",
+      true
+    ],
+    [
+      "descendant-zombie original refusal reproduced",
+      true
+    ],
+    [
+      "descendant-zombie fixed confirmed retirement",
+      true
+    ],
+    [
+      "present-unreadable remains refused",
+      true
+    ],
+    [
+      "present-unreadable no foreign ancestry admission",
+      true
+    ],
+    [
+      "relist-fails remains refused",
+      true
+    ],
+    [
+      "relist-fails no foreign ancestry admission",
+      true
+    ],
+    [
+      "recycled remains refused",
+      true
+    ],
+    [
+      "recycled no foreign ancestry admission",
+      true
+    ],
+    [
+      "foreign-ancestry remains refused",
+      true
+    ],
+    [
+      "foreign-ancestry no foreign ancestry admission",
+      true
+    ]
+  ],
+  "passed": 14,
+  "total": 14
+}

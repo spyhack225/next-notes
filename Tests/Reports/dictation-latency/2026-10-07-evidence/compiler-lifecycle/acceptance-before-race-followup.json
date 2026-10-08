@@ -1,0 +1,24 @@
+{
+  "utc": "2026-10-08T07:37:16.834110+00:00",
+  "status": "Reviewed cache-only compiler lifecycle correction, original exact-loop failures/fixed eight assertions and eleven helper controls pass. Actual OS proof open.",
+  "hashes": {
+    "meeting-seventh-release-guarded.before-lifecycle.py": "4362cc6f6411d2cc7f715009b495f4e72858c69c2aae03d1c064246caf3f09a3",
+    "meeting-seventh-release-guarded.py": "7b08a19f250250e4fb76db589e609d9749baf7004b355b0ed1763d5909d4e4c6",
+    "OwnedCompilerProcess.before-root-fence.py": "5d2f6801c95010bb829bd5a1b2722cb17187c1a88ed6494a77170a8c534df81c",
+    "OwnedCompilerProcess.py": "11f94a5cf1ebac080146a8396537a18838ab31cf032236e529670d41ff8fde0a",
+    "OwnedCompilerProcessCheck.py": "e06120b31b4f52c7cb6779040ffe76624edf623b7bce63a5f3fdf8577ba80b7d",
+    "OwnedCompilerDriverRegression.attempt1.py": "4529596b8ae0d2ee5fe2f1e2ddc5b8649c7cea1160b5614a1473933e690309c4",
+    "OwnedCompilerDriverRegression.attempt2.py": "b6cd3dc77360d9fefb38fd4eacf190db69a5d8d82dcd707c989420eb0f155efc",
+    "OwnedCompilerDriverRegression.py": "4d015fc9f3068b68fc07a4223e9b0de146e579894113e5b56cae5a35ab34c31e",
+    "meeting-seventh-lifecycle-review-only.patch": "2ab02d4367bcda65a59c50b6d3a6104288448506c70ce6715dd173e210bf5c87",
+    "meeting-seventh-lifecycle-review.json": "dc0c24a3204d906a74cd39d645389f0c2a0096580ea2817721f431295193a803"
+  },
+  "sourcesChanged": false,
+  "nativeOrCompilerChildLaunchedByTests": false,
+  "failedFixtureScaffoldsRetained": [
+    "attempt1 omitted phaseReceipts globals",
+    "attempt2 omitted subprocess.STDOUT boundary constant"
+  ],
+  "resourceProfileChanged": false,
+  "rootIndependentReviewCursor": 693
+}

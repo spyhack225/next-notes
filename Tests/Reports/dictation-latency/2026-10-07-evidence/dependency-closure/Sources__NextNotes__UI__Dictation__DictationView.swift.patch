@@ -1,0 +1,108 @@
+diff --git a/Sources/NextNotes/UI/Dictation/DictationView.swift b/Sources/NextNotes/UI/Dictation/DictationView.swift
+index 70f424b..2f88873 100644
+--- a/Sources/NextNotes/UI/Dictation/DictationView.swift
++++ b/Sources/NextNotes/UI/Dictation/DictationView.swift
+@@ -83,6 +83,7 @@ struct DictationView: View {
+                 isCapturingAudio: controller.isCapturingAudio,
+                 elapsed: elapsed,
+                 holdKey: settings.pushToTalkKey.displayName,
++                delivery: controller.latestDelivery,
+                 // The empty state below is already drawing the screen's orb, and it is
+                 // drawing the same one.
+                 showsOrb: !runs.isEmpty
+@@ -95,6 +96,13 @@ struct DictationView: View {
+                         .font(DS.Font.caption)
+                         .foregroundStyle(DS.Color.textSecondary)
+                     Spacer(minLength: DS.Space.m)
++                    if controller.canRetryLastHold {
++                        // The failed hold's recording was kept (D-03); this replays it
++                        // through a fresh engine and the normal tail. Same entry point
++                        // the island's problem card uses — no second path.
++                        Button("Try again") { controller.retryLastFailedHold() }
++                            .buttonStyle(.link)
++                    }
+                     if !trimmedQuery.isEmpty {
+                         Button("Show recordings") { query = "" }
+                             .buttonStyle(.link)
+@@ -104,7 +112,9 @@ struct DictationView: View {
+                 .padding(.vertical, DS.Space.s)
+             }
+ 
+-            if runs.isEmpty {
++            if controller.state.isActive {
++                liveTranscript
++            } else if runs.isEmpty {
+                 emptyState
+                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+             } else {
+@@ -180,6 +190,38 @@ struct DictationView: View {
+ 
+     // MARK: - Pieces
+ 
++    /// The same transcript the HUD reads, kept visible throughout final polishing.
++    /// History never hides the words of the hold that is happening now.
++    private var liveTranscript: some View {
++        VStack(alignment: .leading, spacing: DS.Space.m) {
++            if let stage = LiveDictationStage.of(
++                controller.state, isCapturing: controller.isCapturingAudio,
++                finishing: controller.finishingStage
++            ) {
++                Text(stage.label)
++                    .font(DS.Font.headline)
++                    .foregroundStyle(DS.Color.textSecondary)
++            }
++            ScrollViewReader { scroll in
++                ScrollView {
++                    VStack(alignment: .leading, spacing: 0) {
++                        Text(controller.transcript.isEmpty ? "Your words will appear here as you speak." : controller.transcript)
++                            .font(DS.Font.body)
++                            .foregroundStyle(controller.transcript.isEmpty ? DS.Color.textSecondary : DS.Color.text)
++                            .textSelection(.enabled)
++                            .frame(maxWidth: .infinity, alignment: .leading)
++                        Color.clear.frame(height: 1).id("dictation-live-tail")
++                    }
++                }
++                .onChange(of: controller.transcript) { _, _ in
++                    scroll.scrollTo("dictation-live-tail", anchor: .bottom)
++                }
++            }
++        }
++        .padding(DS.Space.l)
++        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
++    }
++
+     private var recordButton: some View {
+         Button {
+             if canStopRecording {
+@@ -196,6 +238,7 @@ struct DictationView: View {
+         .buttonStyle(.borderedProminent)
+         .tint(controller.isCapturingAudio ? DS.Color.record : DS.Color.accent)
+         .disabled(isFinishing)
++        .keyboardShortcut(canStopRecording ? KeyboardShortcut(.return, modifiers: []) : nil)
+         .help(isFinishing ? "Preparing your text" : canStopRecording
+             ? "Stop recording" : "Record without holding the key")
+     }
+@@ -303,11 +346,18 @@ struct DictationView: View {
+     @ViewBuilder
+     private var emptyState: some View {
+         if case .error(let message) = controller.state, store.runs.isEmpty {
+-            ContentUnavailableView(
+-                "No recording saved",
+-                systemImage: "exclamationmark.triangle",
+-                description: Text(message)
+-            )
++            ContentUnavailableView {
++                Label("No recording saved", systemImage: "exclamationmark.triangle")
++            } description: {
++                Text(message)
++            } actions: {
++                // First hold failed before anything was saved: the kept
++                // recording is the only recovery. Same entry point as above.
++                if controller.canRetryLastHold {
++                    Button("Try again") { controller.retryLastFailedHold() }
++                        .buttonStyle(.borderedProminent)
++                }
++            }
+         } else if controller.state == .starting {
+             OrbUnavailableView(
+                 controller.isCapturingAudio ? .listening : .working,
