@@ -1,0 +1,10 @@
+[
+  {
+    "pid": 31982,
+    "parent": 1,
+    "executableBasename": "NextNotes",
+    "footprintBytes": 666848592,
+    "residentBytes": 87261184,
+    "processStart": 466489713701
+  }
+]

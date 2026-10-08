@@ -1,0 +1,123 @@
+{
+  "scope": "MODEL_FREE exact cache driver AST bundle admission + pinned helper, authored files/external filesystem paths substituted. No app/frontend/compiler/ASR/model/OS child; retained app parsed read-only. No product acceptance.",
+  "driverSHA256": "26b4fe58b1147677c69f53d72ebe1aa9301035b17740abe201ccf7c3ebe3f80e",
+  "helperSHA256": "99dd0d7752aede30f4a33a0698e874245a9b362e6dda919a478be93713ecf947",
+  "checks": 14,
+  "failures": 0,
+  "results": [
+    {
+      "name": "correct-native-link",
+      "expectedAccepted": true,
+      "accepted": true,
+      "passed": true,
+      "refusal": null,
+      "actualDriverASTExercised": true
+    },
+    {
+      "name": "stale-swiftbuild-link",
+      "expectedAccepted": false,
+      "accepted": false,
+      "passed": true,
+      "refusal": "refuse stale or unknown native release compatibility product",
+      "actualDriverASTExercised": true
+    },
+    {
+      "name": "real-release-directory",
+      "expectedAccepted": false,
+      "accepted": false,
+      "passed": true,
+      "refusal": "refuse stale or unknown native release compatibility product",
+      "actualDriverASTExercised": true
+    },
+    {
+      "name": "unknown-product-link",
+      "expectedAccepted": false,
+      "accepted": false,
+      "passed": true,
+      "refusal": "refuse stale or unknown native release compatibility product",
+      "actualDriverASTExercised": true
+    },
+    {
+      "name": "missing-description",
+      "expectedAccepted": false,
+      "accepted": false,
+      "passed": true,
+      "refusal": "native description/framework unavailable",
+      "actualDriverASTExercised": true
+    },
+    {
+      "name": "missing-framework",
+      "expectedAccepted": false,
+      "accepted": false,
+      "passed": true,
+      "refusal": "native description/framework unavailable",
+      "actualDriverASTExercised": true
+    },
+    {
+      "name": "valid-minimal-thin-arm64",
+      "expected": "same",
+      "actual": "same",
+      "passed": true,
+      "refusal": null
+    },
+    {
+      "name": "load-header-only-change",
+      "expected": "same",
+      "actual": "same",
+      "passed": true,
+      "refusal": null
+    },
+    {
+      "name": "text-payload-change",
+      "expected": "different",
+      "actual": "different",
+      "passed": true,
+      "refusal": null
+    },
+    {
+      "name": "uuid-change",
+      "expected": "different",
+      "actual": "different",
+      "passed": true,
+      "refusal": null
+    },
+    {
+      "name": "truncated-header",
+      "expected": "refuse",
+      "actual": "refuse",
+      "passed": true,
+      "refusal": "truncated Mach-O header"
+    },
+    {
+      "name": "invalid-command-length",
+      "expected": "refuse",
+      "actual": "refuse",
+      "passed": true,
+      "refusal": "invalid command length"
+    },
+    {
+      "name": "oversized-load-table",
+      "expected": "refuse",
+      "actual": "refuse",
+      "passed": true,
+      "refusal": "invalid load-command bounds"
+    },
+    {
+      "name": "actual-retained-app-parser",
+      "passed": true
+    }
+  ],
+  "retainedBinary": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Release/NextNotes",
+    "fileBytes": 106319848,
+    "loadCommandCount": 82,
+    "loadCommandBytes": 9392,
+    "textSectionCount": 29,
+    "codeSectionBytes": 46190132,
+    "identitySHA256": "33bacbb293c6b4c81271140d264c614a8bf64b754de39eeeda4eae03e55878da",
+    "parsedOnly": true,
+    "executedApp": false
+  },
+  "ownedFixtureRemoved": true,
+  "limits": "Text sections+UUID identity only; not full DATA payload/byte identity. Actual native path/build/install_name_tool/codesign acceptance remains pending."
+}

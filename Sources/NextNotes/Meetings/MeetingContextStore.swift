@@ -23,7 +23,6 @@ final class MeetingContextStore {
     static let fileName = "context.json"
 
     private(set) var current: MeetingContext?
-    @ObservationIgnored private var lastSegments = 0
     /// Dedupes Session ingest against bus finals (and bus against itself).
     @ObservationIgnored private var ingestedKeys: Set<String> = []
     /// The model's short, source-labelled evidence buffer, bounded independently of the full
@@ -65,6 +64,8 @@ final class MeetingContextStore {
         return context
     }
 
+    var reconcileScheduledForTesting: Bool { SelfTest.isRunning && reconcileTask != nil }
+
     /// Swap the reconcile completer (self-tests inject a fake).
     func useCompleter(_ completer: any MeetingContextCompleter) {
         self.completer = completer
@@ -82,12 +83,11 @@ final class MeetingContextStore {
         if current?.meetingID != meeting.id {
             ingestedKeys.removeAll()
             recentSegments.removeAll()
-            lastSegments = 0
             resetReconcileCadence()
         }
-        let fresh = segments.suffix(from: min(lastSegments, segments.count))
-        lastSegments = segments.count
-        let novel = fresh.filter { ingestedKeys.insert(Self.key(for: $0)).inserted }
+        // Session supplies its exact new final; bulk callers supply a batch. The
+        // shared keys also dedupe later bus delivery, independent of speech order.
+        let novel = segments.filter { ingestedKeys.insert(Self.key(for: $0)).inserted }
         guard !novel.isEmpty else { return }
 
         var context = current?.meetingID == meeting.id
@@ -200,7 +200,6 @@ final class MeetingContextStore {
         reconcileTask?.cancel()
         reconcileTask = nil
         current = context
-        lastSegments = 0
         ingestedKeys.removeAll()
         recentSegments.removeAll()
         resetReconcileCadence()
@@ -235,11 +234,12 @@ final class MeetingContextStore {
     // MARK: - Occasional reconcile
 
     private func noteIngest(_ segments: [TranscriptSegment]) {
-        recentSegments.append(contentsOf: segments.filter { $0.kind != .agentCommand })
-        if recentSegments.count > MeetingContextReconciler.evidenceBufferSegments {
-            recentSegments.removeFirst(
-                recentSegments.count - MeetingContextReconciler.evidenceBufferSegments
-            )
+        for segment in segments where segment.kind != .agentCommand {
+            let index = recentSegments.firstIndex { $0.start > segment.start } ?? recentSegments.endIndex
+            recentSegments.insert(segment, at: index)
+            if recentSegments.count > MeetingContextReconciler.evidenceBufferSegments {
+                recentSegments.removeFirst(recentSegments.count - MeetingContextReconciler.evidenceBufferSegments)
+            }
         }
         cadence.noteIngest(
             speechSeconds: segments.reduce(0) { partial, segment in

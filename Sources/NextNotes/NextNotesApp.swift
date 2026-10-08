@@ -2632,6 +2632,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             SelfTest.requestTermination()
             return true
         }
+        if arguments.contains("--selftest-meeting-ingest-order") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingContextIngestOrderSelfTest.run(write: writePrivateSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-meeting-reconcile-llm") {
             SelfTest.failed = !MeetingContextReconciler.runSelfTest()
             NSApp.terminate(nil)

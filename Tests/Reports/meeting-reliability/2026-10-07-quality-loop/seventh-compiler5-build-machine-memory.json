@@ -1,0 +1,434 @@
+[
+  {
+    "phase": "compile",
+    "elapsed": 0.1444622079943656,
+    "summedOwnedFootprintBytes": 1753568,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 53,
+    "diskFreeGiB": 7.142086029052734
+  },
+  {
+    "phase": "compile",
+    "elapsed": 1.230061416994431,
+    "summedOwnedFootprintBytes": 28853016,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 53,
+    "diskFreeGiB": 7.142173767089844
+  },
+  {
+    "phase": "compile",
+    "elapsed": 2.3300454169948353,
+    "summedOwnedFootprintBytes": 73614248,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 54,
+    "diskFreeGiB": 7.141937255859375
+  },
+  {
+    "phase": "compile",
+    "elapsed": 3.4216523750001215,
+    "summedOwnedFootprintBytes": 211404552,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 53,
+    "diskFreeGiB": 7.141902923583984
+  },
+  {
+    "phase": "compile",
+    "elapsed": 4.512348500000371,
+    "summedOwnedFootprintBytes": 249661240,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 52,
+    "diskFreeGiB": 7.141201019287109
+  },
+  {
+    "phase": "compile",
+    "elapsed": 5.605490666996047,
+    "summedOwnedFootprintBytes": 276023096,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 52,
+    "diskFreeGiB": 7.141208648681641
+  },
+  {
+    "phase": "compile",
+    "elapsed": 6.7020239169942215,
+    "summedOwnedFootprintBytes": 278579000,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 52,
+    "diskFreeGiB": 7.1411590576171875
+  },
+  {
+    "phase": "compile",
+    "elapsed": 7.792051166994497,
+    "summedOwnedFootprintBytes": 263800656,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 52,
+    "diskFreeGiB": 7.1405487060546875
+  },
+  {
+    "phase": "compile",
+    "elapsed": 8.890401083001052,
+    "summedOwnedFootprintBytes": 338134912,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 51,
+    "diskFreeGiB": 7.140495300292969
+  },
+  {
+    "phase": "compile",
+    "elapsed": 9.975937124996562,
+    "summedOwnedFootprintBytes": 398968752,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 52,
+    "diskFreeGiB": 7.140480041503906
+  },
+  {
+    "phase": "compile",
+    "elapsed": 11.12501699999848,
+    "summedOwnedFootprintBytes": 474319224,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 52,
+    "diskFreeGiB": 7.140476226806641
+  },
+  {
+    "phase": "compile",
+    "elapsed": 12.227158957997744,
+    "summedOwnedFootprintBytes": 623774168,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 51,
+    "diskFreeGiB": 7.2022705078125
+  },
+  {
+    "phase": "compile",
+    "elapsed": 13.319020082999486,
+    "summedOwnedFootprintBytes": 685328904,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 50,
+    "diskFreeGiB": 7.202190399169922
+  },
+  {
+    "phase": "compile",
+    "elapsed": 14.407782582995424,
+    "summedOwnedFootprintBytes": 817220224,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 51,
+    "diskFreeGiB": 7.202465057373047
+  },
+  {
+    "phase": "compile",
+    "elapsed": 15.49489495799935,
+    "summedOwnedFootprintBytes": 820251264,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 50,
+    "diskFreeGiB": 7.202442169189453
+  },
+  {
+    "phase": "compile",
+    "elapsed": 16.590239958000893,
+    "summedOwnedFootprintBytes": 827607680,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 50,
+    "diskFreeGiB": 7.202365875244141
+  },
+  {
+    "phase": "compile",
+    "elapsed": 17.686011582998617,
+    "summedOwnedFootprintBytes": 861588120,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 49,
+    "diskFreeGiB": 7.202320098876953
+  },
+  {
+    "phase": "compile",
+    "elapsed": 18.775964249995013,
+    "summedOwnedFootprintBytes": 922880712,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 49,
+    "diskFreeGiB": 7.202301025390625
+  },
+  {
+    "phase": "compile",
+    "elapsed": 19.876171332995,
+    "summedOwnedFootprintBytes": 956631752,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 7.2023468017578125
+  },
+  {
+    "phase": "compile",
+    "elapsed": 20.970106458000373,
+    "summedOwnedFootprintBytes": 989661920,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 49,
+    "diskFreeGiB": 7.201984405517578
+  },
+  {
+    "phase": "compile",
+    "elapsed": 22.52636395800073,
+    "summedOwnedFootprintBytes": 1050594088,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 49,
+    "diskFreeGiB": 7.201908111572266
+  },
+  {
+    "phase": "compile",
+    "elapsed": 23.615439499997592,
+    "summedOwnedFootprintBytes": 1101794112,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 49,
+    "diskFreeGiB": 7.201652526855469
+  },
+  {
+    "phase": "compile",
+    "elapsed": 24.707751666996046,
+    "summedOwnedFootprintBytes": 1152453488,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.201652526855469
+  },
+  {
+    "phase": "compile",
+    "elapsed": 25.79269275000115,
+    "summedOwnedFootprintBytes": 1199868808,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 46,
+    "diskFreeGiB": 7.201679229736328
+  },
+  {
+    "phase": "compile",
+    "elapsed": 26.88172270799987,
+    "summedOwnedFootprintBytes": 1206668168,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 7.2015228271484375
+  },
+  {
+    "phase": "compile",
+    "elapsed": 27.97816212500038,
+    "summedOwnedFootprintBytes": 1151585184,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.201385498046875
+  },
+  {
+    "phase": "compile",
+    "elapsed": 29.06895020799857,
+    "summedOwnedFootprintBytes": 1159187360,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.201122283935547
+  },
+  {
+    "phase": "compile",
+    "elapsed": 30.159795041996404,
+    "summedOwnedFootprintBytes": 1165773728,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 7.20111083984375
+  },
+  {
+    "phase": "compile",
+    "elapsed": 31.247044957999606,
+    "summedOwnedFootprintBytes": 1171803040,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 7.201087951660156
+  },
+  {
+    "phase": "compile",
+    "elapsed": 32.33791595799994,
+    "summedOwnedFootprintBytes": 1176767392,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.2008056640625
+  },
+  {
+    "phase": "compile",
+    "elapsed": 33.71040041699598,
+    "summedOwnedFootprintBytes": 1198918584,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.201045989990234
+  },
+  {
+    "phase": "compile",
+    "elapsed": 34.80029229199863,
+    "summedOwnedFootprintBytes": 1210371024,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.201057434082031
+  },
+  {
+    "phase": "compile",
+    "elapsed": 35.90900024999428,
+    "summedOwnedFootprintBytes": 1213926352,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200977325439453
+  },
+  {
+    "phase": "compile",
+    "elapsed": 36.99656033299834,
+    "summedOwnedFootprintBytes": 1233849296,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200962066650391
+  },
+  {
+    "phase": "compile",
+    "elapsed": 38.08891225000116,
+    "summedOwnedFootprintBytes": 1253805032,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200950622558594
+  },
+  {
+    "phase": "compile",
+    "elapsed": 39.18324962499901,
+    "summedOwnedFootprintBytes": 1267338216,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200920104980469
+  },
+  {
+    "phase": "compile",
+    "elapsed": 40.28137716699712,
+    "summedOwnedFootprintBytes": 1290980352,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200920104980469
+  },
+  {
+    "phase": "compile",
+    "elapsed": 41.374489750000066,
+    "summedOwnedFootprintBytes": 1322945536,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200920104980469
+  },
+  {
+    "phase": "compile",
+    "elapsed": 42.45997591699415,
+    "summedOwnedFootprintBytes": 1324960768,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 7.2008819580078125
+  },
+  {
+    "phase": "compile",
+    "elapsed": 43.5537164999987,
+    "summedOwnedFootprintBytes": 1326124032,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 7.200809478759766
+  },
+  {
+    "phase": "compile",
+    "elapsed": 44.84949891699944,
+    "summedOwnedFootprintBytes": 1198509080,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200675964355469
+  },
+  {
+    "phase": "compile",
+    "elapsed": 45.93499795800017,
+    "summedOwnedFootprintBytes": 1201818648,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200645446777344
+  },
+  {
+    "phase": "compile",
+    "elapsed": 47.02424166700075,
+    "summedOwnedFootprintBytes": 1206488112,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 7.20062255859375
+  },
+  {
+    "phase": "compile",
+    "elapsed": 48.10979266699724,
+    "summedOwnedFootprintBytes": 1211370544,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.20062255859375
+  },
+  {
+    "phase": "compile",
+    "elapsed": 49.20188279199647,
+    "summedOwnedFootprintBytes": 1214729264,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.2005462646484375
+  },
+  {
+    "phase": "compile",
+    "elapsed": 50.28636254199955,
+    "summedOwnedFootprintBytes": 1218874416,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.2007293701171875
+  },
+  {
+    "phase": "compile",
+    "elapsed": 51.37290029200085,
+    "summedOwnedFootprintBytes": 1221676080,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 7.200653076171875
+  },
+  {
+    "phase": "compile",
+    "elapsed": 52.46858187500038,
+    "summedOwnedFootprintBytes": 1226247216,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200714111328125
+  },
+  {
+    "phase": "compile",
+    "elapsed": 53.55189204199996,
+    "summedOwnedFootprintBytes": 1227803696,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200714111328125
+  },
+  {
+    "phase": "compile",
+    "elapsed": 54.638923499995144,
+    "summedOwnedFootprintBytes": 1229638704,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200714111328125
+  },
+  {
+    "phase": "compile",
+    "elapsed": 55.988410250000015,
+    "summedOwnedFootprintBytes": 1375997072,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 46,
+    "diskFreeGiB": 7.200660705566406
+  },
+  {
+    "phase": "compile",
+    "elapsed": 57.17295012500108,
+    "summedOwnedFootprintBytes": 1587727888,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 45,
+    "diskFreeGiB": 7.200653076171875
+  },
+  {
+    "phase": "compile",
+    "elapsed": 58.273726832994726,
+    "summedOwnedFootprintBytes": 250873008,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 47,
+    "diskFreeGiB": 7.200443267822266
+  },
+  {
+    "phase": "compile",
+    "elapsed": 59.36712208300014,
+    "summedOwnedFootprintBytes": 572312000,
+    "swapGiB": 7.33453125,
+    "reportedFreePercent": 46,
+    "diskFreeGiB": 7.200222015380859
+  }
+]

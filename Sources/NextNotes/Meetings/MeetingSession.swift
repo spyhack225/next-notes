@@ -957,7 +957,7 @@ final class MeetingSession {
 
         let candidatesBefore = MeetingContextStore.shared.current?.candidateActions.count ?? 0
         let contextTrace = LatencyTrace.start(.meetingTranscriptToContext)
-        MeetingContextStore.shared.ingest(segments, meeting: meeting)
+        MeetingContextStore.shared.ingest([incoming], meeting: meeting)
         contextTrace.end(note: incoming.source.rawValue)
         let candidatesAfter = MeetingContextStore.shared.current?.candidateActions.count ?? 0
         if candidatesAfter > candidatesBefore {

@@ -1,0 +1,18 @@
+{
+  "state": "OBSERVATION_ONLY_DELTA_AND_REAL_REFUSAL_VERIFIED; NO_NATIVE_BUILD_VERDICT",
+  "beforeSHA256": "26b4fe58b1147677c69f53d72ebe1aa9301035b17740abe201ccf7c3ebe3f80e",
+  "afterSHA256": "ccb6b39c714230ee158a109575d7a24f4b986d4601bc92f74e1228f867a71586",
+  "exactThreeLinesReplaceOneAssertionBeforeSHAReproduced": true,
+  "allOtherBodiesByteIdentical": true,
+  "initialMachine": {
+    "swapGiB": 7.08154296875,
+    "reportedFreePercent": 54,
+    "diskFreeGiB": 8.192543029785156
+  },
+  "requiredReportedFreePercent": 55,
+  "compilerChildStarted": false,
+  "appLaunched": false,
+  "installed": false,
+  "refusalReason": "Fresh initial reported-free admission refused; no guard relaxation or automatic retry",
+  "noCompilerSourceIndexModelAppMutationByReview": true
+}

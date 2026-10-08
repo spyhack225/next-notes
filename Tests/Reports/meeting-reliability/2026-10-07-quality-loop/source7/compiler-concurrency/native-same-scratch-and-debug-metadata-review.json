@@ -1,0 +1,248 @@
+{
+  "state": "READ_ONLY_REUSE_AND_DEBUG_METADATA_REVIEW; NO_LAUNCH_OR_CACHE_MUTATION",
+  "primaryRevision": "b0433f85a943069579a85cf7b980970e47a9ac52",
+  "archiveSHA256": "c79f5ded977184d5b43196835f920f870cfe18a449d2113f1aae5d7ff92c9063",
+  "allSourceMarkerReferences": [
+    {
+      "path": "Sources/CoreCommands/SwiftCommandState.swift",
+      "line": 133,
+      "lineText": "            _ = createBuildSystemFile("
+    },
+    {
+      "path": "Sources/CoreCommands/SwiftCommandState.swift",
+      "line": 210,
+      "lineText": "package func createBuildSystemFile("
+    },
+    {
+      "path": "Sources/CoreCommands/SwiftCommandState.swift",
+      "line": 216,
+      "lineText": "    let path = directory.appending(\".buildSystem_\\(configuration)\")"
+    },
+    {
+      "path": "Sources/CoreCommands/SwiftCommandState.swift",
+      "line": 250,
+      "lineText": "                _ = createBuildSystemFile("
+    }
+  ],
+  "primaryEvidence": [
+    {
+      "path": "Sources/CoreCommands/SwiftCommandState.swift",
+      "sourceURL": "https://github.com/swiftlang/swift-package-manager/blob/b0433f85a943069579a85cf7b980970e47a9ac52/Sources/CoreCommands/SwiftCommandState.swift",
+      "sourceSHA256": "df4d85e26c93b205b15c1e4cbfcd02076f81015eda2c5997a3fa285a918dc214",
+      "boundedLines": {
+        "210": "package func createBuildSystemFile(",
+        "211": "    inDirectory directory: AbsolutePath,",
+        "212": "    for configuration: BuildConfiguration,",
+        "213": "    buildSystem: BuildSystemProvider.Kind,",
+        "214": "    fileSystem fs: FileSystem = localFileSystem,",
+        "215": ") -> AbsolutePath? {",
+        "216": "    let path = directory.appending(\".buildSystem_\\(configuration)\")",
+        "217": "    do {",
+        "218": "        try fs.createDirectory(path.parentDirectory, recursive: true)",
+        "219": "        try fs.writeFileContents(path, string: \"\\(buildSystem)\")",
+        "220": "        return path",
+        "221": "    } catch {",
+        "222": "        // Don't error out if we fail to create the file, as this is not critical to the functioning of the tool.",
+        "223": "        return nil",
+        "224": "    }",
+        "1113": "        let triple = toolchain.targetTriple",
+        "1114": "",
+        "1115": "        let dataPath = self.scratchDirectory.appending(",
+        "1116": "            component: triple.platformBuildPathComponent(buildSystem: self.options.build.buildSystem)",
+        "1117": "        )"
+      }
+    },
+    {
+      "path": "Sources/SPMBuildCore/Triple+Extensions.swift",
+      "sourceURL": "https://github.com/swiftlang/swift-package-manager/blob/b0433f85a943069579a85cf7b980970e47a9ac52/Sources/SPMBuildCore/Triple+Extensions.swift",
+      "sourceSHA256": "af5d1951be6437cbf326a33768d97a84d90e9defcadc12db2155e8a42fc79417",
+      "boundedLines": {
+        "27": "extension Triple {",
+        "28": "    public func platformBuildPathComponent(buildSystem: BuildSystemProvider.Kind) -> String {",
+        "29": "        switch buildSystem {",
+        "30": "        case .xcode:",
+        "31": "            // Use \"apple\" as the subdirectory because in theory Xcode build system",
+        "32": "            // can be used to build for any Apple platform and it has its own",
+        "33": "            // conventions for build subpaths based on platforms.",
+        "34": "            return \"apple\"",
+        "35": "        case .swiftbuild:",
+        "36": "            return \"out\"",
+        "37": "        case .native:",
+        "38": "            return self.platformBuildPathComponent",
+        "39": "        }",
+        "40": "    }"
+      }
+    },
+    {
+      "path": "Sources/Build/BuildOperation.swift",
+      "sourceURL": "https://github.com/swiftlang/swift-package-manager/blob/b0433f85a943069579a85cf7b980970e47a9ac52/Sources/Build/BuildOperation.swift",
+      "sourceSHA256": "df85dd8d6836f7674b129d25e98f262bce923ff6200647db3aac7ac4c7b4cfa6",
+      "boundedLines": {
+        "196": "    public func buildProductsPath(for parameters: BuildParameters) async throws -> AbsolutePath {",
+        "197": "        Self.buildProductsPath(for: parameters)",
+        "198": "    }",
+        "199": "",
+        "200": "    public static func buildProductsPath(for parameters: BuildParameters) -> AbsolutePath {",
+        "201": "        parameters.dataPath.appending(component: parameters.configuration.dirname)",
+        "202": "    }",
+        "203": "",
+        "204": "    /// The path to the index store directory for the given build parameters under the native build system.",
+        "205": "    public static func indexStore(for parameters: BuildParameters) -> AbsolutePath {",
+        "206": "        buildProductsPath(for: parameters).appending(components: \"index\", \"store\")",
+        "207": "    }",
+        "208": "",
+        "209": "    /// The path to the build description for the given build parameters under the native build system.",
+        "210": "    public static func buildDescriptionPath(for parameters: BuildParameters) -> AbsolutePath {",
+        "211": "        buildProductsPath(for: parameters).appending(components: \"description.json\")",
+        "212": "    }",
+        "553": "        // Create backwards-compatibility symlink to old build path.",
+        "554": "        let oldBuildPath = self.config.dataPath(for: .target).parentDirectory.appending(",
+        "555": "            component: configuration.dirname",
+        "556": "        )",
+        "557": "        if self.fileSystem.exists(oldBuildPath) {",
+        "558": "            do { try self.fileSystem.removeFileTree(oldBuildPath) }",
+        "559": "            catch {",
+        "560": "                self.observabilityScope.emit(",
+        "561": "                    warning: \"unable to delete \\(oldBuildPath), skip creating symbolic link\",",
+        "562": "                    underlyingError: error",
+        "563": "                )",
+        "564": "",
+        "565": "                return result",
+        "566": "            }",
+        "567": "        }",
+        "568": "",
+        "569": "        do {",
+        "570": "            try self.fileSystem.createSymbolicLink(",
+        "571": "                oldBuildPath,",
+        "572": "                pointingAt: Self.buildProductsPath(for: self.config.destinationBuildParameters),",
+        "573": "                relative: true",
+        "574": "            )",
+        "575": "        } catch {",
+        "576": "            self.observabilityScope.emit(",
+        "577": "                warning: \"unable to create symbolic link at \\(oldBuildPath)\",",
+        "578": "                underlyingError: error"
+      }
+    },
+    {
+      "path": "Sources/SPMBuildCore/BuildParameters/BuildParameters.swift",
+      "sourceURL": "https://github.com/swiftlang/swift-package-manager/blob/b0433f85a943069579a85cf7b980970e47a9ac52/Sources/SPMBuildCore/BuildParameters/BuildParameters.swift",
+      "sourceSHA256": "e5cbdb92c5aa7e7cd6fccd3463cf65bc9f41682a50b12b020591d0ffc7e35293",
+      "boundedLines": {
+        "225": "        switch self.debuggingParameters.debugInfoFormat {",
+        "226": "        case .dwarf, nil:",
+        "227": "            var flags = flags",
+        "228": "            // DWARF requires lld as link.exe expects CodeView debug info.",
+        "229": "            self.flags = flags.merging(triple.isWindows() ? BuildFlags(",
+        "230": "                cCompilerFlags: [\"-gdwarf\"].constructBuildFlags(source: .debugging),",
+        "231": "                cxxCompilerFlags: [\"-gdwarf\"].constructBuildFlags(source: .debugging),",
+        "232": "                swiftCompilerFlags: [\"-g\", \"-use-ld=lld\"].constructBuildFlags(source: .debugging),",
+        "233": "                linkerFlags: [\"-debug:dwarf\"].constructBuildFlags(source: .debugging)",
+        "234": "            ) : BuildFlags(cCompilerFlags: [\"-g\"].constructBuildFlags(source: .debugging), cxxCompilerFlags: [\"-g\"].constructBuildFlags(source: .debugging), swiftCompilerFlags: [BuildFlag(value: \"-g\", source: .debugging)]))",
+        "235": "        case .codeview:",
+        "236": "            if !triple.isWindows() {",
+        "237": "                throw StringError(\"CodeView debug information is currently not supported on \\(triple.osName)\")",
+        "238": "            }",
+        "239": "            var flags = flags",
+        "240": "            self.flags = flags.merging(BuildFlags(",
+        "241": "                cCompilerFlags: [\"-g\"].constructBuildFlags(source: .debugging),",
+        "242": "                cxxCompilerFlags: [\"-g\"].constructBuildFlags(source: .debugging),",
+        "243": "                swiftCompilerFlags: [\"-g\", \"-debug-info-format=codeview\"].constructBuildFlags(source: .debugging),",
+        "244": "                linkerFlags: [\"-debug\"].constructBuildFlags(source: .debugging)",
+        "245": "            ))",
+        "246": "        case .none?:",
+        "247": "            var flags = flags",
+        "248": "            self.flags = flags.merging(BuildFlags(",
+        "249": "                cCompilerFlags: [\"-g0\"].constructBuildFlags(source: .debugging),",
+        "250": "                cxxCompilerFlags: [\"-g0\"].constructBuildFlags(source: .debugging),",
+        "251": "                swiftCompilerFlags: [BuildFlag(value: \"-gnone\", source: .debugging)]",
+        "252": "            ))"
+      }
+    }
+  ],
+  "localScratchBeforeWitness": {
+    "release": {
+      "exists": true,
+      "isSymlink": true,
+      "linkDestination": "out/Products/Release",
+      "device": 16777230,
+      "inode": 174364545,
+      "sizeBytes": 20,
+      "SHA256": null
+    },
+    "debug": {
+      "exists": true,
+      "isSymlink": true,
+      "linkDestination": "out/Products/Debug",
+      "device": 16777230,
+      "inode": 174274862,
+      "sizeBytes": 18,
+      "SHA256": null
+    },
+    "out": {
+      "exists": true,
+      "isSymlink": false,
+      "linkDestination": null,
+      "device": 16777230,
+      "inode": 169117608,
+      "sizeBytes": 320,
+      "SHA256": null
+    },
+    ".buildSystem_release": {
+      "exists": true,
+      "isSymlink": false,
+      "linkDestination": null,
+      "device": 16777230,
+      "inode": 174033308,
+      "sizeBytes": 10,
+      "SHA256": "cd1ba1c9604b794d71cd3cb482cc02e4c16bdea56c361333fabe801a74db2b90"
+    },
+    "workspace-state.json": {
+      "exists": true,
+      "isSymlink": false,
+      "linkDestination": null,
+      "device": 16777230,
+      "inode": 169117145,
+      "sizeBytes": 2155,
+      "SHA256": "1a667121d383e540ead8c3d49eb62a8c9c87682456ba26c27606fabf319a2bef"
+    },
+    "out/Products/Release/NextNotes": {
+      "exists": true,
+      "isSymlink": false,
+      "linkDestination": null,
+      "device": 16777230,
+      "inode": 174343421,
+      "sizeBytes": 106319848,
+      "SHA256": "d3857289b24682aba73acc370407ace46e670e73b52d02078abf88ce9799e4b7"
+    },
+    "out/Products/Release/llama.framework/llama": {
+      "exists": true,
+      "isSymlink": true,
+      "linkDestination": "Versions/Current/llama",
+      "device": 16777230,
+      "inode": 174031268,
+      "sizeBytes": 22,
+      "SHA256": null
+    }
+  },
+  "destructiveTransitionVerdict": "No backend-marker-driven deletion found in pinned primary SwiftPM source. Marker is reporting-only write. Native build creates separate triple/release products and replaces compatibility release link on completion; current existing release path is a symlink, not a real directory. Existing scratch/out/checkouts/artifacts and staged app bundles are not the target of native build compatibility-link removal. This is source+local-layout review, not execution or exact installed source identity proof.",
+  "requiredPreflight": "Exact scratch real directory, release currently symlink to retained out/Products/Release, no active peer use; preserve marker/link/output/framework/input pins. If release becomes real directory or unexpected location, refuse reuse because removeFileTree would remove that path. Normal helper PID/start+resource caps and source/owner invariants unchanged. Native completed release link must target new native triple/release before packaging; original out products pinned separately. No clean/reset command.",
+  "metadataNone": {
+    "localDocumentedFlag": "-debug-info-format none",
+    "primaryFlags": [
+      "-g0 for C/C++",
+      "-gnone for Swift"
+    ],
+    "releaseOptimizations": "Native release useWholeModuleOptimization true; no O/WMO change from this option",
+    "binaryAndSigning": "Debug information is not required by Make packaging or codesign. Must still run actual binary/link/framework/strict signature/native focused checks. No native candidate yet.",
+    "limitations": "Reduces diagnostic source-level debug/symbolication data. Existing exported/runtime symbols may remain. Metadata change can affect binary/code layout; do not claim byte identity or isolate measured memory/speed effect to thread1. Exact disk/memory savings unmeasured.",
+    "nativeDsymutilSourceOccurrences": 0
+  },
+  "recommendation": "Prefer explicitly reviewed native backend in same existing scratch, with optional explicit metadata-none arm, over fresh duplicated scratch. No essential-input clone warranted by reviewed marker contract. Preserve normal default SwiftBuild backend/Makefile/config and every guard. Capture actual main-c1 and exact backend/metadata mode in receipt; all six focused app acceptances pending.",
+  "diskRevisedScope": {
+    "freeBytes": 7726243840,
+    "freeGiB": 7.195625305175781,
+    "floorGiB": 6.5,
+    "comparisonClarification": "Earlier fresh scratch artifacts+mainRelease figures were separate physical paths, not a measured native required allocation. Intermediates mainRelease405MiB is separate from Products dSYM/binary; largest retained intermediate is108MB NextNotes-primary.d, so copying whole comparables is not a native output forecast. Same scratch avoids duplicate artifacts/checkouts, but native objects/modules/link/bundle growth remains unknown. Existing dSYM cleanup is root-owned separate lifecycle review; no deletion by this review."
+  },
+  "noCompilerModelsAppsSourceIndexOrCacheChanges": true
+}

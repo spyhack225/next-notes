@@ -1,0 +1,11 @@
+{
+  "parentSHA": "c759e514116615bb84a92b040d5be2b0d49e8395a87d6716e0335641fd1ec168",
+  "driverSHA": "7dcc1fcfc806f4b689fe0916b98e10576d794644017dd4394b3823b5f8a27f57",
+  "compilerOnlyExplicitChanges": [
+    "documented native backend",
+    "documented debug-info none",
+    "same scratch preserve dependency +SwiftBuildbinary/framework pins and release link guard"
+  ],
+  "resourceAndOrdinaryDefaultsUnchanged": true,
+  "noLaunch": true
+}

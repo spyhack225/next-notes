@@ -1,0 +1,221 @@
+{
+  "state": "PREDECLARED_READ_ONLY_PLAN; NO_NATIVE_RUN_SOURCE_WRITE_OR_EXISTING_DRIVER_EDIT",
+  "scope": "Three sequential signed Source7 real-ASR actual isolated Session checks using existing fixture/router/queue/writer/Stop/final handle/store and independently pinned public PCM. No new diagnostic class, no direct ASR comparison pass, no script words graded as quality.",
+  "requiredPreconditions": [
+    "Root compiler/signature proof and model-free batch accepted or precisely scoped inherited failures retained; no introduced failure hidden.",
+    "Root claims exclusive native/ASR heavy slot; peers frozen and children joined.",
+    "Fresh normal machine gate before every arm, exact signed candidate path/hash/deep signature, source/input/gold pins unchanged; no install/owner app signal.",
+    "Local Parakeet models already present; ABSENT/model download supplies no pass.",
+    "Use existing requested quiet-input+session route; do not pass pause-boundaries modifier, which diverts to scripted boundary selftest."
+  ],
+  "input": {
+    "manifestPath": "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E/session-cases.json",
+    "manifestSHA256": "b61361547cea3f22a11f6f6ddf4796640458f2245f97a6aa18e0ccb1f06b62e1",
+    "goldSHA256": "107739e03bcd73a4f92760f69415abef6b674de4da8b18c4d6fc848e3fec4013",
+    "goldNormalizedWords": 7,
+    "quietWavSHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+    "sampleCount": 52566,
+    "sampleRate": 16000,
+    "seconds": 3.285375,
+    "sourceWindowSamples": [
+      916800,
+      969366
+    ],
+    "independentReference": "Turn reference from authored public en-dialogue text/rendered PCM lengths; last turn57.709..60.585; selected window57.3..60.585375 includes whole turn, old44886crop not used."
+  },
+  "arms": [
+    {
+      "id": "quiet-conservative-legacy-array",
+      "args": [
+        "--selftest-meeting-quiet-input",
+        "--meeting-quiet-session",
+        "--meeting-quiet-native",
+        "--meeting-quiet-corpus",
+        "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E",
+        "--meeting-quiet-session-only",
+        "quiet",
+        "--meeting-quiet-conservative-admission",
+        "--selftest-timeout",
+        "150"
+      ],
+      "modes": {
+        "admission": "finite-signal-experiment",
+        "pause": "legacy-rms",
+        "audio": "original-array"
+      },
+      "expectedNativeCalls": 6,
+      "expectedCallsByStage": {
+        "live": 4,
+        "final": 2
+      },
+      "expectedLiveSampleCounts": [
+        32000,
+        32000,
+        20566,
+        20566
+      ],
+      "expectedFinalSampleCounts": [
+        52566,
+        52566
+      ],
+      "expectedProductWords": "Reproduce both live-track exact-gold failures while both final tracks equal independently aligned7 words. Preserve actual raw words; count7 alone does not pass.",
+      "expectedDiagnostic": "MEETING_QUIET_SESSION_FAILED:2/23 checks failed under same failure; native-live-mic and native-live-system independent-word checks only. Any changed baseline shape/meaning is recorded as non-reproduction, never forced to fail."
+    },
+    {
+      "id": "quiet-conservative-pause-array",
+      "args": [
+        "--selftest-meeting-quiet-input",
+        "--meeting-quiet-session",
+        "--meeting-quiet-native",
+        "--meeting-quiet-corpus",
+        "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E",
+        "--meeting-quiet-session-only",
+        "quiet",
+        "--meeting-quiet-conservative-admission",
+        "--selftest-timeout",
+        "150",
+        "--meeting-quiet-pause-experiment"
+      ],
+      "modes": {
+        "admission": "finite-signal-experiment",
+        "pause": "digital-zero-experiment",
+        "audio": "original-array"
+      },
+      "expectedNativeCalls": 4,
+      "expectedCallsByStage": {
+        "live": 2,
+        "final": 2
+      },
+      "expectedLiveSampleCounts": [
+        52566,
+        52566
+      ],
+      "expectedFinalSampleCounts": [
+        52566,
+        52566
+      ],
+      "expectedProductWords": "Each live/final x mic/system output exactly equals same independently aligned7 lexical words, zero edit distance; actual saved/readback source/time-domain assertions pass.",
+      "expectedDiagnostic": "MEETING_QUIET_SESSION_OK:0/23 checks failed"
+    },
+    {
+      "id": "quiet-conservative-pause-bounded",
+      "args": [
+        "--selftest-meeting-quiet-input",
+        "--meeting-quiet-session",
+        "--meeting-quiet-native",
+        "--meeting-quiet-corpus",
+        "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E",
+        "--meeting-quiet-session-only",
+        "quiet",
+        "--meeting-quiet-conservative-admission",
+        "--selftest-timeout",
+        "150",
+        "--meeting-quiet-pause-experiment",
+        "--meeting-bounded-audio-experiment"
+      ],
+      "modes": {
+        "admission": "finite-signal-experiment",
+        "pause": "digital-zero-experiment",
+        "audio": "bounded-experiment"
+      },
+      "expectedNativeCalls": 4,
+      "expectedCallsByStage": {
+        "live": 2,
+        "final": 2
+      },
+      "expectedLiveSampleCounts": [
+        52566,
+        52566
+      ],
+      "expectedFinalSampleCounts": [
+        52566,
+        52566
+      ],
+      "expectedProductWords": "Same four exact7-word results and actual saved/readback source/time domains as preceding arm, with exact admitted sample/hash call parity.",
+      "expectedDiagnostic": "MEETING_QUIET_SESSION_OK:0/23 checks failed"
+    }
+  ],
+  "totalQuietNativeCallsExpected": 14,
+  "baselineShapeCaveat": "Historical sixth native observed6calls and32000+20566 live fragmentation. Actual queue merges adjacent pending windows; do not assume fresh execution always repeats6. Check actual count/stage/samples/hashes; changed layout or baseline exact-word success is non-reproduction and cannot establish original/fixed pause recovery. No sleeps/forced cuts/new passes to obtain RED.",
+  "normalNativeResourceProfile": {
+    "maxSwapGiB": 8,
+    "minDiskFreeGiB": 6.5,
+    "minimumStartReportedFreePercent": 55,
+    "minimumOngoingReportedFreePercent": 50,
+    "maxSummedOwnedFootprintBytes": 1000000000,
+    "externalSecondsPerArm": 90,
+    "AppKitDrainSeconds": 30,
+    "internalSelfTestTimeoutSeconds": 150,
+    "maxObservedNativeCallsPerArm": 6,
+    "maxRecordedElapsedSecondsPerCall": 60,
+    "maxRecordedComputeSecondsPerCall": 60,
+    "nativeLaunches": 3,
+    "sampling": "Exact independently pinned owned process start identities, app and descendants summed. Continuous-at-sampling checks for swap/disk/free/footprint/source invariance; report sampling gaps and sampled maxima, not continuous peak.",
+    "disposition": "Any admission refusal means no launch. Any observed breach/ownership error means latched refusal, one exact AppKit quit and bounded ongoing observation/drain; no signal to application, no next launch without complete join. Never relax thresholds or adopt8.5 exception to get a result.",
+    "maxRecordedElapsedSecondsPerCallScope": "Post-call metric acceptance only; existing per-call wrapper emits completed costs. External90s is the runtime guard; no new timer or sequential await is added."
+  },
+  "profileReview": {
+    "priorSingleNativeWallSeconds": 23.35144520799804,
+    "priorSampledFootprintBytes": 197412352,
+    "priorSampledRSSBytes": 659636224,
+    "priorActualNativeCalls": 6,
+    "priorOriginalFailedChecks": 2,
+    "priorChecks": 23,
+    "newTimeMargin": "External90s is about3.85x prior cold actual Session wall23.35s, and per-call60s exceeds observed21.73s cold/serialized wait. Finite observational bounds, not accepted product latency. Internal150 stays beyond external90+drain30.",
+    "newResources": "Normal8 swap is stricter than prior explicit8.5 ASR exception; min6.5 uses normal guard rather than prior7. Prior sampled footprint under1GB supports a bounded attempt, not guaranteed admission/peak or simultaneous ASR+voice performance."
+  },
+  "acceptance": {
+    "sharedAllArms": [
+      "Actual assigned same final handle exists and joins; no duplicate explicit final or termination-cancel used as success.",
+      "Saved status done, no partial capture,52566 saved frames, both selected channel PCM hashes equal fixture, emitted timestamps remain within0..3.285375.",
+      "Fresh reader transcript equals actual saved isolated store; every native call succeeded and has finite nonnegative elapsed/laneWait/compute/processingTime metrics. Errors cannot count as empty-noise success.",
+      "Exact stage/call/sample/hash counts observed, source-domain matches true; raw native words retained privately and normalized only lowercase/punctuation/whitespace, preserve every lexical word.",
+      "Fixture settings/permission/transcribe/tap overrides restored, hub/tap/session/final references/tasks joined before exact temporary store cleanup; input corpus retained.",
+      "Candidate/signature/source/input/gold pins and independent owner file/default snapshots stable; no introduced owner fixture artifacts.",
+      "Shared live context receives authored rows; its default owner-backed store is not the isolated session store. The fresh test UUID parent is absent, and directory(for:) does not create it, so this is not isolated context persistence proof. Preserve independent owner store/root/default snapshots and refuse any unexpected artifacts; do not claim zero owner-backed reads."
+    ],
+    "lastTwoArmsParity": [
+      "Each exactly4 successful native calls:2 live and2 final,52566samples each with quietFloat32 hashb46f3aeff8eb81f7d393c93302c28c1f74e131b992ff51c76577470e650f1595. Compare sorted(stage,samples,hash,native,succeeded) multiset; no assumption track interleaving order.",
+      "Both arrays and bounded results equal independent gold for each source/stage, retained source/time domains and fresh readbacks match. IDs/createdAt/CAF header bytes may differ; compare meaningful payload rather than random identities.",
+      "Same per-call metric fields available and finite within identical60s ceilings; record actual cold/warm elapsed/lane/compute/processingTime and deltas. Wall/compute clocks are not bit-equal across cold processes. No causal speed or memory-parity claim from three short single runs.",
+      "Writer source explicitly creates LPCM16/16k/two-channel CAF satisfying bounded factory eligibility. Native ASR input parity alone does not observe range-read count/source concrete type or measure allocation savings; keep native bounded I/O/allocation-speed claim separately open without adding a diagnostic/model pass."
+    ],
+    "verdictRules": "Baseline expected lexical RED remains original evidence, not infrastructure failure. Candidate arms require every word/source/persistence/lifecycle assertion. Final marker alone/nonempty/count7 is insufficient. productQualityPass=false in generic scope deliberately limits broader claims; explicit four-stage exact-word result is a narrow native recovery check. Future root launcher must explicitly classify baseline exit1 with exactly the two predeclared live-word failures and23checks as reproducedRED, after successful source/owner/lifecycle/resource checks. Do not reuse generic model-free exit0/OK grading for that arm. Unexpected failures/markers/ABSENT/timeouts/refusals cannot advance the comparison."
+  },
+  "existingControlReview": {
+    "cases": [
+      "quiet",
+      "loud",
+      "mixed",
+      "digital-zero",
+      "dc",
+      "noise"
+    ],
+    "provenNoiseBefore": "Fifth direct same-size Parakeet zero/DC/seeded controls empty, separate Engine zero outputs2 words; this is not actual Session noise acceptance.",
+    "noiseMeaning": "Constant DC is not speech. Seeded uniform low-RMS noise is not actual room/click noise. Zero must admit0calls and emit0words; finite nonzero controls if attempted must finish all admitted calls and emit0live/finalwords.",
+    "positiveControls": "Pinned loud/mixed variants share7-word gold; candidate each4calls. Mixed legacy source audit splits at2s; native exact recovery still open.",
+    "optionalNextScope": "After main quiet arms and fresh review/admission, existing fixture can select digital-zero,dc,noise at<=8native calls total and loud,mixed at<=8additional calls, conservative+pause+array. These are explicit additional scopes/launches, not included in14-call main budget. No fixtures/manifest are changed.",
+    "missingAcceptance": [
+      "No click/transient control exists in pinned6rows.",
+      "No independently gold-labelled spoken two-clause true pause filled with realistic nonzero noise exists.",
+      "Digital-zero-only pause may delay analog noisy pauses until hard5s; word errors/latency/workload under that condition remain open.",
+      "Optional expansion must be separately approved/reviewed with independent reference and finite count/time budget; no invented forced split or threshold lowering."
+    ]
+  },
+  "lifecycleReuse": {
+    "reviewedDriver": "source7/focused-lifecycle-reviewed-driver.py with focused-lifecycle-substituted-result.json17passing transition checks",
+    "reuse": "Only reviewed ownership discover/revalidate/one-quit/continued-drain/finally behavior for future native cases; native profile/args/word grader must be explicitly declared, not relabel existing model-free driver as ASR. No existing driver is edited by this plan.",
+    "limits": "17substituted checks do not prove real macOS/AppKit ownership or cleanup. Native actual quit/drain still supplies acceptance receipt."
+  },
+  "notProven": [
+    "Physical microphone/system tap/permission grant or real Zoom/Meet call",
+    "Paced or40-60minute hardware meeting/ASR+voice soak",
+    "Speaker identity, roster binding, actual diarizer native I/O",
+    "Whole-hour bounded native reader allocation/latency",
+    "Noise/click/hallucination/duty acceptance beyond attempted pinned controls",
+    "Notes factuality, semantic future-action recall,20tok/s ASR+voice floor",
+    "Production promotion/default/installed app change"
+  ],
+  "privacy": "Existing private writer retains words/PCM call hashes; public report contains approved corpus/source pins and sanitized metrics only, no owner speech.",
+  "sourcePinsFile": "source-pins.json"
+}

@@ -1,0 +1,54 @@
+{
+  "scope": "Driver print only; no frontend compilation/object/model/app, unchanged backend/source. Hypothesis until real owned main frontend observed.",
+  "cases": [
+    {
+      "case": "main-c-driver8-frontend1",
+      "driverExit": 0,
+      "jobs": [
+        {
+          "basename": "swift-frontend",
+          "hasCompileFlag": true,
+          "hasEmitModuleFlag": false,
+          "threadCounts": [
+            "1",
+            "8"
+          ],
+          "last": "8"
+        }
+      ]
+    },
+    {
+      "case": "main-c-frontend1-driver8",
+      "driverExit": 0,
+      "jobs": [
+        {
+          "basename": "swift-frontend",
+          "hasCompileFlag": true,
+          "hasEmitModuleFlag": false,
+          "threadCounts": [
+            "1",
+            "8"
+          ],
+          "last": "8"
+        }
+      ]
+    },
+    {
+      "case": "main-module-frontend1-driver8",
+      "driverExit": 0,
+      "jobs": [
+        {
+          "basename": "swift-frontend",
+          "hasCompileFlag": false,
+          "hasEmitModuleFlag": true,
+          "threadCounts": [
+            "1",
+            "8"
+          ],
+          "last": "8"
+        }
+      ]
+    }
+  ],
+  "cacheFixtureRemoved": true
+}

@@ -1,0 +1,21 @@
+{
+  "experiment": "sixth-quiet-session-native-experiment",
+  "exit": 1,
+  "wall_seconds": 23.35144520799804,
+  "markers": [
+    "MEETING_QUIET_SESSION_FAILED"
+  ],
+  "candidateSHA": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "startedAt": "2026-10-08T05:58:50.429645+00:00",
+  "endedAt": "2026-10-08T05:59:13.782753+00:00",
+  "pids": [
+    90030
+  ],
+  "memorySamples": 11,
+  "peakSampledFootprintBytes": 197412352,
+  "peakSampledResidentBytes": 659636224,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "manual review pending",
+  "guardReason": null,
+  "guardScope": "separately reviewed single public ASR diagnostic only,180s/1GB sampled process footprint/system8.5GBswap/free7GBdisk/reported60percentfree start50percentfree ongoing; normal8GB gate not claimed"
+}

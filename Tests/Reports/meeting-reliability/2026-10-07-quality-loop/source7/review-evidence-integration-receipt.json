@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-08T08:46:02.377244+00:00",
+  "base": "e9fb0bf83a02d190d7d0f8ef7eef3c18c3a09b4a",
+  "commit": "a1997d3f65265ebf42d2ea1038581419e22f7eb6",
+  "files": 119,
+  "sourceFiles": 0,
+  "foreignSevenIndexEntriesUnchanged": true,
+  "scope": "Reviewed reports/source witness artifacts and exact root-owned AGENTS/standard paragraph only; Source adoption is uncommitted pending full-app proof",
+  "privateIndexRemoved": true,
+  "immutableOriginalToolWhitespaceRetained": [
+    "swift-build-help.txt EOF blank",
+    "swiftc-version.txt original trailing whitespace"
+  ]
+}

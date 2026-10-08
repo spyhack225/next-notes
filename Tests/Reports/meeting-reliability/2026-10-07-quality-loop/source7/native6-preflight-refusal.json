@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-08T09:32:38.425625+00:00",
+  "initialMachine": {
+    "swapGiB": 7.08154296875,
+    "reportedFreePercent": 54,
+    "diskFreeGiB": 8.192543029785156
+  },
+  "requiredReportedFreePercent": 55,
+  "compilerChildStarted": false,
+  "appLaunched": false,
+  "installed": false,
+  "reason": "Fresh initial reported-free admission refused; no guard relaxation or automatic retry"
+}

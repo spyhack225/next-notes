@@ -1,0 +1,12 @@
+{
+  "beforeDriverSHA": "09726e13d69b5863ec9f10c67fae75351a13941a7c6269ca5c32480dd1459dd6",
+  "afterDriverSHA": "26b4fe58b1147677c69f53d72ebe1aa9301035b17740abe201ccf7c3ebe3f80e",
+  "beforeHelperSHA": "f76ca7e51e9d1665eee5a1bd60051ecbacd65d3b1b9695cf741b0ca4c98778f7",
+  "afterHelperSHA": "99dd0d7752aede30f4a33a0698e874245a9b362e6dda919a478be93713ecf947",
+  "changes": [
+    "Fixed2MiB command-table cap before read",
+    "Streaming1MiB compiled/candidatebinarySHA"
+  ],
+  "resourceGuardsUnchanged": true,
+  "noLaunch": true
+}

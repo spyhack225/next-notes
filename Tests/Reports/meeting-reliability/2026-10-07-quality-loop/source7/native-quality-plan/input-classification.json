@@ -1,0 +1,191 @@
+{
+  "scope": "Read-only stdlib PCM metadata and Python transcription of current cut rules; no Swift/compiler/native execution or semantic word proof. Actual native call shapes must still be observed. No source/audio changes.",
+  "inputManifest": {
+    "path": "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E",
+    "manifestSHA256": "b61361547cea3f22a11f6f6ddf4796640458f2245f97a6aa18e0ccb1f06b62e1",
+    "manifest": {
+      "cases": [
+        {
+          "id": "quiet",
+          "file": "session-quiet.wav",
+          "SHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+          "speech": true,
+          "samples": 52566
+        },
+        {
+          "id": "loud",
+          "file": "session-loud.wav",
+          "SHA256": "775e0278dc520ec43dffee297e2d7673225e5a62c193afbd8c769db51f4c885b",
+          "speech": true,
+          "samples": 52566
+        },
+        {
+          "id": "mixed",
+          "file": "session-mixed.wav",
+          "SHA256": "f9afd30cba2011ff379fcbe3b7929fdbb0f83766e302d4ebb78f33df5c010a1a",
+          "speech": true,
+          "samples": 52566
+        },
+        {
+          "id": "digital-zero",
+          "file": "session-digital-zero.wav",
+          "SHA256": "a62a61c81510c24108d64deb0fc4f7e4641c7fcc40450325008c403d0f3e4867",
+          "speech": false,
+          "samples": 52566
+        },
+        {
+          "id": "dc",
+          "file": "session-dc.wav",
+          "SHA256": "54235a22e144fd98ad22d53a821b844bffb29976b5eac8a75bbb814f1b0e1e3f",
+          "speech": false,
+          "samples": 52566
+        },
+        {
+          "id": "noise",
+          "file": "session-noise.wav",
+          "SHA256": "c59ef2d48381671ba0ce0ca285ee179cc1758237b9afadbd8d57bd136082df9c",
+          "speech": false,
+          "samples": 52566
+        }
+      ],
+      "gold": "session-gold.txt",
+      "goldSHA256": "107739e03bcd73a4f92760f69415abef6b674de4da8b18c4d6fc848e3fec4013"
+    }
+  },
+  "classifications": [
+    {
+      "case": "quiet",
+      "fileSHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+      "samples": 52566,
+      "float32DecodedSHA256": "b46f3aeff8eb81f7d393c93302c28c1f74e131b992ff51c76577470e650f1595",
+      "hasNonzero": true,
+      "allFinite": true,
+      "rms": 0.003565011587272186,
+      "legacyLiveCuts": [
+        32000,
+        52566
+      ],
+      "experimentalLiveCuts": [
+        52566
+      ],
+      "legacyFinalCuts": [
+        52566
+      ],
+      "experimentalFinalCuts": [
+        52566
+      ]
+    },
+    {
+      "case": "loud",
+      "fileSHA256": "775e0278dc520ec43dffee297e2d7673225e5a62c193afbd8c769db51f4c885b",
+      "samples": 52566,
+      "float32DecodedSHA256": "0e0f37bec08b48e095feffcf3107d8389d50d6958578815fd2c94c4b636504ec",
+      "hasNonzero": true,
+      "allFinite": true,
+      "rms": 0.0723839179059652,
+      "legacyLiveCuts": [
+        52566
+      ],
+      "experimentalLiveCuts": [
+        52566
+      ],
+      "legacyFinalCuts": [
+        52566
+      ],
+      "experimentalFinalCuts": [
+        52566
+      ]
+    },
+    {
+      "case": "mixed",
+      "fileSHA256": "f9afd30cba2011ff379fcbe3b7929fdbb0f83766e302d4ebb78f33df5c010a1a",
+      "samples": 52566,
+      "float32DecodedSHA256": "4a6e0688fb8fba2ec9011c69a97972899f39690172051fc8e2e0dd2897a0d3ce",
+      "hasNonzero": true,
+      "allFinite": true,
+      "rms": 0.03803729283204308,
+      "legacyLiveCuts": [
+        32000,
+        52566
+      ],
+      "experimentalLiveCuts": [
+        52566
+      ],
+      "legacyFinalCuts": [
+        52566
+      ],
+      "experimentalFinalCuts": [
+        52566
+      ]
+    },
+    {
+      "case": "digital-zero",
+      "fileSHA256": "a62a61c81510c24108d64deb0fc4f7e4641c7fcc40450325008c403d0f3e4867",
+      "samples": 52566,
+      "float32DecodedSHA256": "83f06e04bab78cc397685c5181ffff3268a6bf2698b609dbadb7f223e9533121",
+      "hasNonzero": false,
+      "allFinite": true,
+      "rms": 0.0,
+      "legacyLiveCuts": [
+        32000,
+        52566
+      ],
+      "experimentalLiveCuts": [
+        32000,
+        52566
+      ],
+      "legacyFinalCuts": [
+        52566
+      ],
+      "experimentalFinalCuts": [
+        52566
+      ]
+    },
+    {
+      "case": "dc",
+      "fileSHA256": "54235a22e144fd98ad22d53a821b844bffb29976b5eac8a75bbb814f1b0e1e3f",
+      "samples": 52566,
+      "float32DecodedSHA256": "868b13a59c184151763f8980c2affa2fc5ca0ea511952e5f91966cfa3cd7d768",
+      "hasNonzero": true,
+      "allFinite": true,
+      "rms": 0.0050048828125,
+      "legacyLiveCuts": [
+        32000,
+        52566
+      ],
+      "experimentalLiveCuts": [
+        52566
+      ],
+      "legacyFinalCuts": [
+        52566
+      ],
+      "experimentalFinalCuts": [
+        52566
+      ]
+    },
+    {
+      "case": "noise",
+      "fileSHA256": "c59ef2d48381671ba0ce0ca285ee179cc1758237b9afadbd8d57bd136082df9c",
+      "samples": 52566,
+      "float32DecodedSHA256": "6160e2aef567132be4e1e08038bec6b92db01a09c7dcef17d422c25e93fbb184",
+      "hasNonzero": true,
+      "allFinite": true,
+      "rms": 0.004997567004164219,
+      "legacyLiveCuts": [
+        32000,
+        52566
+      ],
+      "experimentalLiveCuts": [
+        52566
+      ],
+      "legacyFinalCuts": [
+        52566
+      ],
+      "experimentalFinalCuts": [
+        52566
+      ]
+    }
+  ],
+  "clickControlPresent": false,
+  "noisyTruePauseSpeechControlPresent": false
+}

@@ -1,0 +1,20 @@
+{
+  "state": "PREPARED_NATIVE6_REVIEW_REQUIRES_NATIVE_PRODUCT_ADMISSION; NOT_LAUNCHED",
+  "driverSHA256": "7dcc1fcfc806f4b689fe0916b98e10576d794644017dd4394b3823b5f8a27f57",
+  "baseline": "compiler5 c759e514116615bb84a92b040d5be2b0d49e8395a87d6716e0335641fd1ec168",
+  "resourceOwnershipLifecycleVerdict": "Exact existing helper/scopedclassifier/initial+ongoingcaps/drain/source+owner guards remain unchanged. No inference/owner app/default launch added. Streaming cache hash witnesses bound scratch dependencies and useful retained SwiftBuild products.",
+  "changesReviewed": [
+    "Explicit native backend and debug-info-format none",
+    "Same existing scratch, preserving out dependency/products tree",
+    "Additional cache input before/after hashes and mutable marker/workspace/link witnesses",
+    "Native6 receipt prefixes and compilerArm metadata"
+  ],
+  "requiredCorrection": {
+    "trigger": "Native compile succeeds but compatibility symlink recreation emits warning/skips or symlink still points old SwiftBuild products.",
+    "firstBrokenContract": "Bundle admission validates source freeze only, no native release target; final accepts any release symlink.",
+    "result": "make can copy retained old SwiftBuild binary/framework after actual native main-thread1 compile, producing stale candidate with misleading source invariant.",
+    "smallestRepair": "Before bundle and final require exact resolved expected native triple/release inside scratch and distinct out, native plan/product regular files. Record matched native binary/framework identities. Explicit SCRATCH=cache argv recommended. Preserve every guard."
+  },
+  "limits": "Source review and source-local cache witnesses only, no native execution. Actual native allocation/gate/build/link/codesign/sixfocusedapp tests remain open. Debug-none changes metadata; no thread1-only effect attribution.",
+  "noSourcesIndexAppCompilerModelOrCleanup": true
+}

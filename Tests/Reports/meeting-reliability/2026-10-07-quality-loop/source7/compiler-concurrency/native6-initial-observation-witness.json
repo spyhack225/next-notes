@@ -1,0 +1,6 @@
+{
+  "beforeSHA": "26b4fe58b1147677c69f53d72ebe1aa9301035b17740abe201ccf7c3ebe3f80e",
+  "afterSHA": "ccb6b39c714230ee158a109575d7a24f4b986d4601bc92f74e1228f867a71586",
+  "onlyChange": "Retain exact initial machine result before unchanged55 assertion; no threshold/default/guard/profile alteration",
+  "launch": false
+}

@@ -1,0 +1,62 @@
+{
+  "scope": "Read-only decoder of retained SwiftBuild MessagePack task plan; no driver/frontend launch. Planned argv is not observed PID proof. Exact rejected compiler4 frontend remains UNKNOWN.",
+  "inputSHA256": "e39c9eb68064d6d1bc74824debe166028974cc1e7834230f3f5b552d9231a1d4",
+  "allBytesConsumed": true,
+  "topLevelObjectCount": 2422,
+  "selectedPlannedCommands": [
+    {
+      "module": "NextNotesDictionary",
+      "firstBasename": "builtin-SwiftDriver",
+      "argumentCount": 90,
+      "hasCompileFlag": true,
+      "hasEmitModuleFlag": true,
+      "threadCountsInOrder": [
+        "1",
+        "8"
+      ],
+      "lastThreadCount": "8",
+      "argvSHA256": "b5211bf53e57f5e01791612d937bf2a8cfb4856c2b48f48f0ecbfe0274e83f21"
+    },
+    {
+      "module": "NextNotes",
+      "firstBasename": "builtin-SwiftDriver",
+      "argumentCount": 104,
+      "hasCompileFlag": true,
+      "hasEmitModuleFlag": true,
+      "threadCountsInOrder": [
+        "1",
+        "8"
+      ],
+      "lastThreadCount": "8",
+      "argvSHA256": "37d2e02f29fce64a63bdcc37886e92778a68c0c8c611236a8a92f47085840e85"
+    },
+    {
+      "module": "NextNotes",
+      "firstBasename": "builtin-SwiftDriver",
+      "argumentCount": 104,
+      "hasCompileFlag": true,
+      "hasEmitModuleFlag": true,
+      "threadCountsInOrder": [
+        "1",
+        "8"
+      ],
+      "lastThreadCount": "8",
+      "argvSHA256": "37d2e02f29fce64a63bdcc37886e92778a68c0c8c611236a8a92f47085840e85"
+    },
+    {
+      "module": "NextNotesDictionary",
+      "firstBasename": "builtin-SwiftDriver",
+      "argumentCount": 90,
+      "hasCompileFlag": true,
+      "hasEmitModuleFlag": true,
+      "threadCountsInOrder": [
+        "1",
+        "8"
+      ],
+      "lastThreadCount": "8",
+      "argvSHA256": "b5211bf53e57f5e01791612d937bf2a8cfb4856c2b48f48f0ecbfe0274e83f21"
+    }
+  ],
+  "noFullArgvRetained": true,
+  "earlierDecoderFailure": "Prior decoder incorrectly assumed one top-level object and failed final all-bytes-consumed assertion before creating report."
+}

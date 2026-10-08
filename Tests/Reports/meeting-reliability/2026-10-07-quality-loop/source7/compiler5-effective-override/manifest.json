@@ -1,0 +1,42 @@
+{
+  "artifacts": {
+    "seventh-compiler5-build-metadata.json": {
+      "sha256": "76c93c4e7367a1a424f4ff4fd527ab687d4e297b8f5c68c401e418caf2495d2c",
+      "bytes": 1812
+    },
+    "seventh-compiler5-build-memory.json": {
+      "sha256": "f429b2daeee19cc51fb7db2265df8dd94d3c5e0a7f944b7897becae06e074adb",
+      "bytes": 26846
+    },
+    "seventh-compiler5-build-machine-memory.json": {
+      "sha256": "96210659c405db3c720ba5e35106a94949e5641d8bf02276e6fb7373425683d5",
+      "bytes": 11171
+    },
+    "seventh-compiler5-compiler-admission.json": {
+      "sha256": "2b19fc203335f4aa11079d6c4757bd709c85abf5fc7c387fb2385536f0263485",
+      "bytes": 137
+    },
+    "seventh-compiler5-build-source-pins-before.json": {
+      "sha256": "2a76a3fa12a60fe59cdad7a9a9a2097bdbbd1825e014156a485b86341cfa7ed9",
+      "bytes": 147400
+    },
+    "seventh-compiler5-build-source-pins-after.json": {
+      "sha256": "2a76a3fa12a60fe59cdad7a9a9a2097bdbbd1825e014156a485b86341cfa7ed9",
+      "bytes": 147400
+    },
+    "seventh-compiler5-compile-build.log": {
+      "sha256": "650cd1d2867f41e2574fbfceb759e9de1fdca66c305dadd1dfdff13b0a0a78b4",
+      "bytes": 437
+    },
+    "meeting-seventh-release-compiler5-guarded.py": {
+      "sha256": "c759e514116615bb84a92b040d5be2b0d49e8395a87d6716e0335641fd1ec168",
+      "bytes": 9038
+    },
+    "MeetingCompilerMainCompileScope.py": {
+      "sha256": "3dedee16b70d6dfe75cd1ecd4173bff60967b5508eea6db72ba4897c0bafbed8",
+      "bytes": 1389
+    }
+  },
+  "installed": false,
+  "noCandidate": true
+}

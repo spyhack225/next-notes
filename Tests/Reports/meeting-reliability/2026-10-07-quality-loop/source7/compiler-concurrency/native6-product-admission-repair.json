@@ -1,0 +1,6 @@
+{
+  "beforeSHA": "7dcc1fcfc806f4b689fe0916b98e10576d794644017dd4394b3823b5f8a27f57",
+  "afterSHA": "09726e13d69b5863ec9f10c67fae75351a13941a7c6269ca5c32480dd1459dd6",
+  "machOHelperSHA": "f76ca7e51e9d1665eee5a1bd60051ecbacd65d3b1b9695cf741b0ca4c98778f7",
+  "scope": "before bundle exact native release path/description/framework admission; pin linked binary/code; after package identical thin-arm64 TEXTsections/UUID and unchanged native binary; explicitSCRATCH; unchangedcaps"
+}

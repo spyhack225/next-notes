@@ -1,0 +1,27 @@
+{
+  "verdict": "CACHE_NATIVE6_REVIEW_PASS_FOR_ROOT_GATED_LAUNCH; NO_NATIVE_BUILD_VERDICT",
+  "driverSHA256": "26b4fe58b1147677c69f53d72ebe1aa9301035b17740abe201ccf7c3ebe3f80e",
+  "MachOHelperSHA256": "99dd0d7752aede30f4a33a0698e874245a9b362e6dda919a478be93713ecf947",
+  "exactAuthoredCheckSHA256": "6d5cbaa01281ba20fc4d69704429a88a0a6fc0885b67212125bf026dbe99aa1c",
+  "checkReportSHA256": "45b4546385b46f02205b86b63ed11c7673c495e4333fa4ff6afd9ba2940057b7",
+  "authoredChecks": 14,
+  "failures": 0,
+  "sdkHeader": {
+    "path": "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/mach-o/loader.h",
+    "sha256": "5862aeb7fbf183453080bc887c0d502fe25a86ff5bd81291bbcc408bd7fe6e74",
+    "layout": "mach_header64=32; segment_command64=72; section64=80; UUIDcommand=24. Field offsets match pinned helper."
+  },
+  "platformProof": "Pinned official SwiftPM Triple+Extensions.swift native Darwin folder removes platformVersion; local arm64-apple-macosx27.2.0 \u2192 arm64-apple-macosx.",
+  "review": [
+    "Native products path/link validated before bundle and final, separate retained out; explicit Make SCRATCH",
+    "Compiled native binary remains same hash throughout packaging; staged UUID/TEXTsections match compiled product despite permitted header/signature edits",
+    "Binary hashes streamed1MiB; command table max2MiB and sections streamed1MiB",
+    "Existing exact helper ownership/drain/initial and ongoing caps/source1176/owner8 gates and no install unchanged"
+  ],
+  "scopeLimits": [
+    "Mach-O proof covers __TEXTsections+UUID, not full __DATA payload or whole-file byte identity. Compiled and staged full SHA reported separately.",
+    "No frontend/app/model launched. No native product, install_name_tool, codesign or focused selftest verdict supplied by authored controls.",
+    "Backend/debug metadata are explicit external compiler mitigation; no default/prompt/ASR/pause/bounded-audio promotion. Native memory/cost effect not attributable to only threads1."
+  ],
+  "readyOnlyAfter": "Root freshgate/free55/exclusive ownership and exact pinned driver/helper; actual maincompile1 then bounded complete joined build/link/signature and all six focused native checks. No automatic retry/guard ratchet."
+}

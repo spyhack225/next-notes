@@ -1,0 +1,69 @@
+{
+  "at": "2026-10-08T08:47:34.528065+00:00",
+  "exit": -15,
+  "wallSeconds": 59.6652297920009,
+  "guardReason": "effective owned NextNotes compile frontend thread count is not1",
+  "originalOwnerEightUnchanged": true,
+  "ownerStatusCountsBefore": {
+    "done": 16
+  },
+  "sourceInvariant": true,
+  "sourceCount": 1176,
+  "remainingOwnedPIDs": [],
+  "ordinarySwap8Crossed": false,
+  "profile": "peer reviewed relay720 compiler-only initial normal8/min6.5/free55; ongoing explicit swap9 exception/min6.5/free40/summed3GB/1200s; no inference or owner app launch",
+  "phaseReceipts": [
+    {
+      "phase": "compile",
+      "errorType": null,
+      "exit": -15,
+      "observationDetails": [],
+      "drain": {
+        "observationDetails": [],
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [],
+        "seconds": 0.21296220799558796,
+        "sent": [
+          {
+            "pid": 8496,
+            "processStart": 1521447765285,
+            "signal": 15
+          },
+          {
+            "pid": 8855,
+            "processStart": 1522852893204,
+            "signal": 15
+          },
+          {
+            "pid": 8856,
+            "processStart": 1522864097008,
+            "signal": 15
+          }
+        ]
+      }
+    }
+  ],
+  "samples": 147,
+  "peakSampledOwnedFootprintBytes": 1587727888,
+  "frontendThreadCounts": [],
+  "frontendScopeObservations": [
+    {
+      "scope": "dependency",
+      "moduleKnown": true,
+      "identityValid": true,
+      "lastThreadCount": 8,
+      "countOccurrences": 1,
+      "mainCompileThreadProof": false
+    },
+    {
+      "scope": "main-compile",
+      "moduleKnown": true,
+      "identityValid": true,
+      "lastThreadCount": 8,
+      "countOccurrences": 1,
+      "mainCompileThreadProof": false
+    }
+  ],
+  "installed": false
+}

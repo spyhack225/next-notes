@@ -1,0 +1,150 @@
+{
+  "scope": "READ_ONLY_REVIEW; no compiler/frontend compilation/backend/source/resource/default change. Official upstream revisions are source evidence, not exact binary-source identity.",
+  "installedSwiftPM": "Swift Package Manager - Swift 6.4.0-dev",
+  "installedSwift": "Apple Swift6.4 swiftlang6.4.0.34.1; retained swiftc-version.txt",
+  "localSwiftBuildSpec": {
+    "path": "/Applications/Xcode.app/Contents/SharedFrameworks/SwiftBuild.framework/Versions/A/PlugIns/SWBBuildService.bundle/Contents/PlugIns/SWBUniversalPlatformPlugin.bundle/Contents/Frameworks/SWBUniversalPlatform.framework/Versions/A/Resources/Swift.xcspec",
+    "sha256": "1a018b21b950aa96419af478a490b4c42af6d54ebf223c022d35b40b838fb75a",
+    "lines161to166": [
+      "            // Hidden build setting to control whether parallel -WMO is enabled.",
+      "            {",
+      "                Name = \"SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION\";",
+      "                Type = Boolean;",
+      "                DefaultValue = YES;",
+      "            },"
+    ]
+  },
+  "primarySourceRecords": [
+    {
+      "repository": "swiftlang/swift-build",
+      "revision": "080a73325cbc9063df3985d20d06181d9d4c5ab7",
+      "path": "Sources/SWBCore/SpecImplementations/Tools/SwiftCompiler.swift",
+      "sourceURL": "https://github.com/swiftlang/swift-build/blob/080a73325cbc9063df3985d20d06181d9d4c5ab7/Sources/SWBCore/SpecImplementations/Tools/SwiftCompiler.swift",
+      "sourceSHA256": "4cbb4ac819444dce4b498c5b491258c707bbd33463ced6c89213ac25a218e6f3",
+      "xcbuildOccurrences": 0,
+      "boundedRelevantLines": {
+        "727": "}",
+        "728": "",
+        "729": "public final class SwiftCompilerSpec : CompilerSpec, SpecIdentifierType, SwiftDiscoveredCommandLineToolSpecInfo, @unchecked Sendable {",
+        "730": "    @_spi(Testing) public static let parallelismLevel = ProcessInfo.processInfo.activeProcessorCount",
+        "731": "",
+        "732": "    public static let identifier = \"com.apple.xcode.tools.swift.compiler\"",
+        "733": "",
+        "734": "    /// The name of a source file which the Swift compiler will recognize in order implicitly lift its content into an automatically-generated `main()` function.",
+        "735": "    static let mainFileName = \"main.swift\"",
+        "736": "",
+        "1434": "",
+        "1435": "            // Set the parallelism level for the compile.",
+        "1436": "            let (isUsingWholeModuleOptimization, isWMOSettingExplicitlyEnabled) = Self.shouldUseWholeModuleOptimization(for: cbc.scope)",
+        "1437": "            let useParallelWholeModuleOptimization = cbc.scope.evaluate(BuiltinMacros.SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION)",
+        "1438": "            if isUsingWholeModuleOptimization && useParallelWholeModuleOptimization {",
+        "1439": "                args.append(contentsOf: [\"-num-threads\", \"\\(SwiftCompilerSpec.parallelismLevel)\"])",
+        "1440": "            } else if isUsingWholeModuleOptimization {",
+        "1441": "                // Use -num-threads 1 to ensure the driver produces per-file object outputs",
+        "1442": "                args.append(contentsOf: [\"-num-threads\", \"1\"])",
+        "1443": "            } else {",
+        "3060": "        }",
+        "3061": "        else {",
+        "3062": "            // If we are using WMO, then we still generate entries for each file, but several files move to the global map since the source files aren't processed individually.",
+        "3063": "            let useParallelWMO = cbc.scope.evaluate(BuiltinMacros.SWIFT_USE_PARALLEL_WHOLE_MODULE_OPTIMIZATION)",
+        "3064": "            for input in cbc.inputs {",
+        "3065": "                var (objectFilePath, fileMapEntry) = createCommonFileEntry(input: input)",
+        "3066": "                let objectFilePrefix = objectFilePath.basenameWithoutSuffix",
+        "3067": "                // In parallel WMO, IR and opt-records are per-file; SIL is always module-level.",
+        "3068": "                if useParallelWMO {",
+        "3069": "                    if emitIR {"
+      }
+    },
+    {
+      "repository": "swiftlang/swift-package-manager",
+      "revision": "b0433f85a943069579a85cf7b980970e47a9ac52",
+      "path": "Sources/CoreCommands/Options.swift",
+      "sourceURL": "https://github.com/swiftlang/swift-package-manager/blob/b0433f85a943069579a85cf7b980970e47a9ac52/Sources/CoreCommands/Options.swift",
+      "sourceSHA256": "d14728b58d269f489515e48a6534bdeae2d25f527c337584a4452723a25964b6",
+      "xcbuildOccurrences": 4,
+      "boundedRelevantLines": {
+        "494": "            visibility: .hidden",
+        "495": "        )",
+        "496": "    )",
+        "497": "    public var xcbuildFlags: [String] = []",
+        "498": "",
+        "499": "    @Option(",
+        "500": "        name: .customLong(\"Xbuild-tools-swiftc\", withSingleDash: true),",
+        "501": "        parsing: .unconditionalSingleValue,",
+        "502": "        help: ArgumentHelp(",
+        "503": "            \"Pass flag to Swift compiler invocations for build-time executables (manifest and plugins).\",",
+        "532": "            cxxCompilerFlags: self.cxxCompilerFlags.constructBuildFlags(source: .commandLineOptions),",
+        "533": "            swiftCompilerFlags: self.swiftCompilerFlags.constructBuildFlags(source: .commandLineOptions),",
+        "534": "            linkerFlags: self.linkerFlags.constructBuildFlags(source: .commandLineOptions),",
+        "535": "            xcbuildFlags: self.xcbuildFlags",
+        "536": "        )",
+        "537": "    }",
+        "538": "",
+        "539": "    /// The compilation destination\u2019s target triple.",
+        "540": "    @Option(name: .customLong(\"triple\"), transform: Triple.init)",
+        "541": "    public var customCompileTriple: Triple?"
+      }
+    },
+    {
+      "repository": "swiftlang/swift-package-manager",
+      "revision": "b0433f85a943069579a85cf7b980970e47a9ac52",
+      "path": "Sources/XCBuildSupport/XcodeBuildSystem.swift",
+      "sourceURL": "https://github.com/swiftlang/swift-package-manager/blob/b0433f85a943069579a85cf7b980970e47a9ac52/Sources/XCBuildSupport/XcodeBuildSystem.swift",
+      "sourceSHA256": "5da203fc034f63d01140f1969fdc631483669e03e330395340e9569893d2a056",
+      "xcbuildOccurrences": 24,
+      "boundedRelevantLines": {
+        "214": "",
+        "215": "        let buildParamsFile: AbsolutePath?",
+        "216": "        // Do not generate a build parameters file if a custom one has been passed.",
+        "217": "        if let flags = buildParameters.flags.xcbuildFlags, !flags.contains(\"--buildParametersFile\") {",
+        "218": "            buildParamsFile = try createBuildParametersFile()",
+        "219": "            if let buildParamsFile {",
+        "220": "                arguments += [\"--buildParametersFile\", buildParamsFile.pathString]",
+        "221": "            }",
+        "222": "        } else {",
+        "223": "            buildParamsFile = nil",
+        "224": "        }",
+        "225": "",
+        "226": "        if let flags = buildParameters.flags.xcbuildFlags {",
+        "227": "            arguments += flags",
+        "228": "        }",
+        "229": "",
+        "230": "        let delegate = createBuildDelegate()",
+        "231": "        var hasStdout = false",
+        "232": "        var stdoutBuffer: [UInt8] = []"
+      }
+    },
+    {
+      "repository": "swiftlang/swift-package-manager",
+      "revision": "b0433f85a943069579a85cf7b980970e47a9ac52",
+      "path": "Sources/SwiftBuildSupport/SwiftBuildSystem.swift",
+      "sourceURL": "https://github.com/swiftlang/swift-package-manager/blob/b0433f85a943069579a85cf7b980970e47a9ac52/Sources/SwiftBuildSupport/SwiftBuildSystem.swift",
+      "sourceSHA256": "8b99838df1716aa8a95a4dc9a7b66807be747d9bc65e2463c7b1effb16a0a5ad",
+      "xcbuildOccurrences": 0,
+      "boundedRelevantLines": {}
+    }
+  ],
+  "findings": [
+    "Retained actual SwiftBuild plan has user1 then generated8 for main NextNotes and Dictionary. Actual compiler5 root observation confirms main compile8; no successful single-worker native proof.",
+    "Default SwiftBuild appends activeProcessorCount after extra Swift flags when parallel WMO setting enabled. Local hidden Boolean defaultsYES. Disabling that setting would preserve WMO with generated1 in upstream source, but supported injection into installed default SwiftPM backend has not been established.",
+    "-Xxcbuild accepted CLI flag is consumed by deprecated XcodeBuildSystem; current upstream default SwiftBuildSystem has no xcbuild reference. Do not treat CLI parsing as forwarding proof.",
+    "Local -Xfrontend number forwarding controls retain driver-generated8 last. This workaround failed offline driver-print proof."
+  ],
+  "recommendation": "Do not launch another unchanged Xswiftc1 attempt. No supported same-backend setting override proven; obtain exact installed SwiftBuild settings-override admission proof before changing driver. Backend switch requires separately reviewed plan and artifact compatibility; not authorized/applied here. Keep guards and six focused native acceptance pending.",
+  "rootCompiler5Receipt": {
+    "exists": true,
+    "sha256": "76c93c4e7367a1a424f4ff4fd527ab687d4e297b8f5c68c401e418caf2495d2c",
+    "guardReason": "effective owned NextNotes compile frontend thread count is not1",
+    "mainObservations": [
+      {
+        "scope": "main-compile",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 8,
+        "countOccurrences": 1,
+        "mainCompileThreadProof": false
+      }
+    ]
+  },
+  "ownerSpeechIncluded": false
+}
