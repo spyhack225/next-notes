@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-68784/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-context
+2026-10-07 22:31:31.269 NextNotes[69160:1279462] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_SPEAKER_PROJECTION_OK checks=51
+MEETING_CONTEXT_OK: extraction and the authority split hold

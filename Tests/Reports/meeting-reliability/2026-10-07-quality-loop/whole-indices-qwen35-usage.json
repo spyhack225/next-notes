@@ -1,0 +1,26 @@
+[
+  {
+    "countsEstimated": false,
+    "modelID": "Qwen3.5-4B",
+    "promptTokens": 16658,
+    "pass": "single-extractive-indices-replay",
+    "completionTokens": 32,
+    "finishReason": "stop",
+    "counts": {
+      "prefillDecodedTokens": 16658,
+      "indicesOnly": 1,
+      "outputBudget": 1600,
+      "prefillMs": 122556,
+      "sourceCount": 519,
+      "countedInputTokens": 16641,
+      "generationMs": 22022
+    },
+    "warm": true,
+    "feature": "meeting.notes.single",
+    "truncated": false,
+    "locality": "local",
+    "provider": "llama",
+    "cachedTokens": 0,
+    "totalMs": 144811
+  }
+]

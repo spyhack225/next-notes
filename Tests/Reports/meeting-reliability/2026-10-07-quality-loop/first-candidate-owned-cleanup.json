@@ -1,0 +1,16 @@
+{
+  "removed": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-57481",
+  "sha256": "b9dddc679fa89f999f40fa6accd95afc742f316c576f078c29b5111c1031d6b2",
+  "owner": "root meeting release comparison",
+  "reason": "rejected first candidate; all native children joined, exactsource pins/failed verdicts/private raw outputs retained; current second62791 comparison and installed30744 rollback retained",
+  "allocatedBytesRemoved": 125173760,
+  "freeBytesBefore": 7981031424,
+  "freeBytesAfter": 8106450944,
+  "retained": [
+    "install-62791",
+    "install-30744",
+    "meeting-quality-rollback-9f769aa0b95c4f42aa9bd0d2ef5b6c97",
+    "meeting-fix-install-a5151045eb634800bb3fcdffee49dc67"
+  ],
+  "foreignArtifactsRemoved": false
+}

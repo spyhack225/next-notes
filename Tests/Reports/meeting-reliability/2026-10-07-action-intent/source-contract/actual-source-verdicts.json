@@ -1,0 +1,31 @@
+{
+  "scope": "actual production refine/parse/apply+real types/extractor/matcher/GBNF; stub role/provider/usage/log boundary; no optional/native/model semantic proof",
+  "unchangedAssertions": true,
+  "cases": [
+    "generic22",
+    "private5"
+  ],
+  "results": {
+    "original": {
+      "exitCode": 1,
+      "compileSeconds": 1.284,
+      "reconcilerSHA256": "e0e3c63763d55a903b888d50e8e07c2766e60def6c8084d65559f0be60e94717",
+      "compiledSourceSHA256": "3a6fda276ee5d12edb15ff913686ac77ab6dec1169f4a0e88f14274ddd480992",
+      "stdout": "MEETING_ACTION_INPUT_PRIVATE_SCOPE currentNativeInputReconstructed=true historicalSnapshot=false scriptedSourceContract=true semanticProof=false\nFAIL: first retained row keeps full metadata\nFAIL: parser evidence domain equals visible prompt\nFAIL: oversized newest utterance performs no optional model call\nFAIL: same existing model call receives grammar and 400 token budget\nFAIL: same-call grammar contract yields consumed complete schema\nFAIL: unsupported provider malformed shape is refused without repair\nFAIL: length-finished valid partial result is refused\nFAIL: primary source index derives exact original full speech\nFAIL: ambiguous double citation refused\nFAIL: actual fragmented source contract retains full primary speech\nFAIL: actual fragmented primary retains source and clock\nMEETING_ACTION_INPUT_CONTRACT_RESULT checks=27 failed=11 scripted=true nativeSemantic=false\nMEETING_ACTION_INPUT_CONTRACT_FAILED\n"
+    },
+    "fixed": {
+      "exitCode": 0,
+      "compileSeconds": 1.266,
+      "reconcilerSHA256": "ff12ee5771a9ea21230fc5c036f4ecc582c89318727cb3e20633511405958987",
+      "compiledSourceSHA256": "3540c66ff0bd5bf2d28ba4f6cc3200ee1b3e81baec9d0c2bdc0f4c3096ef16db",
+      "stdout": "MEETING_ACTION_INPUT_PRIVATE_SCOPE currentNativeInputReconstructed=true historicalSnapshot=false scriptedSourceContract=true semanticProof=false\nMEETING_ACTION_INPUT_CONTRACT_RESULT checks=27 failed=0 scripted=true nativeSemantic=false\nMEETING_ACTION_INPUT_CONTRACT_OK\n"
+    }
+  },
+  "totalSeconds": 2.551,
+  "adaptations": [
+    "Extracted actual entire production Reconciler section before selftests, unchanged; appended original real TranscriptSegment, MeetingContext, full production Extractor, EvidenceMatcher and GBNF source",
+    "Stubbed role/settings default symbols, scripted provider protocol boundary, OSLog facade, ModelPassRecorder task-local/usage boundary; actual production refine/recordedComplete/parse/apply runs",
+    "Private fixture path guard compares against equally resolved /private/tmp URL root due Foundation path alias normalization; no corpus or expectation weakened"
+  ],
+  "compilerJoin": "both synchronous subprocess compile invocations and both actual-source binaries fully joined; no native models/full-app compilation"
+}

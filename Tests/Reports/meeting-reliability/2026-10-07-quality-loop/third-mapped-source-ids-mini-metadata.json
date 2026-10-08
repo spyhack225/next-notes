@@ -1,0 +1,20 @@
+{
+  "experiment": "third-mapped-source-ids-mini",
+  "exit": 0,
+  "wall_seconds": 148.33960404199752,
+  "markers": [
+    "NOTES_REPLAY_RESULT mode=source-indices seconds=147.18733894824982 tokens=244 mapReduce=true chunks=3 collapsed=3 dropped=0 incompleteFacts=true",
+    "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+  ],
+  "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53",
+  "startedAt": "2026-10-08T02:42:07.695042+00:00",
+  "endedAt": "2026-10-08T02:44:36.036994+00:00",
+  "pids": [
+    70832
+  ],
+  "memorySamples": 72,
+  "peakSampledFootprintBytes": 649628432,
+  "peakSampledResidentBytes": 2242854912,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "manual review pending"
+}

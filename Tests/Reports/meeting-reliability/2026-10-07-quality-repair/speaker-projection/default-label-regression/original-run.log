@@ -1,0 +1,5 @@
+MEETING_SPEAKER_DEFAULT_WRONG: nil preserves confirmed context item
+MEETING_SPEAKER_DEFAULT_WRONG: nil preserves confirmed anchored candidate
+MEETING_SPEAKER_DEFAULT_WRONG: default preserves confirmed context item
+MEETING_SPEAKER_DEFAULT_WRONG: default preserves confirmed anchored candidate
+MEETING_SPEAKER_DEFAULT_FAILED checks=14 failures=4

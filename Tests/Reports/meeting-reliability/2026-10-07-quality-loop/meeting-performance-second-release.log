@@ -1,0 +1,3 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-62791/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-performance --selftest-timeout 180
+2026-10-07 21:22:40.375 NextNotes[63059:1199122] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_PERFORMANCE_OK: 19 actual-session/persistence and bounded-coverage checks

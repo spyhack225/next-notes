@@ -1,0 +1,20 @@
+{
+  "experiment": "whole-indices-mini",
+  "exit": 0,
+  "wall_seconds": 96.83202666699799,
+  "markers": [
+    "NOTES_EXTRACTIVE_RESULT mode=indices seconds=95.25172698497772 inputTokens=14252 windowTokens=32768 outputBudget=1600 generatedTokens=240 passes=1 admitted=24 refused=0 incomplete=false sectionClassification=unverified readability=unverified",
+    "NOTES_EXTRACTIVE_REPLAY_OK: mode=indices generation only; factual coverage, classification and readability require review"
+  ],
+  "candidateSHA": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+  "startedAt": "2026-10-08T01:38:13.392970+00:00",
+  "endedAt": "2026-10-08T01:39:50.225873+00:00",
+  "pids": [
+    64532
+  ],
+  "memorySamples": 47,
+  "peakSampledFootprintBytes": 926845832,
+  "peakSampledResidentBytes": 2520875008,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "FAIL: selected consecutive first24 utterances only, all Key points; opening greetings replace substantive full-call coverage; missing summary and real future follow-up"
+}

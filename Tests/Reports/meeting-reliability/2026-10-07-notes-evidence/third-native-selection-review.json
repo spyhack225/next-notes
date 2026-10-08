@@ -1,0 +1,68 @@
+{
+  "native_review": "FAIL; no source strategy or model/default promotion",
+  "mode": "SelfTest-only source-indices with comprehensive prompt",
+  "wall_seconds_reported_by_root": 148.34,
+  "workflow_seconds": 147.18733894824982,
+  "completion_tokens": 244,
+  "model_passes": 7,
+  "map_calls": 3,
+  "collapse_calls": 3,
+  "dropped_parts": 0,
+  "incompleteFacts": true,
+  "previous_source_indices_workflow_seconds": 53.79964792728424,
+  "workflow_regression_seconds": 93.38769102096558,
+  "workflow_multiplier": 2.735842047650361,
+  "pass_costs": {
+    "meeting.notes.map": {
+      "passes": 3,
+      "promptTokens": 15131,
+      "completionTokens": 5,
+      "prefillMs": 38615,
+      "generationMs": 1446
+    },
+    "meeting.notes.collapse": {
+      "passes": 3,
+      "promptTokens": 12649,
+      "completionTokens": 5,
+      "prefillMs": 35599,
+      "generationMs": 1299
+    },
+    "meeting.notes.reduce": {
+      "passes": 1,
+      "promptTokens": 6463,
+      "completionTokens": 234,
+      "prefillMs": 41199,
+      "generationMs": 16987
+    }
+  },
+  "aggregate_prefill_seconds": 115.413,
+  "aggregate_generation_seconds": 19.732,
+  "trace_summary": {
+    "map_zero_admission": 2,
+    "map_single_admission": 1,
+    "collapse_zero_admission": 2,
+    "collapse_single_admission": 1,
+    "map_length_cuts": 0,
+    "collapse_length_cuts": 0,
+    "first_collapse_selected_only_a_greeting": true,
+    "empty_map_kept_full_source_chunk": true,
+    "empty_collapse_kept_existing_input": true
+  },
+  "gold_verdicts": {
+    "two_speakers_experience_and_qualifications": "FAIL: contrast absent, individual experience pooled as collective operations",
+    "future_customer_followup": "FAIL: missing",
+    "no_invented_next_week_date": "PASS narrow absence check; followup itself missing",
+    "design_sourcing_procurement_distinctions": "PARTIAL: sourcing/procurement only, design and stage distinctions insufficient",
+    "prototype_smallbatch_scale_examples": "FAIL: illustrative quantities framed as actual operations",
+    "budget_BOM_tool_constraints": "PARTIAL/FAIL: some tool/cost content, unsupported categorical operation claims",
+    "AI_prototype_vs_engineered_manufacturable_product": "FAIL: absent",
+    "crossdisciplinary_iteration_and_supplier_link_verification": "FAIL: absent",
+    "readability": "FAIL as meeting record: readable sentences, but pooled team framing, poor breadth and missing followup",
+    "open_question_classification": "FAIL: handoff question is presented as unresolved although the subsequent source explains team/engineering alignment, specification and sourcing/procurement workflow"
+  },
+  "confirmed_cause_boundary": "Coverage-selection contract emits empty arrays/greeting selection despite substantive input; final free-form reduce still adds unsupported operational framing and omits gold facts. The exact arrays/fallbacks are proven; why the model chooses them is unproven.",
+  "fallback_scope_limit": "Actual input source-ID ranges were not retained in trace; avoid claiming exact middle fallback range from prompt token counts alone.",
+  "semantic_quality_proven": false,
+  "source_compile_model_calls_by_this_review": false,
+  "owner_raw_payload_copied_to_public_report": false
+}

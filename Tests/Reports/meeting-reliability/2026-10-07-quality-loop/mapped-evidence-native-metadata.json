@@ -1,0 +1,11 @@
+{
+  "experiment": "mapped-evidence-window8192",
+  "exit": 0,
+  "wall_seconds": 203.57047666700237,
+  "markers": [
+    "NOTES_REPLAY_RESULT seconds=201.99783301353455 tokens=1989 mapReduce=true chunks=3 collapsed=3 dropped=2 incompleteFacts=true",
+    "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+  ],
+  "candidate_sha256": "b9dddc679fa89f999f40fa6accd95afc742f316c576f078c29b5111c1031d6b2",
+  "quality": "manual review pending"
+}

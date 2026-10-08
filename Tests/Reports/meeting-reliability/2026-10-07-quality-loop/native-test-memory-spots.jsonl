@@ -1,0 +1,1 @@
+{"at": "2026-10-08T00:38:33.172107+00:00", "pid": 58110, "processStart": 817643761147, "footprintBytes": 896584536, "residentBytes": 2371485696, "scope": "single spot sample of pinned owned native test; not continuous peak", "userRawRusageTime": 20116698, "systemRawRusageTime": 14212771, "cpuTimeUnit": "SDK rusage raw field, unit not used for throughput claims"}

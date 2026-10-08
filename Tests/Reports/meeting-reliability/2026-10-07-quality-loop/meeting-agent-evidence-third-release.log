@@ -1,0 +1,16 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-68784/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-agent-evidence
+2026-10-07 22:31:48.164 NextNotes[69411:1281257] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_EVIDENCE_OK: 89 checks
+MEETING_EVIDENCE_TRACE mode=literal calls=1 admitted=1 profileReads=1
+MEETING_EVIDENCE_TRACE mode=comma calls=1 admitted=1 profileReads=1
+MEETING_EVIDENCE_TRACE mode=hyphen calls=1 admitted=1 profileReads=1
+MEETING_EVIDENCE_TRACE mode=apostrophe calls=1 admitted=1 profileReads=1
+MEETING_EVIDENCE_TRACE mode=LCS calls=1 admitted=1 profileReads=1
+MEETING_EVIDENCE_TRACE mode=changedContent calls=1 admitted=0 profileReads=1
+MEETING_EVIDENCE_TRACE mode=addedNegation calls=1 admitted=0 profileReads=1
+MEETING_EVIDENCE_TRACE mode=short calls=1 admitted=0 profileReads=1
+MEETING_EVIDENCE_TRACE mode=omittedNegation calls=1 admitted=0 profileReads=1
+MEETING_EVIDENCE_TRACE mode=explicitNegation calls=1 admitted=1 profileReads=1
+MEETING_EVIDENCE_TRACE mode=briefOnlyQuote calls=1 admitted=0 profileReads=1
+MEETING_EVIDENCE_TRACE mode=briefOnlyRecipient calls=1 admitted=1 profileReads=1
+MEETING_EVIDENCE_CHECKS=89 problems=0

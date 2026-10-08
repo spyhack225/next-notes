@@ -1,0 +1,10 @@
+{
+  "exit": 1,
+  "cause": "pure JSON helper actor isolation called from Sendable scripted provider closures",
+  "file": "Sources/NextNotes/Meetings/MeetingActionInputContractSelfTest.swift",
+  "beforeSHA": "b116919d26de34d71bd7aa8b4c5d8154e2f3653b4554b5a5d4b7822b1cf909e2",
+  "afterSHA": "3b373e5074bf0b70afe5a73b789408832aa0e270f82cd1c146f6a24e3d4c6a43",
+  "fix": "mark two pure static functions nonisolated",
+  "productionChange": false,
+  "at": "2026-10-08T02:18:53.111757+00:00"
+}

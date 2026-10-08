@@ -1,0 +1,6 @@
+{
+  "explicitContractUpdate": "Old runSelfTest expected two separate grounded topics to be overwritten by one coarse summary. New assertion requires every prior item unchanged and additive line with model-only system/inferred metadata. FakeMergeCompleter gets same actual producer metadata; existing asynchronous presence assertion retained. No old permission/candidate/evidence assertions removed.",
+  "consumers": "Only two production merge callsites: Reconciler.apply topics and unresolvedItems. Extractor.apply and append unchanged. Private overlaps only used by merge, removed.",
+  "scriptedModelScope": "Topic fixture parses real schema then returns parsed Suggestion via scripted completer; no model/provider generation path or grammar-sampler proof claimed. Real grammar forwarding tested separately in action input27.",
+  "dates": "Before and after preservation assertions use actual saved ContextStore.load records; in-memory vs committed and fresh-reader parity additionally asserted; canonical ISO8601 serialization preserves actual persistence precision."
+}

@@ -1,0 +1,17 @@
+{
+  "variants": {
+    "original": {
+      "reconcilerSHA256": "e0e3c63763d55a903b888d50e8e07c2766e60def6c8084d65559f0be60e94717",
+      "compiledSourceSHA256": "3a6fda276ee5d12edb15ff913686ac77ab6dec1169f4a0e88f14274ddd480992"
+    },
+    "fixed": {
+      "reconcilerSHA256": "ff12ee5771a9ea21230fc5c036f4ecc582c89318727cb3e20633511405958987",
+      "compiledSourceSHA256": "3540c66ff0bd5bf2d28ba4f6cc3200ee1b3e81baec9d0c2bdc0f4c3096ef16db"
+    }
+  },
+  "fixtureSourceSHA256": "826abd1b3425e95cea6d143a79784edd86754f0867eef4fa0e36c9446f58eac7",
+  "scriptSHA256": "93669cdc969593a2c3adf425a9289e6bc71c2d40feaaa84abc93bce971c0ed00",
+  "initialHarnessGuard": "literal /private/tmp prefix rejected Foundation temp alias; both variants stopped before final verdict; final guard compares equally resolved physical allowed root",
+  "assertionsUnchanged": true,
+  "nativeSemanticProof": false
+}

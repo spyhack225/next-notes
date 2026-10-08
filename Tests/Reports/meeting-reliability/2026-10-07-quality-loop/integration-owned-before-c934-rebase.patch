@@ -1,0 +1,3082 @@
+diff --git a/Sources/NextNotes/Agent/MeetingEvidenceMatcher.swift b/Sources/NextNotes/Agent/MeetingEvidenceMatcher.swift
+new file mode 100644
+index 0000000..ef383da
+--- /dev/null
++++ b/Sources/NextNotes/Agent/MeetingEvidenceMatcher.swift
+@@ -0,0 +1,132 @@
++import Foundation
++
++/// Transcript-only matching: normalization is never persisted as meeting evidence.
++/// Indices remain in the original string so the proposal owns speech, not model prose.
++enum MeetingEvidenceMatcher {
++    private struct Unit { let text: Character; let range: Range<String.Index> }
++    private struct Token { let value: String; let range: Range<String.Index> }
++    private static let stopWords: Set<String> = ["a", "an", "the", "can", "could", "would", "you", "me", "we", "i", "it", "is", "are", "to", "of", "by", "for", "and", "please"]
++
++    static func normalize(_ value: String) -> String { String(units(value).map(\.text)) }
++
++    static func match(quote: String, in transcript: String) -> String? {
++        let normalized = normalize(quote)
++        guard normalized.count >= 12 else { return nil }
++        // Literal speech already owns its punctuation. Preserve the complete original
++        // span before normalized matching so existing proposal consumers keep it exactly.
++        if let range = transcript.range(of: quote, options: .caseInsensitive),
++           negationCompatible(quote: quote, range: range, transcript: transcript) {
++            return String(transcript[range])
++        }
++        let source = units(transcript)
++        let body = String(source.map(\.text))
++        if let found = body.range(of: normalized) {
++            let lower = body.distance(from: body.startIndex, to: found.lowerBound)
++            let upper = body.distance(from: body.startIndex, to: found.upperBound)
++            let range = source[lower].range.lowerBound..<source[upper - 1].range.upperBound
++            if negationCompatible(quote: quote, range: range, transcript: transcript) {
++                return String(transcript[range])
++            }
++        }
++        // Only content tokens take part in the 90% LCS. Punctuation (including hyphens)
++        // delimits tokens; apostrophes remain part of a word. The maximum source window
++        // is quote content length +25%, never an unbounded whole-transcript alignment.
++        let quoteWords = tokens(quote).map(\.value)
++        let sourceWords = tokens(transcript)
++        if !quoteWords.isEmpty, sourceWords.count >= quoteWords.count {
++            for start in 0...(sourceWords.count - quoteWords.count) {
++                guard Array(sourceWords[start..<(start + quoteWords.count)].map(\.value)) == quoteWords else { continue }
++                let range = sourceWords[start].range.lowerBound..<sourceWords[start + quoteWords.count - 1].range.upperBound
++                if negationCompatible(quote: quote, range: range, transcript: transcript) { return String(transcript[range]) }
++            }
++        }
++        let wanted = tokens(quote).filter { !stopWords.contains($0.value) }.map(\.value)
++        let speech = tokens(transcript).filter { !stopWords.contains($0.value) }
++        guard !wanted.isEmpty, speech.count >= Int(ceil(Double(wanted.count) * 0.9)) else { return nil }
++        let required = Int(ceil(Double(wanted.count) * 0.9))
++        let width = max(wanted.count, Int(floor(Double(wanted.count) * 1.25)))
++        let firstPossible = Set(wanted.prefix(wanted.count - required + 1))
++        for start in speech.indices where firstPossible.contains(speech[start].value) {
++            let end = min(speech.count, start + width)
++            var row = Array(repeating: 0, count: wanted.count + 1)
++            for index in start..<end {
++                var diagonal = 0
++                for column in 1...wanted.count {
++                    let previous = row[column]
++                    row[column] = speech[index].value == wanted[column - 1]
++                        ? diagonal + 1 : max(row[column], row[column - 1])
++                    diagonal = previous
++                }
++                if row[wanted.count] >= required {
++                    let range = speech[start].range.lowerBound..<speech[index].range.upperBound
++                    if negationCompatible(quote: quote, range: range, transcript: transcript) {
++                        return String(transcript[range])
++                    }
++                }
++            }
++        }
++        return nil
++    }
++
++    private static func canonical(_ character: Character) -> String {
++        switch character {
++        case "’", "‘", "ʼ": return "'"
++        case "“", "”", "«", "»": return "\""
++        default: return String(character).lowercased()
++        }
++    }
++
++    private static func units(_ text: String) -> [Unit] {
++        var result: [Unit] = []
++        var space = false
++        for index in text.indices {
++            let next = text.index(after: index)
++            let value = canonical(text[index])
++            if text[index].isWhitespace {
++                if !result.isEmpty { space = true }
++                continue
++            }
++            let accepted = value.filter { $0.isLetter || $0.isNumber || $0 == "'" }
++            guard !accepted.isEmpty else { continue }
++            if space { result.append(Unit(text: " ", range: index..<next)); space = false }
++            for character in accepted { result.append(Unit(text: character, range: index..<next)) }
++        }
++        return result
++    }
++
++    private static func tokens(_ text: String) -> [Token] {
++        var result: [Token] = []
++        var start: String.Index?
++        var word = ""
++        for index in text.indices {
++            let value = canonical(text[index])
++            if value.allSatisfy({ $0.isLetter || $0.isNumber || $0 == "'" }) {
++                if start == nil { start = index }
++                word += value
++            } else if let lower = start {
++                result.append(Token(value: word, range: lower..<index)); start = nil; word = ""
++            }
++        }
++        if let lower = start { result.append(Token(value: word, range: lower..<text.endIndex)) }
++        return result
++    }
++
++    private static func hasNegation(_ text: String) -> Bool {
++        tokens(text).contains { ["not", "never", "no"].contains($0.value) || $0.value.hasSuffix("n't") }
++    }
++
++    private static func negationCompatible(quote: String, range: Range<String.Index>, transcript: String) -> Bool {
++        // An omitted negation before an exact substring is as unsafe as one omitted by
++        // LCS. Inspect the containing speech clause; never substitute the brief/notes.
++        let delimiters: Set<Character> = [".", "!", "?", "\n", ";"]
++        var lower = range.lowerBound
++        while lower > transcript.startIndex {
++            let previous = transcript.index(before: lower)
++            if delimiters.contains(transcript[previous]) { break }
++            lower = previous
++        }
++        var upper = range.upperBound
++        while upper < transcript.endIndex && !delimiters.contains(transcript[upper]) { upper = transcript.index(after: upper) }
++        return hasNegation(String(transcript[lower..<upper])) == hasNegation(quote)
++    }
++}
+diff --git a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+index dba1dd4..39f549c 100644
+--- a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
++++ b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+@@ -1088,6 +1088,13 @@ actor NotesModelRuntime {
+         }
+         // P0-20a: exact counts from the in-process tokenizer, after the pass, never
+         // blocking the stream.
++        if let stats = lastPrefillStats {
++            ModelPassRecorder.current?.noteCounts([
++                "prefillMs": Int((stats.seconds * 1000).rounded()),
++                "prefillDecodedTokens": stats.decoded,
++                "generationMs": Int((Date().timeIntervalSince(began) * 1000).rounded()),
++            ])
++        }
+         ModelPassRecorder.current?.report(
+             promptTokens: promptTokens.count,
+             cachedTokens: lastPrefillStats?.reused,
+diff --git a/Sources/NextNotes/Meetings/DiarizationService.swift b/Sources/NextNotes/Meetings/DiarizationService.swift
+index c7a3939..121470a 100644
+--- a/Sources/NextNotes/Meetings/DiarizationService.swift
++++ b/Sources/NextNotes/Meetings/DiarizationService.swift
+@@ -88,10 +88,12 @@ final class DiarizationService {
+     // Retain an explicitly injected store; resolving the default happens only
+     // when real service work needs it, so quit can close an empty owner cheaply.
+     private let providedStore: MeetingStore?
++    private let providedContextStore: MeetingContextStore?
+     private var store: MeetingStore { providedStore ?? MeetingStore.shared }
+ 
+-    init(store: MeetingStore? = nil) {
++    init(store: MeetingStore? = nil, contextStore: MeetingContextStore? = nil) {
+         providedStore = store
++        providedContextStore = contextStore
+     }
+ 
+     func isRunning(_ id: UUID) -> Bool { tasks[id] != nil }
+@@ -326,21 +328,10 @@ final class DiarizationService {
+             }
+ 
+             let labelled = MeetingDiarizer.assign(store.transcript(for: id), to: runs)
+-            // The meeting can be deleted while the model is clustering, and `saveTranscript`
+-            // would re-create the directory `delete` just removed.
++            // Deletion while the model awaited must stop the entire native stage,
++            // including its later voice-print writes and pipeline handoff.
+             guard store.meeting(id: id) != nil else { return false }
+-            store.saveTranscript(labelled, for: id)
+-            revision += 1
+-            // M-03: a merge or a re-identify can retire labels this transcript no longer
+-            // carries. Renames hang off the generated label, so a name whose label is
+-            // gone would sit in the dictionary forever, read by nothing — keep only the
+-            // names whose labels survived.
+-            let surviving = Set(MeetingDiarizer.labels(in: labelled))
+-            if var updated = store.meeting(id: id),
+-               updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
+-                updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
+-                store.save(updated)
+-            }
++            try commitSpeakerLabels(labelled, for: id)
+             // Voice prints only while the knowledge graph is on: nothing else reads them.
+             if PersonResolutionService.shared.isEnabled {
+                 let prints = MeetingVoicePrints.centroids(of: runs)
+@@ -386,6 +377,32 @@ final class DiarizationService {
+         }
+     }
+ 
++    /// The committed-label handoff, shared by actual diarization and its isolated
++    /// consumer regression. It never creates a deleted meeting or projects unsaved labels.
++    func commitSpeakerLabels(_ labelled: [TranscriptSegment], for id: UUID) throws {
++        guard store.meeting(id: id) != nil else { return }
++        guard store.saveTranscript(labelled, for: id) else {
++            throw CocoaError(.fileWriteUnknown)
++        }
++        revision += 1
++        let surviving = Set(MeetingDiarizer.labels(in: labelled))
++        if var updated = store.meeting(id: id),
++           updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
++            updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
++            store.save(updated)
++        }
++        // An injected isolated store must never initialize the owner's singleton.
++        if let providedContextStore {
++            guard providedContextStore.refreshSpeakers(meetingID: id) else {
++                throw CocoaError(.fileWriteUnknown)
++            }
++        } else if providedStore == nil {
++            guard MeetingContextStore.shared.refreshSpeakers(meetingID: id) else {
++                throw CocoaError(.fileWriteUnknown)
++            }
++        }
++    }
++
+     /// One `meeting.diarize` row. Counts only — never a title, a speaker name or a path.
+     private func recordDiarize(
+         meetingID: UUID,
+diff --git a/Sources/NextNotes/Meetings/MeetingActionIntentProductionReplaySelfTest.swift b/Sources/NextNotes/Meetings/MeetingActionIntentProductionReplaySelfTest.swift
+new file mode 100644
+index 0000000..754a0d6
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/MeetingActionIntentProductionReplaySelfTest.swift
+@@ -0,0 +1,190 @@
++import Foundation
++
++/// Reconstructs actual live producer windows on copied private speech. Original inference
++/// snapshots were not saved: preceding state is deterministic extractor-only state, never
++/// the final saved context, and no expected/target labels enter the model prompt.
++@MainActor
++enum MeetingActionIntentProductionReplaySelfTest {
++    private struct Manifest: Decodable { let windows: [Window] }
++    private struct Window: Decodable {
++        let id: String
++        let cutoff: TimeInterval
++        let forbiddenStarts: [TimeInterval]
++        let requiredAnyStarts: [TimeInterval]
++        let review: String
++    }
++
++    static func run(directory: URL, provider: any LLMProvider,
++                    write: (String) -> Void) async throws -> Bool {
++        guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting,
++              provider.id == .appLLM || provider.id == .appleFoundation else {
++            throw CocoaError(.fileReadNoPermission)
++        }
++        func read(_ name: String) throws -> Data {
++            let file = directory.appendingPathComponent(name)
++            guard file.resolvingSymlinksInPath().path == file.path else {
++                throw CocoaError(.fileReadNoPermission)
++            }
++            return try Data(contentsOf: file)
++        }
++        let decoder = JSONDecoder()
++        decoder.dateDecodingStrategy = .iso8601
++        let originalMeeting = try decoder.decode(Meeting.self, from: read("meeting.json"))
++        let transcript = try decoder.decode([TranscriptSegment].self, from: read("transcript.live.json"))
++        let manifest = try decoder.decode(Manifest.self, from: read("windows.json"))
++        guard !manifest.windows.isEmpty, manifest.windows.count <= 12,
++              Set(manifest.windows.map(\.id)).count == manifest.windows.count,
++              manifest.windows.allSatisfy({ $0.cutoff.isFinite && $0.cutoff > 60
++                  && $0.id.range(of: #"^[a-z0-9-]{1,48}$"#, options: .regularExpression) != nil })
++        else { throw CocoaError(.fileReadCorruptFile) }
++
++        // Admission is explicit in the isolated harness only. Never alter an owner default
++        // or resolve a second production model. The supplied provider stays unchanged.
++        let previousUnderstanding = Settings.shared.meetingLiveUnderstanding
++        Settings.shared.meetingLiveUnderstanding = true
++        defer { Settings.shared.meetingLiveUnderstanding = previousUnderstanding }
++        write("ACTION_INTENT_PRODUCTION_SCOPE reconstructed=true originalSnapshots=false"
++            + " precedingContext=extractor-only targetInstructions=false isolatedStore=true")
++        var failures = 0
++        for item in manifest.windows {
++            let admitted = transcript.filter { $0.end <= item.cutoff }
++            guard !admitted.isEmpty else { throw CocoaError(.fileReadCorruptFile) }
++            var meeting = originalMeeting
++            meeting.id = UUID()
++            meeting.status = .recording
++            meeting.end = nil
++            let store = MeetingStore.isolated()
++            let root = store.directory(for: meeting.id).deletingLastPathComponent()
++            defer { try? FileManager.default.removeItem(at: root) }
++            guard store.save(meeting) else { throw CocoaError(.fileWriteUnknown) }
++            let capture = Capture()
++            let forwarding = CapturingProvider(provider: provider, capture: capture)
++            let actualCompleter = MeetingContextReconciler.ModelCompleter(
++                enabled: { true }, resolveProvider: { forwarding })
++            let completer = CapturingCompleter(actual: actualCompleter, capture: capture)
++            let contextStore = MeetingContextStore.isolatedForTesting(
++                store: store, completer: completer,
++                optionalAdmission: { ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork })
++            contextStore.ingest(admitted, meeting: meeting)
++            let before = contextStore.current
++            await contextStore.runReconcileForTesting()
++            let captured = await capture.state()
++            let after = contextStore.current
++            let persisted = contextStore.load(meetingID: meeting.id)
++            let persistedEqual = contextsAgree(after, persisted)
++            let extractionSeedEqual = before.map {
++                let seed = MeetingContextExtractor.apply(admitted,
++                    to: .empty(meetingID: meeting.id, title: meeting.title, participants: meeting.attendees),
++                    speakerNames: meeting.speakerNames)
++                return sameExtractedText($0, seed)
++            } ?? false
++            let candidates = after?.candidateActions ?? []
++            let forbiddenHits = candidates.filter { candidate in
++                item.forbiddenStarts.contains { near(candidate.evidenceStart, $0) }
++            }.count
++            let requiredHit = item.requiredAnyStarts.isEmpty || candidates.contains { candidate in
++                item.requiredAnyStarts.contains { near(candidate.evidenceStart, $0) }
++            }
++            let sourceCorrect = candidates.allSatisfy { candidate in
++                guard let start = candidate.evidenceStart, let quote = candidate.evidence else { return false }
++                return admitted.contains { near($0.start, start) && $0.source == candidate.source
++                    && $0.text.range(of: quote, options: .caseInsensitive) != nil }
++            }
++            let complete = captured.calls == 1 && captured.completions.count == 1 && captured.snapshot != nil
++            let prompt = captured.user ?? ""
++            let seenReferenceStarts = item.forbiddenStarts + item.requiredAnyStarts
++            let visibleReferences = seenReferenceStarts.filter { start in
++                admitted.contains { near($0.start, start) && prompt.contains($0.text) }
++            }.count
++            let raw = captured.completions.first?.text ?? ""
++            let productionPayload = complete
++                && MeetingContextReconciler.ModelCompleter.payloadDecodesForTesting(raw)
++            let cutoff = captured.snapshot?.now ?? 0
++            let cut = captured.completions.first?.finishedByLimit ?? false
++            if !complete || !productionPayload || cut || !persistedEqual || !extractionSeedEqual || !sourceCorrect
++                || forbiddenHits > 0 || !requiredHit { failures += 1 }
++            write("ACTION_INTENT_PRODUCTION_RESULT case=\(item.id) requestedCutoff=\(item.cutoff)"
++                + " actualCutoff=\(cutoff) calls=\(captured.calls) completions=\(captured.completions.count) finishedByLimit=\(cut)"
++                + " productionParsed=\(productionPayload) candidates=\(candidates.count)"
++                + " forbiddenCitationHits=\(forbiddenHits) requiredCitationHit=\(requiredHit)"
++                + " referenceVisible=\(visibleReferences)/\(seenReferenceStarts.count)"
++                + " extractorSeedEqual=\(extractionSeedEqual) persistedEqual=\(persistedEqual)"
++                + " sourcesCorrect=\(sourceCorrect) semanticReviewed=false")
++            // Everything between PRIVATE markers stays in the caller's private diagnostic
++            // log. It contains the actual prompt, raw model output and saved action text.
++            write("ACTION_INTENT_PRODUCTION_PRIVATE_BEGIN case=\(item.id)\n"
++                + "REVIEW: \(item.review)\nSYSTEM:\n\(captured.system ?? "")\nUSER:\n\(prompt)"
++                + "\nRAW:\n\(raw)\nCONTEXT:\n\(after?.summary ?? "")"
++                + "\nACTION_INTENT_PRODUCTION_PRIVATE_END")
++            contextStore.reset()
++        }
++        UsageLog.shared.flush()
++        write("ACTION_INTENT_PRODUCTION_USAGE " + String(decoding:
++            try JSONEncoder().encode(UsageLog.shared.load()), as: UTF8.self))
++        write(failures == 0
++            ? "ACTION_INTENT_PRODUCTION_OK: structural/citation fixtures pass; semantic review remains required"
++            : "ACTION_INTENT_PRODUCTION_FAILED: \(failures) production fixture windows wrong; semantic review remains required")
++        return failures == 0
++    }
++
++    private static func near(_ value: TimeInterval?, _ expected: TimeInterval) -> Bool {
++        value.map { abs($0 - expected) < 0.01 } ?? false
++    }
++    private static func contextsAgree(_ lhs: MeetingContext?, _ rhs: MeetingContext?) -> Bool {
++        guard let lhs, let rhs else { return false }
++        let encoder = JSONEncoder()
++        encoder.dateEncodingStrategy = .iso8601
++        encoder.outputFormatting = [.sortedKeys]
++        // The real persistence format has second precision. Compare all actual fields
++        // in that same encoding rather than discard dates, identity or ordering.
++        guard let expected = try? encoder.encode(lhs), let actual = try? encoder.encode(rhs) else { return false }
++        return expected == actual
++    }
++    private static func sameExtractedText(_ lhs: MeetingContext, _ rhs: MeetingContext) -> Bool {
++        lhs.participants == rhs.participants && lhs.topics.map(\.text) == rhs.topics.map(\.text)
++            && lhs.questions.map(\.text) == rhs.questions.map(\.text)
++            && lhs.commitments.map(\.text) == rhs.commitments.map(\.text)
++            && lhs.decisions.map(\.text) == rhs.decisions.map(\.text)
++            && lhs.deadlines.map(\.text) == rhs.deadlines.map(\.text)
++            && lhs.documentsMentioned.map(\.text) == rhs.documentsMentioned.map(\.text)
++            && lhs.unresolvedItems.map(\.text) == rhs.unresolvedItems.map(\.text)
++    }
++
++    private actor Capture {
++        struct State: Sendable {
++            var snapshot: MeetingContextReconciler.Snapshot?
++            var system: String?
++            var user: String?
++            var completions: [LLMCompletion] = []
++            var calls = 0
++        }
++        private var value = State()
++        func snapshot(_ snapshot: MeetingContextReconciler.Snapshot) { value.snapshot = snapshot }
++        func call(system: String, user: String) { value.calls += 1; value.system = system; value.user = user }
++        func completion(_ completion: LLMCompletion) { value.completions.append(completion) }
++        func state() -> State { value }
++    }
++    private struct CapturingCompleter: MeetingContextCompleter {
++        let actual: MeetingContextReconciler.ModelCompleter
++        let capture: Capture
++        func refine(_ snapshot: MeetingContextReconciler.Snapshot) async -> MeetingContextReconciler.Suggestion {
++            await capture.snapshot(snapshot)
++            return await actual.refine(snapshot)
++        }
++    }
++    private struct CapturingProvider: LLMProvider {
++        let provider: any LLMProvider
++        let capture: Capture
++        var id: LLMProviderID { provider.id }
++        var displayModelName: String { provider.displayModelName }
++        var contextTokens: Int { provider.contextTokens }
++        var unavailableReason: String? { get async { await provider.unavailableReason } }
++        func countTokens(_ text: String) async throws -> Int { try await provider.countTokens(text) }
++        func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
++            await capture.call(system: system, user: user)
++            let result = try await provider.complete(system: system, user: user, maxTokens: maxTokens)
++            await capture.completion(result)
++            return result
++        }
++    }
++}
+diff --git a/Sources/NextNotes/Meetings/MeetingActionIntentReplaySelfTest.swift b/Sources/NextNotes/Meetings/MeetingActionIntentReplaySelfTest.swift
+new file mode 100644
+index 0000000..9c73f2f
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/MeetingActionIntentReplaySelfTest.swift
+@@ -0,0 +1,170 @@
++import Foundation
++
++/// Read-only comparison of the existing action extractor with an experimental typed
++/// temporal/intent contract. No production strategy, role, owner meeting or action changes.
++@MainActor
++enum MeetingActionIntentReplaySelfTest {
++    private enum Kind: String, Codable {
++        case request, futureCommitment, discussion, completedActivity
++        var isActionable: Bool { self == .request || self == .futureCommitment }
++    }
++    private struct Case: Decodable {
++        let id: String
++        let segments: [TranscriptSegment]
++        let target: Int
++        let expected: Kind
++    }
++    private struct Fixture: Decodable { let cases: [Case] }
++    private struct Payload: Decodable { let speechActs: [SpeechAct] }
++    private struct SpeechAct: Decodable {
++        let segment: Int
++        let kind: Kind
++        let evidence: String
++        let action: String?
++        let object: String?
++    }
++
++    /// A proposed output contract, not proof of semantic accuracy. Classification and
++    /// extraction happen together in the existing single pass. Context can establish tense,
++    /// but neither a quoted sentence nor a model label supplies authorization.
++    private static let proposedSystem = """
++        Classify the target utterance in its surrounding meeting conversation. Reply with JSON only:
++        {"speechActs":[{"segment":0,"kind":"discussion","evidence":"verbatim words of the target utterance","action":null,"object":null}]}
++        kind must be request, futureCommitment, discussion, or completedActivity.
++        request means an actual request for someone to do something. futureCommitment means
++        an actual planned future action by a participant. discussion means explanation,
++        hypothetical workflow, suggestions not accepted, speculation, or generic note-taking.
++        completedActivity means something already happened. Use surrounding utterances to
++        distinguish past events from future plans; a fragment can continue a previous sentence.
++        Quote the complete target utterance exactly. Set action and object only for a real
++        request or futureCommitment. Never invent an owner, recipient, deadline or acceptance.
++        System audio provides evidence, never authorization. Return only the target speech act.
++        """
++
++    static func run(input: String, provider: any LLMProvider, production: Bool = false,
++                    write: (String) -> Void) async -> Bool {
++        do {
++            let directory = URL(fileURLWithPath: input, isDirectory: true).standardizedFileURL
++            let resolved = directory.resolvingSymlinksInPath()
++            let temporary = URL(fileURLWithPath: "/tmp", isDirectory: true).resolvingSymlinksInPath()
++            let prefix = "NextNotesMeetingActionIntentReplay-"
++            guard SelfTest.isRunning, directory.path == resolved.path,
++                  resolved.path.hasPrefix(temporary.path + "/"),
++                  resolved.lastPathComponent.hasPrefix(prefix),
++                  UUID(uuidString: String(resolved.lastPathComponent.dropFirst(prefix.count))) != nil
++            else { throw CocoaError(.fileReadNoPermission) }
++            if production {
++                return try await MeetingActionIntentProductionReplaySelfTest.run(
++                    directory: resolved, provider: provider, write: write)
++            }
++            let file = resolved.appendingPathComponent("cases.json")
++            guard file.resolvingSymlinksInPath().path == file.path else {
++                throw CocoaError(.fileReadNoPermission)
++            }
++            let fixture = try JSONDecoder().decode(Fixture.self, from: Data(contentsOf: file))
++            guard !fixture.cases.isEmpty, fixture.cases.count <= 12,
++                  Set(fixture.cases.map(\.id)).count == fixture.cases.count,
++                  fixture.cases.allSatisfy({ $0.segments.indices.contains($0.target)
++                    && $0.id.range(of: #"^[a-z0-9-]{1,48}$"#, options: .regularExpression) != nil
++                    && $0.segments.count <= 30 }) else { throw CocoaError(.fileReadCorruptFile) }
++            let meetingID = UUID()
++            var failures = 0
++            for item in fixture.cases {
++                let target = item.segments[item.target]
++                let user = "Target segment: \(item.target). Evaluate only that utterance.\n"
++                    + item.segments.enumerated().map { index, segment in
++                        "[segment \(index), \(segment.source.rawValue)] \(segment.displaySpeaker): \(segment.text)"
++                    }.joined(separator: "\n")
++                for variant in ["existing", "typed"] {
++                    let completion = try await MeetingContextReconciler.ModelCompleter.recordedComplete(
++                        system: variant == "existing" ? MeetingContextReconciler.ModelCompleter.systemPrompt : proposedSystem,
++                        user: user, provider: provider, meetingID: meetingID, maxTokens: 400)
++                    let actionable: Bool
++                    let kind: String
++                    let citationValid: Bool
++                    let wireValid: Bool
++                    let productionParsed: Bool?
++                    let producedSuggestion: Bool?
++                    let typedParsed: Bool?
++                    let typedTargetRows: Int?
++                    let citationCount: Int
++                    let claimedTargetActions: Int
++                    if variant == "existing" {
++                        let parsed = MeetingContextReconciler.ModelCompleter.parse(completion.text,
++                            existing: .empty(meetingID: meetingID, title: "Private intent replay", participants: []),
++                            segments: item.segments)
++                        let cited = parsed?.proposedCandidates.filter {
++                            $0.evidenceStart == target.start && $0.source == target.source
++                        } ?? []
++                        actionable = !cited.isEmpty
++                        kind = actionable ? "action-inferred" : "no-action"
++                        citationValid = cited.allSatisfy { $0.source == target.source }
++                        let wire = object(completion.text)
++                        wireValid = wire != nil
++                        productionParsed = MeetingContextReconciler.ModelCompleter
++                            .payloadDecodesForTesting(completion.text)
++                        producedSuggestion = parsed != nil
++                        typedParsed = nil
++                        typedTargetRows = nil
++                        citationCount = cited.count
++                        claimedTargetActions = (wire?["actions"] as? [[String: Any]])?.filter {
++                            ($0["segment"] as? Int) == item.target
++                        }.count ?? 0
++                    } else {
++                        let payload = parse(completion.text)
++                        let rows = payload?.speechActs.filter { $0.segment == item.target } ?? []
++                        let row = rows.count == 1 ? rows.first : nil
++                        wireValid = object(completion.text) != nil
++                        productionParsed = nil
++                        producedSuggestion = nil
++                        typedParsed = payload != nil
++                        typedTargetRows = rows.count
++                        citationCount = rows.filter { $0.evidence == target.text }.count
++                        claimedTargetActions = rows.filter { $0.kind.isActionable }.count
++                        kind = row?.kind.rawValue ?? "invalid"
++                        actionable = row?.kind.isActionable ?? false
++                        citationValid = row?.evidence == target.text
++                        if kind != item.expected.rawValue || !citationValid || completion.finishedByLimit {
++                            failures += 1
++                        }
++                    }
++                    write("ACTION_INTENT_REPLAY_RESULT case=\(item.id) variant=\(variant)"
++                        + " seconds=\(completion.duration) tokens=\(completion.generatedTokens)"
++                        + " finishedByLimit=\(completion.finishedByLimit) kind=\(kind)"
++                        + " actionable=\(actionable) expected=\(item.expected.rawValue) citationValid=\(citationValid)"
++                        + " wireValid=\(wireValid) productionParsed=\(productionParsed.map(String.init) ?? "na")"
++                        + " producedSuggestion=\(producedSuggestion.map(String.init) ?? "na")"
++                        + " typedParsed=\(typedParsed.map(String.init) ?? "na")"
++                        + " typedTargetRows=\(typedTargetRows.map(String.init) ?? "na") citationCount=\(citationCount)"
++                        + " claimedTargetActions=\(claimedTargetActions)")
++                    // Caller sends this log only to private diagnostics. Never relay or commit
++                    // this owner's conversation or model's proposed action text.
++                    write("ACTION_INTENT_REPLAY_RAW_BEGIN case=\(item.id) variant=\(variant)\n"
++                        + completion.text + "\nACTION_INTENT_REPLAY_RAW_END")
++                }
++            }
++            UsageLog.shared.flush()
++            write("ACTION_INTENT_REPLAY_USAGE " + String(decoding:
++                try JSONEncoder().encode(UsageLog.shared.load()), as: UTF8.self))
++            write(failures == 0
++                ? "ACTION_INTENT_REPLAY_OK: typed fixture checks pass; broader semantic review remains required"
++                : "ACTION_INTENT_REPLAY_FAILED: \(failures) typed fixture checks wrong")
++            return failures == 0
++        } catch {
++            write("ACTION_INTENT_REPLAY_FAILED: \(error.localizedDescription)")
++            return false
++        }
++    }
++
++    private static func object(_ text: String) -> [String: Any]? {
++        guard let first = text.firstIndex(of: "{"), let last = text.lastIndex(of: "}"), first < last,
++              let data = String(text[first...last]).data(using: .utf8) else { return nil }
++        return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
++    }
++
++    private static func parse(_ text: String) -> Payload? {
++        guard let first = text.firstIndex(of: "{"), let last = text.lastIndex(of: "}"), first < last,
++              let data = String(text[first...last]).data(using: .utf8) else { return nil }
++        return try? JSONDecoder().decode(Payload.self, from: data)
++    }
++}
+diff --git a/Sources/NextNotes/Meetings/MeetingContextReconciler.swift b/Sources/NextNotes/Meetings/MeetingContextReconciler.swift
+index 6a3172c..af813dd 100644
+--- a/Sources/NextNotes/Meetings/MeetingContextReconciler.swift
++++ b/Sources/NextNotes/Meetings/MeetingContextReconciler.swift
+@@ -92,8 +92,8 @@ enum MeetingContextReconciler {
+         var object: String?
+     }
+ 
+-    /// Soft suggestions. `proposedCandidates` is accepted on the wire so a completer can
+-    /// try to invent work — `apply` always drops it.
++    /// Soft model suggestions. Exact citations establish provenance, not whether an
++    /// utterance really was a request or commitment; that meaning remains inferred.
+     struct Suggestion: Sendable, Equatable {
+         var topics: [MeetingContextItem] = []
+         var unresolvedItems: [MeetingContextItem] = []
+@@ -191,30 +191,54 @@ enum MeetingContextReconciler {
+             )
+         }
+         for proposed in suggestion.proposedCandidates {
+-            guard let quote = proposed.evidence,
+-                  let segment = recentSegments.first(where: {
+-                      $0.kind != .agentCommand
+-                          && (proposed.evidenceStart == nil
+-                              || abs($0.start - (proposed.evidenceStart ?? 0)) < 0.01)
+-                          && MeetingAgent.isTranscriptEvidence(quote, in: $0.text)
+-                  }) else { continue }
++            guard let quote = proposed.evidence else { continue }
++            let matches = recentSegments.filter {
++                $0.kind != .agentCommand
++                    && (proposed.evidenceStart == nil
++                        || abs($0.start - (proposed.evidenceStart ?? 0)) < 0.01)
++                    && exactEvidence(quote, in: $0.text) != nil
++            }
++            // Identical speech can occur on both tracks. A missing/ambiguous citation
++            // must not borrow the first microphone source as execution authority.
++            guard matches.count == 1, let segment = matches.first,
++                  let spokenQuote = exactEvidence(quote, in: segment.text) else { continue }
+             var grounded = proposed
++            grounded.evidence = spokenQuote
+             grounded.source = segment.source
+             grounded.speaker = segment.displaySpeaker
+-            let key = "\(segment.source.rawValue)|\(segment.start)|\(quote.lowercased())"
++            grounded.confidence = inferredConfidence
++            let key = "\(segment.source.rawValue)|\(segment.start)|\(spokenQuote.lowercased())"
+             guard !next.candidateActions.contains(where: {
+                 "\($0.source.rawValue)|\($0.evidenceStart ?? -1)|\($0.evidence?.lowercased() ?? "")" == key
+             }) else { continue }
+             grounded.evidenceStart = segment.start
+             next.candidateActions.append(grounded)
+             next.actionItems.append(MeetingContextItem(
+-                text: quote, speaker: segment.displaySpeaker,
+-                source: segment.source, confidence: "high"
++                text: spokenQuote, speaker: segment.displaySpeaker,
++                source: segment.source, confidence: inferredConfidence
+             ))
+         }
+         return next
+     }
+ 
++    /// This producer promises contiguous verbatim citations. Shared fuzzy matching is
++    /// useful elsewhere but cannot establish this contract or choose a speech source.
++    private static func exactEvidence(_ quote: String, in transcript: String) -> String? {
++        var citation = quote.trimmingCharacters(in: .whitespacesAndNewlines)
++        // A JSON string may still wrap quoted speech in paired quotation marks.
++        // Remove that notation only; do not fuzzy-match or drop spoken words.
++        if let first = citation.first, let last = citation.last,
++           citation.count > 1,
++           (first == "\"" && last == "\""
++               || first == "“" && last == "”"
++               || first == "‘" && last == "’") {
++            citation = String(citation.dropFirst().dropLast())
++        }
++        guard let range = transcript.range(of: citation, options: .caseInsensitive),
++              MeetingAgent.isTranscriptEvidence(citation, in: transcript) else { return nil }
++        return String(transcript[range])
++    }
++
+     private static func rewrite(
+         _ candidates: [MeetingCandidateAction],
+         with wordings: [CandidateWording]
+@@ -231,7 +255,9 @@ enum MeetingContextReconciler {
+             if let object = wording.object?.trimmingCharacters(in: .whitespacesAndNewlines) {
+                 next.object = object.isEmpty ? nil : object
+             }
+-            // Source stays whatever the extractor recorded — authority is not a model output.
++            // New model wording is still an inference, even if an older saved card
++            // previously claimed high confidence. Source/authority remain immutable.
++            next.confidence = inferredConfidence
+             next.source = candidate.source
+             return next
+         }
+@@ -257,6 +283,25 @@ enum MeetingContextReconciler {
+     /// The selected Agent model extracts action meaning from the actual speech. It only
+     /// writes grounded candidate cards; tool execution remains in AgentService.
+     struct ModelCompleter: MeetingContextCompleter {
++        /// Isolated diagnostics reuse the actual producer; normal defaults preserve
++        /// the existing selected-role admission and provider resolution.
++        private let enabled: @Sendable () async -> Bool
++        private let resolveProvider: @Sendable () async -> (any LLMProvider)?
++
++        init(
++            enabled: @escaping @Sendable () async -> Bool = {
++                let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
++                let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
++                return MeetingContextReconciler.isEnabled(stored: stored, choice: choice)
++            },
++            resolveProvider: @escaping @Sendable () async -> (any LLMProvider)? = {
++                await ModelRoleStore.shared.provider(for: .agent)
++            }
++        ) {
++            self.enabled = enabled
++            self.resolveProvider = resolveProvider
++        }
++
+         static let systemPrompt = """
+             You refine a live meeting context. Reply with JSON only:
+             {"topics":["…"],"unresolved":["…"],"actions":[{"segment":0,"action":"…","object":"…","recipient":"…","evidence":"exact transcript quote"}]}
+@@ -302,9 +347,7 @@ enum MeetingContextReconciler {
+             // that costs model time and can put meeting text on a network. The store asks the
+             // same question before it arms anything, so this is the second of two places one
+             // answer is checked rather than a second answer.
+-            let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
+-            let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
+-            guard MeetingContextReconciler.isEnabled(stored: stored, choice: choice) else {
++            guard await enabled() else {
+                 return .empty
+             }
+ 
+@@ -319,7 +362,7 @@ enum MeetingContextReconciler {
+                 // P0-14: the role store owns which model answers, and it is read-only — the
+                 // reconcile no longer resolves a provider of its own from the Settings mirror,
+                 // which is how live meeting text once followed a stale choice.
+-                guard let provider = await ModelRoleStore.shared.provider(for: .agent) else {
++                guard let provider = await resolveProvider() else {
+                     return .empty
+                 }
+                 // M-16b: the reconcile's model pass writes its row like every other
+@@ -385,6 +428,13 @@ enum MeetingContextReconciler {
+             }
+         }
+ 
++        /// Diagnostic schema verdict, separate from parse's valid-no-refinements nil.
++        /// Reuses the actual payload decoder; never called by production processing.
++        static func payloadDecodesForTesting(_ text: String) -> Bool {
++            guard SelfTest.isRunning, let data = jsonObject(in: text) else { return false }
++            return (try? JSONDecoder().decode(ModelPayload.self, from: data)) != nil
++        }
++
+         static func parse(
+             _ text: String, existing: MeetingContext,
+             segments: [TranscriptSegment]
+@@ -423,12 +473,11 @@ enum MeetingContextReconciler {
+                     guard let evidence = row.evidence,
+                           let action = row.action,
+                           !action.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+-                          let segment = row.segment.flatMap({ index in
+-                              segments.indices.contains(index) ? segments[index] : nil
+-                          }) ?? segments.first(where: {
+-                              MeetingAgent.isTranscriptEvidence(evidence, in: $0.text)
+-                          }),
+-                          MeetingAgent.isTranscriptEvidence(evidence, in: segment.text)
++                          let index = row.segment, segments.indices.contains(index)
++                    else { return nil }
++                    let segment = segments[index]
++                    guard segment.kind != .agentCommand,
++                          let spokenQuote = exactEvidence(evidence, in: segment.text)
+                     else { return nil }
+                     let recipient = row.recipient.flatMap { value -> String? in
+                         let lowered = value.lowercased()
+@@ -440,8 +489,8 @@ enum MeetingContextReconciler {
+                         object: row.object,
+                         speaker: segment.displaySpeaker,
+                         source: segment.source,
+-                        confidence: "high",
+-                        evidence: evidence,
++                        confidence: inferredConfidence,
++                        evidence: spokenQuote,
+                         evidenceStart: segment.start
+                     )
+                 }
+@@ -684,6 +733,58 @@ enum MeetingContextReconciler {
+                 && parsed?.proposedCandidates.first?.action == "deliver"
+         )
+ 
++        // Citation/provenance is a separate contract from the model's action meaning.
++        check("a model action claimed measured confidence",
++              parsed?.proposedCandidates.first?.confidence == inferredConfidence)
++        check("application promoted model inference to measured confidence",
++              grounded.candidateActions.last?.confidence == inferredConfidence
++                  && grounded.actionItems.last?.confidence == inferredConfidence)
++        let repeatedQuote = "Send the revised budget to Finance by Tuesday."
++        let repeated = [
++            TranscriptSegment(start: 20, end: 22, text: repeatedQuote, source: .mic),
++            TranscriptSegment(start: 23, end: 25, text: repeatedQuote, source: .system),
++        ]
++        for citation in ["", "\"segment\":99,"] {
++            let uncitedOutput = "{\"actions\":[{\(citation)\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}"
++            let uncited = ModelCompleter.parse(uncitedOutput, existing: context, segments: repeated)
++            check("missing/invalid segment borrowed the first matching source",
++                  uncited?.proposedCandidates.isEmpty != false)
++        }
++        let citedFar = ModelCompleter.parse(
++            "{\"actions\":[{\"segment\":1,\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}",
++            existing: context, segments: repeated)
++        check("valid far-track citation lost its exact source",
++              citedFar?.proposedCandidates.first?.source == .system)
++        let ambiguous = apply(Suggestion(proposedCandidates: [
++            MeetingCandidateAction(action: "send", source: .mic, confidence: "high", evidence: repeatedQuote)
++        ]), to: context, recentSegments: repeated)
++        check("ambiguous quote without a clock borrowed mic authority",
++              ambiguous.candidateActions == context.candidateActions)
++        let longQuote = "Send Morgan the revised detailed annual project budget and manufacturing forecast for Finance review by Tuesday."
++        let changedQuote = longQuote.replacingOccurrences(of: "manufacturing", with: "sales")
++        let speech = TranscriptSegment(start: 40, end: 46, text: longQuote, source: .system)
++        check("exact-citation producer used fuzzy content matching",
++              exactEvidence(changedQuote, in: speech.text) == nil)
++        check("paired quotation notation changed the original speech",
++              exactEvidence("\"\(longQuote)\"", in: speech.text) == longQuote)
++        let command = TranscriptSegment(start: 50, end: 52, text: repeatedQuote, source: .mic, kind: .agentCommand)
++        let commandAction = ModelCompleter.parse(
++            "{\"actions\":[{\"segment\":0,\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}",
++            existing: context, segments: [command])
++        check("an excluded command entered the live meeting action parser",
++              commandAction?.proposedCandidates.isEmpty != false)
++        let quoted = MeetingCandidateAction(action: "deliver", object: "revised budget", source: .mic,
++                                            evidence: "\"\(implicitRequest.text)\"")
++        let quotedOnce = apply(Suggestion(proposedCandidates: [quoted]), to: context, recentSegments: [implicitRequest])
++        check("the candidate and item disagreed about the actual spoken evidence",
++              quotedOnce.candidateActions.last?.evidence == implicitRequest.text
++                  && quotedOnce.actionItems.last?.text == implicitRequest.text)
++        check("rewritten model wording retained unmeasured confidence",
++              poisoned.candidateActions.first(where: { $0.id == systemAsk.id })?.confidence == inferredConfidence)
++        check("quote notation escaped duplicate suppression",
++              apply(Suggestion(proposedCandidates: [quoted]), to: quotedOnce,
++                    recentSegments: [implicitRequest]).candidateActions.count == quotedOnce.candidateActions.count)
++
+         // Async fake completer (same contract the store calls).
+         let fake = FakeMergeCompleter()
+         let box = FakeResultBox()
+diff --git a/Sources/NextNotes/Meetings/MeetingContextStore.swift b/Sources/NextNotes/Meetings/MeetingContextStore.swift
+index 7c9e7be..1496607 100644
+--- a/Sources/NextNotes/Meetings/MeetingContextStore.swift
++++ b/Sources/NextNotes/Meetings/MeetingContextStore.swift
+@@ -39,9 +39,30 @@ final class MeetingContextStore {
+     /// Injected for tests; production uses the selected Agent model.
+     @ObservationIgnored private var completer: any MeetingContextCompleter =
+         MeetingContextReconciler.ModelCompleter()
++    @ObservationIgnored private let store: MeetingStore
++    @ObservationIgnored private let optionalAdmission: @Sendable () -> Bool
+ 
+-    private init() {
+-        MeetingContextBusBridge.start(store: self)
++    private init(
++        store: MeetingStore = .shared, startBus: Bool = true,
++        optionalAdmission: @escaping @Sendable () -> Bool = {
++            ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork
++        }
++    ) {
++        self.store = store
++        self.optionalAdmission = optionalAdmission
++        if startBus { MeetingContextBusBridge.start(store: self) }
++    }
++
++    static func isolatedForTesting(
++        store: MeetingStore,
++        completer: any MeetingContextCompleter,
++        optionalAdmission: @escaping @Sendable () -> Bool
++    ) -> MeetingContextStore {
++        precondition(SelfTest.isRunning)
++        let context = MeetingContextStore(store: store, startBus: false,
++                                          optionalAdmission: optionalAdmission)
++        context.useCompleter(completer)
++        return context
+     }
+ 
+     /// Swap the reconcile completer (self-tests inject a fake).
+@@ -49,6 +70,14 @@ final class MeetingContextStore {
+         self.completer = completer
+     }
+ 
++    /// Exercise the actual cadence/run/apply/save path in an isolated diagnostic.
++    func runReconcileForTesting() async {
++        precondition(SelfTest.isRunning)
++        reconcileTask?.cancel()
++        reconcileTask = nil
++        await runReconcile()
++    }
++
+     func ingest(_ segments: [TranscriptSegment], meeting: Meeting) {
+         if current?.meetingID != meeting.id {
+             ingestedKeys.removeAll()
+@@ -114,13 +143,40 @@ final class MeetingContextStore {
+     }
+ 
+     func load(meetingID: UUID) -> MeetingContext? {
+-        let url = MeetingStore.shared.directory(for: meetingID).appendingPathComponent(Self.fileName)
++        let url = store.directory(for: meetingID).appendingPathComponent(Self.fileName)
+         let decoder = JSONDecoder()
+         decoder.dateDecodingStrategy = .iso8601
+         guard let data = try? Data(contentsOf: url) else { return nil }
+         return try? decoder.decode(MeetingContext.self, from: data)
+     }
+ 
++    /// Reads the committed final transcript rather than a model's pending labels.
++    /// The same path is used after diarization and a confirmed speaker-name edit.
++    @discardableResult
++    func refreshSpeakers(meetingID: UUID) -> Bool {
++        guard let meeting = store.meeting(id: meetingID) else { return false }
++        guard let context = current?.meetingID == meetingID ? current : load(meetingID: meetingID)
++        else {
++            // No live understanding was recorded: nothing needs projecting. An
++            // existing but unreadable context is a refusal, not a successful no-op.
++            let url = store.directory(for: meetingID).appendingPathComponent(Self.fileName)
++            return !FileManager.default.fileExists(atPath: url.path)
++        }
++        let projected = MeetingSpeakerProjection.apply(context,
++            segments: store.transcript(for: meetingID),
++            liveSegments: store.liveTranscript(for: meetingID), speakerNames: meeting.speakerNames)
++        guard projected != context else { return true }
++        guard save(projected, meetingID: meetingID) else { return false }
++        if current?.meetingID == meetingID {
++            // A pending live reconcile owns old speaker evidence. Cancellation refuses
++            // its late result; no new pass is scheduled just to relabel existing facts.
++            reconcileTask?.cancel()
++            reconcileTask = nil
++            current = projected
++        }
++        return true
++    }
++
+     func reset() {
+         replace(nil)
+     }
+@@ -169,7 +225,7 @@ final class MeetingContextStore {
+         let needle = query.lowercased()
+         guard !needle.isEmpty else { return "" }
+         let segments = MeetingController.shared.session?.segments
+-            ?? (current.flatMap { MeetingStore.shared.transcript(for: $0.meetingID) } ?? [])
++            ?? (current.flatMap { store.transcript(for: $0.meetingID) } ?? [])
+         let hits = segments.filter {
+             $0.kind != .agentCommand && $0.text.lowercased().contains(needle)
+         }
+@@ -227,7 +283,7 @@ final class MeetingContextStore {
+             now: elapsed
+         )
+         let suggestion = await completer.refine(snapshot)
+-        guard suggestion.hasRefinements else { return }
++        guard suggestion.hasRefinements, !Task.isCancelled else { return }
+ 
+         // Drop the result if the live meeting moved on while we waited.
+         guard current?.meetingID == context.meetingID else { return }
+@@ -279,7 +335,7 @@ final class MeetingContextStore {
+         if let session = MeetingController.shared.session, session.meeting.id == meetingID {
+             return session.meeting.title
+         }
+-        return MeetingStore.shared.meeting(id: meetingID)?.title ?? "Meeting"
++        return store.meeting(id: meetingID)?.title ?? "Meeting"
+     }
+ 
+     static func key(for segment: TranscriptSegment) -> String {
+@@ -295,12 +351,14 @@ final class MeetingContextStore {
+         "\(start)|\(end)|\(source.rawValue)|\(text)"
+     }
+ 
+-    private func save(_ context: MeetingContext, meetingID: UUID) {
++    @discardableResult
++    private func save(_ context: MeetingContext, meetingID: UUID) -> Bool {
+         let encoder = JSONEncoder()
+         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+         encoder.dateEncodingStrategy = .iso8601
+-        guard let data = try? encoder.encode(context) else { return }
+-        let url = MeetingStore.shared.directory(for: meetingID).appendingPathComponent(Self.fileName)
+-        try? data.write(to: url, options: .atomic)
++        guard let data = try? encoder.encode(context) else { return false }
++        let url = store.directory(for: meetingID).appendingPathComponent(Self.fileName)
++        do { try data.write(to: url, options: .atomic); return true }
++        catch { return false }
+     }
+ }
+diff --git a/Sources/NextNotes/Meetings/MeetingModels.swift b/Sources/NextNotes/Meetings/MeetingModels.swift
+index 65cb2f2..34bb3d6 100644
+--- a/Sources/NextNotes/Meetings/MeetingModels.swift
++++ b/Sources/NextNotes/Meetings/MeetingModels.swift
+@@ -337,6 +337,9 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
+     var transcriptPass: String?
+     /// Which model wrote the notes, once Phase 4 writes any.
+     var notesModel: String?
++    /// Bounded recording observations survive the global metrics ring aging out.
++    /// Nil means this build did not retain coverage; it never implies healthy capture.
++    var performanceSummary: MeetingPerformanceSummary?
+     /// Diarized speaker renames, keyed by the generated label ("Speaker 1").
+     var speakerNames: [String: String] = [:]
+     /// What the meeting agent has actually done in the user's Workspace, and where to find
+@@ -433,6 +436,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
+         audioReleaseAfter: Date? = nil,
+         transcriptPass: String? = nil,
+         notesModel: String? = nil,
++        performanceSummary: MeetingPerformanceSummary? = nil,
+         speakerNames: [String: String] = [:],
+         agentActions: [AgentActionRecord] = []
+     ) {
+@@ -454,6 +458,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
+         self.audioReleaseAfter = audioReleaseAfter
+         self.transcriptPass = transcriptPass
+         self.notesModel = notesModel
++        self.performanceSummary = performanceSummary
+         self.speakerNames = speakerNames
+         self.agentActions = agentActions
+     }
+@@ -486,6 +491,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
+         audioReleaseAfter = try container.decodeIfPresent(Date.self, forKey: .audioReleaseAfter)
+         transcriptPass = try container.decodeIfPresent(String.self, forKey: .transcriptPass)
+         notesModel = try container.decodeIfPresent(String.self, forKey: .notesModel)
++        performanceSummary = try container.decodeIfPresent(MeetingPerformanceSummary.self, forKey: .performanceSummary)
+         speakerNames = try container.decodeIfPresent([String: String].self, forKey: .speakerNames) ?? [:]
+         agentActions = try container.decodeIfPresent(
+             [AgentActionRecord].self,
+diff --git a/Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift b/Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift
+index bbc2b09..60586fd 100644
+--- a/Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift
+@@ -572,7 +572,8 @@ private final class RecordingNotesProvider: LLMProvider, @unchecked Sendable {
+         lock.withLock { recorded.append((system, user)) }
+         if system == NotesPrompts.mapSystem {
+             return LLMCompletion(
+-                text: "- Sarah: will send the STEP export.",
++                text: NotesEvidenceFixture.encodeSelection(
++                    Array(NotesEvidenceFixture.entries(in: user).prefix(1))),
+                 generatedTokens: 9,
+                 duration: 0
+             )
+diff --git a/Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift b/Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift
+index 68bf287..b2cc1fc 100644
+--- a/Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift
+@@ -1,4 +1,5 @@
+ import Foundation
++import os
+ 
+ /// Read-only native quality replay on a copied transcript. No meeting store, capture,
+ /// graph, actions, provider preference or original notes are mutated. A smaller reader
+@@ -9,29 +10,7 @@ enum MeetingNotesReplaySelfTest {
+     static func run(input: String, provider: any LLMProvider, window: Int?,
+                     write: (String) -> Void) async -> Bool {
+         do {
+-            let directory = URL(fileURLWithPath: input, isDirectory: true).standardizedFileURL
+-            let resolved = directory.resolvingSymlinksInPath()
+-            // An explicit copied fixture under the OS temporary root, never an owner store.
+-            let temporary = URL(fileURLWithPath: "/tmp", isDirectory: true).resolvingSymlinksInPath()
+-            guard SelfTest.isRunning, directory.path == resolved.path,
+-                  resolved.path.hasPrefix(temporary.path + "/"),
+-                  resolved.lastPathComponent.hasPrefix("NextNotesMeetingNotesReplay-"),
+-                  UUID(uuidString: String(resolved.lastPathComponent
+-                    .dropFirst("NextNotesMeetingNotesReplay-".count))) != nil else {
+-                throw CocoaError(.fileReadNoPermission)
+-            }
+-            let decoder = JSONDecoder()
+-            decoder.dateDecodingStrategy = .iso8601
+-            func read(_ name: String) throws -> Data {
+-                let url = resolved.appendingPathComponent(name)
+-                guard url.resolvingSymlinksInPath().path == url.path else {
+-                    throw CocoaError(.fileReadNoPermission)
+-                }
+-                return try Data(contentsOf: url)
+-            }
+-            let meeting = try decoder.decode(Meeting.self, from: read("meeting.json"))
+-            let segments = try decoder.decode([TranscriptSegment].self,
+-                from: read("transcript.json"))
++            let (meeting, segments) = try loadFixture(input: input)
+             let selected: any LLMProvider
+             if let window {
+                 guard window >= 4096, window <= provider.contextTokens else {
+@@ -41,8 +20,19 @@ enum MeetingNotesReplaySelfTest {
+             } else {
+                 selected = provider
+             }
+-            let result = try await NotesGenerator(provider: selected)
+-                .notes(for: meeting, segments: segments, brief: .empty)
++            // This copied-fixture-only buffer joins observations before private output.
++            // The production generator retains no evidence trace or history.
++            let traces = OSAllocatedUnfairLock(initialState: [NotesGenerator.EvidenceTrace]())
++            defer {
++                for trace in traces.withLock({ $0 }) {
++                    if let encoded = try? JSONEncoder().encode(trace) {
++                        write("NOTES_REPLAY_EVIDENCE " + String(decoding: encoded, as: UTF8.self))
++                    }
++                }
++            }
++            let result = try await NotesGenerator(provider: selected, evidenceTrace: { trace in
++                traces.withLock { $0.append(trace) }
++            }).notes(for: meeting, segments: segments, brief: .empty)
+             write("NOTES_REPLAY_RESULT seconds=\(result.duration) tokens=\(result.generatedTokens)"
+                 + " mapReduce=\(result.usedMapReduce) chunks=\(result.chunks)"
+                 + " collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)"
+@@ -61,11 +51,52 @@ enum MeetingNotesReplaySelfTest {
+         }
+     }
+ 
++    /// Shared read-only boundary for copied transcript experiments.
++    static func loadFixture(input: String) throws -> (Meeting, [TranscriptSegment]) {
++        let directory = URL(fileURLWithPath: input, isDirectory: true).standardizedFileURL
++        let resolved = directory.resolvingSymlinksInPath()
++        // An explicit copied fixture under the OS temporary root, never an owner store.
++        let temporary = URL(fileURLWithPath: "/tmp", isDirectory: true).resolvingSymlinksInPath()
++        guard SelfTest.isRunning, directory.path == resolved.path,
++              resolved.path.hasPrefix(temporary.path + "/"),
++              resolved.lastPathComponent.hasPrefix("NextNotesMeetingNotesReplay-"),
++              UUID(uuidString: String(resolved.lastPathComponent
++                .dropFirst("NextNotesMeetingNotesReplay-".count))) != nil else {
++            throw CocoaError(.fileReadNoPermission)
++        }
++        let decoder = JSONDecoder()
++        decoder.dateDecodingStrategy = .iso8601
++        func read(_ name: String) throws -> Data {
++            let url = resolved.appendingPathComponent(name)
++            guard url.resolvingSymlinksInPath().path == url.path else {
++                throw CocoaError(.fileReadNoPermission)
++            }
++            return try Data(contentsOf: url)
++        }
++        let meeting = try decoder.decode(Meeting.self, from: read("meeting.json"))
++        let segments = try decoder.decode([TranscriptSegment].self,
++            from: read("transcript.json"))
++        return (meeting, segments)
++    }
++
++    static func runExtractive(input: String, provider: any LLMProvider,
++                              write: (String) -> Void, indicesOnly: Bool = false) async -> Bool {
++        do {
++            let (meeting, segments) = try loadFixture(input: input)
++            return await NotesExtractiveReplaySelfTest.run(meeting: meeting, segments: segments,
++                provider: provider, write: write, indicesOnly: indicesOnly)
++        } catch {
++            write("NOTES_EXTRACTIVE_REPLAY_FAILED: \(error.localizedDescription)")
++            return false
++        }
++    }
++
+     private struct ReaderWindow: LLMProvider {
+         let provider: any LLMProvider
+         let contextTokens: Int
+         var id: LLMProviderID { provider.id }
+         var displayModelName: String { provider.displayModelName }
++        var enforcesGrammar: Bool { provider.enforcesGrammar }
+         var unavailableReason: String? { get async { await provider.unavailableReason } }
+         func countTokens(_ text: String) async throws -> Int {
+             try await provider.countTokens(text)
+@@ -73,5 +104,8 @@ enum MeetingNotesReplaySelfTest {
+         func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
+             try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+         }
++        func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async throws -> LLMCompletion {
++            try await provider.complete(system: system, user: user, maxTokens: maxTokens, grammar: grammar)
++        }
+     }
+ }
+diff --git a/Sources/NextNotes/Meetings/MeetingPerformanceSummary.swift b/Sources/NextNotes/Meetings/MeetingPerformanceSummary.swift
+new file mode 100644
+index 0000000..c172967
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/MeetingPerformanceSummary.swift
+@@ -0,0 +1,103 @@
++import Foundation
++
++/// Bounded observations retained on the existing meeting record. Peaks are sampled
++/// values, not a continuous trace or allocation attribution. No per-sample history.
++struct MeetingPerformanceSummary: Codable, Sendable, Equatable {
++    let recordingStartedAt: Date
++    private(set) var samples = 0
++    private(set) var footprintSamples = 0
++    private(set) var firstSampleAt: Date?
++    private(set) var lastSampleAt: Date?
++    private(set) var maximumSampleGapSeconds: Double = 0
++    private(set) var peakSampledFootprintBytes: UInt64?
++    private(set) var peakSampledResidentBytes: UInt64?
++    private(set) var peakQueuedBytes = 0
++    private(set) var peakActiveBytes = 0
++    private(set) var pausedSamples = 0
++
++    init(recordingStartedAt: Date) {
++        self.recordingStartedAt = recordingStartedAt
++    }
++
++    // MeetingStore's ISO8601 strategy drops fractional seconds. These new clock
++    // facts must survive that boundary exactly: otherwise fresh readers lose sample
++    // precision and the same recording no longer matches its older metadata writer.
++    // Reference-date doubles retain Date's native precision without changing any
++    // existing meeting timestamps or the enclosing store's encoding strategy.
++    private enum CodingKeys: String, CodingKey {
++        case recordingStartedAtReferenceSeconds, firstSampleReferenceSeconds, lastSampleReferenceSeconds
++        case recordingStartedAt, firstSampleAt, lastSampleAt // early diagnostic representation
++        case samples, footprintSamples, maximumSampleGapSeconds
++        case peakSampledFootprintBytes, peakSampledResidentBytes
++        case peakQueuedBytes, peakActiveBytes, pausedSamples
++    }
++
++    init(from decoder: any Decoder) throws {
++        let c = try decoder.container(keyedBy: CodingKeys.self)
++        if let seconds = try c.decodeIfPresent(Double.self, forKey: .recordingStartedAtReferenceSeconds) {
++            recordingStartedAt = Date(timeIntervalSinceReferenceDate: seconds)
++        } else {
++            recordingStartedAt = try c.decode(Date.self, forKey: .recordingStartedAt)
++        }
++        func date(_ precise: CodingKeys, _ legacy: CodingKeys) throws -> Date? {
++            if let seconds = try c.decodeIfPresent(Double.self, forKey: precise) {
++                return Date(timeIntervalSinceReferenceDate: seconds)
++            }
++            return try c.decodeIfPresent(Date.self, forKey: legacy)
++        }
++        firstSampleAt = try date(.firstSampleReferenceSeconds, .firstSampleAt)
++        lastSampleAt = try date(.lastSampleReferenceSeconds, .lastSampleAt)
++        samples = try c.decode(Int.self, forKey: .samples)
++        footprintSamples = try c.decode(Int.self, forKey: .footprintSamples)
++        maximumSampleGapSeconds = try c.decode(Double.self, forKey: .maximumSampleGapSeconds)
++        peakSampledFootprintBytes = try c.decodeIfPresent(UInt64.self, forKey: .peakSampledFootprintBytes)
++        peakSampledResidentBytes = try c.decodeIfPresent(UInt64.self, forKey: .peakSampledResidentBytes)
++        peakQueuedBytes = try c.decode(Int.self, forKey: .peakQueuedBytes)
++        peakActiveBytes = try c.decode(Int.self, forKey: .peakActiveBytes)
++        pausedSamples = try c.decode(Int.self, forKey: .pausedSamples)
++    }
++
++    func encode(to encoder: any Encoder) throws {
++        var c = encoder.container(keyedBy: CodingKeys.self)
++        try c.encode(recordingStartedAt.timeIntervalSinceReferenceDate, forKey: .recordingStartedAtReferenceSeconds)
++        try c.encodeIfPresent(firstSampleAt?.timeIntervalSinceReferenceDate, forKey: .firstSampleReferenceSeconds)
++        try c.encodeIfPresent(lastSampleAt?.timeIntervalSinceReferenceDate, forKey: .lastSampleReferenceSeconds)
++        try c.encode(samples, forKey: .samples)
++        try c.encode(footprintSamples, forKey: .footprintSamples)
++        try c.encode(maximumSampleGapSeconds, forKey: .maximumSampleGapSeconds)
++        try c.encodeIfPresent(peakSampledFootprintBytes, forKey: .peakSampledFootprintBytes)
++        try c.encodeIfPresent(peakSampledResidentBytes, forKey: .peakSampledResidentBytes)
++        try c.encode(peakQueuedBytes, forKey: .peakQueuedBytes)
++        try c.encode(peakActiveBytes, forKey: .peakActiveBytes)
++        try c.encode(pausedSamples, forKey: .pausedSamples)
++    }
++
++    mutating func observe(at date: Date, process: ProcessSnapshot,
++                         queuedBytes: Int, activeBytes: Int, paused: Bool) {
++        // A clock moving backwards must not fabricate coverage or erase prior peaks.
++        guard date >= recordingStartedAt, lastSampleAt.map({ date >= $0 }) ?? true else { return }
++        maximumSampleGapSeconds = max(maximumSampleGapSeconds,
++            date.timeIntervalSince(lastSampleAt ?? recordingStartedAt))
++        firstSampleAt = firstSampleAt ?? date
++        lastSampleAt = date
++        samples += 1
++        if let footprint = process.physicalFootprintBytes {
++            footprintSamples += 1
++            peakSampledFootprintBytes = max(peakSampledFootprintBytes ?? footprint, footprint)
++        }
++        if let resident = process.residentMemoryBytes {
++            peakSampledResidentBytes = max(peakSampledResidentBytes ?? resident, resident)
++        }
++        peakQueuedBytes = max(peakQueuedBytes, max(0, queuedBytes))
++        peakActiveBytes = max(peakActiveBytes, max(0, activeBytes))
++        if paused { pausedSamples += 1 }
++    }
++
++    /// Other existing metadata writers may hold an older meeting value. Preserve
++    /// the latest aggregate from the same recording; never sum replayed snapshots.
++    func preserving(_ stored: Self?) -> Self {
++        guard let stored, stored.recordingStartedAt == recordingStartedAt,
++              stored.samples > samples else { return self }
++        return stored
++    }
++}
+diff --git a/Sources/NextNotes/Meetings/MeetingPerformanceSummarySelfTest.swift b/Sources/NextNotes/Meetings/MeetingPerformanceSummarySelfTest.swift
+new file mode 100644
+index 0000000..18c2d1a
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/MeetingPerformanceSummarySelfTest.swift
+@@ -0,0 +1,94 @@
++import Foundation
++
++@MainActor
++enum MeetingPerformanceSummarySelfTest {
++    static func run(write: (String) -> Void) async -> Bool {
++        var failures: [String] = []
++        var checks = 0
++        func check(_ name: String, _ value: Bool) {
++            checks += 1
++            if !value { failures.append(name) }
++        }
++        let began = Date()
++        var sample = ProcessSnapshot.current()
++        sample.physicalFootprintBytes = 900_000_000
++        sample.residentMemoryBytes = 600_000_000
++        var summary = MeetingPerformanceSummary(recordingStartedAt: began)
++        for index in 1...700 {
++            sample.physicalFootprintBytes = index == 350 ? 1_200_000_000 : 900_000_000
++            summary.observe(at: began.addingTimeInterval(Double(index) * 10),
++                process: sample, queuedBytes: index == 300 ? 40_000 : 0,
++                activeBytes: 448_000, paused: index == 200)
++        }
++        check("middle observation survives beyond 512 rows", summary.samples == 700
++            && summary.peakSampledFootprintBytes == 1_200_000_000)
++        check("coverage and gap retained", summary.firstSampleAt == began.addingTimeInterval(10)
++            && summary.lastSampleAt == began.addingTimeInterval(7000)
++            && summary.maximumSampleGapSeconds == 10)
++        check("queue, active and pause counters retained", summary.peakQueuedBytes == 40_000
++            && summary.peakActiveBytes == 448_000 && summary.pausedSamples == 1)
++        sample.physicalFootprintBytes = nil
++        summary.observe(at: began.addingTimeInterval(7095), process: sample,
++                        queuedBytes: 0, activeBytes: 0, paused: false)
++        check("unobserved interval is visible", summary.maximumSampleGapSeconds == 95)
++        check("failed memory query stays unknown", summary.samples == 701
++            && summary.footprintSamples == 700 && summary.peakSampledFootprintBytes == 1_200_000_000)
++        let accepted = summary
++        summary.observe(at: began.addingTimeInterval(5), process: sample,
++                        queuedBytes: .max, activeBytes: .max, paused: true)
++        check("backward time supplies no coverage", summary == accepted)
++        do {
++            let store = MeetingStore.isolated()
++            let root = store.directory(for: UUID()).deletingLastPathComponent()
++            defer { try? FileManager.default.removeItem(at: root) }
++            let original = Meeting(title: "Performance coverage fixture", start: began, status: .recording)
++            check("fixture saved", store.save(original))
++            let session = MeetingSession(meeting: original, store: store,
++                                         captureHub: AudioCaptureHub(probe: true))
++            let safe = MeetingDiskCapacity(immediateBytes: 10_000_000_000,
++                                           importantBytes: 10_000_000_000)
++            // The real existing health/sample/metadata path; no microphone/model starts.
++            await session.checkResourceHealth(now: began.addingTimeInterval(1),
++                                              capacityForTesting: safe, criticalForTesting: false)
++            await session.checkResourceHealth(now: began.addingTimeInterval(2),
++                                              capacityForTesting: safe, criticalForTesting: false)
++            let loaded = store.freshReaderForTesting().meeting(id: original.id)
++            check("actual session emits persisted observations", loaded?.performanceSummary?.samples == 2
++                && loaded?.performanceSummary?.lastSampleAt.map { $0 >= began && $0 <= Date() } == true)
++            check("actual sample retains footprint independently of RSS",
++                  loaded?.performanceSummary?.peakSampledFootprintBytes != nil
++                    && loaded?.performanceSummary?.peakSampledResidentBytes != nil)
++            check("older metadata save admitted", store.save(original))
++            check("older nil snapshot cannot erase coverage",
++                  store.freshReaderForTesting().meeting(id: original.id)?.performanceSummary == loaded?.performanceSummary)
++            var newer = original
++            newer.performanceSummary = accepted
++            check("long aggregate saved", store.save(newer))
++            var stale = original
++            stale.performanceSummary = MeetingPerformanceSummary(recordingStartedAt: began)
++            check("older nonnil snapshot admitted", store.save(stale))
++            check("stale snapshot cannot erase middle peak",
++                  store.freshReaderForTesting().meeting(id: original.id)?.performanceSummary == accepted)
++            let restartedWriter = store.freshReaderForTesting()
++            check("fresh writer admits older metadata", restartedWriter.save(stale))
++            check("persisted clock still binds the same recording",
++                  restartedWriter.freshReaderForTesting().meeting(id: original.id)?.performanceSummary == accepted)
++            let encoder = JSONEncoder()
++            let decoder = JSONDecoder()
++            let encoded = try encoder.encode(newer)
++            var object = try JSONSerialization.jsonObject(with: encoded) as! [String: Any]
++            object.removeValue(forKey: "performanceSummary")
++            let legacy = try decoder.decode(Meeting.self,
++                from: JSONSerialization.data(withJSONObject: object))
++            check("legacy meeting remains readable with unknown coverage", legacy.id == newer.id
++                && legacy.performanceSummary == nil)
++            let direct = try decoder.decode(Meeting.self, from: encoded)
++            check("full aggregate round trips", direct.performanceSummary == accepted)
++            check("aggregate storage stays bounded", try encoder.encode(accepted).count < 2000)
++        } catch { failures.append(error.localizedDescription) }
++        for failure in failures { write("MEETING_PERFORMANCE_WRONG: \(failure)") }
++        write(failures.isEmpty ? "MEETING_PERFORMANCE_OK: \(checks) actual-session/persistence and bounded-coverage checks"
++                              : "MEETING_PERFORMANCE_FAILED: \(failures.count)/\(checks)")
++        return failures.isEmpty
++    }
++}
+diff --git a/Sources/NextNotes/Meetings/MeetingSession.swift b/Sources/NextNotes/Meetings/MeetingSession.swift
+index 7bf23a3..9fd0323 100644
+--- a/Sources/NextNotes/Meetings/MeetingSession.swift
++++ b/Sources/NextNotes/Meetings/MeetingSession.swift
+@@ -132,6 +132,7 @@ final class MeetingSession {
+         startedHostTime = mach_absolute_time()
+         lastSpeechAt = startedAt
+         meeting.start = startedAt
++        meeting.performanceSummary = MeetingPerformanceSummary(recordingStartedAt: startedAt)
+         meeting.status = .recording
+         persistMeeting()
+         wireTracks(outputFormat: format)
+@@ -849,13 +850,21 @@ final class MeetingSession {
+             integrity.missingCaptureFrames = max(integrity.missingCaptureFrames, progress.streamFrames)
+         }
+         meeting.captureIntegrity = integrity
+-        persistMeeting()
+         // Numeric counts only; model/provider attribution stays in usage.jsonl.
+         let queued = (mic?.queuedBytes ?? 0) + (system?.queuedBytes ?? 0)
+         let active = (mic?.activeBytes ?? 0) + (system?.activeBytes ?? 0)
+         let swap = MeetingResourceHealth.swapBytes()
+         let note = "queuedBytes=\(queued) activeBytes=\(active) writerBytes=\(saved.map { $0.writtenFrames * 4 } ?? 0) freeBytes=\(free ?? -1) swapUsed=\(swap.used.map(String.init) ?? "unknown") swapAvailable=\(swap.available.map(String.init) ?? "unknown") pressure=\(pressure.level.rawValue) missedFrames=\(progress.streamFrames) missedBuffers=\(progress.hubBuffers) paused=\(pause ? 1 : 0)"
+-        LatencyTrace.record(.meetingResources, seconds: Date().timeIntervalSince(began), note: note)
++        let span = LatencyTrace.record(.meetingResources,
++            seconds: Date().timeIntervalSince(began), note: note)
++        // Reuse that exact sample and the existing metadata save; no second process
++        // query, timer, sample history or capture-callback work is added.
++        var summary = meeting.performanceSummary
++            ?? MeetingPerformanceSummary(recordingStartedAt: meeting.start)
++        summary.observe(at: span.endedAt, process: span.process, queuedBytes: queued,
++                        activeBytes: active, paused: pause)
++        meeting.performanceSummary = summary
++        persistMeeting()
+     }
+ 
+     @discardableResult
+diff --git a/Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift b/Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift
+new file mode 100644
+index 0000000..d748232
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift
+@@ -0,0 +1,82 @@
++import Foundation
++
++/// Relabels existing evidence after the final transcript is committed. This is a
++/// projection of diarization, never participant discovery or an authority decision.
++enum MeetingSpeakerProjection {
++    static func apply(_ context: MeetingContext, segments: [TranscriptSegment],
++                      liveSegments: [TranscriptSegment] = [], speakerNames: [String: String]) -> MeetingContext {
++        let speech = segments.filter { $0.includeInMeetingNotes }.map {
++            (segment: $0, text: normalized($0.text))
++        }
++        func speaker(for quote: String, source: AudioSource, at start: TimeInterval, endingAt end: TimeInterval? = nil) -> String? {
++            let wanted = normalized(quote)
++            guard wanted.count >= 12 else { return nil }
++            let matches = speech.filter {
++                $0.segment.source == source
++                    && $0.segment.start <= start && start < $0.segment.end
++                    && $0.text.range(of: wanted) != nil
++            }
++            // Repeated speech belonging to different voices is not a binding. A source
++            // default is retained until that source actually has a diarized label.
++            var labels = Set(matches.map { $0.segment.displaySpeaker })
++            if let end {
++                // The complete live utterance must not span competing final labels.
++                // Looking only at its first instant would miss a speaker overlap.
++                labels.formUnion(speech.filter {
++                    $0.segment.source == source && $0.segment.start < end && $0.segment.end > start
++                }.map { $0.segment.displaySpeaker })
++            }
++            guard !matches.isEmpty else { return nil }
++            guard labels.count == 1, let label = labels.first else { return nil }
++            // A saved explicit user mapping is identity evidence in its own right.
++            // A fallback source label alone still cannot erase confirmed attribution.
++            if let confirmed = speakerNames[label],
++               !confirmed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
++                return confirmed
++            }
++            guard source != .system || label != source.defaultSpeaker else { return nil }
++            return label
++        }
++        let live = liveSegments.filter { $0.includeInMeetingNotes }.map {
++            (segment: $0, text: normalized($0.text))
++        }
++        func project(_ items: [MeetingContextItem]) -> [MeetingContextItem] {
++            items.map { item in
++                var updated = item
++                let quote = normalized(item.text)
++                let anchors = live.filter {
++                    $0.segment.source == item.source && $0.text.range(of: quote) != nil
++                }
++                if anchors.count == 1,
++                   let label = speaker(for: item.text, source: item.source, at: anchors[0].segment.start, endingAt: anchors[0].segment.end) {
++                    updated.speaker = label
++                }
++                return updated
++            }
++        }
++        var next = context
++        next.topics = project(context.topics)
++        next.decisions = project(context.decisions)
++        next.questions = project(context.questions)
++        next.commitments = project(context.commitments)
++        next.deadlines = project(context.deadlines)
++        next.documentsMentioned = project(context.documentsMentioned)
++        next.actionItems = project(context.actionItems)
++        next.unresolvedItems = project(context.unresolvedItems)
++        next.candidateActions = context.candidateActions.map { candidate in
++            var updated = candidate
++            // Candidate evidence has a source and an exact clock anchor. Legacy rows
++            // lacking that anchor keep their existing attribution.
++            if let quote = candidate.evidence, let start = candidate.evidenceStart,
++               let label = speaker(for: quote, source: candidate.source, at: start) {
++                updated.speaker = label
++            }
++            return updated
++        }
++        return next
++    }
++
++    private static func normalized(_ text: String) -> String {
++        text.split(whereSeparator: \.isWhitespace).joined(separator: " ").lowercased()
++    }
++}
+diff --git a/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift b/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift
+new file mode 100644
+index 0000000..ed60409
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift
+@@ -0,0 +1,218 @@
++import Foundation
++
++/// Runs the actual committed diarization -> saved context consumer with temporary
++/// meeting data. It does not load a model, contact a provider, or use the owner store.
++@MainActor
++enum MeetingSpeakerProjectionSelfTest {
++    static func run(write: (String) -> Void) -> Bool {
++        var failures: [String] = []
++        var checks = 0
++        func check(_ name: String, _ value: Bool) {
++            checks += 1
++            if !value { failures.append(name) }
++        }
++        let store = MeetingStore.isolated()
++        let root = store.directory(for: UUID()).deletingLastPathComponent()
++        defer { try? FileManager.default.removeItem(at: root) }
++        var meeting = Meeting(title: "Speaker projection fixture", start: Date(), status: .diarizing)
++        meeting.speakerNames = ["Speaker 1": "Confirmed Alex", "Retired": "Old label"]
++        check("meeting commit", store.save(meeting))
++        let contextStore = MeetingContextStore.isolatedForTesting(store: store,
++            completer: MeetingContextReconciler.NoOpCompleter(), optionalAdmission: { false })
++        let quote = "Can you send the reviewed drawing?"
++        let repeated = "What is the final manufacturing cost?"
++        let micQuote = "I will review the drawing tomorrow."
++        let live = [
++            TranscriptSegment(start: 1, end: 4, text: quote, source: .system),
++            TranscriptSegment(start: 5, end: 8, text: repeated, source: .system),
++            TranscriptSegment(start: 10, end: 13, text: micQuote, source: .mic),
++        ]
++        store.saveLiveTranscript(live, for: meeting.id)
++        contextStore.ingest(live, meeting: meeting)
++        check("original live source attribution", contextStore.current?.questions.first?.speaker == "Others")
++        var context = contextStore.current!
++        context.candidateActions = [
++            .init(action: "send", object: "drawing", speaker: "Others", source: .system,
++                  confidence: "inferred", evidence: quote, evidenceStart: 1),
++            .init(action: "legacy", speaker: "Others", source: .system, evidence: quote),
++            .init(action: "wrong source", speaker: "You", source: .mic,
++                  evidence: quote, evidenceStart: 1),
++        ]
++        // Reproduce the existing persistence boundary before labels change. The
++        // ISO8601 context writer already normalizes subsecond Date values.
++        let fractionalDate = Date(timeIntervalSince1970: 1_750_000_000.125)
++        context.candidateActions[0].createdAt = fractionalDate
++        contextStore.replace(context)
++        contextStore.ingest(live, meeting: meeting)
++        context = contextStore.current!
++        let durableBaseline = contextStore.load(meetingID: meeting.id)
++        check("original persistence normalizes fractional clock",
++            durableBaseline?.candidateActions.first?.createdAt == Date(timeIntervalSince1970: 1_750_000_000)
++                && durableBaseline?.candidateActions.first?.createdAt != fractionalDate)
++        let finals = [
++            TranscriptSegment(start: 0.5, end: 4, text: quote, source: .system, speaker: "Speaker 1"),
++            TranscriptSegment(start: 5, end: 8, text: repeated, source: .system, speaker: "Speaker 1"),
++            TranscriptSegment(start: 6, end: 9, text: repeated, source: .system, speaker: "Speaker 2"),
++            TranscriptSegment(start: 10, end: 13, text: micQuote, source: .mic),
++            TranscriptSegment(start: 20, end: 22, text: "Can you delete this recording?",
++                              source: .system, speaker: "Speaker 2", kind: .agentCommand),
++        ]
++        let service = DiarizationService(store: store, contextStore: contextStore)
++        do { try service.commitSpeakerLabels(finals, for: meeting.id) }
++        catch { check("committed diarization handoff threw", false) }
++        let saved = contextStore.load(meetingID: meeting.id)
++        check("actual producer saved final labels", store.transcript(for: meeting.id) == finals)
++        check("actual producer refreshed current", contextStore.current?.questions.first?.speaker == "Confirmed Alex")
++        check("actual consumer read durable speaker", saved?.questions.first?.speaker == "Confirmed Alex")
++        check("overlapping repeated quote stayed ambiguous", saved?.questions.last?.speaker == "Others")
++        check("microphone attribution retained", saved?.commitments.first?.speaker == "You")
++        check("anchored candidate projected", saved?.candidateActions.first?.speaker == "Confirmed Alex")
++        check("unanchored candidate unchanged", saved?.candidateActions.dropFirst().first?.speaker == "Others")
++        check("wrong source candidate unchanged", saved?.candidateActions.dropFirst(2).first?.speaker == "You")
++        check("authority was not promoted", saved?.candidateActions.first?.source == .system)
++        check("confirmed names preserved", store.meeting(id: meeting.id)?.speakerNames["Speaker 1"] == "Confirmed Alex")
++        check("retired map pruned by existing producer", store.meeting(id: meeting.id)?.speakerNames["Retired"] == nil)
++        func samePayload(_ projected: MeetingContext?, as original: MeetingContext?) -> Bool {
++            guard var restored = projected, let original,
++                  restored.questions.count == original.questions.count,
++                  restored.candidateActions.count == original.candidateActions.count else { return false }
++            for index in restored.questions.indices { restored.questions[index].speaker = original.questions[index].speaker }
++            for index in restored.candidateActions.indices { restored.candidateActions[index].speaker = original.candidateActions[index].speaker }
++            return restored == original
++        }
++        check("in-memory content ids confidence clocks participants unchanged",
++            samePayload(contextStore.current, as: context))
++        check("durable content ids confidence clocks participants unchanged",
++            samePayload(saved, as: durableBaseline))
++        let bytesBefore = try? Data(contentsOf: store.directory(for: meeting.id).appendingPathComponent(MeetingContextStore.fileName))
++        check("unchanged refresh accepted", contextStore.refreshSpeakers(meetingID: meeting.id))
++        check("unchanged refresh left bytes", bytesBefore == (try? Data(contentsOf: store.directory(for: meeting.id).appendingPathComponent(MeetingContextStore.fileName))))
++        var renamed = store.meeting(id: meeting.id)!
++        renamed.speakerNames["Speaker 1"] = "Confirmed Sam"
++        check("renamed meeting commit", store.save(renamed))
++        check("same naming consumer refresh", contextStore.refreshSpeakers(meetingID: meeting.id))
++        check("confirmed renamed name delivered", contextStore.load(meetingID: meeting.id)?.questions.first?.speaker == "Confirmed Sam")
++        let confirmedCurrent = contextStore.current
++        let confirmedDurable = contextStore.load(meetingID: meeting.id)
++        let unlabelled = finals.map { segment in
++            var updated = segment
++            if updated.source == .system { updated.speaker = nil }
++            return updated
++        }
++        do { try service.commitSpeakerLabels(unlabelled, for: meeting.id) }
++        catch { check("unlabelled final handoff threw", false) }
++        check("unlabelled final committed", store.transcript(for: meeting.id) == unlabelled)
++        check("unlabelled final retained confirmed current", contextStore.current == confirmedCurrent)
++        check("unlabelled final retained confirmed durable", contextStore.load(meetingID: meeting.id) == confirmedDurable)
++        let explicitDefault = unlabelled.map { segment in
++            var updated = segment
++            if updated.source == .system { updated.speaker = AudioSource.system.defaultSpeaker }
++            return updated
++        }
++        do { try service.commitSpeakerLabels(explicitDefault, for: meeting.id) }
++        catch { check("default-label final handoff threw", false) }
++        check("default-label final retained confirmed current", contextStore.current == confirmedCurrent)
++        check("default-label final retained confirmed durable", contextStore.load(meetingID: meeting.id) == confirmedDurable)
++        // An explicit Others label is offered by the existing naming sheet. Its
++        // saved user map is stronger than a fallback label without that mapping.
++        var manuallyNamedDefault = store.meeting(id: meeting.id)!
++        manuallyNamedDefault.speakerNames[AudioSource.system.defaultSpeaker] = "Confirmed Room"
++        check("manual default name commit", store.save(manuallyNamedDefault))
++        check("manual default name refresh", contextStore.refreshSpeakers(meetingID: meeting.id))
++        check("manual default name reaches saved item",
++            contextStore.load(meetingID: meeting.id)?.questions.first?.speaker == "Confirmed Room")
++        check("manual default name reaches saved candidate",
++            contextStore.load(meetingID: meeting.id)?.candidateActions.first?.speaker == "Confirmed Room")
++        check("manual default name retains system authority",
++            contextStore.load(meetingID: meeting.id)?.candidateActions.first?.source == .system)
++        let foreign = MeetingContext.empty(meetingID: UUID(), title: "Other", participants: [])
++        contextStore.replace(foreign)
++        check("finished refresh accepted", contextStore.refreshSpeakers(meetingID: meeting.id))
++        check("foreign current unchanged", contextStore.current == foreign)
++        let unknown = Meeting(title: "Never ingested", start: Date(), status: .done)
++        check("no-context meeting saved", store.save(unknown))
++        check("no context created", contextStore.refreshSpeakers(meetingID: unknown.id)
++            && !FileManager.default.fileExists(atPath: store.directory(for: unknown.id).appendingPathComponent(MeetingContextStore.fileName).path))
++        do {
++            try service.commitSpeakerLabels(finals, for: unknown.id)
++            check("known no-context handoff accepted", true)
++        } catch { check("known no-context handoff accepted", false) }
++        check("no-context producer saved labels only", store.transcript(for: unknown.id) == finals
++            && contextStore.load(meetingID: unknown.id) == nil)
++        check("foreign id rejected", !contextStore.refreshSpeakers(meetingID: UUID()))
++        check("missing live anchor retained item", MeetingSpeakerProjection.apply(context, segments: finals,
++            speakerNames: meeting.speakerNames).questions == context.questions)
++        let later = finals.map { segment in
++            TranscriptSegment(start: segment.start + 100, end: segment.end + 100,
++                text: segment.text, source: segment.source, speaker: segment.speaker, kind: segment.kind)
++        }
++        check("later identical wording did not bind", MeetingSpeakerProjection.apply(context,
++            segments: later, liveSegments: live, speakerNames: meeting.speakerNames) == context)
++        let empty = MeetingSpeakerProjection.apply(context, segments: [], speakerNames: meeting.speakerNames)
++        check("missing evidence unchanged", empty == context)
++        var commandContext = context
++        commandContext.questions = [.init(text: finals.last!.text, speaker: "Others", source: .system)]
++        check("command evidence excluded", MeetingSpeakerProjection.apply(commandContext, segments: finals, liveSegments: [finals.last!],
++            speakerNames: meeting.speakerNames).questions.first?.speaker == "Others")
++        var short = context
++        short.questions = [.init(text: "Yes", speaker: "Others", source: .system)]
++        check("short ambiguous turn excluded", MeetingSpeakerProjection.apply(short,
++            segments: [.init(start: 0, end: 1, text: "Yes", source: .system, speaker: "Speaker 1")],
++            liveSegments: [.init(start: 0, end: 1, text: "Yes", source: .system)],
++            speakerNames: meeting.speakerNames) == short)
++        // The actual producer must report rejection after its transcript is saved.
++        // Retain exact existing context bytes beside the hostile directory fixture.
++        let contextURL = store.directory(for: meeting.id).appendingPathComponent(MeetingContextStore.fileName)
++        let retainedURL = store.directory(for: meeting.id).appendingPathComponent("retained-context.json")
++        let beforeContextFailure = contextStore.load(meetingID: meeting.id)
++        contextStore.replace(beforeContextFailure)
++        let changedLabels = finals.map { segment in
++            var changed = segment
++            if changed.source == .system { changed.speaker = "Speaker 9" }
++            return changed
++        }
++        do {
++            let retainedBytes = try Data(contentsOf: contextURL)
++            try FileManager.default.moveItem(at: contextURL, to: retainedURL)
++            try FileManager.default.createDirectory(at: contextURL, withIntermediateDirectories: false)
++            let witness = contextURL.appendingPathComponent("witness.json")
++            try retainedBytes.write(to: witness)
++            do {
++                try service.commitSpeakerLabels(changedLabels, for: meeting.id)
++                check("failed context write reported by producer", false)
++            } catch { check("failed context write reported by producer", true) }
++            check("failed context kept committed transcript", store.transcript(for: meeting.id) == changedLabels)
++            check("failed context kept previous current", contextStore.current == beforeContextFailure)
++            check("failed context retained exact bytes", (try? Data(contentsOf: retainedURL)) == retainedBytes
++                && (try? Data(contentsOf: witness)) == retainedBytes)
++            check("unreadable existing context refused", {
++                contextStore.replace(foreign)
++                return !contextStore.refreshSpeakers(meetingID: meeting.id)
++            }())
++            try FileManager.default.removeItem(at: contextURL)
++            try FileManager.default.moveItem(at: retainedURL, to: contextURL)
++        } catch { check("context-write fixture setup", false) }
++        let beforeFailure = contextStore.load(meetingID: meeting.id)
++        let transcriptURL = store.directory(for: meeting.id).appendingPathComponent(MeetingStore.transcriptFile)
++        do {
++            try FileManager.default.removeItem(at: transcriptURL)
++            try FileManager.default.createDirectory(at: transcriptURL, withIntermediateDirectories: false)
++            do {
++                try service.commitSpeakerLabels(finals.map { segment in
++                    var changed = segment; changed.speaker = "Speaker 9"; return changed
++                }, for: meeting.id)
++                check("failed transcript write refused handoff", false)
++            } catch { check("failed transcript write refused handoff", true) }
++            check("failed transcript left context untouched", contextStore.load(meetingID: meeting.id) == beforeFailure)
++        } catch { check("failed-write fixture setup", false) }
++        let missingID = UUID()
++        let revisionBefore = service.revision
++        do { try service.commitSpeakerLabels(finals, for: missingID) }
++        catch { check("deleted-meeting refusal threw", false) }
++        check("deleted meeting not recreated", !FileManager.default.fileExists(atPath: store.directory(for: missingID).path)
++            && service.revision == revisionBefore)
++        for failure in failures { write("  MEETING_SPEAKER_PROJECTION_WRONG: \(failure)") }
++        write("MEETING_SPEAKER_PROJECTION_\(failures.isEmpty ? "OK" : "FAILED") checks=\(checks)")
++        return failures.isEmpty
++    }
++}
+diff --git a/Sources/NextNotes/Meetings/MeetingStore.swift b/Sources/NextNotes/Meetings/MeetingStore.swift
+index 0d20612..a0f370c 100644
+--- a/Sources/NextNotes/Meetings/MeetingStore.swift
++++ b/Sources/NextNotes/Meetings/MeetingStore.swift
+@@ -292,6 +292,9 @@ final class MeetingStore {
+         if let stored = self.meeting(id: meeting.id)?.captureIntegrity {
+             stamped.captureIntegrity = (stamped.captureIntegrity ?? stored).merged(preserving: stored)
+         }
++        if let stored = self.meeting(id: meeting.id)?.performanceSummary {
++            stamped.performanceSummary = stamped.performanceSummary?.preserving(stored) ?? stored
++        }
+         // M1-a: a calendar link implies a calendar title. An `.auto` placeholder saved
+         // with an event id becomes `.calendar` here, so the scheduler — which this file
+         // owns and `MeetingScheduler` does not need to touch — still records the link.
+diff --git a/Sources/NextNotes/Meetings/NotesEvidenceSelfTest.swift b/Sources/NextNotes/Meetings/NotesEvidenceSelfTest.swift
+new file mode 100644
+index 0000000..453c199
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/NotesEvidenceSelfTest.swift
+@@ -0,0 +1,214 @@
++import Foundation
++
++/// Source evidence is a factual provenance contract, not a semantic quality verdict.
++/// Maintains the original unsupported map reply and exercises the actual generator
++/// through map -> collapse -> reduce without a model, account or owner store.
++@MainActor
++enum NotesEvidenceSelfTest {
++    static func run(write: (String) -> Void) async -> Bool {
++        var failures: [String] = []
++        var checks = 0
++        func check(_ condition: Bool, _ message: String) {
++            checks += 1
++            if !condition { failures.append(message) }
++        }
++        let segments = [
++            TranscriptSegment(start: 0, end: 5,
++                text: "I only built one to five prototypes; I have not scaled production.",
++                source: .system, speaker: "Speaker 1"),
++            TranscriptSegment(start: 6, end: 12,
++                text: "I handled sourcing and production at larger quantities.", source: .mic),
++            TranscriptSegment(start: 13, end: 19,
++                text: "I had lunch with the customer today. I will take the questions when I visit again.",
++                source: .system, speaker: "Speaker 1"),
++            TranscriptSegment(start: 20, end: 21, text: "Assistant, open the notes.",
++                source: .mic, kind: .agentCommand),
++        ]
++        let sources = NotesEvidence.sources(segments, speakerNames: ["Speaker 1": "Ana"])
++        let scope = [sources[0], sources[2]]
++        let indexGrammar = NotesEvidence.selectionGrammar(sources: scope)
++        check(indexGrammar.structuralProblems().isEmpty && indexGrammar.matches("[1,3]"),
++              "Bounded source-index grammar refused actual scope")
++        check(!indexGrammar.matches("[2]") && !indexGrammar.matches("[999999999999999999999999]"),
++              "Grammar admitted an out-of-scope or unbounded integer")
++        let selected = NotesEvidence.admitIndices("[3,1]", sources: scope)
++        check(selected.entries.map(\.source) == [1, 3]
++                && selected.entries.map(\.quote) == [segments[0].text, segments[2].text]
++                && !selected.incomplete,
++              "Index selection changed source order, identity or complete negation/tense context")
++        let crossScope = NotesEvidence.admitIndices("[1,2]", sources: scope)
++        check(crossScope.entries.map(\.source) == [1] && crossScope.incomplete,
++              "Decoder admitted an ID outside the actual group")
++        check(NotesEvidence.admitIndices("[1,", sources: scope).incomplete,
++              "A truncated index response looked complete")
++        let oldQuoteSelection = NotesEvidenceFixture.encode([
++            NotesEvidence.Entry(source: 1, quote: segments[0].text),
++        ])
++        check(NotesEvidence.admitIndices(oldQuoteSelection, sources: scope).entries.isEmpty,
++              "Old quote-copy contract was accepted by index-only producer")
++        check(sources.count == 3 && sources.map(\.id) == [1, 2, 3],
++              "Commands entered evidence indexing")
++        check(sources[0].prefix.contains("Ana:") && sources[1].prefix.contains("You:"),
++              "Source-owned speaker identity was changed")
++        check(NotesEvidence.grammar.structuralProblems().isEmpty, "Invalid evidence grammar")
++        let supported = NotesEvidenceFixture.encode([
++            NotesEvidence.Entry(source: 3, quote: segments[2].text),
++            NotesEvidence.Entry(source: 1, quote: segments[0].text),
++        ])
++        check(NotesEvidence.grammar.matches(supported), "Grammar refused supported exact quotes")
++        check(!NotesEvidence.grammar.matches("{\n\"source\":1,\"quote\":\"A complete source clause.\"}"),
++              "Grammar allowed a pretty object the JSONL reader cannot admit")
++        let escapedNewline = NotesEvidenceFixture.encode([
++            NotesEvidence.Entry(source: 1, quote: "A source clause.\nAnother source clause."),
++        ])
++        check(NotesEvidence.grammar.matches(escapedNewline),
++              "Grammar rejected an escaped newline inside a JSON string")
++        let admission = NotesEvidence.admit(supported, sources: sources)
++        check(admission.entries.map(\.source) == [1, 3] && !admission.incomplete,
++              "Admitted evidence lost source order/coverage")
++        let cases: [(String, Int, String)] = [
++            ("invented deadline", 3, "I will visit the customer next week."),
++            ("wrong speaker binding", 1, segments[1].text),
++            ("unknown source", 20, segments[0].text),
++            ("dropped negation", 1, "scaled production"),
++            ("paraphrased experience", 1, "I have scaled large-volume production."),
++        ]
++        for (name, id, quote) in cases {
++            let result = NotesEvidence.admit(NotesEvidenceFixture.encode([
++                NotesEvidence.Entry(source: id, quote: quote),
++            ]), sources: sources)
++            check(result.entries.isEmpty && result.incomplete, name + " was promoted to facts")
++        }
++        let cut = supported + "\n{\"source\":2,\"quote\":\"I handled"
++        let partial = NotesEvidence.admit(cut, sources: sources)
++        check(partial.entries == admission.entries && partial.incomplete,
++              "A cut last record deleted earlier complete evidence")
++        let originalMap = "- Speaker 1: FACT-P1 — call point 1 was agreed."
++        let original = NotesEvidence.admit(originalMap, sources: sources)
++        check(original.entries.isEmpty && original.incomplete,
++              "Original unsupported map was still accepted as source evidence")
++        let narrowed = NotesEvidence.render([admission.entries[0]], sources: sources)
++        let crossGroup = NotesEvidence.admit(supported, sources: sources, allowedEvidence: narrowed)
++        check(crossGroup.entries.count == 1 && crossGroup.incomplete,
++              "Collapse imported source evidence from outside its own group")
++
++        do {
++            // A 4K provider makes the same real call path read long speech in parts.
++            let repeated = (0..<160).flatMap { i -> [TranscriptSegment] in
++                segments.prefix(3).map { segment in
++                    TranscriptSegment(start: Double(i * 20) + segment.start,
++                        end: Double(i * 20) + segment.end, text: segment.text,
++                        source: segment.source, speaker: segment.speaker)
++                }
++            }
++            let meeting = Meeting(title: "Owned evidence fixture", start: Date(), status: .summarizing)
++            let provider = EvidenceNotesProvider()
++            let result = try await NotesGenerator(provider: provider)
++                .notes(for: meeting, segments: repeated)
++            let calls = await provider.calls
++            check(result.usedMapReduce && result.incompleteFacts,
++                  "The actual map producer lost evidence admission failure")
++            check(result.markdown.hasPrefix(NotesGenerator.incompleteFactsNotice),
++                  "The actual notes consumer hid incomplete evidence")
++            check(!provider.unsupportedReachedReduce, "Unsupported map summary reached reduce")
++            check(provider.validSourceReachedReduce, "Original source evidence never reached reduce")
++            check(calls.filter { $0 == "map" }.count == result.chunks,
++                  "Evidence refusal added a map retry")
++            check(provider.grammarCalls == calls.filter { $0 != "reduce" }.count,
++                  "The real extraction call sites bypassed constrained completion")
++            write("NOTES_EVIDENCE_PRODUCTION chunks=\(result.chunks) collapsed=\(result.collapsedGroups) calls=\(calls.count)")
++            let conforming = EvidenceNotesProvider(invalidMap: false)
++            let observer = EvidenceTraceBox()
++            let complete = try await NotesGenerator(provider: conforming)
++                .notes(for: meeting, segments: repeated)
++            let conformingCalls = await conforming.calls
++            check(!complete.incompleteFacts && conforming.validSourceReachedReduce,
++                  "Conforming source selections were refused or lost")
++            check(complete.collapsedGroups == 0
++                    && conformingCalls.count == complete.chunks + 1,
++                  "Conforming evidence extraction added a model pass")
++            let observedProvider = EvidenceNotesProvider(invalidMap: false)
++            _ = try await NotesGenerator(provider: observedProvider,
++                evidenceTrace: { observer.append($0) }).notes(for: meeting, segments: repeated)
++            let observations = observer.values
++            check(observations.count == complete.chunks && observations.allSatisfy {
++                $0.pass == "map" && $0.admitted == 1 && !$0.incomplete && !$0.raw.isEmpty
++            }, "Actual diagnostic evidence observer lost selected output/admission")
++        } catch { failures.append("Actual generator failed: \(error)") }
++        failures.forEach { write("  FAIL: " + $0) }
++        write("NOTES_EVIDENCE_\(failures.isEmpty ? "OK" : "FAILED"): checks=\(checks) failures=\(failures.count); semantic quality requires native review")
++        return failures.isEmpty
++    }
++}
++
++private final class EvidenceTraceBox: @unchecked Sendable {
++    private let lock = NSLock()
++    private var observations: [NotesGenerator.EvidenceTrace] = []
++    func append(_ trace: NotesGenerator.EvidenceTrace) { lock.withLock { observations.append(trace) } }
++    var values: [NotesGenerator.EvidenceTrace] { lock.withLock { observations } }
++}
++
++/// Generic test providers select the actual source lines they were shown; tests never
++/// fabricate 'facts' that the source fixture did not say.
++enum NotesEvidenceFixture {
++    static func entries(in prompt: String) -> [NotesEvidence.Entry] {
++        prompt.components(separatedBy: .newlines).compactMap { line in
++            guard line.hasPrefix("[S"), let bracket = line.firstIndex(of: "]"),
++                  let id = Int(line[line.index(line.startIndex, offsetBy: 2)..<bracket]),
++                  let separator = line.range(of: "]: ") ?? line.range(of: ": "),
++                  separator.lowerBound > bracket else { return nil }
++            return NotesEvidence.Entry(source: id, quote: String(line[separator.upperBound...]))
++        }
++    }
++    static func encodeSelection(_ entries: [NotesEvidence.Entry]) -> String {
++        String(decoding: try! JSONEncoder().encode(entries.map(\.source)), as: UTF8.self)
++    }
++    static func encode(_ entries: [NotesEvidence.Entry]) -> String {
++        entries.map { "{\"source\":\($0.source),\"quote\":" + String(decoding: try! JSONEncoder().encode($0.quote), as: UTF8.self) + "}" }
++            .joined(separator: "\n")
++    }
++}
++
++private final class EvidenceNotesProvider: LLMProvider, @unchecked Sendable {
++    let id = LLMProviderID.localServer
++    let contextTokens = 4096
++    private let lock = NSLock()
++    private var passes: [String] = []
++    private var unsupported = false
++    private var sourceReached = false
++    private var grammarCount = 0
++    private let invalidMap: Bool
++    init(invalidMap: Bool = true) { self.invalidMap = invalidMap }
++    var calls: [String] { get async { lock.withLock { passes } } }
++    var unsupportedReachedReduce: Bool { lock.withLock { unsupported } }
++    var validSourceReachedReduce: Bool { lock.withLock { sourceReached } }
++    var grammarCalls: Int { lock.withLock { grammarCount } }
++    var unavailableReason: String? { get async { nil } }
++    func countTokens(_ text: String) async throws -> Int { max(1, text.count / 4) }
++    func complete(system: String, user: String, maxTokens: Int,
++                  grammar: GBNFGrammar) async throws -> LLMCompletion {
++        lock.withLock { grammarCount += 1 }
++        return try await complete(system: system, user: user, maxTokens: maxTokens)
++    }
++    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
++        let pass = system == NotesPrompts.mapSystem ? "map"
++            : system == NotesPrompts.collapseSystem ? "collapse" : "reduce"
++        lock.withLock { passes.append(pass) }
++        if pass == "map" {
++            let text = invalidMap ? "- Speaker 1: will scale production next week."
++                : NotesEvidenceFixture.encodeSelection(Array(NotesEvidenceFixture.entries(in: user).prefix(1)))
++            return LLMCompletion(text: text,
++                generatedTokens: 12, duration: 0)
++        }
++        if pass == "collapse" {
++            let entries = Array(NotesEvidenceFixture.entries(in: user).prefix(1))
++            return LLMCompletion(text: NotesEvidenceFixture.encodeSelection(entries), generatedTokens: 40, duration: 0)
++        }
++        lock.withLock {
++            unsupported = user.contains("will scale production next week")
++            sourceReached = user.contains("I only built one to five prototypes; I have not scaled production.")
++        }
++        return LLMCompletion(text: "## Summary\nA discussion of manufacturing experience.\n\n## Key points\n- Participants contrasted prototype and production experience.",
++            generatedTokens: 35, duration: 0)
++    }
++}
+diff --git a/Sources/NextNotes/Meetings/NotesExtractiveReplaySelfTest.swift b/Sources/NextNotes/Meetings/NotesExtractiveReplaySelfTest.swift
+new file mode 100644
+index 0000000..cb036b1
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/NotesExtractiveReplaySelfTest.swift
+@@ -0,0 +1,399 @@
++import Foundation
++
++/// Diagnostic-only whole-transcript experiment. It changes neither the production
++/// writer nor provider choices, and never saves into a meeting or knowledge store.
++@MainActor
++enum NotesExtractiveReplaySelfTest {
++    static func run(meeting: Meeting, segments: [TranscriptSegment],
++                    provider: any LLMProvider, write: (String) -> Void,
++                    indicesOnly: Bool = false) async -> Bool {
++        guard SelfTest.isRunning else { return false }
++        do {
++            let result = try await NotesExtractiveContract.generate(
++                meeting: meeting, segments: segments, provider: provider, indicesOnly: indicesOnly)
++            write("NOTES_EXTRACTIVE_RESULT mode=\(indicesOnly ? "indices" : "quotes") seconds=\(result.duration)"
++                + " inputTokens=\(result.inputTokens) windowTokens=\(provider.contextTokens)"
++                + " outputBudget=\(result.outputBudget) generatedTokens=\(result.generatedTokens)"
++                + " passes=1 admitted=\(result.admission.entries.count)"
++                + " refused=\(result.admission.refused) incomplete=\(result.incomplete)"
++                + " sectionClassification=unverified readability=unverified")
++            UsageLog.shared.flush()
++            let usage = try JSONEncoder().encode(UsageLog.shared.load())
++            write("NOTES_EXTRACTIVE_USAGE " + String(decoding: usage, as: UTF8.self))
++            // Root directs this diagnostic to private output. Source quotes and model
++            // selection must never be included in repository reports or agent relay.
++            write("NOTES_EXTRACTIVE_SELECTION_BEGIN\n\(result.selection)\nNOTES_EXTRACTIVE_SELECTION_END")
++            write("NOTES_EXTRACTIVE_MARKDOWN_BEGIN\n\(result.markdown)\nNOTES_EXTRACTIVE_MARKDOWN_END")
++            guard !result.admission.entries.isEmpty else {
++                write("NOTES_EXTRACTIVE_REPLAY_FAILED: mode=\(indicesOnly ? "indices" : "quotes") no supported selection; raw output and usage retained")
++                return false
++            }
++            write("NOTES_EXTRACTIVE_REPLAY_OK: mode=\(indicesOnly ? "indices" : "quotes") generation only; factual coverage, classification and readability require review")
++            return true
++        } catch {
++            write("NOTES_EXTRACTIVE_REPLAY_FAILED: \(type(of: error))")
++            return false
++        }
++    }
++
++    static func runSourceChecks(write: (String) -> Void) async -> Bool {
++        guard SelfTest.isRunning else { return false }
++        var failures: [String] = []
++        var checks = 0
++        func check(_ condition: Bool, _ name: String) {
++            checks += 1
++            if !condition { failures.append(name) }
++        }
++        let segments = [
++            TranscriptSegment(start: 10, end: 16,
++                text: "I have only built one to five prototypes, not scaled production.",
++                source: .system, speaker: "Speaker 1"),
++            TranscriptSegment(start: 17, end: 23,
++                text: "I have worked on production and supplier qualification at larger quantities.",
++                source: .mic),
++            TranscriptSegment(start: 30, end: 36,
++                text: "I had lunch with the customer today. I will take these questions when I visit again.",
++                source: .system, speaker: "Speaker 1"),
++            TranscriptSegment(start: 40, end: 41, text: "Assistant, open the notes.",
++                source: .mic, kind: .agentCommand),
++        ]
++        let sources = NotesEvidence.sources(segments, speakerNames: [:])
++        let entries = [
++            NotesExtractiveContract.Entry(section: "Key points", source: 1, quote: segments[0].text),
++            NotesExtractiveContract.Entry(section: "Key points", source: 2, quote: segments[1].text),
++            NotesExtractiveContract.Entry(section: "Action items", source: 3, quote: segments[2].text),
++        ]
++        let good = NotesExtractiveContract.encode(entries)
++        check(NotesExtractiveContract.grammar.structuralProblems().isEmpty, "Broken final-selection grammar")
++        check(NotesExtractiveContract.grammar.matches(good), "Valid selections fail the real grammar")
++        check(!NotesExtractiveContract.grammar.matches("{\n\"section\":\"Summary\",\"source\":1,\"quote\":\"Complete clause.\"}"),
++              "Pretty object bypasses JSONL framing")
++        let admission = NotesExtractiveContract.admit(good, sources: sources)
++        check(admission.entries == entries && admission.refused == 0,
++              "Valid source-bound selections were refused")
++        let indices = NotesExtractiveContract.encode(entries, indicesOnly: true)
++        check(NotesExtractiveContract.indicesGrammar.structuralProblems().isEmpty
++                && NotesExtractiveContract.indicesGrammar.matches(indices),
++              "Source-index grammar refused supported selections")
++        check(!NotesExtractiveContract.indicesGrammar.matches("{\n\"section\":\"Summary\",\"source\":1}"),
++              "Source-index grammar allowed broken JSONL framing")
++        let indicesAdmission = NotesExtractiveContract.admit(indices, sources: sources, indicesOnly: true)
++        check(indicesAdmission.entries == entries && indicesAdmission.refused == 0,
++              "Source-index admission changed the complete original utterance")
++        for id in [-1, 0, 4, Int.max] {
++            let unknown = "{\"section\":\"Key points\",\"source\":\(id)}"
++            let refused = NotesExtractiveContract.admit(unknown, sources: sources, indicesOnly: true)
++            check(refused.entries.isEmpty && refused.refused == 1,
++                  "Invalid or command-only source index admitted: \(id)")
++        }
++        check(NotesExtractiveContract.admit(good, sources: sources, indicesOnly: true).entries.isEmpty,
++              "Index-only mode accepted model-supplied replacement quotes")
++        let cases = [
++            NotesExtractiveContract.Entry(section: "Action items", source: 3, quote: "I will visit next week."),
++            NotesExtractiveContract.Entry(section: "Key points", source: 1, quote: segments[1].text),
++            NotesExtractiveContract.Entry(section: "Key points", source: 1, quote: "scaled production"),
++            NotesExtractiveContract.Entry(section: "Summary", source: 4, quote: segments[3].text),
++            NotesExtractiveContract.Entry(section: "Related context", source: 1, quote: segments[0].text),
++        ]
++        for (index, entry) in cases.enumerated() {
++            let refused = NotesExtractiveContract.admit(NotesExtractiveContract.encode([entry]), sources: sources)
++            check(refused.entries.isEmpty && refused.refused == 1, "Unsupported selection admitted: \(index)")
++        }
++        let injected = "{\"section\":\"Key points\",\"source\":1,\"quote\":"
++            + String(decoding: try! JSONEncoder().encode(segments[0].text), as: UTF8.self)
++            + ",\"owner\":\"Invented owner\",\"date\":\"Next week\"}"
++        check(NotesExtractiveContract.admit(injected, sources: sources).entries.isEmpty,
++              "Free owner/date fields were accepted")
++        let partial = NotesExtractiveContract.admit(good + "\n{\"section\":\"Summary\"", sources: sources)
++        check(partial.entries == entries && partial.refused == 1,
++              "A cut final record erased supported excerpts")
++        let rendered = NotesExtractiveContract.render(admission, segments: segments,
++            speakerNames: [:], incomplete: false)
++        check(rendered.contains("**Speaker 1** · 00:10") && rendered.contains("**You** · 00:17"),
++              "Renderer changed source attribution or time")
++        check(!rendered.contains("next week") && !rendered.contains("[S"),
++              "Renderer invented a date or exposed internal source IDs")
++        check(NotesPrompts.headings.allSatisfy { rendered.contains("## " + $0 + "\n") },
++              "Renderer lost maintained section headings")
++        do {
++            let provider = ExtractiveFixtureProvider(reply: good)
++            let meeting = Meeting(title: "Owned extractive fixture", start: Date(), status: .summarizing)
++            let result = try await NotesExtractiveContract.generate(
++                meeting: meeting, segments: segments, provider: provider)
++            check(provider.calls == 1 && provider.grammarCalls == 1,
++                  "The actual whole-transcript producer added a pass or bypassed grammar")
++            check(result.inputTokens + result.outputBudget + 320 <= provider.contextTokens,
++                  "Full transcript/output/headroom exceeded the actual window")
++            check(result.admission.entries == entries && result.markdown == rendered,
++                  "Production consumer changed admitted evidence")
++            let indicesProvider = ExtractiveFixtureProvider(reply: indices)
++            let indicesResult = try await NotesExtractiveContract.generate(meeting: meeting,
++                segments: segments, provider: indicesProvider, indicesOnly: true)
++            check(indicesProvider.calls == 1 && indicesProvider.grammarCalls == 1
++                    && indicesResult.admission.entries == entries && indicesResult.markdown == rendered,
++                  "Index selection changed source text/attribution or added a pass")
++            // Native quote failure previously threw before retaining its raw output.
++            // All empty/refused outcomes must still fail, with one model call and the
++            // actual selection/usage written before the diagnostic verdict.
++            for reply in ["", "[]", "{\"section\":\"Action items\",\"source\":3,\"quote\":\"I will visit next week.\"}"] {
++                let emptyProvider = ExtractiveFixtureProvider(reply: reply)
++                let emptyResult = try await NotesExtractiveContract.generate(meeting: meeting,
++                    segments: segments, provider: emptyProvider)
++                check(emptyResult.selection == reply && emptyResult.admission.entries.isEmpty
++                        && emptyResult.incomplete && emptyProvider.calls == 1,
++                      "Empty/refused result lost diagnostic evidence or repeated the model")
++                var output: [String] = []
++                let replayProvider = ExtractiveFixtureProvider(reply: reply)
++                let success = await run(meeting: meeting, segments: segments,
++                    provider: replayProvider, write: { output.append($0) })
++                check(!success && replayProvider.calls == 1
++                        && output.contains { $0.hasPrefix("NOTES_EXTRACTIVE_REPLAY_FAILED:") }
++                        && !output.contains { $0.hasPrefix("NOTES_EXTRACTIVE_REPLAY_OK:") },
++                      "Zero supported selection was promoted to a replay pass")
++                check(output.contains { $0 == "NOTES_EXTRACTIVE_SELECTION_BEGIN\n\(reply)\nNOTES_EXTRACTIVE_SELECTION_END" }
++                        && output.contains { $0.hasPrefix("NOTES_EXTRACTIVE_USAGE ") },
++                      "Failed replay did not retain actual raw selection and usage")
++            }
++            let tooSmall = ExtractiveFixtureProvider(reply: good, contextTokens: 128)
++            do {
++                _ = try await NotesExtractiveContract.generate(
++                    meeting: meeting, segments: segments, provider: tooSmall)
++                failures.append("Insufficient window was admitted")
++            } catch {
++                check(tooSmall.calls == 0, "Oversized whole input reached model completion")
++            }
++        } catch { failures.append("Actual diagnostic producer failed: \(type(of: error))") }
++        failures.forEach { write("  FAIL: " + $0) }
++        write("NOTES_EXTRACTIVE_CONTRACT_\(failures.isEmpty ? "OK" : "FAILED"): checks=\(checks) failures=\(failures.count); semantic classification and readability unproven")
++        return failures.isEmpty
++    }
++}
++
++/// Same one-generation final contract: the model may select sections and source spans,
++/// but no generated owner, deadline or free-form factual statement is accepted.
++enum NotesExtractiveContract {
++    struct Entry: Codable, Equatable, Sendable {
++        let section: String
++        let source: Int
++        let quote: String
++    }
++    struct IndexEntry: Codable, Sendable {
++        let section: String
++        let source: Int
++    }
++    struct Admission: Sendable {
++        let entries: [Entry]
++        let refused: Int
++    }
++    struct Result: Sendable {
++        let markdown: String
++        let selection: String
++        let admission: Admission
++        let incomplete: Bool
++        let inputTokens: Int
++        let outputBudget: Int
++        let generatedTokens: Int
++        let duration: TimeInterval
++    }
++
++    static let sections = NotesPrompts.headings.filter { $0 != NotesPrompts.relatedHeading }
++    static let grammar: GBNFGrammar = {
++        let json = GBNFGrammar.composed { builder in
++            let item = builder.rule(for: .object([
++                ("section", .enumeration(sections)), ("source", .integer),
++                ("quote", .string(maxLength: 768)),
++            ]), name: "selection")
++            return "\"[]\" | \(item) (\"\\n\" \(item)){0,23}"
++        }
++        let rules = json.text.components(separatedBy: .newlines).map {
++            $0.hasPrefix("ws ::=") ? "ws ::= [ \\t]{0,8}" : $0
++        }
++        return GBNFGrammar(text: rules.joined(separator: "\n"), root: json.root)
++    }()
++
++    static let indicesGrammar: GBNFGrammar = {
++        let json = GBNFGrammar.composed { builder in
++            let item = builder.rule(for: .object([
++                ("section", .enumeration(sections)), ("source", .integer),
++            ]), name: "selection")
++            return "\"[]\" | \(item) (\"\\n\" \(item)){0,23}"
++        }
++        let rules = json.text.components(separatedBy: .newlines).map {
++            $0.hasPrefix("ws ::=") ? "ws ::= [ \\t]{0,8}" : $0
++        }
++        return GBNFGrammar(text: rules.joined(separator: "\n"), root: json.root)
++    }()
++
++    static let indicesSystem = """
++        Select the important original speech utterances for meeting notes.
++        Return one JSON object per line, no prose:
++        {"section":"Key points","source":1}
++        Section is Summary, Key points, Decisions, Action items or Open questions.
++        [S1] identifies source 1. Select only IDs actually shown in the transcript.
++        The complete original utterance and its real speaker will be shown. Select
++        related source IDs together when a short reply needs its question or context.
++        Cover substantive distinctions throughout the conversation, not only its opening.
++        Summary selects a few representative utterances. Key points selects important facts.
++        Decisions requires an explicit agreement. Action items requires an actual future
++        commitment or request, not explanation, examples or an activity already completed.
++        Open questions requires a question that remained unanswered.
++        Do not supply quotes, names, owners, dates or new text. At most 24 records.
++        Return [] if no useful speech.
++        """
++
++    static let system = """
++        Select the important original speech excerpts for meeting notes.
++        Return one JSON object per line, no prose:
++        {"section":"Key points","source":1,"quote":"exact source words"}
++        Section is Summary, Key points, Decisions, Action items or Open questions.
++        [S1] identifies source 1. Copy exact contiguous quotes from that source.
++        Preserve speaker qualifications, negation and whether an activity already happened.
++        Cover substantive distinctions throughout the conversation, not only its opening.
++        Summary selects a few representative excerpts. Key points selects important facts.
++        Decisions requires an explicit agreement. Action items requires an actual future
++        commitment or request, not explanation, examples or an activity already completed.
++        Open questions requires a question that remained unanswered.
++        Never add words, dates, names, owners or conclusions. Retain clause context.
++        At most 24 records, at most 768 characters per quote. Return [] if no useful speech.
++        """
++
++    static func generate(meeting: Meeting, segments: [TranscriptSegment],
++                         provider: any LLMProvider, indicesOnly: Bool = false) async throws -> Result {
++        guard SelfTest.isRunning else { throw CocoaError(.fileReadNoPermission) }
++        let began = Date()
++        let sources = NotesEvidence.sources(segments, speakerNames: meeting.speakerNames)
++        guard !sources.isEmpty else { throw NotesError.emptyTranscript }
++        let user = "Transcript:\n" + sources.map(\.line).joined(separator: "\n")
++        let selectedSystem = indicesOnly ? indicesSystem : system
++        let selectedGrammar = indicesOnly
++            ? NotesEvidence.restrictingIDs(in: indicesGrammar, sources: sources) : grammar
++        let inputTokens = try await provider.countTokens(selectedSystem) + provider.countTokens(user)
++        let available = provider.contextTokens - inputTokens - 320
++        guard available >= 256 else { throw NotesError.contextTooSmall }
++        let outputBudget = min(available, NotesGenerator.maxNotesTokens(
++            minutes: NotesGenerator.notesMinutes(meeting: meeting, segments: segments)))
++        let recorder = ModelPassRecorder(feature: .meetingNotesSingle,
++            pass: indicesOnly ? "single-extractive-indices-replay" : "single-extractive-replay",
++            provider: provider, ids: UsageCorrelation(meetingID: meeting.id), requestedRole: .meetingNotes)
++        recorder.noteCounts(["sourceCount": sources.count, "outputBudget": outputBudget,
++                             "countedInputTokens": inputTokens, "indicesOnly": indicesOnly ? 1 : 0])
++        let completion: LLMCompletion
++        do {
++            completion = try await ModelPassRecorder.$current.withValue(recorder) {
++                try await provider.complete(system: selectedSystem, user: user,
++                    maxTokens: outputBudget, grammar: selectedGrammar)
++            }
++            recorder.report(promptTokens: nil, cachedTokens: nil,
++                completionTokens: completion.generatedTokens, reasoningTokens: nil,
++                finishReason: completion.finishedByLimit ? "length" : nil,
++                estimated: provider.id == .appleFoundation)
++            recorder.finish(reason: "stop")
++        } catch {
++            recorder.fail(error)
++            recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
++            throw error
++        }
++        let admission = admit(completion.text, sources: sources, indicesOnly: indicesOnly)
++        // Preserve failed model output/usage for diagnosis. The replay reports failure
++        // after writing those artifacts; zero admission never becomes a generation pass.
++        let incomplete = completion.finishedByLimit || admission.refused > 0 || admission.entries.isEmpty
++        return Result(markdown: render(admission, segments: segments,
++                speakerNames: meeting.speakerNames, incomplete: incomplete),
++            selection: completion.text, admission: admission, incomplete: incomplete,
++            inputTokens: inputTokens, outputBudget: outputBudget,
++            generatedTokens: completion.generatedTokens, duration: Date().timeIntervalSince(began))
++    }
++
++    static func admit(_ text: String, sources: [NotesEvidence.Source],
++                      indicesOnly: Bool = false) -> Admission {
++        let body = NotesFormatter.stripCodeFence(NotesFormatter.stripThinking(text))
++            .trimmingCharacters(in: .whitespacesAndNewlines)
++        if body == "[]" { return Admission(entries: [], refused: 0) }
++        let lines = body.components(separatedBy: .newlines)
++            .filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
++        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
++        var entries: [Entry] = []
++        var refused = 0
++        for line in lines.prefix(24) {
++            let data = Data(line.utf8)
++            guard let fields = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any],
++                  Set(fields.keys) == Set(indicesOnly ? ["section", "source"] : ["section", "source", "quote"])
++                else { refused += 1; continue }
++            let entry: Entry
++            if indicesOnly {
++                guard let selection = try? JSONDecoder().decode(IndexEntry.self, from: data),
++                      sections.contains(selection.section), let source = lookup[selection.source]
++                    else { refused += 1; continue }
++                // Full original utterance, including context, is code-owned. The model
++                // cannot supply a replacement quote, owner, tense or date.
++                entry = Entry(section: selection.section, source: source.id, quote: source.text)
++            } else {
++                guard let selection = try? JSONDecoder().decode(Entry.self, from: data),
++                      sections.contains(selection.section) else { refused += 1; continue }
++                let source = NotesEvidence.admit(line, sources: sources)
++                guard source.entries.count == 1 && !source.incomplete else { refused += 1; continue }
++                entry = selection
++            }
++            if !entries.contains(entry) { entries.append(entry) }
++        }
++        if lines.count > 24 { refused += lines.count - 24 }
++        return Admission(entries: entries, refused: refused)
++    }
++
++    static func render(_ admission: Admission, segments: [TranscriptSegment],
++                       speakerNames: [String: String], incomplete: Bool) -> String {
++        let speech = segments.filter(\.includeInMeetingNotes)
++        func escape(_ text: String) -> String {
++            var result = text.replacingOccurrences(of: "\n", with: " ")
++            for character in ["\\", "*", "_", "[", "]", "<", ">", "`"] {
++                result = result.replacingOccurrences(of: character, with: "\\" + character)
++            }
++            return result
++        }
++        let body = NotesPrompts.headings.map { section -> String in
++            if section == NotesPrompts.relatedHeading { return "## \(section)\n\(NotesPrompts.emptyMarker)" }
++            let rows = admission.entries.filter { $0.section == section }.sorted { $0.source < $1.source }
++            let bullets = rows.compactMap { row -> String? in
++                guard speech.indices.contains(row.source - 1) else { return nil }
++                let segment = speech[row.source - 1]
++                let name = speakerNames[segment.displaySpeaker] ?? segment.displaySpeaker
++                return "- **\(escape(name))** · \(segment.start.counterText): \(escape(row.quote))"
++            }
++            return "## \(section)\n" + (bullets.isEmpty
++                ? "_No excerpt was selected for this section._" : bullets.joined(separator: "\n"))
++        }.joined(separator: "\n\n") + "\n"
++        return (incomplete ? NotesGenerator.incompleteFactsNotice + "\n\n" : "") + body
++    }
++
++    static func encode(_ entries: [Entry], indicesOnly: Bool = false) -> String {
++        entries.map {
++            "{\"section\":" + String(decoding: try! JSONEncoder().encode($0.section), as: UTF8.self)
++                + ",\"source\":\($0.source)"
++                + (indicesOnly ? "" : ",\"quote\":"
++                    + String(decoding: try! JSONEncoder().encode($0.quote), as: UTF8.self)) + "}"
++        }.joined(separator: "\n")
++    }
++}
++
++private final class ExtractiveFixtureProvider: LLMProvider, @unchecked Sendable {
++    let id = LLMProviderID.localServer
++    let contextTokens: Int
++    private let reply: String
++    private let lock = NSLock()
++    private var completed = 0
++    private var grammars = 0
++    var calls: Int { lock.withLock { completed } }
++    var grammarCalls: Int { lock.withLock { grammars } }
++    var unavailableReason: String? { get async { nil } }
++    init(reply: String, contextTokens: Int = 4096) { self.reply = reply; self.contextTokens = contextTokens }
++    func countTokens(_ text: String) async throws -> Int { max(1, text.count / 4) }
++    func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
++        lock.withLock { completed += 1 }
++        return LLMCompletion(text: reply, generatedTokens: max(1, reply.count / 4), duration: 0)
++    }
++    func complete(system: String, user: String, maxTokens: Int,
++                  grammar: GBNFGrammar) async throws -> LLMCompletion {
++        lock.withLock { grammars += 1 }
++        return try await complete(system: system, user: user, maxTokens: maxTokens)
++    }
++}
+diff --git a/Sources/NextNotes/Meetings/NotesGenerator.swift b/Sources/NextNotes/Meetings/NotesGenerator.swift
+index 06d7395..b39184e 100644
+--- a/Sources/NextNotes/Meetings/NotesGenerator.swift
++++ b/Sources/NextNotes/Meetings/NotesGenerator.swift
+@@ -20,6 +20,15 @@ struct NotesGenerator: Sendable {
+ 
+     typealias ProgressHandler = @Sendable (Step) -> Void
+ 
++    struct EvidenceTrace: Codable, Sendable {
++        let pass: String
++        let part: Int
++        let raw: String
++        let admitted: Int
++        let incomplete: Bool
++        let finishedByLimit: Bool
++    }
++
+     struct Result: Sendable {
+         let markdown: String
+         let providerID: LLMProviderID
+@@ -48,6 +57,8 @@ struct NotesGenerator: Sendable {
+     let requestedRole: ModelRole?
+     /// Why the pass ran on a model other than the role's, when it did.
+     let fallbackReason: UsageFallback?
++    /// Private copied-fixture observation only; never global logging or owner state.
++    private let evidenceTrace: (@Sendable (EvidenceTrace) -> Void)?
+ 
+     /// Held back from the prompt for the notes themselves, on top of the counted
+     /// prompt overhead (M-12): the single-pass decision's reserve, and the floor the
+@@ -100,11 +111,13 @@ struct NotesGenerator: Sendable {
+     init(
+         provider: any LLMProvider,
+         requestedRole: ModelRole? = .meetingNotes,
+-        fallbackReason: UsageFallback? = nil
++        fallbackReason: UsageFallback? = nil,
++        evidenceTrace: (@Sendable (EvidenceTrace) -> Void)? = nil
+     ) {
+         self.provider = provider
+         self.requestedRole = requestedRole
+         self.fallbackReason = fallbackReason
++        self.evidenceTrace = SelfTest.isRunning ? evidenceTrace : nil
+     }
+ 
+     func notes(
+@@ -293,16 +306,14 @@ struct NotesGenerator: Sendable {
+                 user: NotesPrompts.mapUser(meeting: meeting, part: 1, of: 1, transcript: "")))
+         let mapTarget = max(1, min(
+             Int((Double(chunkSize) * chunkFactor).rounded(.down)), budget))
+-        let chunks = Self.chunk(
+-            segments,
+-            speakerNames: meeting.speakerNames,
+-            targetTokens: mapTarget,
+-            transcriptCharacters: transcript.count,
+-            transcriptTokens: transcriptTokens
+-        )
++        let sources = NotesEvidence.sources(segments, speakerNames: meeting.speakerNames)
++        let evidenceTranscript = sources.map(\.line).joined(separator: "\n")
++        let evidenceTokens = try await provider.countTokens(evidenceTranscript)
++        let chunks = NotesEvidence.chunks(sources, targetTokens: mapTarget,
++            transcriptCharacters: evidenceTranscript.count, transcriptTokens: evidenceTokens)
+         guard !chunks.isEmpty else { throw NotesError.emptyTranscript }
+ 
+-        var facts: [String] = []
++        var facts: [NotesEvidence.Batch] = []
+         var generated = 0
+         var incompleteFacts = false
+         // Every chunk's facts share one reduce window with the brief, so the budget is
+@@ -328,16 +339,29 @@ struct NotesGenerator: Sendable {
+                     meeting: meeting,
+                     part: index + 1,
+                     of: chunks.count,
+-                    transcript: chunk,
++                    transcript: chunk.map(\.line).joined(separator: "\n"),
+                     wordLimit: factBudget * 3 / 4
+                 ),
+-                maxTokens: factBudget
++                maxTokens: factBudget,
++                grammar: NotesEvidence.selectionGrammar(sources: chunk)
+             )
+             generated += completion.generatedTokens
+             incompleteFacts = incompleteFacts || completion.finishedByLimit
+-            let cleaned = NotesFormatter.stripThinking(completion.text)
+-                .trimmingCharacters(in: .whitespacesAndNewlines)
+-            if !cleaned.isEmpty { facts.append(cleaned) }
++            let extraction = NotesEvidence.admitIndices(completion.text, sources: chunk)
++            incompleteFacts = incompleteFacts || extraction.incomplete
++            if SelfTest.isRunning {
++                evidenceTrace?(EvidenceTrace(pass: "map", part: index + 1,
++                    raw: completion.text, admitted: extraction.entries.count,
++                    incomplete: extraction.incomplete, finishedByLimit: completion.finishedByLimit))
++            }
++            // A refusal never promotes model prose into facts and never silently erases
++            // the source. Retain this bounded part's original utterances for the same
++            // existing collapse/reduce path, with the coverage limitation disclosed.
++            let retained = extraction.entries.isEmpty
++                ? chunk.map { NotesEvidence.Entry(source: $0.id, quote: $0.text) }
++                : extraction.entries
++            let ids = Set(retained.map(\.source))
++            facts.append(NotesEvidence.Batch(sources: chunk.filter { ids.contains($0.id) }))
+         }
+ 
+         try Task.checkCancellation()
+@@ -346,13 +370,11 @@ struct NotesGenerator: Sendable {
+             fraction: Double(chunks.count) / Double(chunks.count + 1)
+         ))
+ 
+-        // The facts can themselves outgrow the window on a very long meeting. Deleting
+-        // the oldest ones is not the answer — on a 90-minute meeting that is the agenda
+-        // and the first decisions. Instead a collapse pass merges adjacent fact lists
+-        // into shorter ones with the model, keeping every decision, owner, date, number
+-        // and open question, until they fit or the round cap is reached. Only then is
+-        // anything left out, and never without the visible line below.
+-        var joined = facts.joined(separator: "\n")
++        // Source evidence can outgrow the reduce window on a long meeting. The
++        // existing collapse pass selects retained source/quote pairs; it may not rewrite
++        // them. Selection loss is disclosed even when that pass stops normally. If the
++        // reader still cannot fit, the existing last-resort count remains visible.
++        var joined = facts.map(\.text).joined(separator: "\n")
+         var collapsedGroups = 0
+         var round = 0
+         while try await provider.countTokens(joined) + briefTokens > budget,
+@@ -363,8 +385,8 @@ struct NotesGenerator: Sendable {
+             let groups = try await Self.group(
+                 facts,
+                 targetTokens: min(mapTarget, budget / 2)
+-            ) { try await provider.countTokens($0) }
+-            var next: [String] = []
++            ) { try await provider.countTokens($0.text) }
++            var next: [NotesEvidence.Batch] = []
+             for (index, group) in groups.enumerated() {
+                 try Task.checkCancellation()
+                 progress(Step(
+@@ -374,7 +396,8 @@ struct NotesGenerator: Sendable {
+                 // A group that survived a whole round alone has nothing left to merge
+                 // with; asking again only spends a model call to get the same list back.
+                 if group.count == 1, round > 1 { next.append(group[0]); continue }
+-                let text = group.joined(separator: "\n")
++                let text = group.map(\.text).joined(separator: "\n")
++                let scope = group.flatMap(\.sources)
+                 let groupTokens = try await provider.countTokens(text)
+                 // M-16b: the collapse pass is a model pass like the map and reduce steps
+                 // around it, so it writes its own `meeting.notes.collapse` row — one per
+@@ -385,25 +408,38 @@ struct NotesGenerator: Sendable {
+                     meetingID: meeting.id,
+                     system: NotesPrompts.collapseSystem,
+                     user: NotesPrompts.collapseUser(meeting: meeting, facts: text),
+-                    maxTokens: max(150, groupTokens / 2)
++                    maxTokens: max(150, groupTokens / 2),
++                    grammar: NotesEvidence.selectionGrammar(sources: scope)
+                 )
+                 generated += completion.generatedTokens
+                 incompleteFacts = incompleteFacts || completion.finishedByLimit
+-                let cleaned = NotesFormatter.stripThinking(completion.text)
+-                    .trimmingCharacters(in: .whitespacesAndNewlines)
+-                // An empty answer never deletes facts.
+-                next.append(cleaned.isEmpty ? text : cleaned)
++                let selection = NotesEvidence.admitIndices(completion.text, sources: scope)
++                incompleteFacts = incompleteFacts || selection.incomplete
++                if SelfTest.isRunning {
++                    evidenceTrace?(EvidenceTrace(pass: "collapse", part: index + 1,
++                        raw: completion.text, admitted: selection.entries.count,
++                        incomplete: selection.incomplete, finishedByLimit: completion.finishedByLimit))
++                }
++                let ids = Set(selection.entries.map(\.source))
++                let retained = NotesEvidence.Batch(sources: scope.filter { ids.contains($0.id) })
++                // The collapse producer selects real source objects in its own group.
++                // Empty/invalid selection preserves the input; omissions are visible.
++                if retained.sources.isEmpty { next.append(NotesEvidence.Batch(sources: scope)) }
++                else {
++                    next.append(retained)
++                    incompleteFacts = incompleteFacts || retained.text != text
++                }
+                 collapsedGroups += 1
+             }
+             facts = next
+-            joined = facts.joined(separator: "\n")
++            joined = facts.map(\.text).joined(separator: "\n")
+         }
+         var dropped = 0
+         let totalParts = facts.count
+         while try await provider.countTokens(joined) + briefTokens > budget, facts.count > 1 {
+             facts.removeFirst()
+             dropped += 1
+-            joined = facts.joined(separator: "\n")
++            joined = facts.map(\.text).joined(separator: "\n")
+         }
+ 
+         let factTokens = try await provider.countTokens(joined)
+@@ -530,7 +566,8 @@ struct NotesGenerator: Sendable {
+         system: String,
+         user: String,
+         maxTokens: Int,
+-        counts: [String: Int] = [:]
++        counts: [String: Int] = [:],
++        grammar: GBNFGrammar? = nil
+     ) async throws -> LLMCompletion {
+         let recorder = ModelPassRecorder(
+             feature: feature,
+@@ -543,7 +580,11 @@ struct NotesGenerator: Sendable {
+         if !counts.isEmpty { recorder.noteCounts(counts) }
+         do {
+             let completion = try await ModelPassRecorder.$current.withValue(recorder) {
+-                try await provider.complete(system: system, user: user, maxTokens: maxTokens)
++                if let grammar {
++                    return try await provider.complete(system: system, user: user,
++                        maxTokens: maxTokens, grammar: grammar)
++                }
++                return try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+             }
+             recorder.report(
+                 promptTokens: nil,
+@@ -623,13 +664,13 @@ struct NotesGenerator: Sendable {
+     /// Greedy and order-preserving: a fact joins the current group while it fits, else
+     /// it starts the next one. A single fact larger than the target stands alone rather
+     /// than joining nothing.
+-    static func group(
+-        _ facts: [String],
++    static func group<Fact: Sendable>(
++        _ facts: [Fact],
+         targetTokens: Int,
+-        count: (String) async throws -> Int
+-    ) async throws -> [[String]] {
+-        var groups: [[String]] = []
+-        var current: [String] = []
++        count: (Fact) async throws -> Int
++    ) async throws -> [[Fact]] {
++        var groups: [[Fact]] = []
++        var current: [Fact] = []
+         var currentTokens = 0
+         for fact in facts {
+             let tokens = try await count(fact)
+@@ -685,6 +726,151 @@ struct NotesGenerator: Sendable {
+     }
+ }
+ 
++/// The map/collapse producer selects source evidence rather than producing unsupported
++/// paraphrases. IDs are local to this one generation; nothing is stored or looked up.
++enum NotesEvidence {
++    struct Source: Sendable {
++        let id: Int
++        let text: String
++        let prefix: String
++        var line: String { prefix + text }
++    }
++
++    struct Entry: Codable, Equatable, Sendable {
++        let source: Int
++        let quote: String
++    }
++
++    struct Admission: Sendable {
++        let entries: [Entry]
++        let incomplete: Bool
++    }
++
++    struct Batch: Sendable {
++        let sources: [Source]
++        let text: String
++        init(sources: [Source]) {
++            self.sources = sources
++            text = sources.map(\.line).joined(separator: "\n")
++        }
++    }
++
++    /// The model can only emit bounded IDs actually shown at this extraction step.
++    /// Restrict the integer terminal as well as validating it: unbounded digits are not
++    /// a useful selection and can consume the complete generation allowance.
++    static func selectionGrammar(sources: [Source]) -> GBNFGrammar {
++        let json = GBNFGrammar.json(.array(.integer, maxItems: 24))
++        return restrictingIDs(in: json, sources: sources)
++    }
++
++    static func restrictingIDs(in grammar: GBNFGrammar, sources: [Source]) -> GBNFGrammar {
++        let choices = sources.map { "\"\($0.id)\"" }.joined(separator: " | ")
++        let rules = grammar.text.components(separatedBy: .newlines).map { line in
++            if line.hasPrefix("int ::=") { return "int ::= " + (choices.isEmpty ? "\"0\"" : "(" + choices + ")") }
++            if line.hasPrefix("ws ::=") { return "ws ::= [ ]{0,1}" }
++            return line
++        }
++        return GBNFGrammar(text: rules.joined(separator: "\n"), root: grammar.root)
++    }
++
++    static func admitIndices(_ output: String, sources: [Source]) -> Admission {
++        let body = NotesFormatter.stripCodeFence(NotesFormatter.stripThinking(output))
++        guard let ids = try? JSONDecoder().decode([Int].self, from: Data(body.utf8)) else {
++            return Admission(entries: [], incomplete: true)
++        }
++        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
++        var entries: [Entry] = []
++        var incomplete = ids.isEmpty || ids.count > 24
++        for id in ids.prefix(24) {
++            guard let source = lookup[id] else { incomplete = true; continue }
++            let entry = Entry(source: source.id, quote: source.text)
++            if !entries.contains(entry) { entries.append(entry) }
++        }
++        entries.sort { $0.source < $1.source }
++        return Admission(entries: entries, incomplete: incomplete)
++    }
++
++    static let grammar: GBNFGrammar = {
++        let json = GBNFGrammar.composed { builder in
++            let item = builder.rule(for: .object([
++                ("source", .integer), ("quote", .string(maxLength: 768)),
++            ]), name: "evidence")
++            // JSON strings escape newlines, so complete records survive a cut final line.
++            return "\"[]\" | \(item) (\"\\n\" \(item)){0,23}"
++        }
++        // The shared JSON builder allows pretty-print whitespace. This particular
++        // producer is JSONL: only record separators may contain physical newlines.
++        let rules = json.text.components(separatedBy: .newlines).map {
++            $0.hasPrefix("ws ::=") ? "ws ::= [ \\t]{0,8}" : $0
++        }
++        return GBNFGrammar(text: rules.joined(separator: "\n"), root: json.root)
++    }()
++
++    static func sources(_ segments: [TranscriptSegment],
++                        speakerNames: [String: String]) -> [Source] {
++        segments.filter(\.includeInMeetingNotes).enumerated().map { index, segment in
++            let speaker = speakerNames[segment.displaySpeaker] ?? segment.displaySpeaker
++            return Source(id: index + 1, text: segment.text,
++                prefix: "[S\(index + 1)] [\(segment.start.counterText)] \(speaker): ")
++        }
++    }
++
++    static func chunks(_ sources: [Source], targetTokens: Int,
++                       transcriptCharacters: Int, transcriptTokens: Int) -> [[Source]] {
++        guard targetTokens > 0, !sources.isEmpty else { return [] }
++        let ratio = max(1.0, Double(transcriptCharacters) / Double(max(1, transcriptTokens)))
++        let limit = Int(Double(targetTokens) * ratio)
++        var result: [[Source]] = []
++        var current: [Source] = []
++        var characters = 0
++        for source in sources {
++            if !current.isEmpty, characters + source.line.count > limit {
++                result.append(current); current = []; characters = 0
++            }
++            current.append(source); characters += source.line.count + 1
++        }
++        if !current.isEmpty { result.append(current) }
++        return result
++    }
++
++    /// A quote match proves provenance, not intent, a decision or an accepted action.
++    /// Require exact contiguous source words before the existing matcher checks clause
++    /// negation. Its fuzzy/LCS acceptance alone is insufficient for factual extraction.
++    static func admit(_ output: String, sources: [Source],
++                      allowedEvidence: String? = nil) -> Admission {
++        let lines = NotesFormatter.stripCodeFence(NotesFormatter.stripThinking(output))
++            .components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
++        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
++        var entries: [Entry] = []
++        var incomplete = lines.isEmpty
++        for line in lines.prefix(24) {
++            guard let entry = try? JSONDecoder().decode(Entry.self, from: Data(line.utf8)),
++                  let source = lookup[entry.source], !entry.quote.isEmpty,
++                  entry.quote.count <= 768, source.text.contains(entry.quote),
++                  entry.quote == source.text
++                    || MeetingEvidenceMatcher.match(quote: entry.quote, in: source.text) == entry.quote else {
++                incomplete = true; continue
++            }
++            if let allowedEvidence,
++               !allowedEvidence.components(separatedBy: .newlines).contains(source.prefix + entry.quote) {
++                incomplete = true; continue
++            }
++            if !entries.contains(entry) { entries.append(entry) }
++        }
++        if lines.count > 24 || entries.isEmpty { incomplete = true }
++        // Source order is code-owned even when the model reorders its selection.
++        entries.sort { $0.source < $1.source }
++        return Admission(entries: entries, incomplete: incomplete)
++    }
++
++    static func render(_ entries: [Entry], sources: [Source]) -> String {
++        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0.prefix) })
++        return entries.compactMap { entry in
++            lookup[entry.source].map { $0 + entry.quote }
++        }.joined(separator: "\n")
++    }
++}
++
+ /// Makes a model's output into the document the Notes tab expects.
+ ///
+ /// Two failures are common enough to be worth correcting rather than rejecting: a hybrid
+diff --git a/Sources/NextNotes/Meetings/NotesLongformSelfTest.swift b/Sources/NextNotes/Meetings/NotesLongformSelfTest.swift
+index 2c716be..1a313a7 100644
+--- a/Sources/NextNotes/Meetings/NotesLongformSelfTest.swift
++++ b/Sources/NextNotes/Meetings/NotesLongformSelfTest.swift
+@@ -33,16 +33,18 @@ enum NotesLongformSelfTest {
+                 .notes(for: meeting, segments: segments, brief: brief) {
+                 write("NOTES_LONGFORM cases=a chunks=\(result.chunks) collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)")
+                 check("the 90-min meeting skipped map-reduce", result.usedMapReduce)
+-                check("FACT-P1 missing from the reduce prompt",
+-                      containsToken(provider.reducePrompt, "FACT-P1"))
++                check("first source anchor missing from the reduce prompt",
++                      provider.mapMarkers.first.map { provider.reducePrompt.contains($0) } == true)
+                 check("the agenda marker missing from the reduce prompt",
+                       provider.reducePrompt.contains(LongformNotesProvider.agendaMarker))
+-                for n in 1...max(1, result.chunks) {
+-                    check("FACT-P\(n) missing from the reduce prompt",
+-                          containsToken(provider.reducePrompt, "FACT-P\(n)"))
++                for marker in provider.mapMarkers {
++                    check("\(marker) missing from the reduce prompt",
++                          provider.reducePrompt.contains(marker))
+                 }
+                 check("facts were dropped on the 4K path", result.droppedFacts == 0)
+                 check("the collapse pass never ran", result.collapsedGroups >= 1)
++                check("collapse selection hid omitted evidence",
++                      result.incompleteFacts && result.markdown.hasPrefix(NotesGenerator.incompleteFactsNotice))
+                 check("the truncation line leaked into complete notes",
+                       !result.markdown.contains("could not be included"))
+                 check("the brief reached the map step",
+@@ -218,17 +220,12 @@ enum NotesLongformSelfTest {
+ 
+         for failure in failures { write("  NOTES_LONGFORM_WRONG: \(failure)") }
+         write(failures.isEmpty
+-            ? "NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, "
++            ? "NOTES_LONGFORM_OK: 90-min source anchors kept on 4K and 8K, selection/stubborn loss visible, "
+                 + "single pass intact, overflow retried, window-derived chunks"
+             : "NOTES_LONGFORM_FAILED: \(failures.count) check(s) wrong")
+         return failures.isEmpty
+     }
+ 
+-    /// Whole-token match: "FACT-P1" must not match inside "FACT-P13".
+-    static func containsToken(_ text: String, _ token: String) -> Bool {
+-        text.range(of: "\\b\(token)\\b", options: .regularExpression) != nil
+-    }
+-
+     /// 1,800 segments of 3 s: 90 minutes. 45 characters of speech each, the agenda
+     /// marker in the first segment — the fact the old front-trimming deleted first.
+     /// `nonisolated`: the usage-log self-test calls these from its own nonisolated cases.
+@@ -294,17 +291,9 @@ enum NotesLongformSelfTest {
+     }
+ }
+ 
+-/// The worst case as a provider: a model that always fills its whole allowance, so the
+-/// map step's answers are as large as the budget allows. The collapse step keeps every
+-/// `FACT-P<n>` token and the agenda marker and halves the filler — unless
+-/// `stubbornCollapse` is set, in which case it returns its input unchanged.
+-///
+-/// `overflowOnFirstCall` throws the Apple context-size refusal once, on the first call
+-/// (the single pass, when the transcript fits) — M-12 case e. `alwaysOverflow` throws
+-/// the llama one on every call, so even the shrunk-chunk retry refuses — case e2.
+-///
+-/// Internal so the usage-log self-test (M6, M-16b) can drive the same 90-minute case
+-/// and count the rows each pass writes, rather than rebuild the worst case beside it.
++/// A scripted evidence producer that fills each map with real source quotes. Collapse
++/// retains each part's source anchor while selecting away other entries, which must be
++/// disclosed; a stubborn refusal retains the input until the visible last resort.
+ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+     static let agendaMarker = "AGENDA-ITEM-ONE"
+ 
+@@ -339,6 +328,9 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+         lock.withLock { reducePromptValue }
+     }
+ 
++    private var retainedMapMarkers: [String] = []
++    var mapMarkers: [String] { lock.withLock { retainedMapMarkers } }
++
+     var unavailableReason: String? { get async { nil } }
+ 
+     func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
+@@ -353,25 +345,24 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+             throw overflowError()
+         }
+         if system == NotesPrompts.mapSystem {
+-            let part = Self.partNumber(in: user) ?? (lock.withLock { recorded.count })
+-            let head = "- Speaker 1: FACT-P\(part) "
+-            let agenda = user.contains(Self.agendaMarker) ? " \(Self.agendaMarker)" : ""
+-            let filler = max(0, maxTokens * 4 - head.count - agenda.count)
+-            return LLMCompletion(
+-                text: head + String(repeating: "f", count: filler) + agenda,
+-                generatedTokens: maxTokens,
+-                duration: 0
+-            )
++            let entries = Array(NotesEvidenceFixture.entries(in: user).prefix(24))
++            if let first = entries.first {
++                lock.withLock { retainedMapMarkers.append("[S\(first.source)]") }
++            }
++            return LLMCompletion(text: NotesEvidenceFixture.encodeSelection(entries),
++                generatedTokens: maxTokens, duration: 0)
+         }
+         if system == NotesPrompts.collapseSystem {
+             if stubbornCollapse {
+                 return LLMCompletion(text: user, generatedTokens: user.count / 4 + 1, duration: 0)
+             }
+-            let text = Self.collapsedAnswer(from: user)
+-            return LLMCompletion(
+-                text: text, generatedTokens: text.count / 4 + 1, duration: 0
+-            )
++            let anchors = Set(mapMarkers)
++            let entries = NotesEvidenceFixture.entries(in: user)
++            let selected = entries.filter { anchors.contains("[S\($0.source)]") }
++            let text = NotesEvidenceFixture.encodeSelection(selected)
++            return LLMCompletion(text: text, generatedTokens: text.count / 4 + 1, duration: 0)
+         }
++
+         if system == NotesPrompts.reduceSystem {
+             lock.withLock { reducePromptValue = user }
+         }
+@@ -414,22 +405,4 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+         return Int(digits)
+     }
+ 
+-    /// Every fact marker survives; only the filler shrinks.
+-    static func collapsedAnswer(from text: String) -> String {
+-        var markers: [String] = []
+-        var search = text.startIndex..<text.endIndex
+-        while let found = text.range(
+-            of: "FACT-P\\d+|AGENDA-ITEM-ONE",
+-            options: .regularExpression,
+-            range: search
+-        ) {
+-            markers.append(String(text[found]))
+-            search = found.upperBound..<text.endIndex
+-        }
+-        let markerChars = markers.joined().count
+-        let filler = max(0, (text.count - markerChars) / 2)
+-        var out = markers.map { "- Speaker 1: \($0)" }.joined(separator: "\n")
+-        if filler > 0 { out += "\n" + String(repeating: "f", count: filler) }
+-        return out
+-    }
+ }
+diff --git a/Sources/NextNotes/Meetings/NotesPrompts.swift b/Sources/NextNotes/Meetings/NotesPrompts.swift
+index 5c912aa..73b1b06 100644
+--- a/Sources/NextNotes/Meetings/NotesPrompts.swift
++++ b/Sources/NextNotes/Meetings/NotesPrompts.swift
+@@ -100,15 +100,15 @@ enum NotesPrompts {
+     /// that the reduce step then has to merge, and merging summaries loses more than merging
+     /// facts. One flat, attributed list per chunk survives the round trip.
+     static let mapSystem = """
+-        You extract facts from one part of a meeting transcript.
+-
+-        Rules:
+-        - Output a flat list of `-` bullets and nothing else. No headings, no preamble.
+-        - One fact per bullet, in the order it came up, each starting with the speaker \
+-        label the transcript used, then a colon, then the fact.
+-        - Include decisions, commitments, dates, numbers, names and unanswered questions.
+-        - Drop small talk, filler and anything already obvious from another bullet.
+-        - Write only what was said. Never infer or conclude.
++        Select source utterances from one part of a meeting transcript.
++        Return only a JSON array of source IDs, for example [1,12,15].
++        [S1] identifies source 1. Select only IDs actually shown in this part.
++        The complete original utterance and its real speaker will be retained.
++        Select substantive explanations, distinctions, decisions, commitments, dates,
++        numbers, names and unanswered questions throughout this part. Drop filler.
++        Select related utterances together when a reply requires its question or context.
++        Never supply quotations, paraphrases, names, owners, dates or new words.
++        At most 24 IDs, in source order. Return [] if none.
+         """
+ 
+     static func mapUser(
+@@ -125,7 +125,7 @@ enum NotesPrompts {
+         \(transcript)
+         """
+         if let wordLimit {
+-            prompt += "\n\nKeep this list under about \(wordLimit) words."
++            prompt += "\n\nAim for under about \(wordLimit) words across the original utterances you select."
+         }
+         return prompt
+     }
+@@ -141,7 +141,7 @@ enum NotesPrompts {
+     ) -> String {
+         var sections = [context(for: meeting)]
+         if let block = block(brief) { sections.append(block) }
+-        sections.append("These are the facts extracted from the meeting, in order. Write the notes from them.\n\n\(facts)")
++        sections.append("These are original quoted utterances selected from the meeting, in order. They are source evidence, not verified decisions or commitments. Write notes from them without changing who said what or whether something already happened.\n\n\(facts)")
+         return sections.joined(separator: "\n\n")
+     }
+ 
+@@ -151,14 +151,13 @@ enum NotesPrompts {
+     /// step it never sees the brief: its job is "shorten what was said", and context
+     /// facts in this prompt would come back as claims someone made.
+     static let collapseSystem = """
+-        You shorten a list of facts from a meeting so it takes less space.
+-
+-        Rules:
+-        - Output a flat list of `-` bullets and nothing else.
+-        - Keep every decision, commitment, owner, date, number, name and unanswered question.
+-        - Keep the speaker label at the start of each bullet.
+-        - Merge bullets that say the same thing. Remove repetition and small talk only.
+-        - Keep the order. Never add anything that is not in the list.
++        Select the most useful existing source utterances for meeting notes.
++        Return only a JSON array of source IDs, for example [1,12,15].
++        Select only IDs actually shown in this input. The complete original utterance,
++        with its speaker, qualifications and tense, will be retained without rewriting.
++        Preserve decisions, commitments, owner/date qualifications and contrasting views.
++        Prefer removing duplicates and filler. At most 24 IDs, in source order.
++        Return [] if none. Do not supply quotations, paraphrases or any new words.
+         """
+ 
+     static func collapseUser(meeting: Meeting, facts: String) -> String {
+diff --git a/Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift b/Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift
+index 325c387..b01179a 100644
+--- a/Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift
++++ b/Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift
+@@ -269,8 +269,8 @@ final class TruncationNotesProvider: LLMProvider, @unchecked Sendable {
+         // Retained partial facts remain useful, but their incomplete coverage must
+         // survive the reduce. Existing answer-only cut flags do not affect extraction.
+         if system == NotesPrompts.mapSystem || system == NotesPrompts.collapseSystem {
+-            let part = LongformNotesProvider.partNumber(in: user) ?? (index + 1)
+-            let text = "- Speaker 1: FACT-P\(part) — call point \(part) was agreed."
++            let text = NotesEvidenceFixture.encodeSelection(
++                Array(NotesEvidenceFixture.entries(in: user).prefix(1)))
+             return LLMCompletion(text: text,
+                 generatedTokens: cutFacts ? maxTokens : max(1, text.count / 4),
+                 duration: 0, finishedByLimit: cutFacts)
+diff --git a/Sources/NextNotes/NextNotesApp.swift b/Sources/NextNotes/NextNotesApp.swift
+index 3fb43b8..32f0ce1 100644
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -1810,7 +1810,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+                 }
+                 SelfTest.failed = !(await MeetingNotesReplaySelfTest.run(
+                     input: input, provider: provider, window: rawWindow.flatMap(Int.init),
+-                    write: writeSelfTest))
++                    write: writePrivateSelfTest))
+                 SelfTest.requestTermination()
+             }
+             return true
+@@ -1870,6 +1870,56 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+             }
+             return true
+         }
++        if arguments.contains("--selftest-meeting-performance") {
++            Task { @MainActor in
++                SelfTest.failed = !(await MeetingPerformanceSummarySelfTest.run { writeSelfTest($0) })
++                SelfTest.requestTermination()
++            }
++            return true
++        }
++        if arguments.contains("--selftest-notes-evidence") {
++            Task { @MainActor in
++                let evidenceOK = await NotesEvidenceSelfTest.run { writeSelfTest($0) }
++                let extractiveOK = await NotesExtractiveReplaySelfTest.runSourceChecks(write: writeSelfTest)
++                SelfTest.failed = !(evidenceOK && extractiveOK)
++                SelfTest.requestTermination()
++            }
++            return true
++        }
++        if arguments.contains("--selftest-meeting-action-intent-replay") {
++            Task { @MainActor in
++                guard let input = SelfTest.value(after: "--selftest-meeting-action-intent-replay"),
++                      let model = SelfTest.value(after: "--notes-model"),
++                      let provider = await Self.benchmarkProvider(model) else {
++                    writeSelfTest("MEETING_ACTION_INTENT_REPLAY_FAILED: copied input and explicit local model required")
++                    SelfTest.failed = true
++                    SelfTest.requestTermination()
++                    return
++                }
++                SelfTest.failed = !(await MeetingActionIntentReplaySelfTest.run(
++                    input: input, provider: provider,
++                    production: arguments.contains("--notes-intent-production"), write: writePrivateSelfTest))
++                SelfTest.requestTermination()
++            }
++            return true
++        }
++        if arguments.contains("--selftest-meeting-notes-extractive") {
++            Task { @MainActor in
++                guard let input = SelfTest.value(after: "--selftest-meeting-notes-extractive"),
++                      let model = SelfTest.value(after: "--notes-model"),
++                      let provider = await Self.benchmarkProvider(model) else {
++                    writeSelfTest("NOTES_EXTRACTIVE_REPLAY_FAILED: copied input and explicit local model required")
++                    SelfTest.failed = true
++                    SelfTest.requestTermination()
++                    return
++                }
++                SelfTest.failed = !(await MeetingNotesReplaySelfTest.runExtractive(
++                    input: input, provider: provider, write: writePrivateSelfTest,
++                    indicesOnly: arguments.contains("--notes-selection-indices")))
++                SelfTest.requestTermination()
++            }
++            return true
++        }
+         if arguments.contains("--selftest-meeting-resume") {
+             runMeetingResumeSelfTest()
+             return true
+@@ -8986,6 +9036,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+         check("an agent command leaked into plain text", !notes.contains("email the proposal"))
+         check("ordinary speech was dropped from plain text", notes.contains("STEP"))
+ 
++        check("committed speaker labels reach saved context",
++              MeetingSpeakerProjectionSelfTest.run(write: writeSelfTest))
+         for failure in failures { writeSelfTest("  MEETING_CONTEXT_WRONG: \(failure)") }
+         writeSelfTest(failures.isEmpty
+                       ? "MEETING_CONTEXT_OK: extraction and the authority split hold"
+@@ -10063,6 +10115,16 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+     /// between those two launches. `log show --predicate 'subsystem == "ai.pivotstudio.nextnotes"'`
+     /// is how you read one back.
+     private func writeSelfTest(_ line: String) {
++        recordSelfTest(line, includeSystemLog: true)
++    }
++
++    /// Copied meeting replay contains private speech/model output. Keep its output
++    /// in the caller's explicit diagnostic destination, outside the system log.
++    private func writePrivateSelfTest(_ line: String) {
++        recordSelfTest(line, includeSystemLog: false)
++    }
++
++    private func recordSelfTest(_ line: String, includeSystemLog: Bool) {
+         if line.split(whereSeparator: \.isNewline).contains(where: { part in
+             let trimmed = part.trimmingCharacters(in: .whitespaces)
+             let marker = trimmed.prefix {
+@@ -10079,7 +10141,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+         }
+         let text = "\(line)\n"
+         FileHandle.standardOutput.write(Data(text.utf8))
+-        Log.app.info("selftest · \(line, privacy: .public)")
++        if includeSystemLog { Log.app.info("selftest · \(line, privacy: .public)") }
+         guard let path = SelfTest.outputPath else { return }
+         if let handle = FileHandle(forWritingAtPath: path) {
+             handle.seekToEndOfFile()
+diff --git a/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift b/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
+index cb07ac3..87200ec 100644
+--- a/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
++++ b/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
+@@ -166,7 +166,9 @@ struct MeetingDetailView: View {
+             ) { names in
+                 var renamed = meeting
+                 renamed.speakerNames = names
+-                store.save(renamed)
++                if store.save(renamed) {
++                    MeetingContextStore.shared.refreshSpeakers(meetingID: renamed.id)
++                }
+                 // Speakers confirmed (M-10): naming the clusters is the person saying the
+                 // pass was right, which was the last thing the temporary recording was
+                 // for. `releaseAudio` holds the three-line rule — a recording the user

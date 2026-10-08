@@ -1,0 +1,56 @@
+{
+  "executed_by": "root, coordinated native/compiler owner",
+  "scope": "standalone actual generator/prompts/matcher/grammar with boundary stubs; no native model",
+  "initial_results_retained": "../executed.json and initial logs",
+  "initial_longform_failures": 8,
+  "initial_cause": "Brief stub omitted real labels; original collapse/drop fixture fitted within budget. Introduced no-context positive-drop fixture independently impossible. Counter shim also lacked h:mm:ss.",
+  "boundary_repair": "Shared exact real MeetingNotesBrief, TimeInterval.counterText and transcript plainText source",
+  "baseline": {
+    "compile_exit": 0,
+    "run_exit": 1,
+    "failures": 1,
+    "only_failed_assertion": "the dropped-part warning is not a separate paragraph"
+  },
+  "fixed": {
+    "compile_exit": 0,
+    "run_exit": 0,
+    "legacy_comparison": "PASS",
+    "production_guard": "PASS",
+    "source_evidence_checks": 33,
+    "source_evidence_failures": 0
+  },
+  "comprehensive": {
+    "compile_exit": 0,
+    "run_exit": 0,
+    "legacy_comparison": "PASS",
+    "production_guard": "PASS",
+    "source_evidence_checks": 33,
+    "source_evidence_failures": 0
+  },
+  "shared_original_drop_case": {
+    "chunks": 12,
+    "collapsed": 2,
+    "dropped": 1
+  },
+  "parity_compared": [
+    "exact generic system/user strings",
+    "tokenizer inputs",
+    "output budgets",
+    "typed result counters",
+    "markdown except explicit two-newline assembly change"
+  ],
+  "semantic_quality_proven": false,
+  "native_third_release_acceptance": "pending",
+  "log_hashes": {
+    "baseline-compile.log": "b354b0aee7090002832eb7d0fe1befd0954f029922a1fa5d7d9bd4eab0f9a106",
+    "baseline-run.log": "c52bcf17c14beab5ea716a0ad89105f5d8847879a10617543b0fd99ad6c13127",
+    "comprehensive-comparison.log": "1c8633e088009cddfbd1c95dc980d5bf7f341b5a5b0967e2ff98c17d4cb180fd",
+    "comprehensive-compile.log": "08c3762bfa13f4c31a7ebbdfba45e3a0a2b6e0d85fd8413a302e65e655710220",
+    "comprehensive-production-guard.log": "c5797eb57e4dbf80e47944248bf1372152713b9db5239353e493cebe8043e220",
+    "comprehensive-run.log": "55541242f94761410234b696c1cde75e7bcd6c95dcb586adceca995ba578a06c",
+    "fixed-comparison.log": "1c8633e088009cddfbd1c95dc980d5bf7f341b5a5b0967e2ff98c17d4cb180fd",
+    "fixed-compile.log": "8967af58527ed5b1dc506a36d7fb4a04407eec593585a8a74c11781c697895f6",
+    "fixed-production-guard.log": "c5797eb57e4dbf80e47944248bf1372152713b9db5239353e493cebe8043e220",
+    "fixed-run.log": "55541242f94761410234b696c1cde75e7bcd6c95dcb586adceca995ba578a06c"
+  }
+}

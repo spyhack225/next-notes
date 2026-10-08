@@ -20,6 +20,15 @@ struct NotesGenerator: Sendable {
 
     typealias ProgressHandler = @Sendable (Step) -> Void
 
+    struct EvidenceTrace: Codable, Sendable {
+        let pass: String
+        let part: Int
+        let raw: String
+        let admitted: Int
+        let incomplete: Bool
+        let finishedByLimit: Bool
+    }
+
     struct Result: Sendable {
         let markdown: String
         let providerID: LLMProviderID
@@ -48,6 +57,10 @@ struct NotesGenerator: Sendable {
     let requestedRole: ModelRole?
     /// Why the pass ran on a model other than the role's, when it did.
     let fallbackReason: UsageFallback?
+    /// Private copied-fixture observation only; never global logging or owner state.
+    private let evidenceTrace: (@Sendable (EvidenceTrace) -> Void)?
+    /// Experimental source selection is confined to explicitly requested self-tests.
+    private let sourceIndices: Bool
 
     /// Held back from the prompt for the notes themselves, on top of the counted
     /// prompt overhead (M-12): the single-pass decision's reserve, and the floor the
@@ -100,11 +113,15 @@ struct NotesGenerator: Sendable {
     init(
         provider: any LLMProvider,
         requestedRole: ModelRole? = .meetingNotes,
-        fallbackReason: UsageFallback? = nil
+        fallbackReason: UsageFallback? = nil,
+        evidenceTrace: (@Sendable (EvidenceTrace) -> Void)? = nil,
+        sourceIndices: Bool = false
     ) {
         self.provider = provider
         self.requestedRole = requestedRole
         self.fallbackReason = fallbackReason
+        self.evidenceTrace = SelfTest.isRunning ? evidenceTrace : nil
+        self.sourceIndices = SelfTest.isRunning && sourceIndices
     }
 
     func notes(
@@ -286,23 +303,32 @@ struct NotesGenerator: Sendable {
     ) async throws -> Result {
         // The chunk size derived from the reader's window (M-12), scaled by the
         // caller's factor on a retry.
+        let mapSystem = sourceIndices ? NotesPrompts.mapSelectionSystem : NotesPrompts.mapSystem
         let chunkSize = Self.chunkSize(
             contextTokens: provider.contextTokens,
             mapOverheadTokens: try await countedOverhead(
-                system: NotesPrompts.mapSystem,
+                system: mapSystem,
                 user: NotesPrompts.mapUser(meeting: meeting, part: 1, of: 1, transcript: "")))
         let mapTarget = max(1, min(
             Int((Double(chunkSize) * chunkFactor).rounded(.down)), budget))
-        let chunks = Self.chunk(
-            segments,
-            speakerNames: meeting.speakerNames,
-            targetTokens: mapTarget,
-            transcriptCharacters: transcript.count,
-            transcriptTokens: transcriptTokens
-        )
+        let chunks: [NotesEvidence.Batch]
+        if sourceIndices {
+            let sources = NotesEvidence.sources(segments, speakerNames: meeting.speakerNames)
+            let evidenceTranscript = sources.map(\.line).joined(separator: "\n")
+            let evidenceTokens = try await provider.countTokens(evidenceTranscript)
+            chunks = NotesEvidence.chunks(sources, targetTokens: mapTarget,
+                transcriptCharacters: evidenceTranscript.count, transcriptTokens: evidenceTokens)
+                .map { NotesEvidence.Batch(sources: $0) }
+        } else {
+            // Preserve the production transcript representation, measured ratio and
+            // original chunk boundaries; experimental IDs add no tokenizer call here.
+            chunks = Self.chunk(segments, speakerNames: meeting.speakerNames,
+                targetTokens: mapTarget, transcriptCharacters: transcript.count,
+                transcriptTokens: transcriptTokens).map { NotesEvidence.Batch(text: $0) }
+        }
         guard !chunks.isEmpty else { throw NotesError.emptyTranscript }
 
-        var facts: [String] = []
+        var facts: [NotesEvidence.Batch] = []
         var generated = 0
         var incompleteFacts = false
         // Every chunk's facts share one reduce window with the brief, so the budget is
@@ -323,21 +349,41 @@ struct NotesGenerator: Sendable {
                 feature: .meetingNotesMap,
                 pass: "map",
                 meetingID: meeting.id,
-                system: NotesPrompts.mapSystem,
+                system: mapSystem,
                 user: NotesPrompts.mapUser(
                     meeting: meeting,
                     part: index + 1,
                     of: chunks.count,
-                    transcript: chunk,
-                    wordLimit: factBudget * 3 / 4
+                    transcript: chunk.text,
+                    wordLimit: factBudget * 3 / 4,
+                    sourceIndices: sourceIndices
                 ),
-                maxTokens: factBudget
+                maxTokens: factBudget,
+                grammar: sourceIndices ? NotesEvidence.selectionGrammar(sources: chunk.sources) : nil
             )
             generated += completion.generatedTokens
             incompleteFacts = incompleteFacts || completion.finishedByLimit
-            let cleaned = NotesFormatter.stripThinking(completion.text)
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            if !cleaned.isEmpty { facts.append(cleaned) }
+            if !sourceIndices {
+                let cleaned = NotesFormatter.stripThinking(completion.text)
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                if !cleaned.isEmpty { facts.append(NotesEvidence.Batch(text: cleaned)) }
+                continue
+            }
+            let extraction = NotesEvidence.admitIndices(completion.text, sources: chunk.sources)
+            incompleteFacts = incompleteFacts || extraction.incomplete
+            if SelfTest.isRunning {
+                evidenceTrace?(EvidenceTrace(pass: "map", part: index + 1,
+                    raw: completion.text, admitted: extraction.entries.count,
+                    incomplete: extraction.incomplete, finishedByLimit: completion.finishedByLimit))
+            }
+            // A refusal never promotes model prose into facts and never silently erases
+            // the source. Retain this bounded part's original utterances for the same
+            // existing collapse/reduce path, with the coverage limitation disclosed.
+            let retained = extraction.entries.isEmpty
+                ? chunk.sources.map { NotesEvidence.Entry(source: $0.id, quote: $0.text) }
+                : extraction.entries
+            let ids = Set(retained.map(\.source))
+            facts.append(NotesEvidence.Batch(sources: chunk.sources.filter { ids.contains($0.id) }))
         }
 
         try Task.checkCancellation()
@@ -346,13 +392,11 @@ struct NotesGenerator: Sendable {
             fraction: Double(chunks.count) / Double(chunks.count + 1)
         ))
 
-        // The facts can themselves outgrow the window on a very long meeting. Deleting
-        // the oldest ones is not the answer — on a 90-minute meeting that is the agenda
-        // and the first decisions. Instead a collapse pass merges adjacent fact lists
-        // into shorter ones with the model, keeping every decision, owner, date, number
-        // and open question, until they fit or the round cap is reached. Only then is
-        // anything left out, and never without the visible line below.
-        var joined = facts.joined(separator: "\n")
+        // Facts can outgrow the reduce window. The existing collapse flow shortens
+        // adjacent groups; the diagnostic source-ID mode selects original utterances
+        // without rewriting them. Its selection loss is disclosed. The same last-resort
+        // dropped-part notice remains visible for both modes.
+        var joined = facts.map(\.text).joined(separator: "\n")
         var collapsedGroups = 0
         var round = 0
         while try await provider.countTokens(joined) + briefTokens > budget,
@@ -363,8 +407,8 @@ struct NotesGenerator: Sendable {
             let groups = try await Self.group(
                 facts,
                 targetTokens: min(mapTarget, budget / 2)
-            ) { try await provider.countTokens($0) }
-            var next: [String] = []
+            ) { try await provider.countTokens($0.text) }
+            var next: [NotesEvidence.Batch] = []
             for (index, group) in groups.enumerated() {
                 try Task.checkCancellation()
                 progress(Step(
@@ -374,7 +418,8 @@ struct NotesGenerator: Sendable {
                 // A group that survived a whole round alone has nothing left to merge
                 // with; asking again only spends a model call to get the same list back.
                 if group.count == 1, round > 1 { next.append(group[0]); continue }
-                let text = group.joined(separator: "\n")
+                let text = group.map(\.text).joined(separator: "\n")
+                let scope = group.flatMap(\.sources)
                 let groupTokens = try await provider.countTokens(text)
                 // M-16b: the collapse pass is a model pass like the map and reduce steps
                 // around it, so it writes its own `meeting.notes.collapse` row — one per
@@ -383,27 +428,48 @@ struct NotesGenerator: Sendable {
                     feature: .meetingNotesCollapse,
                     pass: "collapse",
                     meetingID: meeting.id,
-                    system: NotesPrompts.collapseSystem,
+                    system: sourceIndices ? NotesPrompts.collapseSelectionSystem : NotesPrompts.collapseSystem,
                     user: NotesPrompts.collapseUser(meeting: meeting, facts: text),
-                    maxTokens: max(150, groupTokens / 2)
+                    maxTokens: max(150, groupTokens / 2),
+                    grammar: sourceIndices ? NotesEvidence.selectionGrammar(sources: scope) : nil
                 )
                 generated += completion.generatedTokens
                 incompleteFacts = incompleteFacts || completion.finishedByLimit
-                let cleaned = NotesFormatter.stripThinking(completion.text)
-                    .trimmingCharacters(in: .whitespacesAndNewlines)
-                // An empty answer never deletes facts.
-                next.append(cleaned.isEmpty ? text : cleaned)
+                if !sourceIndices {
+                    let cleaned = NotesFormatter.stripThinking(completion.text)
+                        .trimmingCharacters(in: .whitespacesAndNewlines)
+                    // The legacy producer retains its input when the model answers empty.
+                    next.append(NotesEvidence.Batch(text: cleaned.isEmpty ? text : cleaned))
+                    collapsedGroups += 1
+                    continue
+                }
+                let selection = NotesEvidence.admitIndices(completion.text, sources: scope)
+                incompleteFacts = incompleteFacts || selection.incomplete
+                if SelfTest.isRunning {
+                    evidenceTrace?(EvidenceTrace(pass: "collapse", part: index + 1,
+                        raw: completion.text, admitted: selection.entries.count,
+                        incomplete: selection.incomplete, finishedByLimit: completion.finishedByLimit))
+                }
+                let ids = Set(selection.entries.map(\.source))
+                let retained = NotesEvidence.Batch(sources: scope.filter { ids.contains($0.id) })
+                // The collapse producer selects real source objects in its own group.
+                // Empty/invalid selection preserves the input; omissions are visible.
+                if retained.sources.isEmpty { next.append(NotesEvidence.Batch(sources: scope)) }
+                else {
+                    next.append(retained)
+                    incompleteFacts = incompleteFacts || retained.text != text
+                }
                 collapsedGroups += 1
             }
             facts = next
-            joined = facts.joined(separator: "\n")
+            joined = facts.map(\.text).joined(separator: "\n")
         }
         var dropped = 0
         let totalParts = facts.count
         while try await provider.countTokens(joined) + briefTokens > budget, facts.count > 1 {
             facts.removeFirst()
             dropped += 1
-            joined = facts.joined(separator: "\n")
+            joined = facts.map(\.text).joined(separator: "\n")
         }
 
         let factTokens = try await provider.countTokens(joined)
@@ -414,7 +480,8 @@ struct NotesGenerator: Sendable {
             pass: "reduce",
             meetingID: meeting.id,
             system: NotesPrompts.reduceSystem,
-            user: NotesPrompts.reduceUser(meeting: meeting, facts: joined, brief: brief),
+            user: NotesPrompts.reduceUser(meeting: meeting, facts: joined, brief: brief,
+                sourceIndices: sourceIndices),
             promptTokens: factTokens + briefTokens,
             overhead: overheadTokens,
             cap: Self.maxNotesTokens(
@@ -433,7 +500,7 @@ struct NotesGenerator: Sendable {
         let coverage = incompleteFacts ? Self.incompleteFactsNotice + "\n\n" : ""
         return Result(
             markdown: coverage + (dropped > 0
-                ? body + NotesPrompts.truncatedLine(dropped: dropped, of: totalParts) + "\n"
+                ? body + "\n\n" + NotesPrompts.truncatedLine(dropped: dropped, of: totalParts) + "\n"
                 : body),
             providerID: provider.id,
             generatedTokens: generated,
@@ -530,7 +597,8 @@ struct NotesGenerator: Sendable {
         system: String,
         user: String,
         maxTokens: Int,
-        counts: [String: Int] = [:]
+        counts: [String: Int] = [:],
+        grammar: GBNFGrammar? = nil
     ) async throws -> LLMCompletion {
         let recorder = ModelPassRecorder(
             feature: feature,
@@ -543,7 +611,11 @@ struct NotesGenerator: Sendable {
         if !counts.isEmpty { recorder.noteCounts(counts) }
         do {
             let completion = try await ModelPassRecorder.$current.withValue(recorder) {
-                try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+                if let grammar {
+                    return try await provider.complete(system: system, user: user,
+                        maxTokens: maxTokens, grammar: grammar)
+                }
+                return try await provider.complete(system: system, user: user, maxTokens: maxTokens)
             }
             recorder.report(
                 promptTokens: nil,
@@ -623,13 +695,13 @@ struct NotesGenerator: Sendable {
     /// Greedy and order-preserving: a fact joins the current group while it fits, else
     /// it starts the next one. A single fact larger than the target stands alone rather
     /// than joining nothing.
-    static func group(
-        _ facts: [String],
+    static func group<Fact: Sendable>(
+        _ facts: [Fact],
         targetTokens: Int,
-        count: (String) async throws -> Int
-    ) async throws -> [[String]] {
-        var groups: [[String]] = []
-        var current: [String] = []
+        count: (Fact) async throws -> Int
+    ) async throws -> [[Fact]] {
+        var groups: [[Fact]] = []
+        var current: [Fact] = []
         var currentTokens = 0
         for fact in facts {
             let tokens = try await count(fact)
@@ -682,6 +754,155 @@ struct NotesGenerator: Sendable {
             chunks.append(current.plainText(speakerNames: speakerNames))
         }
         return chunks
+    }
+}
+
+/// The map/collapse producer selects source evidence rather than producing unsupported
+/// paraphrases. IDs are local to this one generation; nothing is stored or looked up.
+enum NotesEvidence {
+    struct Source: Sendable {
+        let id: Int
+        let text: String
+        let prefix: String
+        var line: String { prefix + text }
+    }
+
+    struct Entry: Codable, Equatable, Sendable {
+        let source: Int
+        let quote: String
+    }
+
+    struct Admission: Sendable {
+        let entries: [Entry]
+        let incomplete: Bool
+    }
+
+    struct Batch: Sendable {
+        let sources: [Source]
+        let text: String
+        init(sources: [Source]) {
+            self.sources = sources
+            text = sources.map(\.line).joined(separator: "\n")
+        }
+        init(text: String) {
+            sources = []
+            self.text = text
+        }
+    }
+
+    /// The model can only emit bounded IDs actually shown at this extraction step.
+    /// Restrict the integer terminal as well as validating it: unbounded digits are not
+    /// a useful selection and can consume the complete generation allowance.
+    static func selectionGrammar(sources: [Source]) -> GBNFGrammar {
+        let json = GBNFGrammar.json(.array(.integer, maxItems: 24))
+        return restrictingIDs(in: json, sources: sources)
+    }
+
+    static func restrictingIDs(in grammar: GBNFGrammar, sources: [Source]) -> GBNFGrammar {
+        let choices = sources.map { "\"\($0.id)\"" }.joined(separator: " | ")
+        let rules = grammar.text.components(separatedBy: .newlines).map { line in
+            if line.hasPrefix("int ::=") { return "int ::= " + (choices.isEmpty ? "\"0\"" : "(" + choices + ")") }
+            if line.hasPrefix("ws ::=") { return "ws ::= [ ]{0,1}" }
+            return line
+        }
+        return GBNFGrammar(text: rules.joined(separator: "\n"), root: grammar.root)
+    }
+
+    static func admitIndices(_ output: String, sources: [Source]) -> Admission {
+        let body = NotesFormatter.stripCodeFence(NotesFormatter.stripThinking(output))
+        guard let ids = try? JSONDecoder().decode([Int].self, from: Data(body.utf8)) else {
+            return Admission(entries: [], incomplete: true)
+        }
+        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
+        var entries: [Entry] = []
+        var incomplete = ids.isEmpty || ids.count > 24
+        for id in ids.prefix(24) {
+            guard let source = lookup[id] else { incomplete = true; continue }
+            let entry = Entry(source: source.id, quote: source.text)
+            if !entries.contains(entry) { entries.append(entry) }
+        }
+        entries.sort { $0.source < $1.source }
+        return Admission(entries: entries, incomplete: incomplete)
+    }
+
+    static let grammar: GBNFGrammar = {
+        let json = GBNFGrammar.composed { builder in
+            let item = builder.rule(for: .object([
+                ("source", .integer), ("quote", .string(maxLength: 768)),
+            ]), name: "evidence")
+            // JSON strings escape newlines, so complete records survive a cut final line.
+            return "\"[]\" | \(item) (\"\\n\" \(item)){0,23}"
+        }
+        // The shared JSON builder allows pretty-print whitespace. This particular
+        // producer is JSONL: only record separators may contain physical newlines.
+        let rules = json.text.components(separatedBy: .newlines).map {
+            $0.hasPrefix("ws ::=") ? "ws ::= [ \\t]{0,8}" : $0
+        }
+        return GBNFGrammar(text: rules.joined(separator: "\n"), root: json.root)
+    }()
+
+    static func sources(_ segments: [TranscriptSegment],
+                        speakerNames: [String: String]) -> [Source] {
+        segments.filter(\.includeInMeetingNotes).enumerated().map { index, segment in
+            let speaker = speakerNames[segment.displaySpeaker] ?? segment.displaySpeaker
+            return Source(id: index + 1, text: segment.text,
+                prefix: "[S\(index + 1)] [\(segment.start.counterText)] \(speaker): ")
+        }
+    }
+
+    static func chunks(_ sources: [Source], targetTokens: Int,
+                       transcriptCharacters: Int, transcriptTokens: Int) -> [[Source]] {
+        guard targetTokens > 0, !sources.isEmpty else { return [] }
+        let ratio = max(1.0, Double(transcriptCharacters) / Double(max(1, transcriptTokens)))
+        let limit = Int(Double(targetTokens) * ratio)
+        var result: [[Source]] = []
+        var current: [Source] = []
+        var characters = 0
+        for source in sources {
+            if !current.isEmpty, characters + source.line.count > limit {
+                result.append(current); current = []; characters = 0
+            }
+            current.append(source); characters += source.line.count + 1
+        }
+        if !current.isEmpty { result.append(current) }
+        return result
+    }
+
+    /// A quote match proves provenance, not intent, a decision or an accepted action.
+    /// Require exact contiguous source words before the existing matcher checks clause
+    /// negation. Its fuzzy/LCS acceptance alone is insufficient for factual extraction.
+    static func admit(_ output: String, sources: [Source],
+                      allowedEvidence: String? = nil) -> Admission {
+        let lines = NotesFormatter.stripCodeFence(NotesFormatter.stripThinking(output))
+            .components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
+        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
+        var entries: [Entry] = []
+        var incomplete = lines.isEmpty
+        for line in lines.prefix(24) {
+            guard let entry = try? JSONDecoder().decode(Entry.self, from: Data(line.utf8)),
+                  let source = lookup[entry.source], !entry.quote.isEmpty,
+                  entry.quote.count <= 768, source.text.contains(entry.quote),
+                  entry.quote == source.text
+                    || MeetingEvidenceMatcher.match(quote: entry.quote, in: source.text) == entry.quote else {
+                incomplete = true; continue
+            }
+            if let allowedEvidence,
+               !allowedEvidence.components(separatedBy: .newlines).contains(source.prefix + entry.quote) {
+                incomplete = true; continue
+            }
+            if !entries.contains(entry) { entries.append(entry) }
+        }
+        if lines.count > 24 || entries.isEmpty { incomplete = true }
+        // Source order is code-owned even when the model reorders its selection.
+        entries.sort { $0.source < $1.source }
+        return Admission(entries: entries, incomplete: incomplete)
+    }
+
+    static func render(_ entries: [Entry], sources: [Source]) -> String {
+        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0.prefix) })
+        return entries.compactMap { entry in
+            lookup[entry.source].map { $0 + entry.quote }
+        }.joined(separator: "\n")
     }
 }
 

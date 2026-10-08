@@ -1,0 +1,159 @@
+[
+  {
+    "flag": "meeting-action-input-contract",
+    "exit": 0,
+    "wall_seconds": 2.7484282910008915,
+    "markers": [
+      "MEETING_ACTION_INPUT_CONTRACT_OK"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "notes-evidence",
+    "exit": 0,
+    "wall_seconds": 1.4421348750038305,
+    "markers": [
+      "NOTES_EVIDENCE_OK: checks=33 failures=0; semantic quality requires native review",
+      "NOTES_EXTRACTIVE_CONTRACT_OK: checks=36 failures=0; semantic classification and readability unproven"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "meeting-performance",
+    "exit": 0,
+    "wall_seconds": 1.379944541004079,
+    "markers": [
+      "MEETING_PERFORMANCE_OK: 19 actual-session/persistence and bounded-coverage checks"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "meeting-context",
+    "exit": 0,
+    "wall_seconds": 1.2265892499999609,
+    "markers": [
+      "MEETING_SPEAKER_PROJECTION_OK checks=51",
+      "MEETING_CONTEXT_OK: extraction and the authority split hold"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "meeting-reconcile-llm",
+    "exit": 0,
+    "wall_seconds": 1.2535547079969547,
+    "markers": [
+      "MEETING_RECONCILE_LLM_OK: existing grounding and optional pressure admission"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "meeting-resources",
+    "exit": 0,
+    "wall_seconds": 2.024620333002531,
+    "markers": [
+      "MEETING_RESOURCES_OK"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "notes-longform",
+    "exit": 0,
+    "wall_seconds": 2.9407320419995813,
+    "markers": [
+      "NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, single pass intact, overflow retried, window-derived chunks"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "notes-truncation",
+    "exit": 0,
+    "wall_seconds": 1.5091236250009388,
+    "markers": [
+      "NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "notes-context",
+    "exit": 0,
+    "wall_seconds": 1.2394814170038444,
+    "markers": [
+      "NOTES_CONTEXT_OK: assembly, consent gates, window accounting, map purity and index safety hold"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "wall_seconds": 3.895552834001137,
+    "markers": [
+      "USAGE_LOG_OK: 27 cases"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "meeting-health",
+    "exit": 0,
+    "wall_seconds": 1.4187354579989915,
+    "markers": [
+      "MEETING_HEALTH_OK: 90 checks; actual capture, writer, durable warning and notification producers"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "meeting-integrity",
+    "exit": 0,
+    "wall_seconds": 1.3932409999979427,
+    "markers": [
+      "MEETING_INTEGRITY_OK: 67 checks; recording restart through final pass, notes, done and fresh reader"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "meeting-agent-evidence",
+    "exit": 0,
+    "wall_seconds": 1.1208155419953982,
+    "markers": [
+      "MEETING_EVIDENCE_OK: 89 checks"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "cleanup-router",
+    "exit": 0,
+    "wall_seconds": 7.606517457999871,
+    "markers": [
+      "CLEANUP_ROUTER_OK"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "dictation-segments",
+    "exit": 0,
+    "wall_seconds": 1.552423250002903,
+    "markers": [
+      "DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "island",
+    "exit": 0,
+    "wall_seconds": 6.021516332999454,
+    "markers": [
+      "ISLAND_OK: 2 display(s), notched, placement notch, state machine behaves"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "wall_seconds": 31.63805541700276,
+    "markers": [
+      "TOOLLOOP_PRODUCTION_R02_MISSING calls=5 asks=1 saved=1 deniedSaved=0",
+      "STORE_ISOLATION_OK: 21 files and 33 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_FAILED"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  }
+]

@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-73956/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-reconcile-llm
+2026-10-07 23:23:42.661 NextNotes[74781:1343979] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_RECONCILE_RESOURCE_CHECKS: 47 checks; 0 wrong
+MEETING_RECONCILE_LLM_OK: existing grounding and optional pressure admission

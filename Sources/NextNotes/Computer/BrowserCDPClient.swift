@@ -883,6 +883,37 @@ enum BrowserCDPClient {
         return lines.isEmpty ? "empty" : lines.joined(separator: "\n")
     }
 
+    /// Explicit private diagnostic only: no DOM injection, action, activity write or
+    /// snapshot-cache replacement. Full reply caps are not yet a production contract.
+    @MainActor
+    static func meetingParticipantAXObservation(targetID: String, expectedURL: String) async throws -> String {
+        guard MeetingParticipantObservationProbe.isRequested else {
+            throw AgentError.backendUnavailable("The participant diagnostic was not requested.")
+        }
+        guard let before = await probe(),
+              case .selected(let beforeIndex) = MeetingParticipantObservationProbe.meetSelection(before.targets) else {
+            throw AgentError.backendUnavailable("The selected Meet tab is unavailable or ambiguous.")
+        }
+        let target = before.targets[beforeIndex]
+        guard target.id == targetID, target.url == expectedURL else {
+            throw AgentError.backendUnavailable("The selected Meet tab changed before observation.")
+        }
+        try Task.checkCancellation()
+        let raw = try await command("Accessibility.getFullAXTree", params: [:],
+            webSocketURL: target.webSocketDebuggerURL)
+        try Task.checkCancellation()
+        guard let after = await probe(),
+              case .selected(let afterIndex) = MeetingParticipantObservationProbe.meetSelection(after.targets) else {
+            throw AgentError.backendUnavailable("The Meet tab became unavailable or ambiguous.")
+        }
+        let current = after.targets[afterIndex]
+        guard current.id == target.id, current.url == expectedURL,
+              current.webSocketDebuggerURL == target.webSocketDebuggerURL else {
+            throw AgentError.backendUnavailable("The Meet tab changed during observation.")
+        }
+        return raw
+    }
+
     private static func evaluate(_ expression: String, webSocketURL: String) async throws -> String {
         let raw = try await command(
             "Runtime.evaluate",

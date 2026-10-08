@@ -1,0 +1,69 @@
+{
+  "privacy": "counts and source pins only; no owner text, names or voiceprints",
+  "unanchored_changed_total": 4,
+  "clock_anchored_changed_total": 3,
+  "category_counts": {
+    "actionItems": {
+      "total": 3
+    },
+    "candidateActions": {
+      "total": 3
+    },
+    "commitments": {
+      "total": 14,
+      "unanchored_exact_changed": 1,
+      "live_clock_anchored_changed": 1
+    },
+    "documentsMentioned": {
+      "total": 13
+    },
+    "questions": {
+      "total": 40,
+      "unanchored_exact_changed": 3,
+      "live_clock_anchored_changed": 2
+    },
+    "topics": {
+      "total": 5
+    },
+    "unresolvedItems": {
+      "total": 2
+    }
+  },
+  "owner_files_unchanged": true,
+  "source_hashes": {
+    "MeetingSpeakerProjection.swift": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617",
+    "MeetingSpeakerProjectionSelfTest.swift": "ebb904245b14a5de28468fc7a44a83db1f4fd8a0813619ef3199d8c3c8b7671d"
+  },
+  "syntax_only_parse": "PASS",
+  "native_producer_consumer_verdict": {
+    "verdict": "PASS",
+    "checks": 51,
+    "flag": "--selftest-meeting-context",
+    "exit": 0,
+    "wall_seconds": 1.1647141249995911,
+    "binary_sha256": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+    "candidate_installed": false,
+    "log": "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/meeting-context-second-release.log",
+    "log_sha256": "6b6bcc20308fcd3fe785d31a00475543683534b7f33cb1eaf56e0ae2660302d3",
+    "marker": "MEETING_SPEAKER_PROJECTION_OK checks=51",
+    "scope": "optimized isolated actual DiarizationService/MeetingStore/ContextStore consumer; not provider roster/voice identity or physical UI"
+  },
+  "whole_live_interval_conflicting_labels_refused": true,
+  "context_failure_contract": "existing unreadable/rejected save refused; actual producer throws; no-context is successful no-op",
+  "native_deleted_guard_restored": true,
+  "native_deleted_guard_verification": "source restoration only, helper consumer negative retained",
+  "initial_native_red": {
+    "verdict": "FAILED",
+    "failing_assertion": "content ids confidence clocks participants unchanged",
+    "other_checks_root_reported_pass": 38,
+    "boundary": "existing ContextStore ISO8601 serialization versus in-memory subsecond Date",
+    "fixture_correction": "actual ingest/save/load original durable baseline plus separate exact in-memory payload invariant",
+    "corrected_native_verdict": "PASS51 actual optimized consumer"
+  },
+  "default_label_regression": {
+    "original_helper_sha256": "de3858aa768f6084d7fb39f1c742f5931962dee0e105575ad514a65f18ae6290",
+    "source_assertion": "previous helper maps confirmed system attribution to Others for nil/default final labels",
+    "new_assertion": "actual committed-label service retains confirmed current/durable context for nil and explicit default labels",
+    "native_verdict": "PASS51 actual optimized consumer; standalone same14 source cases oldFAIL4/intermediateFAIL4/correctedPASS14"
+  }
+}

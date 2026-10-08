@@ -1,0 +1,144 @@
+[
+  {
+    "totalMs": 18483,
+    "counts": {
+      "prefillMs": 17916,
+      "prefillDecodedTokens": 6497,
+      "generationMs": 468
+    },
+    "feature": "meeting.notes.map",
+    "truncated": false,
+    "pass": "map",
+    "modelID": "MiniCPM5-2B",
+    "countsEstimated": false,
+    "locality": "local",
+    "warm": true,
+    "finishReason": "stop",
+    "cachedTokens": 0,
+    "provider": "llama",
+    "completionTokens": 1,
+    "promptTokens": 6497
+  },
+  {
+    "totalMs": 16373,
+    "counts": {
+      "prefillDecodedTokens": 5879,
+      "prefillMs": 15869,
+      "generationMs": 490
+    },
+    "feature": "meeting.notes.map",
+    "truncated": false,
+    "pass": "map",
+    "modelID": "MiniCPM5-2B",
+    "countsEstimated": false,
+    "locality": "local",
+    "warm": true,
+    "finishReason": "stop",
+    "cachedTokens": 296,
+    "provider": "llama",
+    "completionTokens": 1,
+    "promptTokens": 6175
+  },
+  {
+    "totalMs": 5326,
+    "counts": {
+      "prefillMs": 4830,
+      "prefillDecodedTokens": 2163,
+      "generationMs": 488
+    },
+    "feature": "meeting.notes.map",
+    "truncated": false,
+    "pass": "map",
+    "modelID": "MiniCPM5-2B",
+    "countsEstimated": false,
+    "locality": "local",
+    "warm": true,
+    "finishReason": "stop",
+    "cachedTokens": 296,
+    "provider": "llama",
+    "completionTokens": 3,
+    "promptTokens": 2459
+  },
+  {
+    "totalMs": 18699,
+    "counts": {
+      "prefillDecodedTokens": 6358,
+      "prefillMs": 17982,
+      "generationMs": 610
+    },
+    "feature": "meeting.notes.collapse",
+    "truncated": false,
+    "pass": "collapse",
+    "modelID": "MiniCPM5-2B",
+    "countsEstimated": false,
+    "locality": "local",
+    "warm": true,
+    "finishReason": "stop",
+    "cachedTokens": 0,
+    "provider": "llama",
+    "completionTokens": 3,
+    "promptTokens": 6358
+  },
+  {
+    "totalMs": 18087,
+    "counts": {
+      "prefillMs": 17615,
+      "prefillDecodedTokens": 5829,
+      "generationMs": 463
+    },
+    "feature": "meeting.notes.collapse",
+    "truncated": false,
+    "pass": "collapse",
+    "modelID": "MiniCPM5-2B",
+    "countsEstimated": false,
+    "locality": "local",
+    "warm": true,
+    "finishReason": "stop",
+    "cachedTokens": 207,
+    "provider": "llama",
+    "completionTokens": 1,
+    "promptTokens": 6036
+  },
+  {
+    "totalMs": 229,
+    "counts": {
+      "prefillMs": 2,
+      "prefillDecodedTokens": 48,
+      "generationMs": 226
+    },
+    "feature": "meeting.notes.collapse",
+    "truncated": false,
+    "pass": "collapse",
+    "modelID": "MiniCPM5-2B",
+    "countsEstimated": false,
+    "locality": "local",
+    "warm": true,
+    "finishReason": "stop",
+    "cachedTokens": 207,
+    "provider": "llama",
+    "completionTokens": 1,
+    "promptTokens": 255
+  },
+  {
+    "totalMs": 58196,
+    "counts": {
+      "generationMs": 16987,
+      "prefillDecodedTokens": 6459,
+      "prefillMs": 41199,
+      "chunks": 3,
+      "facts": 3
+    },
+    "feature": "meeting.notes.reduce",
+    "truncated": false,
+    "pass": "reduce",
+    "modelID": "MiniCPM5-2B",
+    "countsEstimated": false,
+    "locality": "local",
+    "warm": true,
+    "finishReason": "stop",
+    "cachedTokens": 4,
+    "provider": "llama",
+    "completionTokens": 234,
+    "promptTokens": 6463
+  }
+]

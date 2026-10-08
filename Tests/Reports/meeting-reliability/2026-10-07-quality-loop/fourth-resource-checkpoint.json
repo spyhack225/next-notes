@@ -1,0 +1,25 @@
+{
+  "at": "2026-10-08T03:21:00.479921+00:00",
+  "hardware": {
+    "memoryBytes": 17179869184,
+    "model": "Mac15,12",
+    "chip": "Apple M3"
+  },
+  "compilerStillActive": false,
+  "gateRefused": {
+    "swapGb": 8.7684375,
+    "freeGb": 6.123996734619141,
+    "load": 14.09,
+    "maxSwapGb": 8,
+    "minFreeGb": 6.5
+  },
+  "memoryPressureFreePercent": 36,
+  "decision": "Join existing compiler; no additional native/model child until applicable checked recovery gate",
+  "acceptanceLimits": "Reference-capacity hardware only, not simultaneous ASR/voice throughput or whole-meeting soak proof",
+  "joinedSourceInvariantSignedCandidate": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25",
+  "postJoinGateRefused": {
+    "swapGb": 8.5575,
+    "freeGb": 6.014926910400391,
+    "load": 8.92
+  }
+}

@@ -88,10 +88,12 @@ final class DiarizationService {
     // Retain an explicitly injected store; resolving the default happens only
     // when real service work needs it, so quit can close an empty owner cheaply.
     private let providedStore: MeetingStore?
+    private let providedContextStore: MeetingContextStore?
     private var store: MeetingStore { providedStore ?? MeetingStore.shared }
 
-    init(store: MeetingStore? = nil) {
+    init(store: MeetingStore? = nil, contextStore: MeetingContextStore? = nil) {
         providedStore = store
+        providedContextStore = contextStore
     }
 
     func isRunning(_ id: UUID) -> Bool { tasks[id] != nil }
@@ -326,21 +328,10 @@ final class DiarizationService {
             }
 
             let labelled = MeetingDiarizer.assign(store.transcript(for: id), to: runs)
-            // The meeting can be deleted while the model is clustering, and `saveTranscript`
-            // would re-create the directory `delete` just removed.
+            // Deletion while the model awaited must stop the entire native stage,
+            // including its later voice-print writes and pipeline handoff.
             guard store.meeting(id: id) != nil else { return false }
-            store.saveTranscript(labelled, for: id)
-            revision += 1
-            // M-03: a merge or a re-identify can retire labels this transcript no longer
-            // carries. Renames hang off the generated label, so a name whose label is
-            // gone would sit in the dictionary forever, read by nothing — keep only the
-            // names whose labels survived.
-            let surviving = Set(MeetingDiarizer.labels(in: labelled))
-            if var updated = store.meeting(id: id),
-               updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
-                updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
-                store.save(updated)
-            }
+            try commitSpeakerLabels(labelled, for: id)
             // Voice prints only while the knowledge graph is on: nothing else reads them.
             if PersonResolutionService.shared.isEnabled {
                 let prints = MeetingVoicePrints.centroids(of: runs)
@@ -383,6 +374,32 @@ final class DiarizationService {
             problems[id] = error.localizedDescription
             Log.meeting.error("diarization failed: \(error.localizedDescription, privacy: .public)")
             return false
+        }
+    }
+
+    /// The committed-label handoff, shared by actual diarization and its isolated
+    /// consumer regression. It never creates a deleted meeting or projects unsaved labels.
+    func commitSpeakerLabels(_ labelled: [TranscriptSegment], for id: UUID) throws {
+        guard store.meeting(id: id) != nil else { return }
+        guard store.saveTranscript(labelled, for: id) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        revision += 1
+        let surviving = Set(MeetingDiarizer.labels(in: labelled))
+        if var updated = store.meeting(id: id),
+           updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
+            updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
+            store.save(updated)
+        }
+        // An injected isolated store must never initialize the owner's singleton.
+        if let providedContextStore {
+            guard providedContextStore.refreshSpeakers(meetingID: id) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+        } else if providedStore == nil {
+            guard MeetingContextStore.shared.refreshSpeakers(meetingID: id) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
         }
     }
 

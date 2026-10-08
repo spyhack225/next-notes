@@ -39,14 +39,43 @@ final class MeetingContextStore {
     /// Injected for tests; production uses the selected Agent model.
     @ObservationIgnored private var completer: any MeetingContextCompleter =
         MeetingContextReconciler.ModelCompleter()
+    @ObservationIgnored private let store: MeetingStore
+    @ObservationIgnored private let optionalAdmission: @Sendable () -> Bool
 
-    private init() {
-        MeetingContextBusBridge.start(store: self)
+    private init(
+        store: MeetingStore = .shared, startBus: Bool = true,
+        optionalAdmission: @escaping @Sendable () -> Bool = {
+            ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork
+        }
+    ) {
+        self.store = store
+        self.optionalAdmission = optionalAdmission
+        if startBus { MeetingContextBusBridge.start(store: self) }
+    }
+
+    static func isolatedForTesting(
+        store: MeetingStore,
+        completer: any MeetingContextCompleter,
+        optionalAdmission: @escaping @Sendable () -> Bool
+    ) -> MeetingContextStore {
+        precondition(SelfTest.isRunning)
+        let context = MeetingContextStore(store: store, startBus: false,
+                                          optionalAdmission: optionalAdmission)
+        context.useCompleter(completer)
+        return context
     }
 
     /// Swap the reconcile completer (self-tests inject a fake).
     func useCompleter(_ completer: any MeetingContextCompleter) {
         self.completer = completer
+    }
+
+    /// Exercise the actual cadence/run/apply/save path in an isolated diagnostic.
+    func runReconcileForTesting() async {
+        precondition(SelfTest.isRunning)
+        reconcileTask?.cancel()
+        reconcileTask = nil
+        await runReconcile()
     }
 
     func ingest(_ segments: [TranscriptSegment], meeting: Meeting) {
@@ -114,11 +143,38 @@ final class MeetingContextStore {
     }
 
     func load(meetingID: UUID) -> MeetingContext? {
-        let url = MeetingStore.shared.directory(for: meetingID).appendingPathComponent(Self.fileName)
+        let url = store.directory(for: meetingID).appendingPathComponent(Self.fileName)
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
         guard let data = try? Data(contentsOf: url) else { return nil }
         return try? decoder.decode(MeetingContext.self, from: data)
+    }
+
+    /// Reads the committed final transcript rather than a model's pending labels.
+    /// The same path is used after diarization and a confirmed speaker-name edit.
+    @discardableResult
+    func refreshSpeakers(meetingID: UUID) -> Bool {
+        guard let meeting = store.meeting(id: meetingID) else { return false }
+        guard let context = current?.meetingID == meetingID ? current : load(meetingID: meetingID)
+        else {
+            // No live understanding was recorded: nothing needs projecting. An
+            // existing but unreadable context is a refusal, not a successful no-op.
+            let url = store.directory(for: meetingID).appendingPathComponent(Self.fileName)
+            return !FileManager.default.fileExists(atPath: url.path)
+        }
+        let projected = MeetingSpeakerProjection.apply(context,
+            segments: store.transcript(for: meetingID),
+            liveSegments: store.liveTranscript(for: meetingID), speakerNames: meeting.speakerNames)
+        guard projected != context else { return true }
+        guard save(projected, meetingID: meetingID) else { return false }
+        if current?.meetingID == meetingID {
+            // A pending live reconcile owns old speaker evidence. Cancellation refuses
+            // its late result; no new pass is scheduled just to relabel existing facts.
+            reconcileTask?.cancel()
+            reconcileTask = nil
+            current = projected
+        }
+        return true
     }
 
     func reset() {
@@ -169,7 +225,7 @@ final class MeetingContextStore {
         let needle = query.lowercased()
         guard !needle.isEmpty else { return "" }
         let segments = MeetingController.shared.session?.segments
-            ?? (current.flatMap { MeetingStore.shared.transcript(for: $0.meetingID) } ?? [])
+            ?? (current.flatMap { store.transcript(for: $0.meetingID) } ?? [])
         let hits = segments.filter {
             $0.kind != .agentCommand && $0.text.lowercased().contains(needle)
         }
@@ -227,7 +283,7 @@ final class MeetingContextStore {
             now: elapsed
         )
         let suggestion = await completer.refine(snapshot)
-        guard suggestion.hasRefinements else { return }
+        guard suggestion.hasRefinements, !Task.isCancelled else { return }
 
         // Drop the result if the live meeting moved on while we waited.
         guard current?.meetingID == context.meetingID else { return }
@@ -279,7 +335,7 @@ final class MeetingContextStore {
         if let session = MeetingController.shared.session, session.meeting.id == meetingID {
             return session.meeting.title
         }
-        return MeetingStore.shared.meeting(id: meetingID)?.title ?? "Meeting"
+        return store.meeting(id: meetingID)?.title ?? "Meeting"
     }
 
     static func key(for segment: TranscriptSegment) -> String {
@@ -295,12 +351,14 @@ final class MeetingContextStore {
         "\(start)|\(end)|\(source.rawValue)|\(text)"
     }
 
-    private func save(_ context: MeetingContext, meetingID: UUID) {
+    @discardableResult
+    private func save(_ context: MeetingContext, meetingID: UUID) -> Bool {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         encoder.dateEncodingStrategy = .iso8601
-        guard let data = try? encoder.encode(context) else { return }
-        let url = MeetingStore.shared.directory(for: meetingID).appendingPathComponent(Self.fileName)
-        try? data.write(to: url, options: .atomic)
+        guard let data = try? encoder.encode(context) else { return false }
+        let url = store.directory(for: meetingID).appendingPathComponent(Self.fileName)
+        do { try data.write(to: url, options: .atomic); return true }
+        catch { return false }
     }
 }

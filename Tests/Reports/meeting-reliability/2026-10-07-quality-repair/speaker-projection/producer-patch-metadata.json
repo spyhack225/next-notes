@@ -1,0 +1,24 @@
+{
+  "scope": "owned shared-file hunks only; no new helper/selftest blobs; no foreign staging",
+  "files": {
+    "Sources/NextNotes/Meetings/DiarizationService.swift": {
+      "reconstructed_initial_working_baseline_sha256": "1e0f498b807f2339cca9408678b060a08059b200bfbc24b4c1def1429d745fea",
+      "fixed_working_sha256": "74642199c443d4035dc97457fac8574339b7aba3674f30f5e0422d1beadc784b",
+      "baseline_method": "inverse only owned transformations; retains all pre-existing/current foreign hunks"
+    },
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": {
+      "reconstructed_initial_working_baseline_sha256": "4f3b2ab86f9acae27fd2e3d39128b3b361559bc5421b2ed0fa77f39d3e25e6d4",
+      "fixed_working_sha256": "5053281af6db8a3bf223512ba792d90afedce4939fe6d71077fce350c6dd3daa",
+      "baseline_method": "inverse only owned transformations; retains all pre-existing/current foreign hunks"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": {
+      "reconstructed_initial_working_baseline_sha256": "22eb213b0a5c2a714b0cd8bf2a2381e89cc1c3bca99afc4a595489c76062dc9a",
+      "fixed_working_sha256": "12bdf93d929da8a2d2ab8e6fbb531ac4c0641e6bb7ba892c400b1f1740fd7b9d",
+      "baseline_method": "inverse only owned transformations; retains all pre-existing/current foreign hunks"
+    }
+  },
+  "patch_sha256": "38a2db750996c5ccd7e3fddca577d5b01ee3f3dabc87190d7fbe59c5d1c2dae8",
+  "baseline_provenance": "Initial entire-file copies were not retained. Owned pre-change regions reconstructed from exact captured initial reads, reversing only explicit owned changes; foreign contents retained. Whole baseline pins therefore represent current foreign snapshot with owned hunks removed, not a claim of full-file cold-start identity.",
+  "reverse_check_against_current_working_files": "PASS git apply --check --reverse",
+  "deleted_native_guard_restoration": "exact original guard restored before helper; no intervening await; downstream voiceprint early-return source-reviewed, no model-backed physical race test"
+}

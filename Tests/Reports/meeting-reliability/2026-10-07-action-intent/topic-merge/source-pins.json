@@ -1,0 +1,16 @@
+{
+  "variants": {
+    "original": {
+      "extractorSHA256": "f46f24bcbfe217a2211d5f660f1ddd67b617b717bba68d06111929774a4280dc",
+      "compiledSourceSHA256": "1a3d54a2660d485f6b54fbae1da02ffd8769e6867902a81539fd4abb7dc1aa01"
+    },
+    "fixed": {
+      "extractorSHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+      "compiledSourceSHA256": "b644c515d052efccc8f24ed441a22f46a3df5d2d5afd8c18bcfccce8a1c6a85d"
+    }
+  },
+  "fixtureSHA256": "1e5efc3451ebd14787faac6d14a06094c889fe9798deb51dcc8f040966d747ed",
+  "driverSHA256": "63bdaf5aa04f2e67914ec5ae155b4f0dcd1144c28660a87700baab5cfefc510f",
+  "scope": "actual production ContextStore persistence and source merger; directory/role/controller/bus/pressure/provider/usage boundaries stubbed; no native model/pressure proof",
+  "nativeFullAppBeforeAfter": "pending"
+}

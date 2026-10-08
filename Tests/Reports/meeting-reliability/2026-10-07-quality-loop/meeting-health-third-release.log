@@ -1,0 +1,6 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-68784/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-health
+2026-10-07 22:31:45.350 NextNotes[69356:1280917] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_HEALTH_WARNING_DELAY seconds=0.106816 controlled_load_overlap=1 load_ticks=4988199 physical_visibility=unverified
+MEETING_HEALTH_OVERFLOW packets=1500 packet_frames=32 missed_frames=15232
+MEETING_HEALTH_NORMAL_BOUNDARY start_seconds=1791426706.061600 written_frames=48016 producer_seconds=1791426709.062600 stored_seconds=1791426709.000000 codec_seconds=1791426709.000000
+MEETING_HEALTH_OK: 90 checks; actual capture, writer, durable warning and notification producers

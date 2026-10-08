@@ -1,0 +1,3 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-68784/Next Notes.app/Contents/MacOS/NextNotes --selftest-scheduler
+2026-10-07 22:46:42.253 NextNotes[71224:1300415] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+SCHEDULER_OK

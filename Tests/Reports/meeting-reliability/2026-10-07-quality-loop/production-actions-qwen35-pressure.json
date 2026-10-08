@@ -1,0 +1,16 @@
+{
+  "process": 65310,
+  "queryExit": 0,
+  "retainedCount": 431,
+  "pressureEvents": [
+    {
+      "at": "2026-10-07 21:43:25.651082-0400",
+      "message": "residency: memory-pressure observer installed"
+    },
+    {
+      "at": "2026-10-07 21:43:38.937632-0400",
+      "message": "residency: pressure=warning"
+    }
+  ],
+  "rawSpeechSaved": false
+}

@@ -1,0 +1,17 @@
+{
+  "verdict": "FAIL",
+  "sourceSelectionsPerChunk": [
+    3,
+    1,
+    1
+  ],
+  "realFutureFollowupPresent": false,
+  "materialCoverageAdequate": false,
+  "attributionValidated": false,
+  "finalOutputTokens": 92,
+  "totalGeneratedTokens": 106,
+  "nativeSourceContract": "all admittedIDsin actualshownscope;codeowns original speech;grammar shape passes",
+  "semanticContract": "selection fails coverage; final freewriting still needs acceptance",
+  "speedObservation": "54.97s wall vs firstquote203.57s, differentcontracts/notcontrolledhardwarebenchmark",
+  "promotion": false
+}

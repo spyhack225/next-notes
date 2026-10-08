@@ -1,0 +1,33 @@
+# Meeting notes producer experiments — 7 October 2026
+
+Normal production retains the original generated-facts strategy. Source-ID map/collapse selection is now an explicit SelfTest-only experiment: NotesGenerator's sourceIndices option defaults false and is accepted only while SelfTest is running. Its optional comprehensive prompt is experimental. Neither native quote selection nor source-ID selection has passed the owner's semantic quality gate, and no model/default promotion is justified.
+
+The root-executed [corrected actual-source tests](legacy-parity/README.md) pass exact legacy comparisons and the production guard for both the guarded option and comprehensive prompt variant. Baseline fails only the new warning-paragraph assertion; fixed variants pass original longform, separator and 33 evidence checks. Source-only tests use boundary stubs and no native model. The third-release explicit comprehensive Mini mapped experiment also fails semantic quality; see [actual review](third-native-selection-review.md). Native default acceptance remains a separate gate; see [native review contract](native-acceptance.md).
+
+## Confirmed defects and retained experiments
+
+The original map/collapse producer accepts free model-written paraphrases as facts without source provenance. Existing prompt instructions already prohibit fabrication. The first repair selected source/quote records, admitting exact contiguous source text, preserving clause negation and deriving original speaker/time. Collapse was restricted to its existing group's evidence. Malformed maps retained original source chunks and disclosed incomplete coverage through the existing flow. No evidence store, model pass or retry layer was added.
+
+The first maintained actual-source comparison failed six of 23 checks originally and passed all 23 after that quote contract. These historical pins/results remain unchanged in source-proof.json, original/fixed logs and producer.patch. They describe that first experiment, **not the current production patch**. Do not apply the historical producer.patch as the final implementation.
+
+Native quote-map quality failed: three maps reached 600-token limits, fallback caused three extra collapse calls, two of three parts were dropped, and the notes missed the real future follow-up. Workflow was about 202 seconds, versus the retained earlier mapped comparison around 160 seconds. Raw maps were not retained then; exact quote-refusal cause is unproven. The first whole quote selector failed after about 71.6 seconds with zero admitted output, initially before preserving its raw selection/usage. Diagnostic observability now preserves zero-admission artifacts and reports FAILED, never success.
+
+The source-ID iteration constrains model output to IDs actually shown, and code copies complete original utterances with their speaker/time, negation and tense. It avoids quote-copy failures, but its native Mini mapped replay selected only five of 519 utterances across three maps. Its 53.80-second workflow/106 tokens/four passes were faster but semantic coverage was worse. incompleteFacts=false reported no structural cut/refusal; it did not establish complete meaning coverage.
+
+Whole source-index Mini selection took 95.25 seconds, generated 240 tokens and admitted 24 records, all consecutive opening sources in Key points. Whole Qwen selection took 150.01 seconds with 16,641 input tokens in a 32,768-token window, generated 32 tokens and admitted three records confined to the first two opening sources; a greeting was classified as an action. All are semantic failures despite supported IDs and generation OK. Whole extractive diagnostics remain unchanged, failed and unpromoted. The comprehensive selector instruction is a hypothesis until the original private gold coverage/attribution/intent and cost comparison pass; no count quota or extra generation pass is added.
+
+## Specific assembly repair and test correction
+
+The actual native mapped output joined the empty Related-context marker directly to the dropped-part warning. NotesGenerator appended the warning without a separator; its existing no-context body ends without a newline. The repaired assembly adds two newlines through the same return seam. This presentation fix recovers no missing facts.
+
+The first parity harness compiled but both variants failed eight longform assertions because the shared MeetingNotesBrief stub omitted real labels and changed whether the original facts overflowed. An added no-context positive-drop expectation was also invalid. Exact real brief, clock and transcript encoding replaced those boundaries; original ninety-minute transcript/window/provider/drop assertions remain intact. The separator regression now augments the same original stubborn+realbrief case. Initial failed logs remain retained and separate from corrected passing results.
+
+## Boundaries and open quality work
+
+The legacy default remains an inherited poor writer, not a resolved quality bug. Source provenance alone proves neither semantic entailment nor an accepted action; final reduce may still misattribute, invent or omit information. Names from a roster cannot establish a voice binding. The user's broader speed/quality/efficiency objective remains open while native comparisons and actual consumer acceptance continue.
+
+Owner speech, raw selections and generated notes stay in private diagnostics. Earlier owner replays were also mirrored by the old public OS-log self-test writer; root repaired that replay boundary, and a scoped native PID log-absence check remains separate acceptance. Do not claim all earlier payloads avoided global logs. Public reports retain only generic fixtures, source pins and performance/verdict metadata. Root coordinates builds/model loads/integration/install; agents must not mutate canonical Sources during its compiler window.
+
+## Third comprehensive Mini replay
+
+Actual arrays show two empty maps and one singleton selection; the first collapse keeps only a greeting, while two empty collapses preserve their inputs. The final free-form reduce still pools individual experience into collective operating claims, loses the prototype/scale contrast and customer follow-up, and misses late AI/manufacturing detail. The writer also labels a subsequently explained handoff question as unresolved. There is no invented next-week deadline, but gold coverage and attribution still fail. The workflow is 147.19 seconds and seven passes, versus the previous narrow-ID trial's 53.80 seconds and four passes. The added fallback/collapse prefill is a measured cost regression. See the private source-linked review and public metadata-only verdict; no promotion or install is justified.

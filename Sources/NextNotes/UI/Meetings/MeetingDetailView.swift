@@ -166,7 +166,9 @@ struct MeetingDetailView: View {
             ) { names in
                 var renamed = meeting
                 renamed.speakerNames = names
-                store.save(renamed)
+                if store.save(renamed) {
+                    MeetingContextStore.shared.refreshSpeakers(meetingID: renamed.id)
+                }
                 // Speakers confirmed (M-10): naming the clusters is the person saying the
                 // pass was right, which was the last thing the temporary recording was
                 // for. `releaseAudio` holds the three-line rule — a recording the user

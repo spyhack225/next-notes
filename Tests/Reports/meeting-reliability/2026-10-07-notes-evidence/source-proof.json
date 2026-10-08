@@ -1,0 +1,38 @@
+{
+  "baseline_revision": "8661e0ab610130c5bbf109c0bddd2bdd6ceef24d",
+  "source_hashes": {
+    "Meetings/NotesGenerator.swift": "aeabead2928aa11970edaab1e181482326f1541a20a25e4874b8419af666f1e4",
+    "Meetings/NotesPrompts.swift": "b7e6c337dddd9e2deb092facac5209a65ead6c6edd285a87ae27cd4f52accc41",
+    "Meetings/NotesEvidenceSelfTest.swift": "4b77f2cc0d22ebb1a1c4b2c654f988304558f9855d37024a082108a029dea456",
+    "Meetings/NotesLongformSelfTest.swift": "425943de5fcd5e230e969d0955fba0392f1ca925e3f6ff035a83cf1b89e2d2f4",
+    "Meetings/NotesTruncationSelfTest.swift": "783f8d39680ffa42e36c5ea831c158491728202515438c5bf00779ee3f1acb1a",
+    "Meetings/MeetingNotesContextSelfTest.swift": "2a8a9bd74f7db7209f0bcd88fe55df582568c4b3c905ec2ff5f7d2d97bcae90a"
+  },
+  "original_source_hashes": {
+    "Meetings/NotesGenerator.swift": "a8d288912f8f7985a25da2dccbd52d1b2f80fcda05bb6732b0d733584fcdfdf7",
+    "Meetings/NotesPrompts.swift": "ab54d9c55ce2521c01f59125fec79d965577a876e1369a8f7fdf032e0007d2e6",
+    "Meetings/NotesLongformSelfTest.swift": "53671345c934002397c54d77ad6c7c2e0a7f61583ebecedf8edffd3f8021f1e3",
+    "Meetings/NotesTruncationSelfTest.swift": "9b8aa09cba8d5d4f4fd04dccd1b8d1017ec156e1b9e70277b6e441f59502e4b2",
+    "Meetings/MeetingNotesContextSelfTest.swift": "2742a17af8c6cb1f7796b4f91ae53e3fd3cebf22dd12c94fd78cf13e82fa4bbd"
+  },
+  "original_failures": 6,
+  "fixed_failures": 0,
+  "regression_checks": 23,
+  "longform_pass": true,
+  "native_model_exercised": false,
+  "stubbed": [
+    "meeting/provider/telemetry types",
+    "FoundationModelFormatter availability/native tokenizer"
+  ],
+  "harness_source_adaptations": [
+    "logging method body omitted; generator behavior unchanged",
+    "new evidence helper supplied to original generator only to compile common regression"
+  ],
+  "native_acceptance_pending": true,
+  "semantic_quality_pass": false,
+  "model_default_changed": false,
+  "invalid_map_fixture_original_passes": 6,
+  "invalid_map_fixture_fixed_passes": 11,
+  "conforming_map_fixture_extra_pass": false,
+  "grammar_jsonl_ws_checked": true
+}

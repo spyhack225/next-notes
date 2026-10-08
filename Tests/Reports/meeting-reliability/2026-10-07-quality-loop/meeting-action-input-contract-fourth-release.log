@@ -1,0 +1,5 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-73956/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-action-input-contract --notes-action-fixture /private/tmp/NextNotesMeetingActionIntentReplay-7694cf11-5d18-406a-980e-81629c5c52cf/fragmented-future-provenance.json
+2026-10-07 23:23:37.932 NextNotes[74686:1343377] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_ACTION_INPUT_PRIVATE_SCOPE currentNativeInputReconstructed=true historicalSnapshot=false scriptedSourceContract=true semanticProof=false
+MEETING_ACTION_INPUT_CONTRACT_RESULT checks=27 failed=0 scripted=true nativeSemantic=false
+MEETING_ACTION_INPUT_CONTRACT_OK

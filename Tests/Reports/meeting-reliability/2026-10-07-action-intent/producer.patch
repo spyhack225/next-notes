@@ -1,0 +1,189 @@
+--- a/Sources/NextNotes/Meetings/MeetingContextReconciler.swift
++++ b/Sources/NextNotes/Meetings/MeetingContextReconciler.swift
+@@ -92,8 +92,8 @@
+         var object: String?
+     }
+ 
+-    /// Soft suggestions. `proposedCandidates` is accepted on the wire so a completer can
+-    /// try to invent work — `apply` always drops it.
++    /// Soft model suggestions. Exact citations establish provenance, not whether an
++    /// utterance really was a request or commitment; that meaning remains inferred.
+     struct Suggestion: Sendable, Equatable {
+         var topics: [MeetingContextItem] = []
+         var unresolvedItems: [MeetingContextItem] = []
+@@ -191,28 +191,52 @@
+             )
+         }
+         for proposed in suggestion.proposedCandidates {
+-            guard let quote = proposed.evidence,
+-                  let segment = recentSegments.first(where: {
+-                      $0.kind != .agentCommand
+-                          && (proposed.evidenceStart == nil
+-                              || abs($0.start - (proposed.evidenceStart ?? 0)) < 0.01)
+-                          && MeetingAgent.isTranscriptEvidence(quote, in: $0.text)
+-                  }) else { continue }
++            guard let quote = proposed.evidence else { continue }
++            let matches = recentSegments.filter {
++                $0.kind != .agentCommand
++                    && (proposed.evidenceStart == nil
++                        || abs($0.start - (proposed.evidenceStart ?? 0)) < 0.01)
++                    && exactEvidence(quote, in: $0.text) != nil
++            }
++            // Identical speech can occur on both tracks. A missing/ambiguous citation
++            // must not borrow the first microphone source as execution authority.
++            guard matches.count == 1, let segment = matches.first,
++                  let spokenQuote = exactEvidence(quote, in: segment.text) else { continue }
+             var grounded = proposed
++            grounded.evidence = spokenQuote
+             grounded.source = segment.source
+             grounded.speaker = segment.displaySpeaker
+-            let key = "\(segment.source.rawValue)|\(segment.start)|\(quote.lowercased())"
++            grounded.confidence = inferredConfidence
++            let key = "\(segment.source.rawValue)|\(segment.start)|\(spokenQuote.lowercased())"
+             guard !next.candidateActions.contains(where: {
+                 "\($0.source.rawValue)|\($0.evidenceStart ?? -1)|\($0.evidence?.lowercased() ?? "")" == key
+             }) else { continue }
+             grounded.evidenceStart = segment.start
+             next.candidateActions.append(grounded)
+             next.actionItems.append(MeetingContextItem(
+-                text: quote, speaker: segment.displaySpeaker,
+-                source: segment.source, confidence: "high"
++                text: spokenQuote, speaker: segment.displaySpeaker,
++                source: segment.source, confidence: inferredConfidence
+             ))
+         }
+         return next
++    }
++
++    /// This producer promises contiguous verbatim citations. Shared fuzzy matching is
++    /// useful elsewhere but cannot establish this contract or choose a speech source.
++    private static func exactEvidence(_ quote: String, in transcript: String) -> String? {
++        var citation = quote.trimmingCharacters(in: .whitespacesAndNewlines)
++        // A JSON string may still wrap quoted speech in paired quotation marks.
++        // Remove that notation only; do not fuzzy-match or drop spoken words.
++        if let first = citation.first, let last = citation.last,
++           citation.count > 1,
++           (first == "\"" && last == "\""
++               || first == "“" && last == "”"
++               || first == "‘" && last == "’") {
++            citation = String(citation.dropFirst().dropLast())
++        }
++        guard let range = transcript.range(of: citation, options: .caseInsensitive),
++              MeetingAgent.isTranscriptEvidence(citation, in: transcript) else { return nil }
++        return String(transcript[range])
+     }
+ 
+     private static func rewrite(
+@@ -231,7 +255,9 @@
+             if let object = wording.object?.trimmingCharacters(in: .whitespacesAndNewlines) {
+                 next.object = object.isEmpty ? nil : object
+             }
+-            // Source stays whatever the extractor recorded — authority is not a model output.
++            // New model wording is still an inference, even if an older saved card
++            // previously claimed high confidence. Source/authority remain immutable.
++            next.confidence = inferredConfidence
+             next.source = candidate.source
+             return next
+         }
+@@ -423,6 +449,13 @@
+             }
+         }
+ 
++        /// Diagnostic schema verdict, separate from parse's valid-no-refinements nil.
++        /// Reuses the actual payload decoder; never called by production processing.
++        static func payloadDecodesForTesting(_ text: String) -> Bool {
++            guard SelfTest.isRunning, let data = jsonObject(in: text) else { return false }
++            return (try? JSONDecoder().decode(ModelPayload.self, from: data)) != nil
++        }
++
+         static func parse(
+             _ text: String, existing: MeetingContext,
+             segments: [TranscriptSegment]
+@@ -461,12 +494,11 @@
+                     guard let evidence = row.evidence,
+                           let action = row.action,
+                           !action.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+-                          let segment = row.segment.flatMap({ index in
+-                              segments.indices.contains(index) ? segments[index] : nil
+-                          }) ?? segments.first(where: {
+-                              MeetingAgent.isTranscriptEvidence(evidence, in: $0.text)
+-                          }),
+-                          MeetingAgent.isTranscriptEvidence(evidence, in: segment.text)
++                          let index = row.segment, segments.indices.contains(index)
++                    else { return nil }
++                    let segment = segments[index]
++                    guard segment.kind != .agentCommand,
++                          let spokenQuote = exactEvidence(evidence, in: segment.text)
+                     else { return nil }
+                     let recipient = row.recipient.flatMap { value -> String? in
+                         let lowered = value.lowercased()
+@@ -478,8 +510,8 @@
+                         object: row.object,
+                         speaker: segment.displaySpeaker,
+                         source: segment.source,
+-                        confidence: "high",
+-                        evidence: evidence,
++                        confidence: inferredConfidence,
++                        evidence: spokenQuote,
+                         evidenceStart: segment.start
+                     )
+                 }
+@@ -721,6 +753,58 @@
+             parsed?.proposedCandidates.count == 1
+                 && parsed?.proposedCandidates.first?.action == "deliver"
+         )
++
++        // Citation/provenance is a separate contract from the model's action meaning.
++        check("a model action claimed measured confidence",
++              parsed?.proposedCandidates.first?.confidence == inferredConfidence)
++        check("application promoted model inference to measured confidence",
++              grounded.candidateActions.last?.confidence == inferredConfidence
++                  && grounded.actionItems.last?.confidence == inferredConfidence)
++        let repeatedQuote = "Send the revised budget to Finance by Tuesday."
++        let repeated = [
++            TranscriptSegment(start: 20, end: 22, text: repeatedQuote, source: .mic),
++            TranscriptSegment(start: 23, end: 25, text: repeatedQuote, source: .system),
++        ]
++        for citation in ["", "\"segment\":99,"] {
++            let uncitedOutput = "{\"actions\":[{\(citation)\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}"
++            let uncited = ModelCompleter.parse(uncitedOutput, existing: context, segments: repeated)
++            check("missing/invalid segment borrowed the first matching source",
++                  uncited?.proposedCandidates.isEmpty != false)
++        }
++        let citedFar = ModelCompleter.parse(
++            "{\"actions\":[{\"segment\":1,\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}",
++            existing: context, segments: repeated)
++        check("valid far-track citation lost its exact source",
++              citedFar?.proposedCandidates.first?.source == .system)
++        let ambiguous = apply(Suggestion(proposedCandidates: [
++            MeetingCandidateAction(action: "send", source: .mic, confidence: "high", evidence: repeatedQuote)
++        ]), to: context, recentSegments: repeated)
++        check("ambiguous quote without a clock borrowed mic authority",
++              ambiguous.candidateActions == context.candidateActions)
++        let longQuote = "Send Morgan the revised detailed annual project budget and manufacturing forecast for Finance review by Tuesday."
++        let changedQuote = longQuote.replacingOccurrences(of: "manufacturing", with: "sales")
++        let speech = TranscriptSegment(start: 40, end: 46, text: longQuote, source: .system)
++        check("exact-citation producer used fuzzy content matching",
++              exactEvidence(changedQuote, in: speech.text) == nil)
++        check("paired quotation notation changed the original speech",
++              exactEvidence("\"\(longQuote)\"", in: speech.text) == longQuote)
++        let command = TranscriptSegment(start: 50, end: 52, text: repeatedQuote, source: .mic, kind: .agentCommand)
++        let commandAction = ModelCompleter.parse(
++            "{\"actions\":[{\"segment\":0,\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}",
++            existing: context, segments: [command])
++        check("an excluded command entered the live meeting action parser",
++              commandAction?.proposedCandidates.isEmpty != false)
++        let quoted = MeetingCandidateAction(action: "deliver", object: "revised budget", source: .mic,
++                                            evidence: "\"\(implicitRequest.text)\"")
++        let quotedOnce = apply(Suggestion(proposedCandidates: [quoted]), to: context, recentSegments: [implicitRequest])
++        check("the candidate and item disagreed about the actual spoken evidence",
++              quotedOnce.candidateActions.last?.evidence == implicitRequest.text
++                  && quotedOnce.actionItems.last?.text == implicitRequest.text)
++        check("rewritten model wording retained unmeasured confidence",
++              poisoned.candidateActions.first(where: { $0.id == systemAsk.id })?.confidence == inferredConfidence)
++        check("quote notation escaped duplicate suppression",
++              apply(Suggestion(proposedCandidates: [quoted]), to: quotedOnce,
++                    recentSegments: [implicitRequest]).candidateActions.count == quotedOnce.candidateActions.count)
+ 
+         // Async fake completer (same contract the store calls).
+         let fake = FakeMergeCompleter()

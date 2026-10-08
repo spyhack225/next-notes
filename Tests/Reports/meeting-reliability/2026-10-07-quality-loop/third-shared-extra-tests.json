@@ -1,0 +1,56 @@
+[
+  {
+    "flag": "scheduler",
+    "exit": 0,
+    "wall_seconds": 1.270926374992996,
+    "markers": [
+      "SCHEDULER_OK"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "cleanup-structure",
+    "exit": 0,
+    "wall_seconds": 1.2603705000001355,
+    "markers": [
+      "CLEANUP_STRUCTURE_OK"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "dictation-hygiene",
+    "exit": 0,
+    "wall_seconds": 1.7835839160034084,
+    "markers": [
+      "DICTATION_HYGIENE_OK: history appends in memory, retention is opt-in, the clipboard survives"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "commandkey",
+    "exit": 0,
+    "wall_seconds": 5.435743208996428,
+    "markers": [
+      "COMMANDKEY_OK"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "contention",
+    "exit": 0,
+    "wall_seconds": 1.567851834006433,
+    "markers": [
+      "CONTENTION_OK"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  },
+  {
+    "flag": "duplex",
+    "exit": 0,
+    "wall_seconds": 1.3997254579953733,
+    "markers": [
+      "DUPLEX_OK"
+    ],
+    "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53"
+  }
+]

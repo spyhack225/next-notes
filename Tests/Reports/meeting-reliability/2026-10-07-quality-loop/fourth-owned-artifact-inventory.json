@@ -1,0 +1,37 @@
+{
+  "at": "2026-10-08T03:21:27.472574+00:00",
+  "installedSHA": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+  "ownedCandidates": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-30744/Next Notes.app",
+      "binarySHA": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+      "allocatedBytes": 140738560
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-quality-rollback-9f769aa0b95c4f42aa9bd0d2ef5b6c97/Next Notes.app",
+      "binarySHA": "a00ac67934f9357c708c2c17f32ee685ee87734ff72471ed14232b4f1ba95046",
+      "allocatedBytes": 140550144
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-fix-install-a5151045eb634800bb3fcdffee49dc67/Next Notes.app",
+      "binarySHA": "a43709f40a477366da87c59e67ae5d948a8392b0207ba3903ae93a58bd18e68e",
+      "allocatedBytes": 248094720
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-62791/Next Notes.app",
+      "binarySHA": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+      "allocatedBytes": 141778944
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-68784/Next Notes.app",
+      "binarySHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53",
+      "allocatedBytes": 142000128
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-73956/Next Notes.app",
+      "binarySHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25",
+      "allocatedBytes": 142184448
+    }
+  ],
+  "scope": "inventory only, no removals"
+}

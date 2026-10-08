@@ -1,0 +1,7 @@
+{
+  "pathsScanned": 269,
+  "normalizedOwnerSegmentsAtLeast50Characters": 648,
+  "exactNormalizedMatches": [],
+  "scope": "Exact normalized >=50-character owner utterances; not short fragments, paraphrases or unrelated private-data assurance",
+  "foreignRealIndexUnchanged": true
+}

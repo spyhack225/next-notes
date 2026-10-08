@@ -79,6 +79,8 @@ enum NotesLongformSelfTest {
                       result.markdown.contains("could not be included"))
                 check("the visible line hides the count",
                       result.markdown.contains("(\(result.droppedFacts) of "))
+                check("the dropped-part warning is not a separate paragraph",
+                      result.markdown.contains("\n\n_Part of this meeting could not be included"))
                 let trimmed = result.markdown
                     .trimmingCharacters(in: .whitespacesAndNewlines)
                 check("the visible line is not the last line",
@@ -86,6 +88,7 @@ enum NotesLongformSelfTest {
             } else {
                 failures.append("the stubborn-collapse run threw")
             }
+
         }
 
         // d. A 10-minute meeting still takes the single pass, and the brief rules hold:

@@ -1,0 +1,29 @@
+--- a/Sources/NextNotes/Computer/BrowserCDPClient.swift
++++ b/Sources/NextNotes/Computer/BrowserCDPClient.swift
+@@ -890,6 +890,26 @@
+         return lines.isEmpty ? "empty" : lines.joined(separator: "\n")
+     }
+ 
++    /// Private, one-shot participant-surface diagnostic. No DOM injection, action,
++    /// snapshot-cache replacement or activity-store write. Unknown labels remain raw.
++    static func meetingParticipantAXObservation(targetID: String, expectedURL: String) async throws -> String {
++        guard let expected = URL(string: expectedURL), expected.scheme == "https",
++              expected.host?.lowercased() == "meet.google.com", !targetID.isEmpty,
++              let before = await probe(),
++              let target = before.targets.first(where: { $0.id == targetID && $0.url == expectedURL }) else {
++            throw AgentError.backendUnavailable("The selected Meet tab is unavailable.")
++        }
++        let raw = try await command("Accessibility.getFullAXTree", params: [:],
++            webSocketURL: target.webSocketDebuggerURL)
++        guard let after = await probe(), after.targets.contains(where: {
++            $0.id == target.id && $0.url == expectedURL
++                && $0.webSocketDebuggerURL == target.webSocketDebuggerURL
++        }) else {
++            throw AgentError.backendUnavailable("The Meet tab changed during observation.")
++        }
++        return raw
++    }
++
+     private static func evaluate(_ expression: String, webSocketURL: String) async throws -> String {
+         let raw = try await command(
+             "Runtime.evaluate",

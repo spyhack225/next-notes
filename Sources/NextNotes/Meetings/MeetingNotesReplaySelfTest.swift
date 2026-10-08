@@ -1,4 +1,5 @@
 import Foundation
+import os
 
 /// Read-only native quality replay on a copied transcript. No meeting store, capture,
 /// graph, actions, provider preference or original notes are mutated. A smaller reader
@@ -7,31 +8,9 @@ import Foundation
 @MainActor
 enum MeetingNotesReplaySelfTest {
     static func run(input: String, provider: any LLMProvider, window: Int?,
-                    write: (String) -> Void) async -> Bool {
+                    write: (String) -> Void, sourceIndices: Bool = false) async -> Bool {
         do {
-            let directory = URL(fileURLWithPath: input, isDirectory: true).standardizedFileURL
-            let resolved = directory.resolvingSymlinksInPath()
-            // An explicit copied fixture under the OS temporary root, never an owner store.
-            let temporary = URL(fileURLWithPath: "/tmp", isDirectory: true).resolvingSymlinksInPath()
-            guard SelfTest.isRunning, directory.path == resolved.path,
-                  resolved.path.hasPrefix(temporary.path + "/"),
-                  resolved.lastPathComponent.hasPrefix("NextNotesMeetingNotesReplay-"),
-                  UUID(uuidString: String(resolved.lastPathComponent
-                    .dropFirst("NextNotesMeetingNotesReplay-".count))) != nil else {
-                throw CocoaError(.fileReadNoPermission)
-            }
-            let decoder = JSONDecoder()
-            decoder.dateDecodingStrategy = .iso8601
-            func read(_ name: String) throws -> Data {
-                let url = resolved.appendingPathComponent(name)
-                guard url.resolvingSymlinksInPath().path == url.path else {
-                    throw CocoaError(.fileReadNoPermission)
-                }
-                return try Data(contentsOf: url)
-            }
-            let meeting = try decoder.decode(Meeting.self, from: read("meeting.json"))
-            let segments = try decoder.decode([TranscriptSegment].self,
-                from: read("transcript.json"))
+            let (meeting, segments) = try loadFixture(input: input)
             let selected: any LLMProvider
             if let window {
                 guard window >= 4096, window <= provider.contextTokens else {
@@ -41,9 +20,20 @@ enum MeetingNotesReplaySelfTest {
             } else {
                 selected = provider
             }
-            let result = try await NotesGenerator(provider: selected)
-                .notes(for: meeting, segments: segments, brief: .empty)
-            write("NOTES_REPLAY_RESULT seconds=\(result.duration) tokens=\(result.generatedTokens)"
+            // This copied-fixture-only buffer joins observations before private output.
+            // The production generator retains no evidence trace or history.
+            let traces = OSAllocatedUnfairLock(initialState: [NotesGenerator.EvidenceTrace]())
+            defer {
+                for trace in traces.withLock({ $0 }) {
+                    if let encoded = try? JSONEncoder().encode(trace) {
+                        write("NOTES_REPLAY_EVIDENCE " + String(decoding: encoded, as: UTF8.self))
+                    }
+                }
+            }
+            let result = try await NotesGenerator(provider: selected, evidenceTrace: { trace in
+                traces.withLock { $0.append(trace) }
+            }, sourceIndices: sourceIndices).notes(for: meeting, segments: segments, brief: .empty)
+            write("NOTES_REPLAY_RESULT mode=\(sourceIndices ? "source-indices" : "legacy") seconds=\(result.duration) tokens=\(result.generatedTokens)"
                 + " mapReduce=\(result.usedMapReduce) chunks=\(result.chunks)"
                 + " collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)"
                 + " incompleteFacts=\(result.incompleteFacts)")
@@ -61,17 +51,61 @@ enum MeetingNotesReplaySelfTest {
         }
     }
 
+    /// Shared read-only boundary for copied transcript experiments.
+    static func loadFixture(input: String) throws -> (Meeting, [TranscriptSegment]) {
+        let directory = URL(fileURLWithPath: input, isDirectory: true).standardizedFileURL
+        let resolved = directory.resolvingSymlinksInPath()
+        // An explicit copied fixture under the OS temporary root, never an owner store.
+        let temporary = URL(fileURLWithPath: "/tmp", isDirectory: true).resolvingSymlinksInPath()
+        guard SelfTest.isRunning, directory.path == resolved.path,
+              resolved.path.hasPrefix(temporary.path + "/"),
+              resolved.lastPathComponent.hasPrefix("NextNotesMeetingNotesReplay-"),
+              UUID(uuidString: String(resolved.lastPathComponent
+                .dropFirst("NextNotesMeetingNotesReplay-".count))) != nil else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        func read(_ name: String) throws -> Data {
+            let url = resolved.appendingPathComponent(name)
+            guard url.resolvingSymlinksInPath().path == url.path else {
+                throw CocoaError(.fileReadNoPermission)
+            }
+            return try Data(contentsOf: url)
+        }
+        let meeting = try decoder.decode(Meeting.self, from: read("meeting.json"))
+        let segments = try decoder.decode([TranscriptSegment].self,
+            from: read("transcript.json"))
+        return (meeting, segments)
+    }
+
+    static func runExtractive(input: String, provider: any LLMProvider,
+                              write: (String) -> Void, indicesOnly: Bool = false) async -> Bool {
+        do {
+            let (meeting, segments) = try loadFixture(input: input)
+            return await NotesExtractiveReplaySelfTest.run(meeting: meeting, segments: segments,
+                provider: provider, write: write, indicesOnly: indicesOnly)
+        } catch {
+            write("NOTES_EXTRACTIVE_REPLAY_FAILED: \(error.localizedDescription)")
+            return false
+        }
+    }
+
     private struct ReaderWindow: LLMProvider {
         let provider: any LLMProvider
         let contextTokens: Int
         var id: LLMProviderID { provider.id }
         var displayModelName: String { provider.displayModelName }
+        var enforcesGrammar: Bool { provider.enforcesGrammar }
         var unavailableReason: String? { get async { await provider.unavailableReason } }
         func countTokens(_ text: String) async throws -> Int {
             try await provider.countTokens(text)
         }
         func complete(system: String, user: String, maxTokens: Int) async throws -> LLMCompletion {
             try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+        }
+        func complete(system: String, user: String, maxTokens: Int, grammar: GBNFGrammar) async throws -> LLMCompletion {
+            try await provider.complete(system: system, user: user, maxTokens: maxTokens, grammar: grammar)
         }
     }
 }

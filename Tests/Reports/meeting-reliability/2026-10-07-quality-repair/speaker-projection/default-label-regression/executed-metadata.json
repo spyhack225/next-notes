@@ -1,0 +1,40 @@
+{
+  "artifactRoot": "/Users/sergekadjo/Library/Caches/NextNotesBuild/NextNotesSpeakerIdentityProbe-j8obxxxe",
+  "fixtureSHA": "0dd3a523bad103ffc26f85cc1c244d7a2bab5e6dbb23a78d2ee53d6680a65f32",
+  "rows": [
+    {
+      "variant": "original",
+      "exit": 1,
+      "markers": [
+        "MEETING_SPEAKER_DEFAULT_WRONG: nil preserves confirmed context item",
+        "MEETING_SPEAKER_DEFAULT_WRONG: nil preserves confirmed anchored candidate",
+        "MEETING_SPEAKER_DEFAULT_WRONG: default preserves confirmed context item",
+        "MEETING_SPEAKER_DEFAULT_WRONG: default preserves confirmed anchored candidate",
+        "MEETING_SPEAKER_DEFAULT_FAILED checks=14 failures=4"
+      ],
+      "producerSHA": "de3858aa768f6084d7fb39f1c742f5931962dee0e105575ad514a65f18ae6290"
+    },
+    {
+      "variant": "intermediate",
+      "exit": 1,
+      "markers": [
+        "MEETING_SPEAKER_DEFAULT_WRONG: nil honors explicit manual mapping on context item",
+        "MEETING_SPEAKER_DEFAULT_WRONG: nil honors explicit manual mapping on candidate",
+        "MEETING_SPEAKER_DEFAULT_WRONG: default honors explicit manual mapping on context item",
+        "MEETING_SPEAKER_DEFAULT_WRONG: default honors explicit manual mapping on candidate",
+        "MEETING_SPEAKER_DEFAULT_FAILED checks=14 failures=4"
+      ],
+      "producerSHA": "2994573dba241c03f0f0359cd7c65ea6b37dfa5320167ff0781218fa915a2bc6"
+    },
+    {
+      "variant": "fixed",
+      "exit": 0,
+      "markers": [
+        "MEETING_SPEAKER_DEFAULT_OK checks=14 failures=0"
+      ],
+      "producerSHA": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617"
+    }
+  ],
+  "fixtureRepair": "unchanged source copied to filename main.swift required for top-level Swift entry; initial compile failure retained",
+  "scope": "actual helper and copied actual identity types; native service/store consumer independently pending"
+}

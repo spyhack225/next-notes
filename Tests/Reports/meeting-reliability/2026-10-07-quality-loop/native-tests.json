@@ -1,0 +1,96 @@
+[
+  {
+    "flag": "notes-evidence",
+    "exit": 0,
+    "wall_seconds": 2.388337667005544,
+    "markers": [
+      "NOTES_EVIDENCE_OK: checks=23 failures=0; semantic quality requires native review",
+      "NOTES_EXTRACTIVE_CONTRACT_OK: checks=18 failures=0; semantic classification and readability unproven"
+    ]
+  },
+  {
+    "flag": "meeting-performance",
+    "exit": 1,
+    "wall_seconds": 0.8080787919971044,
+    "markers": [
+      "MEETING_PERFORMANCE_WRONG: actual session emits persisted observations",
+      "MEETING_PERFORMANCE_WRONG: stale snapshot cannot erase middle peak",
+      "MEETING_PERFORMANCE_FAILED: 2/17"
+    ]
+  },
+  {
+    "flag": "meeting-context",
+    "exit": 1,
+    "wall_seconds": 0.849059958003636,
+    "markers": [
+      "MEETING_SPEAKER_PROJECTION_FAILED checks=39",
+      "MEETING_CONTEXT_FAILED: 1 rule(s) wrong"
+    ]
+  },
+  {
+    "flag": "meeting-reconcile-llm",
+    "exit": 0,
+    "wall_seconds": 0.8077477080005337,
+    "markers": [
+      "MEETING_RECONCILE_LLM_OK: existing grounding and optional pressure admission"
+    ]
+  },
+  {
+    "flag": "notes-longform",
+    "exit": 0,
+    "wall_seconds": 2.301453832995321,
+    "markers": [
+      "NOTES_LONGFORM_OK: 90-min source anchors kept on 4K and 8K, selection/stubborn loss visible, single pass intact, overflow retried, window-derived chunks"
+    ]
+  },
+  {
+    "flag": "notes-truncation",
+    "exit": 0,
+    "wall_seconds": 0.813198875002854,
+    "markers": [
+      "NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read"
+    ]
+  },
+  {
+    "flag": "notes-context",
+    "exit": 0,
+    "wall_seconds": 0.8328914169978816,
+    "markers": [
+      "NOTES_CONTEXT_OK: assembly, consent gates, window accounting, map purity and index safety hold"
+    ]
+  },
+  {
+    "flag": "meeting-health",
+    "exit": 0,
+    "wall_seconds": 1.066173125000205,
+    "markers": [
+      "MEETING_HEALTH_OK: 90 checks; actual capture, writer, durable warning and notification producers"
+    ]
+  },
+  {
+    "flag": "meeting-integrity",
+    "exit": 0,
+    "wall_seconds": 0.8896124579987372,
+    "markers": [
+      "MEETING_INTEGRITY_OK: 67 checks; recording restart through final pass, notes, done and fresh reader"
+    ]
+  },
+  {
+    "flag": "meeting-agent-evidence",
+    "exit": 0,
+    "wall_seconds": 0.7784780840011081,
+    "markers": [
+      "MEETING_EVIDENCE_OK: 89 checks"
+    ]
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "wall_seconds": 30.874302416996215,
+    "markers": [
+      "TOOLLOOP_PRODUCTION_R02_MISSING calls=5 asks=1 saved=1 deniedSaved=0",
+      "STORE_ISOLATION_OK: 21 files and 33 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_FAILED"
+    ]
+  }
+]

@@ -1,0 +1,9 @@
+/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesEvidenceSource-d4u0uehl/original/NotesGenerator.swift:589:60: warning: 'GenerationError' was deprecated in macOS 27.0 [#DeprecatedDeclaration]
+587 |     static func isContextOverflow(_ error: Error) -> Bool {
+588 |         if let llama = error as? LlamaError, case .inputTooLong = llama { return true }
+589 |         if let generation = error as? LanguageModelSession.GenerationError,
+    |                                                            `- warning: 'GenerationError' was deprecated in macOS 27.0 [#DeprecatedDeclaration]
+590 |            case .exceededContextWindowSize = generation { return true }
+591 |         #if compiler(>=6.4)
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>

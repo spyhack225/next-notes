@@ -1,0 +1,51 @@
+[
+  {
+    "at": "2026-10-08T02:39:02.298349+00:00",
+    "pid": 70595,
+    "processStart": 992139580397,
+    "footprintBytes": 249284288,
+    "residentBytes": 744865792
+  },
+  {
+    "at": "2026-10-08T02:39:04.335834+00:00",
+    "pid": 70595,
+    "processStart": 992139580397,
+    "footprintBytes": 190859928,
+    "residentBytes": 2084356096
+  },
+  {
+    "at": "2026-10-08T02:39:06.373519+00:00",
+    "pid": 70595,
+    "processStart": 992139580397,
+    "footprintBytes": 190860480,
+    "residentBytes": 2898690048
+  },
+  {
+    "at": "2026-10-08T02:39:08.414259+00:00",
+    "pid": 70595,
+    "processStart": 992139580397,
+    "footprintBytes": 380915048,
+    "residentBytes": 3123707904
+  },
+  {
+    "at": "2026-10-08T02:39:10.455122+00:00",
+    "pid": 70595,
+    "processStart": 992139580397,
+    "footprintBytes": 381193576,
+    "residentBytes": 3124133888
+  },
+  {
+    "at": "2026-10-08T02:39:12.496283+00:00",
+    "pid": 70595,
+    "processStart": 992139580397,
+    "footprintBytes": 436833712,
+    "residentBytes": 3184803840
+  },
+  {
+    "at": "2026-10-08T02:39:14.547093+00:00",
+    "pid": 70595,
+    "processStart": 992139580397,
+    "footprintBytes": 535842320,
+    "residentBytes": 3267362816
+  }
+]

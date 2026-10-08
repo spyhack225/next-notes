@@ -1,0 +1,36 @@
+{
+  "snapshot": "pre-third-native-release, read-only; not a build pin or install claim",
+  "head": "c934ccfbed51d29fd4f27ef38d8dc6ab6295bef1",
+  "files": {
+    "Sources/NextNotes/Meetings/NotesGenerator.swift": {
+      "sha256": "49c62757bcd0e712d8f6337f7c77484f0f9e634c702318146824480659e2e71f",
+      "matches_root_verified_comprehensive_cache": true
+    },
+    "Sources/NextNotes/Meetings/NotesPrompts.swift": {
+      "sha256": "4d786959e395cdd3c590113532e9b75e30e79d5fcfbc00a97dfb0470188a53d4",
+      "matches_root_verified_comprehensive_cache": true
+    },
+    "Sources/NextNotes/Meetings/NotesEvidenceSelfTest.swift": {
+      "sha256": "8958da20f4c9aa8b7d944bd14997c818416be91c0f1dc90a5df78a971565d2a7",
+      "matches_root_verified_comprehensive_cache": true
+    },
+    "Sources/NextNotes/Meetings/NotesLongformSelfTest.swift": {
+      "sha256": "c518e1d3efdedd9d56109dc5f1518069b9650b036e01e3d834e7f8e5e7e3258b",
+      "matches_root_verified_comprehensive_cache": true
+    },
+    "Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift": {
+      "sha256": "9b8aa09cba8d5d4f4fd04dccd1b8d1017ec156e1b9e70277b6e441f59502e4b2",
+      "matches_root_verified_comprehensive_cache": true
+    },
+    "Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift": {
+      "sha256": "2742a17af8c6cb1f7796b4f91ae53e3fd3cebf22dd12c94fd78cf13e82fa4bbd",
+      "matches_root_verified_comprehensive_cache": true
+    },
+    "Sources/NextNotes/Meetings/NotesExtractiveReplaySelfTest.swift": {
+      "sha256": "9f5a2b3cf24e07156c445afc74fab072f81f63a0c8adfc0282c6c08f622da7a5",
+      "matches_root_verified_comprehensive_cache": true
+    }
+  },
+  "root_owns_build_integration_install": true,
+  "canonical_sources_written_by_report_update": false
+}

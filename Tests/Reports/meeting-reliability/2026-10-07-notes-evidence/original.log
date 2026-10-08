@@ -1,0 +1,8 @@
+NOTES_EVIDENCE_PRODUCTION chunks=5 collapsed=0 calls=6
+  FAIL: The actual map producer lost evidence admission failure
+  FAIL: The actual notes consumer hid incomplete evidence
+  FAIL: Unsupported map summary reached reduce
+  FAIL: Original source evidence never reached reduce
+  FAIL: The real extraction call sites bypassed constrained completion
+  FAIL: Conforming source selections were refused or lost
+NOTES_EVIDENCE_FAILED: checks=23 failures=6; semantic quality requires native review

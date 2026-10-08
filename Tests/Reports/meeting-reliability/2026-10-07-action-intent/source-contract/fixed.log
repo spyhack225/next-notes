@@ -1,0 +1,3 @@
+MEETING_ACTION_INPUT_PRIVATE_SCOPE currentNativeInputReconstructed=true historicalSnapshot=false scriptedSourceContract=true semanticProof=false
+MEETING_ACTION_INPUT_CONTRACT_RESULT checks=27 failed=0 scripted=true nativeSemantic=false
+MEETING_ACTION_INPUT_CONTRACT_OK

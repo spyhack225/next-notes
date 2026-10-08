@@ -1,0 +1,506 @@
+[
+  {
+    "at": "2026-10-08T02:42:09.854705+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 152208872,
+    "residentBytes": 580599808
+  },
+  {
+    "at": "2026-10-08T02:42:11.890930+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 144508560,
+    "residentBytes": 828063744
+  },
+  {
+    "at": "2026-10-08T02:42:13.930460+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 144148280,
+    "residentBytes": 1041448960
+  },
+  {
+    "at": "2026-10-08T02:42:15.971869+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 144263136,
+    "residentBytes": 1292681216
+  },
+  {
+    "at": "2026-10-08T02:42:18.010556+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 144377992,
+    "residentBytes": 1531133952
+  },
+  {
+    "at": "2026-10-08T02:42:20.041384+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 144492872,
+    "residentBytes": 1784823808
+  },
+  {
+    "at": "2026-10-08T02:42:22.080707+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 524536448,
+    "residentBytes": 2122006528
+  },
+  {
+    "at": "2026-10-08T02:42:24.110375+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 525044352,
+    "residentBytes": 2122514432
+  },
+  {
+    "at": "2026-10-08T02:42:26.141566+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 525470336,
+    "residentBytes": 2122940416
+  },
+  {
+    "at": "2026-10-08T02:42:28.173493+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 525945472,
+    "residentBytes": 2123415552
+  },
+  {
+    "at": "2026-10-08T02:42:30.207454+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 526322304,
+    "residentBytes": 2123792384
+  },
+  {
+    "at": "2026-10-08T02:42:32.239919+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 526797440,
+    "residentBytes": 2124267520
+  },
+  {
+    "at": "2026-10-08T02:42:34.279123+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 527223424,
+    "residentBytes": 2124693504
+  },
+  {
+    "at": "2026-10-08T02:42:36.334637+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 527633024,
+    "residentBytes": 2125185024
+  },
+  {
+    "at": "2026-10-08T02:42:38.395970+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 527944320,
+    "residentBytes": 2125742080
+  },
+  {
+    "at": "2026-10-08T02:42:40.436471+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 554764976,
+    "residentBytes": 2153447424
+  },
+  {
+    "at": "2026-10-08T02:42:42.497488+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 554764976,
+    "residentBytes": 2153447424
+  },
+  {
+    "at": "2026-10-08T02:42:44.553616+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 554764976,
+    "residentBytes": 2153447424
+  },
+  {
+    "at": "2026-10-08T02:42:46.615605+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 554764976,
+    "residentBytes": 2153447424
+  },
+  {
+    "at": "2026-10-08T02:42:48.676077+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 554764976,
+    "residentBytes": 2153447424
+  },
+  {
+    "at": "2026-10-08T02:42:50.740051+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 554764976,
+    "residentBytes": 2153447424
+  },
+  {
+    "at": "2026-10-08T02:42:52.794068+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 554764976,
+    "residentBytes": 2153447424
+  },
+  {
+    "at": "2026-10-08T02:42:54.851549+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 555092656,
+    "residentBytes": 2153447424
+  },
+  {
+    "at": "2026-10-08T02:42:56.891857+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 557058736,
+    "residentBytes": 2155528192
+  },
+  {
+    "at": "2026-10-08T02:42:58.949634+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 556763824,
+    "residentBytes": 2155528192
+  },
+  {
+    "at": "2026-10-08T02:43:00.989956+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 643910416,
+    "residentBytes": 2225602560
+  },
+  {
+    "at": "2026-10-08T02:43:03.143098+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 644107024,
+    "residentBytes": 2226290688
+  },
+  {
+    "at": "2026-10-08T02:43:05.225027+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 644500240,
+    "residentBytes": 2226569216
+  },
+  {
+    "at": "2026-10-08T02:43:07.303301+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 644958992,
+    "residentBytes": 2226028544
+  },
+  {
+    "at": "2026-10-08T02:43:09.390055+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 645286672,
+    "residentBytes": 2226388992
+  },
+  {
+    "at": "2026-10-08T02:43:11.476734+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 645679888,
+    "residentBytes": 2226864128
+  },
+  {
+    "at": "2026-10-08T02:43:13.566600+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 646007568,
+    "residentBytes": 2227224576
+  },
+  {
+    "at": "2026-10-08T02:43:15.656302+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 646335248,
+    "residentBytes": 2227650560
+  },
+  {
+    "at": "2026-10-08T02:43:17.733167+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 646597392,
+    "residentBytes": 2227929088
+  },
+  {
+    "at": "2026-10-08T02:43:19.807706+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649349904,
+    "residentBytes": 2242838528
+  },
+  {
+    "at": "2026-10-08T02:43:21.898831+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649022224,
+    "residentBytes": 2242838528
+  },
+  {
+    "at": "2026-10-08T02:43:23.982132+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649038608,
+    "residentBytes": 2242854912
+  },
+  {
+    "at": "2026-10-08T02:43:26.073734+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649038608,
+    "residentBytes": 2242854912
+  },
+  {
+    "at": "2026-10-08T02:43:28.157542+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649038608,
+    "residentBytes": 2242854912
+  },
+  {
+    "at": "2026-10-08T02:43:30.245965+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649038608,
+    "residentBytes": 2242854912
+  },
+  {
+    "at": "2026-10-08T02:43:32.329867+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649038608,
+    "residentBytes": 2242854912
+  },
+  {
+    "at": "2026-10-08T02:43:34.383780+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649038608,
+    "residentBytes": 2241380352
+  },
+  {
+    "at": "2026-10-08T02:43:36.421367+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649038608,
+    "residentBytes": 2240610304
+  },
+  {
+    "at": "2026-10-08T02:43:38.456909+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649480976,
+    "residentBytes": 2240790528
+  },
+  {
+    "at": "2026-10-08T02:43:40.502945+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240790528
+  },
+  {
+    "at": "2026-10-08T02:43:42.546548+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240790528
+  },
+  {
+    "at": "2026-10-08T02:43:44.591594+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240790528
+  },
+  {
+    "at": "2026-10-08T02:43:46.629786+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240790528
+  },
+  {
+    "at": "2026-10-08T02:43:48.670115+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240790528
+  },
+  {
+    "at": "2026-10-08T02:43:50.707809+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240331776
+  },
+  {
+    "at": "2026-10-08T02:43:52.749345+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240331776
+  },
+  {
+    "at": "2026-10-08T02:43:54.813023+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240331776
+  },
+  {
+    "at": "2026-10-08T02:43:56.876773+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240331776
+  },
+  {
+    "at": "2026-10-08T02:43:58.931424+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240331776
+  },
+  {
+    "at": "2026-10-08T02:44:00.995424+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2240331776
+  },
+  {
+    "at": "2026-10-08T02:44:03.053777+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2238922752
+  },
+  {
+    "at": "2026-10-08T02:44:05.113397+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2238119936
+  },
+  {
+    "at": "2026-10-08T02:44:07.156835+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2238119936
+  },
+  {
+    "at": "2026-10-08T02:44:09.201236+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2238119936
+  },
+  {
+    "at": "2026-10-08T02:44:11.265013+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2238119936
+  },
+  {
+    "at": "2026-10-08T02:44:13.318861+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2238136320
+  },
+  {
+    "at": "2026-10-08T02:44:15.360920+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649153296,
+    "residentBytes": 2238201856
+  },
+  {
+    "at": "2026-10-08T02:44:17.423318+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649284368,
+    "residentBytes": 2238332928
+  },
+  {
+    "at": "2026-10-08T02:44:19.481967+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649628432,
+    "residentBytes": 2240479232
+  },
+  {
+    "at": "2026-10-08T02:44:21.543865+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649595664,
+    "residentBytes": 2240479232
+  },
+  {
+    "at": "2026-10-08T02:44:23.597255+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649595664,
+    "residentBytes": 2240479232
+  },
+  {
+    "at": "2026-10-08T02:44:25.655556+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649595664,
+    "residentBytes": 2240479232
+  },
+  {
+    "at": "2026-10-08T02:44:27.706487+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649595664,
+    "residentBytes": 2240479232
+  },
+  {
+    "at": "2026-10-08T02:44:29.762658+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649595664,
+    "residentBytes": 2240479232
+  },
+  {
+    "at": "2026-10-08T02:44:31.823916+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649595664,
+    "residentBytes": 2240479232
+  },
+  {
+    "at": "2026-10-08T02:44:33.880289+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 649595664,
+    "residentBytes": 2240479232
+  },
+  {
+    "at": "2026-10-08T02:44:35.942968+00:00",
+    "pid": 70832,
+    "processStart": 996641164798,
+    "footprintBytes": 155960568,
+    "residentBytes": 234045440
+  }
+]

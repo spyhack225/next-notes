@@ -1,0 +1,21 @@
+{
+  "experiment": "production-future-qwen35",
+  "exit": 1,
+  "wall_seconds": 17.021086749999085,
+  "markers": [
+    "ACTION_INTENT_PRODUCTION_SCOPE reconstructed=true originalSnapshots=false precedingContext=extractor-only targetInstructions=false isolatedStore=true",
+    "ACTION_INTENT_PRODUCTION_RESULT case=customer-followup-real-window requestedCutoff=1945.0 actualCutoff=1943.68 calls=1 completions=1 finishedByLimit=false productionParsed=true candidates=0 forbiddenCitationHits=0 requiredCitationHit=false referenceVisible=3/3 extractorSeedEqual=true persistedEqual=true sourcesCorrect=true semanticReviewed=false",
+    "ACTION_INTENT_PRODUCTION_FAILED: 1 production fixture windows wrong; semantic review remains required"
+  ],
+  "candidateSHA": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+  "startedAt": "2026-10-08T01:45:57.652878+00:00",
+  "endedAt": "2026-10-08T01:46:14.674716+00:00",
+  "pids": [
+    65544
+  ],
+  "memorySamples": 8,
+  "peakSampledFootprintBytes": 384404888,
+  "peakSampledResidentBytes": 2514026496,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "FAIL original citation contract: actual future intent identified in valid payload, but fabricated composite quote spanning fragmented source segments is rejected; zero stored candidates. Semantic primary-anchor selection still unproven."
+}

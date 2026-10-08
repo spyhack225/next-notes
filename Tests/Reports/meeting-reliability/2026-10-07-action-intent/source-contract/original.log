@@ -1,0 +1,14 @@
+MEETING_ACTION_INPUT_PRIVATE_SCOPE currentNativeInputReconstructed=true historicalSnapshot=false scriptedSourceContract=true semanticProof=false
+FAIL: first retained row keeps full metadata
+FAIL: parser evidence domain equals visible prompt
+FAIL: oversized newest utterance performs no optional model call
+FAIL: same existing model call receives grammar and 400 token budget
+FAIL: same-call grammar contract yields consumed complete schema
+FAIL: unsupported provider malformed shape is refused without repair
+FAIL: length-finished valid partial result is refused
+FAIL: primary source index derives exact original full speech
+FAIL: ambiguous double citation refused
+FAIL: actual fragmented source contract retains full primary speech
+FAIL: actual fragmented primary retains source and clock
+MEETING_ACTION_INPUT_CONTRACT_RESULT checks=27 failed=11 scripted=true nativeSemantic=false
+MEETING_ACTION_INPUT_CONTRACT_FAILED

@@ -1,0 +1,84 @@
+[
+  {
+    "warm": true,
+    "finishReason": "stop",
+    "promptTokens": 6337,
+    "truncated": false,
+    "cachedTokens": 0,
+    "countsEstimated": false,
+    "locality": "local",
+    "feature": "meeting.notes.map",
+    "modelID": "MiniCPM5-2B",
+    "completionTokens": 7,
+    "pass": "map",
+    "counts": {
+      "generationMs": 859,
+      "prefillMs": 16227,
+      "prefillDecodedTokens": 6337
+    },
+    "provider": "llama",
+    "totalMs": 17167
+  },
+  {
+    "warm": true,
+    "finishReason": "stop",
+    "promptTokens": 6015,
+    "truncated": false,
+    "cachedTokens": 161,
+    "countsEstimated": false,
+    "locality": "local",
+    "feature": "meeting.notes.map",
+    "modelID": "MiniCPM5-2B",
+    "completionTokens": 3,
+    "pass": "map",
+    "counts": {
+      "prefillMs": 14874,
+      "generationMs": 561,
+      "prefillDecodedTokens": 5854
+    },
+    "provider": "llama",
+    "totalMs": 15445
+  },
+  {
+    "warm": true,
+    "finishReason": "stop",
+    "promptTokens": 2299,
+    "truncated": false,
+    "cachedTokens": 161,
+    "countsEstimated": false,
+    "locality": "local",
+    "feature": "meeting.notes.map",
+    "modelID": "MiniCPM5-2B",
+    "completionTokens": 4,
+    "pass": "map",
+    "counts": {
+      "generationMs": 699,
+      "prefillMs": 4572,
+      "prefillDecodedTokens": 2138
+    },
+    "provider": "llama",
+    "totalMs": 5275
+  },
+  {
+    "modelID": "MiniCPM5-2B",
+    "locality": "local",
+    "cachedTokens": 4,
+    "completionTokens": 92,
+    "counts": {
+      "facts": 3,
+      "prefillMs": 1324,
+      "chunks": 3,
+      "generationMs": 2484,
+      "prefillDecodedTokens": 716
+    },
+    "finishReason": "stop",
+    "warm": true,
+    "feature": "meeting.notes.reduce",
+    "countsEstimated": false,
+    "promptTokens": 720,
+    "truncated": false,
+    "provider": "llama",
+    "pass": "reduce",
+    "totalMs": 3817
+  }
+]

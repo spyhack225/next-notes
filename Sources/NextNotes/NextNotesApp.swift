@@ -24,6 +24,8 @@ enum NextNotesEntryPoint {
 }
 
 struct NextNotesApp: App {
+    private let validatedDiagnosticLaunch: Void = { _ = SelfTest.requested }()
+
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var delegate
 
     var body: some Scene {
@@ -106,9 +108,27 @@ enum SelfTest {
     /// settings rather than tests, and either can precede the test's flag on the command
     /// line — put `--selftest-timeout` first and the process would otherwise decide the
     /// test it had been asked to run was "--selftest-timeout".
-    static let requested = CommandLine.arguments.dropFirst().first {
-        $0.hasPrefix("--selftest") && !harnessFlags.contains($0)
-    }
+    static let requested: String? = {
+        let arguments = Array(CommandLine.arguments.dropFirst())
+        if arguments.contains("--selftest-meeting-participant-observation") {
+            let flag = "--selftest-meeting-participant-observation"
+            let allowed: Set<String> = [flag, "--selftest-out", "--selftest-timeout"]
+            let extraFlags = arguments.filter { $0.hasPrefix("-") && !allowed.contains($0) }
+            let participantNamed = arguments.filter {
+                $0.hasPrefix("--selftest") && !harnessFlags.contains($0)
+            }
+            let index = arguments.firstIndex(of: flag)!
+            let mode = index + 1 < arguments.count ? arguments[index + 1] : ""
+            guard participantNamed == [flag], extraFlags.isEmpty,
+                  ["zoom", "meet", "contracts"].contains(mode) else {
+                print("MEETING_PARTICIPANT_OBSERVATION_FAILED: invalid-or-conflicting-diagnostic")
+                exit(1)
+            }
+        }
+        return arguments.first {
+            $0.hasPrefix("--selftest") && !harnessFlags.contains($0)
+        }
+    }()
 
     static var isRunning: Bool { requested != nil }
 
@@ -804,6 +824,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // This exact process-owning fixture uses the parent's owned-process watchdog.
         if SelfTest.requested != "--selftest-native-termination" { startSelfTestWatchdog() }
         let arguments = Set(CommandLine.arguments.dropFirst())
+        if arguments.contains("--selftest-meeting-participant-observation") {
+            Task { @MainActor in
+                let marker = await MeetingParticipantObservationProbe.run(
+                    mode: SelfTest.value(after: MeetingParticipantObservationProbe.flag))
+                // Raw participant labels/URLs go only to the private JSON writer.
+                writePrivateSelfTest(marker)
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-native-termination") {
             Task { @MainActor in
                 do {
@@ -1810,7 +1840,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 }
                 SelfTest.failed = !(await MeetingNotesReplaySelfTest.run(
                     input: input, provider: provider, window: rawWindow.flatMap(Int.init),
-                    write: writeSelfTest))
+                    write: writePrivateSelfTest,
+                    sourceIndices: arguments.contains("--notes-source-indices")))
                 SelfTest.requestTermination()
             }
             return true
@@ -1866,6 +1897,76 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         if arguments.contains("--selftest-meeting-health") {
             Task { @MainActor in
                 SelfTest.failed = !(await MeetingHealthSelfTest.run { writeSelfTest($0) })
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-performance") {
+            Task { @MainActor in
+                SelfTest.failed = !(await MeetingPerformanceSummarySelfTest.run { writeSelfTest($0) })
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-notes-evidence") {
+            Task { @MainActor in
+                let evidenceOK = await NotesEvidenceSelfTest.run { writeSelfTest($0) }
+                let extractiveOK = await NotesExtractiveReplaySelfTest.runSourceChecks(write: writeSelfTest)
+                SelfTest.failed = !(evidenceOK && extractiveOK)
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-action-input-contract") {
+            Task { @MainActor in
+                let fixture = SelfTest.value(after: "--notes-action-fixture")
+                    .map { URL(fileURLWithPath: $0, isDirectory: true) }
+                SelfTest.failed = !(await MeetingActionInputContractSelfTest.run(
+                    privateFixture: fixture, write: writePrivateSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-topic-merge") {
+            Task { @MainActor in
+                let corpus = SelfTest.value(after: "--meeting-topic-merge-corpus")
+                    .map { URL(fileURLWithPath: $0, isDirectory: true) }
+                SelfTest.failed = !(await MeetingTopicMergeSelfTest.run(
+                    privateDirectory: corpus, write: writePrivateSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-action-intent-replay") {
+            Task { @MainActor in
+                guard let input = SelfTest.value(after: "--selftest-meeting-action-intent-replay"),
+                      let model = SelfTest.value(after: "--notes-model"),
+                      let provider = await Self.benchmarkProvider(model) else {
+                    writeSelfTest("MEETING_ACTION_INTENT_REPLAY_FAILED: copied input and explicit local model required")
+                    SelfTest.failed = true
+                    SelfTest.requestTermination()
+                    return
+                }
+                SelfTest.failed = !(await MeetingActionIntentReplaySelfTest.run(
+                    input: input, provider: provider,
+                    production: arguments.contains("--notes-intent-production"), write: writePrivateSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-meeting-notes-extractive") {
+            Task { @MainActor in
+                guard let input = SelfTest.value(after: "--selftest-meeting-notes-extractive"),
+                      let model = SelfTest.value(after: "--notes-model"),
+                      let provider = await Self.benchmarkProvider(model) else {
+                    writeSelfTest("NOTES_EXTRACTIVE_REPLAY_FAILED: copied input and explicit local model required")
+                    SelfTest.failed = true
+                    SelfTest.requestTermination()
+                    return
+                }
+                SelfTest.failed = !(await MeetingNotesReplaySelfTest.runExtractive(
+                    input: input, provider: provider, write: writePrivateSelfTest,
+                    indicesOnly: arguments.contains("--notes-selection-indices")))
                 SelfTest.requestTermination()
             }
             return true
@@ -8986,6 +9087,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         check("an agent command leaked into plain text", !notes.contains("email the proposal"))
         check("ordinary speech was dropped from plain text", notes.contains("STEP"))
 
+        check("committed speaker labels reach saved context",
+              MeetingSpeakerProjectionSelfTest.run(write: writeSelfTest))
         for failure in failures { writeSelfTest("  MEETING_CONTEXT_WRONG: \(failure)") }
         writeSelfTest(failures.isEmpty
                       ? "MEETING_CONTEXT_OK: extraction and the authority split hold"
@@ -10063,6 +10166,16 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
     /// between those two launches. `log show --predicate 'subsystem == "ai.pivotstudio.nextnotes"'`
     /// is how you read one back.
     private func writeSelfTest(_ line: String) {
+        recordSelfTest(line, includeSystemLog: true)
+    }
+
+    /// Copied meeting replay contains private speech/model output. Keep its output
+    /// in the caller's explicit diagnostic destination, outside the system log.
+    private func writePrivateSelfTest(_ line: String) {
+        recordSelfTest(line, includeSystemLog: false)
+    }
+
+    private func recordSelfTest(_ line: String, includeSystemLog: Bool) {
         if line.split(whereSeparator: \.isNewline).contains(where: { part in
             let trimmed = part.trimmingCharacters(in: .whitespaces)
             let marker = trimmed.prefix {
@@ -10079,7 +10192,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
         let text = "\(line)\n"
         FileHandle.standardOutput.write(Data(text.utf8))
-        Log.app.info("selftest · \(line, privacy: .public)")
+        if includeSystemLog { Log.app.info("selftest · \(line, privacy: .public)") }
         guard let path = SelfTest.outputPath else { return }
         if let handle = FileHandle(forWritingAtPath: path) {
             handle.seekToEndOfFile()

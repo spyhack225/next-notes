@@ -354,3 +354,122 @@ The [continued optimization report](Tests/Reports/dictation-latency/2026-10-07-l
 A correct native French plan exposed destructive renderer unit mismatch: `D'abord` counted as two lexical pieces, then two whitespace words were removed, losing `on`. Original actual renderer/router fails7 assertions; optimized45909 passes the same assertions and existing router/structure checks. Verified whole-prefix words are now removed in the same unit as the eight-word guide; later matches preserve opening words and nine spoken words remain rejected. Existing non-prefix evidence policy remains, so semantic false-list inference is still open.
 
 Native private MiniCPM full grammar, after completed weight preparation and an ungraded initial generation, preserves the exact French content but still fails3 mixed-layout assertions; six case durations2.117–5.795s are model-only observations. Full and conditional typed native Apple schemas each fail14 assertions; no representation/model/default is promoted. Universal2s polished delivery, cold ASR, paired accuracy and physical external insertion remain open. Staged optimized dictation/hygiene/segments/commandkey/duplex pass; the two inherited duplex reducer divergences remain reported. Native-shutdown installation hold and all quality/permission/latency contracts remain.
+
+## Meeting native quality loop — 7 October 2026
+
+Quality gates reject a model completion that omits the real follow-up, invents its date
+or owner, or makes ordinary discussion actionable. A valid exact quotation proves
+source provenance, not future intent. Positive recall and safe non-actions must pass
+together through the actual producer, application and saved consumer path.
+
+First optimized native evidence: source-evidence23, extractive-contract18, health90,
+integrity67 and agent-evidence89 passed. Performance failed2/17 because the new summary
+used the existing ISO8601 date codec, which drops fractional seconds; summary-specific
+reference-date doubles repair that producer boundary without changing legacy clocks.
+Original actual-codec probe fails3; corrected passes3. Native19 remains pending. Speaker
+projection failed1/39 on a test comparing unsaved dates with normalized saved dates;
+its test now preserves separate durable and in-memory baselines, with producer unchanged.
+The isolated store check preserves21files33defaults while embedded production browser
+admission still fails18 assertions; record both verdicts.
+
+The copied full meeting quote selector failed with zero admitted rows in71.63s, including
+49.407s prefill and13.220s generation. The original early throw lost raw selection;
+diagnostic failure visibility is now repaired in source. The mapped evidence writer
+completed in203.57s with7passes, three600-token length finishes, two dropped parts and
+one retained fact. The actual follow-up was missing. Historical same model/window
+159.56s is context, not a controlled paired speed comparison. Native cost and quality
+are rejected; no default or writer promotion. Bounded source-ID selection through the
+existing map/collapse seams is under investigation. Eight targeted action comparison
+passes completed in29.50s wall, but the true future follow-up was missed. Wire format,
+production schema decoding, quoted source and semantic action meaning are scored
+separately; original unsaved inference snapshots were not available.
+
+Raw owner speech stays in private diagnostics. Signed candidate identity, source
+invariance, numeric usage, failures, corrected producer proof and remaining acceptance
+limits are retained in the [native loop report](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/README.md).
+Meeting and dictation compiler/model windows remain serialized by agent-relay machine
+claims so development cannot recreate the owner's memory-pressure incident.
+
+Copied meeting diagnostic payloads must bypass the public system-log mirror. Redirected private stdout alone was insufficient with the former `writeSelfTest` recorder. Current source routes copied notes/action/extractive replay through a private writer; native absence proof is pending, and historical local logs are not erased.
+
+Second source-ID map/collapse and six reconstructed actual production-window action diagnostics are staged for optimized native proof. An unchanged14-check speaker helper probe rejects original lost identity4 and intermediate lost explicit-manual-map4; corrected passes14. Native saved service/consumer checks remain pending. Source/build coordination overlap was corrected before accepting any native snapshot; all subsequent heavy windows require canonical source freeze.
+
+Native gates are separate: source syntax/admission, durable consumer behavior, semantic coverage and physical performance. Second release performance19/speaker51/evidence30/extractive36 pass only their explicit scope. A 54.97 s mapped Mini replay with five of 519 selected utterances fails substantive coverage even with valid IDs and no cut output. Reject such a candidate; do not replace recall with a record quota or claim `incompleteFacts=false` means all topics were covered. Two-second process samples are sampled values, never continuous peaks or reference-machine ASR/voice acceptance. System-log privacy absence must state retained process-entry count and control limitations.
+
+Third-loop admission: faster source-ID summaries are experimental and require explicit
+SelfTest opt-in; production keeps its original single/map/collapse/reduce prompt and
+budget contract. Corrected source parity and explicit production opt-in guard pass;
+initial shim failures remain retained. JSON shape, source evidence, semantic meaning,
+whole-meeting coverage and physical speed are distinct gates. Actual Mini action windows
+returned incomplete objects below400tokens; the producer now retains complete labelled
+utterances under the same3000-character boundary and sends one400-token constrained
+call. Source-owned primary evidence must still select the correct utterance; it does
+not prove future intent, recipient identity or an action permission. Original source
+contract fails11/27, corrected passes27, using substituted external boundaries; native
+sampler/semantic acceptance is pending. Source IDs cannot rescue a model that selects
+only greetings, and an empty result from malformed output is not a safe negative.
+
+Third release compilation failures are retained, with joined children before repairs:
+first the test writer actor annotation, then two pure JSON helpers required nonisolated
+annotations for scripted Sendable provider closures. These change test isolation only.
+The reused-cache build has an explicit6.5GB-free/8GB-swap coordination gate; the default
+10GB gate is not claimed to pass. Compilerjobs2 does not cap Swift's internal WMO threads.
+New physical ASR/voice soak, actual provider participant/name bindings, legacy full-note
+semantic omissions and the inherited browser production gate remain open.
+
+
+Fourth source loop — verified evidence remains separate from open quality. Third signed
+release cff85f47 is uninstalled: 16 focused native checks pass, including action-input27,
+evidence33, performance19 and committed speaker51; six shared extras report OK, but
+embedded browser production18 failures and two duplex divergence diagnostics remain.
+Six Mini action windows now complete valid schema, yet miss the real future follow-up.
+Qwen selects an antecedent partial utterance rather than the required complete primary.
+Stronger experimental source-ID Mini notes take148.34s, add three collapse passes and
+still omit material content. Valid shape/source IDs are not semantic coverage. These
+experiments stay behind explicit SelfTest opt-in; legacy production prompts/budgets and
+owner model/default choices remain unchanged.
+
+Actual old and third model output reveals a shared topic/unresolved producer defect:
+punctuation-only text normalizes to a space, substring/shared-token matching replaces
+and deletes distinct retained facts, and capacity append can evict earlier identities.
+The unchanged actual-source save/fresh-read probe fails58/185 before and passes185 after.
+The existing merger now ignores empty/exact duplicates, adds inferred enrichment only
+within40 rows and preserves all existing facts and metadata. Native full-app proof is
+pending in the fourth frozen release. This does not certify new model generalizations,
+recover already erased facts, or solve future-intent recall.
+
+Participant names require actual observation and voice binding. The explicit one-shot
+Zoom/Meet diagnostic is guarded before startup, uses existing authorization and unique
+process/target identity, and writes raw labels/URLs only to private0700/0600 diagnostics.
+Its proposed19 generic contracts have not yet passed native execution. It assigns no
+names, polls nothing, and changes no meeting/defaults. AX wall deadlines and full CDP
+reply bounds remain open; do not move it onto the recording path. Provider roster data
+alone cannot identify which voice produced an utterance. Physical Zoom/Meet evidence,
+reference-machine ASR/voice soak and whole-meeting factual quality remain open.
+
+
+Fourth native acceptance, 8 October UTC (7 October owner local time): signed candidate
+476d1c67 has1170 invariant Sources/Resources pins and remains uninstalled. All18 focused
+native flags and six shared extras report OK. Topic retention passes185 unchanged
+save/fresh-reader checks; participant selectors/authorization pass19 contracts and six
+actual invalid/conflicting preflight launches refuse before startup. Performance19,
+committed speaker51, action-input27, evidence33/extractive36, usage27, health90,
+integrity67 and agent-evidence89 remain green. Isolated owner21files/33defaults stay
+unchanged; embedded browser18 failures and two duplex divergence diagnostics remain.
+
+The real original/fixed Mini six-window comparison uses identical prompts AND raw
+replies. Five original outputs erase9,11,13,13,12 prior topic texts; fixed preserves all
+prior texts in every window. Both workflows run six existing model calls and take33.58
+and33.60s; this is no speedup claim. The future follow-up is still missed, so semantic
+intent remains FAILED. Whole-note first loss remains unlocalized; exact existing-pass
+private diagnostic forwarding is cache-staged/uncompiled for the next coherent gap.
+Normal legacy prompts/budgets and owner roles/defaults remain unchanged.
+
+This Mac is Apple M3/16GB. Compiler workload temporarily reaches swap8.77GB; the checked
+max8 heavy gate refuses further inference until recovery. Sequential scripted nonmodel
+contracts run only under an explicit max9/free6.5GB gate with65% free memory; this does
+not claim the max8 gate passed. The actual Mini replay starts after max8 recovery at
+swap7.977GB/free6.707GB. Reference hardware capacity is not ASR/voice soak or decode-floor
+acceptance. A full310-file matching duplicate current bundle is removed only after no
+active executable uses its path, reclaiming140,738,560 allocated bytes. Installed useful
+build, repaired rollback, original crash reproduction, comparison and candidate remain.

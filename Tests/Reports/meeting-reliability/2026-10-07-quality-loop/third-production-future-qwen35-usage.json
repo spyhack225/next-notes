@@ -1,0 +1,22 @@
+[
+  {
+    "feature": "meeting.reconcile",
+    "completionTokens": 52,
+    "finishReason": "stop",
+    "counts": {
+      "generationMs": 4164,
+      "prefillDecodedTokens": 1278,
+      "prefillMs": 5153
+    },
+    "provider": "llama",
+    "locality": "local",
+    "pass": "reconcile",
+    "totalMs": 14850,
+    "promptTokens": 1278,
+    "modelID": "Qwen3.5-4B",
+    "truncated": false,
+    "cachedTokens": 0,
+    "warm": false,
+    "countsEstimated": false
+  }
+]

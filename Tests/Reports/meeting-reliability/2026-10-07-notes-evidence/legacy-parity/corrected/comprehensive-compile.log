@@ -1,0 +1,42 @@
+/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-notes-optin-boundary-q46cenqz/actual-source-comprehensive/fixed/NotesGenerator.swift:658:60: warning: 'GenerationError' was deprecated in macOS 27.0 [#DeprecatedDeclaration]
+ 656 |     static func isContextOverflow(_ error: Error) -> Bool {
+ 657 |         if let llama = error as? LlamaError, case .inputTooLong = llama { return true }
+ 658 |         if let generation = error as? LanguageModelSession.GenerationError,
+     |                                                            `- warning: 'GenerationError' was deprecated in macOS 27.0 [#DeprecatedDeclaration]
+ 659 |            case .exceededContextWindowSize = generation { return true }
+ 660 |         #if compiler(>=6.4)
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>
+/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-notes-optin-boundary-q46cenqz/actual-source-comprehensive/fixed/NotesLongformSelfTest.swift:208:40: warning: 'GenerationError' was deprecated in macOS 27.0 [#DeprecatedDeclaration]
+206 |         check("the session context-window refusal did not match",
+207 |               NotesGenerator.isContextOverflow(
+208 |                   LanguageModelSession.GenerationError.exceededContextWindowSize(
+    |                                        `- warning: 'GenerationError' was deprecated in macOS 27.0 [#DeprecatedDeclaration]
+209 |                       .init(debugDescription: "fixture"))))
+210 |         #if compiler(>=6.4)
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-notes-optin-boundary-q46cenqz/actual-source-comprehensive/fixed/NotesLongformSelfTest.swift:208:56: warning: 'exceededContextWindowSize' was deprecated in macOS 27.0: Use ``LanguageModelError/contextSizeExceeded(_:)`` instead. [#DeprecatedDeclaration]
+206 |         check("the session context-window refusal did not match",
+207 |               NotesGenerator.isContextOverflow(
+208 |                   LanguageModelSession.GenerationError.exceededContextWindowSize(
+    |                                                        `- warning: 'exceededContextWindowSize' was deprecated in macOS 27.0: Use ``LanguageModelError/contextSizeExceeded(_:)`` instead. [#DeprecatedDeclaration]
+209 |                       .init(debugDescription: "fixture"))))
+210 |         #if compiler(>=6.4)
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-notes-optin-boundary-q46cenqz/actual-source-comprehensive/fixed/NotesLongformSelfTest.swift:404:37: warning: 'GenerationError' was deprecated in macOS 27.0 [#DeprecatedDeclaration]
+402 |         }
+403 |         #endif
+404 |         return LanguageModelSession.GenerationError.exceededContextWindowSize(
+    |                                     `- warning: 'GenerationError' was deprecated in macOS 27.0 [#DeprecatedDeclaration]
+405 |             .init(debugDescription: "fixture: the prompt exceeds the context window"))
+406 |     }
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-notes-optin-boundary-q46cenqz/actual-source-comprehensive/fixed/NotesLongformSelfTest.swift:404:53: warning: 'exceededContextWindowSize' was deprecated in macOS 27.0: Use ``LanguageModelError/contextSizeExceeded(_:)`` instead. [#DeprecatedDeclaration]
+402 |         }
+403 |         #endif
+404 |         return LanguageModelSession.GenerationError.exceededContextWindowSize(
+    |                                                     `- warning: 'exceededContextWindowSize' was deprecated in macOS 27.0: Use ``LanguageModelError/contextSizeExceeded(_:)`` instead. [#DeprecatedDeclaration]
+405 |             .init(debugDescription: "fixture: the prompt exceeds the context window"))
+406 |     }
+
+[#DeprecatedDeclaration]: <https://docs.swift.org/compiler/documentation/diagnostics/deprecated-declaration>

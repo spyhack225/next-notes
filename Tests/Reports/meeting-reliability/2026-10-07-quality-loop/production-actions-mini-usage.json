@@ -1,0 +1,122 @@
+[
+  {
+    "completionTokens": 103,
+    "counts": {
+      "prefillDecodedTokens": 1148,
+      "generationMs": 2342,
+      "prefillMs": 2175
+    },
+    "truncated": false,
+    "pass": "reconcile",
+    "finishReason": "stop",
+    "cachedTokens": 0,
+    "modelID": "MiniCPM5-2B",
+    "feature": "meeting.reconcile",
+    "locality": "local",
+    "totalMs": 4712,
+    "promptTokens": 1148,
+    "countsEstimated": false,
+    "warm": false,
+    "provider": "llama"
+  },
+  {
+    "completionTokens": 104,
+    "counts": {
+      "prefillDecodedTokens": 881,
+      "generationMs": 2380,
+      "prefillMs": 1587
+    },
+    "truncated": false,
+    "pass": "reconcile",
+    "finishReason": "stop",
+    "cachedTokens": 266,
+    "modelID": "MiniCPM5-2B",
+    "feature": "meeting.reconcile",
+    "locality": "local",
+    "totalMs": 3970,
+    "promptTokens": 1147,
+    "countsEstimated": false,
+    "warm": true,
+    "provider": "llama"
+  },
+  {
+    "completionTokens": 14,
+    "counts": {
+      "prefillDecodedTokens": 880,
+      "generationMs": 557,
+      "prefillMs": 1591
+    },
+    "truncated": false,
+    "pass": "reconcile",
+    "finishReason": "stop",
+    "cachedTokens": 291,
+    "modelID": "MiniCPM5-2B",
+    "feature": "meeting.reconcile",
+    "locality": "local",
+    "totalMs": 2150,
+    "promptTokens": 1171,
+    "countsEstimated": false,
+    "warm": true,
+    "provider": "llama"
+  },
+  {
+    "completionTokens": 104,
+    "counts": {
+      "prefillDecodedTokens": 891,
+      "generationMs": 2397,
+      "prefillMs": 1594
+    },
+    "truncated": false,
+    "pass": "reconcile",
+    "finishReason": "stop",
+    "cachedTokens": 308,
+    "modelID": "MiniCPM5-2B",
+    "feature": "meeting.reconcile",
+    "locality": "local",
+    "totalMs": 3993,
+    "promptTokens": 1199,
+    "countsEstimated": false,
+    "warm": true,
+    "provider": "llama"
+  },
+  {
+    "completionTokens": 94,
+    "counts": {
+      "prefillDecodedTokens": 857,
+      "generationMs": 2106,
+      "prefillMs": 1601
+    },
+    "truncated": false,
+    "pass": "reconcile",
+    "finishReason": "stop",
+    "cachedTokens": 361,
+    "modelID": "MiniCPM5-2B",
+    "feature": "meeting.reconcile",
+    "locality": "local",
+    "totalMs": 3709,
+    "promptTokens": 1218,
+    "countsEstimated": false,
+    "warm": true,
+    "provider": "llama"
+  },
+  {
+    "totalMs": 4030,
+    "counts": {
+      "prefillDecodedTokens": 880,
+      "generationMs": 2425,
+      "prefillMs": 1603
+    },
+    "pass": "reconcile",
+    "provider": "llama",
+    "truncated": false,
+    "locality": "local",
+    "feature": "meeting.reconcile",
+    "warm": true,
+    "completionTokens": 104,
+    "cachedTokens": 361,
+    "modelID": "MiniCPM5-2B",
+    "promptTokens": 1241,
+    "countsEstimated": false,
+    "finishReason": "stop"
+  }
+]

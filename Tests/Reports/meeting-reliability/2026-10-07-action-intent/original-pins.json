@@ -1,0 +1,11 @@
+{
+  "reconciler_sha256": "458cc8ebf9b05512b3f70fcb709d918fe60ad947ee34a9751cf228633a2ce367",
+  "extracted_functions": [
+    "ModelCompleter.parse",
+    "apply",
+    "rewrite"
+  ],
+  "meeting_payload_private": true,
+  "native_store_consumer": false,
+  "output": "CHECKS: 13; FAILED: 8\nWRONG: saved model candidate confidence inferred\nWRONG: saved model item confidence inferred\nWRONG: missing segment rejected\nWRONG: invalid segment rejected\nWRONG: ambiguous no-clock evidence rejected\nWRONG: nonliteral quote rejected\nWRONG: completer claimed high cannot become measured confidence\nWRONG: rewritten candidate is inferred\n"
+}

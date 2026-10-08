@@ -1,0 +1,20 @@
+{
+  "verdict": "FAIL: native completed, quality and cost rejected",
+  "wallSeconds": 203.57047666700237,
+  "historicalSameModelWindowWallSeconds": 159.558,
+  "pairedControlledBenchmark": false,
+  "modelPasses": 7,
+  "mapPasses": 3,
+  "collapsePasses": 3,
+  "reducePasses": 1,
+  "mapLengthFinishes": 3,
+  "partsDropped": 2,
+  "incompleteFacts": true,
+  "sourceFactsRetained": 1,
+  "futureFollowupPresent": false,
+  "attributionValidated": false,
+  "coverage": "Too thin; most original meeting source absent",
+  "productionPromotion": false,
+  "causeEvidence": "Actual production parsing refused or lost selected source; raw map selections not retained in this first replay. Exact rejection reason remains unobserved, not proven model grammar failure.",
+  "nextProducerExperiment": "Source IDs selected by model; original utterance copied by code. Existing map/collapse seams and budgets; native acceptance pending."
+}

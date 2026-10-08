@@ -1,0 +1,20 @@
+{
+  "experiment": "whole-indices-qwen35",
+  "exit": 0,
+  "wall_seconds": 150.99670108299324,
+  "markers": [
+    "NOTES_EXTRACTIVE_RESULT mode=indices seconds=150.0110229253769 inputTokens=16641 windowTokens=32768 outputBudget=1600 generatedTokens=32 passes=1 admitted=3 refused=0 incomplete=false sectionClassification=unverified readability=unverified",
+    "NOTES_EXTRACTIVE_REPLAY_OK: mode=indices generation only; factual coverage, classification and readability require review"
+  ],
+  "candidateSHA": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+  "startedAt": "2026-10-08T01:40:41.612685+00:00",
+  "endedAt": "2026-10-08T01:43:12.614201+00:00",
+  "pids": [
+    64808
+  ],
+  "memorySamples": 72,
+  "peakSampledFootprintBytes": 992120624,
+  "peakSampledResidentBytes": 3488874496,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "FAIL: selected only first two greeting sources, three entries; greeting incorrectly assigned Action items, missing all substantive late content"
+}

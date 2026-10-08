@@ -1,0 +1,2 @@
+MEETING_PARTICIPANT_OBSERVATION_FAILED: invalid-or-conflicting-diagnostic
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-73956/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-participant-observation contracts --notes-model generic-invalid

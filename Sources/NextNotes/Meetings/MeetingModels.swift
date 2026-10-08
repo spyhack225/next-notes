@@ -337,6 +337,9 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
     var transcriptPass: String?
     /// Which model wrote the notes, once Phase 4 writes any.
     var notesModel: String?
+    /// Bounded recording observations survive the global metrics ring aging out.
+    /// Nil means this build did not retain coverage; it never implies healthy capture.
+    var performanceSummary: MeetingPerformanceSummary?
     /// Diarized speaker renames, keyed by the generated label ("Speaker 1").
     var speakerNames: [String: String] = [:]
     /// What the meeting agent has actually done in the user's Workspace, and where to find
@@ -433,6 +436,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         audioReleaseAfter: Date? = nil,
         transcriptPass: String? = nil,
         notesModel: String? = nil,
+        performanceSummary: MeetingPerformanceSummary? = nil,
         speakerNames: [String: String] = [:],
         agentActions: [AgentActionRecord] = []
     ) {
@@ -454,6 +458,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         self.audioReleaseAfter = audioReleaseAfter
         self.transcriptPass = transcriptPass
         self.notesModel = notesModel
+        self.performanceSummary = performanceSummary
         self.speakerNames = speakerNames
         self.agentActions = agentActions
     }
@@ -486,6 +491,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
         audioReleaseAfter = try container.decodeIfPresent(Date.self, forKey: .audioReleaseAfter)
         transcriptPass = try container.decodeIfPresent(String.self, forKey: .transcriptPass)
         notesModel = try container.decodeIfPresent(String.self, forKey: .notesModel)
+        performanceSummary = try container.decodeIfPresent(MeetingPerformanceSummary.self, forKey: .performanceSummary)
         speakerNames = try container.decodeIfPresent([String: String].self, forKey: .speakerNames) ?? [:]
         agentActions = try container.decodeIfPresent(
             [AgentActionRecord].self,

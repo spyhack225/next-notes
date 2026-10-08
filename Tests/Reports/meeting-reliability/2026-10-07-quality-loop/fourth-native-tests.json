@@ -1,0 +1,177 @@
+[
+  {
+    "flag": "meeting-topic-merge",
+    "exit": 0,
+    "wall_seconds": 3.1371698749935604,
+    "markers": [
+      "MEETING_TOPIC_MERGE_OK"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-participant-observation",
+    "exit": 0,
+    "wall_seconds": 1.3656991669995477,
+    "markers": [
+      "MEETING_PARTICIPANT_OBSERVATION_OK: contracts checks=19 physical-observation-unverified"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-action-input-contract",
+    "exit": 0,
+    "wall_seconds": 1.1713617919958779,
+    "markers": [
+      "MEETING_ACTION_INPUT_CONTRACT_OK"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "notes-evidence",
+    "exit": 0,
+    "wall_seconds": 1.2107598750008037,
+    "markers": [
+      "NOTES_EVIDENCE_OK: checks=33 failures=0; semantic quality requires native review",
+      "NOTES_EXTRACTIVE_CONTRACT_OK: checks=36 failures=0; semantic classification and readability unproven"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-performance",
+    "exit": 0,
+    "wall_seconds": 1.1766856249960256,
+    "markers": [
+      "MEETING_PERFORMANCE_OK: 19 actual-session/persistence and bounded-coverage checks"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-context",
+    "exit": 0,
+    "wall_seconds": 1.211006041005021,
+    "markers": [
+      "MEETING_SPEAKER_PROJECTION_OK checks=51",
+      "MEETING_CONTEXT_OK: extraction and the authority split hold"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-reconcile-llm",
+    "exit": 0,
+    "wall_seconds": 1.1495358329993905,
+    "markers": [
+      "MEETING_RECONCILE_LLM_OK: existing grounding and optional pressure admission"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-resources",
+    "exit": 0,
+    "wall_seconds": 1.9259049579995917,
+    "markers": [
+      "MEETING_RESOURCES_OK"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "notes-longform",
+    "exit": 0,
+    "wall_seconds": 2.201446582999779,
+    "markers": [
+      "NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, single pass intact, overflow retried, window-derived chunks"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "notes-truncation",
+    "exit": 0,
+    "wall_seconds": 1.1213600830014911,
+    "markers": [
+      "NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "notes-context",
+    "exit": 0,
+    "wall_seconds": 1.152487541003211,
+    "markers": [
+      "NOTES_CONTEXT_OK: assembly, consent gates, window accounting, map purity and index safety hold"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "usage-log",
+    "exit": 0,
+    "wall_seconds": 2.1237852499980363,
+    "markers": [
+      "USAGE_LOG_OK: 27 cases"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-health",
+    "exit": 0,
+    "wall_seconds": 1.4814324999970268,
+    "markers": [
+      "MEETING_HEALTH_OK: 90 checks; actual capture, writer, durable warning and notification producers"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-integrity",
+    "exit": 0,
+    "wall_seconds": 1.9103005419965484,
+    "markers": [
+      "MEETING_INTEGRITY_OK: 67 checks; recording restart through final pass, notes, done and fresh reader"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "meeting-agent-evidence",
+    "exit": 0,
+    "wall_seconds": 1.1058170830001472,
+    "markers": [
+      "MEETING_EVIDENCE_OK: 89 checks"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "cleanup-router",
+    "exit": 0,
+    "wall_seconds": 7.419220791001862,
+    "markers": [
+      "CLEANUP_ROUTER_OK"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "dictation-segments",
+    "exit": 0,
+    "wall_seconds": 1.046322832997248,
+    "markers": [
+      "DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "island",
+    "exit": 0,
+    "wall_seconds": 5.053745917000924,
+    "markers": [
+      "ISLAND_OK: 2 display(s), notched, placement notch, state machine behaves"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "flag": "store-isolation",
+    "exit": 0,
+    "wall_seconds": 32.198937917004514,
+    "markers": [
+      "TOOLLOOP_PRODUCTION_R02_MISSING calls=5 asks=1 saved=1 deniedSaved=0",
+      "STORE_ISOLATION_OK: 21 files and 33 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_FAILED"
+    ],
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  }
+]

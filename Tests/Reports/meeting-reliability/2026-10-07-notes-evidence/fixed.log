@@ -1,0 +1,6 @@
+NOTES_EVIDENCE_PRODUCTION chunks=5 collapsed=5 calls=11
+NOTES_EVIDENCE_OK: checks=23 failures=0; semantic quality requires native review
+NOTES_LONGFORM cases=a chunks=13 collapsed=7 dropped=0
+NOTES_LONGFORM chunks8k=6000 mapOverhead=245
+  NOTES_LONGFORM_APPLE_FM_ABSENT: Standalone harness intentionally skips native model
+NOTES_LONGFORM_OK: 90-min source anchors kept on 4K and 8K, selection/stubborn loss visible, single pass intact, overflow retried, window-derived chunks

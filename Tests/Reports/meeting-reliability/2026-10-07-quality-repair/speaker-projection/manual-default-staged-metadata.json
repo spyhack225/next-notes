@@ -1,0 +1,16 @@
+{
+  "verdict": "PENDING root original/intermediate/manualfixed source probe + native consumer",
+  "canonical_sources_edited": false,
+  "cache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/speaker-manual-default-source-56f78b30b2854fc78af6da55c3cc926b",
+  "ui_contract": "labels lists only explicit segment.speaker; nil default absent; explicit Others accepted/listed without reserved-name filter; saved speakerNames display maps consumed by transcript/notes",
+  "source_pins": {
+    "MeetingSpeakerProjectionSelfTest.swift": "ebb904245b14a5de28468fc7a44a83db1f4fd8a0813619ef3199d8c3c8b7671d",
+    "MeetingSpeakerProjection.swift": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617"
+  },
+  "unchanged_canonical_pins": {
+    "MeetingSpeakerProjection.swift": "2994573dba241c03f0f0359cd7c65ea6b37dfa5320167ff0781218fa915a2bc6",
+    "MeetingSpeakerProjectionSelfTest.swift": "ff1c711a4a6acee39b5192ef77c6f59dc4881896f9cfe958cc74c37589f32900"
+  },
+  "probe_main_sha256": "0dd3a523bad103ffc26f85cc1c244d7a2bab5e6dbb23a78d2ee53d6680a65f32",
+  "expected_scope": "original helper fails no-map negatives; intermediate defaultrefusal fails manual-map positives; corrected helper expectedpass both; no voice/provider/name observation claim"
+}

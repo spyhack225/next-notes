@@ -1,0 +1,5 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-57481/Next Notes.app/Contents/MacOS/NextNotes --selftest-notes-evidence --selftest-timeout 180
+2026-10-07 20:34:32.920 NextNotes[57700:993703] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+NOTES_EVIDENCE_PRODUCTION chunks=5 collapsed=5 calls=11
+NOTES_EVIDENCE_OK: checks=23 failures=0; semantic quality requires native review
+NOTES_EXTRACTIVE_CONTRACT_OK: checks=18 failures=0; semantic classification and readability unproven

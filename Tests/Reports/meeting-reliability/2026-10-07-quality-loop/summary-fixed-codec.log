@@ -1,0 +1,3 @@
+CODEC_OK: exact durable clock
+CODEC_OK: fresh reader keeps accepted sample
+CODEC_OK: fresh reader keeps middle peak

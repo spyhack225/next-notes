@@ -1,0 +1,4 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-68784/Next Notes.app/Contents/MacOS/NextNotes --selftest-commandkey
+2026-10-07 22:46:46.623 NextNotes[71302:1301173] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  editor box 96→320pt, sheet 520x433pt
+COMMANDKEY_OK

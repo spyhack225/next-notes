@@ -2789,3 +2789,102 @@ or the memory file. The existing live provenance and authority gates still decid
 writes; stored lineage never grants permission. Version 3 preserves legacy memory
 content with unknown lineage rather than inventing its source. This P4-07a foundation
 does not implement P4-07/P4-11 or memory lifecycle consolidation.
+
+**Meeting native loop, 2026-10-07 — preserve failed quality evidence.** The first optimized
+bundle passed source-evidence23, extractive-contract18, health90, integrity67 and agent
+evidence89, but performance failed2/17 at ISO8601 fractional-date persistence and the
+speaker fixture failed1/39 at its durable-vs-in-memory baseline. The new summary clock
+codec and the fixture are corrected in source; native acceptance remains pending.
+Do not install that candidate as a verified repair. The owner app is unchanged.
+Mapped evidence on the copied Zoom recording took203.57s, ran7passes, dropped2of3parts
+and missed the real follow-up. Quote selection admittedzero; targeted typed intent
+missed the future commitment. No writer/classifier/default was promoted. Model-selected
+source IDs with code-owned original words and actual production-window intent replay
+are the next experiments. Preserve false positives **and** positive recall, speaker and
+temporal attribution, omissions, complete elapsed cost and private raw refusal evidence.
+Existing browser tool-loop18failures remain open even when isolation itself passes.
+Read the [native loop report](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/README.md).
+
+Copied meeting replay diagnostics must use the private self-test writer: stdout redirection alone did not prevent the old `writeSelfTest` system-log mirror. Historical local mirrors are disclosed; corrected native absence proof is pending.
+
+Second source-ID map/collapse and six reconstructed actual production-window action diagnostics are staged for optimized native proof. An unchanged14-check speaker helper probe rejects original lost identity4 and intermediate lost explicit-manual-map4; corrected passes14. Native saved service/consumer checks remain pending. Source/build coordination overlap was corrected before accepting any native snapshot; all subsequent heavy windows require canonical source freeze.
+
+Second optimized native loop: performance19, speaker committed-service51, evidence30 and extractive-contract36 pass. Health90, integrity67 and agent evidence89 remain green; inherited embedded browser production failures stay open despite unchanged owner stores. Mini source-ID maps selected five of 519 utterances in 54.97 s; real follow-up, attribution and substantive distinctions were omitted. This is a semantic regression and must not be promoted. Structural completeness is not semantic coverage. Current retained private-writer process logs have 240 entries and zero diagnostic markers, a retention-limited observation without sentinel control. Native local alternatives and reconstructed actual action windows are still under review; no new installation or model-default promotion.
+
+Third-loop admission: faster source-ID summaries are experimental and require explicit
+SelfTest opt-in; production keeps its original single/map/collapse/reduce prompt and
+budget contract. Corrected source parity and explicit production opt-in guard pass;
+initial shim failures remain retained. JSON shape, source evidence, semantic meaning,
+whole-meeting coverage and physical speed are distinct gates. Actual Mini action windows
+returned incomplete objects below400tokens; the producer now retains complete labelled
+utterances under the same3000-character boundary and sends one400-token constrained
+call. Source-owned primary evidence must still select the correct utterance; it does
+not prove future intent, recipient identity or an action permission. Original source
+contract fails11/27, corrected passes27, using substituted external boundaries; native
+sampler/semantic acceptance is pending. Source IDs cannot rescue a model that selects
+only greetings, and an empty result from malformed output is not a safe negative.
+
+Third release compilation failures are retained, with joined children before repairs:
+first the test writer actor annotation, then two pure JSON helpers required nonisolated
+annotations for scripted Sendable provider closures. These change test isolation only.
+The reused-cache build has an explicit6.5GB-free/8GB-swap coordination gate; the default
+10GB gate is not claimed to pass. Compilerjobs2 does not cap Swift's internal WMO threads.
+New physical ASR/voice soak, actual provider participant/name bindings, legacy full-note
+semantic omissions and the inherited browser production gate remain open.
+
+
+Fourth source loop — verified evidence remains separate from open quality. Third signed
+release cff85f47 is uninstalled: 16 focused native checks pass, including action-input27,
+evidence33, performance19 and committed speaker51; six shared extras report OK, but
+embedded browser production18 failures and two duplex divergence diagnostics remain.
+Six Mini action windows now complete valid schema, yet miss the real future follow-up.
+Qwen selects an antecedent partial utterance rather than the required complete primary.
+Stronger experimental source-ID Mini notes take148.34s, add three collapse passes and
+still omit material content. Valid shape/source IDs are not semantic coverage. These
+experiments stay behind explicit SelfTest opt-in; legacy production prompts/budgets and
+owner model/default choices remain unchanged.
+
+Actual old and third model output reveals a shared topic/unresolved producer defect:
+punctuation-only text normalizes to a space, substring/shared-token matching replaces
+and deletes distinct retained facts, and capacity append can evict earlier identities.
+The unchanged actual-source save/fresh-read probe fails58/185 before and passes185 after.
+The existing merger now ignores empty/exact duplicates, adds inferred enrichment only
+within40 rows and preserves all existing facts and metadata. Native full-app proof is
+pending in the fourth frozen release. This does not certify new model generalizations,
+recover already erased facts, or solve future-intent recall.
+
+Participant names require actual observation and voice binding. The explicit one-shot
+Zoom/Meet diagnostic is guarded before startup, uses existing authorization and unique
+process/target identity, and writes raw labels/URLs only to private0700/0600 diagnostics.
+Its proposed19 generic contracts have not yet passed native execution. It assigns no
+names, polls nothing, and changes no meeting/defaults. AX wall deadlines and full CDP
+reply bounds remain open; do not move it onto the recording path. Provider roster data
+alone cannot identify which voice produced an utterance. Physical Zoom/Meet evidence,
+reference-machine ASR/voice soak and whole-meeting factual quality remain open.
+
+
+Fourth native acceptance, 8 October UTC (7 October owner local time): signed candidate
+476d1c67 has1170 invariant Sources/Resources pins and remains uninstalled. All18 focused
+native flags and six shared extras report OK. Topic retention passes185 unchanged
+save/fresh-reader checks; participant selectors/authorization pass19 contracts and six
+actual invalid/conflicting preflight launches refuse before startup. Performance19,
+committed speaker51, action-input27, evidence33/extractive36, usage27, health90,
+integrity67 and agent-evidence89 remain green. Isolated owner21files/33defaults stay
+unchanged; embedded browser18 failures and two duplex divergence diagnostics remain.
+
+The real original/fixed Mini six-window comparison uses identical prompts AND raw
+replies. Five original outputs erase9,11,13,13,12 prior topic texts; fixed preserves all
+prior texts in every window. Both workflows run six existing model calls and take33.58
+and33.60s; this is no speedup claim. The future follow-up is still missed, so semantic
+intent remains FAILED. Whole-note first loss remains unlocalized; exact existing-pass
+private diagnostic forwarding is cache-staged/uncompiled for the next coherent gap.
+Normal legacy prompts/budgets and owner roles/defaults remain unchanged.
+
+This Mac is Apple M3/16GB. Compiler workload temporarily reaches swap8.77GB; the checked
+max8 heavy gate refuses further inference until recovery. Sequential scripted nonmodel
+contracts run only under an explicit max9/free6.5GB gate with65% free memory; this does
+not claim the max8 gate passed. The actual Mini replay starts after max8 recovery at
+swap7.977GB/free6.707GB. Reference hardware capacity is not ASR/voice soak or decode-floor
+acceptance. A full310-file matching duplicate current bundle is removed only after no
+active executable uses its path, reclaiming140,738,560 allocated bytes. Installed useful
+build, repaired rollback, original crash reproduction, comparison and candidate remain.

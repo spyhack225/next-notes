@@ -1,0 +1,10 @@
+{
+  "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-57481/Next Notes.app",
+  "binary_sha256": "b9dddc679fa89f999f40fa6accd95afc742f316c576f078c29b5111c1031d6b2",
+  "uuid": "UUID: E7E560AA-CFAB-3338-9344-C507F5EF5964 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/install-57481/Next Notes.app/Contents/MacOS/NextNotes",
+  "signature": "Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/install-57481/Next Notes.app/Contents/MacOS/NextNotes\ndesignated => identifier \"ai.pivotstudio.nextnotes\" and certificate leaf = H\"96c8b8fa9bc6707f250eecc3da83fdf2da309eb2\"",
+  "optimized": true,
+  "build_seconds": 709.11,
+  "sourceInvariance": 1167,
+  "at": "2026-10-08T00:34:15.185155+00:00"
+}

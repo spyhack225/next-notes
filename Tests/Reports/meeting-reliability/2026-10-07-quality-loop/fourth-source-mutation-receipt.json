@@ -1,0 +1,29 @@
+{
+  "at": "2026-10-08T03:01:16.003981+00:00",
+  "before": {
+    "Sources/NextNotes/Meetings/MeetingContextExtractor.swift": "f46f24bcbfe217a2211d5f660f1ddd67b617b717bba68d06111929774a4280dc",
+    "Sources/NextNotes/Meetings/MeetingContextReconciler.swift": "a5963714b819050fd8be7a923dbe1c4cff7e385cc280ea67711f13f5049ed7c7",
+    "Sources/NextNotes/Computer/BrowserCDPClient.swift": "ecb1213693ccb24daa3b93cfc5f9120de28be440f5b694ef727c84ed55937b3e",
+    "Sources/NextNotes/NextNotesApp.swift": "c39290c82c77263e91e56aa98f39be1015cb87d1c11b23b5aec1290bf5898283"
+  },
+  "after": {
+    "Sources/NextNotes/Meetings/MeetingContextExtractor.swift": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+    "Sources/NextNotes/Meetings/MeetingContextReconciler.swift": "65d422c38a8c62c9f0b57c7a8587792b76fb0bf95079360117f9f10c24aa8d95",
+    "Sources/NextNotes/Computer/BrowserCDPClient.swift": "e408fb5bb89cba3ca45c531abddaf69400ccf298b37168c83664519e65326aae",
+    "Sources/NextNotes/NextNotesApp.swift": "fd47fae76ef9639b95f877672b4cecc6e273e6f93097a42370701d00c167f44a",
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": "c745c8d8ea126765301c33adb471130bb0d3b515313d9db26b25dc153fbe84b4",
+    "Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift": "1e5efc3451ebd14787faac6d14a06094c889fe9798deb51dcc8f040966d747ed"
+  },
+  "patches": {
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/participant-observation-integration-staged.patch": "c6994c5ed4726ed751ce63096dc1597a47e490a53f0fd85ec461fce05c4617e2",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/topic-merge/producer.patch": "384a14ebe8d87a44e4572db513c5584594126237e6ccac6381fc9ed637f57f45",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/topic-merge/maintained-reconcile-expectations.patch": "dfca89052396d2625f437c7555f4a6b049a6c0939829b4e23cce44bc44c45e55",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/topic-merge/app-flag.patch": "058f3a4e40fd516ce1cd5095f5ca483df01c9bac8714067296335f47a1fd93a7"
+  },
+  "scope": "Coordinated root six paths and peer disjoint three paths; no compiler/model during mutations",
+  "originalSourceProducerProbe": "topic merge RED58/185 \u2192 fixed PASS185 with unchanged15fixtures; external role/controller/directory/provider/pressure boundaries substituted, actualstore/apply/save/freshload",
+  "nativeFixedStatus": "pendingfourthrelease",
+  "installed": false,
+  "selfContainedParticipantPreflight": "Own guard uses existing harnessFlags and literal output/timeout flags, no dependency on foreign strict-bootstrap additions",
+  "updatedAt": "2026-10-08T03:07:52.504415+00:00"
+}

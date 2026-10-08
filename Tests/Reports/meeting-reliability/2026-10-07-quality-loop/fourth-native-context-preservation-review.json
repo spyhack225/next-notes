@@ -1,0 +1,67 @@
+{
+  "at": "2026-10-08T03:27:59.872017+00:00",
+  "cases": [
+    {
+      "case": "explanation-1-real-window",
+      "samePrompt": true,
+      "sameRawCompletion": true,
+      "priorTopicRows": 9,
+      "oldSummaryTopicRows": 1,
+      "newSummaryTopicRows": 10,
+      "oldMissingPriorTexts": 9,
+      "newMissingPriorTexts": 0
+    },
+    {
+      "case": "explanation-2-real-window",
+      "samePrompt": true,
+      "sameRawCompletion": true,
+      "priorTopicRows": 10,
+      "oldSummaryTopicRows": 10,
+      "newSummaryTopicRows": 10,
+      "oldMissingPriorTexts": 0,
+      "newMissingPriorTexts": 0
+    },
+    {
+      "case": "explanation-3-real-window",
+      "samePrompt": true,
+      "sameRawCompletion": true,
+      "priorTopicRows": 11,
+      "oldSummaryTopicRows": 1,
+      "newSummaryTopicRows": 11,
+      "oldMissingPriorTexts": 11,
+      "newMissingPriorTexts": 0
+    },
+    {
+      "case": "hypothetical-order-real-window",
+      "samePrompt": true,
+      "sameRawCompletion": true,
+      "priorTopicRows": 13,
+      "oldSummaryTopicRows": 1,
+      "newSummaryTopicRows": 13,
+      "oldMissingPriorTexts": 13,
+      "newMissingPriorTexts": 0
+    },
+    {
+      "case": "customer-followup-real-window",
+      "samePrompt": true,
+      "sameRawCompletion": true,
+      "priorTopicRows": 13,
+      "oldSummaryTopicRows": 1,
+      "newSummaryTopicRows": 13,
+      "oldMissingPriorTexts": 13,
+      "newMissingPriorTexts": 0
+    },
+    {
+      "case": "answered-question-real-window",
+      "samePrompt": true,
+      "sameRawCompletion": true,
+      "priorTopicRows": 13,
+      "oldSummaryTopicRows": 1,
+      "newSummaryTopicRows": 14,
+      "oldMissingPriorTexts": 12,
+      "newMissingPriorTexts": 0
+    }
+  ],
+  "newRetainsAllPriorTexts": true,
+  "scope": "Actual model producer prompt/raw/summary text retention; native185 supplies exact metadata/save/fresh-reader proof. Semantic future recall remains FAILED; no copied speech in report."
+}

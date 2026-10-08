@@ -1,0 +1,7 @@
+{
+  "path": "/private/tmp/NextNotesMeetingActionIntentReplay-2673ab9f-1113-4bf6-a097-1059e10b9e9c",
+  "sourceFixture": "/private/tmp/NextNotesMeetingActionIntentReplay-7694cf11-5d18-406a-980e-81629c5c52cf",
+  "change": "one unchanged future follow-up window isolated to avoid cross-window pressure-state carryover",
+  "context": "same extractor-only seed, no target instructions",
+  "ownerDataMutated": false
+}

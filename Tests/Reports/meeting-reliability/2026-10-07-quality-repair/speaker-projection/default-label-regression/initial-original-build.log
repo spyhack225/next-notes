@@ -1,0 +1,70 @@
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:8:1: error: expressions are not allowed at the top level
+ 6 | let clock = Date(timeIntervalSince1970: 1_750_000_000.125)
+ 7 | var context = MeetingContext.empty(meetingID: UUID(), title: "Generic identity fixture", participants: ["Confirmed Alex"])
+ 8 | context.questions = [.init(id: "question", text: quote, speaker: "Confirmed Alex", source: .system,
+   | `- error: expressions are not allowed at the top level
+ 9 |                            confidence: "inferred", createdAt: clock)]
+10 | context.candidateActions = [.init(id: "candidate", action: "send", object: "drawing", speaker: "Confirmed Alex",
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:10:1: error: expressions are not allowed at the top level
+ 8 | context.questions = [.init(id: "question", text: quote, speaker: "Confirmed Alex", source: .system,
+ 9 |                            confidence: "inferred", createdAt: clock)]
+10 | context.candidateActions = [.init(id: "candidate", action: "send", object: "drawing", speaker: "Confirmed Alex",
+   | `- error: expressions are not allowed at the top level
+11 |                                  source: .system, confidence: "inferred", evidence: quote, evidenceStart: 1,
+12 |                                  createdAt: clock)]
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:20:1: error: statements are not allowed at the top level
+18 |     if !value { failures.append(name) }
+19 | }
+20 | for (name, label) in [("nil", Optional<String>.none), ("default", Optional("Others"))] {
+   | `- error: statements are not allowed at the top level
+21 |     let final = [TranscriptSegment(start: 0.5, end: 4, text: quote, source: .system, speaker: label)]
+22 |     let projected = MeetingSpeakerProjection.apply(context, segments: final, liveSegments: live, speakerNames: [:])
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:31:1: error: expressions are not allowed at the top level
+29 | }
+30 | let identified = [TranscriptSegment(start: 0.5, end: 4, text: quote, source: .system, speaker: "Speaker 1")]
+31 | check("identified speaker uses existing confirmed mapping",
+   | `- error: expressions are not allowed at the top level
+32 |       MeetingSpeakerProjection.apply(context, segments: identified, liveSegments: live,
+33 |           speakerNames: ["Speaker 1": "Confirmed Alex"]) == context)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:34:1: error: statements are not allowed at the top level
+32 |       MeetingSpeakerProjection.apply(context, segments: identified, liveSegments: live,
+33 |           speakerNames: ["Speaker 1": "Confirmed Alex"]) == context)
+34 | for (name, label) in [("nil", Optional<String>.none), ("default", Optional("Others"))] {
+   | `- error: statements are not allowed at the top level
+35 |     let final = [TranscriptSegment(start: 0.5, end: 4, text: quote, source: .system, speaker: label)]
+36 |     let projected = MeetingSpeakerProjection.apply(context, segments: final, liveSegments: live,
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:44:1: error: expressions are not allowed at the top level
+42 | }
+43 | let wrongSource = [TranscriptSegment(start: 0.5, end: 4, text: quote, source: .mic, speaker: "Speaker 1")]
+44 | check("other track cannot supply identity",
+   | `- error: expressions are not allowed at the top level
+45 |       MeetingSpeakerProjection.apply(context, segments: wrongSource, liveSegments: live,
+46 |           speakerNames: ["Speaker 1": "Other Person"]) == context)
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:47:1: error: statements are not allowed at the top level
+45 |       MeetingSpeakerProjection.apply(context, segments: wrongSource, liveSegments: live,
+46 |           speakerNames: ["Speaker 1": "Other Person"]) == context)
+47 | for failure in failures { print("MEETING_SPEAKER_DEFAULT_WRONG: \(failure)") }
+   | `- error: statements are not allowed at the top level
+48 | print("MEETING_SPEAKER_DEFAULT_\(failures.isEmpty ? "OK" : "FAILED") checks=\(checks) failures=\(failures.count)")
+49 | if !failures.isEmpty { exit(1) }
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:48:1: error: expressions are not allowed at the top level
+46 |           speakerNames: ["Speaker 1": "Other Person"]) == context)
+47 | for failure in failures { print("MEETING_SPEAKER_DEFAULT_WRONG: \(failure)") }
+48 | print("MEETING_SPEAKER_DEFAULT_\(failures.isEmpty ? "OK" : "FAILED") checks=\(checks) failures=\(failures.count)")
+   | `- error: expressions are not allowed at the top level
+49 | if !failures.isEmpty { exit(1) }
+50 | 
+
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift:49:1: error: statements are not allowed at the top level
+47 | for failure in failures { print("MEETING_SPEAKER_DEFAULT_WRONG: \(failure)") }
+48 | print("MEETING_SPEAKER_DEFAULT_\(failures.isEmpty ? "OK" : "FAILED") checks=\(checks) failures=\(failures.count)")
+49 | if !failures.isEmpty { exit(1) }
+   | `- error: statements are not allowed at the top level
+50 | 

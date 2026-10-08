@@ -1,0 +1,11 @@
+{
+  "expectedPrimaryStart": 1935.178375,
+  "precursorVisibilityStarts": [
+    1925.658375,
+    1930.258375,
+    1935.178375
+  ],
+  "originalWindowsSHA256": "7e940b8203e5ddd344e59c6c2441e40c8bcca36854bb6d8658dd14f6206e746f",
+  "copiedStrictWindowsSHA256": "508457d6a271e2d47f3a0525a7d6d64fd1651b72a68bdd75149fd6c4acb5ac7e",
+  "scope": "test-only copied manifest, never production prompt"
+}

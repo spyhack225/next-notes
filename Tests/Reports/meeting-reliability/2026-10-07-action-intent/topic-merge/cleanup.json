@@ -1,0 +1,15 @@
+{
+  "childrenJoined": true,
+  "removed": [
+    {
+      "name": "original-probe",
+      "bytes": 964272
+    },
+    {
+      "name": "fixed-probe",
+      "bytes": 961208
+    }
+  ],
+  "reclaimedBytes": 1925480,
+  "retained": "cache source/driver/fixtures/logs/pins; no application/model/owner data cleaned"
+}

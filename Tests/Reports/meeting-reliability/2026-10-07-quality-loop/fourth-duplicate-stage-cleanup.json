@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-08T03:22:00.622000+00:00",
+  "removed": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-30744",
+  "allocatedBytes": 140738560,
+  "fullFilePinsMatchInstalled": true,
+  "filesCompared": 310,
+  "activeProcessesAtRemovedPath": [],
+  "retained": "Installed identical useful build plus explicit earlier repaired rollback and crash reproduction; third baseline and fourth candidate retained",
+  "scope": "Only confirmed root-owned redundant current-stage copy; no user data/shared caches/models/foreign artifacts touched"
+}

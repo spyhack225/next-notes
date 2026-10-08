@@ -1,0 +1,24 @@
+{
+  "verdict": "PROPOSED SOURCE ONLY; not compiled, invoked, integrated or accepted",
+  "cache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/participant-observation-source-1db1f0a399b948beb8a203931fc4386e",
+  "canonical_sources_edited": false,
+  "existing_seams": [
+    "AccessibilitySnapshot.capture/isStub on isolated diagnostic MainActor",
+    "BrowserCDPClient.probe and existing private bounded CDP command"
+  ],
+  "observations_claimed": false,
+  "participant_parsing_or_voice_binding": false,
+  "limitations": [
+    "AXHarvester adapters currently editor-only; no guessed Zoom adapter",
+    "existing AX snapshot lacks walltime/per-call budget; one-shot isolated diagnostic only",
+    "CDP must already be available; no browser restart/debugging enablement",
+    "names/active speaker require actual platform observation; empty typed results until verified",
+    "raw private evidence can be truncated and cannot establish a complete roster",
+    "full CDP reply must still be bounded at transport boundary before a production observer"
+  ],
+  "pins": {
+    "MeetingParticipantObservationProbe.swift": "71ebc7501acc3e62bea20bd98bdfaf8f7aff94747668e16093b789b7f373e05e",
+    "BrowserCDPClient.swift": "f0477794e780e00eb2577f61d7a19c9eb8597d8265f56c6a215058cf3ad8e89e"
+  },
+  "browser_prechange_sha256": "ecb1213693ccb24daa3b93cfc5f9120de28be440f5b694ef727c84ed55937b3e"
+}

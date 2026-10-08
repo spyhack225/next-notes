@@ -1,0 +1,11 @@
+{
+  "experiment": "whole-extractive-quotes",
+  "exit": 1,
+  "wall_seconds": 71.62720758299838,
+  "markers": [
+    "NOTES_EXTRACTIVE_REPLAY_FAILED: NotesError"
+  ],
+  "candidate_sha256": "b9dddc679fa89f999f40fa6accd95afc742f316c576f078c29b5111c1031d6b2",
+  "nativeQuality": "manual review pending",
+  "productionPromoted": false
+}

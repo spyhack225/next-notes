@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-08T03:14:07.548575+00:00",
+  "originalFilesUnchanged": {
+    "speakers.json": true,
+    "notes.json": true,
+    "transcript.live.json": true,
+    "transcript.json": true,
+    "context.json": true,
+    "meeting.json": true,
+    "audio.caf": true,
+    "notes.md": true
+  },
+  "statusCounts": {
+    "done": 16
+  },
+  "active": [],
+  "unreadable": 0,
+  "scope": "fresh filesystem status, no owner data mutation"
+}

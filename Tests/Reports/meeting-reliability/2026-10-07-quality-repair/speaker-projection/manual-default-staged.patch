@@ -1,0 +1,41 @@
+--- a/Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift
++++ b/Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift
+@@ -28,10 +28,14 @@
+             }
+             guard !matches.isEmpty else { return nil }
+             guard labels.count == 1, let label = labels.first else { return nil }
+-            // A fallback source label is absence of identity evidence. Re-identifying
+-            // uncertain speech must not erase a previously confirmed attribution.
++            // A saved explicit user mapping is identity evidence in its own right.
++            // A fallback source label alone still cannot erase confirmed attribution.
++            if let confirmed = speakerNames[label],
++               !confirmed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
++                return confirmed
++            }
+             guard source != .system || label != source.defaultSpeaker else { return nil }
+-            return speakerNames[label] ?? label
++            return label
+         }
+         let live = liveSegments.filter { $0.includeInMeetingNotes }.map {
+             (segment: $0, text: normalized($0.text))
+--- a/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift
+@@ -113,6 +113,18 @@
+         catch { check("default-label final handoff threw", false) }
+         check("default-label final retained confirmed current", contextStore.current == confirmedCurrent)
+         check("default-label final retained confirmed durable", contextStore.load(meetingID: meeting.id) == confirmedDurable)
++        // An explicit Others label is offered by the existing naming sheet. Its
++        // saved user map is stronger than a fallback label without that mapping.
++        var manuallyNamedDefault = store.meeting(id: meeting.id)!
++        manuallyNamedDefault.speakerNames[AudioSource.system.defaultSpeaker] = "Confirmed Room"
++        check("manual default name commit", store.save(manuallyNamedDefault))
++        check("manual default name refresh", contextStore.refreshSpeakers(meetingID: meeting.id))
++        check("manual default name reaches saved item",
++            contextStore.load(meetingID: meeting.id)?.questions.first?.speaker == "Confirmed Room")
++        check("manual default name reaches saved candidate",
++            contextStore.load(meetingID: meeting.id)?.candidateActions.first?.speaker == "Confirmed Room")
++        check("manual default name retains system authority",
++            contextStore.load(meetingID: meeting.id)?.candidateActions.first?.source == .system)
+         let foreign = MeetingContext.empty(meetingID: UUID(), title: "Other", participants: [])
+         contextStore.replace(foreign)
+         check("finished refresh accepted", contextStore.refreshSpeakers(meetingID: meeting.id))

@@ -1,0 +1,42 @@
+{
+  "copied": {
+    "six": "/private/tmp/NextNotesMeetingActionIntentReplay-79bcb9e4-8ae5-4e75-bb06-a52dbae3454b",
+    "future": "/private/tmp/NextNotesMeetingActionIntentReplay-df789df1-12a8-4ccd-ab98-f39e68ab1115"
+  },
+  "originalManifestUnchangedSHA256": "7e940b8203e5ddd344e59c6c2441e40c8bcca36854bb6d8658dd14f6206e746f",
+  "changes": [
+    {
+      "case": "explanation-2-real-window",
+      "originalCutoff": 1770.0,
+      "copiedCutoff": 1770.18,
+      "reason": "actual reference segment ends1770.18; original1770cut omitted it"
+    },
+    {
+      "case": "customer-followup-real-window",
+      "requiredPrimaryStart": 1935.178375,
+      "precursorVisibilityStarts": [
+        1925.658375,
+        1930.258375,
+        1935.178375
+      ]
+    }
+  ],
+  "modelIDs": [
+    "MiniCPM5-2B",
+    "Qwen3.5-4B"
+  ],
+  "scope": "private copied diagnostic manifests; never production hints; grammar/citation source semantics must still pass native",
+  "nativeVerdict": "pending; no third model load by this agent",
+  "sourceFiles": {
+    "six": {
+      "meeting.json": "da15f6aa9ebd2d4fb5a01fa34d177de51a2498f1c29f600792c13de11ca6d3dd",
+      "transcript.live.json": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+      "windows.json": "cca52e314dcd08a5ec493636093e34d049aaa245cb49f9e28967062039e4a100"
+    },
+    "future": {
+      "meeting.json": "da15f6aa9ebd2d4fb5a01fa34d177de51a2498f1c29f600792c13de11ca6d3dd",
+      "transcript.live.json": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+      "windows.json": "d971f271c295222a7f290e2f55f454723f370771a825320df5afff46adce6f9c"
+    }
+  }
+}

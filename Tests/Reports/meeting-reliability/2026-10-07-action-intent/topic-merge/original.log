@@ -1,0 +1,75 @@
+MEETING_TOPIC_MERGE_CASE id=placeholder-11 priorTopics=11 afterTopics=1 priorUnresolved=11 afterUnresolved=1 retainedTopics=false retainedUnresolved=false
+MEETING_TOPIC_MERGE_CASE id=placeholder-13 priorTopics=13 afterTopics=1 priorUnresolved=13 afterUnresolved=1 retainedTopics=false retainedUnresolved=false
+MEETING_TOPIC_MERGE_CASE id=shared-token-9 priorTopics=9 afterTopics=1 priorUnresolved=9 afterUnresolved=1 retainedTopics=false retainedUnresolved=false
+MEETING_TOPIC_MERGE_CASE id=shared-token-13 priorTopics=13 afterTopics=1 priorUnresolved=13 afterUnresolved=1 retainedTopics=false retainedUnresolved=false
+MEETING_TOPIC_MERGE_CASE id=empty priorTopics=9 afterTopics=9 priorUnresolved=9 afterUnresolved=9 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=exact-duplicate priorTopics=9 afterTopics=1 priorUnresolved=9 afterUnresolved=1 retainedTopics=false retainedUnresolved=false
+MEETING_TOPIC_MERGE_CASE id=enrichment priorTopics=9 afterTopics=1 priorUnresolved=9 afterUnresolved=9 retainedTopics=false retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=capacity priorTopics=40 afterTopics=40 priorUnresolved=40 afterUnresolved=40 retainedTopics=false retainedUnresolved=false
+MEETING_TOPIC_MERGE_CASE id=capacity-duplicate priorTopics=40 afterTopics=1 priorUnresolved=40 afterUnresolved=1 retainedTopics=false retainedUnresolved=false
+MEETING_TOPIC_MERGE_CASE id=old-explanation-3-real-window priorTopics=11 afterTopics=1 priorUnresolved=0 afterUnresolved=1 retainedTopics=false retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-explanation-1-real-window priorTopics=9 afterTopics=1 priorUnresolved=0 afterUnresolved=0 retainedTopics=false retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-explanation-3-real-window priorTopics=11 afterTopics=1 priorUnresolved=0 afterUnresolved=1 retainedTopics=false retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-hypothetical-order-real-window priorTopics=13 afterTopics=1 priorUnresolved=0 afterUnresolved=1 retainedTopics=false retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-customer-followup-real-window priorTopics=13 afterTopics=1 priorUnresolved=0 afterUnresolved=1 retainedTopics=false retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-answered-question-real-window priorTopics=13 afterTopics=1 priorUnresolved=0 afterUnresolved=0 retainedTopics=false retainedUnresolved=true
+FAIL: placeholder-11: retained topics preserve full identity and facts
+FAIL: placeholder-11: retained unresolved preserve full identity and facts
+FAIL: placeholder-11: punctuation-only topics absent
+FAIL: placeholder-11: punctuation-only unresolved absent
+FAIL: placeholder-11: fresh reader retains topic identity
+FAIL: placeholder-11: fresh reader retains unresolved identity
+FAIL: placeholder-13: retained topics preserve full identity and facts
+FAIL: placeholder-13: retained unresolved preserve full identity and facts
+FAIL: placeholder-13: punctuation-only topics absent
+FAIL: placeholder-13: punctuation-only unresolved absent
+FAIL: placeholder-13: fresh reader retains topic identity
+FAIL: placeholder-13: fresh reader retains unresolved identity
+FAIL: shared-token-9: retained topics preserve full identity and facts
+FAIL: shared-token-9: retained unresolved preserve full identity and facts
+FAIL: shared-token-9: fresh reader retains topic identity
+FAIL: shared-token-9: fresh reader retains unresolved identity
+FAIL: shared-token-13: retained topics preserve full identity and facts
+FAIL: shared-token-13: retained unresolved preserve full identity and facts
+FAIL: shared-token-13: fresh reader retains topic identity
+FAIL: shared-token-13: fresh reader retains unresolved identity
+FAIL: exact-duplicate: retained topics preserve full identity and facts
+FAIL: exact-duplicate: retained unresolved preserve full identity and facts
+FAIL: exact-duplicate: normalized model duplicate adds no row
+FAIL: exact-duplicate: fresh reader retains topic identity
+FAIL: exact-duplicate: fresh reader retains unresolved identity
+FAIL: enrichment: retained topics preserve full identity and facts
+FAIL: enrichment: enrichment retains own inferred model metadata
+FAIL: enrichment: fresh reader retains topic identity
+FAIL: capacity: retained topics preserve full identity and facts
+FAIL: capacity: retained unresolved preserve full identity and facts
+FAIL: capacity: at capacity model cannot evict retained rows
+FAIL: capacity: fresh reader retains topic identity
+FAIL: capacity: fresh reader retains unresolved identity
+FAIL: capacity-duplicate: retained topics preserve full identity and facts
+FAIL: capacity-duplicate: retained unresolved preserve full identity and facts
+FAIL: capacity-duplicate: normalized model duplicate adds no row
+FAIL: capacity-duplicate: fresh reader retains topic identity
+FAIL: capacity-duplicate: fresh reader retains unresolved identity
+FAIL: old-explanation-3-real-window: retained topics preserve full identity and facts
+FAIL: old-explanation-3-real-window: punctuation-only topics absent
+FAIL: old-explanation-3-real-window: punctuation-only unresolved absent
+FAIL: old-explanation-3-real-window: fresh reader retains topic identity
+FAIL: third-explanation-1-real-window: retained topics preserve full identity and facts
+FAIL: third-explanation-1-real-window: fresh reader retains topic identity
+FAIL: third-explanation-3-real-window: retained topics preserve full identity and facts
+FAIL: third-explanation-3-real-window: punctuation-only topics absent
+FAIL: third-explanation-3-real-window: punctuation-only unresolved absent
+FAIL: third-explanation-3-real-window: fresh reader retains topic identity
+FAIL: third-hypothetical-order-real-window: retained topics preserve full identity and facts
+FAIL: third-hypothetical-order-real-window: punctuation-only topics absent
+FAIL: third-hypothetical-order-real-window: punctuation-only unresolved absent
+FAIL: third-hypothetical-order-real-window: fresh reader retains topic identity
+FAIL: third-customer-followup-real-window: retained topics preserve full identity and facts
+FAIL: third-customer-followup-real-window: punctuation-only topics absent
+FAIL: third-customer-followup-real-window: punctuation-only unresolved absent
+FAIL: third-customer-followup-real-window: fresh reader retains topic identity
+FAIL: third-answered-question-real-window: retained topics preserve full identity and facts
+FAIL: third-answered-question-real-window: fresh reader retains topic identity
+MEETING_TOPIC_MERGE_RESULT fixtures=15 checks=185 failed=58 modelCalls=0 semanticQuality=false
+MEETING_TOPIC_MERGE_FAILED

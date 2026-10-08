@@ -132,6 +132,7 @@ final class MeetingSession {
         startedHostTime = mach_absolute_time()
         lastSpeechAt = startedAt
         meeting.start = startedAt
+        meeting.performanceSummary = MeetingPerformanceSummary(recordingStartedAt: startedAt)
         meeting.status = .recording
         persistMeeting()
         wireTracks(outputFormat: format)
@@ -849,13 +850,21 @@ final class MeetingSession {
             integrity.missingCaptureFrames = max(integrity.missingCaptureFrames, progress.streamFrames)
         }
         meeting.captureIntegrity = integrity
-        persistMeeting()
         // Numeric counts only; model/provider attribution stays in usage.jsonl.
         let queued = (mic?.queuedBytes ?? 0) + (system?.queuedBytes ?? 0)
         let active = (mic?.activeBytes ?? 0) + (system?.activeBytes ?? 0)
         let swap = MeetingResourceHealth.swapBytes()
         let note = "queuedBytes=\(queued) activeBytes=\(active) writerBytes=\(saved.map { $0.writtenFrames * 4 } ?? 0) freeBytes=\(free ?? -1) swapUsed=\(swap.used.map(String.init) ?? "unknown") swapAvailable=\(swap.available.map(String.init) ?? "unknown") pressure=\(pressure.level.rawValue) missedFrames=\(progress.streamFrames) missedBuffers=\(progress.hubBuffers) paused=\(pause ? 1 : 0)"
-        LatencyTrace.record(.meetingResources, seconds: Date().timeIntervalSince(began), note: note)
+        let span = LatencyTrace.record(.meetingResources,
+            seconds: Date().timeIntervalSince(began), note: note)
+        // Reuse that exact sample and the existing metadata save; no second process
+        // query, timer, sample history or capture-callback work is added.
+        var summary = meeting.performanceSummary
+            ?? MeetingPerformanceSummary(recordingStartedAt: meeting.start)
+        summary.observe(at: span.endedAt, process: span.process, queuedBytes: queued,
+                        activeBytes: active, paused: pause)
+        meeting.performanceSummary = summary
+        persistMeeting()
     }
 
     @discardableResult

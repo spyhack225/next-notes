@@ -1,0 +1,1 @@
+{"cases": ["single", "mapped", "dropped"], "failures": ["dropped: fixed warning lacks paragraph separator", "dropped: original missing-separator reproduction absent"], "native_model_exercised": false, "parity": "FAILED", "semantic_quality_proven": false}

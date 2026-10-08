@@ -1,0 +1,21 @@
+{
+  "experiment": "third-production-future-qwen35",
+  "exit": 1,
+  "wall_seconds": 16.009181166999042,
+  "markers": [
+    "ACTION_INTENT_PRODUCTION_SCOPE reconstructed=true originalSnapshots=false precedingContext=extractor-only targetInstructions=false isolatedStore=true",
+    "ACTION_INTENT_PRODUCTION_RESULT case=customer-followup-real-window requestedCutoff=1945.0 actualCutoff=1943.68 calls=1 completions=1 finishedByLimit=false productionParsed=true candidates=1 forbiddenCitationHits=0 requiredCitationHit=false referenceVisible=1/1 extractorSeedEqual=true persistedEqual=true sourcesCorrect=true semanticReviewed=false",
+    "ACTION_INTENT_PRODUCTION_FAILED: 1 production fixture windows wrong; semantic review remains required"
+  ],
+  "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53",
+  "startedAt": "2026-10-08T02:39:00.155336+00:00",
+  "endedAt": "2026-10-08T02:39:16.165243+00:00",
+  "pids": [
+    70595
+  ],
+  "memorySamples": 7,
+  "peakSampledFootprintBytes": 535842320,
+  "peakSampledResidentBytes": 3267362816,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "manual review pending"
+}

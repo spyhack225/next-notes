@@ -1,0 +1,29 @@
+{
+  "experiment": "action-intent-posthoc-targeted-neighborhoods",
+  "exit": 1,
+  "wall_seconds": 29.49793216699618,
+  "markers": [
+    "ACTION_INTENT_REPLAY_RESULT case=explanation-1 variant=existing seconds=0.37323296070098877 tokens=11 finishedByLimit=false kind=no-action actionable=false expected=discussion citationValid=true parsedValid=true claimedTargetActions=0",
+    "ACTION_INTENT_REPLAY_RESULT case=explanation-1 variant=typed seconds=1.42317795753479 tokens=52 finishedByLimit=false kind=discussion actionable=false expected=discussion citationValid=true parsedValid=true claimedTargetActions=0",
+    "ACTION_INTENT_REPLAY_RESULT case=explanation-2 variant=existing seconds=0.45012903213500977 tokens=15 finishedByLimit=false kind=no-action actionable=false expected=discussion citationValid=true parsedValid=true claimedTargetActions=0",
+    "ACTION_INTENT_REPLAY_RESULT case=explanation-2 variant=typed seconds=4.443224906921387 tokens=195 finishedByLimit=false kind=discussion actionable=false expected=discussion citationValid=false parsedValid=true claimedTargetActions=0",
+    "ACTION_INTENT_REPLAY_RESULT case=explanation-3 variant=existing seconds=0.5186070203781128 tokens=15 finishedByLimit=false kind=no-action actionable=false expected=discussion citationValid=true parsedValid=true claimedTargetActions=0",
+    "ACTION_INTENT_REPLAY_RESULT case=explanation-3 variant=typed seconds=5.020128965377808 tokens=229 finishedByLimit=false kind=discussion actionable=false expected=discussion citationValid=false parsedValid=true claimedTargetActions=0",
+    "ACTION_INTENT_REPLAY_RESULT case=customer-followup variant=existing seconds=0.45981502532958984 tokens=12 finishedByLimit=false kind=no-action actionable=false expected=futureCommitment citationValid=true parsedValid=true claimedTargetActions=0",
+    "ACTION_INTENT_REPLAY_RESULT case=customer-followup variant=typed seconds=5.549710035324097 tokens=243 finishedByLimit=false kind=invalid actionable=false expected=futureCommitment citationValid=false parsedValid=false claimedTargetActions=0",
+    "ACTION_INTENT_REPLAY_FAILED: 3 typed fixture checks wrong"
+  ],
+  "secondsFieldScope": "provider generation elapsed excluding prefill for local runtime; complete pass available in existing usage rows",
+  "candidate_sha256": "b9dddc679fa89f999f40fa6accd95afc742f316c576f078c29b5111c1031d6b2",
+  "productionPromoted": false,
+  "historicalParsedValidScope": {
+    "existing": "JSONSerialization decoded a JSON object only; not production ModelPayload decoding or successful action extraction",
+    "typed": "one successfully decoded typed target row; citation correctness is a separate check",
+    "existingSchemaFailures": [
+      "explanation-1",
+      "customer-followup"
+    ],
+    "existingRawActions": "All four raw existing outputs explicitly contain actions: []; original historical false positives were not reproduced by these target-directed neighborhoods",
+    "futureTypedFirstObject": "discussion; genuine commitment missed independently of trailing malformed payload"
+  }
+}

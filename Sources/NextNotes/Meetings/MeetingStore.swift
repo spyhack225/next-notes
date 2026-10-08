@@ -292,6 +292,9 @@ final class MeetingStore {
         if let stored = self.meeting(id: meeting.id)?.captureIntegrity {
             stamped.captureIntegrity = (stamped.captureIntegrity ?? stored).merged(preserving: stored)
         }
+        if let stored = self.meeting(id: meeting.id)?.performanceSummary {
+            stamped.performanceSummary = stamped.performanceSummary?.preserving(stored) ?? stored
+        }
         // M1-a: a calendar link implies a calendar title. An `.auto` placeholder saved
         // with an event id becomes `.calendar` here, so the scheduler — which this file
         // owns and `MeetingScheduler` does not need to touch — still records the link.

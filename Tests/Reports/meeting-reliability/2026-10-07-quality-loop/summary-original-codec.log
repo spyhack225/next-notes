@@ -1,0 +1,3 @@
+CODEC_FAILED: exact durable clock
+CODEC_FAILED: fresh reader keeps accepted sample
+CODEC_FAILED: fresh reader keeps middle peak

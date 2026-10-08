@@ -1,0 +1,104 @@
+{
+  "scope": "private human/source review; reconstructed native windows; no owner speech or participant names public",
+  "mini": [
+    {
+      "case": "explanation-1-real-window",
+      "rawTopics": 4,
+      "rawUnresolved": 0,
+      "rawCandidates": 0,
+      "priorTopics": 9,
+      "persistedTopics": 1,
+      "exactPriorTopicEchoes": 3,
+      "rawPlaceholders": 0,
+      "priorTextAbsentAfter": 9,
+      "persistedPlaceholderTopic": false
+    },
+    {
+      "case": "explanation-2-real-window",
+      "rawTopics": 0,
+      "rawUnresolved": 0,
+      "rawCandidates": 0,
+      "priorTopics": 10,
+      "persistedTopics": 10,
+      "exactPriorTopicEchoes": 0,
+      "rawPlaceholders": 0,
+      "priorTextAbsentAfter": 0,
+      "persistedPlaceholderTopic": false
+    },
+    {
+      "case": "explanation-3-real-window",
+      "rawTopics": 1,
+      "rawUnresolved": 1,
+      "rawCandidates": 0,
+      "priorTopics": 11,
+      "persistedTopics": 1,
+      "exactPriorTopicEchoes": 0,
+      "rawPlaceholders": 2,
+      "priorTextAbsentAfter": 11,
+      "persistedPlaceholderTopic": true
+    },
+    {
+      "case": "hypothetical-order-real-window",
+      "rawTopics": 1,
+      "rawUnresolved": 1,
+      "rawCandidates": 0,
+      "priorTopics": 13,
+      "persistedTopics": 1,
+      "exactPriorTopicEchoes": 0,
+      "rawPlaceholders": 2,
+      "priorTextAbsentAfter": 13,
+      "persistedPlaceholderTopic": true
+    },
+    {
+      "case": "customer-followup-real-window",
+      "rawTopics": 1,
+      "rawUnresolved": 1,
+      "rawCandidates": 0,
+      "priorTopics": 13,
+      "persistedTopics": 1,
+      "exactPriorTopicEchoes": 0,
+      "rawPlaceholders": 2,
+      "priorTextAbsentAfter": 13,
+      "persistedPlaceholderTopic": true
+    },
+    {
+      "case": "answered-question-real-window",
+      "rawTopics": 6,
+      "rawUnresolved": 0,
+      "rawCandidates": 0,
+      "priorTopics": 13,
+      "persistedTopics": 1,
+      "exactPriorTopicEchoes": 5,
+      "rawPlaceholders": 0,
+      "priorTextAbsentAfter": 12,
+      "persistedPlaceholderTopic": false
+    }
+  ],
+  "miniRawLogSHA256": "be43735222366d3622534e8d404ce67d6815c7b8ab35f15441f533f91b0b522a",
+  "qwen": {
+    "rawLogSHA256": "1fb1242d665200323c8f5059c73abc168e52521ccfe1f8df26ea75107ef02ff2",
+    "rawTopics": 3,
+    "rawUnresolved": 0,
+    "rawCandidates": 1,
+    "selectedPrimaryIndex": 28,
+    "selectedPrimaryStart": 1930.258375,
+    "requiredActionBearingStart": 1935.178375,
+    "schemaComplete": true,
+    "candidateStoredSourceCorrect": true,
+    "sourcePrimaryMeaning": "past activity plus unfinished future antecedent",
+    "inferredMeaning": "future contact recognized but action-bearing primary missed; person/object/organization recipient relation inferred",
+    "deadlineInvented": false,
+    "semanticAcceptance": false,
+    "priorTopics": 13,
+    "persistedTopics": 11,
+    "priorOriginalTextsLost": 5,
+    "topicMeaningReview": "three broad thematic generalizations; no source-by-source completeness or numerical-scale accuracy proven; old similarity merge overwrites distinct rows",
+    "unresolvedMeaningReview": "no unresolved item emitted; does not prove all questions resolved"
+  },
+  "confirmedMergeProducer": "normalize punctuation-only text leaves one space; substring containment matches every multiword existing row. Shared one-content-token overlap also collapses distinct topical rows.",
+  "preexistingOriginalNative": {
+    "case": "explanation-3-real-window",
+    "persistedTopics": 1,
+    "persistedPlaceholderTopic": true
+  }
+}

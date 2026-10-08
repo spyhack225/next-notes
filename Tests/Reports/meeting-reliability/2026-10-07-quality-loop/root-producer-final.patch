@@ -1,0 +1,209 @@
+diff --git a/Sources/NextNotes/Meetings/MeetingModels.swift b/Sources/NextNotes/Meetings/MeetingModels.swift
+index 65cb2f2..e1411df 100644
+--- a/Sources/NextNotes/Meetings/MeetingModels.swift
++++ b/Sources/NextNotes/Meetings/MeetingModels.swift
+@@ -337,6 +337,9 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
+     var transcriptPass: String?
+     /// Which model wrote the notes, once Phase 4 writes any.
+     var notesModel: String?
++    /// Bounded recording observations survive the global metrics ring aging out.
++    /// Nil means this build did not retain coverage; it never implies healthy capture.
++    var performanceSummary: MeetingPerformanceSummary?
+     /// Diarized speaker renames, keyed by the generated label ("Speaker 1").
+     var speakerNames: [String: String] = [:]
+     /// What the meeting agent has actually done in the user's Workspace, and where to find
+@@ -433,6 +437,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
+         audioReleaseAfter: Date? = nil,
+         transcriptPass: String? = nil,
+         notesModel: String? = nil,
++        performanceSummary: MeetingPerformanceSummary? = nil,
+         speakerNames: [String: String] = [:],
+         agentActions: [AgentActionRecord] = []
+     ) {
+@@ -454,6 +459,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
+         self.audioReleaseAfter = audioReleaseAfter
+         self.transcriptPass = transcriptPass
+         self.notesModel = notesModel
++        self.performanceSummary = performanceSummary
+         self.speakerNames = speakerNames
+         self.agentActions = agentActions
+     }
+@@ -486,6 +492,7 @@ struct Meeting: Codable, Sendable, Identifiable, Equatable {
+         audioReleaseAfter = try container.decodeIfPresent(Date.self, forKey: .audioReleaseAfter)
+         transcriptPass = try container.decodeIfPresent(String.self, forKey: .transcriptPass)
+         notesModel = try container.decodeIfPresent(String.self, forKey: .notesModel)
++        performanceSummary = try container.decodeIfPresent(MeetingPerformanceSummary.self, forKey: .performanceSummary)
+         speakerNames = try container.decodeIfPresent([String: String].self, forKey: .speakerNames) ?? [:]
+         agentActions = try container.decodeIfPresent(
+             [AgentActionRecord].self,
+diff --git a/Sources/NextNotes/Meetings/MeetingSession.swift b/Sources/NextNotes/Meetings/MeetingSession.swift
+index 7bf23a3..ffcdafc 100644
+--- a/Sources/NextNotes/Meetings/MeetingSession.swift
++++ b/Sources/NextNotes/Meetings/MeetingSession.swift
+@@ -132,6 +138,7 @@ final class MeetingSession {
+         startedHostTime = mach_absolute_time()
+         lastSpeechAt = startedAt
+         meeting.start = startedAt
++        meeting.performanceSummary = MeetingPerformanceSummary(recordingStartedAt: startedAt)
+         meeting.status = .recording
+         persistMeeting()
+         wireTracks(outputFormat: format)
+@@ -849,13 +870,21 @@ final class MeetingSession {
+             integrity.missingCaptureFrames = max(integrity.missingCaptureFrames, progress.streamFrames)
+         }
+         meeting.captureIntegrity = integrity
+-        persistMeeting()
+         // Numeric counts only; model/provider attribution stays in usage.jsonl.
+         let queued = (mic?.queuedBytes ?? 0) + (system?.queuedBytes ?? 0)
+         let active = (mic?.activeBytes ?? 0) + (system?.activeBytes ?? 0)
+         let swap = MeetingResourceHealth.swapBytes()
+         let note = "queuedBytes=\(queued) activeBytes=\(active) writerBytes=\(saved.map { $0.writtenFrames * 4 } ?? 0) freeBytes=\(free ?? -1) swapUsed=\(swap.used.map(String.init) ?? "unknown") swapAvailable=\(swap.available.map(String.init) ?? "unknown") pressure=\(pressure.level.rawValue) missedFrames=\(progress.streamFrames) missedBuffers=\(progress.hubBuffers) paused=\(pause ? 1 : 0)"
+-        LatencyTrace.record(.meetingResources, seconds: Date().timeIntervalSince(began), note: note)
++        let span = LatencyTrace.record(.meetingResources,
++            seconds: Date().timeIntervalSince(began), note: note)
++        // Reuse that exact sample and the existing metadata save; no second process
++        // query, timer, sample history or capture-callback work is added.
++        var summary = meeting.performanceSummary
++            ?? MeetingPerformanceSummary(recordingStartedAt: meeting.start)
++        summary.observe(at: span.endedAt, process: span.process, queuedBytes: queued,
++                        activeBytes: active, paused: pause)
++        meeting.performanceSummary = summary
++        persistMeeting()
+     }
+ 
+     @discardableResult
+diff --git a/Sources/NextNotes/Meetings/MeetingStore.swift b/Sources/NextNotes/Meetings/MeetingStore.swift
+index 0d20612..bc1adb9 100644
+--- a/Sources/NextNotes/Meetings/MeetingStore.swift
++++ b/Sources/NextNotes/Meetings/MeetingStore.swift
+@@ -292,6 +308,9 @@ final class MeetingStore {
+         if let stored = self.meeting(id: meeting.id)?.captureIntegrity {
+             stamped.captureIntegrity = (stamped.captureIntegrity ?? stored).merged(preserving: stored)
+         }
++        if let stored = self.meeting(id: meeting.id)?.performanceSummary {
++            stamped.performanceSummary = stamped.performanceSummary?.preserving(stored) ?? stored
++        }
+         // M1-a: a calendar link implies a calendar title. An `.auto` placeholder saved
+         // with an event id becomes `.calendar` here, so the scheduler — which this file
+         // owns and `MeetingScheduler` does not need to touch — still records the link.
+diff --git a/Sources/NextNotes/NextNotesApp.swift b/Sources/NextNotes/NextNotesApp.swift
+index 3fb43b8..e2cfcb9 100644
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -1810,7 +2029,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+                 }
+                 SelfTest.failed = !(await MeetingNotesReplaySelfTest.run(
+                     input: input, provider: provider, window: rawWindow.flatMap(Int.init),
+-                    write: writeSelfTest))
++                    write: writePrivateSelfTest))
+                 SelfTest.requestTermination()
+             }
+             return true
+@@ -1870,6 +2089,56 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+             }
+             return true
+         }
++        if arguments.contains("--selftest-meeting-performance") {
++            Task { @MainActor in
++                SelfTest.failed = !(await MeetingPerformanceSummarySelfTest.run { writeSelfTest($0) })
++                SelfTest.requestTermination()
++            }
++            return true
++        }
++        if arguments.contains("--selftest-notes-evidence") {
++            Task { @MainActor in
++                let evidenceOK = await NotesEvidenceSelfTest.run { writeSelfTest($0) }
++                let extractiveOK = await NotesExtractiveReplaySelfTest.runSourceChecks(write: writeSelfTest)
++                SelfTest.failed = !(evidenceOK && extractiveOK)
++                SelfTest.requestTermination()
++            }
++            return true
++        }
++        if arguments.contains("--selftest-meeting-action-intent-replay") {
++            Task { @MainActor in
++                guard let input = SelfTest.value(after: "--selftest-meeting-action-intent-replay"),
++                      let model = SelfTest.value(after: "--notes-model"),
++                      let provider = await Self.benchmarkProvider(model) else {
++                    writeSelfTest("MEETING_ACTION_INTENT_REPLAY_FAILED: copied input and explicit local model required")
++                    SelfTest.failed = true
++                    SelfTest.requestTermination()
++                    return
++                }
++                SelfTest.failed = !(await MeetingActionIntentReplaySelfTest.run(
++                    input: input, provider: provider,
++                    production: arguments.contains("--notes-intent-production"), write: writePrivateSelfTest))
++                SelfTest.requestTermination()
++            }
++            return true
++        }
++        if arguments.contains("--selftest-meeting-notes-extractive") {
++            Task { @MainActor in
++                guard let input = SelfTest.value(after: "--selftest-meeting-notes-extractive"),
++                      let model = SelfTest.value(after: "--notes-model"),
++                      let provider = await Self.benchmarkProvider(model) else {
++                    writeSelfTest("NOTES_EXTRACTIVE_REPLAY_FAILED: copied input and explicit local model required")
++                    SelfTest.failed = true
++                    SelfTest.requestTermination()
++                    return
++                }
++                SelfTest.failed = !(await MeetingNotesReplaySelfTest.runExtractive(
++                    input: input, provider: provider, write: writePrivateSelfTest,
++                    indicesOnly: arguments.contains("--notes-selection-indices")))
++                SelfTest.requestTermination()
++            }
++            return true
++        }
+         if arguments.contains("--selftest-meeting-resume") {
+             runMeetingResumeSelfTest()
+             return true
+@@ -8986,6 +9437,8 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+         check("an agent command leaked into plain text", !notes.contains("email the proposal"))
+         check("ordinary speech was dropped from plain text", notes.contains("STEP"))
+ 
++        check("committed speaker labels reach saved context",
++              MeetingSpeakerProjectionSelfTest.run(write: writeSelfTest))
+         for failure in failures { writeSelfTest("  MEETING_CONTEXT_WRONG: \(failure)") }
+         writeSelfTest(failures.isEmpty
+                       ? "MEETING_CONTEXT_OK: extraction and the authority split hold"
+@@ -10063,6 +10523,16 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+     /// between those two launches. `log show --predicate 'subsystem == "ai.pivotstudio.nextnotes"'`
+     /// is how you read one back.
+     private func writeSelfTest(_ line: String) {
++        recordSelfTest(line, includeSystemLog: true)
++    }
++
++    /// Copied meeting replay contains private speech/model output. Keep its output
++    /// in the caller's explicit diagnostic destination, outside the system log.
++    private func writePrivateSelfTest(_ line: String) {
++        recordSelfTest(line, includeSystemLog: false)
++    }
++
++    private func recordSelfTest(_ line: String, includeSystemLog: Bool) {
+         if line.split(whereSeparator: \.isNewline).contains(where: { part in
+             let trimmed = part.trimmingCharacters(in: .whitespaces)
+             let marker = trimmed.prefix {
+@@ -10079,7 +10549,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+         }
+         let text = "\(line)\n"
+         FileHandle.standardOutput.write(Data(text.utf8))
+-        Log.app.info("selftest · \(line, privacy: .public)")
++        if includeSystemLog { Log.app.info("selftest · \(line, privacy: .public)") }
+         guard let path = SelfTest.outputPath else { return }
+         if let handle = FileHandle(forWritingAtPath: path) {
+             handle.seekToEndOfFile()
+--- a/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
++++ b/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift
+@@ -1118,6 +1118,13 @@
+         }
+         // P0-20a: exact counts from the in-process tokenizer, after the pass, never
+         // blocking the stream.
++        if let stats = lastPrefillStats {
++            ModelPassRecorder.current?.noteCounts([
++                "prefillMs": Int((stats.seconds * 1000).rounded()),
++                "prefillDecodedTokens": stats.decoded,
++                "generationMs": Int((Date().timeIntervalSince(began) * 1000).rounded()),
++            ])
++        }
+         ModelPassRecorder.current?.report(
+             promptTokens: promptTokens.count,
+             cachedTokens: lastPrefillStats?.reused,

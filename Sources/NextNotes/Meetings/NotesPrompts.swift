@@ -111,12 +111,37 @@ enum NotesPrompts {
         - Write only what was said. Never infer or conclude.
         """
 
+    static let mapSelectionSystem = """
+        Select the original utterances needed to preserve the substantive content of
+        this entire part of a meeting. Return only a JSON array of integer source IDs.
+        [S1] identifies source 1. Select only IDs actually shown in this part.
+        The code retains each complete original utterance and its real speaker.
+
+        Preserve every distinct main topic, explanation, proposal, constraint and
+        contrast within the available utterance-word budget. Preserve different
+        speakers' experience and qualifications separately. Include substantive
+        questions with the answers or explanations needed to understand them.
+        Include future intentions, requests and follow-up plans even when no deadline
+        or formal agreement was given. Keep statements about completed activities
+        separate from future plans. Select neighboring utterances when a short answer
+        or pronoun needs its question or antecedent.
+
+        Remove filler and genuinely repeated information. Do not stop after one
+        representative passage: check later topic changes and distinct details before
+        finishing. Prioritize broad substantive coverage over repeated supporting
+        examples when the budget is tight. Never fill the array with irrelevant speech
+        merely to reach a count; the number selected is not a coverage guarantee.
+        Do not supply quotations, paraphrases, names, owners, dates or new words.
+        At most 24 IDs, in source order. Return [] only if there is no substantive speech.
+        """
+
     static func mapUser(
         meeting: Meeting,
         part: Int,
         of total: Int,
         transcript: String,
-        wordLimit: Int? = nil
+        wordLimit: Int? = nil,
+        sourceIndices: Bool = false
     ) -> String {
         var prompt = """
         \(context(for: meeting))
@@ -125,7 +150,9 @@ enum NotesPrompts {
         \(transcript)
         """
         if let wordLimit {
-            prompt += "\n\nKeep this list under about \(wordLimit) words."
+            prompt += sourceIndices
+                ? "\n\nThe retained original utterances should total under about \(wordLimit) words. Use this allowance for the distinct substantive content throughout the part; it is an upper budget, not a reason to keep only an opening example."
+                : "\n\nKeep this list under about \(wordLimit) words."
         }
         return prompt
     }
@@ -137,11 +164,15 @@ enum NotesPrompts {
     static func reduceUser(
         meeting: Meeting,
         facts: String,
-        brief: MeetingNotesBrief = .empty
+        brief: MeetingNotesBrief = .empty,
+        sourceIndices: Bool = false
     ) -> String {
         var sections = [context(for: meeting)]
         if let block = block(brief) { sections.append(block) }
-        sections.append("These are the facts extracted from the meeting, in order. Write the notes from them.\n\n\(facts)")
+        let introduction = sourceIndices
+            ? "These are original quoted utterances selected from the meeting, in order. They are source evidence, not verified decisions or commitments. Write notes from them without changing who said what or whether something already happened."
+            : "These are the facts extracted from the meeting, in order. Write the notes from them."
+        sections.append("\(introduction)\n\n\(facts)")
         return sections.joined(separator: "\n\n")
     }
 
@@ -159,6 +190,21 @@ enum NotesPrompts {
         - Keep the speaker label at the start of each bullet.
         - Merge bullets that say the same thing. Remove repetition and small talk only.
         - Keep the order. Never add anything that is not in the list.
+        """
+
+    static let collapseSelectionSystem = """
+        Select original source utterances that preserve the distinct substantive
+        information throughout this input. Return only a JSON array of integer source IDs.
+        Select only IDs actually shown here. The code retains the complete utterance,
+        real speaker, qualifications, negation and tense without rewriting.
+        Remove genuine repetition and filler first. Preserve different topics,
+        contrasting views and experience, explanations, constraints, decisions,
+        substantive questions and their necessary answers, and future follow-up
+        intentions with their qualifications. Keep needed adjacent context together.
+        Do not reduce the entire input to one representative example when it contains
+        other distinct substantive points. At most 24 IDs, in source order; do not add
+        irrelevant speech to fill a quota. Return [] only if no substantive speech.
+        Do not supply quotations, paraphrases, names, owners, dates or any new words.
         """
 
     static func collapseUser(meeting: Meeting, facts: String) -> String {

@@ -1,0 +1,17 @@
+{
+  "verdict": "PENDING root coordinated actual-source original/fixed run",
+  "fixture": "same main.swift for original/fixed; exact actual AudioSource/TranscriptSegment/Context models copied, no substitutions to identity types or helper",
+  "not_exercised": "native diarization, ASR/model, provider identity, MeetingStore/DiarizationService consumer (current native selftest separately covers that consumer)",
+  "original_hash_matches_pinned_actual_helper": true,
+  "pins": {
+    "Context.swift": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690",
+    "Models.swift": "d33552054590043edcdf220470f7152dccf5a377ecd5aedb4f5d273be0635835",
+    "OriginalProjection.swift": "de3858aa768f6084d7fb39f1c742f5931962dee0e105575ad514a65f18ae6290",
+    "FixedProjection.swift": "2994573dba241c03f0f0359cd7c65ea6b37dfa5320167ff0781218fa915a2bc6",
+    "main.swift": "1eff93ae3716ab65153bf3cd1d68e6ef14bb8b7e8bf9d509bb134bf9f9b21f4c"
+  },
+  "planned_commands": {
+    "original": "swiftc Models.swift Context.swift OriginalProjection.swift main.swift -o <owned-temp>/original; <owned-temp>/original",
+    "fixed": "swiftc Models.swift Context.swift FixedProjection.swift main.swift -o <owned-temp>/fixed; <owned-temp>/fixed"
+  }
+}

@@ -1,0 +1,20 @@
+[
+  {
+    "variant": "baseline",
+    "compileExit": 0,
+    "compileWallSeconds": 2.206172833997698,
+    "runExit": 1
+  },
+  {
+    "variant": "fixed",
+    "compileExit": 0,
+    "compileWallSeconds": 2.5122670420023496,
+    "runExit": 1
+  },
+  {
+    "comparisonExit": 1
+  },
+  {
+    "productionGuardExit": 1
+  }
+]

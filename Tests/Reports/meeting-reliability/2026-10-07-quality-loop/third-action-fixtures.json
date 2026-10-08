@@ -1,0 +1,13 @@
+{
+  "sixWindowFixture": "/private/tmp/NextNotesMeetingActionIntentReplay-d508d663-d1b9-4e92-bc17-36b075413afe",
+  "futureWindowFixture": "/private/tmp/NextNotesMeetingActionIntentReplay-d69caa4f-4a73-41c5-99be-b3118f50413c",
+  "originalFixture": "/private/tmp/NextNotesMeetingActionIntentReplay-7694cf11-5d18-406a-980e-81629c5c52cf",
+  "copiedSourceHashes": {
+    "meeting.json": "da15f6aa9ebd2d4fb5a01fa34d177de51a2498f1c29f600792c13de11ca6d3dd",
+    "transcript.live.json": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+    "cases.json": "f494ee8a68e312281244b665b9d442e7f51444e92b42b83a2dceee25c208354d"
+  },
+  "expectationScope": "actual complete future primary at1935.178375 only; preceding unfinished antecedent fragments are visibility metadata, not required actionable evidence",
+  "ownerMutation": false,
+  "initialPreparationFailure": "wrong list-versus-object assertion before manifest persisted; original unaffected"
+}

@@ -1,0 +1,92 @@
+{
+  "baseline_revision": "8661e0ab610130c5bbf109c0bddd2bdd6ceef24d",
+  "current_head": "8661e0ab610130c5bbf109c0bddd2bdd6ceef24d",
+  "task_start_clean_evidence": "Initial task git status --short -- Sources/NextNotes/Meetings listed foreign meeting files, none of these five tracked files; original pinned blobs still equal HEAD and normal index. New owned files did not exist.",
+  "files": [
+    {
+      "path": "Sources/NextNotes/Meetings/NotesGenerator.swift",
+      "sha256": "aeabead2928aa11970edaab1e181482326f1541a20a25e4874b8419af666f1e4",
+      "existed_at_task_start": true,
+      "task_start_status": "clean tracked file",
+      "foreign_hunks_present": false,
+      "can_integrate_entire_file": true,
+      "normal_index_unchanged_from_baseline": true,
+      "scope": "producer repair or owned regression fixture"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesPrompts.swift",
+      "sha256": "b7e6c337dddd9e2deb092facac5209a65ead6c6edd285a87ae27cd4f52accc41",
+      "existed_at_task_start": true,
+      "task_start_status": "clean tracked file",
+      "foreign_hunks_present": false,
+      "can_integrate_entire_file": true,
+      "normal_index_unchanged_from_baseline": true,
+      "scope": "producer repair or owned regression fixture"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesEvidenceSelfTest.swift",
+      "sha256": "4b77f2cc0d22ebb1a1c4b2c654f988304558f9855d37024a082108a029dea456",
+      "existed_at_task_start": false,
+      "task_start_status": "absent; created by this agent",
+      "foreign_hunks_present": false,
+      "can_integrate_entire_file": true,
+      "normal_index_unchanged_from_baseline": true,
+      "scope": "producer repair or owned regression fixture"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesLongformSelfTest.swift",
+      "sha256": "425943de5fcd5e230e969d0955fba0392f1ca925e3f6ff035a83cf1b89e2d2f4",
+      "existed_at_task_start": true,
+      "task_start_status": "clean tracked file",
+      "foreign_hunks_present": false,
+      "can_integrate_entire_file": true,
+      "normal_index_unchanged_from_baseline": true,
+      "scope": "producer repair or owned regression fixture"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift",
+      "sha256": "783f8d39680ffa42e36c5ea831c158491728202515438c5bf00779ee3f1acb1a",
+      "existed_at_task_start": true,
+      "task_start_status": "clean tracked file",
+      "foreign_hunks_present": false,
+      "can_integrate_entire_file": true,
+      "normal_index_unchanged_from_baseline": true,
+      "scope": "producer repair or owned regression fixture"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift",
+      "sha256": "2a8a9bd74f7db7209f0bcd88fe55df582568c4b3c905ec2ff5f7d2d97bcae90a",
+      "existed_at_task_start": true,
+      "task_start_status": "clean tracked file",
+      "foreign_hunks_present": false,
+      "can_integrate_entire_file": true,
+      "normal_index_unchanged_from_baseline": true,
+      "scope": "producer repair or owned regression fixture"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/NotesExtractiveReplaySelfTest.swift",
+      "sha256": "29cde4ff2e521ec88bbe6bff1e8eb45bb1f5281bcfd7bd857b0445ee29ce2b02",
+      "existed_at_task_start": false,
+      "task_start_status": "absent; created by this agent",
+      "foreign_hunks_present": false,
+      "can_integrate_entire_file": true,
+      "normal_index_unchanged_from_baseline": true,
+      "scope": "diagnostic-only new contract"
+    }
+  ],
+  "producer_patch": {
+    "sha256": "785f3ab240e3a88dabb37cc09b2d3d15d418db58661bcbfc2c522e7638f7df2b",
+    "byte_identical_to_current_owned_tracked_diff": true,
+    "includes_all_owned_tracked_files": true,
+    "includes_new_files": false,
+    "new_files_must_be_added_separately": true,
+    "foreign_files_or_hunks": false
+  },
+  "sources_edited_for_manifest": false,
+  "committed": false,
+  "root_owns_integration_and_native_acceptance": true,
+  "manifest_updated_after_authorized_diagnostic_repair": true,
+  "historical_snapshot": true,
+  "snapshot_scope": "First quote-contract source proof; preserved original pins. Not the current integration authority.",
+  "superseded_by": "pre-third-native-source-pins.json and parent native build pins"
+}

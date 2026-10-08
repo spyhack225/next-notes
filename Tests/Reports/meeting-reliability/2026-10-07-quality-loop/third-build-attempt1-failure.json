@@ -1,0 +1,10 @@
+{
+  "compileExit": 1,
+  "candidateCreated": false,
+  "cause": "new diagnostic enum was nonisolated while App private writer is MainActor isolated",
+  "fixedProducer": "Sources/NextNotes/Meetings/MeetingActionInputContractSelfTest.swift",
+  "before": "826abd1b3425e95cea6d143a79784edd86754f0867eef4fa0e36c9446f58eac7",
+  "after": "b116919d26de34d71bd7aa8b4c5d8154e2f3653b4554b5a5d4b7822b1cf909e2",
+  "compilerJoinedBeforeRepair": true,
+  "productionPathsChangedByRepair": false
+}

@@ -1,0 +1,21 @@
+{
+  "originalManifestUnchangedSHA256": "7e940b8203e5ddd344e59c6c2441e40c8bcca36854bb6d8658dd14f6206e746f",
+  "changes": [
+    {
+      "case": "explanation-2-real-window",
+      "originalCutoff": 1770.0,
+      "copiedCutoff": 1770.18,
+      "reason": "actual reference segment ends1770.18; original1770cut omitted it"
+    },
+    {
+      "case": "customer-followup-real-window",
+      "requiredPrimaryStart": 1935.178375,
+      "precursorVisibilityStarts": [
+        1925.658375,
+        1930.258375,
+        1935.178375
+      ]
+    }
+  ],
+  "noOwnerPayload": true
+}

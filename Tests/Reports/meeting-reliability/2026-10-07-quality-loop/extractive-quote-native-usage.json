@@ -1,0 +1,27 @@
+[
+  {
+    "cachedTokens": 0,
+    "warm": true,
+    "feature": "meeting.notes.single",
+    "completionTokens": 167,
+    "truncated": false,
+    "promptTokens": 14271,
+    "requestedModel": "MiniCPM5-2B",
+    "counts": {
+      "prefillMs": 49407,
+      "prefillDecodedTokens": 14271,
+      "sourceCount": 519,
+      "countedInputTokens": 14253,
+      "outputBudget": 1600,
+      "generationMs": 13220
+    },
+    "finishReason": "stop",
+    "provider": "llama",
+    "locality": "local",
+    "modelID": "MiniCPM5-2B",
+    "countsEstimated": false,
+    "requestedRole": "meetingNotes",
+    "totalMs": 62742,
+    "pass": "single-extractive-replay"
+  }
+]

@@ -1,0 +1,9 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-68784/Next Notes.app/Contents/MacOS/NextNotes --selftest-island
+2026-10-07 22:31:58.971 NextNotes[69652:1282470] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+  Built-in Retina Display: 1710x1112 at 0,0 — safe-area top 37pt, notch 208pt wide
+    hugs the notch, collapsed 352x37, expanded 480x145, panel at 615,966
+  27G2G4: 1080x1920 at -1080,0 — safe-area top 0pt, notch none
+    floats below the menu bar, collapsed 144x30, expanded 480x138, panel at -780,1746
+ISLAND_ENDPOINT_PANEL_CHECKS: 8 frontendCalls=1 handlerBypass=false drained=true
+ISLAND_VOICE_OWNERSHIP_CHECKS: 32
+ISLAND_OK: 2 display(s), notched, placement notch, state machine behaves

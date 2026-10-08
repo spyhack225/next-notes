@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-08T02:33:37.522245+00:00",
+  "candidateSHA": "cff85f47c0ab9ddbabe3b413e872d091a2191e79d7b26bda3842da938c97aa53",
+  "sourceInvariant": true,
+  "codesignExit": 0,
+  "nativeFocusedFlags": 16,
+  "requiredExitFailures": [],
+  "actionPrivateFixtureChecks": 27,
+  "evidenceChecks": 33,
+  "performanceChecks": 19,
+  "speakerChecks": 51,
+  "isolation": "21files33defaults unchanged; embedded TOOLLOOP_PRODUCTION_FAILED inherited, separate open verdict",
+  "modelStatus": "waiting maxswap8 gate; postcompile8.66, latest8.14, memorypressure61percentfree",
+  "installed": false
+}

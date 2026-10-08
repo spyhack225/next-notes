@@ -1,0 +1,466 @@
+diff --git a/Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift b/Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift
+index bbc2b09..0f78f36 100644
+--- a/Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingNotesContextSelfTest.swift
+@@ -572,7 +572,8 @@ private final class RecordingNotesProvider: LLMProvider, @unchecked Sendable {
+         lock.withLock { recorded.append((system, user)) }
+         if system == NotesPrompts.mapSystem {
+             return LLMCompletion(
+-                text: "- Sarah: will send the STEP export.",
++                text: NotesEvidenceFixture.encode(
++                    Array(NotesEvidenceFixture.entries(in: user).prefix(1))),
+                 generatedTokens: 9,
+                 duration: 0
+             )
+diff --git a/Sources/NextNotes/Meetings/NotesGenerator.swift b/Sources/NextNotes/Meetings/NotesGenerator.swift
+index 06d7395..6d524d3 100644
+--- a/Sources/NextNotes/Meetings/NotesGenerator.swift
++++ b/Sources/NextNotes/Meetings/NotesGenerator.swift
+@@ -293,13 +293,11 @@ struct NotesGenerator: Sendable {
+                 user: NotesPrompts.mapUser(meeting: meeting, part: 1, of: 1, transcript: "")))
+         let mapTarget = max(1, min(
+             Int((Double(chunkSize) * chunkFactor).rounded(.down)), budget))
+-        let chunks = Self.chunk(
+-            segments,
+-            speakerNames: meeting.speakerNames,
+-            targetTokens: mapTarget,
+-            transcriptCharacters: transcript.count,
+-            transcriptTokens: transcriptTokens
+-        )
++        let sources = NotesEvidence.sources(segments, speakerNames: meeting.speakerNames)
++        let evidenceTranscript = sources.map(\.line).joined(separator: "\n")
++        let evidenceTokens = try await provider.countTokens(evidenceTranscript)
++        let chunks = NotesEvidence.chunks(sources, targetTokens: mapTarget,
++            transcriptCharacters: evidenceTranscript.count, transcriptTokens: evidenceTokens)
+         guard !chunks.isEmpty else { throw NotesError.emptyTranscript }
+ 
+         var facts: [String] = []
+@@ -328,16 +326,23 @@ struct NotesGenerator: Sendable {
+                     meeting: meeting,
+                     part: index + 1,
+                     of: chunks.count,
+-                    transcript: chunk,
++                    transcript: chunk.map(\.line).joined(separator: "\n"),
+                     wordLimit: factBudget * 3 / 4
+                 ),
+-                maxTokens: factBudget
++                maxTokens: factBudget,
++                grammar: NotesEvidence.grammar
+             )
+             generated += completion.generatedTokens
+             incompleteFacts = incompleteFacts || completion.finishedByLimit
+-            let cleaned = NotesFormatter.stripThinking(completion.text)
+-                .trimmingCharacters(in: .whitespacesAndNewlines)
+-            if !cleaned.isEmpty { facts.append(cleaned) }
++            let extraction = NotesEvidence.admit(completion.text, sources: chunk)
++            incompleteFacts = incompleteFacts || extraction.incomplete
++            // A refusal never promotes model prose into facts and never silently erases
++            // the source. Retain this bounded part's original utterances for the same
++            // existing collapse/reduce path, with the coverage limitation disclosed.
++            let retained = extraction.entries.isEmpty
++                ? chunk.map { NotesEvidence.Entry(source: $0.id, quote: $0.text) }
++                : extraction.entries
++            facts.append(NotesEvidence.render(retained, sources: sources))
+         }
+ 
+         try Task.checkCancellation()
+@@ -346,12 +351,10 @@ struct NotesGenerator: Sendable {
+             fraction: Double(chunks.count) / Double(chunks.count + 1)
+         ))
+ 
+-        // The facts can themselves outgrow the window on a very long meeting. Deleting
+-        // the oldest ones is not the answer — on a 90-minute meeting that is the agenda
+-        // and the first decisions. Instead a collapse pass merges adjacent fact lists
+-        // into shorter ones with the model, keeping every decision, owner, date, number
+-        // and open question, until they fit or the round cap is reached. Only then is
+-        // anything left out, and never without the visible line below.
++        // Source evidence can outgrow the reduce window on a long meeting. The
++        // existing collapse pass selects retained source/quote pairs; it may not rewrite
++        // them. Selection loss is disclosed even when that pass stops normally. If the
++        // reader still cannot fit, the existing last-resort count remains visible.
+         var joined = facts.joined(separator: "\n")
+         var collapsedGroups = 0
+         var round = 0
+@@ -385,14 +388,23 @@ struct NotesGenerator: Sendable {
+                     meetingID: meeting.id,
+                     system: NotesPrompts.collapseSystem,
+                     user: NotesPrompts.collapseUser(meeting: meeting, facts: text),
+-                    maxTokens: max(150, groupTokens / 2)
++                    maxTokens: max(150, groupTokens / 2),
++                    grammar: NotesEvidence.grammar
+                 )
+                 generated += completion.generatedTokens
+                 incompleteFacts = incompleteFacts || completion.finishedByLimit
+-                let cleaned = NotesFormatter.stripThinking(completion.text)
+-                    .trimmingCharacters(in: .whitespacesAndNewlines)
+-                // An empty answer never deletes facts.
+-                next.append(cleaned.isEmpty ? text : cleaned)
++                let selection = NotesEvidence.admit(completion.text, sources: sources,
++                    allowedEvidence: text)
++                incompleteFacts = incompleteFacts || selection.incomplete
++                let retained = NotesEvidence.render(selection.entries, sources: sources)
++                // Collapse selects existing evidence rather than rewriting it. Any
++                // omitted source-backed entry remains a coverage limitation, even when
++                // the model stops normally. Empty/invalid selection preserves the input.
++                if retained.isEmpty { next.append(text) }
++                else {
++                    next.append(retained)
++                    incompleteFacts = incompleteFacts || retained != text
++                }
+                 collapsedGroups += 1
+             }
+             facts = next
+@@ -530,7 +542,8 @@ struct NotesGenerator: Sendable {
+         system: String,
+         user: String,
+         maxTokens: Int,
+-        counts: [String: Int] = [:]
++        counts: [String: Int] = [:],
++        grammar: GBNFGrammar? = nil
+     ) async throws -> LLMCompletion {
+         let recorder = ModelPassRecorder(
+             feature: feature,
+@@ -543,7 +556,11 @@ struct NotesGenerator: Sendable {
+         if !counts.isEmpty { recorder.noteCounts(counts) }
+         do {
+             let completion = try await ModelPassRecorder.$current.withValue(recorder) {
+-                try await provider.complete(system: system, user: user, maxTokens: maxTokens)
++                if let grammar {
++                    return try await provider.complete(system: system, user: user,
++                        maxTokens: maxTokens, grammar: grammar)
++                }
++                return try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+             }
+             recorder.report(
+                 promptTokens: nil,
+@@ -685,6 +702,107 @@ struct NotesGenerator: Sendable {
+     }
+ }
+ 
++/// The map/collapse producer selects source evidence rather than producing unsupported
++/// paraphrases. IDs are local to this one generation; nothing is stored or looked up.
++enum NotesEvidence {
++    struct Source: Sendable {
++        let id: Int
++        let text: String
++        let prefix: String
++        var line: String { prefix + text }
++    }
++
++    struct Entry: Codable, Equatable, Sendable {
++        let source: Int
++        let quote: String
++    }
++
++    struct Admission: Sendable {
++        let entries: [Entry]
++        let incomplete: Bool
++    }
++
++    static let grammar: GBNFGrammar = {
++        let json = GBNFGrammar.composed { builder in
++            let item = builder.rule(for: .object([
++                ("source", .integer), ("quote", .string(maxLength: 768)),
++            ]), name: "evidence")
++            // JSON strings escape newlines, so complete records survive a cut final line.
++            return "\"[]\" | \(item) (\"\\n\" \(item)){0,23}"
++        }
++        // The shared JSON builder allows pretty-print whitespace. This particular
++        // producer is JSONL: only record separators may contain physical newlines.
++        let rules = json.text.components(separatedBy: .newlines).map {
++            $0.hasPrefix("ws ::=") ? "ws ::= [ \\t]{0,8}" : $0
++        }
++        return GBNFGrammar(text: rules.joined(separator: "\n"), root: json.root)
++    }()
++
++    static func sources(_ segments: [TranscriptSegment],
++                        speakerNames: [String: String]) -> [Source] {
++        segments.filter(\.includeInMeetingNotes).enumerated().map { index, segment in
++            let speaker = speakerNames[segment.displaySpeaker] ?? segment.displaySpeaker
++            return Source(id: index + 1, text: segment.text,
++                prefix: "[S\(index + 1)] [\(segment.start.counterText)] \(speaker): ")
++        }
++    }
++
++    static func chunks(_ sources: [Source], targetTokens: Int,
++                       transcriptCharacters: Int, transcriptTokens: Int) -> [[Source]] {
++        guard targetTokens > 0, !sources.isEmpty else { return [] }
++        let ratio = max(1.0, Double(transcriptCharacters) / Double(max(1, transcriptTokens)))
++        let limit = Int(Double(targetTokens) * ratio)
++        var result: [[Source]] = []
++        var current: [Source] = []
++        var characters = 0
++        for source in sources {
++            if !current.isEmpty, characters + source.line.count > limit {
++                result.append(current); current = []; characters = 0
++            }
++            current.append(source); characters += source.line.count + 1
++        }
++        if !current.isEmpty { result.append(current) }
++        return result
++    }
++
++    /// A quote match proves provenance, not intent, a decision or an accepted action.
++    /// Require exact contiguous source words before the existing matcher checks clause
++    /// negation. Its fuzzy/LCS acceptance alone is insufficient for factual extraction.
++    static func admit(_ output: String, sources: [Source],
++                      allowedEvidence: String? = nil) -> Admission {
++        let lines = NotesFormatter.stripCodeFence(NotesFormatter.stripThinking(output))
++            .components(separatedBy: .newlines).filter { !$0.trimmingCharacters(in: .whitespaces).isEmpty }
++        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
++        var entries: [Entry] = []
++        var incomplete = lines.isEmpty
++        for line in lines.prefix(24) {
++            guard let entry = try? JSONDecoder().decode(Entry.self, from: Data(line.utf8)),
++                  let source = lookup[entry.source], !entry.quote.isEmpty,
++                  entry.quote.count <= 768, source.text.contains(entry.quote),
++                  entry.quote == source.text
++                    || MeetingEvidenceMatcher.match(quote: entry.quote, in: source.text) == entry.quote else {
++                incomplete = true; continue
++            }
++            if let allowedEvidence,
++               !allowedEvidence.components(separatedBy: .newlines).contains(source.prefix + entry.quote) {
++                incomplete = true; continue
++            }
++            if !entries.contains(entry) { entries.append(entry) }
++        }
++        if lines.count > 24 || entries.isEmpty { incomplete = true }
++        // Source order is code-owned even when the model reorders its selection.
++        entries.sort { $0.source < $1.source }
++        return Admission(entries: entries, incomplete: incomplete)
++    }
++
++    static func render(_ entries: [Entry], sources: [Source]) -> String {
++        let lookup = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0.prefix) })
++        return entries.compactMap { entry in
++            lookup[entry.source].map { $0 + entry.quote }
++        }.joined(separator: "\n")
++    }
++}
++
+ /// Makes a model's output into the document the Notes tab expects.
+ ///
+ /// Two failures are common enough to be worth correcting rather than rejecting: a hybrid
+diff --git a/Sources/NextNotes/Meetings/NotesLongformSelfTest.swift b/Sources/NextNotes/Meetings/NotesLongformSelfTest.swift
+index 2c716be..b33ae46 100644
+--- a/Sources/NextNotes/Meetings/NotesLongformSelfTest.swift
++++ b/Sources/NextNotes/Meetings/NotesLongformSelfTest.swift
+@@ -33,16 +33,18 @@ enum NotesLongformSelfTest {
+                 .notes(for: meeting, segments: segments, brief: brief) {
+                 write("NOTES_LONGFORM cases=a chunks=\(result.chunks) collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)")
+                 check("the 90-min meeting skipped map-reduce", result.usedMapReduce)
+-                check("FACT-P1 missing from the reduce prompt",
+-                      containsToken(provider.reducePrompt, "FACT-P1"))
++                check("first source anchor missing from the reduce prompt",
++                      provider.mapMarkers.first.map { provider.reducePrompt.contains($0) } == true)
+                 check("the agenda marker missing from the reduce prompt",
+                       provider.reducePrompt.contains(LongformNotesProvider.agendaMarker))
+-                for n in 1...max(1, result.chunks) {
+-                    check("FACT-P\(n) missing from the reduce prompt",
+-                          containsToken(provider.reducePrompt, "FACT-P\(n)"))
++                for marker in provider.mapMarkers {
++                    check("\(marker) missing from the reduce prompt",
++                          provider.reducePrompt.contains(marker))
+                 }
+                 check("facts were dropped on the 4K path", result.droppedFacts == 0)
+                 check("the collapse pass never ran", result.collapsedGroups >= 1)
++                check("collapse selection hid omitted evidence",
++                      result.incompleteFacts && result.markdown.hasPrefix(NotesGenerator.incompleteFactsNotice))
+                 check("the truncation line leaked into complete notes",
+                       !result.markdown.contains("could not be included"))
+                 check("the brief reached the map step",
+@@ -218,17 +220,12 @@ enum NotesLongformSelfTest {
+ 
+         for failure in failures { write("  NOTES_LONGFORM_WRONG: \(failure)") }
+         write(failures.isEmpty
+-            ? "NOTES_LONGFORM_OK: 90-min facts kept on 4K and 8K, stubborn collapse visible, "
++            ? "NOTES_LONGFORM_OK: 90-min source anchors kept on 4K and 8K, selection/stubborn loss visible, "
+                 + "single pass intact, overflow retried, window-derived chunks"
+             : "NOTES_LONGFORM_FAILED: \(failures.count) check(s) wrong")
+         return failures.isEmpty
+     }
+ 
+-    /// Whole-token match: "FACT-P1" must not match inside "FACT-P13".
+-    static func containsToken(_ text: String, _ token: String) -> Bool {
+-        text.range(of: "\\b\(token)\\b", options: .regularExpression) != nil
+-    }
+-
+     /// 1,800 segments of 3 s: 90 minutes. 45 characters of speech each, the agenda
+     /// marker in the first segment — the fact the old front-trimming deleted first.
+     /// `nonisolated`: the usage-log self-test calls these from its own nonisolated cases.
+@@ -294,17 +291,9 @@ enum NotesLongformSelfTest {
+     }
+ }
+ 
+-/// The worst case as a provider: a model that always fills its whole allowance, so the
+-/// map step's answers are as large as the budget allows. The collapse step keeps every
+-/// `FACT-P<n>` token and the agenda marker and halves the filler — unless
+-/// `stubbornCollapse` is set, in which case it returns its input unchanged.
+-///
+-/// `overflowOnFirstCall` throws the Apple context-size refusal once, on the first call
+-/// (the single pass, when the transcript fits) — M-12 case e. `alwaysOverflow` throws
+-/// the llama one on every call, so even the shrunk-chunk retry refuses — case e2.
+-///
+-/// Internal so the usage-log self-test (M6, M-16b) can drive the same 90-minute case
+-/// and count the rows each pass writes, rather than rebuild the worst case beside it.
++/// A scripted evidence producer that fills each map with real source quotes. Collapse
++/// retains each part's source anchor while selecting away other entries, which must be
++/// disclosed; a stubborn refusal retains the input until the visible last resort.
+ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+     static let agendaMarker = "AGENDA-ITEM-ONE"
+ 
+@@ -339,6 +328,9 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+         lock.withLock { reducePromptValue }
+     }
+ 
++    private var retainedMapMarkers: [String] = []
++    var mapMarkers: [String] { lock.withLock { retainedMapMarkers } }
++
+     var unavailableReason: String? { get async { nil } }
+ 
+     func countTokens(_ text: String) async throws -> Int { text.count / 4 + 1 }
+@@ -353,25 +345,24 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+             throw overflowError()
+         }
+         if system == NotesPrompts.mapSystem {
+-            let part = Self.partNumber(in: user) ?? (lock.withLock { recorded.count })
+-            let head = "- Speaker 1: FACT-P\(part) "
+-            let agenda = user.contains(Self.agendaMarker) ? " \(Self.agendaMarker)" : ""
+-            let filler = max(0, maxTokens * 4 - head.count - agenda.count)
+-            return LLMCompletion(
+-                text: head + String(repeating: "f", count: filler) + agenda,
+-                generatedTokens: maxTokens,
+-                duration: 0
+-            )
++            let entries = Array(NotesEvidenceFixture.entries(in: user).prefix(24))
++            if let first = entries.first {
++                lock.withLock { retainedMapMarkers.append("[S\(first.source)]") }
++            }
++            return LLMCompletion(text: NotesEvidenceFixture.encode(entries),
++                generatedTokens: maxTokens, duration: 0)
+         }
+         if system == NotesPrompts.collapseSystem {
+             if stubbornCollapse {
+                 return LLMCompletion(text: user, generatedTokens: user.count / 4 + 1, duration: 0)
+             }
+-            let text = Self.collapsedAnswer(from: user)
+-            return LLMCompletion(
+-                text: text, generatedTokens: text.count / 4 + 1, duration: 0
+-            )
++            let anchors = Set(mapMarkers)
++            let entries = NotesEvidenceFixture.entries(in: user)
++            let selected = entries.filter { anchors.contains("[S\($0.source)]") }
++            let text = NotesEvidenceFixture.encode(selected)
++            return LLMCompletion(text: text, generatedTokens: text.count / 4 + 1, duration: 0)
+         }
++
+         if system == NotesPrompts.reduceSystem {
+             lock.withLock { reducePromptValue = user }
+         }
+@@ -414,22 +405,4 @@ final class LongformNotesProvider: LLMProvider, @unchecked Sendable {
+         return Int(digits)
+     }
+ 
+-    /// Every fact marker survives; only the filler shrinks.
+-    static func collapsedAnswer(from text: String) -> String {
+-        var markers: [String] = []
+-        var search = text.startIndex..<text.endIndex
+-        while let found = text.range(
+-            of: "FACT-P\\d+|AGENDA-ITEM-ONE",
+-            options: .regularExpression,
+-            range: search
+-        ) {
+-            markers.append(String(text[found]))
+-            search = found.upperBound..<text.endIndex
+-        }
+-        let markerChars = markers.joined().count
+-        let filler = max(0, (text.count - markerChars) / 2)
+-        var out = markers.map { "- Speaker 1: \($0)" }.joined(separator: "\n")
+-        if filler > 0 { out += "\n" + String(repeating: "f", count: filler) }
+-        return out
+-    }
+ }
+diff --git a/Sources/NextNotes/Meetings/NotesPrompts.swift b/Sources/NextNotes/Meetings/NotesPrompts.swift
+index 5c912aa..5564c74 100644
+--- a/Sources/NextNotes/Meetings/NotesPrompts.swift
++++ b/Sources/NextNotes/Meetings/NotesPrompts.swift
+@@ -100,15 +100,15 @@ enum NotesPrompts {
+     /// that the reduce step then has to merge, and merging summaries loses more than merging
+     /// facts. One flat, attributed list per chunk survives the round trip.
+     static let mapSystem = """
+-        You extract facts from one part of a meeting transcript.
+-
+-        Rules:
+-        - Output a flat list of `-` bullets and nothing else. No headings, no preamble.
+-        - One fact per bullet, in the order it came up, each starting with the speaker \
+-        label the transcript used, then a colon, then the fact.
+-        - Include decisions, commitments, dates, numbers, names and unanswered questions.
+-        - Drop small talk, filler and anything already obvious from another bullet.
+-        - Write only what was said. Never infer or conclude.
++        Select source evidence from one part of a meeting transcript.
++        Return one JSON object per line, nothing else:
++        {"source":1,"quote":"exact contiguous words from that source"}
++        The [S1] marker identifies source 1; use the actual marker shown.
++        Select substantive explanations, distinctions, decisions, commitments, dates,
++        numbers, names and unanswered questions throughout this part. Drop filler.
++        Quote exactly; never paraphrase, add a date, owner or conclusion. Preserve the
++        complete clause including negation, qualification and whether it already happened.
++        Each quote is at most 768 characters. At most 24 records. Return [] if none.
+         """
+ 
+     static func mapUser(
+@@ -125,7 +125,7 @@ enum NotesPrompts {
+         \(transcript)
+         """
+         if let wordLimit {
+-            prompt += "\n\nKeep this list under about \(wordLimit) words."
++            prompt += "\n\nKeep all selected quoted evidence under about \(wordLimit) words."
+         }
+         return prompt
+     }
+@@ -141,7 +141,7 @@ enum NotesPrompts {
+     ) -> String {
+         var sections = [context(for: meeting)]
+         if let block = block(brief) { sections.append(block) }
+-        sections.append("These are the facts extracted from the meeting, in order. Write the notes from them.\n\n\(facts)")
++        sections.append("These are original quoted utterances selected from the meeting, in order. They are source evidence, not verified decisions or commitments. Write notes from them without changing who said what or whether something already happened.\n\n\(facts)")
+         return sections.joined(separator: "\n\n")
+     }
+ 
+@@ -151,14 +151,13 @@ enum NotesPrompts {
+     /// step it never sees the brief: its job is "shorten what was said", and context
+     /// facts in this prompt would come back as claims someone made.
+     static let collapseSystem = """
+-        You shorten a list of facts from a meeting so it takes less space.
+-
+-        Rules:
+-        - Output a flat list of `-` bullets and nothing else.
+-        - Keep every decision, commitment, owner, date, number, name and unanswered question.
+-        - Keep the speaker label at the start of each bullet.
+-        - Merge bullets that say the same thing. Remove repetition and small talk only.
+-        - Keep the order. Never add anything that is not in the list.
++        Select the most useful existing source evidence for meeting notes.
++        Return one JSON object per line, nothing else:
++        {"source":1,"quote":"the exact existing quoted evidence"}
++        Copy complete source/quote pairs from the input. Do not shorten or rewrite quotes.
++        Preserve decisions, commitments, owner/date qualifications and contrasting views.
++        Prefer removing duplicates and filler. Keep source order. At most 24 records.
++        Return [] if none. Never invent any words, speaker, date or conclusion.
+         """
+ 
+     static func collapseUser(meeting: Meeting, facts: String) -> String {
+diff --git a/Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift b/Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift
+index 325c387..9e653fa 100644
+--- a/Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift
++++ b/Sources/NextNotes/Meetings/NotesTruncationSelfTest.swift
+@@ -269,8 +269,8 @@ final class TruncationNotesProvider: LLMProvider, @unchecked Sendable {
+         // Retained partial facts remain useful, but their incomplete coverage must
+         // survive the reduce. Existing answer-only cut flags do not affect extraction.
+         if system == NotesPrompts.mapSystem || system == NotesPrompts.collapseSystem {
+-            let part = LongformNotesProvider.partNumber(in: user) ?? (index + 1)
+-            let text = "- Speaker 1: FACT-P\(part) — call point \(part) was agreed."
++            let text = NotesEvidenceFixture.encode(
++                Array(NotesEvidenceFixture.entries(in: user).prefix(1)))
+             return LLMCompletion(text: text,
+                 generatedTokens: cutFacts ? maxTokens : max(1, text.count / 4),
+                 duration: 0, finishedByLimit: cutFacts)

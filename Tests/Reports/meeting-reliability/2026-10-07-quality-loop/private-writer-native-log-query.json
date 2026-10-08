@@ -1,0 +1,17 @@
+{
+  "process": 63491,
+  "startedAt": "2026-10-08T01:24:25.961888+00:00",
+  "endedAt": "2026-10-08T01:25:20.936630+00:00",
+  "queryExit": 0,
+  "jsonError": null,
+  "totalProcessLogEntries": 240,
+  "diagnosticMarkerCounts": {
+    "NOTES_REPLAY_MARKDOWN_BEGIN": 0,
+    "NOTES_REPLAY_EVIDENCE": 0,
+    "NOTES_REPLAY_USAGE": 0,
+    "NOTES_REPLAY_RESULT": 0
+  },
+  "privacyVerdict": "no diagnostic markers in retained process logs; absence limited to retained entries, no independent sentinel control",
+  "historicalMirrors": "not erased",
+  "rawSystemLogSaved": false
+}

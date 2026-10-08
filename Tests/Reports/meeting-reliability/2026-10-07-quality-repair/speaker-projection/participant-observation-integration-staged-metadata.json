@@ -1,0 +1,41 @@
+{
+  "verdict": "STAGED SOURCE ONLY; not compiled, invoked, integrated or accepted",
+  "canonical_sources_edited": false,
+  "cache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/participant-observation-source-1db1f0a399b948beb8a203931fc4386e",
+  "flag": "--selftest-meeting-participant-observation",
+  "modes": [
+    "zoom",
+    "meet",
+    "contracts"
+  ],
+  "contract_checks_proposed": 19,
+  "public_output": "Fixed marker, platform/status and random private diagnostic ID; no raw names, URLs, titles or error payloads",
+  "private_evidence_relative_home": "Library/Application Support/Next Notes/Diagnostics/ParticipantObservation/<UUID>/observation.json",
+  "private_directory_mode": "0700",
+  "private_file_mode": "0600",
+  "production_capture_or_poller_added": false,
+  "participant_or_voice_identity_claimed": false,
+  "old_browser_seam_patch_superseded": "participant-observation-staged.patch",
+  "patch_sha256": "c6994c5ed4726ed751ce63096dc1597a47e490a53f0fd85ec461fce05c4617e2",
+  "base_pins": {
+    "Sources/NextNotes/Computer/BrowserCDPClient.swift": "ecb1213693ccb24daa3b93cfc5f9120de28be440f5b694ef727c84ed55937b3e",
+    "Sources/NextNotes/NextNotesApp.swift": "c39290c82c77263e91e56aa98f39be1015cb87d1c11b23b5aec1290bf5898283"
+  },
+  "staged_pins": {
+    "MeetingParticipantObservationProbe.swift": "c745c8d8ea126765301c33adb471130bb0d3b515313d9db26b25dc153fbe84b4",
+    "BrowserCDPClient.swift": "e408fb5bb89cba3ca45c531abddaf69400ccf298b37168c83664519e65326aae",
+    "NextNotesApp.swift": "284f62d7ccb7957890aa62a2278ea819a3b46b0b8684b2ce5d939b70c33c3eb3"
+  },
+  "owned_app_hunks": [
+    "exact flag/conflicting-modifier rejection in SelfTest.requested",
+    "private diagnostic early return in runRequestedSelfTest"
+  ],
+  "limitations": [
+    "AX capture has no call/wall deadline; explicit isolated diagnostic only",
+    "CDP full reply allocation is not byte-capped; existing bounded command is reused",
+    "An observed Meet host can be its home screen; raw evidence does not prove a joined call",
+    "Only already available AX/CDP permissions are used; no grant prompts, browser startup, focus, click or API lookup",
+    "The OS process launch clock and observation interval are provenance; not acoustic alignment or participant-to-voice proof",
+    "Native optimized compilation/contracts and actual Zoom/Meet next-call observation are pending"
+  ]
+}

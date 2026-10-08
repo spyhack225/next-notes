@@ -1,0 +1,24 @@
+{
+  "experiment": "mapped-source-ids-mini",
+  "exit": 0,
+  "wall_seconds": 54.97370808299456,
+  "markers": [
+    "NOTES_REPLAY_RESULT seconds=53.79964792728424 tokens=106 mapReduce=true chunks=3 collapsed=0 dropped=0 incompleteFacts=false",
+    "NOTES_REPLAY_OK: generation completed; factual quality needs review"
+  ],
+  "candidateSHA": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+  "startedAt": "2026-10-08T01:24:25.961888+00:00",
+  "endedAt": "2026-10-08T01:25:20.936630+00:00",
+  "pids": [
+    63491
+  ],
+  "memorySamples": 26,
+  "peakSampledFootprintBytes": 553994904,
+  "peakSampledResidentBytes": 2131771392,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "FAIL:5of519utterances selected, realfollowup missing, materialcoverage inadequate",
+  "productionPromotion": false,
+  "selectedSourceUtterances": 5,
+  "availableSourceUtterances": 519,
+  "warningScope": "incompleteFacts=false records no truncation/refusal only; doesnot prove comprehensive semanticcoverage"
+}

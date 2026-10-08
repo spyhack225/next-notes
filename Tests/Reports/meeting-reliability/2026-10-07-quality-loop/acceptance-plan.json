@@ -1,0 +1,83 @@
+{
+  "original": "saved responsive 40m05 Zoom, full whole-pass notes poor; copied inputs hash-pinned, owner files retained",
+  "checks": [
+    "corrected native summary19 on actualsession/persistence",
+    "corrected native speaker/context including manualdefaultmap",
+    "updated notes evidence/finite-ID grammar/realmap grouping",
+    "reconciliation source/confidence",
+    "changed longform/truncation/context",
+    "health/integrity/isolation with inherited browser REDseparate",
+    "private copied diagnostic native process-scoped system-log absence",
+    "native complete-visible-row / one-call grammar / source-owned primary input contract27",
+    "third default-legacy notes/evidence33 plus explicit experiment boundary",
+    "shared cleanup-router/dictation-segments/island on six peer producer changes"
+  ],
+  "model_experiments": [
+    {
+      "kind": "mapped-original-comparison",
+      "model": "MiniCPM5-2B",
+      "window": 8192,
+      "quality": [
+        "attribution",
+        "actual follow-up without date",
+        "manufacturing distinctions",
+        "past events vs actions"
+      ],
+      "cost": [
+        "pass count",
+        "token count",
+        "elapsed",
+        "incomplete selection"
+      ]
+    },
+    {
+      "kind": "whole-extractive-diagnostic-only",
+      "model": "MiniCPM5-2B",
+      "quality": [
+        "coverage",
+        "classification",
+        "readability",
+        "attribution"
+      ],
+      "promotion": "none without native semantic review"
+    },
+    {
+      "kind": "action-intent-posthoc-neighborhoods",
+      "model": "MiniCPM5-2B",
+      "cases": 4,
+      "calls": 8,
+      "scope": "targeted classification diagnostic, not exact unsaved original live snapshots or full production semantic proof"
+    },
+    {
+      "kind": "source-ID mapped producer",
+      "model": "MiniCPM5-2B",
+      "window": 8192,
+      "comparison": "first quote-based mapped native203.57s/7passes dropped2/3 failedquality",
+      "quality": [
+        "all material topics",
+        "correctspeaker attribution",
+        "realfuturefollowup",
+        "no inventeddeadline",
+        "pastvsfuture"
+      ],
+      "promotion": "boundedproducer onlyafter actualnative costandquality review; no model-default promotion"
+    },
+    {
+      "kind": "production-intent-reconstructed-windows",
+      "windows": 6,
+      "seam": "actualextractor/store ModelCompleter.prompt/refine existingprovider apply savedreadback",
+      "scope": "no original snapshots, extractor-onlyprior context, quiet semantic/citation behavior,nooptionaldispatch parity"
+    }
+  ],
+  "constraints": [
+    "Two source-invariant optimized builds; first native failures retained and corrected before acceptance",
+    "serialize machine development-heavy through relay",
+    "existing owner app and all owner meeting files unchanged until verified installation",
+    "no role or model-default promotion",
+    "no owner speech in repository reports",
+    "production legacy writer preserved; source-ID diagnostics require explicit SelfTest opt-in",
+    "third gate explicitly6.5GBfree/8GBswap; no default10GB pass claim"
+  ],
+  "status": "third native focused gates pass, real semantic tests still fail; confirmed existing shared topic/unresolved merger data erasure under repair; candidate uninstalled",
+  "updatedAt": "2026-10-08T02:25:18.847389+00:00"
+}

@@ -1,0 +1,11 @@
+{
+  "reconciler_sha256": "13d7a998f71d23854c9ca78941edfed3806781a489ae9719970a4c800dda585a",
+  "extracted_functions": [
+    "ModelCompleter.parse",
+    "apply",
+    "rewrite"
+  ],
+  "meeting_payload_private": true,
+  "native_store_consumer": false,
+  "output": "CHECKS: 13; FAILED: 0\n"
+}

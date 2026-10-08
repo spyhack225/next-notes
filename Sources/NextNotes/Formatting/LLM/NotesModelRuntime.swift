@@ -1088,6 +1088,13 @@ actor NotesModelRuntime {
         }
         // P0-20a: exact counts from the in-process tokenizer, after the pass, never
         // blocking the stream.
+        if let stats = lastPrefillStats {
+            ModelPassRecorder.current?.noteCounts([
+                "prefillMs": Int((stats.seconds * 1000).rounded()),
+                "prefillDecodedTokens": stats.decoded,
+                "generationMs": Int((Date().timeIntervalSince(began) * 1000).rounded()),
+            ])
+        }
         ModelPassRecorder.current?.report(
             promptTokens: promptTokens.count,
             cachedTokens: lastPrefillStats?.reused,

@@ -1,0 +1,141 @@
+--- a/Sources/NextNotes/Meetings/DiarizationService.swift
++++ b/Sources/NextNotes/Meetings/DiarizationService.swift
+@@ -88,10 +88,12 @@
+     // Retain an explicitly injected store; resolving the default happens only
+     // when real service work needs it, so quit can close an empty owner cheaply.
+     private let providedStore: MeetingStore?
++    private let providedContextStore: MeetingContextStore?
+     private var store: MeetingStore { providedStore ?? MeetingStore.shared }
+ 
+-    init(store: MeetingStore? = nil) {
++    init(store: MeetingStore? = nil, contextStore: MeetingContextStore? = nil) {
+         providedStore = store
++        providedContextStore = contextStore
+     }
+ 
+     func isRunning(_ id: UUID) -> Bool { tasks[id] != nil }
+@@ -326,21 +328,10 @@
+             }
+ 
+             let labelled = MeetingDiarizer.assign(store.transcript(for: id), to: runs)
+-            // The meeting can be deleted while the model is clustering, and `saveTranscript`
+-            // would re-create the directory `delete` just removed.
++            // Deletion while the model awaited must stop the entire native stage,
++            // including its later voice-print writes and pipeline handoff.
+             guard store.meeting(id: id) != nil else { return false }
+-            store.saveTranscript(labelled, for: id)
+-            revision += 1
+-            // M-03: a merge or a re-identify can retire labels this transcript no longer
+-            // carries. Renames hang off the generated label, so a name whose label is
+-            // gone would sit in the dictionary forever, read by nothing — keep only the
+-            // names whose labels survived.
+-            let surviving = Set(MeetingDiarizer.labels(in: labelled))
+-            if var updated = store.meeting(id: id),
+-               updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
+-                updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
+-                store.save(updated)
+-            }
++            try commitSpeakerLabels(labelled, for: id)
+             // Voice prints only while the knowledge graph is on: nothing else reads them.
+             if PersonResolutionService.shared.isEnabled {
+                 let prints = MeetingVoicePrints.centroids(of: runs)
+@@ -383,6 +374,32 @@
+             problems[id] = error.localizedDescription
+             Log.meeting.error("diarization failed: \(error.localizedDescription, privacy: .public)")
+             return false
++        }
++    }
++
++    /// The committed-label handoff, shared by actual diarization and its isolated
++    /// consumer regression. It never creates a deleted meeting or projects unsaved labels.
++    func commitSpeakerLabels(_ labelled: [TranscriptSegment], for id: UUID) throws {
++        guard store.meeting(id: id) != nil else { return }
++        guard store.saveTranscript(labelled, for: id) else {
++            throw CocoaError(.fileWriteUnknown)
++        }
++        revision += 1
++        let surviving = Set(MeetingDiarizer.labels(in: labelled))
++        if var updated = store.meeting(id: id),
++           updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
++            updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
++            store.save(updated)
++        }
++        // An injected isolated store must never initialize the owner's singleton.
++        if let providedContextStore {
++            guard providedContextStore.refreshSpeakers(meetingID: id) else {
++                throw CocoaError(.fileWriteUnknown)
++            }
++        } else if providedStore == nil {
++            guard MeetingContextStore.shared.refreshSpeakers(meetingID: id) else {
++                throw CocoaError(.fileWriteUnknown)
++            }
+         }
+     }
+ 
+--- a/Sources/NextNotes/Meetings/MeetingContextStore.swift
++++ b/Sources/NextNotes/Meetings/MeetingContextStore.swift
+@@ -151,6 +151,33 @@
+         return try? decoder.decode(MeetingContext.self, from: data)
+     }
+ 
++    /// Reads the committed final transcript rather than a model's pending labels.
++    /// The same path is used after diarization and a confirmed speaker-name edit.
++    @discardableResult
++    func refreshSpeakers(meetingID: UUID) -> Bool {
++        guard let meeting = store.meeting(id: meetingID) else { return false }
++        guard let context = current?.meetingID == meetingID ? current : load(meetingID: meetingID)
++        else {
++            // No live understanding was recorded: nothing needs projecting. An
++            // existing but unreadable context is a refusal, not a successful no-op.
++            let url = store.directory(for: meetingID).appendingPathComponent(Self.fileName)
++            return !FileManager.default.fileExists(atPath: url.path)
++        }
++        let projected = MeetingSpeakerProjection.apply(context,
++            segments: store.transcript(for: meetingID),
++            liveSegments: store.liveTranscript(for: meetingID), speakerNames: meeting.speakerNames)
++        guard projected != context else { return true }
++        guard save(projected, meetingID: meetingID) else { return false }
++        if current?.meetingID == meetingID {
++            // A pending live reconcile owns old speaker evidence. Cancellation refuses
++            // its late result; no new pass is scheduled just to relabel existing facts.
++            reconcileTask?.cancel()
++            reconcileTask = nil
++            current = projected
++        }
++        return true
++    }
++
+     func reset() {
+         replace(nil)
+     }
+@@ -326,12 +353,14 @@
+         "\(start)|\(end)|\(source.rawValue)|\(text)"
+     }
+ 
+-    private func save(_ context: MeetingContext, meetingID: UUID) {
++    @discardableResult
++    private func save(_ context: MeetingContext, meetingID: UUID) -> Bool {
+         let encoder = JSONEncoder()
+         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+         encoder.dateEncodingStrategy = .iso8601
+-        guard let data = try? encoder.encode(context) else { return }
++        guard let data = try? encoder.encode(context) else { return false }
+         let url = store.directory(for: meetingID).appendingPathComponent(Self.fileName)
+-        try? data.write(to: url, options: .atomic)
++        do { try data.write(to: url, options: .atomic); return true }
++        catch { return false }
+     }
+ }
+--- a/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
++++ b/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
+@@ -171,7 +171,9 @@
+             ) { names in
+                 var renamed = meeting
+                 renamed.speakerNames = names
+-                store.save(renamed)
++                if store.save(renamed) {
++                    MeetingContextStore.shared.refreshSpeakers(meetingID: renamed.id)
++                }
+                 // Speakers confirmed (M-10): naming the clusters is the person saying the
+                 // pass was right, which was the last thing the temporary recording was
+                 // for. `releaseAudio` holds the three-line rule — a recording the user

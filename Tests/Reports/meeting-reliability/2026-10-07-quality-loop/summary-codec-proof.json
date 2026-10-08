@@ -1,0 +1,25 @@
+{
+  "artifact_root": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-codec-probe-ad7ba53f-01a6-4046-af16-14313035e390",
+  "rows": [
+    {
+      "variant": "original",
+      "exit": 1,
+      "producer": "actual summary codec and preserving helper; unrelated ProcessSnapshot substituted",
+      "markers": [
+        "CODEC_FAILED: exact durable clock",
+        "CODEC_FAILED: fresh reader keeps accepted sample",
+        "CODEC_FAILED: fresh reader keeps middle peak"
+      ]
+    },
+    {
+      "variant": "fixed",
+      "exit": 0,
+      "producer": "actual summary codec and preserving helper; unrelated ProcessSnapshot substituted",
+      "markers": [
+        "CODEC_OK: exact durable clock",
+        "CODEC_OK: fresh reader keeps accepted sample",
+        "CODEC_OK: fresh reader keeps middle peak"
+      ]
+    }
+  ]
+}

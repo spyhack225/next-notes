@@ -1,0 +1,15 @@
+{
+  "joined": true,
+  "removed": [
+    {
+      "name": "original-actual-contract",
+      "bytes": 763160
+    },
+    {
+      "name": "fixed-actual-contract",
+      "bytes": 775288
+    }
+  ],
+  "reclaimedBytes": 1538448,
+  "retained": "cache source pins, actual compiled source snapshots, script, logs, verdict metadata and private copied fixtures; no app/model/user files touched"
+}

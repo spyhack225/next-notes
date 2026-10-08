@@ -1,0 +1,9 @@
+CHECKS: 13; FAILED: 8
+WRONG: saved model candidate confidence inferred
+WRONG: saved model item confidence inferred
+WRONG: missing segment rejected
+WRONG: invalid segment rejected
+WRONG: ambiguous no-clock evidence rejected
+WRONG: nonliteral quote rejected
+WRONG: completer claimed high cannot become measured confidence
+WRONG: rewritten candidate is inferred

@@ -1,0 +1,44 @@
+[
+  {
+    "case": "missing-mode",
+    "exit": 1,
+    "expectedRefusal": true,
+    "wallSeconds": 0.1729709159990307,
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "case": "invalid-mode",
+    "exit": 1,
+    "expectedRefusal": true,
+    "wallSeconds": 0.13274129199999152,
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "case": "duplicate",
+    "exit": 1,
+    "expectedRefusal": true,
+    "wallSeconds": 0.13681858299969463,
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "case": "other-before",
+    "exit": 1,
+    "expectedRefusal": true,
+    "wallSeconds": 0.13555120900127804,
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "case": "other-after",
+    "exit": 1,
+    "expectedRefusal": true,
+    "wallSeconds": 0.13493170899891993,
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  },
+  {
+    "case": "live-modifier",
+    "exit": 1,
+    "expectedRefusal": true,
+    "wallSeconds": 0.13179229099478107,
+    "candidateSHA": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25"
+  }
+]

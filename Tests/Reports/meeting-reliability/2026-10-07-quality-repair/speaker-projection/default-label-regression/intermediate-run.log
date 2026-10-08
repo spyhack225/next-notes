@@ -1,0 +1,5 @@
+MEETING_SPEAKER_DEFAULT_WRONG: nil honors explicit manual mapping on context item
+MEETING_SPEAKER_DEFAULT_WRONG: nil honors explicit manual mapping on candidate
+MEETING_SPEAKER_DEFAULT_WRONG: default honors explicit manual mapping on context item
+MEETING_SPEAKER_DEFAULT_WRONG: default honors explicit manual mapping on candidate
+MEETING_SPEAKER_DEFAULT_FAILED checks=14 failures=4

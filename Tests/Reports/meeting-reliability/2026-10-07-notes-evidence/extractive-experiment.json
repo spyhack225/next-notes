@@ -1,0 +1,34 @@
+{
+  "source": "Sources/NextNotes/Meetings/NotesExtractiveReplaySelfTest.swift",
+  "sha256": "29cde4ff2e521ec88bbe6bff1e8eb45bb1f5281bcfd7bd857b0445ee29ce2b02",
+  "scope": "diagnostic-only; whole transcript; one existing generation",
+  "production_default_changed": false,
+  "source_checks_executed": false,
+  "native_model_executed": false,
+  "acceptance_pending": [
+    "native grammar obedience",
+    "correct experience attribution",
+    "future visit with no invented deadline",
+    "manufacturing distinctions coverage",
+    "action/decision classification",
+    "readability",
+    "prompt/window/output and latency costs"
+  ],
+  "typed_source_contract": "section, original source ordinal, exact contiguous quote; no owner/date/free claim fields",
+  "root_owns": "guarded existing fixture loader, App flags, builds and native replays",
+  "modes": [
+    "quotes",
+    "indices"
+  ],
+  "native_quote_original_observation": {
+    "reported_by": "coordinating root agent",
+    "approx_seconds": 71.6,
+    "verdict": "FAILED NotesError; no supported selection",
+    "raw_selection_or_usage_emitted_by_replay": false,
+    "refusal_cause_known": false
+  },
+  "diagnostic_observability_repair": "Preserve raw completion and usage before FAILED/false on empty admission; no added completion",
+  "source_checks_executed_for_updated_diagnostic": false,
+  "native_model_executed_for_updated_diagnostic": false,
+  "indices_contract": "section and existing source ID only; renderer copies complete original source utterance and speaker/time"
+}

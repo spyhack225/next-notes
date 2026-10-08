@@ -1,0 +1,36 @@
+[
+  {
+    "variant": "baseline",
+    "compileExit": 0,
+    "compileWallSeconds": 2.2096555000025546,
+    "runExit": 1
+  },
+  {
+    "variant": "fixed",
+    "compileExit": 0,
+    "compileWallSeconds": 2.533067000003939,
+    "runExit": 0
+  },
+  {
+    "variant": "comprehensive",
+    "compileExit": 0,
+    "compileWallSeconds": 2.5136812920027296,
+    "runExit": 0
+  },
+  {
+    "variant": "fixed",
+    "comparisonExit": 0
+  },
+  {
+    "variant": "fixed",
+    "productionGuardExit": 0
+  },
+  {
+    "variant": "comprehensive",
+    "comparisonExit": 0
+  },
+  {
+    "variant": "comprehensive",
+    "productionGuardExit": 0
+  }
+]

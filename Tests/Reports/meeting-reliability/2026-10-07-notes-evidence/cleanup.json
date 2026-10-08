@@ -1,0 +1,7 @@
+{
+  "owned_harness_processes_active": false,
+  "disposable_probe_binaries_removed": 2,
+  "allocated_bytes_reclaimed": 1159168,
+  "compact_source_fixture_retained_until_native_acceptance": true,
+  "no_shared_cache_models_recordings_or_app_bundles_touched": true
+}

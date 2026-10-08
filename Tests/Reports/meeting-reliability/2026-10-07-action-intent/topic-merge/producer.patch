@@ -1,0 +1,61 @@
+--- a/Sources/NextNotes/Meetings/MeetingContextExtractor.swift
++++ b/Sources/NextNotes/Meetings/MeetingContextExtractor.swift
+@@ -78,30 +78,23 @@
+         if list.count > 40 { list.removeFirst(list.count - 40) }
+     }
+ 
+-    /// Prefer refined wording when it covers an existing item; otherwise append.
+-    /// Used by the occasional LLM reconcile — never invents rows the extractor did not seed.
++    /// Model refinements add context; text similarity cannot establish that an existing
++    /// fact may be replaced. Only normalized exact duplicates can be omitted safely.
++    /// Preserve retained identity/source/confidence and the existing bounded item budget.
+     static func merge(
+         _ refined: [MeetingContextItem],
+         onto existing: [MeetingContextItem]
+     ) -> [MeetingContextItem] {
++        guard !refined.isEmpty, existing.count < 40 else { return existing }
+         var next = existing
++        var retainedText = Set(existing.map { normalize($0.text) })
+         for item in refined {
++            guard next.count < 40 else { break }
+             let needle = normalize(item.text)
+-            guard !needle.isEmpty else { continue }
+-            if let index = next.firstIndex(where: { overlaps(normalize($0.text), needle) }) {
+-                var replaced = next[index]
+-                // Keep the original source/speaker — refine wording only.
+-                replaced.text = item.text
+-                if item.confidence == "high" { replaced.confidence = "high" }
+-                next[index] = replaced
+-                // Drop siblings that also overlap the refined line (near-duplicate collapse).
+-                next = next.enumerated().compactMap { offset, existing in
+-                    if offset == index { return existing }
+-                    return overlaps(normalize(existing.text), needle) ? nil : existing
+-                }
+-            } else {
+-                append(item, to: &next)
+-            }
++            guard !needle.isEmpty, retainedText.insert(needle).inserted else { continue }
++            // Non-exact enrichment keeps its own inferred metadata; a shared token or
++            // broader phrase never deletes facts or inherits another speaker's identity.
++            append(item, to: &next)
+         }
+         return next
+     }
+@@ -111,16 +104,7 @@
+             .trimmingCharacters(in: .whitespacesAndNewlines)
+             .replacingOccurrences(of: #"[^\p{L}\p{N}\s]+"#, with: " ", options: .regularExpression)
+             .replacingOccurrences(of: #"\s+"#, with: " ", options: .regularExpression)
+-    }
+-
+-    /// Shared stem or mutual containment — enough to collapse "launch timeline" variants.
+-    private static func overlaps(_ a: String, _ b: String) -> Bool {
+-        if a == b { return true }
+-        if a.contains(b) || b.contains(a) { return true }
+-        let aTokens = Set(a.split(separator: " ").map(String.init).filter { $0.count > 3 })
+-        let bTokens = Set(b.split(separator: " ").map(String.init).filter { $0.count > 3 })
+-        guard !aTokens.isEmpty, !bTokens.isEmpty else { return false }
+-        return !aTokens.isDisjoint(with: bTokens)
++            .trimmingCharacters(in: .whitespacesAndNewlines)
+     }
+ 
+     /// Prints through `MeetingLiveAgent.runSelfTest()` — one last `MEETING_LIVE_OK` /

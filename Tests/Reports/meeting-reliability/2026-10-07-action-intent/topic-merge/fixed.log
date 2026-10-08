@@ -1,0 +1,17 @@
+MEETING_TOPIC_MERGE_CASE id=placeholder-11 priorTopics=11 afterTopics=11 priorUnresolved=11 afterUnresolved=11 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=placeholder-13 priorTopics=13 afterTopics=13 priorUnresolved=13 afterUnresolved=13 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=shared-token-9 priorTopics=9 afterTopics=10 priorUnresolved=9 afterUnresolved=10 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=shared-token-13 priorTopics=13 afterTopics=14 priorUnresolved=13 afterUnresolved=14 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=empty priorTopics=9 afterTopics=9 priorUnresolved=9 afterUnresolved=9 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=exact-duplicate priorTopics=9 afterTopics=9 priorUnresolved=9 afterUnresolved=9 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=enrichment priorTopics=9 afterTopics=10 priorUnresolved=9 afterUnresolved=9 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=capacity priorTopics=40 afterTopics=40 priorUnresolved=40 afterUnresolved=40 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=capacity-duplicate priorTopics=40 afterTopics=40 priorUnresolved=40 afterUnresolved=40 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=old-explanation-3-real-window priorTopics=11 afterTopics=11 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-explanation-1-real-window priorTopics=9 afterTopics=10 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-explanation-3-real-window priorTopics=11 afterTopics=11 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-hypothetical-order-real-window priorTopics=13 afterTopics=13 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-customer-followup-real-window priorTopics=13 afterTopics=13 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_CASE id=third-answered-question-real-window priorTopics=13 afterTopics=14 priorUnresolved=0 afterUnresolved=0 retainedTopics=true retainedUnresolved=true
+MEETING_TOPIC_MERGE_RESULT fixtures=15 checks=185 failed=0 modelCalls=0 semanticQuality=false
+MEETING_TOPIC_MERGE_OK

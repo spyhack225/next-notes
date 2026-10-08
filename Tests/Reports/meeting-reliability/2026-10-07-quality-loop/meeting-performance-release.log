@@ -1,0 +1,5 @@
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/install-57481/Next Notes.app/Contents/MacOS/NextNotes --selftest-meeting-performance --selftest-timeout 180
+2026-10-07 20:34:33.954 NextNotes[57736:994150] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+MEETING_PERFORMANCE_WRONG: actual session emits persisted observations
+MEETING_PERFORMANCE_WRONG: stale snapshot cannot erase middle peak
+MEETING_PERFORMANCE_FAILED: 2/17

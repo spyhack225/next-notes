@@ -1,0 +1,24 @@
+ .../NextNotes/Agent/MeetingEvidenceMatcher.swift   | 132 +++++++
+ .../Formatting/LLM/NotesModelRuntime.swift         |   7 +
+ .../NextNotes/Meetings/DiarizationService.swift    |  47 ++-
+ .../MeetingActionInputContractSelfTest.swift       | 185 ++++++++++
+ ...etingActionIntentProductionReplaySelfTest.swift | 197 ++++++++++
+ .../MeetingActionIntentReplaySelfTest.swift        | 170 +++++++++
+ .../Meetings/MeetingContextReconciler.swift        | 266 +++++++++++---
+ .../NextNotes/Meetings/MeetingContextStore.swift   |  78 +++-
+ Sources/NextNotes/Meetings/MeetingModels.swift     |   6 +
+ .../Meetings/MeetingNotesReplaySelfTest.swift      |  88 +++--
+ .../Meetings/MeetingPerformanceSummary.swift       | 103 ++++++
+ .../MeetingPerformanceSummarySelfTest.swift        |  94 +++++
+ Sources/NextNotes/Meetings/MeetingSession.swift    |  13 +-
+ .../Meetings/MeetingSpeakerProjection.swift        |  82 +++++
+ .../MeetingSpeakerProjectionSelfTest.swift         | 218 +++++++++++
+ Sources/NextNotes/Meetings/MeetingStore.swift      |   3 +
+ .../NextNotes/Meetings/NotesEvidenceSelfTest.swift | 231 ++++++++++++
+ .../Meetings/NotesExtractiveReplaySelfTest.swift   | 399 +++++++++++++++++++++
+ Sources/NextNotes/Meetings/NotesGenerator.swift    | 311 +++++++++++++---
+ .../NextNotes/Meetings/NotesLongformSelfTest.swift |   3 +
+ Sources/NextNotes/Meetings/NotesPrompts.swift      |  54 ++-
+ Sources/NextNotes/NextNotesApp.swift               |  77 +++-
+ .../NextNotes/UI/Meetings/MeetingDetailView.swift  |   4 +-
+ 23 files changed, 2615 insertions(+), 153 deletions(-)

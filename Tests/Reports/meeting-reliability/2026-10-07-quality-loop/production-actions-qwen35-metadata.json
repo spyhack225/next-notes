@@ -1,0 +1,26 @@
+{
+  "experiment": "production-actions-qwen35",
+  "exit": 1,
+  "wall_seconds": 30.906745583000884,
+  "markers": [
+    "ACTION_INTENT_PRODUCTION_SCOPE reconstructed=true originalSnapshots=false precedingContext=extractor-only targetInstructions=false isolatedStore=true",
+    "ACTION_INTENT_PRODUCTION_RESULT case=explanation-1-real-window requestedCutoff=1559.0 actualCutoff=1558.3 calls=1 completions=1 finishedByLimit=false productionParsed=true candidates=0 forbiddenCitationHits=0 requiredCitationHit=true referenceVisible=1/1 extractorSeedEqual=true persistedEqual=true sourcesCorrect=true semanticReviewed=false",
+    "ACTION_INTENT_PRODUCTION_RESULT case=explanation-2-real-window requestedCutoff=1770.0 actualCutoff=0.0 calls=0 completions=0 finishedByLimit=false productionParsed=false candidates=0 forbiddenCitationHits=0 requiredCitationHit=true referenceVisible=0/1 extractorSeedEqual=true persistedEqual=true sourcesCorrect=true semanticReviewed=false",
+    "ACTION_INTENT_PRODUCTION_RESULT case=explanation-3-real-window requestedCutoff=1781.0 actualCutoff=0.0 calls=0 completions=0 finishedByLimit=false productionParsed=false candidates=0 forbiddenCitationHits=0 requiredCitationHit=true referenceVisible=0/1 extractorSeedEqual=true persistedEqual=true sourcesCorrect=true semanticReviewed=false",
+    "ACTION_INTENT_PRODUCTION_RESULT case=hypothetical-order-real-window requestedCutoff=1910.0 actualCutoff=0.0 calls=0 completions=0 finishedByLimit=false productionParsed=false candidates=0 forbiddenCitationHits=0 requiredCitationHit=true referenceVisible=0/2 extractorSeedEqual=true persistedEqual=true sourcesCorrect=true semanticReviewed=false",
+    "ACTION_INTENT_PRODUCTION_RESULT case=customer-followup-real-window requestedCutoff=1945.0 actualCutoff=0.0 calls=0 completions=0 finishedByLimit=false productionParsed=false candidates=0 forbiddenCitationHits=0 requiredCitationHit=false referenceVisible=0/3 extractorSeedEqual=true persistedEqual=true sourcesCorrect=true semanticReviewed=false",
+    "ACTION_INTENT_PRODUCTION_RESULT case=answered-question-real-window requestedCutoff=2030.0 actualCutoff=0.0 calls=0 completions=0 finishedByLimit=false productionParsed=false candidates=0 forbiddenCitationHits=0 requiredCitationHit=true referenceVisible=0/5 extractorSeedEqual=true persistedEqual=true sourcesCorrect=true semanticReviewed=false",
+    "ACTION_INTENT_PRODUCTION_FAILED: 5 production fixture windows wrong; semantic review remains required"
+  ],
+  "candidateSHA": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+  "startedAt": "2026-10-08T01:43:23.254379+00:00",
+  "endedAt": "2026-10-08T01:43:54.162282+00:00",
+  "pids": [
+    65310
+  ],
+  "memorySamples": 15,
+  "peakSampledFootprintBytes": 381062480,
+  "peakSampledResidentBytes": 1865138176,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "NOT COMPLETE: first window executed with valid empty actions; following five windows did not enter completer/model; no semantic verdict for unexecuted windows"
+}

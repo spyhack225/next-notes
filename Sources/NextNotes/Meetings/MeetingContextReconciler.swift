@@ -92,8 +92,8 @@ enum MeetingContextReconciler {
         var object: String?
     }
 
-    /// Soft suggestions. `proposedCandidates` is accepted on the wire so a completer can
-    /// try to invent work — `apply` always drops it.
+    /// Soft model suggestions. Exact citations establish provenance, not whether an
+    /// utterance really was a request or commitment; that meaning remains inferred.
     struct Suggestion: Sendable, Equatable {
         var topics: [MeetingContextItem] = []
         var unresolvedItems: [MeetingContextItem] = []
@@ -191,28 +191,52 @@ enum MeetingContextReconciler {
             )
         }
         for proposed in suggestion.proposedCandidates {
-            guard let quote = proposed.evidence,
-                  let segment = recentSegments.first(where: {
-                      $0.kind != .agentCommand
-                          && (proposed.evidenceStart == nil
-                              || abs($0.start - (proposed.evidenceStart ?? 0)) < 0.01)
-                          && MeetingAgent.isTranscriptEvidence(quote, in: $0.text)
-                  }) else { continue }
+            guard let quote = proposed.evidence else { continue }
+            let matches = recentSegments.filter {
+                $0.kind != .agentCommand
+                    && (proposed.evidenceStart == nil
+                        || abs($0.start - (proposed.evidenceStart ?? 0)) < 0.01)
+                    && exactEvidence(quote, in: $0.text) != nil
+            }
+            // Identical speech can occur on both tracks. A missing/ambiguous citation
+            // must not borrow the first microphone source as execution authority.
+            guard matches.count == 1, let segment = matches.first,
+                  let spokenQuote = exactEvidence(quote, in: segment.text) else { continue }
             var grounded = proposed
+            grounded.evidence = spokenQuote
             grounded.source = segment.source
             grounded.speaker = segment.displaySpeaker
-            let key = "\(segment.source.rawValue)|\(segment.start)|\(quote.lowercased())"
+            grounded.confidence = inferredConfidence
+            let key = "\(segment.source.rawValue)|\(segment.start)|\(spokenQuote.lowercased())"
             guard !next.candidateActions.contains(where: {
                 "\($0.source.rawValue)|\($0.evidenceStart ?? -1)|\($0.evidence?.lowercased() ?? "")" == key
             }) else { continue }
             grounded.evidenceStart = segment.start
             next.candidateActions.append(grounded)
             next.actionItems.append(MeetingContextItem(
-                text: quote, speaker: segment.displaySpeaker,
-                source: segment.source, confidence: "high"
+                text: spokenQuote, speaker: segment.displaySpeaker,
+                source: segment.source, confidence: inferredConfidence
             ))
         }
         return next
+    }
+
+    /// This producer promises contiguous verbatim citations. Shared fuzzy matching is
+    /// useful elsewhere but cannot establish this contract or choose a speech source.
+    private static func exactEvidence(_ quote: String, in transcript: String) -> String? {
+        var citation = quote.trimmingCharacters(in: .whitespacesAndNewlines)
+        // A JSON string may still wrap quoted speech in paired quotation marks.
+        // Remove that notation only; do not fuzzy-match or drop spoken words.
+        if let first = citation.first, let last = citation.last,
+           citation.count > 1,
+           (first == "\"" && last == "\""
+               || first == "“" && last == "”"
+               || first == "‘" && last == "’") {
+            citation = String(citation.dropFirst().dropLast())
+        }
+        guard let range = transcript.range(of: citation, options: .caseInsensitive),
+              MeetingAgent.isTranscriptEvidence(citation, in: transcript) else { return nil }
+        return String(transcript[range])
     }
 
     private static func rewrite(
@@ -231,7 +255,9 @@ enum MeetingContextReconciler {
             if let object = wording.object?.trimmingCharacters(in: .whitespacesAndNewlines) {
                 next.object = object.isEmpty ? nil : object
             }
-            // Source stays whatever the extractor recorded — authority is not a model output.
+            // New model wording is still an inference, even if an older saved card
+            // previously claimed high confidence. Source/authority remain immutable.
+            next.confidence = inferredConfidence
             next.source = candidate.source
             return next
         }
@@ -257,15 +283,79 @@ enum MeetingContextReconciler {
     /// The selected Agent model extracts action meaning from the actual speech. It only
     /// writes grounded candidate cards; tool execution remains in AgentService.
     struct ModelCompleter: MeetingContextCompleter {
+        /// Isolated diagnostics reuse the actual producer; normal defaults preserve
+        /// the existing selected-role admission and provider resolution.
+        private let enabled: @Sendable () async -> Bool
+        private let resolveProvider: @Sendable () async -> (any LLMProvider)?
+
+        init(
+            enabled: @escaping @Sendable () async -> Bool = {
+                let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
+                let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
+                return MeetingContextReconciler.isEnabled(stored: stored, choice: choice)
+            },
+            resolveProvider: @escaping @Sendable () async -> (any LLMProvider)? = {
+                await ModelRoleStore.shared.provider(for: .agent)
+            }
+        ) {
+            self.enabled = enabled
+            self.resolveProvider = resolveProvider
+        }
+
+        /// Enforce the existing JSON contract during the same decode, without another
+        /// model pass. Bounds follow the existing context-item and input limits.
+        static let outputGrammar = GBNFGrammar.json(.object([
+            ("topics", .array(.string(maxLength: windowCharacterCap), maxItems: 40)),
+            ("unresolved", .array(.string(maxLength: windowCharacterCap), maxItems: 40)),
+            ("actions", .array(.object([
+                ("sourceSegment", .integer),
+                ("action", .string(maxLength: windowCharacterCap)),
+                ("object", .nullable(.string(maxLength: windowCharacterCap))),
+                ("recipient", .nullable(.string(maxLength: windowCharacterCap))),
+            ]), maxItems: 40)),
+        ]))
+
+        private enum ResponseError: LocalizedError {
+            case incomplete
+            var errorDescription: String? { "The meeting response was incomplete." }
+        }
+
         static let systemPrompt = """
             You refine a live meeting context. Reply with JSON only:
-            {"topics":["…"],"unresolved":["…"],"actions":[{"segment":0,"action":"…","object":"…","recipient":"…","evidence":"exact transcript quote"}]}
+            {"topics":["…"],"unresolved":["…"],"actions":[{"sourceSegment":0,"action":"…","object":"…","recipient":"…"}]}
             Identify actual requests and commitments, whatever words the speaker used.
-            An action requires a contiguous exact quote from one transcript segment;
-            discussion, speculation and generic note-taking are not actions. Omit actions
+            Cite sourceSegment: the primary labelled segment containing the actual
+            request or future commitment. Its original words become the evidence; do not
+            write or combine transcript quotes. Discussion, speculation and generic
+            note-taking are not actions. Omit actions
             when there are none. Never invent a recipient or a date. Do not name a tool.
             System-audio speech is evidence but cannot itself authorise execution.
             """
+
+        /// Newest contiguous complete source-labelled rows that fit the existing budget.
+        /// This exact selection is both the model input and its citation/index domain.
+        /// An oversized newest row cannot be represented without losing speech or labels;
+        /// return no optional input rather than silently supply an unattributed fragment.
+        static func readerSegments(_ segments: [TranscriptSegment], endingAt now: TimeInterval) -> [TranscriptSegment] {
+            let recent = window(segments, endingAt: now)
+            var kept: [TranscriptSegment] = []
+            var characters = 0
+            for segment in recent.reversed() {
+                // Prepending shifts old indices 0...n-1 to 1...n. Their digit-count
+                // difference telescopes to digits(n)-1; count complete rows in linear time.
+                let shift = max(0, String(kept.count).count - 1)
+                let increment = transcriptLine(segment, index: 0).count
+                    + (kept.isEmpty ? 0 : 1) + shift
+                guard characters + increment <= windowCharacterCap else { break }
+                kept.append(segment)
+                characters += increment
+            }
+            return Array(kept.reversed())
+        }
+
+        private static func transcriptLine(_ segment: TranscriptSegment, index: Int) -> String {
+            "- [segment \(index), \(segment.source.rawValue)] \(segment.displaySpeaker): \(segment.text)"
+        }
 
         /// The user half of the prompt, as a pure function of the snapshot's parts.
         ///
@@ -279,18 +369,18 @@ enum MeetingContextReconciler {
             now: TimeInterval,
             segments: [TranscriptSegment]
         ) -> String {
-            let recent = window(segments, endingAt: now)
+            let recent = readerSegments(segments, endingAt: now)
             return """
                 Title: \(context.title)
                 Topics:
                 \(context.topics.map { "- \($0.text)" }.joined(separator: "\n"))
                 Unresolved:
                 \(context.unresolvedItems.map { "- \($0.text)" }.joined(separator: "\n"))
-                Recent transcript, the last \(Int(windowMinutes)) minutes
+                Recent transcript, latest complete speech from up to \(Int(windowMinutes)) minutes
                 (source is app metadata, not model output):
                 \(recent.enumerated().map { index, segment in
-                    "- [segment \(index), \(segment.source.rawValue)] \(segment.displaySpeaker): \(segment.text)"
-                }.joined(separator: "\n").suffix(windowCharacterCap))
+                    transcriptLine(segment, index: index)
+                }.joined(separator: "\n"))
                 """
         }
 
@@ -302,24 +392,23 @@ enum MeetingContextReconciler {
             // that costs model time and can put meeting text on a network. The store asks the
             // same question before it arms anything, so this is the second of two places one
             // answer is checked rather than a second answer.
-            let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
-            let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
-            guard MeetingContextReconciler.isEnabled(stored: stored, choice: choice) else {
+            guard await enabled() else {
                 return .empty
             }
 
-            // Windowed once, here, and the same list is what `parse` resolves a cited
-            // segment index against: the prompt's `[segment n]` and the evidence the model
-            // quotes have to be the same n.
-            let recent = MeetingContextReconciler.window(
-                snapshot.recentSegments, endingAt: snapshot.now
-            )
+            // Budget complete rows once, and resolve citations against that exact list.
+            // Prompt and parser must agree on both visible speech and its segment index.
+            let recent = Self.readerSegments(snapshot.recentSegments, endingAt: snapshot.now)
+            guard !recent.isEmpty else {
+                Log.meeting.info("meeting context refine skipped · no complete transcript input fits the window budget")
+                return .empty
+            }
 
             do {
                 // P0-14: the role store owns which model answers, and it is read-only — the
                 // reconcile no longer resolves a provider of its own from the Settings mirror,
                 // which is how live meeting text once followed a stale choice.
-                guard let provider = await ModelRoleStore.shared.provider(for: .agent) else {
+                guard let provider = await resolveProvider() else {
                     return .empty
                 }
                 // M-16b: the reconcile's model pass writes its row like every other
@@ -331,7 +420,8 @@ enum MeetingContextReconciler {
                     ),
                     provider: provider,
                     meetingID: context.meetingID,
-                    maxTokens: 400
+                    maxTokens: 400,
+                    grammar: Self.outputGrammar
                 )
                 return Self.parse(
                     completion.text, existing: context,
@@ -356,7 +446,8 @@ enum MeetingContextReconciler {
             user: String,
             provider: any LLMProvider,
             meetingID: UUID,
-            maxTokens: Int
+            maxTokens: Int,
+            grammar: GBNFGrammar? = nil
         ) async throws -> LLMCompletion {
             let recorder = ModelPassRecorder(
                 feature: .meetingReconcile,
@@ -366,23 +457,36 @@ enum MeetingContextReconciler {
             )
             do {
                 let completion = try await ModelPassRecorder.$current.withValue(recorder) {
-                    try await provider.complete(system: system, user: user, maxTokens: maxTokens)
+                    if let grammar {
+                        return try await provider.complete(system: system, user: user, maxTokens: maxTokens, grammar: grammar)
+                    }
+                    return try await provider.complete(system: system, user: user, maxTokens: maxTokens)
                 }
                 recorder.report(
                     promptTokens: nil,
                     cachedTokens: nil,
                     completionTokens: completion.generatedTokens,
                     reasoningTokens: nil,
-                    finishReason: nil,
+                    finishReason: completion.finishedByLimit ? "length" : nil,
                     estimated: provider.id == .appleFoundation
                 )
-                recorder.finish(reason: "stop")
+                if let grammar, completion.finishedByLimit || !grammar.matches(completion.text) {
+                    throw ResponseError.incomplete
+                }
+                recorder.finish(reason: completion.finishedByLimit ? "length" : "stop")
                 return completion
             } catch {
                 recorder.fail(error)
                 recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
                 throw error
             }
+        }
+
+        /// Diagnostic schema verdict, separate from parse's valid-no-refinements nil.
+        /// Reuses the actual payload decoder; never called by production processing.
+        static func payloadDecodesForTesting(_ text: String) -> Bool {
+            guard SelfTest.isRunning, let data = jsonObject(in: text) else { return false }
+            return (try? JSONDecoder().decode(ModelPayload.self, from: data)) != nil
         }
 
         static func parse(
@@ -397,10 +501,9 @@ enum MeetingContextReconciler {
             var suggestion = Suggestion()
             // A topic and an open question the model wrote are its reading of the room, not
             // something the microphone said — and `.mic` is the source that can authorise
-            // execution. M-14: model-written text lands with the least authority there is
-            // and says so. A line that *refines* an extractor's own topic keeps that topic's
-            // real source (`MeetingContextExtractor.merge` owns that half), because the words
-            // it was derived from were actually spoken.
+            // execution. M-14: model-written text lands with the least authority there is.
+            // Exact normalized duplicates leave retained rows alone; non-exact enrichment
+            // keeps the model's inferred metadata, even when it resembles an old topic.
             if let topics = payload.topics, !topics.isEmpty {
                 suggestion.topics = topics.map {
                     MeetingContextItem(text: $0, source: .system, confidence: inferredConfidence)
@@ -420,19 +523,34 @@ enum MeetingContextReconciler {
             }
             if let actions = payload.actions {
                 suggestion.proposedCandidates = actions.compactMap { row in
-                    guard let evidence = row.evidence,
-                          let action = row.action,
-                          !action.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                          let segment = row.segment.flatMap({ index in
-                              segments.indices.contains(index) ? segments[index] : nil
-                          }) ?? segments.first(where: {
-                              MeetingAgent.isTranscriptEvidence(evidence, in: $0.text)
-                          }),
-                          MeetingAgent.isTranscriptEvidence(evidence, in: segment.text)
+                    guard let action = row.action,
+                          !action.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
                     else { return nil }
+                    let segment: TranscriptSegment
+                    let spokenQuote: String
+                    if let index = row.sourceSegment {
+                        // The producer selects a visible source row; code owns its words.
+                        // A second citation format in the same row is ambiguous, not a fallback.
+                        guard row.segment == nil, row.evidence == nil,
+                              segments.indices.contains(index),
+                              segments[index].kind != .agentCommand,
+                              !segments[index].text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        else { return nil }
+                        segment = segments[index]
+                        spokenQuote = segment.text
+                    } else {
+                        // Retained legacy citations still require their exact contiguous quote.
+                        guard let index = row.segment, segments.indices.contains(index),
+                              let evidence = row.evidence,
+                              segments[index].kind != .agentCommand,
+                              let exact = exactEvidence(evidence, in: segments[index].text)
+                        else { return nil }
+                        segment = segments[index]
+                        spokenQuote = exact
+                    }
                     let recipient = row.recipient.flatMap { value -> String? in
                         let lowered = value.lowercased()
-                        return evidence.lowercased().contains(lowered) ? value : nil
+                        return spokenQuote.lowercased().contains(lowered) ? value : nil
                     }
                     return MeetingCandidateAction(
                         recipient: recipient,
@@ -440,8 +558,8 @@ enum MeetingContextReconciler {
                         object: row.object,
                         speaker: segment.displaySpeaker,
                         source: segment.source,
-                        confidence: "high",
-                        evidence: evidence,
+                        confidence: inferredConfidence,
+                        evidence: spokenQuote,
                         evidenceStart: segment.start
                     )
                 }
@@ -477,6 +595,7 @@ enum MeetingContextReconciler {
         }
 
         private struct ActionRow: Decodable {
+            var sourceSegment: Int?
             var segment: Int?
             var action: String?
             var object: String?
@@ -577,17 +696,20 @@ enum MeetingContextReconciler {
                 topics: [
                     MeetingContextItem(
                         text: "Launch timeline and pricing",
-                        source: .mic,
-                        confidence: "high"
+                        source: .system,
+                        confidence: inferredConfidence
                     ),
                 ]
             ),
             to: context
         )
         check(
-            "fake merge left both raw topics and no refined line",
-            merged.topics.contains { $0.text == "Launch timeline and pricing" }
-                && merged.topics.count == 1
+            "model enrichment erased retained topics or lost its inferred line",
+            Array(merged.topics.prefix(context.topics.count)) == context.topics
+                && merged.topics.count == context.topics.count + 1
+                && merged.topics.last?.text == "Launch timeline and pricing"
+                && merged.topics.last?.source == .system
+                && merged.topics.last?.confidence == inferredConfidence
         )
 
         // Completer invents a create_doc-shaped candidate and a source flip — both must die.
@@ -684,6 +806,58 @@ enum MeetingContextReconciler {
                 && parsed?.proposedCandidates.first?.action == "deliver"
         )
 
+        // Citation/provenance is a separate contract from the model's action meaning.
+        check("a model action claimed measured confidence",
+              parsed?.proposedCandidates.first?.confidence == inferredConfidence)
+        check("application promoted model inference to measured confidence",
+              grounded.candidateActions.last?.confidence == inferredConfidence
+                  && grounded.actionItems.last?.confidence == inferredConfidence)
+        let repeatedQuote = "Send the revised budget to Finance by Tuesday."
+        let repeated = [
+            TranscriptSegment(start: 20, end: 22, text: repeatedQuote, source: .mic),
+            TranscriptSegment(start: 23, end: 25, text: repeatedQuote, source: .system),
+        ]
+        for citation in ["", "\"segment\":99,"] {
+            let uncitedOutput = "{\"actions\":[{\(citation)\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}"
+            let uncited = ModelCompleter.parse(uncitedOutput, existing: context, segments: repeated)
+            check("missing/invalid segment borrowed the first matching source",
+                  uncited?.proposedCandidates.isEmpty != false)
+        }
+        let citedFar = ModelCompleter.parse(
+            "{\"actions\":[{\"segment\":1,\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}",
+            existing: context, segments: repeated)
+        check("valid far-track citation lost its exact source",
+              citedFar?.proposedCandidates.first?.source == .system)
+        let ambiguous = apply(Suggestion(proposedCandidates: [
+            MeetingCandidateAction(action: "send", source: .mic, confidence: "high", evidence: repeatedQuote)
+        ]), to: context, recentSegments: repeated)
+        check("ambiguous quote without a clock borrowed mic authority",
+              ambiguous.candidateActions == context.candidateActions)
+        let longQuote = "Send Morgan the revised detailed annual project budget and manufacturing forecast for Finance review by Tuesday."
+        let changedQuote = longQuote.replacingOccurrences(of: "manufacturing", with: "sales")
+        let speech = TranscriptSegment(start: 40, end: 46, text: longQuote, source: .system)
+        check("exact-citation producer used fuzzy content matching",
+              exactEvidence(changedQuote, in: speech.text) == nil)
+        check("paired quotation notation changed the original speech",
+              exactEvidence("\"\(longQuote)\"", in: speech.text) == longQuote)
+        let command = TranscriptSegment(start: 50, end: 52, text: repeatedQuote, source: .mic, kind: .agentCommand)
+        let commandAction = ModelCompleter.parse(
+            "{\"actions\":[{\"segment\":0,\"action\":\"send\",\"evidence\":\"\(repeatedQuote)\"}]}",
+            existing: context, segments: [command])
+        check("an excluded command entered the live meeting action parser",
+              commandAction?.proposedCandidates.isEmpty != false)
+        let quoted = MeetingCandidateAction(action: "deliver", object: "revised budget", source: .mic,
+                                            evidence: "\"\(implicitRequest.text)\"")
+        let quotedOnce = apply(Suggestion(proposedCandidates: [quoted]), to: context, recentSegments: [implicitRequest])
+        check("the candidate and item disagreed about the actual spoken evidence",
+              quotedOnce.candidateActions.last?.evidence == implicitRequest.text
+                  && quotedOnce.actionItems.last?.text == implicitRequest.text)
+        check("rewritten model wording retained unmeasured confidence",
+              poisoned.candidateActions.first(where: { $0.id == systemAsk.id })?.confidence == inferredConfidence)
+        check("quote notation escaped duplicate suppression",
+              apply(Suggestion(proposedCandidates: [quoted]), to: quotedOnce,
+                    recentSegments: [implicitRequest]).candidateActions.count == quotedOnce.candidateActions.count)
+
         // Async fake completer (same contract the store calls).
         let fake = FakeMergeCompleter()
         let box = FakeResultBox()
@@ -706,7 +880,7 @@ enum MeetingContextReconciler {
         return failures.isEmpty
     }
 
-    /// Completer used only by `runSelfTest`: collapses the two launch topics into one line.
+    /// Self-test completer adds inferred enrichment while retaining the original topics.
     struct FakeMergeCompleter: MeetingContextCompleter {
         func refine(_ snapshot: Snapshot) async -> Suggestion {
             guard snapshot.context.topics.count >= 2 else { return .empty }
@@ -714,8 +888,8 @@ enum MeetingContextReconciler {
                 topics: [
                     MeetingContextItem(
                         text: "Launch timeline and pricing",
-                        source: .mic,
-                        confidence: "high"
+                        source: .system,
+                        confidence: inferredConfidence
                     ),
                 ]
             )
