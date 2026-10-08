@@ -7,6 +7,70 @@ extension DS.Font {
     static let briefingTitle = SwiftUI.Font.system(.title3, design: .serif)
 }
 
+/// What a card says about its audio, as a pure function of the clock, and when the clock has to
+/// be read again. `isPreparingAudio` depends on the time, but the library's list does not
+/// change when the wait window ends, so nothing observable fires: the screen has to wake
+/// itself. `CatchUpClock` does that once per waiting catch-up, at the moment it stops waiting.
+enum CatchUpPresentation {
+    enum Status: Equatable {
+        /// The audio is still being made.
+        case preparing
+        case readyToListen
+        /// Words only: no audio arrived, or it has been too long to keep promising it.
+        case readyToRead
+    }
+
+    static func status(of entry: CatchUpEntry, now: Date) -> Status {
+        if entry.audioURL != nil { return .readyToListen }
+        return entry.isPreparingAudio(now: now) ? .preparing : .readyToRead
+    }
+
+    /// Now, and the moment each catch-up still waiting for audio stops waiting. Nothing else:
+    /// no ticking clock, so a screen with nothing waiting draws once and sleeps.
+    static func wakeDates(for entries: [CatchUpEntry], now: Date) -> [Date] {
+        let ends = entries
+            .filter { $0.audioURL == nil }
+            .map { $0.madeAt.addingTimeInterval(CatchUpEntry.audioWaitWindow + 1) }
+            .filter { $0 > now }
+        return ([now] + ends).sorted()
+    }
+
+    /// The label on the offer's primary button is this when the closing question did not start
+    /// in a shape that turns into a verb phrase. Pinned against the parser by the self-test.
+    static let unparsedOfferLabel = "Yes, do that"
+
+    static func hasVerbPhrase(_ offer: CatchUpOffer) -> Bool {
+        offer.actionLabel != unparsedOfferLabel
+    }
+
+    /// The one play control, from the player's own state: Pause while it plays, Resume while it
+    /// is held (paused, or paused by a conversation), Play otherwise. The same words on the
+    /// Library card and on the island.
+    struct PlayControl: Equatable {
+        var verb: String
+        var symbol: String
+    }
+
+    static func playControl(isCurrent: Bool, isPlaying: Bool) -> PlayControl {
+        if isCurrent && isPlaying { return PlayControl(verb: "Pause", symbol: "pause.fill") }
+        if isCurrent { return PlayControl(verb: "Resume", symbol: "play.fill") }
+        return PlayControl(verb: "Play", symbol: "play.fill")
+    }
+}
+
+/// Re-reads the clock when a waiting catch-up's time runs out. Hands its content the date the
+/// timeline fired for, so every "is it still preparing" question on the screen has one answer.
+struct CatchUpClock<Content: View>: View {
+    let entries: [CatchUpEntry]
+    @ViewBuilder var content: (Date) -> Content
+
+    var body: some View {
+        TimelineView(.explicit(CatchUpPresentation.wakeDates(for: entries, now: Date()))) { context in
+            content(context.date)
+        }
+    }
+}
+
 /// "Your catch-ups": the short updates the Agent prepared, newest first, at the top of the
 /// Reminders pane — the place the person's set-up lives, so the thing and its switch sit
 /// together.
@@ -28,9 +92,12 @@ struct CatchUpPaneSection: View {
                 emptyCard
             } else {
                 let entries = showEarlier ? library.entries : Array(library.entries.prefix(visibleCount))
-                AgentCardGrid(minimum: DS.Size.agentCardMinWidth) {
-                    ForEach(entries) { entry in
-                        CatchUpCard(entry: entry, animatesOrb: entry.id == preparingID)
+                CatchUpClock(entries: entries) { now in
+                    let preparing = preparingID(in: entries, now: now)
+                    AgentCardGrid(minimum: DS.Size.agentCardMinWidth) {
+                        ForEach(entries) { entry in
+                            CatchUpCard(entry: entry, now: now, animatesOrb: entry.id == preparing)
+                        }
                     }
                 }
                 if library.entries.count > visibleCount {
@@ -48,8 +115,8 @@ struct CatchUpPaneSection: View {
 
     /// The one card whose audio is being made right now. Only that card's orb turns: the orb
     /// names work that is running, and a screen gets one.
-    private var preparingID: String? {
-        library.entries.first { $0.isPreparingAudio(now: Date()) }?.id
+    private func preparingID(in entries: [CatchUpEntry], now: Date) -> String? {
+        entries.first { CatchUpPresentation.status(of: $0, now: now) == .preparing }?.id
     }
 
     /// Nothing made yet. If one is switched on, say when the first will come; if not, say
@@ -64,7 +131,7 @@ struct CatchUpPaneSection: View {
                     detail: emptyMessage,
                     size: DS.Size.orbSmall,
                     isAnimated: false)
-                if nextOne == nil {
+                if !isSetUp {
                     Button("Set up catch-ups") {
                         NavigationState.shared.selectedSettingsTab = .agent
                         NavigationState.shared.show(.settings)
@@ -77,6 +144,11 @@ struct CatchUpPaneSection: View {
         }
     }
 
+    /// Any catch-up switched on, whether it runs at a time or when the person comes back.
+    private var isSetUp: Bool {
+        store.schedules.contains { $0.isCatchUp && $0.enabled }
+    }
+
     private var nextOne: Date? {
         store.schedules.filter { $0.isCatchUp && $0.enabled }.compactMap(\.nextRunAt).min()
     }
@@ -85,6 +157,10 @@ struct CatchUpPaneSection: View {
         if let nextOne {
             return "Your first one will be ready "
                 + CatchUpText.whenPhrase(nextOne, now: Date()).lowercasedFirst + "."
+        }
+        if isSetUp {
+            return "Catch-ups are on. Your first one comes when you\u{2019}re back at your Mac "
+                + "after time away."
         }
         return "A catch-up is a short update on your day — what needs you, what happened and "
             + "what\u{2019}s coming — ready to read or listen to."
@@ -103,6 +179,9 @@ private extension String {
 /// One catch-up.
 struct CatchUpCard: View {
     let entry: CatchUpEntry
+    /// The clock this card is drawn against. The pane hands every card the date its timeline
+    /// fired for; a preview or a check hands in its own.
+    var now = Date()
     /// True for the one card on the screen whose audio is being made; every other card's orb
     /// is still.
     var animatesOrb = false
@@ -118,14 +197,15 @@ struct CatchUpCard: View {
             VStack(alignment: .leading, spacing: DS.Space.m) {
                 statusLine
                 header
-                if player.isCurrent(entry) { progress }
-                if !entry.headlines.isEmpty { headlines }
-                if let offer = library.openOffer(for: entry) { offerRow(offer) }
-                if let problem = player.problem, player.playingID == nil, entry.audioURL != nil {
+                if let problem = playProblem {
                     Text(problem)
                         .font(DS.Font.caption)
                         .foregroundStyle(DS.Color.warning)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
+                if player.isCurrent(entry) { progress }
+                if !entry.headlines.isEmpty { headlines }
+                if let offer = library.openOffer(for: entry) { offerRow(offer) }
                 readButton
                 if reading {
                     Text(entry.text)
@@ -137,7 +217,7 @@ struct CatchUpCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(entry.title), \(CatchUpText.whenPhrase(entry.madeAt, now: Date()))")
+        .accessibilityLabel("\(entry.title), \(CatchUpText.whenPhrase(entry.madeAt, now: now))")
     }
 
     // MARK: - Pieces
@@ -146,10 +226,13 @@ struct CatchUpCard: View {
     /// audio is being made, the idle orb once there is something to press Play on or read.
     /// The idle orb is still — it names nothing that is running.
     private var statusLine: some View {
-        let preparing = entry.isPreparingAudio(now: Date())
+        let status = CatchUpPresentation.status(of: entry, now: now)
+        let preparing = status == .preparing
+        // `shaping` and not `composing`: the words were written and delivered long ago; what is
+        // being made now is the audio, "something assembled out of nothing".
         return LabeledOrb(
-            state: preparing ? .composing : .breathing,
-            title: preparing ? "Getting the audio ready" : (entry.audioURL != nil ? "Ready to listen" : "Ready to read"),
+            state: preparing ? .shaping : .breathing,
+            title: preparing ? "Getting the audio ready" : (status == .readyToListen ? "Ready to listen" : "Ready to read"),
             style: .eyebrow,
             size: DS.Size.orbBadge,
             isAnimated: preparing && animatesOrb)
@@ -176,20 +259,31 @@ struct CatchUpCard: View {
         Button {
             player.toggle(entry)
         } label: {
-            Image(systemName: playing ? "pause.fill" : "play.fill")
+            Image(systemName: control.symbol)
                 .frame(width: DS.Size.iconLarge, height: DS.Size.iconLarge)
         }
         .buttonStyle(.borderedProminent)
         .buttonBorderShape(.circle)
         .controlSize(.large)
-        .accessibilityLabel(playing ? "Pause \(entry.title)" : "Play \(entry.title)")
-        .help(playing ? "Pause" : "Play")
+        .accessibilityLabel("\(control.verb) \(entry.title)")
+        .help(control.verb)
     }
 
-    private var playing: Bool { player.isCurrent(entry) && player.isPlaying }
+    private var control: CatchUpPresentation.PlayControl {
+        CatchUpPresentation.playControl(isCurrent: player.isCurrent(entry), isPlaying: player.isPlaying)
+    }
+
+    /// The player's own sentence when it would not start or resume, shown once, on the card it
+    /// is about: the one being held, or else the newest one with audio. Play stays enabled.
+    private var playProblem: String? {
+        guard let problem = player.problem else { return nil }
+        if player.isCurrent(entry) { return problem }
+        guard player.playingID == nil else { return nil }
+        return library.entries.first(where: { $0.audioURL != nil })?.id == entry.id ? problem : nil
+    }
 
     private var subtitle: String {
-        var parts = [CatchUpText.whenPhrase(entry.madeAt, now: Date())]
+        var parts = [CatchUpText.whenPhrase(entry.madeAt, now: now)]
         if let duration = entry.duration, entry.audioURL != nil {
             parts.append(CatchUpText.lengthPhrase(duration))
         }
@@ -223,8 +317,11 @@ struct CatchUpCard: View {
         }
     }
 
-    /// The Agent's closing question as one action and a way out. Yes starts an ordinary turn,
-    /// where anything that writes or sends still waits for its own approval card.
+    /// The Agent's closing question. When it turns into a verb phrase it is one action; yes
+    /// starts an ordinary turn, where anything that writes or sends still waits for its own
+    /// approval card. When it does not ("Anything else on your mind?") there is nothing to say
+    /// yes to, so it stays plain text with a way into the conversation. "No thanks" closes the
+    /// question for this catch-up for good, and says so.
     private func offerRow(_ offer: CatchUpOffer) -> some View {
         VStack(alignment: .leading, spacing: DS.Space.s) {
             Divider()
@@ -233,10 +330,16 @@ struct CatchUpCard: View {
                 .foregroundStyle(DS.Color.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)
             HStack(spacing: DS.Space.s) {
-                Button(offer.actionLabel) { library.acceptOffer(entry) }
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityHint("Asks for this in the conversation. Anything it would send waits for your yes.")
-                Button("Not now") { library.closeOffer(entry) }
+                if CatchUpPresentation.hasVerbPhrase(offer) {
+                    Button(offer.actionLabel) { library.acceptOffer(entry) }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityHint("Asks for this in the conversation. Anything it would send waits for your yes.")
+                } else {
+                    Button("Reply") { NavigationState.shared.showConversation() }
+                        .accessibilityHint("Opens the conversation so you can answer.")
+                }
+                Button("No thanks") { library.closeOffer(entry) }
+                    .accessibilityHint("Closes this question for this catch-up.")
             }
             .controlSize(.small)
         }
@@ -251,5 +354,45 @@ struct CatchUpCard: View {
         }
         .buttonStyle(.link)
         .font(DS.Font.caption)
+    }
+}
+
+/// The island's ready line: what is true about this catch-up right now. The player's own
+/// sentence when it refused, "Playing" or "Paused" while it holds this catch-up, else "ready".
+struct CatchUpIslandLine: View {
+    let taskID: String
+    @State private var player = CatchUpPlayer.shared
+
+    var body: some View {
+        Text(line)
+    }
+
+    private var line: String {
+        if let problem = player.problem { return problem }
+        if player.playingID == taskID {
+            return player.isPlaying ? "Playing your catch-up." : "Your catch-up is paused."
+        }
+        return "Your catch-up is ready."
+    }
+}
+
+/// The island's two buttons: Pause, Resume or Play from the player's state, and a way to put
+/// the card away. Never starts anything but a press.
+struct CatchUpIslandButtons: View {
+    let taskID: String
+    let close: () -> Void
+    let toggle: () -> Void
+    @State private var player = CatchUpPlayer.shared
+
+    var body: some View {
+        let current = player.playingID == taskID
+        let control = CatchUpPresentation.playControl(isCurrent: current, isPlaying: player.isPlaying)
+        HStack(spacing: DS.Space.s) {
+            Button(current ? "Close" : "Later") { close() }
+            Button(control.verb) { toggle() }
+                .buttonStyle(.borderedProminent)
+                .accessibilityLabel("\(control.verb) your catch-up")
+        }
+        .controlSize(.small)
     }
 }
