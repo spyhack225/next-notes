@@ -23,6 +23,8 @@ LLAMA_FRAMEWORK = $(SCRATCH)/$(CONFIG)/llama.framework
 ## or similar detritus not allowed"). `xattr -cr` immediately before signing is not enough
 ## — the provider re-stamps in between. Staging in ~/Library/Caches sidesteps it entirely.
 STAGE    := $(HOME)/Library/Caches/NextNotesBuild
+GOOGLE_OAUTH_JSON ?= $(HOME)/Library/Application Support/NextNotesBuild/google-oauth-client.json
+GOOGLE_OAUTH_PLIST ?= $(CONTENTS)/Info.plist
 APPNAME  := Next Notes.app
 ## The staging bundle is **per make invocation**, not a fixed path.
 ##
@@ -170,6 +172,7 @@ app: build
 	@cp THIRD-PARTY-NOTICES.md "$(CONTENTS)/Resources/THIRD-PARTY-NOTICES.md"
 	@chmod +x "$(CONTENTS)/Resources/install-gws.sh"
 	@printf 'APPL????' > "$(CONTENTS)/PkgInfo"
+	@$(MAKE) --no-print-directory google-oauth-plist GOOGLE_OAUTH_PLIST="$(CONTENTS)/Info.plist"
 	@# Belt and braces: the staging dir isn't synced, but the copied binary can still carry
 	@# xattrs inherited from the synced .build directory.
 	@xattr -cr "$(BUNDLE)"
@@ -316,3 +319,8 @@ signing-cert:
 
 clean:
 	@rm -rf .build "$(STAGE)" "$(SCRATCH)"
+
+# Inject only into the built plist; values never cross stdout or process arguments.
+.PHONY: google-oauth-plist
+google-oauth-plist:
+	@python3 -c 'import json,plistlib,pathlib,sys; source=pathlib.Path(sys.argv[1]).expanduser(); target=pathlib.Path(sys.argv[2]); protected=pathlib.Path("Resources/Info.plist").resolve(); exec("try:\n if target.resolve() == protected: raise ValueError()\n if source.is_file():\n  client=json.loads(source.read_bytes())[\"installed\"]\n  identifier=client[\"client_id\"]; secret=client[\"client_secret\"]\n  if not isinstance(identifier,str) or not identifier.endswith(\".apps.googleusercontent.com\") or not isinstance(secret,str) or not secret: raise ValueError()\n  info=plistlib.loads(target.read_bytes())\n  info[\"NextNotesGoogleClientID\"]=identifier\n  info[\"NextNotesGoogleClientSecret\"]=secret\n  target.write_bytes(plistlib.dumps(info))\nexcept Exception:\n sys.exit(\"Google sign-in could not be added to the built app.\")")' "$(GOOGLE_OAUTH_JSON)" "$(GOOGLE_OAUTH_PLIST)"
