@@ -295,7 +295,7 @@ enum CatchUpPresentationSelfTest {
         }
         if let source = SourceScan.file("Sources/NextNotes/UI/CatchUp/CatchUpSettingsSection.swift") {
             let code = SourceScan.codeLines(of: source).map(\.text).joined(separator: "\n")
-            if let start = code.range(of: "private func create("), let end = code.range(of: "// MARK: - Time") {
+            if let start = code.range(of: "private func create("), let end = code.range(of: "private var timePicker") {
                 expect(!code[start.lowerBound..<end.lowerBound].contains("agentSchedulesEnabled"),
                        "creating a catch-up flips the master Reminders switch without asking")
             } else {
