@@ -132,6 +132,15 @@ enum VoiceLatencySelfTest {
         if let reason = FoundationModelFormatter.unavailableReason {
             return absent("the on-device voice model is unavailable: \(reason)")
         }
+        // Selection alone does not prepare Pocket. An unready Pocket choice
+        // selects the Apple backing in prepareForStream, producing first-audio
+        // without either required PCM mark. Prepare outside all measured turns.
+        await PocketAgentVoice.shared.prepare()
+        guard PocketAgentVoice.shared.isReady else {
+            return absent("Pocket TTS could not prepare: "
+                + (PocketAgentVoice.shared.errorMessage ?? "no ready model"))
+        }
+        SelfTest.diagnostic("VOICE_LATENCY_TTS_READY=pocket")
 
         let modelFlags = CommandLine.arguments.indices.filter {
             CommandLine.arguments[$0] == "--voice-latency-model"

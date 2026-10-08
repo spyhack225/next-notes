@@ -1,0 +1,10 @@
+{
+  "commit": "20d8f9b8b592b92acd01ab31d3f50978abb99103",
+  "source_hashes": {
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "bf009a06abfc0d6be349bdb8f95fd9d03e21cb70eb2da029ee7ecd0aa9147495",
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "f4bb6ac5b551df9b74c0a417adbfffe0f2bc1af4011b327e8687df276e52fa66",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "1d6e6b38646381474841cddff0ccc052ed63457e20120cdd1cb54cb3654f502e"
+  },
+  "binary_sha256": "838402b05280c20e4b67ba889f6c561cea0aa3a8a249f20b7c2c9476afd7604f",
+  "qualification": "unqualified baseline: unready Pocket silently selected Apple speech; fixed self-test setup now queued"
+}

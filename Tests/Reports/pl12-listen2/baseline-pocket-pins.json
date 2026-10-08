@@ -1,0 +1,12 @@
+{
+  "commit": "20d8f9b8b592b92acd01ab31d3f50978abb99103",
+  "source_hashes": {
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "bf009a06abfc0d6be349bdb8f95fd9d03e21cb70eb2da029ee7ecd0aa9147495",
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "f4bb6ac5b551df9b74c0a417adbfffe0f2bc1af4011b327e8687df276e52fa66",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "1d6e6b38646381474841cddff0ccc052ed63457e20120cdd1cb54cb3654f502e"
+  },
+  "binary_sha256": "c6680443026085f494a229b026990c5c4864cd1a6d27f7d6775b97beffd89b8c",
+  "binary_uuid": "UUID: 2D23CE03-3F02-3988-AABF-0453272B5665 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/listen2/debug/NextNotes",
+  "qualification": "debug base voice producers; exact missing store reader + corrected isolated Pocket setup; no routing experiment",
+  "same_three_producers_as_original_baseline": true
+}
