@@ -1,0 +1,25 @@
+{
+  "verdict": "ORIGINAL_FAIL6_FIXED_PASS11_COMPONENT_ONLY",
+  "originalLogSHA256": "7b65d67c3d5d9f10b3bd12f8cb45956949c6f6783ec4eea48019f9d773889ad2",
+  "fixedLogSHA256": "fbec93dcc669db5a111b4a5e02a68fab78fe01955a5816d853b3249776b2250c",
+  "originalSHA256": "5c7661bfe5ef4ff5b293db64a2e201cda1763e1848d9f6bca0a32ab3a0949aa0",
+  "fixedSHA256": "968cbdf2cabccd8510e9efa93588f4d56de828c130a5741d362caf1552f29cf4",
+  "actualSource": "walker/selector bodies pinned byte-for-byte; same11assertions",
+  "substitutions": [
+    "AX attributes",
+    "snapshot cache",
+    "process capture adapter"
+  ],
+  "notProven": [
+    "real AX capture/JSON writer",
+    "physical provider observation",
+    "joined-call state",
+    "roster/voice binding",
+    "suggestions UI",
+    "performance"
+  ],
+  "callState": "unverified for room URLs, including possible lobbies",
+  "heavy": "all four children joined; released",
+  "canonicalChanges": 0,
+  "ownerChanges": 0
+}

@@ -1,0 +1,78 @@
+{
+  "status": "UNVERIFIED_INCOMPLETE_GUARDED_ATTEMPT",
+  "semantic_quality": "UNVERIFIED: no returned completion, RESULT or final markdown; not a coverage/attribution FAIL",
+  "scope": "Offline inspection only; no expected-final reviewer, native, compiler, retry or source/gold/prompt changes",
+  "attempt": {
+    "arm": "single-material",
+    "model": "MiniCPM5-2B",
+    "candidateSHA": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+    "exit": 1,
+    "wallSeconds": 14.814161124995735,
+    "externalGuardReason": "reportedFreeBelow50Percent",
+    "peakSampledFootprintBytes": 855444384,
+    "peakSampledResidentBytes": 1985757184,
+    "memorySamples": 5,
+    "memoryScope": "Sampled process values, not continuous peaks or reference ASR/voice acceptance"
+  },
+  "submittedContract": {
+    "traceCount": 1,
+    "usageCount": 1,
+    "call": 1,
+    "feature": "meeting.notes.single",
+    "pass": "single",
+    "maxTokens": 1600,
+    "systemSHA256": "d4c53b813f9c8e7865bfae799963cbb0762303912e339e0ba4755b4d2396a54b",
+    "expectedArmSystemHashMatches": true,
+    "grammarSubmitted": false,
+    "sourceSegments": 529,
+    "filteredSourceLines": 519,
+    "exactSourceBlockOccurrences": 1,
+    "capturedSourceLines": 519,
+    "sourceRendererPinsMatch": true,
+    "originalTranscriptPinMatches": true,
+    "countedReaderWholeBranchEntered": true,
+    "resultArmMarkerPresent": false,
+    "armEvidence": "Root argv + actual submitted system hash; no completed RESULT claim"
+  },
+  "phaseEvidence": {
+    "providerCompletionInvoked": true,
+    "runtimeLoadReportingPassed": true,
+    "nativeWeightsAndVocabularyResidentByLoadReport": true,
+    "usageWarm": true,
+    "earlierTokenizerWorkCompleted": "Inferred from actual NotesGenerator branch reaching answerWithRetry and warm native load report; exact token counts unavailable.",
+    "nativeContextCreated": "UNVERIFIED",
+    "nativePrefillEntered": "UNVERIFIED",
+    "nativePrefillCompleted": "UNVERIFIED",
+    "decodedAnyOutputToken": "UNVERIFIED; absence of returned raw text/counts does not prove zero generated internally.",
+    "completionReturned": false,
+    "rawCompletionPresent": false,
+    "generatedTokens": "UNAVAILABLE, not zero",
+    "promptTokens": "UNAVAILABLE, not zero",
+    "prefillDecodedTokens": "UNAVAILABLE, not zero",
+    "generationMs": "UNAVAILABLE, not zero",
+    "errorType": "Swift.CancellationError",
+    "finishReason": "cancelled",
+    "usageErrorClass": "cancelled",
+    "recordedPassTotalMs": 4645,
+    "totalMsScope": "Existing recorder pass interval, not complete workflow/initial tokenizer-model load time.",
+    "limitation": "Warm is reported after successful loadIfNeeded, before prompt tokenization/context/prefill. Cancellation is checked during prefill and decode, so retained evidence cannot locate the exact native decode boundary."
+  },
+  "failureVisibility": {
+    "resultPresent": false,
+    "markdownPresent": false,
+    "terminalFailurePresent": true,
+    "traceAndUsageBeforeFailure": true,
+    "lines": 5,
+    "meaning": "Existing failure defer retained submitted prompt/error and usage, then outer catch emitted FAILED last."
+  },
+  "privacy": {
+    "ownerPromptRaw": "Retained only in private joined diagnostic; not copied into this metadata or relay.",
+    "replayWriter": "Actual route uses writePrivateSelfTest -> includeSystemLog:false.",
+    "systemLogAbsence": "UNVERIFIED for this exact PID; source routing alone is not a retained system-log absence proof."
+  },
+  "unchangedGates": [
+    "Same10predeclared criteria and source intervals; no annotations graded without raw completion",
+    "Held-out/nonempty-brief controls remain unrun",
+    "No prompt/model/default promotion or semantic fix claimed"
+  ]
+}

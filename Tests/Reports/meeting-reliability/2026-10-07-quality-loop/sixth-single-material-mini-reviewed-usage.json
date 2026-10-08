@@ -1,0 +1,13 @@
+[
+  {
+    "provider": "llama",
+    "truncated": false,
+    "locality": "local",
+    "totalMs": 4645,
+    "feature": "meeting.notes.single",
+    "warm": true,
+    "modelID": "MiniCPM5-2B",
+    "finishReason": "cancelled",
+    "pass": "single"
+  }
+]

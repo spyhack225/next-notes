@@ -1,0 +1,97 @@
+{
+  "status": "Original component compiler succeeded and actor-boundary14expected failures observed by root, but corpus permission257 rejected alias-normalized Foundation root. Shared Main fixture admission corrected source-only; original/fixed reruns pending.",
+  "canonicalChunkedTranscriberSHA256": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182",
+  "sourceSlices": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-pause-candidate-pfjr7kps/ChunkedTranscriber.baseline-with-observer.swift": {
+      "fullSourceSHA256": "c2df35cc3df8f3d93ef21ed8b7b5b27721f967dd28ab33dc1d68170ff83566fa"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-pause-candidate-pfjr7kps/ChunkedTranscriber.pause-candidate.swift": {
+      "fullSourceSHA256": "f2ecb4adf28009f390c46c76abc64eb58edb52422c514f7ed66f5f40166302b7"
+    },
+    "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingModels.swift": {
+      "fullSourceSHA256": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec"
+    },
+    "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Transcription/TranscriptBus.swift": {
+      "fullSourceSHA256": "22e061958f3b7c9d2bb7e9f9c443ca67b0c50a125e3b3bfd9845d7877b26b387"
+    },
+    "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Transcription/StreamingASR.swift": {
+      "fullSourceSHA256": "5298d20dad241a2b67fb922d8fceecdd6c218f67ec853bdb14af3a385e341815"
+    },
+    "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Core/AudioConversion.swift": {
+      "fullSourceSHA256": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FluidAudio/ASR/Parakeet/AsrTypes.swift": {
+      "fullSourceSHA256": "4631634f8e01add58cc74b8677067706167d92e6dd15858958071bf829deebbd"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FluidAudio/Shared/PerformanceMetrics.swift": {
+      "fullSourceSHA256": "acd6ec19aaedd4d59d71334aa3ad1f8bf4b91cb3ddb8549c4b84922e278eb1e1"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FluidAudio/ASR/Parakeet/SlidingWindow/CustomVocabulary/Rescorer/VocabularyRescorer+Utilities.swift": {
+      "fullSourceSHA256": "9fcef3028b4457637a0fea5c2787ddaadc2ca9cba62ebeef1bef33422060ad95"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FluidAudio/Shared/ASRConstants.swift": {
+      "fullSourceSHA256": "2ceb61acf79d3760d8ab4ac3c2f1c86378bc1065c85086de6e06e86603460dbb"
+    },
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-pause-candidate-pfjr7kps/MeetingPauseBoundarySelfTest.swift": {
+      "fullSourceSHA256": "da9e449e521d70dbe346727d96b2610c291b7b71b98c97afe141d450e83be8cd"
+    },
+    "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Support/Log.swift": {
+      "fullSourceSHA256": "14b46d63e71cff95b8c3df9ea4c0acd9dcc529774409633db9e0191cd8a4ba4c"
+    }
+  },
+  "generatedFiles": {
+    "ChunkedTranscriber.fixed.swift": "1406c48bf524f0790db51e811b4f888474f3f7c0e82ba35485fabc41b0a1f64a",
+    "ChunkedTranscriber.original.swift": "6299a6da1986ca99eb0ef5d7a1d2527dd849e4a8e22107cebd3df863a0d8b335",
+    "ExternalSinks.swift": "4406274651e2d78e6b44cf650cf89627cb05d3ea36c4f742c306dddadea97450",
+    "FluidResultTypes.swift": "073b404d09f4367545113b353800559bc514dd5b4d8bc943658671ab590e9f50",
+    "Log.swift": "14b46d63e71cff95b8c3df9ea4c0acd9dcc529774409633db9e0191cd8a4ba4c",
+    "Main.swift": "b6075c0b3bf43c883a1d3cd19ff8ac780e7e3b75ddabc85c78dc813ecfe378b5",
+    "MeetingPauseBoundarySelfTest.swift": "d75e201bd82760000324eab64663ac7127198988ca07bde855529526cae61761",
+    "ProductionDependencies.swift": "565f934fc42aab5cbb8f4a9b38bf95c6801260bda590636a9bdac371ded6dd90"
+  },
+  "sourceSemantics": "Complete real ChunkedTranscriber actor, including actual append/nextCut/queue/merge/drain/flush/cancel/containsSpeech/segments. Extracted exact RMS, sizes and transcript result types. FluidAudio packaging import omitted only; result/timing/word helpers retained exact external definitions.",
+  "substitutions": [
+    "External native TranscriptionQueue throws if reached; all tests inject scripted ASR at existing seam.",
+    "UsageLog and MeetingTranscribeTally no-op sinks: no disk or app singleton.",
+    "LatencyTrace no-op sink; fresh <30s inputs make backlog shedding absent.",
+    "SelfTest reads exact requested component CLI; production-mode scope means pause flag absent under same diagnostic.",
+    "AppIdentity logging namespace changed to component; actual Log.swift and OSLog behavior retained."
+  ],
+  "notProven": [
+    "Native speech/noise words, model preparation/lane scheduling, actual Session capture/PCM writer/finals/save/fresh-reader, cancellation of entered native models, actual app SelfTest parser routing, reference-machine concurrent voice/ASR latency and memory."
+  ],
+  "commandPlan": "COMPONENT-COMMANDS.md",
+  "preparedOnly": true,
+  "compilerInvoked": false,
+  "modelInvoked": false,
+  "canonicalWrites": false,
+  "fixturePins": {
+    "manifestSHA256": "b61361547cea3f22a11f6f6ddf4796640458f2245f97a6aa18e0ccb1f06b62e1",
+    "samplesEach": 52566,
+    "scope": "Six public independently retained clips only; owner full recording never loaded."
+  },
+  "actualSourceReadOnlyAudit": [
+    "Complete actor prefix extracted at exact external queue boundary; no producer algorithm replacement.",
+    "SelfTest readonly flag remains exact quiet-input; no broadening.",
+    "Static and instance actor helpers are synchronous; external calls retain original awaits.",
+    "Sendable manifest row and async recorder actor capture only public sample arrays/Bool; pure helpers marked nonisolated.",
+    "Actor accessor is non-suspending and records existing queue integer boundaries before drain Task interleaving; no observer/history stored.",
+    "All currently generated helpers are source-only; Swift6 compilation and original/fixed behavior still unverified."
+  ],
+  "auxiliaryPins": {
+    "prepare_component.py": "ae7c4fbe446a702f197dfe577a8e6509fda53976ab94cc8735a6d50a038d6675",
+    "COMPONENT-COMMANDS.md": "82c21b8b1657fa565231a8ab54872695eaeb391b530f6fdfb6172a9b890def3a"
+  },
+  "fixtureAdmissionCorrection": {
+    "scope": "Same shared Main.swift for both original and fixed; no actor, boundary fixture, corpus, gold or opt-in change.",
+    "beforeMainSHA256": "98c2178c4d5e7f1ad29dce3e7526ac12d524df7129ae9efd2bc78ed72c5021dd",
+    "afterMainSHA256": "b6075c0b3bf43c883a1d3cd19ff8ac780e7e3b75ddabc85c78dc813ecfe378b5",
+    "reason": "Foundation NSURL.resolvingSymlinksInPath canonicalizes literal /private/tmp into /tmp even though Python verified non-symlink UUID directory and6regular pinned files. Literal/resolved equality rejected legitimate fixture before corpus actor proof.",
+    "responsibleSeam": "Match actual MeetingQuietSession resolved root parent == resolved /private/tmp policy. Exact UUID-named root, filenames/manifest hashes and child equality checks retained.",
+    "originalEvidenceDirectory": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-pause-candidate-pfjr7kps/pause1-original-admission",
+    "patchSHA256": "12bdf214accbc6fef4594a9a59d3b4721eb81f46ab491c8fd98ec4ed640b1e70",
+    "originalObservedBoundaryFailures": 14,
+    "originalCorpusStatus": "NOT_EXECUTED: fixture admission rejected, not PCM/classification quality failure",
+    "correctedStatus": "UNCOMPILED/UNRUN; root must rerun same original/fixed cases."
+  }
+}

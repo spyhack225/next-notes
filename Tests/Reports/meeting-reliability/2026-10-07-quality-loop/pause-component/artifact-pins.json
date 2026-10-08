@@ -1,0 +1,19 @@
+{
+  "ACCEPTANCE.md": "7c064160a3b392f0edefe97e1776a4f2a77941273d9a724637b2ebd357ed2f3b",
+  "COMPONENT-COMMANDS.md": "82c21b8b1657fa565231a8ab54872695eaeb391b530f6fdfb6172a9b890def3a",
+  "Main.swift": "b6075c0b3bf43c883a1d3cd19ff8ac780e7e3b75ddabc85c78dc813ecfe378b5",
+  "MeetingPauseBoundarySelfTest.swift": "d75e201bd82760000324eab64663ac7127198988ca07bde855529526cae61761",
+  "README.md": "3f97e22995ce8b551a33821b936849e2e54efbbb5f7d7c50503861b36e4ffda5",
+  "boundary-selftest.patch": "833a55863d7c21a0b37139bcea833f0e7e5413beee5443b4f2a7122b91fe7883",
+  "combined-pause-candidate.patch": "8eebc977e165f919204e32fb462deb79b85acc1fe1380fb6898a2c85a629c7d7",
+  "component-source-manifest.json": "4dbe8d864f0e7bb2861ea5c442f4aafb5021971853845defe57d547b4665cba5",
+  "fixture-foundation-alias.patch": "12bdf214accbc6fef4594a9a59d3b4721eb81f46ab491c8fd98ec4ed640b1e70",
+  "guarded-pause2-fixed-run.log": "1d6716a916776766e418b7c1eac4b943749d50046ebd7c785cf4a81ca8460a9d",
+  "guarded-pause2-original-run.log": "797742ec03d289cc95fc51f8290cd04188619534d5b12ea02b7ee4c66c713dde",
+  "observer.patch": "390b636c40c450a24e4179f6ae458931c566d41f4a80bc0b8d4109c786b7a18d",
+  "offline-public-corpus-characterization.json": "a583313d6851e8dbfca41d5deb6d2419c0c93889ba57728895f3cab6cc5862c8",
+  "pause-candidate.patch": "e4b1be61b753eefadab28825e149c937e76007ca856d22e37976b0e8e2be78bc",
+  "readiness-checklist.json": "953bfbc11415f9ae65288e8f0717f8e341fc59c4c000c47e4933fe730a2d1517",
+  "review.json": "deeeb425377d0d39dd2183c78857a3644ae0f3c0fa0bc0f9094bbb04ef7fdc70",
+  "source-pins.json": "cc9d389ab9d0464511f0f7bc5f44927afdb3839dee50479cac2a8726de61f4c5"
+}

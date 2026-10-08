@@ -1,0 +1,56 @@
+[
+  {
+    "at": "2026-10-08T06:55:09.106825+00:00",
+    "elapsed": 0.4309265839983709,
+    "availableDiskGiB": 7.237400054931641,
+    "reportedFreePercent": 57,
+    "swapObservation": "vm.swapusage: total = 9216.00M  used = 7822.94M  free = 1393.06M  (encrypted)",
+    "vmStat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     7319.\nPages active:                                 291510.\nPages inactive:                               288908.\nPages speculative:                               267.\nPages throttled:                                   0.\nPages wired down:                             201642.\nPages purgeable:                                3253.\n\"Translation faults\":                      770360178.\nPages copy-on-write:                        12281015.\nPages zero filled:                        2151189377.\nPages reactivated:                         260838061.\nPages purged:                               17704433.\nFile-backed pages:                            214625.\nAnonymous pages:                              366060.\nPages stored in compressor:                   455354.\nPages occupied by compressor:                 222338.\nDecompressions:                            316687936.\nCompressions:                              341182152.\nPageins:                                    58647596.\nPageouts:                                     612147.\nSwapins:                                     3474790.\nSwapouts:                                    4347195.\n",
+    "interpretation": "VM counters and proxy retained independently; proxy is not literal physical RAM"
+  },
+  {
+    "at": "2026-10-08T06:55:11.160078+00:00",
+    "elapsed": 2.4841637089994038,
+    "availableDiskGiB": 7.236927032470703,
+    "reportedFreePercent": 55,
+    "swapObservation": "vm.swapusage: total = 9216.00M  used = 7822.94M  free = 1393.06M  (encrypted)",
+    "vmStat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     6340.\nPages active:                                 278772.\nPages inactive:                               272701.\nPages speculative:                              5144.\nPages throttled:                                   0.\nPages wired down:                             213190.\nPages purgeable:                                3232.\n\"Translation faults\":                      770475759.\nPages copy-on-write:                        12283303.\nPages zero filled:                        2151451797.\nPages reactivated:                         260870632.\nPages purged:                               17706539.\nFile-backed pages:                            209343.\nAnonymous pages:                              347274.\nPages stored in compressor:                   478755.\nPages occupied by compressor:                 235978.\nDecompressions:                            316711541.\nCompressions:                              341229977.\nPageins:                                    58662828.\nPageouts:                                     612147.\nSwapins:                                     3474794.\nSwapouts:                                    4347195.\n",
+    "interpretation": "VM counters and proxy retained independently; proxy is not literal physical RAM"
+  },
+  {
+    "at": "2026-10-08T06:55:13.218281+00:00",
+    "elapsed": 4.542364583998278,
+    "availableDiskGiB": 7.236881256103516,
+    "reportedFreePercent": 56,
+    "swapObservation": "vm.swapusage: total = 9216.00M  used = 7822.94M  free = 1393.06M  (encrypted)",
+    "vmStat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     5300.\nPages active:                                 283882.\nPages inactive:                               277363.\nPages speculative:                              5414.\nPages throttled:                                   0.\nPages wired down:                             197450.\nPages purgeable:                                3020.\n\"Translation faults\":                      770505340.\nPages copy-on-write:                        12284034.\nPages zero filled:                        2151687270.\nPages reactivated:                         260909670.\nPages purged:                               17709075.\nFile-backed pages:                            219541.\nAnonymous pages:                              347118.\nPages stored in compressor:                   492143.\nPages occupied by compressor:                 242740.\nDecompressions:                            316716105.\nCompressions:                              341248363.\nPageins:                                    58676378.\nPageouts:                                     612147.\nSwapins:                                     3474794.\nSwapouts:                                    4347195.\n",
+    "interpretation": "VM counters and proxy retained independently; proxy is not literal physical RAM"
+  },
+  {
+    "at": "2026-10-08T06:55:15.285633+00:00",
+    "elapsed": 6.609714624995831,
+    "availableDiskGiB": 7.236339569091797,
+    "reportedFreePercent": 56,
+    "swapObservation": "vm.swapusage: total = 9216.00M  used = 7822.94M  free = 1393.06M  (encrypted)",
+    "vmStat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     5787.\nPages active:                                 282622.\nPages inactive:                               279831.\nPages speculative:                              1831.\nPages throttled:                                   0.\nPages wired down:                             195292.\nPages purgeable:                                3068.\n\"Translation faults\":                      770535500.\nPages copy-on-write:                        12284768.\nPages zero filled:                        2151925937.\nPages reactivated:                         260921831.\nPages purged:                               17711765.\nFile-backed pages:                            226265.\nAnonymous pages:                              338019.\nPages stored in compressor:                   499394.\nPages occupied by compressor:                 246779.\nDecompressions:                            316723140.\nCompressions:                              341264939.\nPageins:                                    58690053.\nPageouts:                                     612147.\nSwapins:                                     3474794.\nSwapouts:                                    4347195.\n",
+    "interpretation": "VM counters and proxy retained independently; proxy is not literal physical RAM"
+  },
+  {
+    "at": "2026-10-08T06:55:17.349236+00:00",
+    "elapsed": 8.673314249994291,
+    "availableDiskGiB": 7.236057281494141,
+    "reportedFreePercent": 55,
+    "swapObservation": "vm.swapusage: total = 9216.00M  used = 7822.94M  free = 1393.06M  (encrypted)",
+    "vmStat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     6550.\nPages active:                                 277732.\nPages inactive:                               275685.\nPages speculative:                              1213.\nPages throttled:                                   0.\nPages wired down:                             197348.\nPages purgeable:                                   7.\n\"Translation faults\":                      770562761.\nPages copy-on-write:                        12285494.\nPages zero filled:                        2152157379.\nPages reactivated:                         260934798.\nPages purged:                               17712347.\nFile-backed pages:                            231421.\nAnonymous pages:                              323209.\nPages stored in compressor:                   511520.\nPages occupied by compressor:                 253610.\nDecompressions:                            316726085.\nCompressions:                              341280202.\nPageins:                                    58705881.\nPageouts:                                     612164.\nSwapins:                                     3474794.\nSwapouts:                                    4347195.\n",
+    "interpretation": "VM counters and proxy retained independently; proxy is not literal physical RAM"
+  },
+  {
+    "at": "2026-10-08T06:55:19.398435+00:00",
+    "elapsed": 10.722514583998418,
+    "availableDiskGiB": 7.235950469970703,
+    "reportedFreePercent": 36,
+    "swapObservation": "vm.swapusage: total = 9216.00M  used = 7822.94M  free = 1393.06M  (encrypted)",
+    "vmStat": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                     4969.\nPages active:                                 164000.\nPages inactive:                               195778.\nPages speculative:                              1902.\nPages throttled:                                   0.\nPages wired down:                             349006.\nPages purgeable:                                2201.\n\"Translation faults\":                      770651485.\nPages copy-on-write:                        12286365.\nPages zero filled:                        2152441204.\nPages reactivated:                         260970797.\nPages purged:                               17714703.\nFile-backed pages:                            134630.\nAnonymous pages:                              227050.\nPages stored in compressor:                   602971.\nPages occupied by compressor:                 296529.\nDecompressions:                            316738537.\nCompressions:                              341391130.\nPageins:                                    58721141.\nPageouts:                                     612165.\nSwapins:                                     3474806.\nSwapouts:                                    4347195.\n",
+    "interpretation": "VM counters and proxy retained independently; proxy is not literal physical RAM"
+  }
+]

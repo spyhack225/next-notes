@@ -1,0 +1,23 @@
+--- a/component/Main.swift
++++ b/component/Main.swift
+@@ -24,8 +24,18 @@
+     }
+ 
+     @MainActor private static func corpus() async throws -> Bool {
+-        let root = URL(fileURLWithPath: "/private/tmp/NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E", isDirectory: true)
+-        guard root.resolvingSymlinksInPath().path == root.path else { throw CocoaError(.fileReadNoPermission) }
++        // Match the actual Session fixture policy: Foundation can normalize the
++        // /private/tmp alias to /tmp, so compare resolved roots/parents consistently.
++        let expectedRootName = "NextNotesMeetingQuietInput-0E30FA0E-4BA7-4DBD-A732-602B5E35949E"
++        let root = URL(fileURLWithPath: "/private/tmp/" + expectedRootName, isDirectory: true)
++            .resolvingSymlinksInPath()
++        let temporary = URL(fileURLWithPath: "/private/tmp", isDirectory: true).resolvingSymlinksInPath()
++        let prefix = "NextNotesMeetingQuietInput-"
++        guard root.deletingLastPathComponent().path == temporary.path,
++              root.lastPathComponent == expectedRootName,
++              root.lastPathComponent.hasPrefix(prefix),
++              UUID(uuidString: String(root.lastPathComponent.dropFirst(prefix.count))) != nil
++        else { throw CocoaError(.fileReadNoPermission) }
+         let manifestData = try Data(contentsOf: root.appendingPathComponent("session-cases.json"))
+         guard digest(manifestData) == "b61361547cea3f22a11f6f6ddf4796640458f2245f97a6aa18e0ccb1f06b62e1" else { throw CocoaError(.fileReadCorruptFile) }
+         let manifest = try JSONDecoder().decode(Manifest.self, from: manifestData)

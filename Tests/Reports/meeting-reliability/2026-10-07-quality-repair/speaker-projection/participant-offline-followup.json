@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-08",
+  "scope": "read-only retained diagnostic/provider/audio-clock audit; no app/browser/model/compiler launch",
+  "canonical_sources_edited": false,
+  "physical_observation_files": 0,
+  "private_observation_root_exists": false,
+  "retained_zoom_metadata": {
+    "attendee_count": 0,
+    "speaker_names_count": 0,
+    "conference_url_present": false
+  },
+  "native_contract_results": [
+    {
+      "candidate_sha256": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25",
+      "checks": 19,
+      "marker": "MEETING_PARTICIPANT_OBSERVATION_OK",
+      "log": "../../2026-10-07-quality-loop/meeting-participant-observation-fourth-release.log"
+    },
+    {
+      "candidate_sha256": "7b3c734900a2535e1f22bc6068aeb560b25c23774bcc7780501f8328a49a91d2",
+      "checks": 19,
+      "marker": "MEETING_PARTICIPANT_OBSERVATION_OK",
+      "log": "../../2026-10-07-quality-loop/meeting-participant-observation-fifth-release.log"
+    }
+  ],
+  "physical_parser_fixture_created": false,
+  "reason": "No actual Zoom/Meet participant/active-speaker observation is retained; inventing a UI schema would not reproduce the producer.",
+  "clock_contract": {
+    "recording": "MeetingSession pairs Date and mach_absolute_time; capture packet host timestamps subtract that host anchor",
+    "precise_existing_metadata": "MeetingPerformanceSummary.recordingStartedAtReferenceSeconds preserves fractional Date when present",
+    "legacy_limit": "Meeting.start ISO8601 serialization drops fractional seconds; no precise clock is retained on ended Zoom sample",
+    "binding_limit": "A wall-clock observation interval alone does not establish provider state latency, clock drift, an utterance interval or acoustic identity"
+  },
+  "existing_name_consumer": "SpeakerNamesSheet offers Meeting.attendees as invite suggestions; an explicit speakerNames map is the existing confirmed identity seam",
+  "primary_sources": [
+    "https://developers.google.com/workspace/meet/api/guides/participants",
+    "https://developers.google.com/workspace/meet/api/reference/rest/v2/conferenceRecords.transcripts.entries",
+    "https://developers.google.com/workspace/meet/api/guides/authenticate-authorize"
+  ],
+  "grants_observed": "GoogleOAuthClient currently requests calendar.readonly only; no Meet/People grant or provider call was made",
+  "next_physical_step": "One explicitly requested installed Zoom/Meet diagnostic during the owner call; retain raw labels/state/source/clock privately before adding a platform-shaped parser",
+  "next_producer_regression": "Original probe always emits empty participantNames/activeSpeakerName; actual observed schema supplies unchanged red fixture, parser correction must pass same fixture plus ambiguous/changed/clipped/duplicate/layout refusals",
+  "next_binding_scope": "Roster-only result yields names for confirmation, not a voice map. Existing speakerNames requires owner confirmation or verified participant-linked utterance/time evidence; preserve explicit maps and refuse conflicting/overlapping/unstable/unknown voices.",
+  "email_policy": "No email inferred from a name; provider/authorized existing invitation value only; missing stays absent",
+  "ui_save_gap": "Cache-only same-method producer correction and actual isolated store/context/audio consumer fixture staged in rename-ui-staged.patch; native original/fixed not yet run"
+}

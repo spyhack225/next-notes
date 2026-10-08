@@ -1,0 +1,98 @@
+--- /dev/null
++++ b/Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift
+@@ -0,0 +1,95 @@
++import FluidAudio
++import Foundation
++
++/// No model, capture or owner stores. Native Session words remain a separate gate.
++/// The observer calls the actual append/nextCut producer synchronously and returns
++/// nominal queue boundaries before the existing drain task can merge them.
++@MainActor
++enum MeetingPauseBoundarySelfTest {
++    private struct Fixture: Sendable {
++        let id: String
++        let samples: [Float]
++        let completedEnds: [Int]
++        let staticEnds: [Int]
++    }
++
++    static func run(write: (String) -> Void) async -> Bool {
++        guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-quiet-input",
++              CommandLine.arguments.contains("--meeting-quiet-pause-boundaries") else {
++            write("MEETING_PAUSE_BOUNDARIES_FAILED: explicit diagnostic required"); return false
++        }
++        let quiet = [Float](repeating: 0.005, count: 52_566)
++        let loud = [Float](repeating: 0.1, count: 52_566)
++        let mixed = [Float](repeating: 0.1, count: 16_000)
++            + [Float](repeating: 0.005, count: 36_566)
++        let zero = [Float](repeating: 0, count: 52_566)
++        // Signals here are boundary controls, never demonstrated speech/noise recognition.
++        let fixtures = [
++            Fixture(id: "below-floor-nonzero", samples: quiet, completedEnds: [], staticEnds: [52_566]),
++            Fixture(id: "above-floor", samples: loud, completedEnds: [], staticEnds: [52_566]),
++            Fixture(id: "loud-to-quiet", samples: mixed, completedEnds: [], staticEnds: [52_566]),
++            Fixture(id: "digital-zero", samples: zero, completedEnds: [32_000], staticEnds: [32_000, 52_566]),
++            Fixture(id: "quiet-zero-pause", samples:
++                [Float](repeating: 0.005, count: 40_000)
++                + [Float](repeating: 0, count: 9_600)
++                + [Float](repeating: 0.005, count: 32_000),
++                completedEnds: [49_600], staticEnds: [49_600, 81_600]),
++            Fixture(id: "late-pause-burst-hard-max", samples:
++                [Float](repeating: 0.1, count: 96_000)
++                + [Float](repeating: 0, count: 9_600)
++                + [Float](repeating: 0.1, count: 8_000),
++                completedEnds: [80_000], staticEnds: [80_000, 113_600]),
++            Fixture(id: "continuous-two-maxima", samples: [Float](repeating: 0.1, count: 192_000),
++                completedEnds: [80_000, 160_000], staticEnds: [80_000, 160_000, 192_000])
++        ]
++        var checks = 0
++        var failures = 0
++        func check(_ id: String, _ label: String, _ value: Bool) {
++            checks += 1; if !value { failures += 1 }
++            write("MEETING_PAUSE_CHECK case=\(id) check=\(label) pass=\(value)")
++        }
++        // The shared dictation RMS contract must not change with the meeting experiment.
++        check("shared-rms", "below-floor-remains-silent", ChunkedTranscriber.frameIsSilent(rms: 0.005))
++        check("shared-rms", "above-floor-remains-active", !ChunkedTranscriber.frameIsSilent(rms: 0.1))
++        for fixture in fixtures {
++            let staticCuts = ChunkedTranscriber.cutPoints(in: fixture.samples, config: .default)
++            check(fixture.id, "static-contract", staticCuts == fixture.staticEnds)
++            for step in [fixture.samples.count, 16_000, 319] {
++                let transcriber = ChunkedTranscriber(source: .system,
++                    transcribe: { samples in
++                        (result: emptyResult(samples), laneWait: 0, compute: 0)
++                    }, onSegment: { _ in })
++                let observed = await transcriber.appendAndObserveCutsForTesting(chunks(fixture.samples, step: step))
++                check(fixture.id, "actual-nextCut-step-\(step)", observed == fixture.completedEnds)
++                if let observed {
++                    var previous = 0
++                    var bounded = true
++                    for end in observed {
++                        bounded = bounded && end > previous && end - previous <= 80_000
++                        previous = end
++                    }
++                    check(fixture.id, "nominal-hard-max-step-\(step)", bounded)
++                    // Fresh <30s fixture: no backlog shedding can invalidate the observation.
++                    check(fixture.id, "no-drop-step-\(step)", await transcriber.droppedAudioSeconds == 0)
++                }
++                await transcriber.cancel()
++                await transcriber.flush() // Join the original drain slot; no fresh model call.
++            }
++        }
++        let candidate = CommandLine.arguments.contains("--meeting-quiet-pause-experiment")
++        write("MEETING_PAUSE_BOUNDARIES mode=\(candidate ? "digital-zero-experiment" : "legacy") checks=\(checks) failures=\(failures) nativeWordsVerified=false")
++        write(failures == 0 ? "MEETING_PAUSE_BOUNDARIES_OK" : "MEETING_PAUSE_BOUNDARIES_FAILED: \(failures) checks wrong")
++        return failures == 0
++    }
++
++    private nonisolated static func chunks(_ samples: [Float], step: Int) -> [[Float]] {
++        stride(from: 0, to: samples.count, by: step).map {
++            Array(samples[$0..<min($0 + step, samples.count)])
++        }
++    }
++
++    private nonisolated static func emptyResult(_ samples: [Float]) -> ASRResult {
++        ASRResult(text: "", confidence: 1, duration: Double(samples.count) / 16_000,
++                  processingTime: 0, tokenTimings: nil)
++    }
++}

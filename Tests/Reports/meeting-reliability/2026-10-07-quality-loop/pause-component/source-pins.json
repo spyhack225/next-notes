@@ -1,0 +1,33 @@
+{
+  "scope": "Cache only. No canonical source, compiler, model or native execution.",
+  "beforeSHA256": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182",
+  "normalProduction": "RMS predicate and inherited window behavior retained absent exact SelfTest/quiet-input/opt-in conjunction.",
+  "windowConfigScope": "Native default/final/legacy sizes are frame aligned. Arbitrary non-frame-aligned cutPoints ceil-to-frame behavior is inherited and not repaired by this experiment.",
+  "files": {
+    "ACCEPTANCE.md": "7c064160a3b392f0edefe97e1776a4f2a77941273d9a724637b2ebd357ed2f3b",
+    "ChunkedTranscriber.baseline-with-observer.swift": "c2df35cc3df8f3d93ef21ed8b7b5b27721f967dd28ab33dc1d68170ff83566fa",
+    "ChunkedTranscriber.before.swift": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182",
+    "ChunkedTranscriber.pause-candidate.swift": "f2ecb4adf28009f390c46c76abc64eb58edb52422c514f7ed66f5f40166302b7",
+    "MeetingPauseBoundarySelfTest.swift": "da9e449e521d70dbe346727d96b2610c291b7b71b98c97afe141d450e83be8cd",
+    "boundary-selftest.patch": "833a55863d7c21a0b37139bcea833f0e7e5413beee5443b4f2a7122b91fe7883",
+    "combined-pause-candidate.patch": "8eebc977e165f919204e32fb462deb79b85acc1fe1380fb6898a2c85a629c7d7",
+    "observer.patch": "390b636c40c450a24e4179f6ae458931c566d41f4a80bc0b8d4109c786b7a18d",
+    "offline-public-corpus-characterization.json": "a583313d6851e8dbfca41d5deb6d2419c0c93889ba57728895f3cab6cc5862c8",
+    "pause-candidate.patch": "e4b1be61b753eefadab28825e149c937e76007ca856d22e37976b0e8e2be78bc"
+  },
+  "actualSourceFixture": {
+    "file": "MeetingPauseBoundarySelfTest.swift",
+    "entry": "static func run(write: (String) -> Void) async -> Bool",
+    "rootRoute": "Inside requested quiet-input before existing quiet/session run, dispatch explicit --meeting-quiet-pause-boundaries. Do not run model or owner store.",
+    "status": "Uncompiled, unexecuted. Intended original unchanged expectations fail; candidate same actual append/nextCut expectations pass.",
+    "scope": "Fresh below30s windows, atomic queued-end observation before merge; injected empty ASR and original cancel/flush join. Not speech proof."
+  },
+  "sharedConsumer": "DictationSegmenter uses ChunkedTranscriber.frameIsSilent(rms:) at line104; shared predicate source unchanged.",
+  "nativeAcceptance": "ACCEPTANCE.md; root mode marker required in existing actual Session output so admission-only and admission+pause cannot be conflated.",
+  "knownLimits": [
+    "Digital-zero abstention defers analog noisy pauses to existing max; native latency/noise/word/workload proof pending.",
+    "Independent burst max defect is separate from actual52566sample clause corruption.",
+    "Both admission and pause modes stay diagnostic-only; no production promotion.",
+    "Cache scope overlaps root/peer ChunkedTranscriber ownership; root applies surgical hunks only in coordinated gap."
+  ]
+}

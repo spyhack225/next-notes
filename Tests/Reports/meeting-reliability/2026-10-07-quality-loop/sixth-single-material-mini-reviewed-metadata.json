@@ -1,0 +1,21 @@
+{
+  "experiment": "sixth-single-material-mini-reviewed",
+  "exit": 1,
+  "wall_seconds": 14.814161124995735,
+  "markers": [
+    "NOTES_REPLAY_FAILED"
+  ],
+  "candidateSHA": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "startedAt": "2026-10-08T06:44:32.515479+00:00",
+  "endedAt": "2026-10-08T06:44:47.331561+00:00",
+  "pids": [
+    95352
+  ],
+  "memorySamples": 5,
+  "peakSampledFootprintBytes": 855444384,
+  "peakSampledResidentBytes": 1985757184,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "manual review pending",
+  "guardReason": "reportedFreeBelow50Percent",
+  "guardScope": "explicit diagnostic only,300s/3GB sampled process footprint/system8GBswap; no product gate"
+}

@@ -1,0 +1,202 @@
+MEETING_PAUSE_CHECK case=shared-rms check=below-floor-remains-silent pass=true
+MEETING_PAUSE_CHECK case=shared-rms check=above-floor-remains-active pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=static-contract pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=actual-nextCut-step-52566 pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=nominal-hard-max-step-52566 pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=no-drop-step-52566 pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=actual-nextCut-step-16000 pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=nominal-hard-max-step-16000 pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=no-drop-step-16000 pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=actual-nextCut-step-319 pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=nominal-hard-max-step-319 pass=true
+MEETING_PAUSE_CHECK case=below-floor-nonzero check=no-drop-step-319 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=static-contract pass=true
+MEETING_PAUSE_CHECK case=above-floor check=actual-nextCut-step-52566 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=nominal-hard-max-step-52566 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=no-drop-step-52566 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=actual-nextCut-step-16000 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=nominal-hard-max-step-16000 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=no-drop-step-16000 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=actual-nextCut-step-319 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=nominal-hard-max-step-319 pass=true
+MEETING_PAUSE_CHECK case=above-floor check=no-drop-step-319 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=static-contract pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=actual-nextCut-step-52566 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=nominal-hard-max-step-52566 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=no-drop-step-52566 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=actual-nextCut-step-16000 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=nominal-hard-max-step-16000 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=no-drop-step-16000 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=actual-nextCut-step-319 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=nominal-hard-max-step-319 pass=true
+MEETING_PAUSE_CHECK case=loud-to-quiet check=no-drop-step-319 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=static-contract pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=actual-nextCut-step-52566 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=nominal-hard-max-step-52566 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=no-drop-step-52566 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=actual-nextCut-step-16000 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=nominal-hard-max-step-16000 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=no-drop-step-16000 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=actual-nextCut-step-319 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=nominal-hard-max-step-319 pass=true
+MEETING_PAUSE_CHECK case=digital-zero check=no-drop-step-319 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=static-contract pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=actual-nextCut-step-81600 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=nominal-hard-max-step-81600 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=no-drop-step-81600 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=actual-nextCut-step-16000 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=nominal-hard-max-step-16000 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=no-drop-step-16000 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=actual-nextCut-step-319 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=nominal-hard-max-step-319 pass=true
+MEETING_PAUSE_CHECK case=quiet-zero-pause check=no-drop-step-319 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=static-contract pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=actual-nextCut-step-113600 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=nominal-hard-max-step-113600 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=no-drop-step-113600 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=actual-nextCut-step-16000 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=nominal-hard-max-step-16000 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=no-drop-step-16000 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=actual-nextCut-step-319 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=nominal-hard-max-step-319 pass=true
+MEETING_PAUSE_CHECK case=late-pause-burst-hard-max check=no-drop-step-319 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=static-contract pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=actual-nextCut-step-192000 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=nominal-hard-max-step-192000 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=no-drop-step-192000 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=actual-nextCut-step-16000 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=nominal-hard-max-step-16000 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=no-drop-step-16000 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=actual-nextCut-step-319 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=nominal-hard-max-step-319 pass=true
+MEETING_PAUSE_CHECK case=continuous-two-maxima check=no-drop-step-319 pass=true
+MEETING_PAUSE_BOUNDARIES mode=digital-zero-experiment checks=72 failures=0 nativeWordsVerified=false
+MEETING_PAUSE_BOUNDARIES_OK
+PAUSE_COMPONENT_CHECK case=quiet check=candidate-static-boundary pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=inherited-or-explicit-admission pass=true
+PAUSE_COMPONENT_CLASSIFICATION case=quiet admission=true scope=signal-forwarding-not-speech-proof
+PAUSE_COMPONENT_CHECK case=quiet check=actual-queued-boundary-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=actual-forwarded-sample-order-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=source-domain-segment-bounds-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=no-native-word-claim-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=no-backlog-drop-step-52566 pass=true
+PAUSE_COMPONENT_TRANSPORT case=quiet step=52566 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=quiet check=actual-queued-boundary-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=actual-forwarded-sample-order-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=source-domain-segment-bounds-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=no-native-word-claim-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=no-backlog-drop-step-16000 pass=true
+PAUSE_COMPONENT_TRANSPORT case=quiet step=16000 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=quiet check=actual-queued-boundary-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=actual-forwarded-sample-order-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=source-domain-segment-bounds-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=no-native-word-claim-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=quiet check=no-backlog-drop-step-319 pass=true
+PAUSE_COMPONENT_TRANSPORT case=quiet step=319 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=loud check=candidate-static-boundary pass=true
+PAUSE_COMPONENT_CHECK case=loud check=inherited-or-explicit-admission pass=true
+PAUSE_COMPONENT_CLASSIFICATION case=loud admission=true scope=signal-forwarding-not-speech-proof
+PAUSE_COMPONENT_CHECK case=loud check=actual-queued-boundary-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=actual-forwarded-sample-order-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=source-domain-segment-bounds-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=no-native-word-claim-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=no-backlog-drop-step-52566 pass=true
+PAUSE_COMPONENT_TRANSPORT case=loud step=52566 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=loud check=actual-queued-boundary-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=actual-forwarded-sample-order-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=source-domain-segment-bounds-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=no-native-word-claim-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=no-backlog-drop-step-16000 pass=true
+PAUSE_COMPONENT_TRANSPORT case=loud step=16000 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=loud check=actual-queued-boundary-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=actual-forwarded-sample-order-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=source-domain-segment-bounds-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=no-native-word-claim-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=loud check=no-backlog-drop-step-319 pass=true
+PAUSE_COMPONENT_TRANSPORT case=loud step=319 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=mixed check=candidate-static-boundary pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=inherited-or-explicit-admission pass=true
+PAUSE_COMPONENT_CLASSIFICATION case=mixed admission=true scope=signal-forwarding-not-speech-proof
+PAUSE_COMPONENT_CHECK case=mixed check=actual-queued-boundary-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=actual-forwarded-sample-order-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=source-domain-segment-bounds-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=no-native-word-claim-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=no-backlog-drop-step-52566 pass=true
+PAUSE_COMPONENT_TRANSPORT case=mixed step=52566 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=mixed check=actual-queued-boundary-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=actual-forwarded-sample-order-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=source-domain-segment-bounds-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=no-native-word-claim-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=no-backlog-drop-step-16000 pass=true
+PAUSE_COMPONENT_TRANSPORT case=mixed step=16000 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=mixed check=actual-queued-boundary-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=actual-forwarded-sample-order-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=source-domain-segment-bounds-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=no-native-word-claim-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=mixed check=no-backlog-drop-step-319 pass=true
+PAUSE_COMPONENT_TRANSPORT case=mixed step=319 queuedEnds=[] calls=[52566] consumerSegments=1 native=false
+PAUSE_COMPONENT_CHECK case=digital-zero check=candidate-static-boundary pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=inherited-or-explicit-admission pass=true
+PAUSE_COMPONENT_CLASSIFICATION case=digital-zero admission=false scope=signal-forwarding-not-speech-proof
+PAUSE_COMPONENT_CHECK case=digital-zero check=actual-queued-boundary-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=actual-forwarded-sample-order-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=source-domain-segment-bounds-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=no-native-word-claim-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=no-backlog-drop-step-52566 pass=true
+PAUSE_COMPONENT_TRANSPORT case=digital-zero step=52566 queuedEnds=[32000] calls=[] consumerSegments=0 native=false
+PAUSE_COMPONENT_CHECK case=digital-zero check=actual-queued-boundary-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=actual-forwarded-sample-order-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=source-domain-segment-bounds-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=no-native-word-claim-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=no-backlog-drop-step-16000 pass=true
+PAUSE_COMPONENT_TRANSPORT case=digital-zero step=16000 queuedEnds=[32000] calls=[] consumerSegments=0 native=false
+PAUSE_COMPONENT_CHECK case=digital-zero check=actual-queued-boundary-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=actual-forwarded-sample-order-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=source-domain-segment-bounds-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=no-native-word-claim-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=digital-zero check=no-backlog-drop-step-319 pass=true
+PAUSE_COMPONENT_TRANSPORT case=digital-zero step=319 queuedEnds=[32000] calls=[] consumerSegments=0 native=false
+PAUSE_COMPONENT_CHECK case=dc check=candidate-static-boundary pass=true
+PAUSE_COMPONENT_CHECK case=dc check=inherited-or-explicit-admission pass=true
+PAUSE_COMPONENT_CLASSIFICATION case=dc admission=true scope=signal-forwarding-not-speech-proof
+PAUSE_COMPONENT_CHECK case=dc check=actual-queued-boundary-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=actual-forwarded-sample-order-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=source-domain-segment-bounds-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=no-native-word-claim-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=no-backlog-drop-step-52566 pass=true
+PAUSE_COMPONENT_TRANSPORT case=dc step=52566 queuedEnds=[] calls=[52566] consumerSegments=0 native=false
+PAUSE_COMPONENT_CHECK case=dc check=actual-queued-boundary-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=actual-forwarded-sample-order-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=source-domain-segment-bounds-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=no-native-word-claim-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=no-backlog-drop-step-16000 pass=true
+PAUSE_COMPONENT_TRANSPORT case=dc step=16000 queuedEnds=[] calls=[52566] consumerSegments=0 native=false
+PAUSE_COMPONENT_CHECK case=dc check=actual-queued-boundary-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=actual-forwarded-sample-order-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=source-domain-segment-bounds-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=no-native-word-claim-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=dc check=no-backlog-drop-step-319 pass=true
+PAUSE_COMPONENT_TRANSPORT case=dc step=319 queuedEnds=[] calls=[52566] consumerSegments=0 native=false
+PAUSE_COMPONENT_CHECK case=noise check=candidate-static-boundary pass=true
+PAUSE_COMPONENT_CHECK case=noise check=inherited-or-explicit-admission pass=true
+PAUSE_COMPONENT_CLASSIFICATION case=noise admission=true scope=signal-forwarding-not-speech-proof
+PAUSE_COMPONENT_CHECK case=noise check=actual-queued-boundary-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=actual-forwarded-sample-order-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=source-domain-segment-bounds-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=no-native-word-claim-step-52566 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=no-backlog-drop-step-52566 pass=true
+PAUSE_COMPONENT_TRANSPORT case=noise step=52566 queuedEnds=[] calls=[52566] consumerSegments=0 native=false
+PAUSE_COMPONENT_CHECK case=noise check=actual-queued-boundary-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=actual-forwarded-sample-order-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=source-domain-segment-bounds-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=no-native-word-claim-step-16000 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=no-backlog-drop-step-16000 pass=true
+PAUSE_COMPONENT_TRANSPORT case=noise step=16000 queuedEnds=[] calls=[52566] consumerSegments=0 native=false
+PAUSE_COMPONENT_CHECK case=noise check=actual-queued-boundary-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=actual-forwarded-sample-order-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=source-domain-segment-bounds-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=no-native-word-claim-step-319 pass=true
+PAUSE_COMPONENT_CHECK case=noise check=no-backlog-drop-step-319 pass=true
+PAUSE_COMPONENT_TRANSPORT case=noise step=319 queuedEnds=[] calls=[52566] consumerSegments=0 native=false
+PAUSE_COMPONENT_CORPUS mode=digital-zero-experiment conservativeAdmission=true failures=0 nativeWordsVerified=false pcmAdapter=RIFF-int16-div32768
+PAUSE_COMPONENT_OK

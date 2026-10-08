@@ -1,0 +1,123 @@
+{
+  "scope": "Offline RIFF PCM16 frame characterization and Python mirror only. No actual Swift execution, compiler, native inference or source edits. Cut shape is not word accuracy. WAV samples normalized signed16/32768, not a claim of AVFoundation decoded-byte identity.",
+  "manifestSHA256": "b61361547cea3f22a11f6f6ddf4796640458f2245f97a6aa18e0ccb1f06b62e1",
+  "cases": [
+    {
+      "id": "quiet",
+      "samples": 52566,
+      "SHA256": "409ee48c5033c947f45413d71ca2a162097b9f220995bb8e613579a23b315000",
+      "frameCount": 164,
+      "frameRMSRange": [
+        0.0,
+        0.009000379137625225
+      ],
+      "belowFloorFrames": 164,
+      "exactZeroFrames": 48,
+      "inheritedStaticCutShape": [
+        32000,
+        52566
+      ],
+      "candidateStaticCutShape": [
+        52566
+      ]
+    },
+    {
+      "id": "loud",
+      "samples": 52566,
+      "SHA256": "775e0278dc520ec43dffee297e2d7673225e5a62c193afbd8c769db51f4c885b",
+      "frameCount": 164,
+      "frameRMSRange": [
+        0.0,
+        0.18452456543781107
+      ],
+      "belowFloorFrames": 64,
+      "exactZeroFrames": 48,
+      "inheritedStaticCutShape": [
+        52566
+      ],
+      "candidateStaticCutShape": [
+        52566
+      ]
+    },
+    {
+      "id": "mixed",
+      "samples": 52566,
+      "SHA256": "f9afd30cba2011ff379fcbe3b7929fdbb0f83766e302d4ebb78f33df5c010a1a",
+      "frameCount": 164,
+      "frameRMSRange": [
+        0.0,
+        0.18452456543781107
+      ],
+      "belowFloorFrames": 148,
+      "exactZeroFrames": 48,
+      "inheritedStaticCutShape": [
+        32000,
+        52566
+      ],
+      "candidateStaticCutShape": [
+        52566
+      ]
+    },
+    {
+      "id": "digital-zero",
+      "samples": 52566,
+      "SHA256": "a62a61c81510c24108d64deb0fc4f7e4641c7fcc40450325008c403d0f3e4867",
+      "frameCount": 164,
+      "frameRMSRange": [
+        0.0,
+        0.0
+      ],
+      "belowFloorFrames": 164,
+      "exactZeroFrames": 164,
+      "inheritedStaticCutShape": [
+        32000,
+        52566
+      ],
+      "candidateStaticCutShape": [
+        32000,
+        52566
+      ]
+    },
+    {
+      "id": "dc",
+      "samples": 52566,
+      "SHA256": "54235a22e144fd98ad22d53a821b844bffb29976b5eac8a75bbb814f1b0e1e3f",
+      "frameCount": 164,
+      "frameRMSRange": [
+        0.0050048828125,
+        0.0050048828125
+      ],
+      "belowFloorFrames": 164,
+      "exactZeroFrames": 0,
+      "inheritedStaticCutShape": [
+        32000,
+        52566
+      ],
+      "candidateStaticCutShape": [
+        52566
+      ]
+    },
+    {
+      "id": "noise",
+      "samples": 52566,
+      "SHA256": "c59ef2d48381671ba0ce0ca285ee179cc1758237b9afadbd8d57bd136082df9c",
+      "frameCount": 164,
+      "frameRMSRange": [
+        0.004590853683980896,
+        0.005281747235747875
+      ],
+      "belowFloorFrames": 164,
+      "exactZeroFrames": 0,
+      "inheritedStaticCutShape": [
+        32000,
+        52566
+      ],
+      "candidateStaticCutShape": [
+        52566
+      ]
+    }
+  ],
+  "sourceCause": "RMS<.01 regards every quiet frame as a pause and 148/164 mixed frames below floor. Original actual Session native live words failed while both finals recovered independent7word clause.",
+  "separateHardMaxCause": "Live nextCut scans entire buffered burst for pause before max fallback. Generic96k abovefloor +9.6k zero +8k abovefloor returns105600 on original burst whereas staticcutPoints returns80000 then113600. Existing52,566 sample clause is shorter than max, so hardmax is not its cause.",
+  "relativeEnvelopeRejected": "A whole-window relative peak changes classifications with a loud prefix; low amplitude later speech may again become a false pause. No confirmed robust threshold from these clips."
+}

@@ -1,0 +1,198 @@
+{
+  "status": "BOUNDED_MODEL_FREE_PRODUCER_COMPONENT_PASS; NATIVE_QUALITY_OPEN",
+  "provenance": {
+    "canonicalBeforeSHA256": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182",
+    "canonicalUnchanged": true,
+    "sourceManifestSHA256": "4dbe8d864f0e7bb2861ea5c442f4aafb5021971853845defe57d547b4665cba5",
+    "driverSHA256": "1fc09f4e23876908e860ea8da3c3dbfc5896df89ece0c7d7454688d94e36cf01",
+    "exactExecutedCompilerArguments": [
+      "xcrun",
+      "swiftc",
+      "-swift-version",
+      "6",
+      "-O",
+      "-whole-module-optimization",
+      "-j",
+      "1",
+      "-parse-as-library",
+      "same six common source files",
+      "exact original or fixed actor extraction",
+      "-o",
+      "owned variant binary"
+    ],
+    "exactCommonRunArguments": [
+      "--selftest-meeting-quiet-input",
+      "--meeting-quiet-pause-boundaries",
+      "--meeting-quiet-conservative-admission"
+    ],
+    "fixedOnlyRunArgument": "--meeting-quiet-pause-experiment",
+    "fixtureManifestSHA256": "b61361547cea3f22a11f6f6ddf4796640458f2245f97a6aa18e0ccb1f06b62e1",
+    "sixPublicInputHashesUnchanged": true,
+    "joinReceipt": "Root confirms both compiler/run phases joined, no guard, no remaining owned PIDs; heavy released relay657. Broadcast delivery is not proof every peer read it.",
+    "allGeneratedSwiftPinsMatch": true
+  },
+  "results": {
+    "original": {
+      "compile": {
+        "at": "2026-10-08T06:59:42.300796+00:00",
+        "phase": "original",
+        "exit": 0,
+        "wallSeconds": 3.164479500002926,
+        "guardReason": null,
+        "samples": 38,
+        "peakSampledFootprintBytes": 122798776,
+        "peakSampledResidentBytes": 218546176,
+        "remainingOwnedPIDs": [],
+        "models": false,
+        "compilerOptions": "same optimized WMO/j1 original/fixed; one frontend avoids primary-file fanout",
+        "samplingScope": "direct child/descendants plus exact cache compiler command paths; summed phase footprint guard; driver attempt1 did not prove frontend coverage",
+        "scope": "reviewed model-free actual-source component; substituted nativequeue/usage/tally/latency sinks; actual actor, no Session/save/native words; process samples not continuous peaks;ordinary8swap/6.5disk/55reportedfree start/50ongoing/1GBfootprint; bounded compiler or45s run"
+      },
+      "run": {
+        "at": "2026-10-08T07:05:15.996090+00:00",
+        "phase": "original-run",
+        "exit": 1,
+        "wallSeconds": 0.21812266699998872,
+        "guardReason": null,
+        "samples": 2,
+        "peakSampledFootprintBytes": 81992,
+        "peakSampledResidentBytes": 13713408,
+        "remainingOwnedPIDs": [],
+        "models": false,
+        "compilerOptions": "same optimized WMO/j1 original/fixed; one frontend avoids primary-file fanout",
+        "samplingScope": "direct child/descendants plus exact cache compiler command paths; summed phase footprint guard; driver attempt1 did not prove frontend coverage",
+        "scope": "reviewed model-free actual-source component; substituted nativequeue/usage/tally/latency sinks; actual actor, no Session/save/native words; process samples not continuous peaks;ordinary8swap/6.5disk/55reportedfree start/50ongoing/1GBfootprint; bounded compiler or45s run"
+      },
+      "genericChecks": 72,
+      "genericFailures": 14,
+      "publicCorpusChecks": 102,
+      "publicCorpusFailures": 16,
+      "terminalMarker": "PAUSE_COMPONENT_FAILED",
+      "logSHA256": "797742ec03d289cc95fc51f8290cd04188619534d5b12ea02b7ee4c66c713dde",
+      "binarySHA256": "99f4a36375de7195ec51f52852fcf54f1d82cd8cdd531237acf3d0ac8ad61f52"
+    },
+    "fixed": {
+      "compile": {
+        "at": "2026-10-08T07:05:28.416024+00:00",
+        "phase": "fixed",
+        "exit": 0,
+        "wallSeconds": 3.035606416000519,
+        "guardReason": null,
+        "samples": 38,
+        "peakSampledFootprintBytes": 123323064,
+        "peakSampledResidentBytes": 218710016,
+        "remainingOwnedPIDs": [],
+        "models": false,
+        "compilerOptions": "same optimized WMO/j1 original/fixed; one frontend avoids primary-file fanout",
+        "samplingScope": "direct child/descendants plus exact cache compiler command paths; summed phase footprint guard; driver attempt1 did not prove frontend coverage",
+        "scope": "reviewed model-free actual-source component; substituted nativequeue/usage/tally/latency sinks; actual actor, no Session/save/native words; process samples not continuous peaks;ordinary8swap/6.5disk/55reportedfree start/50ongoing/1GBfootprint; bounded compiler or45s run"
+      },
+      "run": {
+        "at": "2026-10-08T07:06:05.395247+00:00",
+        "phase": "fixed-run",
+        "exit": 0,
+        "wallSeconds": 0.22342995800136123,
+        "guardReason": null,
+        "samples": 2,
+        "peakSampledFootprintBytes": 81992,
+        "peakSampledResidentBytes": 13533184,
+        "remainingOwnedPIDs": [],
+        "models": false,
+        "compilerOptions": "same optimized WMO/j1 original/fixed; one frontend avoids primary-file fanout",
+        "samplingScope": "direct child/descendants plus exact cache compiler command paths; summed phase footprint guard; driver attempt1 did not prove frontend coverage",
+        "scope": "reviewed model-free actual-source component; substituted nativequeue/usage/tally/latency sinks; actual actor, no Session/save/native words; process samples not continuous peaks;ordinary8swap/6.5disk/55reportedfree start/50ongoing/1GBfootprint; bounded compiler or45s run"
+      },
+      "genericChecks": 72,
+      "genericFailures": 0,
+      "publicCorpusChecks": 102,
+      "publicCorpusFailures": 0,
+      "terminalMarker": "PAUSE_COMPONENT_OK",
+      "logSHA256": "1d6716a916776766e418b7c1eac4b943749d50046ebd7c785cf4a81ca8460a9d",
+      "binarySHA256": "cc3557c81d454f53b7e23dd9128c196dcaa6411307931476fe85c622d6c532e1"
+    }
+  },
+  "firstBrokenContracts": [
+    "Inherited below.01 frame RMS treats retained quiet speech as a pause; same current minimum2s cuts quiet/mixed at32000 rather than preserving52566sample context. Native actual Session first-loss evidence is separate and remains failed.",
+    "Actual nextCut scans an entire burst for a later pause before hardmax fallback: generic113600sample burst emits105600sample cut, exceeding80000maximum, while staticcutPoints enforces max. Same actual actor fixture fails this on original and passes candidate."
+  ],
+  "fixedScope": [
+    "Explicit SelfTest quiet-input + pause-experiment uses digital-zero window pause predicate; nonzero means unknown, not demonstrated speech.",
+    "Candidate nextCut scan limited to existing hardmax; no new wait/sleep/model/retry/queue/store.",
+    "Shared frameIsSilent(rms:) predicate and normal branch calculations remain original. Source branch audit finds no intended default behavior change; fixedflag-off end-to-end parity unrun.",
+    "Actual append queue cuts are observed before drain merges; actual flush/merge/drain and injected segment consumer retain sample order for three feed sizes."
+  ],
+  "observedOneBurstCandidate": {
+    "quiet": {
+      "queuedCuts": [],
+      "scriptedASRSamples": [
+        52566
+      ]
+    },
+    "loud": {
+      "queuedCuts": [],
+      "scriptedASRSamples": [
+        52566
+      ]
+    },
+    "mixed": {
+      "queuedCuts": [],
+      "scriptedASRSamples": [
+        52566
+      ]
+    },
+    "digital-zero": {
+      "queuedCuts": [
+        32000
+      ],
+      "scriptedASRSamples": []
+    },
+    "dc": {
+      "queuedCuts": [],
+      "scriptedASRSamples": [
+        52566
+      ]
+    },
+    "noise": {
+      "queuedCuts": [],
+      "scriptedASRSamples": [
+        52566
+      ]
+    }
+  },
+  "substitutions": [
+    "External native TranscriptionQueue throws if reached; all tests inject scripted ASR at existing seam.",
+    "UsageLog and MeetingTranscribeTally no-op sinks: no disk or app singleton.",
+    "LatencyTrace no-op sink; fresh <30s inputs make backlog shedding absent.",
+    "SelfTest reads exact requested component CLI; production-mode scope means pause flag absent under same diagnostic.",
+    "AppIdentity logging namespace changed to component; actual Log.swift and OSLog behavior retained."
+  ],
+  "limits": [
+    "No native inference or actual Session/capture/writer/final/save/fresh-reader in this component. Injected marker/empty results prove transport only.",
+    "DC/noise no emitted scripted text is provider-controlled; native no-hallucination remains unproven. Conservative admission flag is identical original/fixed and remains separate experimental signal forwarding.",
+    "Exact-zero policy may delay analog noisy pauses until existing5s live/14.5s final; native true-pause accuracy and first/follow-on transcript latency remain open.",
+    "Default/final/legacy configs are frame aligned; arbitrary static custom-window rounding is inherited.",
+    "RIFF signedPCM16/32768 adapter pins public files but does not prove AVFoundation decoded-byte parity.",
+    "Two samples per0.22srun include zero returned footprint later in run;82KB sampled maximum is not actual allocation peak/cap. Compiler38sampled values include exact cache frontend paths; no continuous peak or16GBASR/voice workload claim.",
+    "Run0.2181s versus0.2234s is isolated component evidence, not user path speed comparison.",
+    "Notes native arms are separately incomplete guarded attempts; no automatic retry/guard change or semantic verdict from this component."
+  ],
+  "fixtureGlueRepair": {
+    "scope": "Same shared Main.swift for both original and fixed; no actor, boundary fixture, corpus, gold or opt-in change.",
+    "beforeMainSHA256": "98c2178c4d5e7f1ad29dce3e7526ac12d524df7129ae9efd2bc78ed72c5021dd",
+    "afterMainSHA256": "b6075c0b3bf43c883a1d3cd19ff8ac780e7e3b75ddabc85c78dc813ecfe378b5",
+    "reason": "Foundation NSURL.resolvingSymlinksInPath canonicalizes literal /private/tmp into /tmp even though Python verified non-symlink UUID directory and6regular pinned files. Literal/resolved equality rejected legitimate fixture before corpus actor proof.",
+    "responsibleSeam": "Match actual MeetingQuietSession resolved root parent == resolved /private/tmp policy. Exact UUID-named root, filenames/manifest hashes and child equality checks retained.",
+    "originalEvidenceDirectory": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-pause-candidate-pfjr7kps/pause1-original-admission",
+    "patchSHA256": "12bdf214accbc6fef4594a9a59d3b4721eb81f46ab491c8fd98ec4ed640b1e70",
+    "originalObservedBoundaryFailures": 14,
+    "originalCorpusStatus": "NOT_EXECUTED: fixture admission rejected, not PCM/classification quality failure",
+    "correctedStatus": "UNCOMPILED/UNRUN; root must rerun same original/fixed cases."
+  },
+  "remainingAcceptance": [
+    "Existing actual isolated Session bothtracks exact7word quiet/loud/mixed gold and zero/DC/noise controls with same task joining/source domain/save/fresh-reader.",
+    "Independent real gain/loud-to-quiet/quiet-to-loud/internal breath/noisy true pause/cross5s recordings, no threshold tuning to one clause.",
+    "Native final+global diarizer/IO and reference concurrent ASR/voice live workload speed/memory.",
+    "Relevant default-off production path regressions and strict opt-in routing on next signed candidate.",
+    "No install/default/pause/admission promotion until those contracts pass."
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "ok": true,
+  "messageId": "speaker-participant-coverage-20261008-component11",
+  "recipients": [
+    "serial-root",
+    "codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e",
+    "claude-positioning",
+    "meeting-read-packet",
+    "meeting-performance-20261007",
+    "dictation-performance-20261007"
+  ],
+  "duplicate": false,
+  "cursor": 661,
+  "bodySHA256": "91a5b3e002ed17304a889d5837528274ed5452270a1c301a95673d7c593185d3",
+  "acknowledgementsClaimed": false,
+  "canonicalSourceWrites": false,
+  "speakerClaimHeld": false
+}

@@ -1,0 +1,52 @@
+{
+  "state": "READY_FOR_COORDINATED_CACHE_COMPOSITION_ONLY",
+  "patchFiles": {
+    "combined-pause-candidate.patch": "8eebc977e165f919204e32fb462deb79b85acc1fe1380fb6898a2c85a629c7d7",
+    "observer.patch": "390b636c40c450a24e4179f6ae458931c566d41f4a80bc0b8d4109c786b7a18d",
+    "pause-candidate.patch": "e4b1be61b753eefadab28825e149c937e76007ca856d22e37976b0e8e2be78bc",
+    "boundary-selftest.patch": "833a55863d7c21a0b37139bcea833f0e7e5413beee5443b4f2a7122b91fe7883",
+    "fixture-foundation-alias.patch": "12bdf214accbc6fef4594a9a59d3b4721eb81f46ab491c8fd98ec4ed640b1e70"
+  },
+  "sourceBefore": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182",
+  "componentOriginalActorSHA256": "6299a6da1986ca99eb0ef5d7a1d2527dd849e4a8e22107cebd3df863a0d8b335",
+  "componentFixedActorSHA256": "1406c48bf524f0790db51e811b4f888474f3f7c0e82ba35485fabc41b0a1f64a",
+  "commonMainSHA256": "b6075c0b3bf43c883a1d3cd19ff8ac780e7e3b75ddabc85c78dc813ecfe378b5",
+  "checklist": [
+    {
+      "check": "Apply surgical combined producer/observer patch to exact before source in a cache; combine overlap with bounded-audio patch rather than overwrite entire actor.",
+      "state": "REQUIRED"
+    },
+    {
+      "check": "Boundary fixture source remains generic and identical original/fixed; App hook/diagnostic routing must be reviewed by root.",
+      "state": "REQUIRED"
+    },
+    {
+      "check": "Pause guard stays SelfTest.isRunning + requested quiet-input + explicit pauseflag. Shared RMS predicate untouched.",
+      "state": "SOURCE_AUDITED"
+    },
+    {
+      "check": "Preserve production default arrays and original diarizer semantics; bounded reader only explicit SelfTest experiment.",
+      "state": "REQUIRED_FOR_SOURCE7"
+    },
+    {
+      "check": "Root-original/fixed model-free component with same corpus/fields passes72+102 fixed checks and preserves30original failures.",
+      "state": "PASS"
+    },
+    {
+      "check": "Preserve pause1 failure/Main/compiler/run/artifacts and Foundation-alias correction; no weakness in UUID/hash/child checks.",
+      "state": "RETAINED"
+    },
+    {
+      "check": "Actual native word/noise/pause/latency plus actual Session and reference workload acceptance.",
+      "state": "OPEN"
+    },
+    {
+      "check": "Normal branch source reasoning finds no changed windows/admission/queue semantics; measured whole-app default-off parity.",
+      "state": "SOURCE_AUDIT_PASS; END_TO_END_OPEN"
+    },
+    {
+      "check": "No production install/default change or automatic notes retry/threshold relaxation.",
+      "state": "UNCHANGED"
+    }
+  ]
+}

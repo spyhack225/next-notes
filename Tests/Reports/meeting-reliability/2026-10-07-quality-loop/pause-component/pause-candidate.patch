@@ -1,0 +1,46 @@
+--- a/Sources/NextNotes/Meetings/ChunkedTranscriber.swift
++++ b/Sources/NextNotes/Meetings/ChunkedTranscriber.swift
+@@ -309,9 +309,13 @@
+ 
+     /// - Returns: how many samples to cut from the front of `buffer`, or `nil` to wait.
+     private func nextCut() -> Int? {
+-        while scanned + Self.frameSamples <= buffer.count {
++        // The experiment refuses to scan a later pause past this window's hard max.
++        // Production retains the inherited path until native quality/workload acceptance.
++        let scanLimit = Self.usesDigitalZeroPauseExperiment
++            ? min(buffer.count, config.maxWindowSamples) : buffer.count
++        while scanned + Self.frameSamples <= scanLimit {
+             let frame = buffer[scanned..<(scanned + Self.frameSamples)]
+-            if Self.frameIsSilent(frame) {
++            if Self.windowFrameEndsPause(frame) {
+                 silenceRun += Self.frameSamples
+             } else {
+                 silenceRun = 0
+@@ -325,6 +329,18 @@
+             }
+         }
+         return buffer.count >= config.maxWindowSamples ? config.maxWindowSamples : nil
++    }
++
++    /// Experimental meeting window policy, not a voice/noise classifier. Every nonzero
++    /// frame is unknown, so analog noisy pauses may wait for the existing hard maximum.
++    /// Keep the shared RMS predicate below unchanged for dictation and other callers.
++    private static let usesDigitalZeroPauseExperiment = SelfTest.isRunning
++        && SelfTest.requested == "--selftest-meeting-quiet-input"
++        && CommandLine.arguments.contains("--meeting-quiet-pause-experiment")
++
++    private static func windowFrameEndsPause(_ frame: ArraySlice<Float>) -> Bool {
++        if usesDigitalZeroPauseExperiment { return frame.allSatisfy { $0 == 0 } }
++        return frameIsSilent(frame)
+     }
+ 
+     /// Whether one 20 ms frame counts as silence. Shared by the streaming `nextCut`
+@@ -353,7 +369,7 @@
+         let minSamples = Int(config.minWindowSeconds * sampleRate)
+         let maxSamples = Int(config.maxWindowSeconds * sampleRate)
+         while scanned + frameSamples <= samples.count {
+-            if frameIsSilent(samples[scanned..<(scanned + frameSamples)]) {
++            if windowFrameEndsPause(samples[scanned..<(scanned + frameSamples)]) {
+                 silenceRun += frameSamples
+             } else {
+                 silenceRun = 0

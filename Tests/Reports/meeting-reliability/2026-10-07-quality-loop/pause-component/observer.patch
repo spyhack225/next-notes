@@ -1,0 +1,19 @@
+--- a/Sources/NextNotes/Meetings/ChunkedTranscriber.swift
++++ b/Sources/NextNotes/Meetings/ChunkedTranscriber.swift
+@@ -225,6 +225,16 @@
+         }
+     }
+ 
++    /// Diagnostic-only atomic append observation. Queue end offsets are read before the
++    /// drain Task can merge windows; fresh fixtures stay below the existing backlog bound.
++    /// No observation state or production callback is retained.
++    func appendAndObserveCutsForTesting(_ chunks: [[Float]]) -> [Int]? {
++        guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-quiet-input",
++              CommandLine.arguments.contains("--meeting-quiet-pause-boundaries") else { return nil }
++        for chunk in chunks { append(chunk) }
++        return queue.map { $0.startSample + $0.samples.count }
++    }
++
+     /// M-09: moves `bufferOrigin` forward **without** transcribing, so a track whose
+     /// tap joined late stamps its first windows with true meeting times rather than
+     /// times counted from the join. Only valid before the track's first buffer — once
