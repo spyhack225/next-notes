@@ -1,0 +1,59 @@
+{
+  "base": "e9fb0bf83a02d190d7d0f8ef7eef3c18c3a09b4a",
+  "patches": {
+    "combined10SHA256": "cfc9bedff555af6d488a11d7507dfd398a23341f6aff489dc3f8e266a16ab458",
+    "ingest4SHA256": "1043396a312aa1e8aea7cc048f49994f85799078b0283b25958356dd25b9668e"
+  },
+  "orders": [
+    {
+      "order": "combined10-then-ingest4",
+      "admission": "PASS",
+      "files": [
+        "Sources/NextNotes/Core/AudioConversion.swift",
+        "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+        "Sources/NextNotes/Meetings/DiarizationService.swift",
+        "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+        "Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift",
+        "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift",
+        "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+        "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+        "Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+        "Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift",
+        "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift",
+        "Sources/NextNotes/Meetings/MeetingSession.swift",
+        "Sources/NextNotes/NextNotesApp.swift"
+      ],
+      "AppSHA256": "3afd3c1a353d67dc84106152c178a99dbd7db55380be83a35161f95c53e5b22c",
+      "AppBlob": "9c006551f6e7c453b00f75e9fcd50c9b97285853"
+    },
+    {
+      "order": "ingest4-then-combined10",
+      "admission": "PASS",
+      "files": [
+        "Sources/NextNotes/Core/AudioConversion.swift",
+        "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+        "Sources/NextNotes/Meetings/DiarizationService.swift",
+        "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+        "Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift",
+        "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift",
+        "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+        "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+        "Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+        "Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift",
+        "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift",
+        "Sources/NextNotes/Meetings/MeetingSession.swift",
+        "Sources/NextNotes/NextNotesApp.swift"
+      ],
+      "AppSHA256": "3afd3c1a353d67dc84106152c178a99dbd7db55380be83a35161f95c53e5b22c",
+      "AppBlob": "9c006551f6e7c453b00f75e9fcd50c9b97285853"
+    }
+  ],
+  "bothOrdersSameApp": true,
+  "unionCountWithoutParticipant": 13,
+  "unionCountWithParticipant": 15,
+  "composedAppDispatchPatchSHA256": "ff23b58bfe1957613f81fcc3e2e3b96d309378fe8c23d97520880ab5f6dc1f2a",
+  "distinctFlagSingleOccurrences": true,
+  "privateIndexOnly": true,
+  "compiled": false,
+  "limits": "Patch admission and exact App blob composition; no compiled AppKit dispatch/startup/native transport acceptance."
+}

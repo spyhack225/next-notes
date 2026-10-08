@@ -1,0 +1,203 @@
+OVERVIEW: Build sources into binary products.
+
+SEE ALSO: swift run, swift package, swift test
+
+USAGE: swift build <options>
+
+PATHS & LOCATIONS:
+  --package-path <package-path>
+                          Specify the package path to operate on (default
+                          current directory). This changes the working
+                          directory before any other operation.
+  --cache-path <cache-path>
+                          Specify the shared cache directory path.
+  --config-path <config-path>
+                          Specify the shared configuration directory path.
+  --security-path <security-path>
+                          Specify the shared security directory path.
+  --scratch-path <scratch-path>
+                          Specify a custom scratch directory path. (default
+                          .build)
+  --swift-sdks-path <swift-sdks-path>
+                          Path to the directory containing installed Swift SDKs.
+  --toolset <toolset>     Specify a toolset JSON file to use when building for
+                          the target platform. Use the option multiple times to
+                          specify more than one toolset. Toolsets will be
+                          merged in the order they're specified into a single
+                          final toolset for the current build.
+  --pkg-config-path <pkg-config-path>
+                          Specify alternative path to search for pkg-config
+                          `.pc` files. Use the option multiple times to
+                          specify more than one path.
+
+CACHING:
+  --enable-dependency-cache/--disable-dependency-cache
+                          Determines whether dependency fetching uses a shared
+                          cache. (default: --enable-dependency-cache)
+  --enable-build-manifest-caching/--disable-build-manifest-caching
+                          (default: --enable-build-manifest-caching)
+  --manifest-cache <manifest-cache>
+                          Caching mode of Package.swift manifests. Valid values
+                          are: (shared: shared cache, local: package's build
+                          directory, none: disabled) (default: shared)
+  --enable-experimental-prebuilts/--disable-experimental-prebuilts
+                          Determines whether macros use prebuilt swift-syntax
+                          libraries. (default: --enable-experimental-prebuilts)
+
+LOGGING:
+  -v, --verbose           Increase verbosity to include informational output.
+  --very-verbose, --vv    Increase verbosity to include debug output.
+  -q, --quiet             Decrease verbosity to only include error output.
+  --color-diagnostics/--no-color-diagnostics
+                          Determines whether color diagnostics appear when
+                          printing to a TTY.
+                          By default, the terminal enables color diagnostics
+                          when connected to a TTY and disables them otherwise.
+                          (default: --no-color-diagnostics)
+
+SECURITY:
+  --disable-sandbox       Disable the sandbox when executing subprocesses.
+  --netrc                 Use netrc file even in cases where other credential
+                          stores are preferred.
+  --enable-netrc/--disable-netrc
+                          Determines whether SwiftPM loads credentials from a
+                          netrc file. (default: --enable-netrc)
+  --netrc-file <netrc-file>
+                          Specify the netrc file path.
+  --enable-keychain/--disable-keychain
+                          Determines whether SwiftPM searches for credentials
+                          in the macOS keychain. (default: --enable-keychain)
+  --resolver-fingerprint-checking <resolver-fingerprint-checking>
+                          (default: strict)
+  --resolver-signing-entity-checking <resolver-signing-entity-checking>
+                          (default: warn)
+  --enable-signature-validation/--disable-signature-validation
+                          Determines whether SwiftPM validates signatures on
+                          package releases downloaded from the registry.
+                          (default: --enable-signature-validation)
+
+RESOLUTION:
+  --enable-prefetching/--disable-prefetching
+                          (default: --enable-prefetching)
+  --force-resolved-versions, --disable-automatic-resolution, --only-use-versions-from-resolved-file
+                          Only use versions from the Package.resolved file and
+                          fail resolution if it is out-of-date.
+  --skip-update           Skip updating dependencies from their remote during a
+                          resolution.
+  --disable-scm-to-registry-transformation
+                          Disable source control to registry transformation.
+                          (default: --disable-scm-to-registry-transformation)
+  --use-registry-identity-for-scm
+                          Look up source control dependencies in the registry
+                          and use their registry identity when possible to help
+                          deduplicate across the two origins.
+  --replace-scm-with-registry
+                          Look up source control dependencies in the registry
+                          and use the registry to retrieve them instead of
+                          source control when possible.
+  --default-registry-url <default-registry-url>
+                          Default registry URL to use, instead of the
+                          registries.json configuration file.
+
+BUILD OPTIONS:
+  -c, --configuration <configuration>
+                          Build with the specified configuration. (values:
+                          debug, release)
+  -Xcc <Xcc>              Pass flag through to all C compiler invocations.
+  -Xswiftc <Xswiftc>      Pass flag through to all Swift compiler invocations.
+  -Xlinker <Xlinker>      Pass flag through to all linker invocations.
+  -Xcxx <Xcxx>            Pass flag through to all C++ compiler invocations.
+  --triple <triple>
+  --sdk <sdk>
+  --toolchain <toolchain>
+  --swift-sdk <swift-sdk> Filter for selecting a specific Swift SDK to build
+                          with.
+  --sanitize <sanitize>   Turn on runtime checks for erroneous behavior.
+                          (values: address, thread, undefined, scudo, fuzzer)
+  --auto-index-store/--enable-index-store/--disable-index-store
+                          Determines whether to automatically index while
+                          building. (default: --auto-index-store)
+  --enable-parseable-module-interfaces
+  -j, --jobs <jobs>       The number of jobs to spawn in parallel during the
+                          build process. (default: 8)
+  --use-integrated-swift-driver
+  --explicit-target-dependency-import-check <explicit-target-dependency-import-check>
+                          Check that targets only import their explicitly
+                          declared dependencies. (values: none, warn, error;
+                          default: none)
+  --build-system <build-system>
+                          Specify the build system to use. (default: swiftbuild)
+        native            - Native Build System (deprecated)
+        swiftbuild        - Swift Build build engine (default)
+        xcode             - Xcode build system integration (deprecated)
+  -debug-info-format <debug-info-format>
+                          The Debug Information Format to use. (values: dwarf,
+                          codeview, none)
+  --experimental-enable-codesize-profile
+                          Generate SIL, LLVM IR, and optimization record files
+                          for code size profiling.
+  --experimental-codesize-profile-output-dir <experimental-codesize-profile-output-dir>
+                          Directory to store code size profiling output files.
+  --enable-experimental-strip-products/--disable-experimental-strip-products
+                          Whether or not to strip debug symbols from the final
+                          binary.
+  --enable-dead-strip/--disable-dead-strip
+                          Determines whether the linker strips unused code.
+                          (default: --enable-dead-strip)
+  --disable-local-rpath   Disable adding $ORIGIN/@loader_path to the rpath by
+                          default.
+
+TRAIT OPTIONS:
+  --traits <traits>       Enable the specified traits of the package. Specify
+                          multiple traits as a comma-separated list, for
+                          example: `--traits Trait1,Trait2`. When enabling
+                          specific traits, you must also explicitly enable the
+                          default traits by passing `defaults` to this option.
+  --enable-all-traits     Enable all traits of the package.
+  --disable-default-traits
+                          Disable all default traits of the package.
+
+SOFTWARE BILL OF MATERIALS (SBOM):
+  --sbom-spec <sbom-spec> Set the SBOM specification and generate an SBOM.
+                          (values: cyclonedx, spdx, cyclonedx1, spdx3)
+  --sbom-output-dir <sbom-output-dir>
+                          The absolute or relative directory path to generate
+                          the SBOM(s) in. Must be used with --sbom-spec.
+                          (default: <scratch_path>/sboms).
+  --sbom-filter <sbom-filter>
+                          Filter the SBOM components and dependencies by
+                          products and/or packages. Must be used with
+                          --sbom-spec.
+        all               - Include all entities in the SBOM
+        product           - Only include product information and product
+                            dependencies
+        package           - Only include package information and package
+                            dependencies
+  --sbom-warning-only     Treat SBOM generation errors as warnings. Must be
+                          used with --sbom-spec. (default: false).
+
+OPTIONS:
+  --build-tests           Build both source and test targets.
+  --enable-code-coverage/--disable-code-coverage
+                          Determines whether the build measures code coverage.
+                          (default: --disable-code-coverage)
+  --show-bin-path         Print the binary output path.
+  --print-manifest-job-graph
+                          Write the command graph for the build manifest as a
+                          Graphviz file.
+  --print-pif-manifest-graph
+                          Write the PIF JSON sent to Swift Build as a Graphviz
+                          file.
+  --target <target>       Build the specified target.
+  --product <product>     Build the specified product.
+  --enable-xctest/--disable-xctest
+                          Determines whether the build includes XCTest support.
+  --enable-swift-testing/--disable-swift-testing
+                          Determines whether the build includes Swift Testing
+                          support.
+  --static-swift-stdlib/--no-static-swift-stdlib
+                          Determines whether Swift stdlib links statically.
+                          (default: --no-static-swift-stdlib)
+  --version               Show the version.
+  -h, -help, --help       Show help information.
+

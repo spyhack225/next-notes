@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-08T07:16:41.566124+00:00",
+  "files": {
+    "Sources/NextNotes/Computer/AccessibilitySnapshot.swift": {
+      "beforeSHA256": "c5de8d7de9b67d27a133aa266687b8faf3bd89972d414356e9685f2ad31e15a4",
+      "afterSHA256": "a03d3c85aa1352e7cdda159ac70aa358450abb8bd23bdebed424af382eaae9b6"
+    },
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": {
+      "beforeSHA256": "c745c8d8ea126765301c33adb471130bb0d3b515313d9db26b25dc153fbe84b4",
+      "afterSHA256": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673"
+    }
+  },
+  "patchSHA256": "3588266c146534c532953d9e0064368e3167652973538beb590e432783796be9",
+  "gitIndexByteIdentical": true,
+  "componentVerdict": "ORIGINAL_FAIL6_FIXED_PASS11",
+  "nativeBuildAndObservation": "OPEN",
+  "installation": false,
+  "voiceIdentityClaim": false,
+  "sourceWriteJoined": true
+}

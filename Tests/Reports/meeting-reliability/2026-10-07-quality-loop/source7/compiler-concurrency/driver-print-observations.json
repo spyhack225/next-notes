@@ -1,0 +1,85 @@
+{
+  "scope": "Local help + Swift driver job printing ONLY, no frontend compile/model/native app. Public generic1line fixture. No Source edits; do not infer real SwiftPM default swiftbuild override effectiveness.",
+  "cases": [
+    {
+      "case": "eight",
+      "argv": [
+        "xcrun",
+        "swiftc",
+        "-driver-print-jobs",
+        "-O",
+        "-whole-module-optimization",
+        "-num-threads",
+        "8",
+        "-c",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-swift-driver-print-mx19ytv0/ThreadProbe.swift",
+        "-o",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-swift-driver-print-mx19ytv0/eight.o"
+      ],
+      "exit": 0,
+      "objectCreated": false,
+      "printedJobsSHA256": "abf58a49aac926b69a65ff5ca9188c6fc6d3b3f12c2f0e6946d001798a60c164"
+    },
+    {
+      "case": "one",
+      "argv": [
+        "xcrun",
+        "swiftc",
+        "-driver-print-jobs",
+        "-O",
+        "-whole-module-optimization",
+        "-num-threads",
+        "1",
+        "-c",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-swift-driver-print-mx19ytv0/ThreadProbe.swift",
+        "-o",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-swift-driver-print-mx19ytv0/one.o"
+      ],
+      "exit": 0,
+      "objectCreated": false,
+      "printedJobsSHA256": "29f73e31252ca10acee345efc6210654f2c9474b171fa8c09bc7ba0b5783d554"
+    },
+    {
+      "case": "duplicate-eight-then-one",
+      "argv": [
+        "xcrun",
+        "swiftc",
+        "-driver-print-jobs",
+        "-O",
+        "-whole-module-optimization",
+        "-num-threads",
+        "8",
+        "-num-threads",
+        "1",
+        "-c",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-swift-driver-print-mx19ytv0/ThreadProbe.swift",
+        "-o",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-swift-driver-print-mx19ytv0/duplicate-eight-then-one.o"
+      ],
+      "exit": 0,
+      "objectCreated": false,
+      "printedJobsSHA256": "72b6ae65d3e94624fca927ef70994814f4e7b8d0a5d0b0e69eb9e5e37a98a8d3"
+    },
+    {
+      "case": "duplicate-one-then-eight",
+      "argv": [
+        "xcrun",
+        "swiftc",
+        "-driver-print-jobs",
+        "-O",
+        "-whole-module-optimization",
+        "-num-threads",
+        "1",
+        "-num-threads",
+        "8",
+        "-c",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-swift-driver-print-mx19ytv0/ThreadProbe.swift",
+        "-o",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-swift-driver-print-mx19ytv0/duplicate-one-then-eight.o"
+      ],
+      "exit": 0,
+      "objectCreated": false,
+      "printedJobsSHA256": "21200f4c7a8704d788753ef29b085e3922679034f65175ef92e8c488d8c8ad42"
+    }
+  ]
+}

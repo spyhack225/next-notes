@@ -1,0 +1,172 @@
+{
+  "scope": "Exact original AST phase clause; diagnostic classifier-only fixed controls. Process listing/usage supplied authored values; no OS/compiler/native/model/App/Source. Actual arm5 integration still root-owned/unlaunched.",
+  "originalDriverSHA256": "2bbc0e0f77b42f7408aa7d6c455b542b5468ceff31a1e8969e132e03567a7027",
+  "fixedHelperSHA256": "c096070e795817a36dfa29727f7baf2661a641035ba78a446b4f51e1fcacb02e",
+  "rows": [
+    {
+      "case": "dependency-no-count",
+      "expectedContinue": true,
+      "expectedMainProof": false,
+      "originalPassed": false,
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalMainProof": false,
+      "fixedPassed": true,
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "dependency",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": null,
+        "countOccurrences": 0,
+        "mainThreadProof": false
+      }
+    },
+    {
+      "case": "dependency-count8",
+      "expectedContinue": true,
+      "expectedMainProof": false,
+      "originalPassed": false,
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalMainProof": false,
+      "fixedPassed": true,
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "dependency",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 8,
+        "countOccurrences": 1,
+        "mainThreadProof": false
+      }
+    },
+    {
+      "case": "main-one",
+      "expectedContinue": true,
+      "expectedMainProof": true,
+      "originalPassed": true,
+      "originalGuard": null,
+      "originalMainProof": true,
+      "fixedPassed": true,
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "main",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 1,
+        "countOccurrences": 1,
+        "mainThreadProof": true
+      }
+    },
+    {
+      "case": "main-eight",
+      "expectedContinue": false,
+      "expectedMainProof": false,
+      "originalPassed": true,
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalMainProof": false,
+      "fixedPassed": true,
+      "fixedRefusal": "effective owned NextNotes frontend thread count is not1",
+      "fixedNumericScope": {
+        "scope": "main",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 8,
+        "countOccurrences": 1,
+        "mainThreadProof": false
+      }
+    },
+    {
+      "case": "main-missing",
+      "expectedContinue": false,
+      "expectedMainProof": false,
+      "originalPassed": true,
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalMainProof": false,
+      "fixedPassed": true,
+      "fixedRefusal": "effective owned NextNotes frontend thread count is not1",
+      "fixedNumericScope": {
+        "scope": "main",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": null,
+        "countOccurrences": 0,
+        "mainThreadProof": false
+      }
+    },
+    {
+      "case": "main-duplicate-last1",
+      "expectedContinue": true,
+      "expectedMainProof": true,
+      "originalPassed": true,
+      "originalGuard": null,
+      "originalMainProof": true,
+      "fixedPassed": true,
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "main",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 1,
+        "countOccurrences": 2,
+        "mainThreadProof": true
+      }
+    },
+    {
+      "case": "main-recycled",
+      "expectedContinue": false,
+      "expectedMainProof": false,
+      "originalPassed": true,
+      "originalGuard": "owned frontend argv identity unavailable or changed",
+      "originalMainProof": false,
+      "fixedPassed": true,
+      "fixedRefusal": "owned frontend argv identity unavailable or changed",
+      "fixedNumericScope": {
+        "scope": "main",
+        "moduleKnown": true,
+        "identityValid": false,
+        "lastThreadCount": 1,
+        "countOccurrences": 1,
+        "mainThreadProof": false
+      }
+    },
+    {
+      "case": "main-unavailable",
+      "expectedContinue": false,
+      "expectedMainProof": false,
+      "originalPassed": true,
+      "originalGuard": "owned frontend argv identity unavailable or changed",
+      "originalMainProof": false,
+      "fixedPassed": true,
+      "fixedRefusal": "owned frontend argv identity unavailable or changed",
+      "fixedNumericScope": {
+        "scope": "main",
+        "moduleKnown": true,
+        "identityValid": false,
+        "lastThreadCount": 1,
+        "countOccurrences": 1,
+        "mainThreadProof": false
+      }
+    },
+    {
+      "case": "unknown-no-count",
+      "expectedContinue": true,
+      "expectedMainProof": false,
+      "originalPassed": false,
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalMainProof": false,
+      "fixedPassed": true,
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "unknown",
+        "moduleKnown": false,
+        "identityValid": true,
+        "lastThreadCount": null,
+        "countOccurrences": 0,
+        "mainThreadProof": false
+      }
+    }
+  ],
+  "originalFailures": 3,
+  "fixedFailures": 0,
+  "checks": 18
+}

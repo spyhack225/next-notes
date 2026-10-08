@@ -1,0 +1,46 @@
+{
+  "baselineCommit": "21d94932195af9be9e308d01d9cc7c13bd78df02",
+  "patchSHA256": "1043396a312aa1e8aea7cc048f49994f85799078b0283b25958356dd25b9668e",
+  "checks": [
+    "private-index-apply-check PASS",
+    "private-index-apply PASS",
+    "private-index-four-blob-byte-parity PASS"
+  ],
+  "changedFiles": [
+    "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+    "Sources/NextNotes/Meetings/MeetingSession.swift",
+    "Sources/NextNotes/NextNotesApp.swift"
+  ],
+  "requiredAddedFixtureAPI": "reconcileScheduledForTesting property only; existing methods retain location/body",
+  "excludedWorkingOnlyChanges": [
+    "optionalAdmission guards in noteIngest/runReconcile",
+    "unrelated method reorder",
+    "health-warning/capture/quit hunks",
+    "broader maximum-end overlap clock",
+    "bounded audio and quiet/pause experiments"
+  ],
+  "workingSourceHashesBefore": {
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+    "Sources/NextNotes/NextNotesApp.swift": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8",
+    "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91"
+  },
+  "workingSourceHashesAfter": {
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+    "Sources/NextNotes/NextNotesApp.swift": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8",
+    "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91"
+  },
+  "workingSourceUnchanged": true,
+  "realIndexSHA256Before": "cd6ec83948c11c5c630a48039ac4842ecb944a396e1345129bc5d6da948fcb87",
+  "realIndexSHA256After": "cd6ec83948c11c5c630a48039ac4842ecb944a396e1345129bc5d6da948fcb87",
+  "realIndexUnchanged": true,
+  "privateIndexRemoved": true,
+  "compilerExecuted": false,
+  "commitCreated": false,
+  "worktreeCreated": false,
+  "nativeAppProof": "PENDING_SOURCE7_SIGNED_APP_FLAG",
+  "nativeSessionBusProof": false,
+  "modelIntentProof": false
+}

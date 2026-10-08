@@ -1,0 +1,486 @@
+import FluidAudio
+import Foundation
+import Observation
+
+/// The one place speakers are identified, whether the meeting just ended or the user asked
+/// again from the detail view.
+///
+/// The same shape as `NotesService`, and for the same reason: two callers each running their
+/// own clustering pass would put two copies of the segmentation and embedding models on a
+/// 16 GB machine that is already holding Parakeet.
+@MainActor
+@Observable
+final class DiarizationService {
+    static let shared = DiarizationService()
+
+    /// How far through the segmentation pass each running meeting is, 0…1.
+    private(set) var progress: [UUID: Double] = [:]
+    /// The last failure per meeting, for the banner in the detail view.
+    private(set) var problems: [UUID: String] = [:]
+    /// Bumped whenever a transcript's speaker labels change, so a view showing them knows to
+    /// re-read. `MeetingStore` caches transcripts, and nothing else observes that cache.
+    private(set) var revision = 0
+
+    private struct OwnedTask {
+        let binding: UUID
+        let handle: Task<Void, Never>
+        let onStallForTesting: (@MainActor () -> Void)?
+        var watchdogFallback = false
+    }
+    @ObservationIgnored private var tasks: [UUID: OwnedTask] = [:]
+    @ObservationIgnored private var terminationRequested = false
+    @ObservationIgnored private var terminationFixtureID: UUID?
+    @ObservationIgnored private var terminationFixtureTrace: DiarizationTerminationTrace?
+
+    func configureTerminationFixture(id: UUID, store: MeetingStore,
+                                     trace: DiarizationTerminationTrace) throws {
+        guard NativeDiarizationQuitSelfTest.isRequested, self === Self.shared,
+              store === MeetingStore.shared, tasks.isEmpty, terminationFixtureTrace == nil,
+              NativeDiarizationQuitSelfTest.isConfinedMeetingStore(store) else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        terminationFixtureID = id; terminationFixtureTrace = trace
+    }
+    func ownedTerminationTaskForTesting(id: UUID) -> Task<Void, Never>? {
+        guard NativeDiarizationQuitSelfTest.isRequested, id == terminationFixtureID else { return nil }
+        return tasks[id]?.handle
+    }
+    func triggerActualWatchdogForTesting(id: UUID) -> Bool {
+        guard NativeDiarizationQuitSelfTest.isRequested, id == terminationFixtureID,
+              let operation = tasks[id]?.onStallForTesting else { return false }
+        operation(); return true
+    }
+    // COMMON nil/no-op original bodies retain its actual cancellation/handoff.
+    func beginTermination() -> [Task<Void, Never>] {
+        terminationRequested = true
+        let owned = tasks.values.map(\.handle)
+        terminationFixtureTrace?.captured(count: owned.count)
+        for task in owned { task.cancel() }
+        return owned
+    }
+    func finishTermination(_ owned: [Task<Void, Never>]) async {
+        for task in owned { await task.value }
+    }
+    private func acceptsOwner(_ id: UUID, _ binding: UUID) -> Bool {
+        guard !terminationRequested, let owned = tasks[id] else { return false }
+        return owned.binding == binding && !owned.handle.isCancelled
+    }
+    private func permitsHandoff(_ id: UUID, _ binding: UUID) -> Bool {
+        guard !terminationRequested, let owned = tasks[id], owned.binding == binding else { return false }
+        return !owned.handle.isCancelled || owned.watchdogFallback
+    }
+    private func markWatchdogFallback(_ id: UUID, _ binding: UUID) -> Bool {
+        guard acceptsOwner(id, binding) else { return false }
+        tasks[id]?.watchdogFallback = true
+        return true
+    }
+    private func releaseOwner(_ id: UUID, _ binding: UUID) {
+        guard tasks[id]?.binding == binding else { return }
+        tasks[id] = nil; progress[id] = nil; lastProgressAt[id] = nil
+    }
+    private func applyProgress(_ id: UUID, _ binding: UUID, _ fraction: Double) {
+        guard acceptsOwner(id, binding) else { return }
+        noteProgress(id); progress[id] = fraction
+    }
+    /// The stall watchdog's clock: when each running pass last reported progress
+    /// (M-08). Advanced beside every `progress[id]` write, never on its own.
+    @ObservationIgnored private var lastProgressAt: [UUID: Date] = [:]
+
+    // Retain an explicitly injected store; resolving the default happens only
+    // when real service work needs it, so quit can close an empty owner cheaply.
+    private let providedStore: MeetingStore?
+    private let providedContextStore: MeetingContextStore?
+    private var store: MeetingStore { providedStore ?? MeetingStore.shared }
+
+    init(store: MeetingStore? = nil, contextStore: MeetingContextStore? = nil) {
+        providedStore = store
+        providedContextStore = contextStore
+    }
+
+    func isRunning(_ id: UUID) -> Bool { tasks[id] != nil }
+    func fraction(for id: UUID) -> Double? { progress[id] }
+    func problem(for id: UUID) -> String? { problems[id] }
+
+    /// Advances the watchdog's clock for one pass.
+    private func noteProgress(_ id: UUID) { lastProgressAt[id] = Date() }
+
+    /// Dismissing the banner also withdraws the retry it was offering, which is what
+    /// `MeetingStore.releaseAudio` was holding the recording for.
+    func clearProblem(for id: UUID) {
+        problems[id] = nil
+        store.releaseAudio(for: id)
+    }
+
+    /// Identifies speakers and then hands the meeting to whatever comes next.
+    ///
+    /// Returns immediately. The session that called it is already gone by the time the first
+    /// window has been clustered — that is the point.
+    func process(_ meeting: Meeting) {
+        run(meeting) { [weak self] in
+            guard let self, let updated = store.meeting(id: meeting.id) else { return }
+            MeetingPipeline.afterDiarizing(updated, store: store)
+        }
+    }
+
+    /// Identifies speakers on a meeting that has already finished, leaving its status alone.
+    ///
+    /// What the detail view's "Identify speakers" calls: a finished meeting shouldn't fall
+    /// back through the pipeline and rewrite notes that are already there.
+    func identifySpeakers(in meeting: Meeting) {
+        run(meeting) { [weak self] in
+            // A pass that succeeded is the last thing that needed the recording. One that
+            // failed leaves a problem set, and `releaseAudio` holds the audio for as long as
+            // the banner is still offering another try.
+            self?.store.releaseAudio(for: meeting.id)
+        }
+    }
+
+    /// Identifies speakers with an exact count the person set (M-03).
+    ///
+    /// The speaker sheet's "Identify again" stepper. A count from someone who was in the
+    /// call is not a hint the model may overrule, which is why it travels as
+    /// `numSpeakers` — an exact target — and not as a bound. Everything else is the
+    /// "Identify speakers" path untouched.
+    func reidentify(_ meeting: Meeting, speakers: Int) {
+        run(meeting, forcedSpeakers: max(1, speakers)) { [weak self] in
+            self?.store.releaseAudio(for: meeting.id)
+        }
+    }
+
+    /// Stops a pass that is no longer wanted. Deleting the meeting is the case that matters.
+    func cancel(_ id: UUID) {
+        tasks[id]?.watchdogFallback = false
+        tasks[id]?.handle.cancel()
+        // Retain exact native owner until its actual Task defer. Progress withdraws.
+        progress[id] = nil
+        lastProgressAt[id] = nil
+    }
+
+    // MARK: - The work
+
+    private func run(
+        _ meeting: Meeting,
+        forcedSpeakers: Int? = nil,
+        then next: @escaping @MainActor () -> Void
+    ) {
+        let id = meeting.id
+        guard !terminationRequested, tasks[id] == nil else { return }
+        let binding = UUID()
+        noteProgress(id)
+
+        // M-08: a clustering pass that stops reporting progress is stopped rather than
+        // left showing "Identifying speakers…" until the next launch. The problem holds
+        // the recording (`releaseAudio` refuses to drop audio while one is set), and the
+        // pipeline continues with the labels it has — a diarization that failed never
+        // blocked the notes.
+        let onStall: @MainActor () -> Void = { [weak self] in
+                guard let self, self.markWatchdogFallback(id, binding) else { return }
+                let since = Date().timeIntervalSince(self.lastProgressAt[id] ?? .distantPast)
+                Log.meeting.error("""
+                    diarize stalled · \(Int(since), privacy: .public)s without progress \
+                    on "\(meeting.title, privacy: .public)"
+                    """)
+                self.problems[id] = StageWatchdog.stallMessage
+                self.tasks[id]?.handle.cancel()
+        }
+        let watchdog = StageWatch(
+            limit: StageWatchdog.diarizeLimit,
+            lastProgress: { [weak self] in self?.lastProgressAt[id] ?? .distantPast },
+            isLaneBusy: { await StageWatchdog.urgentLaneBusy() },
+            onStall: onStall
+        )
+        watchdog.start()
+
+        let task = Task { @MainActor [weak self] in
+            guard let self else { return }
+            defer {
+                watchdog.cancel()
+                if id == self.terminationFixtureID { self.terminationFixtureTrace?.ended() }
+                self.releaseOwner(id, binding)
+            }
+            await diarize(id, binding: binding, forcedSpeakers: forcedSpeakers)
+            guard self.permitsHandoff(id, binding) else { return }
+            if id == self.terminationFixtureID { self.terminationFixtureTrace?.handoff() }
+            next()
+        }
+        tasks[id] = OwnedTask(binding: binding, handle: task,
+            onStallForTesting: NativeDiarizationQuitSelfTest.isRequested ? onStall : nil)
+        if id == terminationFixtureID { terminationFixtureTrace?.assigned() }
+    }
+
+    /// The shortest track `MeetingDiarizer.speakerRuns` clusters. Mirrors that actor's own
+    /// gate: below it the models are not worth loading, and awaiting `prepare()` here would
+    /// make a short meeting wait on a download it will never use.
+    private static let minimumDiarizableSeconds: TimeInterval = 2
+    /// Below this the diarizer was already in memory: `prepare()` returns without loading.
+    /// A model load is seconds of CoreML compilation, so the two cases cannot be confused.
+    private static let diarizerLoadThresholdMs = 50
+    /// The engine id the `meeting.diarize` row reports — FluidAudio's model folder.
+    private static let diarizerModelID = "speaker-diarization"
+
+    /// - Parameters:
+    ///   - forcedSpeakers: an exact count a person set from the speaker sheet (M-03).
+    ///     nil clusters with whatever hint the meeting's own shape supports.
+    /// - Returns: whether any speaker label was written.
+    @discardableResult
+    private func diarize(_ id: UUID, binding: UUID, forcedSpeakers: Int? = nil) async -> Bool {
+        let began = ContinuousClock.now
+        var audioSeconds = 0.0
+        var runsCount = 0
+        var speakersCount = 0
+        var errorClass: UsageErrorClass?
+        var errorMessage: String?
+        var warm: Bool?
+        var loadMs: Int?
+        var hint: SpeakerCountHint?
+        // P0-20b: one `meeting.diarize` row on every exit, built from whatever this pass
+        // learned. `defer` rather than a call per return path, so a new `return false`
+        // added later cannot quietly lose the row.
+        defer {
+            recordDiarize(
+                meetingID: id,
+                totalMs: ModelPassRecorder.milliseconds(began.duration(to: .now)),
+                audioSeconds: audioSeconds,
+                runs: runsCount,
+                speakers: speakersCount,
+                hint: hint,
+                errorClass: errorClass,
+                errorMessage: errorMessage,
+                warm: warm,
+                loadMs: loadMs
+            )
+        }
+
+        guard acceptsOwner(id, binding), let meeting = store.meeting(id: id) else { return false }
+        guard let audio = store.audioURL(for: meeting) else {
+            problems[id] = DiarizationError.noAudio.localizedDescription
+            errorClass = .other
+            errorMessage = DiarizationError.noAudio.localizedDescription
+            return false
+        }
+
+        progress[id] = 0
+        problems[id] = nil
+        noteProgress(id)
+        // M-16a: the diarization pass is a stage span. The note carries runs,
+        // speakers and audio seconds, or the error's type name — never the
+        // message, which can contain a path.
+
+        // Routed through the model store as well as awaited below, so that a first meeting
+        // which triggers the download shows it in Settings rather than looking like a
+        // clustering pass that has stalled. Both calls land on the same in-flight load
+        // inside the actor, so the models are still fetched once.
+        LocalModelStore.shared.prepareDiarizer()
+
+        do {
+            // The system channel alone. Mixing the microphone back in would hand the
+            // clusterer the user's own voice as a speaker in a track whose entire purpose is
+            // to contain everyone else.
+            let samples: [Float]
+            let boundedSamples: (any AudioSampleSource)?
+            if AudioConversion.usesBoundedMeetingAudioExperiment {
+                let range = try AudioConversion.meetingSampleSource(
+                    fromFileAt: audio, channel: MeetingAudioWriter.systemChannel)
+                boundedSamples = range
+                samples = []
+                audioSeconds = Double(range.sampleCount) / ChunkedTranscriber.sampleRate
+            } else {
+                boundedSamples = nil
+                samples = try AudioConversion.samples(
+                    fromFileAt: audio,
+                    sampleRate: ChunkedTranscriber.sampleRate,
+                    channel: MeetingAudioWriter.systemChannel
+                )
+                audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
+            }
+
+            // P0-20b: awaiting the load here is what makes `warm`/`loadMs` measurable; for a
+            // track `speakerRuns` will cluster, that call does exactly this load anyway.
+            if audioSeconds >= Self.minimumDiarizableSeconds {
+                let prepareBegan = ContinuousClock.now
+                try await MeetingDiarizer.shared.prepare()
+                guard acceptsOwner(id, binding) else { throw CancellationError() }
+                let prepareMs = ModelPassRecorder.milliseconds(prepareBegan.duration(to: .now))
+                if prepareMs >= Self.diarizerLoadThresholdMs {
+                    warm = false
+                    loadMs = prepareMs
+                } else {
+                    warm = true
+                }
+            }
+
+            // M-03: a person's exact count is the answer, not a bound; a hint read from
+            // the meeting's own shape is a bound the clustering may still beat. A
+            // browser, an unknown app and a meeting with no attendees get neither.
+            hint = forcedSpeakers.map { SpeakerCountHint(numSpeakers: $0) }
+                ?? SpeakerCountHint.for(meeting)
+            guard acceptsOwner(id, binding) else { throw CancellationError() }
+            let reportProgress: @Sendable (Double) -> Void = { fraction in
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    let operation: @MainActor () -> Void = { [weak self] in
+                        self?.applyProgress(id, binding, fraction)
+                    }
+                    if id == self.terminationFixtureID,
+                       self.terminationFixtureTrace?.holdFirstProgress(operation) == true { return }
+                    operation()
+                }
+            }
+            let runs: [SpeakerRun]
+            if let boundedSamples {
+                runs = try await MeetingDiarizer.shared.speakerRuns(in: boundedSamples, hint: hint, progress: reportProgress)
+            } else {
+                runs = try await MeetingDiarizer.shared.speakerRuns(in: samples, hint: hint, progress: reportProgress)
+            }
+            runsCount = runs.count
+            guard acceptsOwner(id, binding) else { throw CancellationError() }
+            try Task.checkCancellation()
+            guard !runs.isEmpty else {
+                Log.meeting.info("diarization found no speech on the system track")
+                LatencyTrace.record(
+                    .meetingDiarize,
+                    seconds: ChunkedTranscriber.seconds(began.duration(to: .now)),
+                    note: "runs=0 speakers=0 audio=\(String(format: "%.1f", audioSeconds))s"
+                )
+                return false
+            }
+
+            let labelled = MeetingDiarizer.assign(store.transcript(for: id), to: runs)
+            // Deletion while the model awaited must stop the entire native stage,
+            // including its later voice-print writes and pipeline handoff.
+            guard store.meeting(id: id) != nil else { return false }
+            try commitSpeakerLabels(labelled, for: id)
+            // Voice prints only while the knowledge graph is on: nothing else reads them.
+            if PersonResolutionService.shared.isEnabled {
+                let prints = MeetingVoicePrints.centroids(of: runs)
+                do {
+                    if prints.speakers.isEmpty {
+                        // Old prints would carry labels this transcript no longer uses.
+                        MeetingVoicePrints.remove(directory: store.directory(for: id))
+                    } else {
+                        try prints.write(directory: store.directory(for: id))
+                    }
+                    PersonResolutionService.shared.scheduleResolve()
+                } catch {
+                    Log.meeting.error("voice prints not written: \(error.localizedDescription, privacy: .public)")
+                }
+            }
+
+            speakersCount = MeetingDiarizer.labels(in: labelled).count
+            LatencyTrace.record(
+                .meetingDiarize,
+                seconds: ChunkedTranscriber.seconds(began.duration(to: .now)),
+                note: "runs=\(runs.count) speakers=\(speakersCount) audio=\(String(format: "%.1f", audioSeconds))s"
+            )
+            Log.meeting.info("""
+                diarized "\(meeting.title, privacy: .public)" — \
+                \(speakersCount, privacy: .public) speaker(s) on the system track
+                """)
+            return speakersCount > 0
+        } catch is CancellationError {
+            errorClass = .cancelled
+            return false
+        } catch {
+            guard acceptsOwner(id, binding) else { return false }
+            errorClass = UsageErrorClass.classify(error)
+            errorMessage = error.localizedDescription
+            LatencyTrace.record(
+                .meetingDiarize,
+                seconds: ChunkedTranscriber.seconds(began.duration(to: .now)),
+                note: "error=\(type(of: error))"
+            )
+            problems[id] = error.localizedDescription
+            Log.meeting.error("diarization failed: \(error.localizedDescription, privacy: .public)")
+            return false
+        }
+    }
+
+    /// The committed-label handoff, shared by actual diarization and its isolated
+    /// consumer regression. It never creates a deleted meeting or projects unsaved labels.
+    func commitSpeakerLabels(_ labelled: [TranscriptSegment], for id: UUID) throws {
+        guard store.meeting(id: id) != nil else { return }
+        guard store.saveTranscript(labelled, for: id) else {
+            throw CocoaError(.fileWriteUnknown)
+        }
+        revision += 1
+        let surviving = Set(MeetingDiarizer.labels(in: labelled))
+        if var updated = store.meeting(id: id),
+           updated.speakerNames.contains(where: { !surviving.contains($0.key) }) {
+            updated.speakerNames = updated.speakerNames.filter { surviving.contains($0.key) }
+            store.save(updated)
+        }
+        // An injected isolated store must never initialize the owner's singleton.
+        if let providedContextStore {
+            guard providedContextStore.refreshSpeakers(meetingID: id) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+        } else if providedStore == nil {
+            guard MeetingContextStore.shared.refreshSpeakers(meetingID: id) else {
+                throw CocoaError(.fileWriteUnknown)
+            }
+        }
+    }
+
+    /// One `meeting.diarize` row. Counts only — never a title, a speaker name or a path.
+    private func recordDiarize(
+        meetingID: UUID,
+        totalMs: Int,
+        audioSeconds: Double,
+        runs: Int,
+        speakers: Int,
+        hint: SpeakerCountHint?,
+        errorClass: UsageErrorClass?,
+        errorMessage: String?,
+        warm: Bool?,
+        loadMs: Int?
+    ) {
+        var counts = ["speakers": speakers, "runs": runs]
+        // Counts only, per the schema — the shape of the constraint, never the meeting
+        // that produced it.
+        if let maxSpeakers = hint?.maxSpeakers { counts["maxSpeakers"] = maxSpeakers }
+        if let numSpeakers = hint?.numSpeakers { counts["numSpeakers"] = numSpeakers }
+        UsageLog.shared.record(UsageRecord(
+            v: 1,
+            id: UUID(),
+            ts: Date(),
+            feature: UsageFeature.meetingDiarize.rawValue,
+            pass: "cluster",
+            round: nil,
+            provider: UsageProvider.diarizer.rawValue,
+            modelID: Self.diarizerModelID,
+            locality: "local",
+            requestedRole: nil,
+            requestedModel: nil,
+            fallbackReason: nil,
+            warm: warm,
+            loadMs: loadMs,
+            promptTokens: nil,
+            cachedTokens: nil,
+            completionTokens: nil,
+            reasoningTokens: nil,
+            countsEstimated: nil,
+            ttftMs: nil,
+            totalMs: totalMs,
+            tokensPerSec: nil,
+            finishReason: errorClass == nil ? "stop" : "error",
+            truncated: nil,
+            toolsProposed: nil,
+            toolsExecuted: nil,
+            errorClass: errorClass?.rawValue,
+            errorMessage: errorMessage.map(UsageLog.sanitise),
+            audioSeconds: audioSeconds,
+            realtimeFactor: audioSeconds > 0
+                ? Double(totalMs) / 1_000 / audioSeconds
+                : nil,
+            stages: nil,
+            counts: counts,
+            turnID: nil,
+            conversationID: nil,
+            workID: nil,
+            revision: nil,
+            meetingID: meetingID,
+            dictationRunID: nil,
+            scheduleID: nil
+        ))
+    }
+}

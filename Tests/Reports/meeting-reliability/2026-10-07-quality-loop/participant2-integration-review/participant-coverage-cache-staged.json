@@ -1,0 +1,90 @@
+{
+  "stage": "/Users/sergekadjo/Library/Caches/NextNotesBuild/participant-coverage-source-50dee560aab1441c9af6e639c0754fc1",
+  "canonicalSourcesWritten": false,
+  "compilerOrNativeRun": false,
+  "status": "actual original FAIL6/fixed PASS11 component; cache candidate only, production/native observer proof open",
+  "files": {
+    "Sources/NextNotes/Computer/AccessibilitySnapshot.swift": {
+      "beforeSHA256": "c5de8d7de9b67d27a133aa266687b8faf3bd89972d414356e9685f2ad31e15a4",
+      "afterSHA256": "a03d3c85aa1352e7cdda159ac70aa358450abb8bd23bdebed424af382eaae9b6"
+    },
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": {
+      "beforeSHA256": "c745c8d8ea126765301c33adb471130bb0d3b515313d9db26b25dc153fbe84b4",
+      "afterSHA256": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673"
+    }
+  },
+  "limits": [
+    "No joined-state parser: callState remains unverified",
+    "Root/empty Meet landing URL refused; room URL may still be lobby",
+    "Traversal metadata does not supply AX deadline or complete roster",
+    "CDP full-reply cap and actual participant parser remain open"
+  ],
+  "patchSHA256": "3588266c146534c532953d9e0064368e3167652973538beb590e432783796be9",
+  "probeParity": [
+    {
+      "variant": "original",
+      "walkerSHA256": "f4cd5a1b8a2adb18e49645e2e8caf769d566948505cb33019cdb456092a313b5",
+      "selectorSHA256": "7bdfa44ef167f0dca878b31dbf87f43e9e1cde8dcc69a6a4219bfdda400d6af4",
+      "bodyCopiedByteForByte": true,
+      "probeSHA256": "752a7dee43e53158f2a2263b85d6d2eff0c368bfbb196bea8d5722ed505149c4"
+    },
+    {
+      "variant": "fixed",
+      "walkerSHA256": "08c580dc166014ec339dc72a56a785cef3c5cbe71fafd4f724d66e79bef3b3b1",
+      "selectorSHA256": "b0c6164a41185eeb79a401aadecc2a668383f78f9082d40b8c4f823819144f26",
+      "bodyCopiedByteForByte": true,
+      "probeSHA256": "b95e2637a25ea67bcaca2c521a4aeba7c112eb6d09c45db9565477c4d21f16c2"
+    }
+  ],
+  "probeScope": "exact copied real walker+Meet selector; generic public tree substitutes AX getter and state; original absent coverage represented nil; same11 assertions; compile/run not performed",
+  "patchApplicabilityCheck": "PASS against frozen current source, read-only git apply --check",
+  "canonicalBeforePinsStillMatch": {
+    "Sources/NextNotes/Computer/AccessibilitySnapshot.swift": true,
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": true
+  },
+  "readyReview": {
+    "exactProducerParity": [
+      {
+        "variant": "original",
+        "exactWalkerAndSelectorEmbedded": true,
+        "exactPredicatesEmbedded": true
+      },
+      {
+        "variant": "fixed",
+        "exactWalkerAndSelectorEmbedded": true,
+        "exactPredicatesEmbedded": true
+      }
+    ],
+    "elevenAssertionRunnerIdentical": true,
+    "expectedOriginalFailures": [
+      "child omission reported",
+      "depth omission reported",
+      "useful budget reached reported",
+      "small limits not observed",
+      "landing refused",
+      "root landing refused"
+    ],
+    "expectedOriginalExit": 1,
+    "expectedFixedExit": 0,
+    "expectedOriginalVerdict": "PARTICIPANT_COVERAGE_FAILED checks=11 failures=6 substituted-AX-boundary",
+    "expectedFixedVerdict": "PARTICIPANT_COVERAGE_OK checks=11 failures=0 substituted-AX-boundary",
+    "actualCompileRun": "root guarded sequential compilation/run retained in participant-component-review.json",
+    "lobbyRefusal": "not established; non-root room URL may be lobby and remains raw-only/unverified"
+  },
+  "actualComponentReview": {
+    "verdict": "ORIGINAL_FAIL6_FIXED_PASS11_COMPONENT_ONLY",
+    "reviewPath": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-loop/participant-component-review.json",
+    "originalLogSHA256": "7b65d67c3d5d9f10b3bd12f8cb45956949c6f6783ec4eea48019f9d773889ad2",
+    "fixedLogSHA256": "fbec93dcc669db5a111b4a5e02a68fab78fe01955a5816d853b3249776b2250c",
+    "originalBinarySHA256": "5c7661bfe5ef4ff5b293db64a2e201cda1763e1848d9f6bca0a32ab3a0949aa0",
+    "fixedBinarySHA256": "968cbdf2cabccd8510e9efa93588f4d56de828c130a5741d362caf1552f29cf4",
+    "canonicalBeforePinsStillMatchAtReview": {
+      "Sources/NextNotes/Computer/AccessibilitySnapshot.swift": true,
+      "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": true
+    },
+    "actorAnnotations": "fixture MainActor producer/state; full app compilation pending",
+    "claims": "none",
+    "physicalProof": false
+  },
+  "compilerOrNativeRunScope": "speaker preparation/review only; root actual component compile/run retained separately"
+}

@@ -1,0 +1,44 @@
+{
+  "env": {
+    "GIT_INDEX_FILE": "<fresh-owned-cache>/private-index"
+  },
+  "commands": [
+    [
+      "git",
+      "read-tree",
+      "21d94932195af9be9e308d01d9cc7c13bd78df02"
+    ],
+    [
+      "git",
+      "apply",
+      "--cached",
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/integration-review/owned-meeting-admission.patch"
+    ],
+    [
+      "git",
+      "apply",
+      "--cached",
+      "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/integration-review/type-corrected/one-line-type-correction.patch"
+    ],
+    [
+      "git",
+      "diff",
+      "--cached",
+      "--binary",
+      "--full-index",
+      "21d94932195af9be9e308d01d9cc7c13bd78df02",
+      "--",
+      "Sources/NextNotes/Core/AudioConversion.swift",
+      "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+      "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+      "Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift",
+      "Sources/NextNotes/NextNotesApp.swift"
+    ]
+  ],
+  "exactPriorPatchPreserved": true
+}

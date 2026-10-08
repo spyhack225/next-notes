@@ -1,0 +1,39 @@
+diff --git a/Sources/NextNotes/NextNotesApp.swift b/Sources/NextNotes/NextNotesApp.swift
+index 5476788..9c00655 100644
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -1953,8 +1953,20 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+             }
+             return true
+         }
++        if arguments.contains("--selftest-meeting-bounded-audio") {
++            Task { @MainActor in
++                SelfTest.failed = !(await MeetingBoundedAudioSelfTest.run(write: writePrivateSelfTest))
++                SelfTest.requestTermination()
++            }
++            return true
++        }
+         if arguments.contains("--selftest-meeting-quiet-input") {
+             Task { @MainActor in
++                if arguments.contains("--meeting-quiet-pause-boundaries") {
++                    SelfTest.failed = !(await MeetingPauseBoundarySelfTest.run(write: writePrivateSelfTest))
++                    SelfTest.requestTermination()
++                    return
++                }
+                 let corpus = SelfTest.value(after: "--meeting-quiet-corpus")
+                     .map { URL(fileURLWithPath: $0, isDirectory: true) }
+                 SelfTest.failed = !(await MeetingQuietInputSelfTest.run(
+@@ -2632,6 +2644,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+             SelfTest.requestTermination()
+             return true
+         }
++        if arguments.contains("--selftest-meeting-ingest-order") {
++            Task { @MainActor in
++                SelfTest.failed = !(await MeetingContextIngestOrderSelfTest.run(write: writePrivateSelfTest))
++                SelfTest.requestTermination()
++            }
++            return true
++        }
+         if arguments.contains("--selftest-meeting-reconcile-llm") {
+             SelfTest.failed = !MeetingContextReconciler.runSelfTest()
+             NSApp.terminate(nil)

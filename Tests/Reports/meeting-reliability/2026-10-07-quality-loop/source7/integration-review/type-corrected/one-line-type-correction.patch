@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/Meetings/DiarizationService.swift
++++ b/Sources/NextNotes/Meetings/DiarizationService.swift
+@@ -326,7 +326,7 @@
+                     operation()
+                 }
+             }
+-            let runs: [SpeakerRun]
++            let runs: [MeetingDiarizer.SpeakerRun]
+             if let boundedSamples {
+                 runs = try await MeetingDiarizer.shared.speakerRuns(in: boundedSamples, hint: hint, progress: reportProgress)
+             } else {

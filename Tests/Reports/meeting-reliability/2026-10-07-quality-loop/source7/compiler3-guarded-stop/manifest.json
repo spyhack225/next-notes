@@ -1,0 +1,44 @@
+{
+  "at": "2026-10-08T08:33:00.689663+00:00",
+  "artifacts": {
+    "seventh-compiler3-build-metadata.json": {
+      "sha256": "b741cb81220cdd408d97ea6983423387cb86da8c7eb04f8740fb701532ad3a12",
+      "bytes": 1325
+    },
+    "seventh-compiler3-build-memory.json": {
+      "sha256": "c462d6dbf631f98b2c97277cbef0c934a15377c16fa239d3ed50ef3b744dfcc8",
+      "bytes": 33327
+    },
+    "seventh-compiler3-build-machine-memory.json": {
+      "sha256": "acbe626e0ad4f86946c1d467a2f9acb4540eeaeac966822524fcc497a5bba1d5",
+      "bytes": 13042
+    },
+    "seventh-compiler3-compiler-admission.json": {
+      "sha256": "c47ba032edf9c94524b94c1001b20e94526eb4e994e5ee759f128a838bd28236",
+      "bytes": 138
+    },
+    "seventh-compiler3-build-source-pins-before.json": {
+      "sha256": "2a76a3fa12a60fe59cdad7a9a9a2097bdbbd1825e014156a485b86341cfa7ed9",
+      "bytes": 147400
+    },
+    "seventh-compiler3-build-source-pins-after.json": {
+      "sha256": "2a76a3fa12a60fe59cdad7a9a9a2097bdbbd1825e014156a485b86341cfa7ed9",
+      "bytes": 147400
+    },
+    "seventh-compiler3-compile-build.log": {
+      "sha256": "8b34b13fff9298b1c75053c5a692c855c00ec1c8b1ab40198ad85495fdfdc5ea",
+      "bytes": 354
+    },
+    "meeting-seventh-release-compiler3-guarded.py": {
+      "sha256": "7585bd7fa763bcd07fd965aefe52faa219f9d908a25dc9f7434f80e7dd070389",
+      "bytes": 7955
+    },
+    "OwnedCompilerProcess.py": {
+      "sha256": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+      "bytes": 8167
+    }
+  },
+  "noCandidate": true,
+  "noNativeTestVerdict": true,
+  "installed": false
+}

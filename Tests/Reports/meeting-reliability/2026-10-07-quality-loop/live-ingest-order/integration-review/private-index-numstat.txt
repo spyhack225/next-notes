@@ -1,0 +1,4 @@
+148	0	Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift
+11	11	Sources/NextNotes/Meetings/MeetingContextStore.swift
+1	1	Sources/NextNotes/Meetings/MeetingSession.swift
+7	0	Sources/NextNotes/NextNotesApp.swift

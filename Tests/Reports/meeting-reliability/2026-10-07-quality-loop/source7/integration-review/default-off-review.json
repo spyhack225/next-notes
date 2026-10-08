@@ -1,0 +1,53 @@
+{
+  "method": "Read-only extracted exact function text HEAD/private-index comparison; no compiler/native. Source guard/API analysis, not whole behavior proof.",
+  "unchangedBodies": [
+    {
+      "contract": "publicArrayDiarizer",
+      "byteIdentical": true,
+      "HEADBodySHA256": "709fb91bcb94c786fa9712ea550ee6a4ff2140ddba9105fb2af4fb64dcea0b0f",
+      "admittedBodySHA256": "709fb91bcb94c786fa9712ea550ee6a4ff2140ddba9105fb2af4fb64dcea0b0f"
+    },
+    {
+      "contract": "privateArrayDiarizer",
+      "byteIdentical": true,
+      "HEADBodySHA256": "fa256f0d073fbcc8c6cfc2cc843e42728ac0b955a7d70c6790ac41e2adc3bad7",
+      "admittedBodySHA256": "fa256f0d073fbcc8c6cfc2cc843e42728ac0b955a7d70c6790ac41e2adc3bad7"
+    },
+    {
+      "contract": "arrayFinalPass",
+      "byteIdentical": true,
+      "HEADBodySHA256": "568f0893cd409bbaf3876c8e1b55644f9a7514b3b668cbea52e4d15d7dab79ed",
+      "admittedBodySHA256": "568f0893cd409bbaf3876c8e1b55644f9a7514b3b668cbea52e4d15d7dab79ed"
+    },
+    {
+      "contract": "sharedRMSFrame",
+      "byteIdentical": true,
+      "HEADBodySHA256": "e91f8529df59dde6a792def4cd137c6f4555ead313ea8f0a3a24906c974803eb",
+      "admittedBodySHA256": "e91f8529df59dde6a792def4cd137c6f4555ead313ea8f0a3a24906c974803eb"
+    },
+    {
+      "contract": "sharedRMSValue",
+      "byteIdentical": true,
+      "HEADBodySHA256": "a75ba29305aa61982ec6cef8a06f183de28c17c07ac900bd8cf56587755aa3e1",
+      "admittedBodySHA256": "a75ba29305aa61982ec6cef8a06f183de28c17c07ac900bd8cf56587755aa3e1"
+    }
+  ],
+  "gates": {
+    "bounded": "SelfTest.isRunning && (requested==--selftest-meeting-bounded-audio || (requested==--selftest-meeting-quiet-input && --meeting-bounded-audio-experiment))",
+    "pause": "SelfTest.isRunning && requested==--selftest-meeting-quiet-input && --meeting-quiet-pause-experiment"
+  },
+  "normalConsumerBranches": [
+    "FinalTranscriptService false arm reads original AudioConversion.samples and transcribes same existing array overload in same two sequential passes.",
+    "DiarizationService false arm reads original system-channel array, retains preparation/hint/owner checks and original public/private process(audio:) backend.",
+    "Shared RMS function bytes unchanged; static cutPoints includeTail defaulttrue and legacy pause predicate preserved; nextCut false arm still scans inherited whole buffer before original hard-max fallback."
+  ],
+  "experimentOnly": [
+    "Factory/new final source/new diarizer public source overload refuses outside exact bounded guard.",
+    "Source range/fallback behavior uses existing dependency source protocol; legacy formats can still allocate full array. No claim every experiment source is bounded.",
+    "Digital-zero policy is no noise/voice classifier; nonzero pauses can wait hardmaximum; native word/noise/latency acceptance remains open.",
+    "Actual append observer requires explicit quiet-input SelfTest and emits no stored ledger."
+  ],
+  "quietFixtureDependencies": "All existing Session/start/writer/Stop/same finalTask/store/gold/corpus/settings APIs and private writer are already in HEAD; only7lines diagnostic audio/pause modes added.",
+  "foreignAdmission": "Excluded all preexisting/current App changes except exact2dispatch additions12lines. Source7 requires none of those unrelated default warmup/theme/UX/task/usage/ACP/termination hook deltas.",
+  "acceptanceLimit": "Candidate full-app1176source proof may validate coherent working snapshot; no compile of minimal HEAD+10onlypatch and no native words/global diarizer/long workload acceptance yet."
+}

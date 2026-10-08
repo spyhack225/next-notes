@@ -1,0 +1,34 @@
+[
+  {
+    "phase": "compile",
+    "elapsed": 0.1598922080011107,
+    "summedOwnedFootprintBytes": 426200,
+    "swapGiB": 7.36578125,
+    "reportedFreePercent": 55,
+    "diskFreeGiB": 7.164913177490234
+  },
+  {
+    "phase": "compile",
+    "elapsed": 1.2554832079986227,
+    "summedOwnedFootprintBytes": 29082392,
+    "swapGiB": 7.36578125,
+    "reportedFreePercent": 55,
+    "diskFreeGiB": 7.164752960205078
+  },
+  {
+    "phase": "compile",
+    "elapsed": 2.3445092080000904,
+    "summedOwnedFootprintBytes": 90899464,
+    "swapGiB": 7.36578125,
+    "reportedFreePercent": 55,
+    "diskFreeGiB": 7.164680480957031
+  },
+  {
+    "phase": "compile",
+    "elapsed": 3.4369486670038896,
+    "summedOwnedFootprintBytes": 194397936,
+    "swapGiB": 7.36578125,
+    "reportedFreePercent": 54,
+    "diskFreeGiB": 7.164531707763672
+  }
+]

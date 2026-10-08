@@ -1,0 +1,39 @@
+{
+  "base": "e9fb0bf83a02d190d7d0f8ef7eef3c18c3a09b4a",
+  "SourcesResourcesByteIdenticalTo21d9493": true,
+  "originalAppliedPatchSHA256": "3588266c146534c532953d9e0064368e3167652973538beb590e432783796be9",
+  "HEADIntegrationPatchSHA256": "205616bd7f8116d6a1e012b5552290cc13e9e7f902e147172af677d069e4a083",
+  "checks": [
+    "participant original reviewed patch private-index application PASS",
+    "working parity except exact excluded human-pause function PASS",
+    "generated exact-HEAD patch admission/blob parity PASS",
+    "participant2 composes after combined10+ingest4 PASS"
+  ],
+  "ownedTargets": [
+    "Sources/NextNotes/Computer/AccessibilitySnapshot.swift",
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift"
+  ],
+  "foreignAccessibilityDropHumanPauseExcluded": true,
+  "foreignStartupChangesExcluded": true,
+  "participantProbeEqualsWorking": true,
+  "accessibilityEqualsWorkingExceptExcludedFunction": true,
+  "workingSourceUnchanged": true,
+  "workingHashesBefore": {
+    "Sources/NextNotes/Computer/AccessibilitySnapshot.swift": "a03d3c85aa1352e7cdda159ac70aa358450abb8bd23bdebed424af382eaae9b6",
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673",
+    "Sources/NextNotes/NextNotesApp.swift": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8"
+  },
+  "workingHashesAfter": {
+    "Sources/NextNotes/Computer/AccessibilitySnapshot.swift": "a03d3c85aa1352e7cdda159ac70aa358450abb8bd23bdebed424af382eaae9b6",
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673",
+    "Sources/NextNotes/NextNotesApp.swift": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8"
+  },
+  "realIndexUnchanged": true,
+  "realIndexSHA256Before": "cf44fe16d93f61b4739d6f2c2d1f665eaa60f25dd96aa81987b0c0fd91b845c8",
+  "realIndexSHA256After": "cf44fe16d93f61b4739d6f2c2d1f665eaa60f25dd96aa81987b0c0fd91b845c8",
+  "privateIndexRemoved": true,
+  "compilerExecuted": false,
+  "canonicalSourceWrites": false,
+  "commitCreated": false,
+  "nativeAcceptance": false
+}

@@ -1,0 +1,224 @@
+diff --git a/Sources/NextNotes/Computer/AccessibilitySnapshot.swift b/Sources/NextNotes/Computer/AccessibilitySnapshot.swift
+index 8d78f0d..15442f4 100644
+--- a/Sources/NextNotes/Computer/AccessibilitySnapshot.swift
++++ b/Sources/NextNotes/Computer/AccessibilitySnapshot.swift
+@@ -38,7 +38,29 @@ enum AccessibilitySnapshot {
+     }
+ 
+     /// Honest report: a stub or empty tree says so and invents no controls.
++    struct CaptureCoverage: Codable, Sendable, Equatable {
++        let depthLimit: Int
++        let childrenLimit: Int
++        let usefulControlLimit: Int
++        var depthLimitReached = false
++        var childrenLimitReached = false
++        var usefulControlLimitReached = false
++
++        var limitReached: Bool {
++            depthLimitReached || childrenLimitReached || usefulControlLimitReached
++        }
++    }
++
+     static func capture(processID: pid_t, limit: Int) -> String {
++        captureWithCoverage(processID: processID, limit: limit).snapshot
++    }
++
++    /// Reports existing traversal limits; unchanged callers retain the same text.
++    /// No deadline or complete-roster claim is supplied by this metadata.
++    static func captureWithCoverage(processID: pid_t, limit: Int)
++        -> (snapshot: String, coverage: CaptureCoverage) {
++        var coverage = CaptureCoverage(depthLimit: 8, childrenLimit: 40,
++            usefulControlLimit: limit)
+         last = [:]
+         lastProcessID = processID
+         lastGeneration += 1
+@@ -48,19 +70,19 @@ enum AccessibilitySnapshot {
+         guard AXUIElementCopyAttributeValue(app, kAXFocusedWindowAttribute as CFString, &windowRef) == .success,
+               let window = windowRef else {
+             lastSnapshot = "no focused window. stub tree, 0 names. No elements were invented."
+-            return lastSnapshot
++            return (lastSnapshot, coverage)
+         }
+         var titleRef: CFTypeRef?
+         AXUIElementCopyAttributeValue(window as! AXUIElement, kAXTitleAttribute as CFString, &titleRef)
+         let title = titleRef as? String ?? "Window"
+         var lines = ["Window: \(title)"]
+-        walk(window as! AXUIElement, depth: 0, remaining: limit, prefix: prefix, into: &lines)
++        walk(window as! AXUIElement, depth: 0, remaining: limit, prefix: prefix, into: &lines, coverage: &coverage)
+         if last.isEmpty {
+             lastSnapshot = "Window: \(title)\nstub tree, 0 names. No elements were invented."
+-            return lastSnapshot
++            return (lastSnapshot, coverage)
+         }
+         lastSnapshot = lines.joined(separator: "\n")
+-        return lastSnapshot
++        return (lastSnapshot, coverage)
+     }
+ 
+     static func isStub(_ snapshot: String) -> Bool {
+@@ -202,14 +224,33 @@ enum AccessibilitySnapshot {
+         post(up)
+     }
+ 
++    // Preserve existing frame/inspect callers and their exact text traversal.
++    private static func walk(
++        _ element: AXUIElement, depth: Int, remaining: Int, prefix: String,
++        into lines: inout [String]
++    ) {
++        var coverage = CaptureCoverage(depthLimit: 8, childrenLimit: 40,
++            usefulControlLimit: remaining)
++        walk(element, depth: depth, remaining: remaining, prefix: prefix,
++            into: &lines, coverage: &coverage)
++    }
++
+     private static func walk(
+         _ element: AXUIElement,
+         depth: Int,
+         remaining: Int,
+         prefix: String,
+-        into lines: inout [String]
++        into lines: inout [String],
++        coverage: inout CaptureCoverage
+     ) {
+-        guard remaining > last.count, depth < 8 else { return }
++        guard remaining > last.count else {
++            coverage.usefulControlLimitReached = true
++            return
++        }
++        guard depth < coverage.depthLimit else {
++            coverage.depthLimitReached = true
++            return
++        }
+         var roleRef: CFTypeRef?
+         AXUIElementCopyAttributeValue(element, kAXRoleAttribute as CFString, &roleRef)
+         let role = roleRef as? String ?? "Unknown"
+@@ -231,9 +272,15 @@ enum AccessibilitySnapshot {
+         guard AXUIElementCopyAttributeValue(element, kAXChildrenAttribute as CFString, &childrenRef) == .success,
+               let children = childrenRef as? [AXUIElement]
+         else { return }
+-        for child in children.prefix(40) {
+-            walk(child, depth: depth + 1, remaining: remaining, prefix: prefix, into: &lines)
+-            if last.count >= remaining { return }
++        if children.count > coverage.childrenLimit { coverage.childrenLimitReached = true }
++        for child in children.prefix(coverage.childrenLimit) {
++            walk(child, depth: depth + 1, remaining: remaining, prefix: prefix, into: &lines, coverage: &coverage)
++            if last.count >= remaining {
++                // Reaching the budget does not prove omitted nodes exist, but it
++                // also cannot certify that the traversal reached every control.
++                coverage.usefulControlLimitReached = true
++                return
++            }
+         }
+     }
+ 
+diff --git a/Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift b/Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift
+index 8358ca0..021b8ba 100644
+--- a/Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift
++++ b/Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift
+@@ -23,6 +23,9 @@ enum MeetingParticipantObservationProbe {
+         let observedURL: String?
+         let rawEvidence: String?
+         let evidenceWasClipped: Bool
++        let traversalCoverage: AccessibilitySnapshot.CaptureCoverage?
++        // A process/tab/room URL never proves joined-call or voice identity.
++        let callState = "unverified"
+         // No platform parser is established. Raw labels never become claimed identities.
+         let participantNames: [String] = []
+         let activeSpeakerName: String? = nil
+@@ -58,6 +61,7 @@ enum MeetingParticipantObservationProbe {
+         let indices = targets.indices.filter {
+             guard let url = URL(string: targets[$0].url) else { return false }
+             return url.scheme?.lowercased() == "https" && url.host?.lowercased() == "meet.google.com"
++                && !url.path.isEmpty && url.path != "/"
+         }
+         guard let index = indices.first else { return .unavailable }
+         guard indices.count == 1 else { return .ambiguous }
+@@ -73,7 +77,7 @@ enum MeetingParticipantObservationProbe {
+                               status: String) -> Observation {
+         Observation(platform: platform, source: source, startedAt: began, endedAt: Date(),
+             status: status, processID: nil, processLaunchedAt: nil, browserTargetID: nil,
+-            observedURL: nil, rawEvidence: nil, evidenceWasClipped: false)
++            observedURL: nil, rawEvidence: nil, evidenceWasClipped: false, traversalCoverage: nil)
+     }
+ 
+     /// Uses existing permission only; never opens/focuses Zoom or requests AX access.
+@@ -82,20 +86,23 @@ enum MeetingParticipantObservationProbe {
+     static func zoom(processID: pid_t) -> Observation {
+         let began = Date()
+         func result(_ status: String, app: NSRunningApplication? = nil,
+-                    raw: String? = nil) -> Observation {
++                    raw: String? = nil,
++                    coverage: AccessibilitySnapshot.CaptureCoverage? = nil) -> Observation {
+             Observation(platform: "zoom", source: "focused-window-accessibility",
+                 startedAt: began, endedAt: Date(), status: status,
+                 processID: processID, processLaunchedAt: app?.launchDate,
+                 browserTargetID: nil, observedURL: nil,
+                 rawEvidence: raw.map { String($0.prefix(32_768)) },
+-                evidenceWasClipped: raw.map { $0.count > 32_768 } ?? false)
++                evidenceWasClipped: raw.map { $0.count > 32_768 } ?? false,
++                traversalCoverage: coverage)
+         }
+         guard isRequested else { return result("diagnostic-not-authorized") }
+         guard let app = NSRunningApplication(processIdentifier: processID),
+               app.bundleIdentifier == "us.zoom.xos", !app.isTerminated,
+               let launch = app.launchDate else { return result("zoom-process-unavailable") }
+         guard AXIsProcessTrusted() else { return result("accessibility-unavailable", app: app) }
+-        let raw = AccessibilitySnapshot.capture(processID: processID, limit: 120)
++        let captured = AccessibilitySnapshot.captureWithCoverage(processID: processID, limit: 120)
++        let raw = captured.snapshot
+         guard let current = NSRunningApplication(processIdentifier: processID),
+               current.bundleIdentifier == app.bundleIdentifier,
+               current.launchDate == launch, !current.isTerminated else {
+@@ -103,7 +110,7 @@ enum MeetingParticipantObservationProbe {
+         }
+         let stub = AccessibilitySnapshot.isStub(raw)
+         return result(stub ? "no-observable-window" : "raw-evidence-only", app: app,
+-            raw: stub ? nil : raw)
++            raw: stub ? nil : raw, coverage: captured.coverage)
+     }
+ 
+     @MainActor
+@@ -118,7 +125,7 @@ enum MeetingParticipantObservationProbe {
+             startedAt: began, endedAt: Date(), status: "raw-evidence-only",
+             processID: nil, processLaunchedAt: nil, browserTargetID: targetID,
+             observedURL: expectedURL, rawEvidence: String(raw.prefix(32_768)),
+-            evidenceWasClipped: raw.count > 32_768)
++            evidenceWasClipped: raw.count > 32_768, traversalCoverage: nil)
+     }
+ 
+     /// Private evidence is separate from stdout, --selftest-out and the system log.
+@@ -194,7 +201,7 @@ enum MeetingParticipantObservationProbe {
+         do {
+             let id = try savePrivate(observation)
+             let verdict = observation.status == "raw-evidence-only" ? "OK" : "FAILED"
+-            return "MEETING_PARTICIPANT_OBSERVATION_\(verdict): platform=\(observation.platform) status=\(observation.status) private-id=\(id.uuidString) names-unassigned"
++            return "MEETING_PARTICIPANT_OBSERVATION_\(verdict): platform=\(observation.platform) status=\(observation.status) private-id=\(id.uuidString) names-unassigned call-state-unverified"
+         } catch { return "MEETING_PARTICIPANT_OBSERVATION_FAILED: private-write-unavailable" }
+     }
+ 
+@@ -224,19 +231,24 @@ enum MeetingParticipantObservationProbe {
+         var other = target; other.url = "https://example.invalid/"
+         var insecure = target; insecure.url = "http://meet.google.com/abc-defg-hij"
+         var lookalike = target; lookalike.url = "https://meet.google.com.example.invalid/abc-defg-hij"
++        var landing = target; landing.url = "https://meet.google.com"
++        var rootLanding = target; rootLanding.url = "https://meet.google.com/"
+         var missingID = target; missingID.id = ""
+         var invalidSocket = target; invalidSocket.webSocketDebuggerURL = "https://example.invalid/"
+         expect(meetSelection([]) == .unavailable)
+         expect(meetSelection([other, insecure, lookalike]) == .unavailable)
+         expect(meetSelection([other, target]) == .selected(1))
+         expect(meetSelection([target, target]) == .ambiguous)
++        expect(meetSelection([landing]) == .unavailable)
++        expect(meetSelection([rootLanding]) == .unavailable)
+         expect(meetSelection([missingID]) == .unavailable)
+         expect(meetSelection([invalidSocket]) == .unavailable)
+         let observation = Observation(platform: "zoom", source: "focused-window-accessibility", startedAt: launch,
+             endedAt: launch.addingTimeInterval(0.25), status: "raw-evidence-only", processID: 10,
+             processLaunchedAt: launch, browserTargetID: nil, observedURL: nil, rawEvidence: "generic unknown label",
+-            evidenceWasClipped: false)
++            evidenceWasClipped: false, traversalCoverage: nil)
+         expect(observation.participantNames.isEmpty && observation.activeSpeakerName == nil)
++        expect(observation.callState == "unverified" && observation.traversalCoverage == nil)
+         expect(observation.processID == live.processID && observation.processLaunchedAt == launch)
+         expect(observation.startedAt == launch && observation.endedAt == launch.addingTimeInterval(0.25))
+         return failures == 0 ? "MEETING_PARTICIPANT_OBSERVATION_OK: contracts checks=\(checks) physical-observation-unverified"

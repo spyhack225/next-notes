@@ -1,0 +1,46 @@
+{
+  "at": "2026-10-08T08:35:59.663723+00:00",
+  "exit": -15,
+  "wallSeconds": 3.7474415830001817,
+  "guardReason": "effective owned frontend thread count is not1",
+  "originalOwnerEightUnchanged": true,
+  "ownerStatusCountsBefore": {
+    "done": 16
+  },
+  "sourceInvariant": true,
+  "sourceCount": 1176,
+  "remainingOwnedPIDs": [],
+  "ordinarySwap8Crossed": false,
+  "profile": "peer reviewed relay720 compiler-only initial normal8/min6.5/free55; ongoing explicit swap9 exception/min6.5/free40/summed3GB/1200s; no inference or owner app launch",
+  "phaseReceipts": [
+    {
+      "phase": "compile",
+      "errorType": null,
+      "exit": -15,
+      "observationDetails": [],
+      "drain": {
+        "observationDetails": [],
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [],
+        "seconds": 0.2202305409955443,
+        "sent": [
+          {
+            "pid": 7295,
+            "processStart": 1506113274817,
+            "signal": 15
+          },
+          {
+            "pid": 7353,
+            "processStart": 1506184753895,
+            "signal": 15
+          }
+        ]
+      }
+    }
+  ],
+  "samples": 5,
+  "peakSampledOwnedFootprintBytes": 194397936,
+  "frontendThreadCounts": [],
+  "installed": false
+}

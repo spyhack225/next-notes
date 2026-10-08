@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-08T08:14:09.264762+00:00",
+  "beforeSHA": "c7257dae2ee0d70d5c32911b22baf9caa916bae84e782b565365f3a901680541",
+  "afterSHA": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+  "producerType": "MeetingDiarizer.SpeakerRun",
+  "confirmedFailure": "seventh-compiler2-compile-build.log line551 type checking cannot find unqualified SpeakerRun",
+  "scope": "Only explicit result-array annotation, no branch/calls/array/default change",
+  "indexInvariant": true,
+  "sourceWriterJoined": true,
+  "fullCompileAfter": false,
+  "installed": false
+}

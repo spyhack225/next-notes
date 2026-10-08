@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-08T08:15:07.575861+00:00",
+  "driverSHA": "7585bd7fa763bcd07fd965aefe52faa219f9d908a25dc9f7434f80e7dd070389",
+  "helperSHA": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+  "changedFromCompiler2": [
+    "Sources/NextNotes/Meetings/DiarizationService.swift"
+  ],
+  "beforeSHA": "c7257dae2ee0d70d5c32911b22baf9caa916bae84e782b565365f3a901680541",
+  "afterSHA": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+  "profile": "Unchanged explicitly reviewed relay720 compiler-only40floor; no ASR/model/app launch",
+  "sourceCount": 1176,
+  "installed": false
+}

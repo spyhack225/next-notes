@@ -1,0 +1,58 @@
+{
+  "README.md": {
+    "SHA256": "40ede6e5ee12707b109311caff0907ac58ef6ac44879dd6afe4f6ccca4d2d42e",
+    "bytes": 2099
+  },
+  "admission-receipt.json": {
+    "SHA256": "67ec1f4a465980ab56b45c20068ce3f3e406fe6549716fab3d72233ad02ae3f7",
+    "bytes": 2487
+  },
+  "baseline/Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift": {
+    "SHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bytes": 0
+  },
+  "baseline/Sources/NextNotes/Meetings/MeetingContextStore.swift": {
+    "SHA256": "634a56537e568b376d4fbd9c6783b122aefd81d40fdc818c992467fdc2f7293c",
+    "bytes": 15627
+  },
+  "baseline/Sources/NextNotes/Meetings/MeetingSession.swift": {
+    "SHA256": "32aceea6d352bf6fc94e4c8dee4cb95ffcb891fe443795059f5ae3ab9a17455a",
+    "bytes": 58785
+  },
+  "baseline/Sources/NextNotes/NextNotesApp.swift": {
+    "SHA256": "ce05f8dced4fa5970ab6e6ad910c557364197829e3d2343a507c1d96911b1ec7",
+    "bytes": 562894
+  },
+  "blob-pins.json": {
+    "SHA256": "23b317810b42359be9deab7edf36bb4b210112bb588f731f65429ec15fb842b1",
+    "bytes": 1489
+  },
+  "fixture-dependencies.json": {
+    "SHA256": "6d04f46964c71ff345018b6409cd3364f0867883b9a5a1defab95ff0754d6b99",
+    "bytes": 6478
+  },
+  "owned-ingest-integration.patch": {
+    "SHA256": "1043396a312aa1e8aea7cc048f49994f85799078b0283b25958356dd25b9668e",
+    "bytes": 15243
+  },
+  "patched/Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift": {
+    "SHA256": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91",
+    "bytes": 10314
+  },
+  "patched/Sources/NextNotes/Meetings/MeetingContextStore.swift": {
+    "SHA256": "30197f3979c2de758a147c075d4ade3738abc073e2ac9f747d7aee5a4c587f2b",
+    "bytes": 15799
+  },
+  "patched/Sources/NextNotes/Meetings/MeetingSession.swift": {
+    "SHA256": "748897fa0d3280a0eff0b2a3b43858e51e4bb63807d439f925d8b417dd5c6f39",
+    "bytes": 58787
+  },
+  "patched/Sources/NextNotes/NextNotesApp.swift": {
+    "SHA256": "6f22111c6c6238fdc4f8d3365bc7a3eb45cf96959eca32d634131f38553468c1",
+    "bytes": 563198
+  },
+  "private-index-numstat.txt": {
+    "SHA256": "91771312381218782eb08a67a73f1dc6583b550e20a52fb46aa0d050dad6bdb5",
+    "bytes": 225
+  }
+}

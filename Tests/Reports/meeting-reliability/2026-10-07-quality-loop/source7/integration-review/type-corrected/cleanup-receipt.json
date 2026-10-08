@@ -1,0 +1,15 @@
+{
+  "removed": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-source7-type-admission-l4_8dtbb",
+  "removedPrivateIndexSHA256": "e8fbd68f49753909db84a86ef379e8e27a0e8cce76c5d9f924a0f73056a4a087",
+  "logicalBytes": 546427,
+  "allocatedFileBytes": 548864,
+  "realIndexUnchanged": true,
+  "preserved": [
+    "owned-meeting-admission.patch",
+    "one-line-type-correction.patch",
+    "admission-manifest.json",
+    "private-index-reproduction.json",
+    "README.md"
+  ],
+  "scope": "Only fresh owned disposable private-index path removed; earlier failed witnesses and source-stage caches retained."
+}

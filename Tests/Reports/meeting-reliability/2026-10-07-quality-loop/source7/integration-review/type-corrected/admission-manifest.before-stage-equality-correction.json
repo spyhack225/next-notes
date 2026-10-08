@@ -1,0 +1,164 @@
+{
+  "base": "21d94932195af9be9e308d01d9cc7c13bd78df02",
+  "state": "TYPE_CORRECTED_PRIVATE_INDEX_ADMISSION_PASS; UNCOMPILED_UNCOMMITTED",
+  "oldFailedAdmissionPatchSHA256": "541709f4cf1e11d49245399d991a3b7770dfba36775141af8efaf378b0b7e3ba",
+  "newAdmissionPatchSHA256": "cfc9bedff555af6d488a11d7507dfd398a23341f6aff489dc3f8e266a16ab458",
+  "exactCorrection": {
+    "path": "Sources/NextNotes/Meetings/DiarizationService.swift",
+    "beforeSHA256": "c7257dae2ee0d70d5c32911b22baf9caa916bae84e782b565365f3a901680541",
+    "afterSHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+    "before": "let runs: [SpeakerRun]",
+    "after": "let runs: [MeetingDiarizer.SpeakerRun]",
+    "scope": "One qualified nested type annotation. No behavior/branch/guard/default/body changes."
+  },
+  "files": [
+    {
+      "path": "Sources/NextNotes/Core/AudioConversion.swift",
+      "HEADExists": true,
+      "HEADSHA256": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1",
+      "minimalIndexSHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+      "canonicalCandidateSHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+      "savedStageSHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+      "HEADExists": true,
+      "HEADSHA256": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182",
+      "minimalIndexSHA256": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+      "canonicalCandidateSHA256": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+      "savedStageSHA256": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "HEADExists": true,
+      "HEADSHA256": "74642199c443d4035dc97457fac8574339b7aba3674f30f5e0422d1beadc784b",
+      "minimalIndexSHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+      "canonicalCandidateSHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+      "savedStageSHA256": "c7257dae2ee0d70d5c32911b22baf9caa916bae84e782b565365f3a901680541",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "HEADExists": true,
+      "HEADSHA256": "7545dba4792ab61009918236cd2146c22c1d7e4e7f6f63fd1164d512003eccd1",
+      "minimalIndexSHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "canonicalCandidateSHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "savedStageSHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift",
+      "HEADExists": false,
+      "HEADSHA256": null,
+      "minimalIndexSHA256": "37c798f66f1c8d2999421f6c6a1429eca0887d49e7bbec11592df908d1daec51",
+      "canonicalCandidateSHA256": "37c798f66f1c8d2999421f6c6a1429eca0887d49e7bbec11592df908d1daec51",
+      "savedStageSHA256": "37c798f66f1c8d2999421f6c6a1429eca0887d49e7bbec11592df908d1daec51",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "HEADExists": true,
+      "HEADSHA256": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+      "minimalIndexSHA256": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701",
+      "canonicalCandidateSHA256": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701",
+      "savedStageSHA256": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+      "HEADExists": true,
+      "HEADSHA256": "f4acc499df59cbaf3d706ee8714553d773b9edf5ae015549246f7d0a1fda1070",
+      "minimalIndexSHA256": "5cb3aeabf3a9c7ddb1aa3f42be33ae18577e6fbc09c44a6e4358b2b0cfe6e13d",
+      "canonicalCandidateSHA256": "5cb3aeabf3a9c7ddb1aa3f42be33ae18577e6fbc09c44a6e4358b2b0cfe6e13d",
+      "savedStageSHA256": "5cb3aeabf3a9c7ddb1aa3f42be33ae18577e6fbc09c44a6e4358b2b0cfe6e13d",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift",
+      "HEADExists": false,
+      "HEADSHA256": null,
+      "minimalIndexSHA256": "da9e449e521d70dbe346727d96b2610c291b7b71b98c97afe141d450e83be8cd",
+      "canonicalCandidateSHA256": "da9e449e521d70dbe346727d96b2610c291b7b71b98c97afe141d450e83be8cd",
+      "savedStageSHA256": "da9e449e521d70dbe346727d96b2610c291b7b71b98c97afe141d450e83be8cd",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift",
+      "HEADExists": true,
+      "HEADSHA256": "fb2b370241d1bdf91ef5e037a962763aa80777dabf648721635a4d43926994ba",
+      "minimalIndexSHA256": "e1205c5b18450482b1ec5470d38ad0be6fd32ee91a769190cac73203ff8b7009",
+      "canonicalCandidateSHA256": "e1205c5b18450482b1ec5470d38ad0be6fd32ee91a769190cac73203ff8b7009",
+      "savedStageSHA256": "e1205c5b18450482b1ec5470d38ad0be6fd32ee91a769190cac73203ff8b7009",
+      "preexistingBeforeStageDelta": false,
+      "canonicalEqualsMinimalIndex": true,
+      "minimalEqualsSavedStage": true
+    },
+    {
+      "path": "Sources/NextNotes/NextNotesApp.swift",
+      "HEADExists": true,
+      "HEADSHA256": "ce05f8dced4fa5970ab6e6ad910c557364197829e3d2343a507c1d96911b1ec7",
+      "minimalIndexSHA256": "ef8518fa58a6f8682b2393bd86bc98c1162cbd0b31211a7b835e0c33b55b8cd2",
+      "canonicalCandidateSHA256": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8",
+      "savedStageSHA256": "b91f52f7a2f2f45dcbf254fcecaa3f6e8c650e619e946a83201e016a2c41f7d5",
+      "preexistingBeforeStageDelta": true,
+      "canonicalEqualsMinimalIndex": false,
+      "minimalEqualsSavedStage": false
+    }
+  ],
+  "allNineNonAppCanonicalPinsMatch": true,
+  "onlyOneMinimalBlobChanged": true,
+  "unchangedDefaultBodyWitnesses": [
+    {
+      "contract": "publicArrayDiarizer",
+      "byteIdentical": true,
+      "HEADBodySHA256": "709fb91bcb94c786fa9712ea550ee6a4ff2140ddba9105fb2af4fb64dcea0b0f",
+      "admittedBodySHA256": "709fb91bcb94c786fa9712ea550ee6a4ff2140ddba9105fb2af4fb64dcea0b0f"
+    },
+    {
+      "contract": "privateArrayDiarizer",
+      "byteIdentical": true,
+      "HEADBodySHA256": "fa256f0d073fbcc8c6cfc2cc843e42728ac0b955a7d70c6790ac41e2adc3bad7",
+      "admittedBodySHA256": "fa256f0d073fbcc8c6cfc2cc843e42728ac0b955a7d70c6790ac41e2adc3bad7"
+    },
+    {
+      "contract": "arrayFinalPass",
+      "byteIdentical": true,
+      "HEADBodySHA256": "568f0893cd409bbaf3876c8e1b55644f9a7514b3b668cbea52e4d15d7dab79ed",
+      "admittedBodySHA256": "568f0893cd409bbaf3876c8e1b55644f9a7514b3b668cbea52e4d15d7dab79ed"
+    },
+    {
+      "contract": "sharedRMSFrame",
+      "byteIdentical": true,
+      "HEADBodySHA256": "e91f8529df59dde6a792def4cd137c6f4555ead313ea8f0a3a24906c974803eb",
+      "admittedBodySHA256": "e91f8529df59dde6a792def4cd137c6f4555ead313ea8f0a3a24906c974803eb"
+    },
+    {
+      "contract": "sharedRMSValue",
+      "byteIdentical": true,
+      "HEADBodySHA256": "a75ba29305aa61982ec6cef8a06f183de28c17c07ac900bd8cf56587755aa3e1",
+      "admittedBodySHA256": "a75ba29305aa61982ec6cef8a06f183de28c17c07ac900bd8cf56587755aa3e1"
+    }
+  ],
+  "priorDefaultOffReviewSHA256": "0471b9118a99a8467af3d8da32b52f20ae5c2ca488f9b14030481047d0104824",
+  "foreignAppHunksStillExcluded": true,
+  "realIndexBeforeAndAfterSHA256": "f6559b2101248fa25431d5d3ed740b40d786220f71d90ec43cc4f2cbcba80812",
+  "limits": "Root actual compiler2 caught introduced unqualified nested type. Original read-only no-obvious-blocker finding disproved for this annotation. Root compiler3 owns native compile; no compiler/model/Source/real-index edit by this review."
+}

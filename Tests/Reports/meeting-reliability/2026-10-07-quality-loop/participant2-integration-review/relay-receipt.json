@@ -1,0 +1,6 @@
+{
+  "exit": 0,
+  "stdout": "{\n  \"ok\": true,\n  \"messageId\": \"286b16b9-6652-44fa-9fea-b1c570b1e42b\",\n  \"recipients\": [\n    \"serial-root\",\n    \"codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e\",\n    \"claude-positioning\",\n    \"meeting-read-packet\",\n    \"dictation-performance-20261007\",\n    \"speaker-identity-20261008\",\n    \"notes-factuality-20261008\"\n  ],\n  \"duplicate\": false,\n  \"cursor\": 740\n}\n",
+  "stderr": "",
+  "sendIsNotProofOfRead": true
+}

@@ -1,0 +1,152 @@
+{
+  "baselineCommit": "21d94932195af9be9e308d01d9cc7c13bd78df02",
+  "existingAPIChecks": [
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "symbol": "static func isolatedForTesting(",
+      "presentInHEAD": true,
+      "SHA256": "634a56537e568b376d4fbd9c6783b122aefd81d40fdc818c992467fdc2f7293c",
+      "blob": "149660738c391571511a168e1e0f74e37fb62d95"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "symbol": "func runReconcileForTesting()",
+      "presentInHEAD": true,
+      "SHA256": "634a56537e568b376d4fbd9c6783b122aefd81d40fdc818c992467fdc2f7293c",
+      "blob": "149660738c391571511a168e1e0f74e37fb62d95"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "symbol": "func recentEvidenceSegments(",
+      "presentInHEAD": true,
+      "SHA256": "634a56537e568b376d4fbd9c6783b122aefd81d40fdc818c992467fdc2f7293c",
+      "blob": "149660738c391571511a168e1e0f74e37fb62d95"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "symbol": "func ingestFinal(",
+      "presentInHEAD": true,
+      "SHA256": "634a56537e568b376d4fbd9c6783b122aefd81d40fdc818c992467fdc2f7293c",
+      "blob": "149660738c391571511a168e1e0f74e37fb62d95"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "symbol": "func load(meetingID:",
+      "presentInHEAD": true,
+      "SHA256": "634a56537e568b376d4fbd9c6783b122aefd81d40fdc818c992467fdc2f7293c",
+      "blob": "149660738c391571511a168e1e0f74e37fb62d95"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "symbol": "func reset()",
+      "presentInHEAD": true,
+      "SHA256": "634a56537e568b376d4fbd9c6783b122aefd81d40fdc818c992467fdc2f7293c",
+      "blob": "149660738c391571511a168e1e0f74e37fb62d95"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "symbol": "protocol MeetingContextCompleter: Sendable",
+      "presentInHEAD": true,
+      "SHA256": "b06b49dcbd2b068bb086630176257d95561dd315bd064422f0073dfbdeb1aa3c",
+      "blob": "8db81157c00c17f503c202f39feaa7f82aa573c9"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "symbol": "struct Snapshot: Sendable",
+      "presentInHEAD": true,
+      "SHA256": "b06b49dcbd2b068bb086630176257d95561dd315bd064422f0073dfbdeb1aa3c",
+      "blob": "8db81157c00c17f503c202f39feaa7f82aa573c9"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "symbol": "static let empty = Suggestion()",
+      "presentInHEAD": true,
+      "SHA256": "b06b49dcbd2b068bb086630176257d95561dd315bd064422f0073dfbdeb1aa3c",
+      "blob": "8db81157c00c17f503c202f39feaa7f82aa573c9"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "symbol": "static func readerSegments(",
+      "presentInHEAD": true,
+      "SHA256": "b06b49dcbd2b068bb086630176257d95561dd315bd064422f0073dfbdeb1aa3c",
+      "blob": "8db81157c00c17f503c202f39feaa7f82aa573c9"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "symbol": "static func prompt(",
+      "presentInHEAD": true,
+      "SHA256": "b06b49dcbd2b068bb086630176257d95561dd315bd064422f0073dfbdeb1aa3c",
+      "blob": "8db81157c00c17f503c202f39feaa7f82aa573c9"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingStore.swift",
+      "symbol": "static func isolated()",
+      "presentInHEAD": true,
+      "SHA256": "d3ae981c41954048afbef9dbea397d30d4f9d535e208cc7a547127552ee39f61",
+      "blob": "a0f370cceb1abab95b548b709be296ba19fc100a"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingStore.swift",
+      "symbol": "func save(_ meeting: Meeting)",
+      "presentInHEAD": true,
+      "SHA256": "d3ae981c41954048afbef9dbea397d30d4f9d535e208cc7a547127552ee39f61",
+      "blob": "a0f370cceb1abab95b548b709be296ba19fc100a"
+    },
+    {
+      "file": "Sources/NextNotes/Support/Settings.swift",
+      "symbol": "var usesHarnessPreferencesForTesting: Bool",
+      "presentInHEAD": true,
+      "SHA256": "f4396605a21da229d633b0021da7fc7d6a5823b4d7fc61897795ad6f84877ba1",
+      "blob": "b948c1d7015c8f9c2f655ba03aad778290242ae4"
+    },
+    {
+      "file": "Sources/NextNotes/Support/Settings.swift",
+      "symbol": "var meetingLiveUnderstanding: Bool?",
+      "presentInHEAD": true,
+      "SHA256": "f4396605a21da229d633b0021da7fc7d6a5823b4d7fc61897795ad6f84877ba1",
+      "blob": "b948c1d7015c8f9c2f655ba03aad778290242ae4"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingModels.swift",
+      "symbol": "enum TranscriptKind:",
+      "presentInHEAD": true,
+      "SHA256": "ddb880aed49a3e87e645f0989ce6b9d7cebc9aa6830ce4d6d66e75f399e06d72",
+      "blob": "34bb3d66df2764d0a5151498cfac5858c2459ea1"
+    },
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingModels.swift",
+      "symbol": "kind: TranscriptKind? = nil",
+      "presentInHEAD": true,
+      "SHA256": "ddb880aed49a3e87e645f0989ce6b9d7cebc9aa6830ce4d6d66e75f399e06d72",
+      "blob": "34bb3d66df2764d0a5151498cfac5858c2459ea1"
+    },
+    {
+      "file": "Sources/NextNotes/NextNotesApp.swift",
+      "symbol": "static let requested: String?",
+      "presentInHEAD": true,
+      "SHA256": "ce05f8dced4fa5970ab6e6ad910c557364197829e3d2343a507c1d96911b1ec7",
+      "blob": "5476788cf5461f36e7643aa17c20ba769b811373"
+    },
+    {
+      "file": "Sources/NextNotes/NextNotesApp.swift",
+      "symbol": "private func writePrivateSelfTest(",
+      "presentInHEAD": true,
+      "SHA256": "ce05f8dced4fa5970ab6e6ad910c557364197829e3d2343a507c1d96911b1ec7",
+      "blob": "5476788cf5461f36e7643aa17c20ba769b811373"
+    }
+  ],
+  "missingAPIsInHEAD": [
+    {
+      "file": "Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "symbol": "reconcileScheduledForTesting",
+      "status": "added only narrow SelfTest-gated property in owned patch"
+    }
+  ],
+  "newSharedDependencies": [],
+  "workingOnlyDependenciesExcluded": [
+    "optionalAdmission guard logic",
+    "health/capture/quit APIs",
+    "quiet/bounded native fixture APIs"
+  ],
+  "classification": "All maintained fixture callable APIs exist in HEAD except required observation property. Existence/signature audit plus private-index admission is not compilation or native runtime proof. Existing injected isolated store/completer and HEAD runReconcileForTesting methods retained unchanged."
+}

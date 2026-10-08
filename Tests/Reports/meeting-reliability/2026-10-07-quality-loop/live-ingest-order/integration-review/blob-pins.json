@@ -1,0 +1,30 @@
+{
+  "Sources/NextNotes/Meetings/MeetingSession.swift": {
+    "baselineExists": true,
+    "baselineSHA256": "32aceea6d352bf6fc94e4c8dee4cb95ffcb891fe443795059f5ae3ab9a17455a",
+    "patchedSHA256": "748897fa0d3280a0eff0b2a3b43858e51e4bb63807d439f925d8b417dd5c6f39",
+    "baselineBlob": "06c51d1e415af21ba9eeb97703054a9ee28134e4",
+    "patchedBlob": "36b47a938cc8fba52bbf649b430904ac598dd190"
+  },
+  "Sources/NextNotes/Meetings/MeetingContextStore.swift": {
+    "baselineExists": true,
+    "baselineSHA256": "634a56537e568b376d4fbd9c6783b122aefd81d40fdc818c992467fdc2f7293c",
+    "patchedSHA256": "30197f3979c2de758a147c075d4ade3738abc073e2ac9f747d7aee5a4c587f2b",
+    "baselineBlob": "149660738c391571511a168e1e0f74e37fb62d95",
+    "patchedBlob": "534f5262a7576423e76ac75187740dca8d1b534f"
+  },
+  "Sources/NextNotes/NextNotesApp.swift": {
+    "baselineExists": true,
+    "baselineSHA256": "ce05f8dced4fa5970ab6e6ad910c557364197829e3d2343a507c1d96911b1ec7",
+    "patchedSHA256": "6f22111c6c6238fdc4f8d3365bc7a3eb45cf96959eca32d634131f38553468c1",
+    "baselineBlob": "5476788cf5461f36e7643aa17c20ba769b811373",
+    "patchedBlob": "52430c9305e24a5b3da85637d2e300304f7759e0"
+  },
+  "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift": {
+    "baselineExists": false,
+    "baselineSHA256": null,
+    "patchedSHA256": "4d591bf58425298c47f53c6322510d8326adccca9699e7c8d577e97b136f3f91",
+    "baselineBlob": null,
+    "patchedBlob": "e99929aae16813900b9ab50d9206e5325e51600d"
+  }
+}

@@ -1,0 +1,322 @@
+{
+  "scope": "Exact original compiler4 AST phase clause vs draft fixed helper; only authored command/start/usage. No OS children/fullcompile/model/App/Source. Main-compile means literal -module-nameNextNotes and -c; all other frontends still retain external resource guard.",
+  "originalDriverSHA256": "2bbc0e0f77b42f7408aa7d6c455b542b5468ceff31a1e8969e132e03567a7027",
+  "fixedHelperSHA256": "3dedee16b70d6dfe75cd1ecd4173bff60967b5508eea6db72ba4897c0bafbed8",
+  "rows": [
+    {
+      "case": "dependency-no-count",
+      "expectedContinue": true,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        false,
+        true
+      ],
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "dependency",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": null,
+        "countOccurrences": 0,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "dependency-count8",
+      "expectedContinue": true,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        false,
+        true
+      ],
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "dependency",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 8,
+        "countOccurrences": 1,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "main-one",
+      "expectedContinue": true,
+      "expectedMainCompileProof": true,
+      "originalChecks": [
+        true,
+        true
+      ],
+      "originalGuard": null,
+      "originalProof": true,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "main-compile",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 1,
+        "countOccurrences": 1,
+        "mainCompileThreadProof": true
+      }
+    },
+    {
+      "case": "main-eight",
+      "expectedContinue": false,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        true,
+        true
+      ],
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": "effective owned NextNotes compile frontend thread count is not1",
+      "fixedNumericScope": {
+        "scope": "main-compile",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 8,
+        "countOccurrences": 1,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "main-missing",
+      "expectedContinue": false,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        true,
+        true
+      ],
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": "effective owned NextNotes compile frontend thread count is not1",
+      "fixedNumericScope": {
+        "scope": "main-compile",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": null,
+        "countOccurrences": 0,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "main-duplicate-last1",
+      "expectedContinue": true,
+      "expectedMainCompileProof": true,
+      "originalChecks": [
+        true,
+        true
+      ],
+      "originalGuard": null,
+      "originalProof": true,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "main-compile",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 1,
+        "countOccurrences": 2,
+        "mainCompileThreadProof": true
+      }
+    },
+    {
+      "case": "main-duplicate-last8",
+      "expectedContinue": false,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        true,
+        true
+      ],
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": "effective owned NextNotes compile frontend thread count is not1",
+      "fixedNumericScope": {
+        "scope": "main-compile",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 8,
+        "countOccurrences": 2,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "main-recycled",
+      "expectedContinue": false,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        true,
+        true
+      ],
+      "originalGuard": "owned frontend argv identity unavailable or changed",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": "owned frontend argv identity unavailable or changed",
+      "fixedNumericScope": {
+        "scope": "main-compile",
+        "moduleKnown": true,
+        "identityValid": false,
+        "lastThreadCount": 1,
+        "countOccurrences": 1,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "main-unavailable",
+      "expectedContinue": false,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        true,
+        true
+      ],
+      "originalGuard": "owned frontend argv identity unavailable or changed",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": "owned frontend argv identity unavailable or changed",
+      "fixedNumericScope": {
+        "scope": "main-compile",
+        "moduleKnown": true,
+        "identityValid": false,
+        "lastThreadCount": 1,
+        "countOccurrences": 1,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "unknown-no-count",
+      "expectedContinue": true,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        false,
+        true
+      ],
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "unknown",
+        "moduleKnown": false,
+        "identityValid": true,
+        "lastThreadCount": null,
+        "countOccurrences": 0,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "main-metadata-no-count",
+      "expectedContinue": true,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        false,
+        true
+      ],
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "main-metadata",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": null,
+        "countOccurrences": 0,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "main-metadata-count8",
+      "expectedContinue": true,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        false,
+        true
+      ],
+      "originalGuard": "effective owned frontend thread count is not1",
+      "originalProof": false,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "main-metadata",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 8,
+        "countOccurrences": 1,
+        "mainCompileThreadProof": false
+      }
+    },
+    {
+      "case": "main-metadata-count1",
+      "expectedContinue": true,
+      "expectedMainCompileProof": false,
+      "originalChecks": [
+        true,
+        false
+      ],
+      "originalGuard": null,
+      "originalProof": true,
+      "fixedChecks": [
+        true,
+        true
+      ],
+      "fixedRefusal": null,
+      "fixedNumericScope": {
+        "scope": "main-metadata",
+        "moduleKnown": true,
+        "identityValid": true,
+        "lastThreadCount": 1,
+        "countOccurrences": 1,
+        "mainCompileThreadProof": false
+      }
+    }
+  ],
+  "originalFailures": 6,
+  "fixedFailures": 0,
+  "checksEach": 26
+}

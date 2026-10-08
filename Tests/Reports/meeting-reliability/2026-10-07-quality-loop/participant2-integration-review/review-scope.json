@@ -1,0 +1,41 @@
+{
+  "executedOriginalFixed": "Original6/11 checks fail, fixed11/11 PASS; exact producer walker/selector with substituted AX attributes/cache/process-capture adapter",
+  "originalWrong": [
+    "child omission reported",
+    "depth omission reported",
+    "useful budget reached reported",
+    "small limits not observed",
+    "landing refused",
+    "root landing refused"
+  ],
+  "notNative": [
+    "actual AX/capture/JSON writer",
+    "physical Zoom/Meet observation",
+    "joined-call state",
+    "complete roster or voice binding",
+    "participant suggestions UI",
+    "capture/meeting latency or resource improvement"
+  ],
+  "newHEADIntegration": "Private-index admission only, no new compile/native run. HEAD producer baseline differs from retained original canonical source snapshot by only the excluded unrelated accessibility human-pause helper. The component fixture itself still has explicit AX/cache/process boundaries; relevant owned walker/selector bodies are unchanged.",
+  "sourceReview": {
+    "responsibleProducer": "Actual AX traversal records depth/children/useful-control limits, carries metadata into raw diagnostic Observation; existing capture/string-returning wrapper and frame walk wrapper retain same reads/text/cache generation.",
+    "capSemantics": "Limit reached, not known participant omitted or complete coverage. Useful budget reached conservatively flags even without proof of another useful node. Unreached caps cannot certify all participants; inaccessible attributes/failures/flattening remain open.",
+    "readWork": "Same focused-window/title/role/value/children reads and depth8/children40/useful-control budget; no extra AX getter, model, queue, timer or storage channel.",
+    "MeetBoundary": "Only empty/root landing URL path refused. Other room paths can be lobbies; callState remains unverified and names unassigned. No inferred joined markers or voice/email binding.",
+    "permissions": "Existing explicit diagnostic SelfTest guard, existing AX permission and no focus/prompt remain unchanged; physical permission read/writer proof open."
+  },
+  "AppComposition": "Both combined10\u2192ingest4 and reverse private-index orders produce identical App blob with two independent dispatch regions; participant2 targets are disjoint. This is no compiled startup/flag proof.",
+  "foreignExcluded": [
+    "dropElementsOnHumanPause",
+    "foreign startup/App changes",
+    "foreign whole Accessibility/App snapshots"
+  ],
+  "installation": false,
+  "canonicalSourceWrites": false,
+  "compilerOrModelRuns": false,
+  "sourceSnapshotBaselineWitness": {
+    "cacheOriginalSHA256": "c5de8d7de9b67d27a133aa266687b8faf3bd89972d414356e9685f2ad31e15a4",
+    "HEADSHA256": "8b9943c9e35ef3f5fb3094e1168442fb67163d8b050cdb054dc3a070de493247",
+    "onlyExcludedHumanPauseHelperDiffers": true
+  }
+}

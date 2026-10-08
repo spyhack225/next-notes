@@ -1,0 +1,7 @@
+{
+  "beforeSHA": "3129f95b6228c7caef648b3b9fd79c9076469d00658a953b5cf3e7e1d2b1e2f4",
+  "afterSHA": "2bbc0e0f77b42f7408aa7d6c455b542b5468ceff31a1e8969e132e03567a7027",
+  "repair": "Exact process-start revalidation before assigning frontend argv evidence; unknown/reused refuses",
+  "guardsUnchanged": true,
+  "launch": false
+}

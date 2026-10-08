@@ -1,0 +1,7 @@
+{
+  "driverSHA": "3129f95b6228c7caef648b3b9fd79c9076469d00658a953b5cf3e7e1d2b1e2f4",
+  "parentSHA": "7585bd7fa763bcd07fd965aefe52faa219f9d908a25dc9f7434f80e7dd070389",
+  "onlyArmChange": "same release/jobs1/WMO; forward numthreads1; observe owned effective frontend1; receipt prefixcompiler4",
+  "guardsUnchanged": true,
+  "noLaunch": true
+}

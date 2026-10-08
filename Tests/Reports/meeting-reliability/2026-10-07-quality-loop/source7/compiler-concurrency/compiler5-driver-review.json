@@ -1,0 +1,7 @@
+{
+  "parentSHA": "2bbc0e0f77b42f7408aa7d6c455b542b5468ceff31a1e8969e132e03567a7027",
+  "driverSHA": "c759e514116615bb84a92b040d5be2b0d49e8395a87d6716e0335641fd1ec168",
+  "classifierSHA": "3dedee16b70d6dfe75cd1ecd4173bff60967b5508eea6db72ba4897c0bafbed8",
+  "scope": "actualownedNextNotes-c thread1proof only; dependency/metadata notproof; numericbounded64 metadata, no fullargv; unchangedresource/source/default/optimization guards",
+  "launch": false
+}

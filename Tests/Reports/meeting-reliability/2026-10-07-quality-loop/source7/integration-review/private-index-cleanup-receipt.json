@@ -1,0 +1,22 @@
+{
+  "at": "2026-10-08T08:11:30.239700+00:00",
+  "removedOwnedDirectory": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-source7-integration-17if07d8",
+  "removedFile": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-source7-integration-17if07d8/private-index",
+  "removedSHA256": "2c63ffc44cdda4ff1719367e0ab5051ca8f9a805a03cfdeb2df001957e1e9f85",
+  "logicalBytesReclaimed": 546427,
+  "allocatedFileBytesReclaimed": 548864,
+  "remainingOwnedPaths": [],
+  "activePathProcessMatches": 0,
+  "realIndexBeforeAfterSHA256": "cd6ec83948c11c5c630a48039ac4842ecb944a396e1345129bc5d6da948fcb87",
+  "retainedEvidenceFiles": {
+    "admission-manifest.json": "509fac1506aa9f7c9449d30a8ce6eda288f6ad59d521b34760d3e3592e7d47ba",
+    "owned-meeting-admission.patch": "541709f4cf1e11d49245399d991a3b7770dfba36775141af8efaf378b0b7e3ba",
+    "README.md": "ef6c3579dd33aacce6b3076babaf6770ce40577325a94204da58269ce529000c",
+    "patch-stat.txt": "e3baaa51a57bedc0f6de1b8c317137f13247e979f1b9ab44cb24ad2a6b81cec4",
+    "app-current-not-admitted.patch": "cfa90e4cdb2c7ec403920fd0a76c171c4f671abc406cac4b07e9065fbe23ec94",
+    "default-off-review.json": "0471b9118a99a8467af3d8da32b52f20ae5c2ca488f9b14030481047d0104824",
+    "app-preexisting-not-admitted.patch": "5a5a61c4103b6467c2c68400c16a3b55521ea77f36bedbe0b102d15040ed836e",
+    "private-index-reproduction.json": "e67a9df091c1d975df1d2abb0e925fddc17d440140c104fe1061b6bdb0a86b31"
+  },
+  "scope": "Only this agent disposable private integration index removed. Original source7 stage/cache/patches/owner data/peer artifacts/models/bundles untouched. Patch+source/body pins+foreign exclusion witnesses+reproduction recipe preserved; no unique preparation script existed."
+}

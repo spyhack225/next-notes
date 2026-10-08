@@ -1,0 +1,17 @@
+{
+  "scope": "Evidence reporting producer correction only. Original file retained; no product/source/index/compiler changed.",
+  "beforeSHA256": "5e1fa0bf6dc18703e24deb01f9266c9d4264d2bbe1cf45c4119bcb6c7fcd0b83",
+  "afterSHA256": "c82e241589301c2b34026adead7797274f5fb801e4cabe483b56e32f2aced02c",
+  "allTenRowsSavedHashEqualityRecomputed": true,
+  "changes": [
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "beforeEquality": true,
+      "afterEquality": false,
+      "minimalSHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+      "originalSavedStageSHA256": "c7257dae2ee0d70d5c32911b22baf9caa916bae84e782b565365f3a901680541"
+    }
+  ],
+  "canonicalParityStillTrueNineNonApp": true,
+  "cause": "Copied prior row minimalEqualsSavedStage boolean remained true after updating minimalIndexSHA for the one-line type qualification. New record derives equality from actual saved stage hash versus admitted hash."
+}

@@ -1,0 +1,39 @@
+{
+  "at": "2026-10-08T08:38:58.064365+00:00",
+  "artifacts": {
+    "seventh-compiler4-build-metadata.json": {
+      "sha256": "383ff758ca6c048d339b329f30ecf6663508980645402eab17ba23e1993ea574",
+      "bytes": 1249
+    },
+    "seventh-compiler4-build-memory.json": {
+      "sha256": "d0059008b1e0689f2b09f941a999a53a44f43882d1b57d7e1dc54154708175d6",
+      "bytes": 913
+    },
+    "seventh-compiler4-build-machine-memory.json": {
+      "sha256": "c0d83261bce44475fe5e5f6be9e15ef626114c4f6e9dac3e0d3a57cb28b75f57",
+      "bytes": 826
+    },
+    "seventh-compiler4-compiler-admission.json": {
+      "sha256": "12365225a47545b0c637957f477b9584f79adeddfd46e631fb4d9fa09f1b7986",
+      "bytes": 135
+    },
+    "seventh-compiler4-build-source-pins-before.json": {
+      "sha256": "2a76a3fa12a60fe59cdad7a9a9a2097bdbbd1825e014156a485b86341cfa7ed9",
+      "bytes": 147400
+    },
+    "seventh-compiler4-build-source-pins-after.json": {
+      "sha256": "2a76a3fa12a60fe59cdad7a9a9a2097bdbbd1825e014156a485b86341cfa7ed9",
+      "bytes": 147400
+    },
+    "seventh-compiler4-compile-build.log": {
+      "sha256": "182ec0c2ed27cc4787989f65c2343200b7a31c2be8773ee95c0f20e5ebd922f4",
+      "bytes": 441
+    },
+    "meeting-seventh-release-compiler4-guarded.py": {
+      "sha256": "2bbc0e0f77b42f7408aa7d6c455b542b5468ceff31a1e8969e132e03567a7027",
+      "bytes": 8795
+    }
+  },
+  "installed": false,
+  "noCandidate": true
+}

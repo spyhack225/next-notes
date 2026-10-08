@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-08T08:09:29.831392+00:00",
+  "peerReviewRelayCursor": 720,
+  "priorAttempt": "seventh-build-metadata.json",
+  "beforeDriverSHA": "24a6d9aae1b0d570191c06d166bc6de71b6b14bfeb6cbd6e37ae822665952c75",
+  "driverSHA": "853cc17ee2832eb7db3edb9648cffdd63f017b1719f54bf5349f7175bb28caca",
+  "helperSHA": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+  "change": "Separately reviewed compiler-only ongoing free40 instead of50. Initial55/normal8swap, ongoing9exception/disk6.5/summed3GB/1200s/WMO/jobs1/exact monitor retained. Added fresh owner8/status admission and active-owner detection. No native app/model/ASR profile change or source flags.",
+  "launched": false,
+  "priorReviewedDriverSHA": "dd84ebfe03a15cbeab540237262229fda9fa5a7a0262e6797cb1c1014d71ad75",
+  "bundleAdmission": "make -o build app CONFIG=release: assemble only after successful explicit jobs1 release compile and exact Source invariant; no phony second unbounded swift build",
+  "postObservationFailureLimit": "Unexpected final observation/receipt exceptions refuse acceptance; failed metadata may be absent. No product pass or follow-on is admitted."
+}

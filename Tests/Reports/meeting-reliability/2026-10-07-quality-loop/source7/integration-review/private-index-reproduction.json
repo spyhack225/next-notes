@@ -1,0 +1,47 @@
+{
+  "scope": "Private-index reproduction only; all arguments structured. Choose a fresh owned cache directory for index; never use real index. No Source checkout/write or compiler needed.",
+  "env": {
+    "GIT_INDEX_FILE": "<fresh-owned-cache>/private-index"
+  },
+  "commands": [
+    [
+      "git",
+      "read-tree",
+      "21d94932195af9be9e308d01d9cc7c13bd78df02"
+    ],
+    [
+      "git",
+      "apply",
+      "--cached",
+      "--check",
+      "<retained-source7-cache>/source7-meeting-combined.patch"
+    ],
+    [
+      "git",
+      "apply",
+      "--cached",
+      "<retained-source7-cache>/source7-meeting-combined.patch"
+    ],
+    [
+      "git",
+      "diff",
+      "--cached",
+      "--binary",
+      "--full-index",
+      "21d94932195af9be9e308d01d9cc7c13bd78df02",
+      "--",
+      "Sources/NextNotes/Core/AudioConversion.swift",
+      "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+      "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+      "Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift",
+      "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift",
+      "Sources/NextNotes/NextNotesApp.swift"
+    ]
+  ],
+  "originalAppliedCache": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-source7-combined-nr6ik9wa",
+  "retainedPatchSHA256": "541709f4cf1e11d49245399d991a3b7770dfba36775141af8efaf378b0b7e3ba"
+}

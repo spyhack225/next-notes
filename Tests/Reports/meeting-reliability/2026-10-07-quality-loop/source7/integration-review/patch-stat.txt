@@ -1,0 +1,11 @@
+ Sources/NextNotes/Core/AudioConversion.swift       |  98 +++++++++
+ .../NextNotes/Meetings/ChunkedTranscriber.swift    |  41 +++-
+ .../NextNotes/Meetings/DiarizationService.swift    |  32 ++-
+ .../Meetings/FinalTranscriptService.swift          |  27 ++-
+ .../Meetings/MeetingBoundedAudioSelfTest.swift     | 230 +++++++++++++++++++++
+ Sources/NextNotes/Meetings/MeetingDiarizer.swift   |  63 ++++++
+ Sources/NextNotes/Meetings/MeetingFinalPass.swift  |  61 ++++++
+ .../Meetings/MeetingPauseBoundarySelfTest.swift    |  95 +++++++++
+ .../Meetings/MeetingQuietSessionSelfTest.swift     |   7 +-
+ Sources/NextNotes/NextNotesApp.swift               |  12 ++
+ 10 files changed, 643 insertions(+), 23 deletions(-)

@@ -1,0 +1,19 @@
+{
+  "date": "2026-10-08",
+  "scope": "read-only official public documentation and existing source review; owned reports only",
+  "report": "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/NATIVE-RECORDER-IDENTITY-NEXT.md",
+  "reportSHA256": "3a1f7323c34a4c3ef28e211a93cfed50e2b52b98d3636833b10196b803f92635",
+  "sourceReadPins": {
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673",
+    "Sources/NextNotes/Meetings/MeetingModels.swift": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec",
+    "Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift": "5eab3f11d9cdae75c5297da8bba48bbe1fb4aa3d6a089ae1dbee21ca22d466b0",
+    "Sources/NextNotes/Calendar/Google/GoogleOAuthClient.swift": "24f35744100eacea76f11189a5d7209c2b5768203c770405b0d33256bd18abb6",
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0"
+  },
+  "compilerModelNativeBrowserAXProviderAccountRuns": false,
+  "canonicalSourceWrites": false,
+  "sdkPolicyDirectOfficialHTMLVerified": true,
+  "automaticVoiceNameBindingImplemented": false,
+  "physicalProviderObservationVerified": false,
+  "rootOwnsNativeAndInstalledCoverageAcceptance": true
+}

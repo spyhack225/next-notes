@@ -1,0 +1,7 @@
+FAIL: child omission reported
+FAIL: depth omission reported
+FAIL: useful budget reached reported
+FAIL: small limits not observed
+FAIL: landing refused
+FAIL: root landing refused
+PARTICIPANT_COVERAGE_FAILED checks=11 failures=6 substituted-AX-boundary

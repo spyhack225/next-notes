@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-08T07:58:27.186551+00:00",
+  "base": "d49c33c5b409dfb59ca969b32865456da692727a",
+  "commit": "21d94932195af9be9e308d01d9cc7c13bd78df02",
+  "files": 130,
+  "sourceFiles": 0,
+  "foreignSevenIndexEntriesUnchanged": true,
+  "scope": "Reviewed reports and exact root-owned AGENTS/standard paragraph only; source working adoption is uncommitted pending full-app proof",
+  "privateIndexRemoved": true
+}

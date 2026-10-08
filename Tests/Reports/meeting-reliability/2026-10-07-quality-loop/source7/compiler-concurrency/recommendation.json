@@ -1,0 +1,158 @@
+{
+  "state": "SUPPORTED_COMPILER_ONLY_HYPOTHESIS; NO_FULL_COMPILE_OR_NATIVE_LAUNCH_BY_REVIEWER",
+  "original": {
+    "attempt": "seventh-compiler3",
+    "guardReason": "summed owned footprint above3GB",
+    "wallSeconds": 66.4653714590022,
+    "peakSampledOwnedFootprintBytes": 3192787480,
+    "originalOwnerEightUnchanged": true,
+    "sourceCount": 1176,
+    "sourceInvariant": true,
+    "remainingOwnedPIDs": [],
+    "ordinarySwap8Crossed": false,
+    "drainSeconds": 0.21471645799465477,
+    "candidateProduced": false
+  },
+  "primaryLocalEvidence": [
+    "swiftc-help.txt",
+    "swiftc-hidden-help.txt",
+    "frontend-help.txt",
+    "swift-build-help.txt",
+    "swiftc-version.txt"
+  ],
+  "reviewedCompiler4DriverSHA256": "2bbc0e0f77b42f7408aa7d6c455b542b5468ceff31a1e8969e132e03567a7027",
+  "compiler4Review": "Flags/receipt prefixes/live last-count gate only; same release/jobs1/WMO, make -o build packaging, helper68e7971a, same source/owner/lifecycle/resource predicates. Suggested extra actual PID/start revalidation between observe and second listing for thread observation attribution.",
+  "requestedCompileArgv": [
+    "swift",
+    "build",
+    "-c",
+    "release",
+    "--scratch-path",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch",
+    "--jobs",
+    "1",
+    "-Xswiftc",
+    "-num-threads",
+    "-Xswiftc",
+    "1"
+  ],
+  "requestedPackagingArgv": [
+    "make",
+    "-o",
+    "build",
+    "app",
+    "CONFIG=release"
+  ],
+  "guardsUnchanged": {
+    "startReportedFreePercent": 55,
+    "initialMaxSwapGiB": 8,
+    "ongoingReviewedCompilerOnlyMaxSwapGiB": 9,
+    "ongoingReportedFreePercent": 40,
+    "minDiskFreeGiB": 6.5,
+    "maxSummedOwnedFootprintBytes": 3000000000,
+    "totalCompileBundleSeconds": 1200,
+    "disposableCLIJoinSeconds": 6,
+    "nativeASRModelProfileChanged": false
+  },
+  "driverPrintEvidence": {
+    "compiledObjectOrFrontend": false,
+    "threads8": [
+      "8"
+    ],
+    "threads1": [
+      "1"
+    ],
+    "duplicate8then1": [
+      "1"
+    ],
+    "duplicate1then8": [
+      "8"
+    ],
+    "meaning": "Supported driver option and last-option precedence proven by printed jobs only; effective SwiftPM swiftbuild forwarding still must be observed."
+  },
+  "acceptance": [
+    "No automatic retry/build-system switch/profile relaxation. Root authorizes one guarded compiler experiment.",
+    "Live exact owned frontend must show effective last -num-threads1; missing/wrong observation refuses.",
+    "Same source1176 and owner8/default evidence invariant, strict signed bundle, every owned child joined, no guarded result accepted as candidate.",
+    "Compare actual compiler peak/sample count and duration only if both complete comparable workload; original guard stop versus completed build not paired latency benchmark.",
+    "Native scoped tests remain pending until reviewed signed candidate."
+  ],
+  "limitations": [
+    "SwiftPM default swiftbuild can append forced8 after custom flags; driver alone does not prove wrapper ordering.",
+    "numthreads1 limits this Swift parallel optimization/codegen request, not every macro/plugin/LLVM/library/process thread or serial typecheck/SIL allocation.",
+    "No allocator evidence proves8threads caused3GB peak; lowering threads is a falsifiable capacity hypothesis.",
+    "Lower threads can slow build and change codegen partition/layout; same O/WMO still needs functional/native candidate gates.",
+    "No source/package/guard/model/default changes are proposed."
+  ],
+  "pendingSixFocusedNativeCases": [
+    {
+      "argv": [
+        "--selftest-meeting-bounded-audio"
+      ],
+      "requiredMarker": "MEETING_BOUNDED_AUDIO_OK",
+      "scope": "Authored CAF/range/final scripted ASR; not native words/global diarizer."
+    },
+    {
+      "argv": [
+        "--selftest-meeting-quiet-input",
+        "--meeting-quiet-pause-boundaries",
+        "--meeting-quiet-pause-experiment"
+      ],
+      "requiredMarker": "MEETING_PAUSE_BOUNDARIES_OK",
+      "scope": "Actual actor with substituted empty ASR72checks; no noise/words."
+    },
+    {
+      "argv": [
+        "--selftest-meeting-participant-observation",
+        "contracts"
+      ],
+      "requiredMarker": "MEETING_PARTICIPANT_OBSERVATION_OK",
+      "scope": "22generic contracts; physical AX/CDP/names/voice binding unverified."
+    },
+    {
+      "argv": [
+        "--selftest-meeting-context"
+      ],
+      "requiredMarker": "MEETING_CONTEXT_OK",
+      "additionalMarker": "MEETING_SPEAKER_PROJECTION_OK checks=81",
+      "scope": "Actual isolated store/commit/rename/projection; no native clustering."
+    },
+    {
+      "argv": [
+        "--selftest-meeting-ingest-order"
+      ],
+      "requiredMarker": "MEETING_INGEST_ORDER_OK",
+      "scope": "25maintained actualStore/busConsumer/reader checks, substituted completer; no nativeSession/capture/model intent."
+    },
+    {
+      "argv": [
+        "--selftest-store-isolation"
+      ],
+      "requiredMarker": "STORE_ISOLATION_OK",
+      "scope": "21watched files/dynamic defaults unchanged; separate owner8 check required; reject embedded negatives."
+    }
+  ],
+  "nativeGuardsPreserved": "Normal8/min6.5/start55/ongoing50/summed1GB/90s model-free focused app budget,150s internal>90+30drain. Real finals/ASR/word/noise/workload budget remains separately reviewed.",
+  "relay": {
+    "messageId": "04e9945e-0e14-44b1-b125-5efc9f8a8326",
+    "cursor": 738,
+    "from": "notes-factuality-20261008",
+    "sentTo": "all project relay agents",
+    "readReceiptProven": false
+  },
+  "evidenceHashes": {
+    "swiftc-help.txt": "9886847c05a2a5880205767012dcf15198bf8cb05fc6a68879222d8d86b91f95",
+    "frontend-help.txt": "5b4440720f4babb939227ba55de0f6e04fe506aa0bca63c8642bd7d4716a8f8b",
+    "swift-build-help.txt": "d9b1048068a2d0d02120ed27b19f0290de75692c99e3ab625af11681ca3495cb",
+    "one-driver-print.txt": "29f73e31252ca10acee345efc6210654f2c9474b171fa8c09bc7ba0b5783d554",
+    "duplicate-eight-then-one-driver-print.txt": "72b6ae65d3e94624fca927ef70994814f4e7b8d0a5d0b0e69eb9e5e37a98a8d3",
+    "duplicate-one-then-eight-driver-print.txt": "21200f4c7a8704d788753ef29b085e3922679034f65175ef92e8c488d8c8ad42",
+    "driver-print-observations.json": "429d7ceceeb32e4ee80d872492fe9f91fcace374e25de0c12d92a778dc56b057",
+    "meeting-seventh-release-compiler4-guarded.py": "2bbc0e0f77b42f7408aa7d6c455b542b5468ceff31a1e8969e132e03567a7027",
+    "swiftc-version.txt": "9faedcded6e98bbaf17b4085a545ffcaeed771ed9b90c3175d86a6c077f6358e",
+    "eight-driver-print.txt": "abf58a49aac926b69a65ff5ca9188c6fc6d3b3f12c2f0e6946d001798a60c164",
+    "compiler4-driver-review.json": "870d18d898160bd0515bcf96904606a594c1645e09c89730e22bcec5c8eec367",
+    "compiler4-identity-review.json": "9fcaac5eecc1dd657ccbfeebd436f49b303cc1cc3d3aa798f87e493a70ab550b",
+    "swiftc-hidden-help.txt": "645bba9d301367c7409284d19bbec6c7616906d80bdae50ca66f4ccca6e20a8c"
+  }
+}

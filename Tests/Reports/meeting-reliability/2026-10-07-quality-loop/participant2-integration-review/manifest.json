@@ -1,0 +1,98 @@
+{
+  "App-dispatch-composition.json": {
+    "SHA256": "8ecb63b6b229b74a3370f81ef86e62238f36158abdbbedacee45c407b280cfd7",
+    "bytes": 2879
+  },
+  "README.md": {
+    "SHA256": "c3c55e4924cce86180638b1e06d0a6188385389a2a53be9ffd23181dad85a4f3",
+    "bytes": 2937
+  },
+  "admission-receipt.json": {
+    "SHA256": "c05dab2a1576292b116e0b03c4b82ee407a01b8fbb990181838d31ead2a67224",
+    "bytes": 2179
+  },
+  "baseline/Sources/NextNotes/Computer/AccessibilitySnapshot.swift": {
+    "SHA256": "8b9943c9e35ef3f5fb3094e1168442fb67163d8b050cdb054dc3a070de493247",
+    "bytes": 32808
+  },
+  "baseline/Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": {
+    "SHA256": "c745c8d8ea126765301c33adb471130bb0d3b515313d9db26b25dc153fbe84b4",
+    "bytes": 13599
+  },
+  "blob-pins.json": {
+    "SHA256": "5b0a76cb9f1e66911ebc324bcf663873eb1f20d586fceb352bf3865e6d5739f2",
+    "bytes": 977
+  },
+  "composed-App-dispatch.patch": {
+    "SHA256": "ff23b58bfe1957613f81fcc3e2e3b96d309378fe8c23d97520880ab5f6dc1f2a",
+    "bytes": 1920
+  },
+  "fixed-coverage-probe.swift": {
+    "SHA256": "b95e2637a25ea67bcaca2c521a4aeba7c112eb6d09c45db9565477c4d21f16c2",
+    "bytes": 7633
+  },
+  "guarded-coverage1-fixed-run.log": {
+    "SHA256": "fbec93dcc669db5a111b4a5e02a68fab78fe01955a5816d853b3249776b2250c",
+    "bytes": 69
+  },
+  "guarded-coverage1-original-run.log": {
+    "SHA256": "7b65d67c3d5d9f10b3bd12f8cb45956949c6f6783ec4eea48019f9d773889ad2",
+    "bytes": 251
+  },
+  "original-coverage-probe.swift": {
+    "SHA256": "752a7dee43e53158f2a2263b85d6d2eff0c368bfbb196bea8d5722ed505149c4",
+    "bytes": 6933
+  },
+  "owned-participant2-integration.patch": {
+    "SHA256": "205616bd7f8116d6a1e012b5552290cc13e9e7f902e147172af677d069e4a083",
+    "bytes": 12472
+  },
+  "participant-component-coverage1-fixed-metadata.json": {
+    "SHA256": "d7c6a8b225243a51eb110f0275bcac9f501bcdd797e122e567a885cfa91ea985",
+    "bytes": 849
+  },
+  "participant-component-coverage1-fixed-run-metadata.json": {
+    "SHA256": "73cae7cff708a4dd6c9b0918129bc8e581eb3f44e65b6a02728a536335907d46",
+    "bytes": 846
+  },
+  "participant-component-coverage1-original-metadata.json": {
+    "SHA256": "199e858db28151cee46827873addca3594e8b2b70f932e2c13a2b08842fa82df",
+    "bytes": 852
+  },
+  "participant-component-coverage1-original-run-metadata.json": {
+    "SHA256": "e62ceac75271c464573a0929e6512b3833110725b9e2fe82fada2796b9a38eb1",
+    "bytes": 849
+  },
+  "participant-component-review.json": {
+    "SHA256": "f989aa4b19caad2ff6c0ac13e3b5a2382e512929f2077a4fcd882c4e33966ca9",
+    "bytes": 949
+  },
+  "participant-coverage-cache-staged.json": {
+    "SHA256": "f73d83118b5f531797da832b63c54b8d706522823dcfbab32eb5815606c4fadd",
+    "bytes": 4610
+  },
+  "participant-coverage-cache-staged.patch": {
+    "SHA256": "3588266c146534c532953d9e0064368e3167652973538beb590e432783796be9",
+    "bytes": 11684
+  },
+  "participant-source7-write-receipt.json": {
+    "SHA256": "3ad18b3a3150da7629b3e29eea7de00a967d446447a1014298bb5666e3c2797b",
+    "bytes": 870
+  },
+  "patched/Sources/NextNotes/Computer/AccessibilitySnapshot.swift": {
+    "SHA256": "fbcc09a2e8cacee18ce32cf05719ebd1690bbac378e96b3846c003e83726313d",
+    "bytes": 34835
+  },
+  "patched/Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": {
+    "SHA256": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673",
+    "bytes": 14498
+  },
+  "relay-receipt.json": {
+    "SHA256": "4b2b27798d228f14f06787707a5ee563962ea5863466d432f8b037d515ab3815",
+    "bytes": 480
+  },
+  "review-scope.json": {
+    "SHA256": "c51836bb20e245fd4dc30d03a2a9db7074cd067f4fb29b119b73c8f7a01dfb35",
+    "bytes": 2822
+  }
+}

@@ -1,0 +1,250 @@
+{
+  "scope": "Read-only installed-associated source narrowing; report-only writes; no build/process/account/source change",
+  "installedReceipt": "Tests/Reports/meeting-reliability/2026-10-07-zoom-audit/installed-quality-release.json",
+  "installedBinarySHA256": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+  "installedAssociatedSourcePins": "Tests/Reports/meeting-reliability/2026-10-07-zoom-audit/coverage-build-source-pins-before.json",
+  "sourcePinsCount": 1159,
+  "currentSourcePinsCount": 1176,
+  "matchingBaselineFiles": 1119,
+  "changedExistingFiles": {
+    "Sources/NextNotes/NextNotesApp.swift": {
+      "installedAssociated": "f0ef16e76b76b70397ecf89f40ba5811e20a3ed373f1f61e57da9444948c33c0",
+      "current": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8"
+    },
+    "Sources/NextNotesDictionary/SpokenForms.swift": {
+      "installedAssociated": "98b04399c83be40742f4d9640c5f5550ac71f4280273b6657e3b040dcb276bc3",
+      "current": "c0a65a2200ab892047ea403e6cb036322f223c167222dce7d4fdac5834221f98"
+    },
+    "Sources/NextNotes/Context/ScreenContext.swift": {
+      "installedAssociated": "53cda27312ddbfe0f0eae8533544d488afd0a5060792482cae4b902ba87deb68",
+      "current": "b960575cf53707e1299c7c496d827e5a9cf0704b335f2470d50ebf978721e11e"
+    },
+    "Sources/NextNotes/Core/DictationController.swift": {
+      "installedAssociated": "2b83111328c010dc80147033a4a98509f0cc416ba17ffd2dcf521a1825d891a9",
+      "current": "48ea2657bd2e8094057415bed5082d51e6db0d2194f4feee8bbb57a9e082f0d0"
+    },
+    "Sources/NextNotes/Core/AudioConversion.swift": {
+      "installedAssociated": "444fc94b8fdd4e908071e165bfe8a86e0ae4d93dcadbecf1574a7d21b81b9fc1",
+      "current": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": {
+      "installedAssociated": "19f4198ce17590756380818554126739b521161592a37be44dbe79069cefabff",
+      "current": "a008b588450a607b242a3f71f445eff9bcd520f3db01ebb9a54d42e5e77dd157"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmenter.swift": {
+      "installedAssociated": "1d11bedb7ba549d944480848f39643f901f34ae61698ae3dd5011fecb6295b83",
+      "current": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad"
+    },
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": {
+      "installedAssociated": "9d1eeb804086b1a0c962745266d0695e86a75040fbbe79563993baf6d7518fc8",
+      "current": "438349e47533d917cefb73686b778c7fe4511ee98b077693e02ff2fcec8eff61"
+    },
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": {
+      "installedAssociated": "055c740f3e37291d7567db88c69dc76ce92d0c78106eb50fc01300306b1a075a",
+      "current": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280"
+    },
+    "Sources/NextNotes/Formatting/StructurePlanner.swift": {
+      "installedAssociated": "e35cfee5863be36d134810b520b0ff4f4cb9adbd68a6858d1fa13772dac592b9",
+      "current": "e2d037855a11bf40352cbd1c473fe790bf167ff68a97781b8291f55317fe6911"
+    },
+    "Sources/NextNotes/Formatting/DictationCleanupLatencySelfTest.swift": {
+      "installedAssociated": "d4b198f5e74cd673e7aef75c047fa52b5d4fa758522c35472fc83ff94f249f81",
+      "current": "9443d0375d6d1785b2eefb202e5346b9433d0f1c839c74f40950fe9e65a00744"
+    },
+    "Sources/NextNotes/Formatting/SentenceChunker.swift": {
+      "installedAssociated": "1e83589c9e48eaaec3579cb5d7cf048ec36d6c757e756d713db29744c5c1034c",
+      "current": "bcd28cf8fe4fcb743a06c847380c29a9502cb8f548da551723b6c7975f9a313b"
+    },
+    "Sources/NextNotes/Formatting/StructurePlan.swift": {
+      "installedAssociated": "e5b1dbe8e385d0c9efe11a2614871e9f5f2729bfc32524fd8f7b2fda2709865c",
+      "current": "aa72d419b746464edb1b82b07c3802df51436b9ca379dc90a0ed686311bd17f1"
+    },
+    "Sources/NextNotes/Formatting/IncrementalCleanup.swift": {
+      "installedAssociated": "0c58fcf789a97949f3375540df27e6c39b2d7f9603e0cea25eb765a2c6a44615",
+      "current": "42af5a20da34dc29c16f550d3b056bdb1389cd3be0c4282a604ca1af3f033285"
+    },
+    "Sources/NextNotes/Formatting/TextFormatter.swift": {
+      "installedAssociated": "3938208348c3016a3a13478b3b3b489bc04c4b1492af151a78389e06903f802c",
+      "current": "165d0182c9f4dc90518e27418f7ac86592d580526bc5824c2b3e4c3fd8d0a4d7"
+    },
+    "Sources/NextNotes/Meetings/NotesGenerator.swift": {
+      "installedAssociated": "a8d288912f8f7985a25da2dccbd52d1b2f80fcda05bb6732b0d733584fcdfdf7",
+      "current": "49c62757bcd0e712d8f6337f7c77484f0f9e634c702318146824480659e2e71f"
+    },
+    "Sources/NextNotes/Meetings/MeetingContextReconciler.swift": {
+      "installedAssociated": "458cc8ebf9b05512b3f70fcb709d918fe60ad947ee34a9751cf228633a2ce367",
+      "current": "65d422c38a8c62c9f0b57c7a8587792b76fb0bf95079360117f9f10c24aa8d95"
+    },
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": {
+      "installedAssociated": "4eb846ddd17b168dda775b9a37ec27c1576fa05b315259debefa7de88d8cdcc3",
+      "current": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036"
+    },
+    "Sources/NextNotes/Meetings/MeetingDiarizer.swift": {
+      "installedAssociated": "bee04c83e4c23c91126482360e891c800f4e27200b930a00cf9dd89cd8cb3f13",
+      "current": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701"
+    },
+    "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift": {
+      "installedAssociated": "52c8ce53554a1ecf3abe70751c3e57e476501b32aeeaf5ae5b3ce3b8925892d1",
+      "current": "1907e7e5c0e6a116abb8d8cbb06bae1f6d2ac8b4806ce23ae9f05353cc6df811"
+    },
+    "Sources/NextNotes/Meetings/MeetingContextExtractor.swift": {
+      "installedAssociated": "f46f24bcbfe217a2211d5f660f1ddd67b617b717bba68d06111929774a4280dc",
+      "current": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161"
+    },
+    "Sources/NextNotes/Meetings/MeetingFinalPass.swift": {
+      "installedAssociated": "f4acc499df59cbaf3d706ee8714553d773b9edf5ae015549246f7d0a1fda1070",
+      "current": "5cb3aeabf3a9c7ddb1aa3f42be33ae18577e6fbc09c44a6e4358b2b0cfe6e13d"
+    },
+    "Sources/NextNotes/Meetings/NotesLongformSelfTest.swift": {
+      "installedAssociated": "53671345c934002397c54d77ad6c7c2e0a7f61583ebecedf8edffd3f8021f1e3",
+      "current": "c518e1d3efdedd9d56109dc5f1518069b9650b036e01e3d834e7f8e5e7e3258b"
+    },
+    "Sources/NextNotes/Meetings/FinalTranscriptService.swift": {
+      "installedAssociated": "a7e8e6bd45f2eef27839249a8fea018745eb5054d5d5f75861c76df87fb7b445",
+      "current": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7"
+    },
+    "Sources/NextNotes/Meetings/NotesPrompts.swift": {
+      "installedAssociated": "ab54d9c55ce2521c01f59125fec79d965577a876e1369a8f7fdf032e0007d2e6",
+      "current": "f606d07f3299f3dbb499b00f81bd9b61c7f5ba6b4a7030065efffb98effee064"
+    },
+    "Sources/NextNotes/Meetings/MeetingModels.swift": {
+      "installedAssociated": "39cacae98ac6fc6ce427d52f99ee88867bb24f73546354a3217116467dd2cbc6",
+      "current": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec"
+    },
+    "Sources/NextNotes/Meetings/MeetingSession.swift": {
+      "installedAssociated": "71f057224fdf6f5ed0aa6a42bcb558b6dfd10b821b7ab7c2b6dd7cb9a262ffd3",
+      "current": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7"
+    },
+    "Sources/NextNotes/Meetings/DiarizationService.swift": {
+      "installedAssociated": "1e0f498b807f2339cca9408678b060a08059b200bfbc24b4c1def1429d745fea",
+      "current": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d"
+    },
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": {
+      "installedAssociated": "4f3b2ab86f9acae27fd2e3d39128b3b361559bc5421b2ed0fa77f39d3e25e6d4",
+      "current": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200"
+    },
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift": {
+      "installedAssociated": "5952643d3b531627ce685c68f93d0c060e4f903d18e6fd4f89febd020f5082a1",
+      "current": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535"
+    },
+    "Sources/NextNotes/Meetings/MeetingStore.swift": {
+      "installedAssociated": "085f6b60395192c230d80ac429e84f98cd0c79f2fce0300f10fd4bb0cbc52c6b",
+      "current": "e85d195689f965a94053a01ac6ecc83c3a34f42782294de67b46a8b196821229"
+    },
+    "Sources/NextNotes/Computer/AccessibilitySnapshot.swift": {
+      "installedAssociated": "c5de8d7de9b67d27a133aa266687b8faf3bd89972d414356e9685f2ad31e15a4",
+      "current": "a03d3c85aa1352e7cdda159ac70aa358450abb8bd23bdebed424af382eaae9b6"
+    },
+    "Sources/NextNotes/Computer/BrowserCDPClient.swift": {
+      "installedAssociated": "ecb1213693ccb24daa3b93cfc5f9120de28be440f5b694ef727c84ed55937b3e",
+      "current": "e408fb5bb89cba3ca45c531abddaf69400ccf298b37168c83664519e65326aae"
+    },
+    "Sources/NextNotes/Formatting/LLM/LlamaLLMProvider.swift": {
+      "installedAssociated": "711ff916cf2473a59b12673044e0af946756f08badec2a0523d26a3bcbaf0af7",
+      "current": "ffbfc4098b39443841d5af1e0f29030f3a5492573eba5900f1cbc6d4802f4bc6"
+    },
+    "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift": {
+      "installedAssociated": "cfbd48faaf8a64b33bc398aba66a994c57f928d19f2ef5811409a07e386d678a",
+      "current": "f83014670aee7c2b3df69a7414b49edc0f1f9ed731c23b77873fb7188169aade"
+    },
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+      "installedAssociated": "b7242913d9a2be864b327f53b71915e1820c8d2a7c0b3f06453edf8d5292c251",
+      "current": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607"
+    },
+    "Sources/NextNotes/Support/Usage/ModelPassRecorder.swift": {
+      "installedAssociated": "25780bc9318454a6c757639669e011e5db0eab0a2c923a094bdf16a585f3c752",
+      "current": "67e4b86881849fc542c17b0fcea13363d86c801f2a338c7b47995b613b4f16fb"
+    },
+    "Sources/NextNotes/Core/Compute/ComputeScheduler.swift": {
+      "installedAssociated": "a7443f221f5a478a3f5874dd0e4df48e01a9b6db23c0809aa0a7f43bcc4ccdec",
+      "current": "029d064485194aaa262b22666454ff289bd428516abfbc86b6cbeb34cfb2e09d"
+    },
+    "Sources/NextNotes/UI/Dictation/LiveDictationText.swift": {
+      "installedAssociated": "9dc7eb10bc2c03cd525db4fa1e6b7db1003e75056cb5c2d15ab49ab9dc37e8df",
+      "current": "6f1d7bac601d4e8f78edbc585863db4a99bfad261a4d9cc92bda6dcd5ca0b656"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": {
+      "installedAssociated": "22eb213b0a5c2a714b0cd8bf2a2381e89cc1c3bca99afc4a595489c76062dc9a",
+      "current": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0"
+    }
+  },
+  "newSourceFiles": [
+    "Sources/NextNotes/Meetings/MeetingActionInputContractSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingActionIntentProductionReplaySelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingActionIntentReplaySelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingContextIngestOrderSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift",
+    "Sources/NextNotes/Meetings/MeetingPauseBoundarySelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingPerformanceSummary.swift",
+    "Sources/NextNotes/Meetings/MeetingPerformanceSummarySelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingQuietInputSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift",
+    "Sources/NextNotes/Meetings/NotesEvidenceSelfTest.swift",
+    "Sources/NextNotes/Meetings/NotesExtractiveReplaySelfTest.swift",
+    "Sources/NextNotes/Meetings/NotesPromptContractSelfTest.swift"
+  ],
+  "appExactInstalledAssociatedBaseline": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-planner-shape-20261007/NextNotesApp-before-local-probe.swift",
+    "sha256": "f0ef16e76b76b70397ecf89f40ba5811e20a3ed373f1f61e57da9444948c33c0",
+    "matchesSourcePin": true
+  },
+  "currentAppSHA256": "4a34f4bb59b9cf690b8bcf006a29d17f3254ad5eb6ef814993c4bedfeeaa8ce8",
+  "exactAppBlocks": [
+    {
+      "start": "enum NextNotesEntryPoint",
+      "endExclusive": "enum SelfTest",
+      "equalBytes": true,
+      "utf8Bytes": 4876,
+      "sha256": "a83210991b684b6e729d96f3efc392b480db57b40dc6095c74d048ed5aaaa53e"
+    },
+    {
+      "start": "func applicationDidFinishLaunching",
+      "endExclusive": "private func runRequestedSelfTest",
+      "equalBytes": true,
+      "utf8Bytes": 22336,
+      "sha256": "bd9f2c9584d9319b8fe25a28af28050d4b0600271db8131168ec7cea26bbeb8a"
+    },
+    {
+      "start": "func applicationShouldTerminate(_",
+      "endExclusive": "func applicationWillTerminate",
+      "equalBytes": true,
+      "utf8Bytes": 7861,
+      "sha256": "27654bd7740ff95e51fd47a4cf60577d27f735e8c2e8c4d98f50add3b41e1e1f"
+    },
+    {
+      "start": "func applicationWillTerminate",
+      "endExclusive": "/// Shows and hides the HUD",
+      "equalBytes": true,
+      "utf8Bytes": 1019,
+      "sha256": "1c83a3dc786af0b2310a2e91d107ef9732bca7e12fa2522f0e4f7f2b46c2794f"
+    }
+  ],
+  "unchangedCriticalFiles": {
+    "Sources/NextNotes/Agent/ActionRuntime.swift": "fcb626ab036747ce66c986389765a1a0fc88aabc76a3d0775cce9b0e29de567f",
+    "Sources/NextNotes/Agent/ActionReceiptSourceObservation.swift": "31105f089ceecff54f25be5a6b8eb328b65678440a6c6cca09b4326c1f7a1c3c",
+    "Sources/NextNotes/Support/MetricsStore.swift": "a189130ef97c11b5f1fd37d4da7484548553ec556a8132799e15c6dafbd16ffc",
+    "Sources/NextNotes/Support/LatencyTrace.swift": "b330ec2bf75f1f3af44246a8b3da0eb1d2913b25668b5b03ba9c33f2f510bcb0",
+    "Sources/NextNotes/Knowledge/EmbeddingRuntime.swift": "85f147396dbec90865b75978004da8b8b7618b2634aa538e9860136cc6ace85a",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "f51b5d202c2c1d4798b03b6124c5e680be9eb8e657e33acf56568c71f26012d5",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "3840527463054b7a94921299189af5717e1a34cf04ab29361b93206e08456da9",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskStoreSchema.swift": "6a4f0a2b63a86b90bbd523310c14a712be4a880060730e5e4a25faaab412babf",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskAuthoritySelfTest.swift": "f449f8a06d445d49c907aeca0449bc9cf1cb0386d8c8b2277e925ed4150eea72",
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskStore.swift": "8494ecf43c357eb2ce82246b123d05039392ca3a65f6a33ebf1996b943e89b71",
+    "Sources/NextNotes/Core/Compute/ModelRuntimeManager.swift": "00f5327eb054b115d15ba0e8164e4478e706410dad72f3b823830199924b5b84"
+  },
+  "runtimeInstalledAssociatedSHA256": "b7242913d9a2be864b327f53b71915e1820c8d2a7c0b3f06453edf8d5292c251",
+  "runtimeCurrentSHA256": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607",
+  "exactInstalledRuntimeSourceRecovered": false,
+  "closestRetainedRuntimeReview": {
+    "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/input-contract-investigation/NotesModelRuntime.swift",
+    "sha256": "210a4ae7ac7e975219fdbe1da038b3caa7a88a3895b05c74c81cd46c9f13f334",
+    "currentDelta": "35 additions, zero deletions; completion phase instrumentation only",
+    "matchesFourthFifthCandidateSourcePins": true
+  },
+  "newIntroducedStartupOrTerminationBlockerConfirmed": false,
+  "fullCandidateInstallAccepted": false
+}

@@ -1,0 +1,18 @@
+{
+  "Sources/NextNotes/Computer/AccessibilitySnapshot.swift": {
+    "HEADBlob": "8d78f0dbb101cbe44e353da4201a3e0b4eb6e493",
+    "HEADSHA256": "8b9943c9e35ef3f5fb3094e1168442fb67163d8b050cdb054dc3a070de493247",
+    "patchedBlob": "15442f4cced31be58ba27d0cd3b39ea44ec2af3f",
+    "patchedSHA256": "fbcc09a2e8cacee18ce32cf05719ebd1690bbac378e96b3846c003e83726313d",
+    "workingSHA256": "a03d3c85aa1352e7cdda159ac70aa358450abb8bd23bdebed424af382eaae9b6",
+    "equalsWorking": false
+  },
+  "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": {
+    "HEADBlob": "8358ca0869b839e92dd57e346213a7fdee7dc541",
+    "HEADSHA256": "c745c8d8ea126765301c33adb471130bb0d3b515313d9db26b25dc153fbe84b4",
+    "patchedBlob": "021b8ba90faabbea09f9df58938c63f7f6d7393c",
+    "patchedSHA256": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673",
+    "workingSHA256": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673",
+    "equalsWorking": true
+  }
+}

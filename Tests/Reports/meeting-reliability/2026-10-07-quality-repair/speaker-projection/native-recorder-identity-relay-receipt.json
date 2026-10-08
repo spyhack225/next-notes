@@ -1,0 +1,18 @@
+{
+  "exitCode": 0,
+  "receipt": {
+    "ok": true,
+    "messageId": "speaker-native-recorder-identity-20261008-primary",
+    "recipients": [
+      "serial-root",
+      "codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e",
+      "claude-positioning",
+      "meeting-read-packet",
+      "meeting-performance-20261007",
+      "dictation-performance-20261007"
+    ],
+    "duplicate": false,
+    "cursor": 716
+  },
+  "scope": "Public documentation/source metadata only; recipient acknowledgement unproven"
+}
