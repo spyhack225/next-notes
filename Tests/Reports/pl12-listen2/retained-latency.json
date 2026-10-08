@@ -1,0 +1,180 @@
+{
+  "scope": "Historical Oct5 Apple/Pocket native run; NOT a fresh c6d850c baseline, NOT a listen2 before/after pair",
+  "source": "/Users/sergekadjo/Library/Caches/NextNotesBuild/integration/listen-acceptance/green-native.log",
+  "sha256": "d907bdbd05d766d99592eb8794e2b231f2b8b01ec3714e4cc65a7ded4fe1f064",
+  "n": 5,
+  "units": "seconds, rounded source columns; nearest-rank p95",
+  "stages": {
+    "L1": {
+      "median": 0.671,
+      "p95": 0.678,
+      "min": 0.659,
+      "max": 0.678
+    },
+    "L2": {
+      "median": 2.448,
+      "p95": 2.557,
+      "min": 2.309,
+      "max": 2.557
+    },
+    "L3": {
+      "median": 2.649,
+      "p95": 2.784,
+      "min": 2.521,
+      "max": 2.784
+    },
+    "endpoint_to_route_done": {
+      "median": 1.056,
+      "p95": 1.172,
+      "min": 0.915,
+      "max": 1.172
+    },
+    "route_to_first_token": {
+      "median": 1.385,
+      "p95": 1.394,
+      "min": 1.319,
+      "max": 1.394
+    },
+    "speech_end_to_endpoint": {
+      "median": 1.008,
+      "p95": 1.021,
+      "min": 1.003,
+      "max": 1.021
+    },
+    "endpoint_to_request": {
+      "median": 0.019,
+      "p95": 0.021,
+      "min": 0.017,
+      "max": 0.021
+    },
+    "clause_to_first_pcm": {
+      "median": 0.119,
+      "p95": 0.127,
+      "min": 0.109,
+      "max": 0.127
+    },
+    "first_pcm_to_audible": {
+      "median": 0.094,
+      "p95": 0.104,
+      "min": 0.092,
+      "max": 0.104
+    }
+  },
+  "rows": [
+    {
+      "speech_end_to_eou": 1.002,
+      "eou_hop": 0.0,
+      "eou_to_endpoint": 0.0,
+      "speech_end_to_endpoint": 1.003,
+      "endpoint_to_request": 0.019,
+      "request_to_lane": 0.0,
+      "route": 4.352,
+      "route_to_first_token": 1.392,
+      "transcript_to_first_token": 2.448,
+      "first_token_to_clause": 0.0,
+      "clause_to_first_pcm": 0.109,
+      "first_pcm_to_audible": 0.092,
+      "speech_end_to_first_audio": 3.652,
+      "L1": 0.671,
+      "L2": 2.448,
+      "L3": 2.649,
+      "headstart": 1.007,
+      "main_stall_max": 0.028,
+      "eou_prepare": 0.321,
+      "run": 1,
+      "endpoint_to_route_done": 1.056
+    },
+    {
+      "speech_end_to_eou": 1.008,
+      "eou_hop": 0.0,
+      "eou_to_endpoint": 0.0,
+      "speech_end_to_endpoint": 1.008,
+      "endpoint_to_request": 0.021,
+      "request_to_lane": 0.0,
+      "route": 4.342,
+      "route_to_first_token": 1.319,
+      "transcript_to_first_token": 2.365,
+      "first_token_to_clause": 0.0,
+      "clause_to_first_pcm": 0.124,
+      "first_pcm_to_audible": 0.104,
+      "speech_end_to_first_audio": 3.601,
+      "L1": 0.676,
+      "L2": 2.365,
+      "L3": 2.593,
+      "headstart": 1.015,
+      "main_stall_max": 0.029,
+      "eou_prepare": 0.319,
+      "run": 2,
+      "endpoint_to_route_done": 1.046
+    },
+    {
+      "speech_end_to_eou": 1.005,
+      "eou_hop": 0.0,
+      "eou_to_endpoint": 0.0,
+      "speech_end_to_endpoint": 1.005,
+      "endpoint_to_request": 0.017,
+      "request_to_lane": 0.0,
+      "route": 4.482,
+      "route_to_first_token": 1.385,
+      "transcript_to_first_token": 2.557,
+      "first_token_to_clause": 0.0,
+      "clause_to_first_pcm": 0.127,
+      "first_pcm_to_audible": 0.099,
+      "speech_end_to_first_audio": 3.789,
+      "L1": 0.659,
+      "L2": 2.557,
+      "L3": 2.784,
+      "headstart": 1.004,
+      "main_stall_max": 0.031,
+      "eou_prepare": 0.527,
+      "run": 3,
+      "endpoint_to_route_done": 1.172
+    },
+    {
+      "speech_end_to_eou": 1.009,
+      "eou_hop": 0.0,
+      "eou_to_endpoint": 0.0,
+      "speech_end_to_endpoint": 1.009,
+      "endpoint_to_request": 0.018,
+      "request_to_lane": 0.0,
+      "route": 4.428,
+      "route_to_first_token": 1.358,
+      "transcript_to_first_token": 2.482,
+      "first_token_to_clause": 0.0,
+      "clause_to_first_pcm": 0.116,
+      "first_pcm_to_audible": 0.094,
+      "speech_end_to_first_audio": 3.701,
+      "L1": 0.669,
+      "L2": 2.482,
+      "L3": 2.692,
+      "headstart": 1.003,
+      "main_stall_max": 0.036,
+      "eou_prepare": 0.333,
+      "run": 4,
+      "endpoint_to_route_done": 1.124
+    },
+    {
+      "speech_end_to_eou": 1.021,
+      "eou_hop": 0.0,
+      "eou_to_endpoint": 0.001,
+      "speech_end_to_endpoint": 1.021,
+      "endpoint_to_request": 0.019,
+      "request_to_lane": 0.0,
+      "route": 4.222,
+      "route_to_first_token": 1.394,
+      "transcript_to_first_token": 2.309,
+      "first_token_to_clause": 0.0,
+      "clause_to_first_pcm": 0.119,
+      "first_pcm_to_audible": 0.093,
+      "speech_end_to_first_audio": 3.542,
+      "L1": 0.678,
+      "L2": 2.309,
+      "L3": 2.521,
+      "headstart": 1.02,
+      "main_stall_max": 0.035,
+      "eou_prepare": 0.322,
+      "run": 5,
+      "endpoint_to_route_done": 0.915
+    }
+  ]
+}

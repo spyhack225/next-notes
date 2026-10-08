@@ -1,0 +1,5 @@
+gate: waiting (swap 5347M, load 108, free 7G, memory 33%)
+
+LISTEN2_BUILD_HELD: own wrapper wait stopped at 55s; no gate bypass.
+
+wrapper_exit=124
