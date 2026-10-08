@@ -1,0 +1,7 @@
+Thu Oct  8 23:06:56 UTC 2026
+ProductName:		macOS
+ProductVersion:		27.2
+BuildVersion:		26B5091g
+arm64
+hw.model: Mac15,12
+hw.memsize: 17179869184

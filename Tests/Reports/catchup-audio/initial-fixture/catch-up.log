@@ -1,0 +1,32 @@
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+CATCH_UP_HANDOFF_OBSERVED roles= background_rows=0 turns=0
+CATCH_UP_APPROVAL_OBSERVED approved=false effects=0
+CATCH_UP_APPROVAL_OBSERVED approved=true effects=0
+CATCH_UP_APPROVAL_FAILED
+CATCH_UP_HANDOFF_CHECKS 10
+CATCH_UP_HANDOFF_CHECK_FAILED: handoff: the same offer submitted more than one turn
+CATCH_UP_HANDOFF_CHECK_FAILED: handoff: record/open/user order changed
+CATCH_UP_HANDOFF_CHECK_FAILED: handoff: context/user rows missing or out of order
+CATCH_UP_HANDOFF_CHECK_FAILED: handoff: the actual planner prompt consumer did not receive the antecedent
+CATCH_UP_HANDOFF_CHECK_FAILED: handoff: the actual chat prompt consumer did not receive the antecedent
+CATCH_UP_HANDOFF_CHECK_FAILED: handoff: actual card decision was refused
+CATCH_UP_HANDOFF_CHECK_FAILED: handoff: approved fixture send failed: You dismissed Email dana@fixture.invalid.
+CATCH_UP_HANDOFF_CHECK_FAILED: handoff: backing count did not match exact card decision
+CATCH_UP_HANDOFF_FAILED
+CATCH_UP_PLAYBACK_OBSERVED activity=listening/working file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=dictation file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=meeting file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=reply file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=call file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_CHECKS 45
+CATCH_UP_PLAYBACK_OK
+CATCH_UP_RUN -> reported (3 calls, 167 words)
+CATCH_UP_CHECK_FAILED: handoff: the same offer submitted more than one turn
+CATCH_UP_CHECK_FAILED: handoff: record/open/user order changed
+CATCH_UP_CHECK_FAILED: handoff: context/user rows missing or out of order
+CATCH_UP_CHECK_FAILED: handoff: the actual planner prompt consumer did not receive the antecedent
+CATCH_UP_CHECK_FAILED: handoff: the actual chat prompt consumer did not receive the antecedent
+CATCH_UP_CHECK_FAILED: handoff: actual card decision was refused
+CATCH_UP_CHECK_FAILED: handoff: approved fixture send failed: You dismissed Email dana@fixture.invalid.
+CATCH_UP_CHECK_FAILED: handoff: backing count did not match exact card decision
+CATCH_UP_FAILED

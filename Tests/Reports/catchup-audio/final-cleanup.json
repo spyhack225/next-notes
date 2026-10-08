@@ -1,0 +1,15 @@
+{
+  "time": "2026-10-08T23:58:34.007108+00:00",
+  "scratch_removed": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/catchup-audio",
+  "allocated_file_bytes": 2149044224,
+  "immediate_available_space_gain_bytes": 1540345856,
+  "retained_evidence": "Tests/Reports/catchup-audio",
+  "removed_temp_outputs": [
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/catchup-audio-red.log",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/catchup-audio-catch-up.log",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/catchup-audio-voice-conversation.log",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/catchup-audio-store-isolation.log"
+  ],
+  "active_owned_processes": [],
+  "scope": "Only own scratch and exact retained selftest-output files; no foreign process/cache/store removed"
+}

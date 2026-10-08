@@ -1,0 +1,8 @@
+VOICE_CONVERSATION_OK
+VOICE_CONVERSATION_HELD: after_read=false status=running revision=0 effects=0
+VOICE_CONVERSATION_HELD: after_read=true status=running revision=0 effects=0
+OUTPUT_SCHEDULER_LEGACY_FLUSH phase=entry queueCount=3 legacyCount=1 activePresent=false activeIDPresent=false synthGeneration=14 audioSpeaking=false synthSpeaking=false inputActive=false thinking=false sessionActive=true userFloor=true
+OUTPUT_SCHEDULER_LEGACY_FLUSH phase=entry queueCount=3 legacyCount=1 activePresent=false activeIDPresent=false synthGeneration=14 audioSpeaking=false synthSpeaking=false inputActive=false thinking=false sessionActive=true userFloor=false
+OUTPUT_SCHEDULER_LEGACY_FLUSH phase=selected canonicalCount=0 entryCount=1 firstLegacy=true pendingApproval=false inputPending=false queuedTurn=false quietElapsed=false
+OUTPUT_SCHEDULER_LEGACY_FLUSH phase=entry queueCount=2 legacyCount=0 activePresent=false activeIDPresent=false synthGeneration=16 audioSpeaking=false synthSpeaking=false inputActive=false thinking=false sessionActive=true userFloor=false
+VOICE_CONVERSATION_OK

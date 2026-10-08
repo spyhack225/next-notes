@@ -1,0 +1,17 @@
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+CATCH_UP_HANDOFF_OBSERVED roles=assistant,user background_rows=1 turns=1
+CATCH_UP_APPROVAL_OBSERVED approved=false effects=0
+CATCH_UP_APPROVAL_BLOCKERS to:Optional(NextNotes.ToolCallFieldProblem.notConfirmed)
+CATCH_UP_APPROVAL_OBSERVED approved=true effects=1
+CATCH_UP_APPROVAL_OK
+CATCH_UP_HANDOFF_CHECKS 12
+CATCH_UP_HANDOFF_OK
+CATCH_UP_PLAYBACK_OBSERVED activity=listening/working file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=dictation file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=meeting file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=reply file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=call file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_CHECKS 45
+CATCH_UP_PLAYBACK_OK
+CATCH_UP_RUN -> reported (3 calls, 167 words)
+CATCH_UP_OK
