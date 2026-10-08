@@ -1,0 +1,12 @@
+{
+  "ok": false,
+  "swapGb": 5.21099609375,
+  "load": 155.49,
+  "freeGb": 8.440559387207031,
+  "path": ".",
+  "reasons": [
+    "Load 155.49 exceeds 40",
+    "Free disk 8.44 GB is below 10 GB"
+  ],
+  "unknown": []
+}

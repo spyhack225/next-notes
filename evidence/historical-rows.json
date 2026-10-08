@@ -1,0 +1,160 @@
+[
+  {
+    "model": "minicpm",
+    "report": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-minicpm/run1.md",
+    "log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-minicpm/run1.log",
+    "rowCount": 10,
+    "verdicts": {
+      "C01": "PASS",
+      "C04": "PASS",
+      "M03": "PASS",
+      "M04": "MISSED_TOOL",
+      "M05": "UNGROUNDED",
+      "K01": "MISSED_TOOL",
+      "R02": "PASS",
+      "F03": "WRONG_TOOL",
+      "A02": "REFUSAL",
+      "N04": "PASS"
+    },
+    "currentMeasurement": false,
+    "score": 5,
+    "resolvedModel": "appLLM \"MiniCPM5-2B\" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+    "timezone": "America/New_York",
+    "validation": "Pinned scorer accepts retained rows/log with inferred failure exit=1; actual historical exit not independently retained here."
+  },
+  {
+    "model": "minicpm",
+    "report": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-minicpm/run2.md",
+    "log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-minicpm/run2.log",
+    "rowCount": 10,
+    "verdicts": {
+      "C01": "PASS",
+      "C04": "PASS",
+      "M03": "PASS",
+      "M04": "MISSED_TOOL",
+      "M05": "UNGROUNDED",
+      "K01": "MISSED_TOOL",
+      "R02": "PASS",
+      "F03": "WRONG_TOOL",
+      "A02": "REFUSAL",
+      "N04": "PASS"
+    },
+    "currentMeasurement": false,
+    "score": 5,
+    "resolvedModel": "appLLM \"MiniCPM5-2B\" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+    "timezone": "America/New_York",
+    "validation": "Pinned scorer accepts retained rows/log with inferred failure exit=1; actual historical exit not independently retained here."
+  },
+  {
+    "model": "minicpm",
+    "report": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-minicpm/run3.md",
+    "log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-minicpm/run3.log",
+    "rowCount": 10,
+    "verdicts": {
+      "C01": "PASS",
+      "C04": "PASS",
+      "M03": "PASS",
+      "M04": "MISSED_TOOL",
+      "M05": "UNGROUNDED",
+      "K01": "MISSED_TOOL",
+      "R02": "PASS",
+      "F03": "WRONG_TOOL",
+      "A02": "REFUSAL",
+      "N04": "PASS"
+    },
+    "currentMeasurement": false,
+    "score": 5,
+    "resolvedModel": "appLLM \"MiniCPM5-2B\" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+    "timezone": "America/New_York",
+    "validation": "Pinned scorer accepts retained rows/log with inferred failure exit=1; actual historical exit not independently retained here."
+  },
+  {
+    "model": "qwen3",
+    "report": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-qwen3/run1.md",
+    "log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-qwen3/run1.log",
+    "rowCount": 10,
+    "verdicts": {
+      "C01": "PASS",
+      "C04": "PASS",
+      "M03": "PASS",
+      "M04": "MISSED_TOOL",
+      "M05": "PASS",
+      "K01": "MISSED_TOOL",
+      "R02": "PASS",
+      "F03": "MISSED_TOOL",
+      "A02": "UNGROUNDED",
+      "N04": "PASS"
+    },
+    "currentMeasurement": false,
+    "score": 6,
+    "resolvedModel": "appLLM \"Qwen3-4B-Instruct-2507\" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "timezone": "America/New_York",
+    "validation": "Pinned scorer accepts retained rows/log with inferred failure exit=1; actual historical exit not independently retained here."
+  },
+  {
+    "model": "qwen3",
+    "report": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-qwen3/run2.md",
+    "log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-qwen3/run2.log",
+    "rowCount": 10,
+    "verdicts": {
+      "C01": "PASS",
+      "C04": "PASS",
+      "M03": "PASS",
+      "M04": "MISSED_TOOL",
+      "M05": "PASS",
+      "K01": "MISSED_TOOL",
+      "R02": "PASS",
+      "F03": "MISSED_TOOL",
+      "A02": "UNGROUNDED",
+      "N04": "PASS"
+    },
+    "currentMeasurement": false,
+    "score": 6,
+    "resolvedModel": "appLLM \"Qwen3-4B-Instruct-2507\" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "timezone": "America/New_York",
+    "validation": "Pinned scorer accepts retained rows/log with inferred failure exit=1; actual historical exit not independently retained here."
+  },
+  {
+    "model": "qwen3",
+    "report": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-qwen3/run3.md",
+    "log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-qwen3/run3.log",
+    "rowCount": 10,
+    "verdicts": {
+      "C01": "PASS",
+      "C04": "PASS",
+      "M03": "PASS",
+      "M04": "MISSED_TOOL",
+      "M05": "PASS",
+      "K01": "MISSED_TOOL",
+      "R02": "PASS",
+      "F03": "MISSED_TOOL",
+      "A02": "UNGROUNDED",
+      "N04": "PASS"
+    },
+    "currentMeasurement": false,
+    "score": 6,
+    "resolvedModel": "appLLM \"Qwen3-4B-Instruct-2507\" ctx=32768 role=installed:unsloth/Qwen3-4B-Instruct-2507-GGUF/Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+    "timezone": "America/New_York",
+    "validation": "Pinned scorer accepts retained rows/log with inferred failure exit=1; actual historical exit not independently retained here."
+  },
+  {
+    "model": "qwen35",
+    "report": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-qwen35/run1.md",
+    "log": "/Users/sergekadjo/Library/Caches/NextNotesBuild/quick/bakeoff-2026-10-05-qwen35/run1.log",
+    "rowCount": 10,
+    "verdicts": {
+      "C01": "PASS",
+      "C04": "MISSED_TOOL",
+      "M03": "PASS",
+      "M04": "PASS",
+      "M05": "UNGROUNDED",
+      "K01": "PASS",
+      "R02": "PASS",
+      "F03": "MISSED_TOOL",
+      "A02": "FILLER",
+      "N04": "UNGROUNDED"
+    },
+    "currentMeasurement": false,
+    "validation": "No summary/final marker/model receipt; incomplete and unscored."
+  }
+]
