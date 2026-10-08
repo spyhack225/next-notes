@@ -1,0 +1,21 @@
+{
+  "utc": "2026-10-08T07:11:53.736133+00:00",
+  "owner": "dictation-performance-20261007",
+  "scope": "Source7 two reviewed paths only",
+  "before": {
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": "37e34792effe905fc50bf9d1a11fb7cf4dda842461e2bd44a4f6eebca3fc4edb",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": "0df1c6e6f5d248f5b7585ee64e5fb2c2a5af6bf2ef6719945781da442d735db6"
+  },
+  "after": {
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": "438349e47533d917cefb73686b778c7fe4511ee98b077693e02ff2fcec8eff61",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280"
+  },
+  "patches": {
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/per-pass-zero/per-pass-zero-review-only.patch": "32f6f603b927e4be8c480ff034d221cfa63dca89d6c75af6a93f90102d7ff5f4",
+    "Tests/Reports/dictation-latency/2026-10-07-evidence/ready-heads/ready-heads-review-only.patch": "c145fff2413b9b31d51592ecd197850a62bb3c7e5075b19ed6f21a1731984e4e"
+  },
+  "indexUnchanged": true,
+  "indexSHA256": "cc9fac1fe50361597f1b4c262956d3a5b58125bb426f9b67f31df71bd5f32f6b",
+  "compilerOrNativeLaunched": false,
+  "productionAcceptance": "component proofs only; seventh coherent build and native/physical acceptance pending"
+}

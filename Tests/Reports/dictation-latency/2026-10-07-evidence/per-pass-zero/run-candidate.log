@@ -1,0 +1,134 @@
+{
+  "cases" : [
+    {
+      "calls" : [
+        {
+          "nonzero" : 1450,
+          "samples" : 8000
+        },
+        {
+          "nonzero" : 14389,
+          "samples" : 24000
+        },
+        {
+          "nonzero" : 29517,
+          "samples" : 40000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 52566
+        }
+      ],
+      "finals" : 1,
+      "name" : "quiet",
+      "samples" : 52566,
+      "zeroInputCalls" : 0
+    },
+    {
+      "calls" : [
+        {
+          "nonzero" : 1450,
+          "samples" : 32480
+        },
+        {
+          "nonzero" : 14389,
+          "samples" : 48480
+        },
+        {
+          "nonzero" : 29517,
+          "samples" : 64480
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 77046
+        }
+      ],
+      "finals" : 1,
+      "name" : "leading-zero",
+      "samples" : 308566,
+      "zeroInputCalls" : 0
+    },
+    {
+      "calls" : [
+        {
+          "nonzero" : 1450,
+          "samples" : 8000
+        },
+        {
+          "nonzero" : 14389,
+          "samples" : 24000
+        },
+        {
+          "nonzero" : 29517,
+          "samples" : 40000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 56000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 72000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 88000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 104000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 120000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 136000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 152000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 168000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 184000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 200000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 216000
+        },
+        {
+          "nonzero" : 34947,
+          "samples" : 231520
+        }
+      ],
+      "finals" : 1,
+      "name" : "trailing-zero",
+      "samples" : 308566,
+      "zeroInputCalls" : 0
+    },
+    {
+      "calls" : [
+
+      ],
+      "finals" : 1,
+      "name" : "all-zero",
+      "samples" : 256000,
+      "zeroInputCalls" : 0
+    }
+  ],
+  "failures" : [
+
+  ],
+  "scope" : "Actual copied Engine producer\/real public PCM\/AV and segmenter; native recognizer, converter, scheduler and registry substituted. No native words proof."
+}
+PER_PASS_ZERO_OK

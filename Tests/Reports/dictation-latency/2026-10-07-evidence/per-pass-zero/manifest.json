@@ -1,0 +1,9 @@
+{
+  "atUTC": "2026-10-08T05:53:18.021383+00:00",
+  "status": "CACHE ONLY UNAPPLIED UNCOMPILED UNRUN HYPOTHESIS; NOT SIXTH SOURCE",
+  "beforeSHA256": "37e34792effe905fc50bf9d1a11fb7cf4dda842461e2bd44a4f6eebca3fc4edb",
+  "candidateSHA256": "438349e47533d917cefb73686b778c7fe4511ee98b077693e02ff2fcec8eff61",
+  "contract": "Exact-zero decision at each actual inference input before taking ASR lane; speech elsewhere in the hold cannot turn an empty segment into acoustics. No nonzero-speech classification, output scrubber, threshold/queue/feature/model change.",
+  "originalNativeEvidence": "Fifth exact literal zero emits2words via fragmented engine while directcomplete recognizes0; sixth wholehold guard still bypasses only whollyzero holds. Leading/trailingzero perpass producer and native failure are not yet reproduced.",
+  "required": "Same actual Engine leading16s zeros + exactpublicquiet52566samples, samequiet + trailing16szeros, ordinaryquiet and wholezero controls; actual emitted native input slices/nonzero classes and every owned task joined. Native direct/stream word proof and cost still separate."
+}

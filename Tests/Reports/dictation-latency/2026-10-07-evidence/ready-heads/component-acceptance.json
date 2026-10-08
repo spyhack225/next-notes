@@ -1,0 +1,30 @@
+{
+  "atUTC": "2026-10-08T05:41:44.147484+00:00",
+  "status": "COMPONENT PASS ONLY; PRODUCTION CANDIDATE UNAPPLIED AND FULL NATIVE UNRUN",
+  "componentChecks": 742,
+  "pins": {
+    "CandidateResolver.swift": "69480069f61d61542aa2bdb3ebf671119c5f69d682109adb754c5cb5eb0cc441",
+    "LockedBox.production.swift": "037d5707dc50dd389e35451169881225ffcdbdf7c21ceac247dfc3080082f80e",
+    "SentenceChunker.production.swift": "9a411b7d64be49e3f1a1d8bbda69299ddbd5f3bc94fd980380336f36623cdf7d",
+    "ReadyHeadsCheck.swift": "250483d1b07b9a6c23b95dc254f7f68e4ec3c764accc0dbf2190b2c4a1ceb312",
+    "ready-heads-review-only.patch": "c145fff2413b9b31d51592ecd197850a62bb3c7e5075b19ed6f21a1731984e4e",
+    "Makefile": "0a77e33f17451fbff8d927d8cfb75ced24c8653104515d67370fd77bd4e07c63",
+    "OriginalResolver.swift": "d2660fe3cad91cd3e82cae234a2c2db2c571b0bd7f51be5fa4283ce4d53a464c",
+    "component-source-pins-after.json": "e29187977935552fabf851e5222629aefe9e4d270bc4698fddd015ddc73dd862",
+    "component-window-receipt.json": "b77eae5cdddb606ffaaa1daebe936057c58bbf37c5a6df6057a5f60fa2f78060",
+    "compile.log": "9f2f741440b6a113dde9b39d575c4f3eebe1691de1448d6412a099a26025a826",
+    "CleanupRouter.ready-heads-candidate.swift": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280",
+    "comparison.log": "d8959220d802be1a53390afb8af15ac4724525fe0a3f358f35837674ee095e08",
+    "CleanupRouter.before.swift": "0df1c6e6f5d248f5b7585ee64e5fb2c2a5af6bf2ef6719945781da442d735db6",
+    "manifest.json": "8d79bfe1b7002b315e495e8ebbc93850583df53e75ef1db76253fa6432f09707",
+    "BoundedWait.production.swift": "05d2d1b818f13c05695c8819f7880e18e381cb0ca6dd360fef09a5344468fb7e",
+    "IncrementalCleanup.production.swift": "4c2c2afae577e77f88ed1139c9a6aafa3f0a53658605ac6d5f97901006ba18fd",
+    "component-source-pins-before.json": "e29187977935552fabf851e5222629aefe9e4d270bc4698fddd015ddc73dd862"
+  },
+  "sourceChanged": false,
+  "nativeInference": false,
+  "sourceInvariant": 1173,
+  "resourceException": "relay589 reviewed two small component compiles/runs only, max9swap/min6disk/free>=60%; normal gate NOT passed",
+  "scope": "Actual producer, lane, splitter, exact resolver bodies and deadline helper; formatter model boundary substituted",
+  "measured": "300 resolutions of30readygroups:54.929542ms/9000deadlinecalls originally,3.432958ms/0calls candidate. Saving0.171655ms per30group component resolution; does not repair multi-second cleanup/layout."
+}

@@ -1,0 +1,79 @@
+{
+  "atUTC": "2026-10-08T05:40:28.246174+00:00",
+  "sourceInvariant": true,
+  "sourceCount": 1173,
+  "results": [
+    {
+      "case": "dictation-ready-heads-20261008",
+      "compileExit": 0,
+      "compileSeconds": 3.5144919590020436,
+      "sampledMaxChildRSSBytes": 164184064,
+      "childPIDs": [
+        88045,
+        88047,
+        88067,
+        88068,
+        88072,
+        88075,
+        88080,
+        88085,
+        88088,
+        88091,
+        88108,
+        88109
+      ],
+      "guardReason": null,
+      "joined": true,
+      "gate": {
+        "ok": true,
+        "swapGb": 8.36169921875,
+        "load": 2.26,
+        "freeGb": 6.318950653076172,
+        "path": "/",
+        "reasons": [],
+        "unknown": []
+      },
+      "freeMemoryPercent": 66,
+      "normalGatePassed": false,
+      "scope": "Explicit relay589 max9/min6 >=60% free memory component-only exception, no model or app",
+      "runExit": 0,
+      "runSeconds": 0.29933445799542824,
+      "runJoined": true
+    },
+    {
+      "case": "dictation-prompt-copy-20261008",
+      "compileExit": 0,
+      "compileSeconds": 1.0002989159984281,
+      "sampledMaxChildRSSBytes": 143917056,
+      "childPIDs": [
+        88138,
+        88140,
+        88160,
+        88161,
+        88164,
+        88169,
+        88170
+      ],
+      "guardReason": null,
+      "joined": true,
+      "gate": {
+        "ok": true,
+        "swapGb": 8.36169921875,
+        "load": 2.4,
+        "freeGb": 6.318572998046875,
+        "path": "/",
+        "reasons": [],
+        "unknown": []
+      },
+      "freeMemoryPercent": 67,
+      "normalGatePassed": false,
+      "scope": "Explicit relay589 max9/min6 >=60% free memory component-only exception, no model or app",
+      "runExit": 0,
+      "runSeconds": 0.26104441699862946,
+      "runJoined": true
+    }
+  ],
+  "allJoined": true,
+  "sourcesEdited": false,
+  "nativeInference": false
+}

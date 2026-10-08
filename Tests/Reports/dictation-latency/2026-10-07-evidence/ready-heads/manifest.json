@@ -1,0 +1,14 @@
+{
+  "status": "CACHE ONLY UNAPPLIED; COMPONENT PASS, FULL ROUTER/RUNTIME NATIVE UNRUN",
+  "atUTC": "2026-10-08T05:44:13.417561+00:00",
+  "beforeSHA256": "0df1c6e6f5d248f5b7585ee64e5fb2c2a5af6bf2ef6719945781da442d735db6",
+  "candidateSHA256": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280",
+  "responsibleSeam": "resolvePrecleanGroups consumes existing exact producer completion boxes, no second store",
+  "producerContract": "Actual IncrementalCleanupSession.close stores exact answer in its existing group box immediately before returning same Task",
+  "preserved": "Global grace unchanged; no new wait. Expired/cancelled paths retain original bounded-wait/fallback behavior, including empty or whitespace completion. Existing post-tail late completion reread remains.",
+  "requires": "Actual producer/router joined ready/inflight/failed/empty/whitespace/expired/cancelled/legacy-head cases exact before/after; measure total fullnative gain, not guessed milliseconds. Original existing regression/cancel/router gates remain required.",
+  "newLayer": false,
+  "nativeSpeedClaim": false,
+  "componentChecks": 742,
+  "componentReceipt": "component-window-receipt.json in dictation-ready-heads-20261008"
+}

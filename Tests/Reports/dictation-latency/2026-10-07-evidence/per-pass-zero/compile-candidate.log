@@ -1,0 +1,33 @@
+Engine.per-pass-candidate-probe.swift:169:17: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+167 |             // Force the (possibly very slow) first load to happen here rather than on release,
+168 |             // so the user waits before speaking instead of losing an utterance to a timeout.
+169 |             _ = try await ParakeetModels.shared.manager()
+    |                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+170 |             runtimeLoaded = true
+171 |             _ = await ModelRuntimeManager.shared.markReady(
+
+Engine.per-pass-candidate-probe.swift:175:11: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+173 |                 generation: runtimeGeneration
+174 |             )
+175 |         } catch {
+    |           `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+176 |             _ = await ModelRuntimeManager.shared.markWedged(
+177 |                 .parakeetASR,
+
+Engine.per-pass-candidate-probe.swift:453:27: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+451 |     private func modelPass(_ audio: [Float], isSegment: Bool) async -> String? {
+452 |         do {
+453 |             let manager = try await ParakeetModels.shared.manager()
+    |                           `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+454 |             return try await transcribe(audio, with: manager, isSegment: isSegment)
+455 |         } catch {
+
+Engine.per-pass-candidate-probe.swift:467:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+465 |     private func keyUpPass(from: Int, to: Int) async throws -> String {
+466 |         let audio = Array(samples[(from - sampleOffset)..<(to - sampleOffset)])
+467 |         let manager = try await ParakeetModels.shared.keyUpManager()
+    |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+468 |         var text = try await transcribe(ParakeetInput.padded(audio), with: manager, isSegment: false)
+469 |         // D-04: 0.1–0.3 s of audio is zero-padded to the model's 0.3 s floor. Padding
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>

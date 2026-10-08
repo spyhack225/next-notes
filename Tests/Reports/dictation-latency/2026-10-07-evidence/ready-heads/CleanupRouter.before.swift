@@ -1,0 +1,3686 @@
+import Foundation
+
+/// Two-stage dictation cleanup: deterministic rules first, then a model.
+///
+/// Every utterance pays Stage A (`RuleBasedFormatter`). Stage B is the engine the user
+/// picked in Settings — Apple, or S1-mini when grammar is off — and by default it runs on
+/// every transcript the rules pass leaves any text in.
+///
+/// It used to run only when the rules pass looked like it had left work behind, so a short,
+/// tidy-looking sentence never reached a model. On real dictation that shortcut produced
+/// text nobody could use: rules keep "acoustic dash echo dot md file" exactly as spoken,
+/// leave a repeated clause in, and cannot fix a misheard word — and a short command is
+/// precisely where one wrong word ruins it. So quality is the default and a four-word
+/// sentence waits on the model again. `reasons` still records what the rules pass noticed,
+/// so the log says why a model was needed even when it would have run anyway.
+///
+/// The one shortcut left is opt-in, `Settings.cleanupSkipsModelWhenBusy`. With it on, under
+/// compute pressure (memory warning, thermal / low-power, or live scheduler occupancy for
+/// realtime-ASR / notes `.background`) short and soft-only transcripts stay on rules so Stage
+/// B does not fight the live path for GPU; a long transcript needing a hard repair still
+/// reaches the engine. A transcript that names something on screen reaches an engine that
+/// takes instructions even then: rules cannot write a file reference at all, so skipping the
+/// model there loses the tag outright instead of merely roughening the text. The on-device
+/// engine is never forced on.
+///
+/// S1-mini still takes no instructions. The router will not pretend a target profile or
+/// the screen-name harvest can reach it. The on-device engine is constructible as a seam
+/// and is never chosen from Settings; `AppLLMCleanupFormatter` must not call `beginCleanup()`.
+struct CleanupRouter: TextFormatter {
+    /// One spoken sentence, give or take. Only the opt-in busy shortcut reads it: at or under
+    /// this, a transcript under pressure stays on rules when the user asked for speed.
+    static let shortWordLimit = 20
+
+    /// Reasons that are "hard" repairs: under pressure, a *short* transcript with only
+    /// these still skips Stage B; a longer one may still reach the user's engine.
+    private static let hardReasons: Set<CleanupReason> = [
+        .grammar, .stutter, .selfCorrection
+    ]
+
+    private let rules: any TextFormatter
+    private let semantic: any TextFormatter
+    private let engine: CleanupSemanticEngine
+    private let formatsLists: Bool
+    private let targetRendersLists: Bool
+    private let mentionsScreenName: Bool
+    private let skipsModelWhenBusy: Bool
+    private let pressureSample: @Sendable () async -> CleanupComputePressure
+    private var progress: (@Sendable (String) -> Void)?
+    /// Stage C. What the receiving app renders, so structure the speaker spoke is written in
+    /// a syntax that app can show — and in plain text when it can show none.
+    private let target: OutputProfile
+    /// Per-run record, filed beside the transcript. Nil outside the live dictation path.
+    private let trace: CleanupTrace?
+    /// Stage D. Asks a model for a *layout* of the finished text — never for the text. Nil
+    /// on a Mac with no instruction-following model, which is exactly the case Stage C's
+    /// rules exist to cover.
+    private let structurePlanner: (any StructurePlanning)?
+    /// How long the router is willing to keep waiting for a layout plan once the cleanup
+    /// pass has finished, as a function of the passage's sentence count. The default is the
+    /// planner's own scaled budget, because that is the wait the plan was started on. (D-09.)
+    private let layoutWait: @Sendable (Int) -> Duration
+    /// ...and the floor on that wait, so a plan that is nearly there when the cleanup
+    /// returns is not thrown away over a rounding error.
+    private let layoutGrace: Duration
+    /// The hard ceiling the layout pass itself runs under on the model route. A model call
+    /// has to end even when nobody is waiting for it any more — cancellation is a request,
+    /// and a CoreML decode runs to completion regardless.
+    private let layoutCeiling: Duration
+
+    /// What a hold tidied while the key was still down (D-12). Nil for every pass that did
+    /// not come from a live hold, which is every pass today.
+    private let head: CleanupHead?
+
+    /// How long the key-up pass waits for a pre-clean that has not landed yet.
+    ///
+    /// A group closes only once it holds fifteen words of *finished* speech, so a pre-clean
+    /// has had seconds of hold to answer — a warm Apple call is 0.9–1.5 s — and the common
+    /// case costs nothing at all. The grace is for the group that closed a moment before
+    /// key-up, and it is deliberately short: the tail's own budget is the one the user is
+    /// waiting on, and a group that misses it is typed as the rules left it, which is what
+    /// the same call returns when it runs out of time.
+    private let precleanGrace: Duration
+
+    /// The grace above, named so the router's other ceilings can be quoted next to it.
+    static let precleanGraceDefault: Duration = .milliseconds(2_000)
+
+    /// The layout pass's hard ceiling on the model route. Twelve seconds is an estimate
+    /// rather than a measurement, and it is deliberately not the number the user waits:
+    /// inside the 26 s whole-pass budget and the 30 s outer bound, and past the point where
+    /// the router has already given up and cancelled. (D-09.)
+    static let layoutPassCeiling: Duration = .seconds(12)
+
+    /// The floor on the wait after the cleanup, when a plan is already over its nominal
+    /// budget: half a second of a dictation nobody notices, against four answers thrown
+    /// away for nothing.
+    static let layoutPassGrace: Duration = .milliseconds(500)
+
+    /// The layout pass: what Stage D is given. Two cases, because the only question anyone
+    /// has ever asked about it is whether it is worth running beside the cleanup — and that
+    /// is a question about a *difference*. (D-09.)
+    enum LayoutPass: Sendable {
+        /// Apple's planner, where the switch and the model both allow it.
+        case automatic
+        /// No layout pass. The control leg of `--probe-layout`.
+        case omitted
+    }
+
+    init(
+        semantic: any TextFormatter,
+        engine: CleanupSemanticEngine,
+        rules: any TextFormatter = RuleBasedFormatter(),
+        formatsLists: Bool = false,
+        targetRendersLists: Bool = false,
+        mentionsScreenName: Bool = false,
+        skipsModelWhenBusy: Bool = false,
+        target: OutputProfile = .plain(bundleID: "", displayName: "the focused app"),
+        trace: CleanupTrace? = nil,
+        structurePlanner: (any StructurePlanning)? = nil,
+        layoutWait: @escaping @Sendable (Int) -> Duration = {
+            AppleStructurePlanner.budget(forSentences: $0)
+        },
+        layoutGrace: Duration = CleanupRouter.layoutPassGrace,
+        layoutCeiling: Duration = CleanupRouter.layoutPassCeiling,
+        precleanGrace: Duration = CleanupRouter.precleanGraceDefault,
+        head: CleanupHead? = nil,
+        pressureSample: @escaping @Sendable () async -> CleanupComputePressure = {
+            await CleanupPressureProbe.sample()
+        }
+    ) {
+        self.rules = rules
+        self.semantic = semantic
+        self.engine = engine
+        self.formatsLists = formatsLists
+        self.targetRendersLists = targetRendersLists
+        self.mentionsScreenName = mentionsScreenName
+        self.skipsModelWhenBusy = skipsModelWhenBusy
+        self.target = target
+        self.trace = trace
+        self.structurePlanner = structurePlanner
+        self.layoutWait = layoutWait
+        self.layoutGrace = layoutGrace
+        self.layoutCeiling = layoutCeiling
+        self.precleanGrace = precleanGrace
+        self.head = head
+        self.pressureSample = pressureSample
+    }
+
+    /// The pass a hold runs, using whatever head it collected while the key was down.
+    func format(_ raw: String) async -> String {
+        await format(raw, head: head)
+    }
+
+    /// Displays completed cleanup while the final layout is still running. This
+    /// synchronous sink must not wait for UI or insert text into another app.
+    func reportingProgress(_ sink: @escaping @Sendable (String) -> Void) -> Self {
+        var copy = self
+        copy.progress = sink
+        return copy
+    }
+
+    /// What a dictation pass does, and how much of it this hold had already done. (D-12.)
+    ///
+    /// `head` is the work `IncrementalCleanupSession` got through while the key was still
+    /// held: the finished sentences, tidied, and the Stage-A text they were tidied from.
+    /// When the final transcript's own Stage-A output still begins with that text, Stage B
+    /// runs on the remainder only and the two halves are joined; when it does not — a later
+    /// partial revised a sentence that had been tidied already — the whole transcript is
+    /// cleaned the way it always was and the record says so. The parameter wins over the
+    /// head the router was built with, which is how a hold passes its own.
+    func format(_ raw: String, head carried: CleanupHead? = nil) async -> String {
+        await withTaskCancellationHandler {
+            await finish(raw, head: carried)
+        } onCancel: {
+            // The outer finishing deadline / a new hold must reach the same owned
+            // pre-cleans even while this router is awaiting its tail.
+            for task in carried?.cleaned ?? [] { task.cancel() }
+        }
+    }
+
+    private func finish(_ raw: String, head carried: CleanupHead?) async -> String {
+        // No group remains useful after this formatter returns, including empty/rules
+        // outcomes. Cancellation is forwarded without waiting for native completion.
+        defer { for task in carried?.cleaned ?? [] { task.cancel() } }
+        let began = Date()
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return trimmed }
+
+        let afterRules = await rules.format(trimmed)
+        trace?.noteInput(raw: trimmed, afterRules: afterRules)
+        let decision = Self.decide(
+            raw: trimmed,
+            afterRules: afterRules,
+            engine: engine,
+            formatsLists: formatsLists,
+            targetRendersLists: targetRendersLists,
+            mentionsScreenName: mentionsScreenName,
+            skipsModelWhenBusy: skipsModelWhenBusy,
+            pressure: await pressureSample()
+        )
+        trace?.noteRoute(
+            decision.usesModel ? "semantic" : "rules",
+            reasons: decision.reasons.map(\.rawValue)
+        )
+        Log.speech.info("\(decision.logLine, privacy: .public)")
+
+        // Stage C runs before Stage B as well as after it.
+        //
+        // Measured on Apple's on-device model, 2026-09-20: handed "quote … end quote" it
+        // deleted both markers and wrote prose, so by the time the post-model pass looked
+        // there was nothing left to render and the quotation the speaker asked for was
+        // simply gone. Running first means the model is handed *structure* rather than
+        // instructions it can eat, and the pass afterwards is idempotent on text that
+        // already carries it. It is also what makes the "before" answer recordable: asking
+        // the final text whether any structure was spoken answers "no" for a run where it
+        // plainly was.
+        let beforeModel = SpokenStructure.apply(
+            to: afterRules,
+            target: target,
+            isEnabled: formatsLists
+        )
+        // Asked of the full scope whatever Stage C was allowed to render, because "did the
+        // speaker speak structure" is a question about the speaker, not about this pass.
+        // The full-scope pass above already scanned this exact text and records
+        // the same marker predicate, even when formatting is disabled.
+        let markersBeforeModel = beforeModel.markersSeen
+
+        // Stage D is started *here*, before Stage B is awaited, and finished after it.
+        //
+        // It used to run after the grammar pass had returned, which put its whole cost on
+        // the end of a wait the user was already having: on 2026-09-20T20:47:25Z, 6.35 s in
+        // the cleanup model and then a layout pass that was given three seconds, spent all
+        // of them and timed out — 9.37 s for a forty-one second dictation that came out as
+        // one paragraph. The two passes need nothing from each other. The layout pass asks
+        // only where the sentence boundaries are, and the rules pass has already fixed
+        // those; the grammar pass changes words inside sentences, which is a question the
+        // layout pass never asks. So they overlap, and the plan is mapped onto the
+        // grammar-cleaned sentences afterwards.
+        //
+        // And it is given a deadline of its own (`layoutCeiling`) rather than the scaled
+        // per-passage one it used to carry, because the deadline is not the user's patience
+        // any more: the wait is. The pass is only ever *awaited* for as long as the user
+        // was already waiting anyway plus a grace, so the ceiling's whole job is to make a
+        // model call end even after the router has stopped caring — which cancellation
+        // alone does not do, because a CoreML decode runs to completion regardless.
+        let planSentences = SpokenStructure.sentenceSplit(beforeModel.text)
+        // When the pass was started, whether or not one was: the wait below is what is left
+        // of a budget this much of which has already gone. (D-09.)
+        let planBegan = ContinuousClock.now
+        // The answer, the moment it lands. Read after Stage B so a plan that came back while
+        // the cleanup was still running is taken whatever the clock says — otherwise a
+        // loaded machine's scheduler can let the grace timer beat an already-finished task,
+        // which is the exact failure this pass is being untangled from.
+        let planAnswered = LockedBox<StructurePlanOutcome?>(nil)
+        let planTask: Task<StructurePlanOutcome, Never>?
+        if let planner = structurePlanner, formatsLists,
+           // Stage C already found the list, so there is nothing to ask about. The gate is
+           // read here rather than after Stage B because that is when the decision has to
+           // be made, and it is the *pre*-model answer for the same reason Stage C runs
+           // twice: a model that ate the markers has not un-made the list it already made.
+           beforeModel.applied.isEmpty,
+           StructurePlan.isWorthPlanning(
+               sentences: planSentences,
+               wordCount: decision.wordCount,
+               sawMarkers: markersBeforeModel
+           ) {
+            // The rules route has no cleanup pass to hide a slow plan inside: the planner
+            // keeps its own budget, and the router waits only `layoutGrace` for it.
+            let ceiling: Duration? = decision.usesModel ? layoutCeiling : nil
+            planTask = Task {
+                let outcome = await planner.plan(for: planSentences, deadline: ceiling)
+                planAnswered.value = outcome
+                return outcome
+            }
+        } else {
+            planTask = nil
+        }
+
+        // Cancellation reaches the same layout task while semantic cleanup is held.
+        return await withTaskCancellationHandler {
+            defer { planTask?.cancel() }
+            var text: String
+            // D-12: what this hold had already tidied while the key was down, and the reason a
+            // head was not used when it had one. Both filed into the run's record below, and
+            // neither is read again here.
+            var precleanedGroups: Int?
+            var precleanFallback: String?
+            // No model pin here. MiniCPM answers only when it is already resident
+            // (`MiniCPMCleanupFormatter`), so the tail has nothing to select or hand back —
+            // and both were actor hops into a runtime whose cold load runs synchronously on
+            // its executor, which put up to a whole 14–49 s load in front of every model
+            // pass, outside any timeout.
+            switch decision.stage {
+            case .rules:
+                // The pre-cleans are not waited for and not used: this dictation did not need
+                // tidying, so the whole pass is the rules pass and nothing else. Recorded as
+                // zero groups used rather than left silent, because the work was done and then
+                // thrown away and the record should say which.
+                if let carried, !carried.stageA.isEmpty { precleanedGroups = 0 }
+                for task in carried?.cleaned ?? [] { task.cancel() }
+                text = beforeModel.text
+            case .semantic:
+                if beforeModel.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    text = beforeModel.text
+                } else {
+                    // Stage B sees the rules output, not the raw ASR: the model is repairing
+                    // what is left, and a timeout must keep that work (`KeepAsIsFormatter`
+                    // on Apple / on-device) rather than fall back through rules a second time.
+                    let answered: String
+                    switch resolvePreclean(carried, of: beforeModel.text) {
+                    case .usable(let head, let remainder):
+                        // Only the tail reaches the model here. The groups were sent while the
+                        // key was down, and they are joined in transcript order — so the text
+                        // that comes out is what one pass over the whole dictation would have
+                        // written, with the same joining `ChunkedFormatter` uses.
+                        precleanedGroups = head.cleaned.count
+                        // Both are already independent work. Waiting on an unfinished head
+                        // before even starting the tail added their times at key-up and could
+                        // discard a head whose answer the tail would have allowed to finish.
+                        async let groups = resolvePrecleanGroups(head)
+                        let tail = remainder.isEmpty ? "" : await semantic.format(remainder)
+                        var pieces = await groups
+                        // The existing head deadline may have expired while this independent
+                        // tail was still running. Take any answer its SAME producer has now
+                        // published; do not add another grace or wait for unfinished work.
+                        var answeredGroups = 0
+                        for (index, completed) in head.completed.enumerated() where pieces.indices.contains(index) {
+                            if let landed = completed.value,
+                               !landed.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                                pieces[index] = landed
+                                answeredGroups += 1
+                            }
+                        }
+                        if head.completed.count == head.cleaned.count {
+                            trace?.notePrecleanAnsweredGroups(answeredGroups)
+                        }
+                        answered = CleanedText.joined(pieces + (tail.isEmpty ? [] : [tail]))
+                        // Keep every answer that arrived during tail polishing. Once the
+                        // immutable result is assembled, unfinished groups cannot affect it:
+                        // stop them now, before a possible layout wait / the next hold.
+                        for task in head.cleaned { task.cancel() }
+                    case .unusable(let reason):
+                        precleanFallback = reason
+                        for task in carried?.cleaned ?? [] { task.cancel() }
+                        answered = await semantic.format(beforeModel.text)
+                    case .none:
+                        answered = await semantic.format(beforeModel.text)
+                    }
+                    // ...and if the model flattened the structure back into prose, the version
+                    // that had it wins. What the speaker asked for out loud is not the model's
+                    // to remove, and a pass that lets it go is the bug this stage exists for.
+                    if beforeModel.didChange,
+                       SpokenStructure.renderedLineCount(answered)
+                           < SpokenStructure.renderedLineCount(beforeModel.text) {
+                        Log.speech.error("""
+                            cleanup structure · \(self.engine.rawValue, privacy: .public) \
+                            un-formatted spoken structure; keeping the formatted text
+                            """)
+                        trace?.noteTruncated(
+                            reason: "the cleanup model undid the formatting you asked for, "
+                                + "so the formatted version was kept"
+                        )
+                        text = beforeModel.text
+                    } else {
+                        text = answered
+                    }
+                }
+            }
+            if let precleanedGroups { trace?.notePrecleanedGroups(precleanedGroups) }
+            if let precleanFallback { trace?.notePrecleanFallback(precleanFallback) }
+
+            // Stage C. Deterministic, and therefore the one stage every route reaches: the rules
+            // route, the model route, and the fallback a rejected or timed-out model lands on.
+            // That is the point of it — structure the speaker asked for out loud must not depend
+            // on which engine happened to run, and before this it depended on nothing else.
+            let structured = text == afterRules ? beforeModel : SpokenStructure.apply(
+                to: text,
+                target: target,
+                isEnabled: formatsLists
+            )
+            // Applied before the model *or* after it. The second pass is a no-op on text the
+            // first one already rendered, so reading only the second would file "nothing
+            // formatted" on the runs where formatting worked perfectly.
+            var laidOut = structured.text
+            var applied = beforeModel.applied.isEmpty ? structured.applied : beforeModel.applied
+            var source = applied.isEmpty ? "none" : "rules"
+            if planTask != nil, applied.isEmpty, planAnswered.value == nil, !Task.isCancelled {
+                progress?(laidOut)
+            }
+
+            // Stage D. The model is shown the finished text as numbered sentences and asked for
+            // an arrangement — never for words.
+            //
+            // It runs only where Stage C found nothing, and that ordering is a measurement
+            // rather than a preference. On the dictation this workstream started from, the
+            // rules find all four items in no time at all and Apple's model finds three of them
+            // in one and a half seconds; on four sentences of ordinary prose the model proposed
+            // a two-item list that did not exist. Deterministic and right beats probabilistic
+            // and nearly right, every time, for free. What the model is genuinely better at is
+            // the case the rules decline: prose with no ordinal in it, where it supplies the
+            // paragraph breaks, and enumerations announced without numbers at all.
+            var planRejection: String?
+            if let planTask, let planner = structurePlanner {
+                let outcome: StructurePlanOutcome
+                if !applied.isEmpty {
+                    // Post-cleanup rules have already rendered the structure that wins.
+                    // This plan cannot affect the result, so do not spend its remaining
+                    // budget waiting to reject it. Keep the authoritative formatting.
+                    planTask.cancel()
+                    let ready = planAnswered.value
+                    outcome = .failed(
+                        "the rules had already laid the text out",
+                        seconds: ready?.seconds ?? Self.seconds(ContinuousClock.now - planBegan),
+                        prewarmed: ready?.prewarmed
+                    )
+                } else {
+                    outcome = await resolveLayoutPlan(
+                        planTask,
+                        answered: planAnswered,
+                        sentences: planSentences,
+                        began: planBegan,
+                        waitIsBounded: decision.usesModel
+                    )
+                }
+                let sentences = SpokenStructure.sentenceSplit(text)
+                planRejection = outcome.rejection
+                if let plan = outcome.plan {
+                    // The plan was made against the rule-cleaned sentences; it is rendered
+                    // against the grammar-cleaned ones. Usually the same sentences with
+                    // different words in them, and where they are not, `remapped` either finds
+                    // the boundaries again or the plan is dropped. Never rendered against the
+                    // text the plan was made from — that would type back the version the
+                    // grammar pass had just repaired.
+                    let mapped = plan.remapped(from: planSentences, to: sentences)
+                    if mapped == nil {
+                        planRejection = "the wording changed while the layout was being worked out"
+                    }
+                    if let mapped {
+                        // Why a plan that arrived was not used, asked in the order the checks
+                        // run so the record names the first thing that was wrong with it.
+                        planRejection = planRejection
+                            ?? mapped.rejection(sentenceCount: sentences.count)
+                            ?? mapped.corroborationFailure(sentences: sentences)
+                        if planRejection == nil, applied.isEmpty,
+                           let rendered = mapped.rendered(sentences: sentences, target: target) {
+                            if rendered.changed {
+                                laidOut = rendered.text
+                                applied = rendered.applied
+                                source = "model plan"
+                            } else {
+                                planRejection = "the layout was the one the text already had"
+                            }
+                        } else {
+                            planRejection = planRejection ?? "the layout could not be rendered"
+                        }
+                    }
+                }
+                trace?.noteStructurePlan(
+                    model: planner.planName,
+                    seconds: outcome.seconds,
+                    rejection: planRejection
+                )
+                // D-01a: the layout session's prewarm, filed beside the plan verdict —
+                // including on timeouts, where the outcome still carries it.
+                trace?.noteStructurePlanPrewarmed(outcome.prewarmed)
+                if source != "model plan", let reason = planRejection {
+                    Log.speech.info("""
+                        cleanup structure · layout plan not used \
+                        (\(reason, privacy: .public))
+                        """)
+                }
+            }
+            trace?.noteStructureSource(source)
+
+            let markersSeen = markersBeforeModel || structured.markersSeen
+            trace?.noteStructure(markersSeen: markersSeen, applied: applied)
+            if !applied.isEmpty {
+                let names = applied.map(\.rawValue).joined(separator: ", ")
+                Log.speech.info("cleanup structure · \(names, privacy: .public)")
+            } else {
+                // One field, in plain language, naming the *first* thing that stopped a layout
+                // happening. Four outcomes that are four different bugs and that every log this
+                // app writes used to render identically as an empty `structureApplied`.
+                trace?.noteNoStructure(Self.whyNoStructure(
+                    markersSeen: markersSeen,
+                    planWasAsked: planTask != nil,
+                    planRejection: planRejection
+                ))
+                if markersSeen {
+                    Log.speech.error("""
+                        cleanup structure · the speaker spoke structure and none was rendered \
+                        (\(self.engine.rawValue, privacy: .public) may have removed the markers)
+                        """)
+                }
+            }
+            // Last of all, and deterministic: a model that put a bullet inside a numbered line
+            // it was handed.
+            laidOut = SpokenStructure.collapsingDoubledMarkers(laidOut)
+            trace?.noteOutput(laidOut, seconds: Date().timeIntervalSince(began))
+            return laidOut
+        } onCancel: { planTask?.cancel() }
+    }
+
+    /// What a head is worth for this pass. (D-12.)
+    private enum PrecleanOutcome {
+        /// Nothing was pre-cleaned: the hold closed no group, so there is nothing to match
+        /// and nothing to wait for.
+        case none
+        /// A head was offered and the final transcript no longer begins with it, so all of
+        /// it is cleaned as one pass. The reason is in plain words because the record shows
+        /// it to a person.
+        case unusable(String)
+        /// The groups, tidied (or as the rules left them, for one that ran out of grace),
+        /// and the text that is left over.
+        case usable(head: CleanupHead, remainder: String)
+    }
+
+    private func resolvePreclean(
+        _ head: CleanupHead?,
+        of text: String
+    ) -> PrecleanOutcome {
+        guard let head, !head.stageA.isEmpty else { return .none }
+        guard let remainder = Self.remainder(of: text, afterPrefix: head.rawPrefix) else {
+            return .unusable(
+                "the final text no longer matched the sentences prepared while you were "
+                    + "speaking, so all of it was tidied at the end"
+            )
+        }
+        return .usable(head: head, remainder: remainder)
+    }
+
+    private func resolvePrecleanGroups(_ head: CleanupHead) async -> [String] {
+        let deadline = ContinuousClock.now.advanced(by: precleanGrace)
+        var pieces: [String] = []
+        for (spoken, task) in zip(head.stageA, head.cleaned) {
+            let left = deadline - ContinuousClock.now
+            if left > .zero, let landed = await withBoundedWait(left, { await task.value }),
+               !landed.isEmpty {
+                pieces.append(landed)
+            } else {
+                // Not yet, or cancelled with the hold: the rules' own text, which is what
+                // the same call returns when it runs out of time. Never a cancellation —
+                // a landed answer is never thrown away to save a moment.
+                pieces.append(spoken)
+            }
+        }
+        return pieces
+    }
+
+    /// The text after `prefix`, or nil when `text` does not begin with it.
+    ///
+    /// Compared with whitespace squeezed to single spaces, because a group's text and the
+    /// slice of the final transcript it came from were each written by the rules pass and
+    /// can differ in spacing; everything else has to match character for character, or one
+    /// of the sentences was revised and the group is stale. The remainder is cut out of the
+    /// *original* text rather than the squeezed one, so the tail keeps its own spacing and
+    /// its own paragraph breaks.
+    static func remainder(of text: String, afterPrefix prefix: String) -> String? {
+        let target = Array(squeeze(prefix))
+        if target.isEmpty { return text.trimmingCharacters(in: .whitespacesAndNewlines) }
+        var matched = 0
+        var index = text.startIndex
+        // Match the same whitespace contract squeeze() applies to the saved prefix.
+        while index < text.endIndex, text[index].isWhitespace {
+            index = text.index(after: index)
+        }
+        while index < text.endIndex, matched < target.count {
+            let character = text[index]
+            if character.isWhitespace || character.isNewline {
+                guard target[matched] == " " else { return nil }
+                repeat { index = text.index(after: index) }
+                while index < text.endIndex && text[index].isWhitespace
+                matched += 1
+                continue
+            }
+            guard character == target[matched] else { return nil }
+            matched += 1
+            index = text.index(after: index)
+        }
+        guard matched == target.count else { return nil }
+        // A prefix can finish at a word boundary; it cannot consume part of a revised word.
+        if index < text.endIndex, let last = target.last,
+           (last.isLetter || last.isNumber),
+           (text[index].isLetter || text[index].isNumber) { return nil }
+        return String(text[index...]).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    /// One space per run of whitespace, and no leading or trailing space.
+    private static func squeeze(_ text: String) -> String {
+        var out = ""
+        for character in text {
+            if character.isWhitespace || character.isNewline {
+                if !out.isEmpty, !out.hasSuffix(" ") { out.append(" ") }
+            } else {
+                out.append(character)
+            }
+        }
+        while out.hasSuffix(" ") { out.removeLast() }
+        return out
+    }
+
+    /// How long to wait for the layout pass once the cleanup has finished, and what to do
+    /// when the wait is up. (D-09.)
+    ///
+    /// The pass runs *beside* the cleanup, so the only question left is what to do with its
+    /// answer. Three cases, in order:
+    ///
+    /// - **it is already here** — take it, whatever the clock says. This is the whole point
+    ///   of starting it early, and it is read from a box rather than from the task so a
+    ///   finished plan cannot lose a race to a timer on a loaded machine;
+    /// - **the model route** — the user has waited as long as this passage's plan is worth,
+    ///   so wait out whatever is left of that budget and at least the grace, then cancel
+    ///   and say so;
+    /// - **the rules route** — there is no cleanup to hide a slow plan inside, so the user
+    ///   would wait the whole plan (3.5–9.2 s measured) for text the rules finished in
+    ///   milliseconds. The route exists because the user asked for speed, so it waits
+    ///   `layoutGrace` and no more; the plan keeps its own deadline in the background.
+    private func resolveLayoutPlan(
+        _ planTask: Task<StructurePlanOutcome, Never>,
+        answered: LockedBox<StructurePlanOutcome?>,
+        sentences: [String],
+        began: ContinuousClock.Instant,
+        waitIsBounded: Bool
+    ) async -> StructurePlanOutcome {
+        if let ready = answered.value { return ready }
+
+        let spent = ContinuousClock.now - began
+        let wait = waitIsBounded
+            ? max(layoutWait(sentences.count) - spent, layoutGrace)
+            : layoutGrace
+        if let finished = await withBoundedWait(wait) { await planTask.value } {
+            return finished
+        }
+        // The wait is the user's, not the plan's: it goes on inside the pass's own ceiling,
+        // and nothing here waits for it.
+        planTask.cancel()
+        let total = Self.seconds(spent + wait)
+        return .failed(
+            String(format: "the layout pass ran out of time after %.1fs", total),
+            seconds: total
+        )
+    }
+
+    /// Why this run has no structure in it, in one line a person can read.
+    ///
+    /// The 2026-09-20T20:47:25Z investigation took a day, and most of it was spent
+    /// establishing which of four things had happened — the speaker said nothing
+    /// list-shaped, the model was never asked, the model was asked and ran out of time, or
+    /// the model answered and its answer was turned down. The record said `structureApplied:
+    /// []` for all four. It now says which.
+    static func whyNoStructure(
+        markersSeen: Bool,
+        planWasAsked: Bool,
+        planRejection: String?
+    ) -> String {
+        if let planRejection {
+            return "the layout pass was asked and its answer was not used: \(planRejection)"
+        }
+        if planWasAsked {
+            return "the layout pass was asked and proposed no arrangement"
+        }
+        if markersSeen {
+            return "the speaker spoke structure but the rules could not lay it out, "
+                + "and the layout pass was not worth a model call on a dictation this short"
+        }
+        return "nothing in the dictation asked for a list, and the layout pass was skipped"
+    }
+
+    /// The engine a real hold would reach for, given today's Settings keys.
+    ///
+    /// Grammar repair is instruction-following work S1-mini cannot do. The live path
+    /// already spent that budget on Apple alone rather than chaining the two; this
+    /// mapping is that same rule, so the router does not reintroduce the stacked wait.
+    static func preferredEngine(
+        choice: CleanupEngineChoice,
+        fixesGrammar: Bool
+    ) -> CleanupSemanticEngine {
+        switch choice {
+        case .apple:
+            return .apple
+        case .s1Mini:
+            return fixesGrammar ? .apple : .s1Mini
+        case .miniCPM:
+            // MiniCPM takes instructions either way: the grammar switch changes
+            // its prompt, never its engine. Apple stays its fallback inside.
+            return .miniCPM
+        }
+    }
+
+    /// How long one chunked call to this engine is allowed to take, read from the engine
+    /// itself rather than restated here — `ChunkedFormatter` subtracts it from the whole
+    /// pass's budget before starting a group, so the two numbers must not be able to drift.
+    static func perCallTimeout(
+        for engine: CleanupSemanticEngine
+    ) -> @Sendable (String) -> Duration {
+        switch engine {
+        case .apple:
+            // Warmth read per call and off-actor: a chunked pass's first wave may be the
+            // process's first Apple call, and its ceiling must not pretend otherwise. The
+            // locked read is the same rule `AppleModelWarmth.current()` applies on the main
+            // actor, so a `@Sendable` closure needs no hop to ask. (D-07.)
+            return {
+                FoundationModelFormatter.timeout(
+                    for: $0,
+                    warmth: AppleModelWarmth.currentNonisolated()
+                )
+            }
+        case .s1Mini, .appLLM, .miniCPM:
+            // The on-device engine has no separate ceiling; S1-mini's is the larger of the
+            // two that do, which is the safe way to be wrong about it.
+            return { S1MiniFormatter.timeout(for: $0) }
+        }
+    }
+
+    /// The ceiling for a chunked pass's second wave on. From wave 2 the process has already
+    /// answered on this engine whatever the first wave started as, so Apple's warm budget
+    /// is the honest one and a cold first wave no longer charges every later group for the
+    /// same wake-up. Nil for the engines whose ceiling does not move, which times every
+    /// wave the same. (D-07.)
+    static func perCallTimeoutAfterFirstWave(
+        for engine: CleanupSemanticEngine
+    ) -> (@Sendable (String) -> Duration)? {
+        switch engine {
+        case .apple:
+            return { FoundationModelFormatter.timeout(for: $0, warmth: .warmProcess) }
+        case .s1Mini, .appLLM, .miniCPM:
+            return nil
+        }
+    }
+
+    /// Stage B formatter for a named engine. The on-device engine is here so a later picker
+    /// can construct it; production never passes `.appLLM`.
+    ///
+    /// Apple and the on-device engine used as Stage B fall back to `KeepAsIsFormatter`: the input has
+    /// already been through rules, and running `RuleBasedFormatter` again would undo
+    /// nothing useful and could undo model work if this were ever chained further.
+    /// S1-mini's own fallback stays rule-based — that type does not take one.
+    ///
+    /// `target` and `context` are forwarded only to engines that accept instructions.
+    /// S1-mini discards both, on purpose.
+    static func makeSemantic(
+        _ engine: CleanupSemanticEngine,
+        preferences: CleanupPreferences,
+        fixesGrammar: Bool,
+        target: OutputProfile,
+        context: ScreenContext,
+        trace: CleanupTrace? = nil
+    ) -> any TextFormatter {
+        switch engine {
+        case .apple:
+            return FoundationModelFormatter(
+                preferences: preferences,
+                fixesGrammar: fixesGrammar,
+                target: target,
+                context: context,
+                fallback: KeepAsIsFormatter(),
+                trace: trace
+            )
+        case .s1Mini:
+            return S1MiniFormatter(preferences: preferences, trace: trace)
+        case .appLLM:
+            // Must not call LlamaBackend.beginCleanup — AppLLMCleanupFormatter is the
+            // on-device notes model, and announcing it to the gate deadlocks the load.
+            return AppLLMCleanupFormatter(
+                preferences: preferences,
+                fixesGrammar: fixesGrammar,
+                target: target,
+                context: context
+            )
+        case .miniCPM:
+            // Same gate rule as above: MiniCPM answers through the shared notes
+            // runtime, so it announces nothing. Apple is the fallback inside.
+            return MiniCPMCleanupFormatter(
+                preferences: preferences,
+                fixesGrammar: fixesGrammar,
+                target: target,
+                context: context,
+                trace: trace
+            )
+        }
+    }
+
+    /// How many sentence groups may be in the model at once, per engine.
+    ///
+    /// Two everywhere except Apple, where the width is a measurement rather than a
+    /// preference: `--selftest-cleanup-router --probe-chunk-width` runs the same two
+    /// ~90-word groups at width 1 and at width 2 on the real model, warmed first, in a fresh
+    /// process, and prints `CHUNK_WIDTH w1_wall=<s> w2_wall=<s>`. The rule is
+    /// `w2 ≤ 0.85 × w1`.
+    ///
+    /// Measured on this Mac on 2026-09-25, two fresh processes, best of two rounds each:
+    /// `w1_wall=5.92 w2_wall=6.28` and `w1_wall=6.30 w2_wall=6.24`. The bars were 5.03 and
+    /// 5.36. So width 2 is between 6 % slower and 1 % faster than sending the same two
+    /// groups one after the other — the model answers the second request after the first
+    /// either way, which is the serialising behaviour `ChunkedFormatter.serialisesCalls`
+    /// prices. **Apple is width 1.**
+    ///
+    /// S1-mini and the on-device engine keep 2: their requests are answered in parallel —
+    /// a local llama.cpp server per request — so two at once is two at once. That is also
+    /// why the number is per engine rather than one constant. (D-08.)
+    static func chunkWidth(for engine: CleanupSemanticEngine) -> Int {
+        switch engine {
+        case .apple: return Self.appleChunkWidth
+        case .s1Mini, .appLLM, .miniCPM: return 2
+        }
+    }
+
+    /// Apple's width, from `--probe-chunk-width` on 2026-09-25 (see `chunkWidth(for:)`).
+    /// One, because a second group in the model does not overlap the first on this engine —
+    /// which is exactly what the wave-aware ceilings in `ChunkedFormatter` then have to
+    /// price, and why D-08 is not a no-op for a width of 1: a wave of two still happens on
+    /// any engine that is asked for one.
+    static let appleChunkWidth = 1
+
+    /// Production wiring: Stage A plus the user's existing engine choice.
+    ///
+    /// - Parameter layoutPass: the Stage D planner. `.automatic` is what a dictation gets;
+    ///   `.omitted` exists for `--probe-layout`, whose only question is what the layout pass
+    ///   costs the cleanup, and that cannot be answered without running the identical
+    ///   cleanup without it.
+    static func production(
+        choice: CleanupEngineChoice,
+        preferences: CleanupPreferences,
+        fixesGrammar: Bool,
+        target: OutputProfile,
+        context: ScreenContext,
+        skipsModelWhenBusy: Bool,
+        trace: CleanupTrace? = nil,
+        layoutPass: LayoutPass = .automatic,
+        head: CleanupHead? = nil
+    ) -> CleanupRouter {
+        let engine = preferredEngine(choice: choice, fixesGrammar: fixesGrammar)
+        // Long utterances go to the model in sentence groups rather than in one call that
+        // misses its deadline and hands back the raw transcript. Below the threshold this
+        // wrapper is one word count and one passthrough.
+        //
+        // Apple answers one call at a time, so its groups are queued rather than overlapped
+        // (`serialisesCalls`), timed as the wave they are, and each group after the first
+        // gets a session of its own staged before its wave starts. The group text is not
+        // used: Apple's prewarm is keyed on the prompt, and every group in a pass shares it.
+        // (D-08.)
+        let stageNext: (@Sendable (String) async -> Void)?
+        if engine == .apple {
+            stageNext = { _ in
+                await CleanupSessionWarmer.shared.stage(
+                    instructions: CleanupInstructions.system(
+                        for: preferences,
+                        fixesGrammar: fixesGrammar,
+                        target: target,
+                        context: context
+                    )
+                )
+            }
+        } else {
+            stageNext = nil
+        }
+        let semantic = ChunkedFormatter(
+            inner: makeSemantic(
+                engine,
+                preferences: preferences,
+                fixesGrammar: fixesGrammar,
+                target: target,
+                context: context,
+                trace: trace
+            ),
+            trace: trace,
+            perCallTimeout: Self.perCallTimeout(for: engine),
+            perCallTimeoutAfterFirstWave: Self.perCallTimeoutAfterFirstWave(for: engine),
+            width: Self.chunkWidth(for: engine),
+            serialisesCalls: engine == .apple,
+            stageNext: stageNext
+        )
+        let targetRendersLists = target.capabilities.contains(.bullets)
+            || target.capabilities.contains(.numbered)
+        trace?.noteSettings(
+            engine: engine.rawValue,
+            fixesGrammar: fixesGrammar,
+            formatsStructure: preferences.formatsLists,
+            targetName: target.displayName.isEmpty ? "the focused app" : target.displayName,
+            targetRenders: target.sortedCapabilities.map(\.rawValue)
+        )
+        // Stage D only where there is a model that takes instructions and a switch that
+        // asked for formatting. Apple's is the one that is already resident and already
+        // warm; the on-device model can do this too (`LLMStructurePlanner`) but loading it costs
+        // gigabytes and seconds inside a dictation somebody is waiting on, so it is a seam
+        // rather than a default.
+        let planner: (any StructurePlanning)? =
+            layoutPass == .automatic && preferences.formatsLists
+                && FoundationModelFormatter.isAvailable
+                ? AppleStructurePlanner()
+                : nil
+        return CleanupRouter(
+            semantic: semantic,
+            engine: engine,
+            formatsLists: preferences.formatsLists,
+            targetRendersLists: targetRendersLists,
+            mentionsScreenName: context.mentionCount > 0,
+            skipsModelWhenBusy: skipsModelWhenBusy,
+            target: target,
+            trace: trace,
+            structurePlanner: planner,
+            head: head
+        )
+    }
+
+    /// Pure policy. `afterRules` is what would be injected if Stage B is skipped.
+    ///
+    /// Stage B runs on anything with text left in it, unless `skipsModelWhenBusy` is on and
+    /// `pressure` is up: then short and soft-only ("borderline") transcripts stay on rules,
+    /// while long transcripts that still need a hard repair, and any transcript that names
+    /// something on screen, keep the caller's Stage B engine — never the on-device engine, never a forced
+    /// upgrade.
+    static func decide(
+        raw: String,
+        afterRules: String,
+        engine: CleanupSemanticEngine,
+        formatsLists: Bool = false,
+        targetRendersLists: Bool = false,
+        mentionsScreenName: Bool = false,
+        skipsModelWhenBusy: Bool = false,
+        pressure: CleanupComputePressure = .idle
+    ) -> CleanupDecision {
+        let cleaned = afterRules.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.isEmpty {
+            return CleanupDecision(
+                stage: .rules,
+                engine: engine,
+                reasons: [.empty],
+                wordCount: 0,
+                pressure: pressure
+            )
+        }
+
+        let wordCount = words(in: cleaned).count
+        var issues: [CleanupReason] = []
+
+        if wordCount > shortWordLimit { issues.append(.long) }
+        if isDisfluent(raw) || isDisfluent(cleaned) { issues.append(.disfluent) }
+        if hasSelfCorrection(raw) || hasSelfCorrection(cleaned) { issues.append(.selfCorrection) }
+        if hasStutter(cleaned) { issues.append(.stutter) }
+        if hasGrammarMarker(cleaned) { issues.append(.grammar) }
+        if needsTerminalPunctuation(cleaned) { issues.append(.unpunctuated) }
+        // No longer gated on the target rendering Markdown or on the engine taking
+        // instructions. Stage C renders spoken structure in code, for every engine and for a
+        // plain target too, so "this transcript contains a spoken list" is now simply true or
+        // false rather than true-only-where-something-could-have-acted-on-it.
+        if formatsLists, looksLikeSpokenList(cleaned) {
+            issues.append(.spokenList)
+        }
+        // Only for an engine that can be told the names. S1-mini has no prompt to put them in,
+        // so for it a mentioned name is not a reason for anything.
+        if mentionsScreenName, engine.acceptsInstructions {
+            issues.append(.namesScreenItem)
+        }
+        // Nothing the rules pass could see. Not a reason to skip the model any more — see the
+        // type's doc — but still the true description of the transcript for the log line.
+        if issues.isEmpty {
+            issues = [.shortAndClean]
+        }
+
+        if skipsModelWhenBusy,
+           pressure.isUnderPressure,
+           !issues.contains(.namesScreenItem),
+           shouldDeferUnderPressure(issues: issues, wordCount: wordCount) {
+            var deferred = issues
+            deferred.append(.deferredUnderPressure)
+            return CleanupDecision(
+                stage: .rules,
+                engine: engine,
+                reasons: deferred,
+                wordCount: wordCount,
+                pressure: pressure
+            )
+        }
+
+        return CleanupDecision(
+            stage: .semantic(engine),
+            engine: engine,
+            reasons: issues,
+            wordCount: wordCount,
+            pressure: pressure
+        )
+    }
+
+    /// Soft / borderline under load, or any short transcript that would have taken a
+    /// model, stays on rules. Long + hard still reaches Stage B.
+    private static func shouldDeferUnderPressure(
+        issues: [CleanupReason],
+        wordCount: Int
+    ) -> Bool {
+        if wordCount <= shortWordLimit { return true }
+        let hasHard = issues.contains { hardReasons.contains($0) }
+        return !hasHard
+    }
+}
+
+extension CleanupRouter {
+    /// Short + clean must not invoke a model seam. A counting formatter is the
+    /// model; the last printed line is `CLEANUP_ROUTER_OK` or `CLEANUP_ROUTER_FAILED`.
+    ///
+    /// Under simulated pressure, messy-but-short and soft-only borderline cases
+    /// must also skip the model seam.
+    ///
+    /// Runs as `--selftest-cleanup-router`. Pure policy plus a counting seam, so it needs no
+    /// model and no permission.
+    @discardableResult
+    static func runSelfTest() async -> Bool {
+        var failures = await DictationCleanupLatencySelfTest.failures()
+        failures += await RuleBasedFormatter.unicodeCapitalizationFailures()
+        failures += await IncrementalCleanupSession.cancelledLaneFailures()
+
+        let s1 = preferredEngine(choice: .s1Mini, fixesGrammar: false)
+        if s1 != .s1Mini {
+            failures.append("preferredEngine(s1, grammar off) was \(s1), expected s1Mini")
+        }
+        let s1Grammar = preferredEngine(choice: .s1Mini, fixesGrammar: true)
+        if s1Grammar != .apple {
+            failures.append("preferredEngine(s1, grammar on) was \(s1Grammar), expected apple")
+        }
+        let apple = preferredEngine(choice: .apple, fixesGrammar: true)
+        if apple != .apple {
+            failures.append("preferredEngine(apple) was \(apple), expected apple")
+        }
+        // MiniCPM takes instructions either way: the grammar switch changes its
+        // prompt, and Apple stays its fallback inside the formatter itself.
+        let miniCPM = preferredEngine(choice: .miniCPM, fixesGrammar: true)
+        if miniCPM != .miniCPM {
+            failures.append("preferredEngine(miniCPM, grammar on) was \(miniCPM), expected miniCPM")
+        }
+        let miniCPMPunctuation = preferredEngine(choice: .miniCPM, fixesGrammar: false)
+        if miniCPMPunctuation != .miniCPM {
+            failures.append(
+                "preferredEngine(miniCPM, grammar off) was \(miniCPMPunctuation), expected miniCPM"
+            )
+        }
+
+        let onDevice = makeSemantic(
+            .appLLM,
+            preferences: CleanupPreferences(tone: .balanced, formatsLists: true, context: .general),
+            fixesGrammar: true,
+            target: .plain(bundleID: "", displayName: "the focused app"),
+            context: .empty
+        )
+        if !(onDevice is AppLLMCleanupFormatter) {
+            failures.append("makeSemantic(.appLLM) did not return AppLLMCleanupFormatter")
+        }
+
+        struct Case {
+            let id: String
+            let input: String
+            let engine: CleanupSemanticEngine
+            var formatsLists = false
+            var targetRendersLists = false
+            var mentionsScreenName = false
+            var skipsModelWhenBusy = false
+            var pressure: CleanupComputePressure = .idle
+            let expectModel: Bool
+        }
+
+        let underPressure = CleanupComputePressure.simulated(realtimeASRBusy: true)
+        let notesPressure = CleanupComputePressure.simulated(notesBusy: true)
+        let memoryPressure = CleanupComputePressure.simulated(memoryWarning: true)
+
+        let messyShort = "the tests is passing on my machine but they was failing in ci yesterday"
+        let longClean = "We finished the review this morning and everyone signed off on the plan. "
+            + "The release is scheduled for Friday afternoon as discussed."
+        let spokenList = "First milk. Second eggs. Third bread."
+        let namesFile = "Open the acoustic echo file."
+
+        let cases: [Case] = [
+            // Quality by default: an idle Mac sends short, tidy text to the model too.
+            Case(id: "short-clean", input: "The build is green.", engine: .apple, expectModel: true),
+            Case(id: "short-raw", input: "hello", engine: .apple, expectModel: true),
+            Case(id: "ship-it", input: "Ship it.", engine: .s1Mini, expectModel: true),
+            Case(id: "question-stays-a-question", input: "what is the capital of france",
+                 engine: .apple, expectModel: true),
+            // Nothing left after the rules pass is still nothing to send.
+            Case(id: "filler-only", input: "um uh", engine: .apple, expectModel: false),
+            Case(id: "agreement", input: messyShort, engine: .apple, expectModel: true),
+            Case(id: "self-correction",
+                 input: "so um i need to send the report by friday no wait make that thursday",
+                 engine: .apple, expectModel: true),
+            Case(id: "stutter", input: "we we need to to check the the database connection again",
+                 engine: .s1Mini, expectModel: true),
+            Case(id: "long-clean", input: longClean, engine: .apple, expectModel: true),
+            Case(id: "spoken-list", input: spokenList, engine: .apple,
+                 formatsLists: true, targetRendersLists: true, expectModel: true),
+            Case(id: "spoken-list-s1-still-cleans", input: spokenList, engine: .s1Mini,
+                 formatsLists: true, targetRendersLists: true, expectModel: true),
+            Case(id: "names-screen-item", input: namesFile, engine: .apple,
+                 mentionsScreenName: true, expectModel: true),
+
+            // A busy Mac with the setting off — the default — skips nothing.
+            Case(id: "busy-setting-off-short-clean", input: "The build is green.", engine: .apple,
+                 pressure: underPressure, expectModel: true),
+            Case(id: "busy-setting-off-messy-short", input: messyShort, engine: .apple,
+                 pressure: memoryPressure, expectModel: true),
+
+            // Setting on: short and soft-only stay on rules while the Mac is busy.
+            Case(id: "busy-short-clean", input: "The build is green.", engine: .apple,
+                 skipsModelWhenBusy: true, pressure: underPressure, expectModel: false),
+            Case(id: "busy-messy-short-asr", input: messyShort, engine: .apple,
+                 skipsModelWhenBusy: true, pressure: underPressure, expectModel: false),
+            Case(id: "busy-messy-short-notes",
+                 input: "we we need to to check the the database connection again", engine: .apple,
+                 skipsModelWhenBusy: true, pressure: notesPressure, expectModel: false),
+            Case(id: "busy-messy-short-memory",
+                 input: "so um i need to send the report by friday no wait make that thursday",
+                 engine: .apple, skipsModelWhenBusy: true, pressure: memoryPressure, expectModel: false),
+            Case(id: "busy-borderline-long-clean", input: longClean, engine: .apple,
+                 skipsModelWhenBusy: true, pressure: underPressure, expectModel: false),
+            Case(id: "busy-borderline-spoken-list", input: spokenList, engine: .apple,
+                 formatsLists: true, targetRendersLists: true,
+                 skipsModelWhenBusy: true, pressure: underPressure, expectModel: false),
+            // Setting on and busy: long + hard still reaches the user's Stage B engine.
+            Case(id: "busy-long-hard-still-semantic",
+                 input: longClean.replacingOccurrences(of: "as discussed.", with: "as discussed, but ")
+                    + "the tests is still red on main and they was failing all morning.",
+                 engine: .apple, skipsModelWhenBusy: true, pressure: underPressure, expectModel: true),
+            // Setting on and busy: a named file keeps the model, because rules cannot tag it.
+            Case(id: "busy-names-screen-item", input: namesFile, engine: .apple,
+                 mentionsScreenName: true, skipsModelWhenBusy: true, pressure: underPressure,
+                 expectModel: true),
+            // ...but S1-mini cannot use the names, so they buy it no exemption.
+            Case(id: "busy-names-screen-item-s1", input: namesFile, engine: .s1Mini,
+                 mentionsScreenName: true, skipsModelWhenBusy: true, pressure: underPressure,
+                 expectModel: false),
+        ]
+
+        let rules = RuleBasedFormatter()
+        for test in cases {
+            let afterRules = await rules.format(test.input)
+            let decision = decide(
+                raw: test.input,
+                afterRules: afterRules,
+                engine: test.engine,
+                formatsLists: test.formatsLists,
+                targetRendersLists: test.targetRendersLists,
+                mentionsScreenName: test.mentionsScreenName,
+                skipsModelWhenBusy: test.skipsModelWhenBusy,
+                pressure: test.pressure
+            )
+            let expectsNameReason = test.mentionsScreenName && test.engine.acceptsInstructions
+            if decision.reasons.contains(.namesScreenItem) != expectsNameReason {
+                failures.append(
+                    "\(test.id): namesScreenItem reason was "
+                        + "\(decision.reasons.contains(.namesScreenItem)), expected \(expectsNameReason)"
+                )
+            }
+            if decision.usesModel != test.expectModel {
+                failures.append(
+                    "\(test.id): decide used model=\(decision.usesModel) "
+                        + "(\(decision.reasons.map(\.rawValue).joined(separator: ","))), "
+                        + "expected \(test.expectModel)"
+                )
+            }
+            if test.pressure.isUnderPressure, !test.expectModel {
+                let idleWouldModel = decide(
+                    raw: test.input,
+                    afterRules: afterRules,
+                    engine: test.engine,
+                    formatsLists: test.formatsLists,
+                    targetRendersLists: test.targetRendersLists,
+                    mentionsScreenName: test.mentionsScreenName,
+                    skipsModelWhenBusy: test.skipsModelWhenBusy,
+                    pressure: .idle
+                ).usesModel
+                if idleWouldModel, !decision.reasons.contains(.deferredUnderPressure) {
+                    failures.append(
+                        "\(test.id): deferred under pressure without deferredUnderPressure "
+                            + "(\(decision.reasons.map(\.rawValue).joined(separator: ",")))"
+                    )
+                }
+            }
+
+            let counter = CounterBox()
+            let router = CleanupRouter(
+                semantic: CountingFormatter(box: counter),
+                engine: test.engine,
+                rules: rules,
+                formatsLists: test.formatsLists,
+                targetRendersLists: test.targetRendersLists,
+                mentionsScreenName: test.mentionsScreenName,
+                skipsModelWhenBusy: test.skipsModelWhenBusy,
+                pressureSample: { test.pressure }
+            )
+            _ = await router.format(test.input)
+            let calls = await counter.count
+            if test.expectModel, calls == 0 {
+                failures.append("\(test.id): expected the model seam to run, it was not invoked")
+            }
+            if !test.expectModel, calls != 0 {
+                failures.append("\(test.id): model seam invoked \(calls) time(s) on a rules-only case")
+            }
+        }
+
+        // Probe shape: idle sample is a value type; simulated flags raise isUnderPressure.
+        if CleanupComputePressure.idle.isUnderPressure {
+            failures.append("CleanupComputePressure.idle reported under pressure")
+        }
+        if !CleanupComputePressure.simulated(realtimeASRBusy: true).isUnderPressure {
+            failures.append("simulated realtimeASRBusy did not raise pressure")
+        }
+        if !CleanupComputePressure.simulated(notesBusy: true).isUnderPressure {
+            failures.append("simulated notesBusy did not raise pressure")
+        }
+
+        // A hold's own pre-clean is not pressure on its own tail. During the hold the
+        // hold's ASR owns the lane; the MiniCPM pre-clean asks the lane the way production
+        // does (`tryAcquire(.realtimeAgent)`), is refused and leaves no job behind, so at
+        // key-up — ASR released — the probe reads idle and a short transcript still
+        // reaches the model with `cleanupSkipsModelWhenBusy` on. The old pre-clean queued
+        // `.background` behind the ASR and the key-up probe read `notesBusy`.
+        do {
+            let lane = ComputeScheduler()
+            let holdASR = await lane.acquire(.realtimeASR)
+            if let stray = await lane.tryAcquire(.realtimeAgent) {
+                failures.append("own pre-clean: took the lane from the hold's live ASR")
+                await lane.release(stray)
+            }
+            await lane.release(holdASR)
+            let keyUp = await CleanupPressureProbe.sample(scheduler: lane)
+            if keyUp.notesBusy || keyUp.realtimeASRBusy {
+                failures.append("own pre-clean: the key-up probe read the hold's own pre-clean as busy")
+            }
+            let decision = decide(
+                raw: "so we we should ship it",
+                afterRules: "So we we should ship it",
+                engine: .miniCPM,
+                skipsModelWhenBusy: true,
+                pressure: CleanupComputePressure.simulated(
+                    realtimeASRBusy: keyUp.realtimeASRBusy, notesBusy: keyUp.notesBusy)
+            )
+            if !decision.usesModel {
+                failures.append("own pre-clean: a short tail was deferred to rules by its own pre-clean")
+            }
+        }
+
+        // Stage C, end to end through the router rather than through `SpokenStructure`
+        // alone: a list the speaker spoke has to survive the whole pipeline, including the
+        // engine that takes no instructions and including a target app that renders nothing.
+        failures += SpokenStructure.selfTestFailures()
+        failures += await structureThroughRouterFailures()
+        failures += await structurePlanFailures()
+        failures += CleanupGuard.selfTestFailures()
+        failures += RuleBasedFormatter.selfTestFailures()
+        failures += SentenceChunker.selfTestFailures()
+        failures += await StructurePlan.selfTestFailures()
+        failures += await DictationController.finishingPreviewFailures()
+        failures += await MiniCPMCleanupFormatter.selfTestFailures()
+        failures += salvageFailures()
+        failures += traceFailures()
+        failures += await prewarmTraceFailures()
+        failures += await warmthTimeoutFailures()
+        failures += await launchWarmupFailures()
+
+        // Opt-in, and off by default for a reason: this suite is the fast one every other
+        // build runs, and the probe makes a dozen live model calls. `--probe-layout`
+        // alongside the flag turns it on.
+        if StructurePlanProbe.isRequested {
+            await StructurePlanProbe.run()
+        }
+
+        // D-06, same shape: `--probe-cleanup-warmth <none|prewarm|respond>` beside the
+        // flag times one real cleanup after that warm-up mode and asserts nothing.
+        if CleanupWarmthProbe.isRequested {
+            await CleanupWarmthProbe.run()
+        }
+
+        // D-08, same shape again: `--probe-chunk-width` beside the flag times the same two
+        // groups at width 1 and width 2 on the real model and asserts nothing.
+        if ChunkWidthProbe.isRequested {
+            await ChunkWidthProbe.run()
+        }
+
+        if failures.isEmpty {
+            emit("CLEANUP_ROUTER_OK")
+            return true
+        }
+        for failure in failures { emit("  \(failure)") }
+        emit("CLEANUP_ROUTER_FAILED: \(failures.count) case(s)")
+        return false
+    }
+
+    /// The regression this whole workstream exists to stop: "first point… second point…
+    /// third point…" dictated with the shipping settings (S1-mini, grammar off, a plain
+    /// target) and arriving as prose.
+    ///
+    /// `KeepAsIsFormatter` stands in for the model so the check needs no download — which is
+    /// exactly right, because the claim under test is that structure no longer depends on the
+    /// model at all.
+    private static func structureThroughRouterFailures() async -> [String] {
+        var failures: [String] = []
+        let spoken = "Here is the plan. Start the list. First point, ship the installer. "
+            + "Second point, write the release note. Third point, tell the beta group. "
+            + "Close the list."
+
+        let targets: [(String, OutputProfile)] = [
+            ("markdown target", OutputProfile(
+                bundleID: "md.obsidian",
+                displayName: "Obsidian",
+                capabilities: [.markdown, .bullets, .numbered, .tables, .code]
+            )),
+            ("plain target", .plain(bundleID: "com.apple.MobileSMS", displayName: "Messages")),
+        ]
+
+        for (label, target) in targets {
+            for engine in [CleanupSemanticEngine.s1Mini, .apple] {
+                let router = CleanupRouter(
+                    semantic: KeepAsIsFormatter(),
+                    engine: engine,
+                    formatsLists: true,
+                    targetRendersLists: !target.isPlain,
+                    target: target
+                )
+                let output = await router.format(spoken)
+                for line in ["1. Ship the installer", "2. Write the release note",
+                             "3. Tell the beta group"] where !output.contains(line) {
+                    failures.append(
+                        "\(label)/\(engine.rawValue): spoken list was not formatted, "
+                            + "missing \(line.debugDescription) \u{2014} got "
+                            + output.replacingOccurrences(of: "\n", with: " \u{21B5} ")
+                    )
+                }
+                if output.localizedCaseInsensitiveContains("start the list") {
+                    failures.append("\(label)/\(engine.rawValue): the spoken marker was typed out")
+                }
+            }
+
+            // ...and the switch has to work in the other direction too.
+            let off = CleanupRouter(
+                semantic: KeepAsIsFormatter(),
+                engine: .s1Mini,
+                formatsLists: false,
+                target: target
+            )
+            let unformatted = await off.format(spoken)
+            if unformatted.contains("1. Ship the installer") {
+                failures.append("\(label): formatting was applied with the switch off")
+            }
+        }
+
+        // The grammar route, stated as an assertion rather than as a comment: the engine a
+        // hold reaches has to be one that can do what the switch promises.
+        if !preferredEngine(choice: .s1Mini, fixesGrammar: true).acceptsInstructions {
+            failures.append("grammar on still routes to an engine that takes no instructions")
+        }
+        if preferredEngine(choice: .s1Mini, fixesGrammar: false).acceptsInstructions {
+            failures.append("grammar off no longer routes to the punctuation-only engine")
+        }
+
+        // Long transcripts are split rather than dropped.
+        let long = Array(repeating: "The build is green and the tests are passing.", count: 40)
+            .joined(separator: " ")
+        let chunks = SentenceChunker.chunks(long, maxWords: 120)
+        if chunks.count < 2 {
+            failures.append("a \(SentenceChunker.wordCount(long))-word transcript was not chunked")
+        }
+        if chunks.joined(separator: " ") != long {
+            failures.append("chunking did not preserve the transcript")
+        }
+        if let overlong = chunks.first(where: { SentenceChunker.wordCount($0) > 120 }) {
+            failures.append("a chunk of \(SentenceChunker.wordCount(overlong)) words exceeds the budget")
+        }
+
+        // Out of time, the tail is left as spoken rather than the whole pass being lost —
+        // and the record has to say so, because otherwise it is a silent partial cleanup.
+        let budgetTrace = CleanupTrace()
+        let starved = ChunkedFormatter(
+            inner: KeepAsIsFormatter(),
+            trace: budgetTrace,
+            budget: .zero
+        )
+        let survived = await starved.format(long)
+        if survived != long {
+            failures.append("an out-of-budget chunked pass changed the transcript")
+        }
+        if budgetTrace.snapshot.fallbackReason == nil {
+            failures.append("an out-of-budget chunked pass recorded no reason")
+        }
+
+        // The budget has to hold when it runs out *during* the pass, which is the only way
+        // it ever runs out in production. A zero budget starts no call at all and so proves
+        // nothing about the case that lost this user their cleanup: a group dispatched with
+        // a sliver of budget left, running for its own full ceiling, and carrying the whole
+        // stage past the controller's deadline.
+        //
+        // Five groups, so the third wave is the one that hits the wall: the shared `long`
+        // fixture splits into four, two waves of 200 ms fit inside the 500 ms budget, and
+        // the mid-pass case this block exists to prove is never exercised — a green run
+        // that tested nothing, until the record assertion below caught the absence.
+        let stallLong = Array(repeating: "The build is green and the tests are passing.", count: 60)
+            .joined(separator: " ")
+        let stallGroups = SentenceChunker.chunks(stallLong, maxWords: 120)
+        if stallGroups.count < 5 {
+            failures.append(
+                "the mid-pass budget fixture split into \(stallGroups.count) group(s), "
+                    + "too few to outlast two waves"
+            )
+        }
+        let stallTrace = CleanupTrace()
+        let stallBox = CounterBox()
+        let ceiling = Duration.milliseconds(200)
+        let stallBudget = Duration.milliseconds(500)
+        let stalled = ChunkedFormatter(
+            inner: StallingFormatter(ceiling: ceiling, box: stallBox),
+            trace: stallTrace,
+            budget: stallBudget,
+            perCallTimeout: { _ in ceiling }
+        )
+        let stallBegan = ContinuousClock.now
+        let stalledOutput = await stalled.format(stallLong)
+        let stallElapsed = ContinuousClock.now - stallBegan
+        let calls = await stallBox.count
+        if calls == 0 {
+            failures.append("the mid-pass budget case started no call, so it proves nothing")
+        }
+        // Generous slack for a loaded machine; the point is that it cannot be `budget` plus
+        // a whole extra call, which is what the old check-before-dispatch allowed.
+        if stallElapsed > stallBudget + ceiling {
+            failures.append(
+                "a chunked pass with a \(stallBudget) budget and a \(ceiling) per-call "
+                    + "ceiling ran for \(stallElapsed)"
+            )
+        }
+        if SentenceChunker.wordCount(stalledOutput) != SentenceChunker.wordCount(stallLong) {
+            failures.append("the out-of-budget tail was not left as spoken")
+        }
+        if stallTrace.snapshot.fallbackReason == nil {
+            failures.append("a pass that ran out of budget mid-way recorded no reason")
+        }
+
+        // A model that flattens the formatting back into prose must not be allowed to. This
+        // is Apple's on-device model on a spoken quotation, and before Stage C moved in
+        // front of the model it was the reason "quote … end quote" came out as neither.
+        for (label, target) in targets {
+            let prosifyTrace = CleanupTrace()
+            let router = CleanupRouter(
+                semantic: ProsifyingFormatter(),
+                engine: .apple,
+                formatsLists: true,
+                targetRendersLists: !target.isPlain,
+                target: target,
+                trace: prosifyTrace
+            )
+            let output = await router.format(spoken)
+            for line in ["1. Ship the installer", "2. Write the release note"]
+            where !output.contains(line) {
+                failures.append(
+                    "\(label): a model that un-formats the text lost \(line.debugDescription) "
+                        + "\u{2014} got " + output.replacingOccurrences(of: "\n", with: " \u{21B5} ")
+                )
+            }
+            if prosifyTrace.snapshot.structureApplied?.isEmpty != false {
+                failures.append("\(label): structure was applied but the record does not say so")
+            }
+        }
+
+        failures += await chunkedWaveFailures()
+        failures += await incrementalFailures()
+
+        return failures
+    }
+
+    /// D-08: a chunked pass against a model that answers one call at a time.
+    ///
+    /// Width 2 sends two sentence groups into the model together and times each as if it had
+    /// the machine to itself. Apple's model does not: the second request waits for the first.
+    /// Three of this Mac's chunked runs since 2026-09-23 lost their whole cleanup that way
+    /// (Σ model 18.79 s in a 9.77 s wall, timed out) with the 26 s pass budget barely
+    /// touched, and only the group the key-down staged session happens to serve ever ran
+    /// prewarmed.
+    private static func chunkedWaveFailures() async -> [String] {
+        var failures: [String] = []
+        // Every case forces cold, so the budget a call is given is a number this test chose
+        // rather than whatever the process last measured — `warmWindow = -1 s` makes every
+        // elapsed reading fall outside it, which is D-07's injection point.
+        let savedWindow = await MainActor.run { AppleModelWarmth.warmWindow }
+        await MainActor.run { AppleModelWarmth.warmWindow = .seconds(-1) }
+
+        // Three sentences, each longer than `maxWords: 10`, so the fixture splits into
+        // exactly three groups of one whole sentence each.
+        let alpha = "We are shipping the installer on Friday and the release note the day after."
+        let bravo = "The beta group gets the announcement on Monday morning before the launch."
+        let charlie = "Support will keep watching the forum for the first week of the rollout."
+        let pair = alpha + " " + bravo
+        let groups = SentenceChunker.chunks(alpha + " " + bravo + " " + charlie, maxWords: 10)
+        if groups != [alpha, bravo, charlie] {
+            failures.append(
+                "the chunk fixtures split into \(groups.count) group(s) instead of three, "
+                    + "so the wave cases prove nothing"
+            )
+        }
+        // One call's own budget, pinned: a cold call on `alpha`, scaled to 250 ms. A
+        // serialised wave of two needs twice that on the wall, which is the whole point.
+        let solo = FoundationModelFormatter.timeout(for: alpha, warmth: .cold)
+        let soloScale = 0.25 / seconds(solo)
+
+        // a. The second call in a serialised wave finishes at ~400 ms, which is inside a
+        // ceiling of `2 × 250 ms` and outside a ceiling of one call's own 250 ms.
+        do {
+            let trace = CleanupTrace()
+            let gate = SerialCallGate()
+            var inner = FoundationModelFormatter(trace: trace)
+            inner.timeScale = soloScale
+            inner.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { prompt in
+                    try await gate.hold(.milliseconds(200))
+                    // The transcript back out of the prompt, so the case measures the
+                    // ceiling and not the guard.
+                    return Self.transcript(fromPrompt: prompt)
+                }
+            )
+            let began = ContinuousClock.now
+            let output = await ChunkedFormatter(
+                inner: inner,
+                maxWords: 10,
+                trace: trace,
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2,
+                serialisesCalls: true
+            ).format(pair)
+            let elapsed = ContinuousClock.now - began
+            let snapshot = trace.snapshot
+            if snapshot.groupVerdicts != ["accepted", "accepted"] {
+                failures.append(
+                    "  chunk width: a serialised wave of two gave \(quoted(snapshot.groupVerdicts)) "
+                        + "(run verdict \(snapshot.guardVerdict ?? "nil"), reason "
+                        + "\(snapshot.fallbackReason ?? "nil")), expected two accepted groups"
+                )
+            }
+            if SentenceChunker.wordCount(output) != SentenceChunker.wordCount(pair) {
+                failures.append("  chunk width: a serialised wave changed the transcript's length")
+            }
+            // Two 200 ms calls in a row is ~400 ms; anything near the doubled budget is a
+            // ceiling being waited out rather than a call being answered.
+            if elapsed > .milliseconds(900) {
+                failures.append("  chunk width: two serialised 200 ms calls took \(elapsed)")
+            }
+        }
+
+        // b. The wave's ceiling is the *sum* of its calls' ceilings when the engine
+        // serialises, so a wave that could not finish is not started. The control runs the
+        // same fixture with the max, which does fit — otherwise this case would pass for
+        // any reason at all.
+        do {
+            let serialisedBox = CounterBox()
+            let serialisedTrace = CleanupTrace()
+            let serialisedOut = await ChunkedFormatter(
+                inner: StallingFormatter(ceiling: .milliseconds(200), box: serialisedBox),
+                maxWords: 10,
+                trace: serialisedTrace,
+                budget: .milliseconds(300),
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2,
+                serialisesCalls: true
+            ).format(pair)
+            let serialisedCalls = await serialisedBox.count
+            if serialisedCalls != 0 {
+                failures.append(
+                    "  chunk width: a serialised wave of two 200 ms ceilings started with "
+                        + "300 ms of budget left (\(serialisedCalls) call(s))"
+                )
+            }
+            if serialisedTrace.snapshot.fallbackReason == nil {
+                failures.append("  chunk width: the refused wave recorded no reason")
+            }
+            if SentenceChunker.wordCount(serialisedOut) != SentenceChunker.wordCount(pair) {
+                failures.append("  chunk width: the refused wave did not leave the text as spoken")
+            }
+            let plainBox = CounterBox()
+            _ = await ChunkedFormatter(
+                inner: StallingFormatter(ceiling: .milliseconds(200), box: plainBox),
+                maxWords: 10,
+                budget: .milliseconds(300),
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2
+            ).format(pair)
+            if await plainBox.count == 0 {
+                failures.append(
+                    "  chunk width: the control wave started no call either, so the sum is not "
+                        + "what refused it"
+                )
+            }
+        }
+
+        // c. Every group after the first gets a session staged for it before its wave is
+        // awaited, so a chunked pass is prewarmed throughout and not only for the group the
+        // key-down staged session happens to serve.
+        do {
+            let staged = StagedGroupBox()
+            _ = await ChunkedFormatter(
+                inner: KeepAsIsFormatter(),
+                maxWords: 10,
+                budget: .seconds(5),
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2,
+                stageNext: { text in await staged.record(text) }
+            ).format(alpha + " " + bravo + " " + charlie)
+            let recorded = await staged.texts
+            if recorded != [bravo, charlie] {
+                failures.append(
+                    "  chunk width: stageNext was called for \(quoted(recorded)), expected the two "
+                        + "groups after the first"
+                )
+            }
+        }
+
+        // d. One group answers and one does not: the record says which, and the run's own
+        // verdict is the worse of the two rather than whichever group happened to write
+        // last — today a run that lost its cleanup reports `accepted`.
+        do {
+            let trace = CleanupTrace()
+            var answers = FoundationModelFormatter(trace: trace)
+            answers.timeScale = soloScale
+            answers.modelCall = CleanupModelCall(
+                takeSession: { _ in true },
+                respond: { prompt in
+                    try await Task.sleep(for: .milliseconds(40))
+                    return Self.transcript(fromPrompt: prompt)
+                }
+            )
+            var stalls = FoundationModelFormatter(trace: trace)
+            stalls.timeScale = soloScale
+            stalls.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in
+                    try await Task.sleep(for: .seconds(30))
+                    return ""
+                }
+            )
+            let output = await ChunkedFormatter(
+                inner: GroupScriptedFormatter(marker: bravo, first: answers, second: stalls),
+                maxWords: 10,
+                trace: trace,
+                budget: .seconds(5),
+                perCallTimeout: { _ in .milliseconds(200) },
+                width: 2,
+                serialisesCalls: true
+            ).format(pair)
+            let snapshot = trace.snapshot
+            if snapshot.groupVerdicts != ["accepted", "not reached"] {
+                failures.append(
+                    "  chunk width: per-group verdicts were \(quoted(snapshot.groupVerdicts)), "
+                        + "expected [accepted, not reached]"
+                )
+            }
+            if snapshot.guardVerdict != "not reached" {
+                failures.append(
+                    "  chunk width: a run that lost a group recorded "
+                        + "\(snapshot.guardVerdict ?? "nil"), expected the worse verdict"
+                )
+            }
+            if snapshot.groupSeconds?.count != 2 {
+                failures.append(
+                    "  chunk width: \(snapshot.groupSeconds?.count ?? 0) group second(s) recorded, expected 2"
+                )
+            }
+            if snapshot.groupPrewarmed != [true, false] {
+                failures.append(
+                    "  chunk width: per-group prewarm was \(String(describing: snapshot.groupPrewarmed)), "
+                        + "expected [true, false]"
+                )
+            }
+            if !(snapshot.fallbackReason?.contains("1 of 2 parts") ?? false) {
+                failures.append(
+                    "  chunk width: the run's reason did not name the failed group count "
+                        + "(\(snapshot.fallbackReason ?? "nil"))"
+                )
+            }
+            if !output.localizedCaseInsensitiveContains("installer") {
+                failures.append("  chunk width: the group that answered lost its own words")
+            }
+        }
+
+        await MainActor.run { AppleModelWarmth.warmWindow = savedWindow }
+        return failures
+    }
+
+    /// D-12: the sentences tidied while the key was still down.
+    ///
+    /// The shape of the whole feature in one assertion: feed a hold's worth of partials to
+    /// a session, then run the key-up pass with the head it produced. The model fake counts
+    /// its calls, so "the key-up pass cleaned only the tail" is a fact about the *calls* and
+    /// not about the text, and "the text is what one pass would have produced" is a
+    /// byte-for-byte comparison against the same fake on the same transcript with no head.
+    private static func incrementalFailures() async -> [String] {
+        var failures: [String] = []
+        let rules: @Sendable (String) -> String = { RuleBasedFormatter().apply($0) }
+        // A pre-clean is a task the hold hands over rather than a value it already has, so
+        // a case that asserts *which* calls were made has to let them land first. The
+        // key-up pass does exactly this, under its own grace; the cases are doing the same
+        // thing deliberately, so that "the hold tidied this and nothing else" is a fact
+        // about the calls rather than about how fast a fake is.
+        let settle: (CleanupHead) async -> Void = { head in
+            for task in head.cleaned { _ = await task.value }
+        }
+
+        let alpha = "A one."
+        let bravo = "B two."
+        let charlie = "C three."
+        let delta = "D four"
+
+        // a. Four partials, one group closed during the hold, and a key-up pass that
+        //    reaches the model for the tail alone. `minClose: 3` on two-word sentences is
+        //    the same shape as production's fifteen on a thirty-seven word dictation.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            let final = "\(alpha) \(bravo) \(charlie) \(delta)"
+            for partial in [alpha, "\(alpha) \(bravo)", "\(alpha) \(bravo) \(charlie)", final] {
+                await session.notePartial(partial)
+            }
+            let head = await session.head()
+            await settle(head)
+            if head.stageA != ["\(alpha) \(bravo)"] {
+                failures.append(
+                    "  incremental: the closed group was \(quoted(head.stageA)), expected "
+                        + "[\"\(alpha) \(bravo)\"]"
+                )
+            }
+            if head.rawPrefix != "\(alpha) \(bravo)" {
+                failures.append(
+                    "  incremental: the head's prefix was \(quoted(head.rawPrefix)), expected "
+                        + "\"\(alpha) \(bravo)\""
+                )
+            }
+            let duringHold = await log.calls
+            if duringHold != ["\(alpha) \(bravo)"] {
+                failures.append(
+                    "  incremental: the hold tidied \(quoted(duringHold)), expected the closed "
+                        + "group and nothing else"
+                )
+            }
+
+            let trace = CleanupTrace()
+            let output = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format(final, head: head)
+            let atKeyUp = await log.calls
+            if atKeyUp.count != duringHold.count + 1 {
+                failures.append(
+                    "  incremental: the key-up pass made \(atKeyUp.count - duringHold.count) "
+                        + "model call(s), expected 1"
+                )
+            }
+            if atKeyUp.last != "\(charlie) \(delta)." {
+                failures.append(
+                    "  incremental: the key-up pass tidied \(quoted(atKeyUp.last)), expected "
+                        + "the tail only"
+                )
+            }
+            let control = await CleanupRouter(semantic: fake, engine: .apple).format(final)
+            if output != control {
+                failures.append(
+                    "  incremental: the tidied text was \(quoted(output)), not what one pass "
+                        + "produced (\(quoted(control))"
+                )
+            }
+            if trace.snapshot.precleanedGroups != 1 {
+                failures.append(
+                    "  incremental: the record says \(String(describing: trace.snapshot.precleanedGroups)) "
+                        + "group(s) were pre-cleaned, expected 1"
+                )
+            }
+            if trace.snapshot.precleanFallback != nil {
+                failures.append(
+                    "  incremental: a hold whose prefix matched recorded a fallback "
+                        + "(\(trace.snapshot.precleanFallback ?? "nil"))"
+                )
+            }
+        }
+
+        // b. A later partial revised a sentence that had been tidied already. The group is
+        //    stale, so the whole transcript is cleaned as one pass and the record says why.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            for partial in [alpha, "\(alpha) \(bravo)", "\(alpha) \(bravo) \(charlie)"] {
+                await session.notePartial(partial)
+            }
+            let head = await session.head()
+            await settle(head)
+            let revised = "\(alpha) B too. \(charlie)"
+            let trace = CleanupTrace()
+            let output = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format(revised, head: head)
+            let control = await CleanupRouter(semantic: fake, engine: .apple).format(revised)
+            if output != control {
+                failures.append(
+                    "  incremental: a revised sentence changed the tidied text — \(quoted(output)) "
+                        + "against the one-pass \(quoted(control))"
+                )
+            }
+            if trace.snapshot.precleanFallback == nil {
+                failures.append("  incremental: a revised sentence recorded no precleanFallback")
+            }
+            if trace.snapshot.precleanedGroups != nil {
+                failures.append(
+                    "  incremental: a revised sentence still reported "
+                        + "\(String(describing: trace.snapshot.precleanedGroups)) pre-cleaned group(s)"
+                )
+            }
+        }
+
+        // c. The grouping, including the rule the chunker's does not have: a group also
+        //    closes when the next stable sentence would overflow it, *below* the minimum.
+        //    `minClose: 8` with two-word sentences and `maxWords: 5` is the only way to tell
+        //    the two apart, and the first group closes at four words because of it.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 5, minClose: 8
+            )
+            let one = "A one."
+            let two = "B two."
+            let three = "C three."
+            let four = "D four."
+            let five = "E five."
+            let partials = [
+                "\(one) \(two)",
+                "\(one) \(two) \(three) \(four)",
+                "\(one) \(two) \(three) \(four) \(five)",
+                "\(one) \(two) \(three) \(four) \(five) F six."
+            ]
+            for partial in partials { await session.notePartial(partial) }
+            let head = await session.head()
+            await settle(head)
+            if head.stageA != ["\(one) \(two)", "\(three) \(four)"] {
+                failures.append(
+                    "  incremental: the greedy groups were \(quoted(head.stageA)), expected "
+                        + "[\"\(one) \(two)\", \"\(three) \(four)\"]"
+                )
+            }
+            let final = partials[2]
+            let trace = CleanupTrace()
+            _ = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format(final, head: head)
+            let calls = await log.calls
+            if calls.last != five {
+                failures.append(
+                    "  incremental: the key-up pass tidied \(quoted(calls.last)), expected "
+                        + "\"\(five)\" after the two pre-cleaned groups"
+                )
+            }
+            if trace.snapshot.precleanedGroups != 2 {
+                failures.append(
+                    "  incremental: the record says \(String(describing: trace.snapshot.precleanedGroups)) "
+                        + "group(s) were pre-cleaned, expected 2"
+                )
+            }
+        }
+
+        // d. A hold whose every finished sentence was already tidied: the remainder is
+        //    empty, the key-up pass never reaches the model, and the text is unchanged.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            let first = "Alpha beta gamma."
+            let second = "Delta epsilon zeta."
+            for partial in [first, "\(first) \(second)"] {
+                await session.notePartial(partial)
+            }
+            let head = await session.head()
+            await settle(head)
+            let beforeKeyUp = await log.calls.count
+            let trace = CleanupTrace()
+            let output = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format(first, head: head)
+            if await log.calls.count != beforeKeyUp {
+                failures.append(
+                    "  incremental: the key-up pass reached the model with nothing left to tidy"
+                )
+            }
+            if output != first.uppercased() {
+                failures.append(
+                    "  incremental: a fully pre-cleaned hold produced \(quoted(output)), "
+                        + "expected \(quoted(first.uppercased()))"
+                )
+            }
+        }
+
+        // e. A hold that closed no group is not eligible and records nothing, rather than a
+        //    zero that would read as "the sentences were tidied and thrown away".
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(log: log)
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            await session.notePartial(alpha)
+            let head = await session.head()
+            let trace = CleanupTrace()
+            let output = await CleanupRouter(semantic: fake, engine: .apple, trace: trace)
+                .format("\(alpha) \(bravo)", head: head)
+            if !head.stageA.isEmpty {
+                failures.append("  incremental: one partial closed a group")
+            }
+            if trace.snapshot.precleanedGroups != nil || trace.snapshot.precleanFallback != nil {
+                failures.append("  incremental: a hold with no closed group wrote a record")
+            }
+            let control = await CleanupRouter(semantic: fake, engine: .apple)
+                .format("\(alpha) \(bravo)")
+            if output != control {
+                failures.append("  incremental: a hold with no closed group tidied differently")
+            }
+        }
+
+        // f. A pre-clean that has not landed when the key comes up. The wait is bounded, a
+        //    group that misses it is typed as the rules left it — which is what the same
+        //    call returns on its own timeout — and the tail is still tidied.
+        do {
+            let log = CallLogBox()
+            let fake = UppercasingFormatter(
+                log: log, delay: .seconds(5), slowFirstCallOnly: true
+            )
+            let session = IncrementalCleanupSession(
+                semantic: fake, rules: rules, maxWords: 120, minClose: 3
+            )
+            let first = "Alpha beta gamma."
+            let second = "Delta epsilon zeta."
+            for partial in [first, "\(first) \(second)"] {
+                await session.notePartial(partial)
+            }
+            let head = await session.head()
+            let trace = CleanupTrace()
+            let began = ContinuousClock.now
+            let output = await CleanupRouter(
+                semantic: fake, engine: .apple, trace: trace, precleanGrace: .milliseconds(100)
+            ).format("\(first) \(second)", head: head)
+            let elapsed = ContinuousClock.now - began
+            if output != "\(first) \(second.uppercased())" {
+                failures.append(
+                    "  incremental: a pre-clean that missed its grace produced \(quoted(output)), "
+                        + "expected the group as spoken and the tail tidied"
+                )
+            }
+            if elapsed > .seconds(1) {
+                failures.append(
+                    "  incremental: the key-up pass waited \(elapsed) for a pre-clean with a "
+                        + "100 ms grace"
+                )
+            }
+            if trace.snapshot.precleanedGroups != 1 {
+                failures.append(
+                    "  incremental: a pre-clean used as spoken recorded "
+                        + "\(String(describing: trace.snapshot.precleanedGroups)) group(s), expected 1"
+                )
+            }
+        }
+
+        return failures
+    }
+
+    /// Stage D: the model-led layout.
+    ///
+    /// Everything here is model-free. The claim under test is not "the model lays out this
+    /// passage well" — that is a matter for the eval — it is that a plan, once given, is
+    /// checked before it is trusted, rendered from the user's own sentences, and cleanly
+    /// abandoned for the rules when it is nonsense. A scripted planner stands in for the
+    /// model so those three things are testable on any Mac.
+    private static func structurePlanFailures() async -> [String] {
+        var failures: [String] = []
+        let markdownApp = OutputProfile(
+            bundleID: "md.obsidian",
+            displayName: "Obsidian",
+            capabilities: [.markdown, .bullets, .numbered, .tables, .code]
+        )
+        let text = StructureFixtures.realDictation
+        let sentences = SpokenStructure.sentenceSplit(text)
+
+        guard sentences.count >= 12 else {
+            failures.append(
+                "the real dictation split into \(sentences.count) sentences; the layout "
+                    + "fixtures need it to split into at least 12"
+            )
+            return failures
+        }
+        if sentences.joined(separator: " ") != text.replacingOccurrences(of: "\n", with: " ") {
+            failures.append("the sentence split did not preserve the dictation")
+        }
+
+        /// The sentence the speaker began with these words. The plan is scripted, but its
+        /// numbers are found rather than typed, so a change to the sentence split shows up
+        /// as a failure here instead of as four silently wrong item boundaries.
+        func sentence(startingWith prefix: String) -> Int? {
+            sentences.firstIndex { $0.hasPrefix(prefix) }.map { $0 + 1 }
+        }
+
+        guard let firstItem = sentence(startingWith: "Let's see how we can improve the graph"),
+              let secondItem = sentence(startingWith: "The second thing"),
+              let thirdItem = sentence(startingWith: "Third thing"),
+              let fourthItem = sentence(startingWith: "Last but not least"),
+              let signOff = sentence(startingWith: "That is it")
+        else {
+            failures.append("the real dictation no longer splits where the layout fixtures expect")
+            return failures
+        }
+
+        // What a model that read this passage properly would answer.
+        let good = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: firstItem - 1),
+            .init(
+                kind: .numbered,
+                from: firstItem,
+                to: signOff - 1,
+                itemStarts: [firstItem, secondItem, thirdItem, fourthItem],
+                stripWords: [0, 3, 2, 4]
+            ),
+            .init(kind: .prose, from: signOff, to: sentences.count),
+        ])
+
+        if let problem = good.rejection(sentenceCount: sentences.count) {
+            failures.append("a correct layout plan was rejected: \(problem)")
+        }
+        guard let rendered = good.rendered(sentences: sentences, target: markdownApp) else {
+            failures.append("a correct layout plan rendered nothing")
+            return failures
+        }
+        for needle in [
+            "Okay, a few things that I need to change here.",
+            "1. Let's see how we can improve the graph",
+            "2. The skills, the skills it seems like",
+            "3. On the setting page",
+            "4. On the search tab does it include",
+            // Long items must keep every sentence they hold.
+            "make it more sleek, improved, modern, etc.",
+            "Keep going with the black and white design that we have.",
+            "Make sure that this is all served by the retrieval engine",
+            "\nThat is it.",
+        ] where !rendered.text.contains(needle) {
+            failures.append(
+                "the rendered layout is missing \(needle.debugDescription)\n      got: "
+                    + oneLine(rendered.text)
+            )
+        }
+        for needle in ["5. ", "Last but not least", "The second thing,"]
+        where rendered.text.contains(needle) {
+            failures.append("the rendered layout still contains \(needle.debugDescription)")
+        }
+        if rendered.applied != [.list] {
+            failures.append("the rendered layout applied \(rendered.applied.map(\.rawValue)), expected [list]")
+        }
+        // The list numbering is this app's punctuation, not the speaker's, so it comes off
+        // before the "nothing was invented" question is asked.
+        func withoutSyntax(_ rendered: String) -> String {
+            rendered.split(separator: "\n", omittingEmptySubsequences: true).map { line in
+                var text = line.trimmingCharacters(in: .whitespaces)
+                if let match = text.range(of: #"^\d+[.)]\s+"#, options: .regularExpression) {
+                    text = String(text[match.upperBound...])
+                }
+                for marker in ["- ", "\u{2022} ", "> "] where text.hasPrefix(marker) {
+                    text = String(text.dropFirst(marker.count))
+                }
+                return text
+            }.joined(separator: " ")
+        }
+        if !StructurePlan.saysNothingNew(withoutSyntax(rendered.text), source: text) {
+            failures.append("rendering a layout plan produced a word the speaker never said")
+        }
+        // Nothing may be invented even when the plan asks for the maximum strip everywhere.
+        let greedy = StructurePlan(blocks: [
+            .init(
+                kind: .numbered,
+                from: 1,
+                to: sentences.count,
+                itemStarts: [1, secondItem, thirdItem, fourthItem],
+                stripWords: Array(repeating: StructurePlan.Limits.maxStripWords, count: 4)
+            ),
+        ])
+        if let greedyRender = greedy.rendered(sentences: sentences, target: markdownApp) {
+            if !StructurePlan.saysNothingNew(withoutSyntax(greedyRender.text), source: text) {
+                failures.append("a maximum-strip layout invented a word")
+            }
+            if StructurePlan.dropping(99, from: "Third thing on the setting page").isEmpty {
+                failures.append("a large marker strip emptied a sentence")
+            }
+        } else {
+            failures.append("a valid plan with the maximum marker strip rendered nothing")
+        }
+
+        // Every way a plan can be wrong has to be caught before it is rendered, because a
+        // plan is the one thing in this pass that a model wrote.
+        let hostile: [(String, StructurePlan)] = [
+            ("a gap between blocks", StructurePlan(blocks: [
+                .init(kind: .prose, from: 1, to: 3),
+                .init(kind: .prose, from: 5, to: sentences.count),
+            ])),
+            ("overlapping blocks", StructurePlan(blocks: [
+                .init(kind: .prose, from: 1, to: 5),
+                .init(kind: .prose, from: 4, to: sentences.count),
+            ])),
+            ("a block past the end", StructurePlan(blocks: [
+                .init(kind: .prose, from: 1, to: sentences.count + 40),
+            ])),
+            ("a plan that stops early", StructurePlan(blocks: [
+                .init(kind: .prose, from: 1, to: 3),
+            ])),
+            ("a plan that starts late", StructurePlan(blocks: [
+                .init(kind: .prose, from: 2, to: sentences.count),
+            ])),
+            ("an empty plan", StructurePlan(blocks: [])),
+            ("a one-item list", StructurePlan(blocks: [
+                .init(kind: .numbered, from: 1, to: sentences.count, itemStarts: [1]),
+            ])),
+            ("a list whose first item does not start it", StructurePlan(blocks: [
+                .init(
+                    kind: .numbered, from: 1, to: sentences.count,
+                    itemStarts: [2, secondItem, thirdItem]
+                ),
+            ])),
+            ("list items out of order", StructurePlan(blocks: [
+                .init(
+                    kind: .numbered, from: 1, to: sentences.count,
+                    itemStarts: [1, thirdItem, secondItem]
+                ),
+            ])),
+            ("a list item past its block", StructurePlan(blocks: [
+                .init(kind: .numbered, from: 1, to: 4, itemStarts: [1, 3, 9]),
+                .init(kind: .prose, from: 5, to: sentences.count),
+            ])),
+            ("an outsized marker strip", StructurePlan(blocks: [
+                .init(
+                    kind: .numbered, from: 1, to: sentences.count,
+                    itemStarts: [1, secondItem, thirdItem], stripWords: [0, 3, 99]
+                ),
+            ])),
+            ("marker lengths that do not match the items", StructurePlan(blocks: [
+                .init(
+                    kind: .numbered, from: 1, to: sentences.count,
+                    itemStarts: [1, secondItem, thirdItem], stripWords: [0, 3]
+                ),
+            ])),
+        ]
+        for (label, plan) in hostile {
+            if plan.rejection(sentenceCount: sentences.count) == nil {
+                failures.append("\(label) was accepted as a layout plan")
+            }
+            if plan.rendered(sentences: sentences, target: markdownApp) != nil {
+                failures.append("\(label) was rendered instead of refused")
+            }
+        }
+
+        // A model that finds a list in prose is the failure this pass has actually been
+        // measured doing, so it is the one the fixtures lead with. Corroboration is what
+        // stops it: the speaker has to have announced the items out loud.
+        for (label, sentence, announced) in [
+            ("an ordinal opener", "The second thing, the skills need more room.", true),
+            ("a spoken closer", "Last but not least, look at the search tab.", true),
+            ("an additive opener", "Another thing, the settings page is too tall.", true),
+            ("a conjunction and an opener", "And one more thing, check the search tab.", true),
+            ("ordinary prose", "The release is scheduled for Friday afternoon.", false),
+            ("a mid-sentence ordinal", "I will send the notes round for the second time.", false),
+            ("prose about a first time", "The first time I tried it nothing happened.", false),
+        ] where SpokenStructure.opensAnItem(sentence) != announced {
+            failures.append(
+                "\(label): \(sentence.debugDescription) was read as "
+                    + "\(announced ? "not announcing" : "announcing") an item"
+            )
+        }
+
+        let inventedList = StructurePlan(blocks: [
+            .init(
+                kind: .numbered, from: 1, to: sentences.count,
+                itemStarts: [1, firstItem, firstItem + 1]
+            ),
+        ])
+        if inventedList.rejection(sentenceCount: sentences.count) != nil {
+            failures.append("the invented-list fixture is malformed, so it tests nothing")
+        }
+        if inventedList.corroborationFailure(sentences: sentences) == nil {
+            failures.append("a list whose items nobody announced was corroborated anyway")
+        }
+        if inventedList.rendered(sentences: sentences, target: markdownApp) != nil {
+            failures.append("a list whose items nobody announced was rendered anyway")
+        }
+        if good.corroborationFailure(sentences: sentences) != nil {
+            failures.append("the four items the speaker really announced were not corroborated")
+        }
+
+        // Extractive corroboration: the model quotes the speaker's own announcing
+        // words, and the quote is checked against the sentence — in whatever language
+        // was spoken, with no lexicon. The fixture is French throughout, with no
+        // English opener anywhere, so the legacy check cannot be what accepts it.
+        let french = [
+            "Voici comment je vois la sortie de crise.",
+            "Premièrement, on gèle les embauches jusqu'en janvier.",
+            "Deuxièmement, on reporte le déménagement du bureau.",
+            "Enfin, on prévient les clients avant vendredi.",
+            "C'est tout pour moi.",
+        ]
+        let frenchPlan = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(
+                kind: .numbered, from: 2, to: 4,
+                itemStarts: [2, 3, 4],
+                stripWords: [1, 1, 1],
+                announcerQuotes: ["Premièrement,", "Deuxièmement,", "Enfin,"]
+            ),
+            .init(kind: .prose, from: 5, to: 5),
+        ])
+        if frenchPlan.rejection(sentenceCount: french.count) != nil {
+            failures.append("a well-formed quoted plan was rejected on shape")
+        }
+        if frenchPlan.corroborationFailure(sentences: french) != nil {
+            failures.append("verified French announcements did not corroborate the list")
+        }
+        // The same plan with no quotes must fall back to the English check — and fail
+        // it, because there is no English opener here. This is the assertion that the
+        // quotes did the work above rather than something else.
+        let unquoted = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(kind: .numbered, from: 2, to: 4, itemStarts: [2, 3, 4]),
+            .init(kind: .prose, from: 5, to: 5),
+        ])
+        if unquoted.corroborationFailure(sentences: french) == nil {
+            failures.append("a French list with no quotable announcement was corroborated anyway")
+        }
+        guard let frenchRendered = frenchPlan.rendered(sentences: french, target: markdownApp) else {
+            failures.append("a corroborated quoted plan rendered nothing")
+            return failures
+        }
+        for needle in ["1. On gèle les embauches", "2. On reporte le déménagement", "3. On prévient les clients"]
+        where !frenchRendered.text.contains(needle) {
+            failures.append("the rendered French layout is missing \(needle.debugDescription)")
+        }
+        for needle in ["Premièrement", "Deuxièmement", "Enfin,"] where frenchRendered.text.contains(needle) {
+            failures.append("the rendered French layout kept its announcement \(needle.debugDescription)")
+        }
+        // A fabricated announcement is not the speaker's words, so it verifies against
+        // nothing: two of three quotes invented leaves one corroborated item of three,
+        // below the two the bar asks for.
+        let fabulated = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(
+                kind: .numbered, from: 2, to: 4,
+                itemStarts: [2, 3, 4],
+                announcerQuotes: ["Blah,", "Blah blah,", "Enfin,"]
+            ),
+            .init(kind: .prose, from: 5, to: 5),
+        ])
+        if fabulated.rejection(sentenceCount: french.count) != nil {
+            failures.append("a fabulated-quote plan was rejected on shape instead of evidence")
+        }
+        if fabulated.corroborationFailure(sentences: french) == nil {
+            failures.append("invented announcements corroborated a list")
+        }
+        if fabulated.rendered(sentences: french, target: markdownApp) != nil {
+            failures.append("a list backed by invented announcements was rendered anyway")
+        }
+        // A verified quote outranks the model's own count: the plan below asks to
+        // strip nothing, but the quoted announcements are really there, so they go.
+        let quoteWins = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: 1),
+            .init(
+                kind: .numbered, from: 2, to: 4,
+                itemStarts: [2, 3, 4],
+                stripWords: [0, 0, 0],
+                announcerQuotes: ["Premièrement,", "Deuxièmement,", "Enfin,"]
+            ),
+            .init(kind: .prose, from: 5, to: 5),
+        ])
+        guard let quoteWinsRendered = quoteWins.rendered(sentences: french, target: markdownApp) else {
+            failures.append("a quoted plan with zero strip counts rendered nothing")
+            return failures
+        }
+        for needle in ["1. On gèle les embauches", "3. On prévient les clients"]
+        where !quoteWinsRendered.text.contains(needle) {
+            failures.append(
+                "verified quotes did not outrank zero strip counts: "
+                    + "missing \(needle.debugDescription)"
+            )
+        }
+        // And the reverse: an unverified quote moves no count. The plan below is
+        // accepted the legacy way — English openers — while carrying a fabricated
+        // quote on its first item, so the first item must render whole.
+        let quoteLoses = StructurePlan(blocks: [
+            .init(kind: .prose, from: 1, to: firstItem - 1),
+            .init(
+                kind: .numbered,
+                from: firstItem,
+                to: signOff - 1,
+                itemStarts: [firstItem, secondItem, thirdItem, fourthItem],
+                stripWords: [0, 3, 2, 4],
+                announcerQuotes: ["Blah blah,", "", "", ""]
+            ),
+            .init(kind: .prose, from: signOff, to: sentences.count),
+        ])
+        guard let quoteLosesRendered = quoteLoses.rendered(
+            sentences: sentences, target: markdownApp
+        ) else {
+            failures.append("a legacy-accepted plan with one bad quote rendered nothing")
+            return failures
+        }
+        if !quoteLosesRendered.text.contains("1. Let's see how we can improve the graph") {
+            failures.append("an unverified quote stripped words the count had kept")
+        }
+        // The quote check itself, apart from any plan.
+        let quoteChecks: [(String, String, Bool)] = [
+            ("Premièrement,", french[1], true),
+            ("the second THING", "The second thing, the skills need more room.", true),
+            ("", french[1], false),
+            (french[1], french[1], false),
+            ("Blah blah,", french[1], false),
+            ("les embauches jusqu'en janvier et bien plus encore demain", french[1], false),
+        ]
+        for (quote, sentence, expected) in quoteChecks
+        where StructurePlan.quoteVerifies(quote, against: sentence) != expected {
+            failures.append(
+                "quoteVerifies(\(quote.debugDescription)) was \(!expected), expected \(expected)"
+            )
+        }
+        // Re-mapping carries the quotes with the items they belong to.
+        if frenchPlan.remapped(from: french, to: french) != frenchPlan {
+            failures.append("re-mapping a quoted plan onto the same sentences changed it")
+        }
+
+        // End to end through the router, which is the only place that can prove the plan
+        // path *runs*. A pass that quietly never asks for a plan would satisfy every check
+        // above and be exactly the bug this workstream started from.
+        //
+        // The passage is prose with no ordinal in it, because that is where Stage D earns
+        // its keep: Stage C declines it, and one block of eighty words becomes paragraphs.
+        let longProse = "We finished the review this morning and everyone signed off on "
+            + "the plan. The release is scheduled for Friday afternoon as discussed. "
+            + "I will send the notes round once the build is green. Separately, the "
+            + "onboarding copy still reads as though we charge for the trial. "
+            + "Marketing have a rewrite in hand and it should land this week. "
+            + "There is nothing else outstanding on my side at the moment."
+        // The plan is built from the sentences the planner is actually handed, not from a
+        // count taken here: the rules pass runs first in the router, and a fixture that
+        // assumed its own numbering would fail for a reason that has nothing to do with
+        // what is under test.
+        let paragraphs = ScriptedStructurePlanner { sentences in
+            guard sentences.count >= 4 else { return .failed("too short to lay out", seconds: 0) }
+            return StructurePlanOutcome(
+                plan: StructurePlan(blocks: [
+                    .init(kind: .prose, from: 1, to: 3),
+                    .init(kind: .prose, from: 4, to: sentences.count),
+                ]),
+                rejection: nil,
+                seconds: 0
+            )
+        }
+        let planTrace = CleanupTrace()
+        let plannedOutput = await CleanupRouter(
+            semantic: KeepAsIsFormatter(),
+            engine: .apple,
+            formatsLists: true,
+            targetRendersLists: true,
+            target: markdownApp,
+            trace: planTrace,
+            structurePlanner: paragraphs
+        ).format(longProse)
+        if !plannedOutput.contains("build is green.\n\nSeparately") {
+            failures.append(
+                "the router did not use the layout plan's paragraph break\n      got: "
+                    + oneLine(plannedOutput)
+            )
+        }
+        let plannedRecord = planTrace.snapshot
+        if plannedRecord.structureSource != "model plan" {
+            failures.append(
+                "the record says the layout came from "
+                    + "\(plannedRecord.structureSource ?? "nothing"), expected the model plan"
+            )
+        }
+        if plannedRecord.structurePlanModel != "scripted" {
+            failures.append("the record does not name the model that laid the text out")
+        }
+        if plannedRecord.structurePlanRejected != nil {
+            failures.append("a plan that was used was also recorded as rejected")
+        }
+
+        // The same prose, with a model that claims to have found a list in it. Nothing
+        // announced an item, so the text must come out exactly as it went in.
+        let hallucinationTrace = CleanupTrace()
+        let hallucinated = await CleanupRouter(
+            semantic: KeepAsIsFormatter(),
+            engine: .apple,
+            formatsLists: true,
+            targetRendersLists: true,
+            target: markdownApp,
+            trace: hallucinationTrace,
+            structurePlanner: ScriptedStructurePlanner { sentences in
+                StructurePlanOutcome(
+                    plan: StructurePlan(blocks: [
+                        .init(
+                            kind: .numbered, from: 1, to: sentences.count,
+                            itemStarts: [1, 2, 3]
+                        ),
+                    ]),
+                    rejection: nil,
+                    seconds: 0
+                )
+            }
+        ).format(longProse)
+        if hallucinated.contains("1. ") || hallucinated.contains("2. ") {
+            failures.append(
+                "a list the model invented in ordinary prose was rendered\n      got: "
+                    + oneLine(hallucinated)
+            )
+        }
+        if hallucinationTrace.snapshot.structureSource != "none" {
+            failures.append("an uncorroborated list was recorded as structure anyway")
+        }
+        if hallucinationTrace.snapshot.structurePlanRejected == nil {
+            failures.append("a layout plan that was turned down recorded no reason")
+        }
+
+        // The dictation this workstream started from. Stage C finds all four items with no
+        // model at all, so the plan pass must not be reached — and the guard must not turn
+        // down a list that is only the user's own sentences rearranged.
+        let fallbackTrace = CleanupTrace()
+        let fallbackOutput = await CleanupRouter(
+            semantic: KeepAsIsFormatter(),
+            engine: .apple,
+            formatsLists: true,
+            targetRendersLists: true,
+            target: markdownApp,
+            trace: fallbackTrace,
+            structurePlanner: ScriptedStructurePlanner { _ in
+                .failed("should not have been asked", seconds: 0)
+            }
+        ).format(text)
+        for needle in ["1. Let's see how we can improve the graph",
+                       "2. The skills", "3. On the setting page", "4. On the search tab"]
+        where !fallbackOutput.contains(needle) {
+            failures.append(
+                "the rule-based detector lost \(needle.debugDescription)\n      got: "
+                    + oneLine(fallbackOutput)
+            )
+        }
+        if let verdict = CleanupGuard.rejection(
+            original: text,
+            cleaned: fallbackOutput,
+            mode: .grammar
+        ) {
+            failures.append("the guard rejected a layout of the user's own words: \(verdict)")
+        }
+        let fallbackRecord = fallbackTrace.snapshot
+        if fallbackRecord.structureSource != "rules" {
+            failures.append(
+                "a rule-detected list left the record saying "
+                    + "\(fallbackRecord.structureSource ?? "nothing"), expected the rules"
+            )
+        }
+        if fallbackRecord.structurePlanModel != nil {
+            failures.append("a list the rules had already found was sent for a layout plan")
+        }
+        if fallbackRecord.structureMarkersSeen != true {
+            failures.append(
+                "the record still says no spoken structure was seen in a dictation that "
+                    + "enumerated four things"
+            )
+        }
+
+        // Short dictation must not grow a model call for a list it cannot contain. The
+        // planner records having been asked, so "was it reached" is a question the trace
+        // answers rather than a counter this test has to keep.
+        let shortTrace = CleanupTrace()
+        _ = await CleanupRouter(
+            semantic: KeepAsIsFormatter(),
+            engine: .apple,
+            formatsLists: true,
+            target: markdownApp,
+            trace: shortTrace,
+            structurePlanner: ScriptedStructurePlanner(planName: "counted") { _ in
+                StructurePlanOutcome(plan: nil, rejection: "should not have been asked", seconds: 0)
+            }
+        ).format("The build is green.")
+        if shortTrace.snapshot.structurePlanModel != nil {
+            failures.append("a four-word dictation was sent for a layout plan")
+        }
+
+        if StructurePlan.isWorthPlanning(
+            sentences: ["The build is green."],
+            wordCount: 4,
+            sawMarkers: false
+        ) {
+            failures.append("a four-word dictation was considered worth a layout call")
+        }
+        if !StructurePlan.isWorthPlanning(
+            sentences: sentences,
+            wordCount: 220,
+            sawMarkers: true
+        ) {
+            failures.append("the real dictation was not considered worth a layout call")
+        }
+
+        // An explicit envelope is an instruction Stage C has already carried out, so the
+        // plan pass must not be asked to second-guess it.
+        let envelopeTrace = CleanupTrace()
+        _ = await CleanupRouter(
+            semantic: KeepAsIsFormatter(),
+            engine: .apple,
+            formatsLists: true,
+            target: markdownApp,
+            trace: envelopeTrace,
+            structurePlanner: ScriptedStructurePlanner(planName: "counted") { _ in
+                StructurePlanOutcome(plan: nil, rejection: "should not have been asked", seconds: 0)
+            }
+        ).format(
+            "Here is the plan. Start the list. First point, ship the installer. "
+                + "Second point, write the release note. Third point, tell the beta group. "
+                + "Close the list."
+        )
+        if envelopeTrace.snapshot.structurePlanModel != nil {
+            failures.append("a spoken \u{201C}start the list\u{201D} envelope was sent for a layout plan anyway")
+        }
+
+        // The budget scales with the passage. A flat three seconds is what the 41-second
+        // dictation of 2026-09-20T20:47:25Z hit, at 3.01s, and a ceiling that does not grow
+        // with the work is a ceiling set by the shortest input.
+        let budgets = [3, 12, 25, 40, 200].map {
+            ($0, AppleStructurePlanner.budget(forSentences: $0))
+        }
+        for (count, budget) in budgets where budget < .seconds(2.5) || budget > .seconds(6) {
+            failures.append("a \(count)-sentence passage was given a layout budget of \(budget)")
+        }
+        if AppleStructurePlanner.budget(forSentences: 25)
+            <= AppleStructurePlanner.budget(forSentences: 5) {
+            failures.append("the layout budget does not grow with the passage")
+        }
+        // The dictation that timed out has to be given more than it spent.
+        let timedOut = SpokenStructure.sentenceSplit(StructureFixtures.labelledDictation)
+        if AppleStructurePlanner.budget(forSentences: timedOut.count) <= .seconds(3.01) {
+            failures.append(
+                "the dictation that timed out at 3.01s would still be given "
+                    + "\(AppleStructurePlanner.budget(forSentences: timedOut.count))"
+            )
+        }
+
+        // The prompt is smaller than the passage, and still carries every boundary. A
+        // boundary lives in the first words of a sentence and the last words of the one
+        // before it, which is exactly what survives the elision.
+        let full = sentences.enumerated()
+            .map { "\($0.offset + 1). \($0.element)" }.joined(separator: "\n")
+        let compact = StructurePlanPrompt.user(sentences: sentences)
+        if compact.count >= full.count {
+            failures.append("the layout prompt is no smaller than the passage it describes")
+        }
+        for opener in ["The second thing", "Third thing on the setting page",
+                       "Last but not least"] where !compact.contains(opener) {
+            failures.append("the layout prompt elided the announcement \(opener.debugDescription)")
+        }
+        if StructurePlanPrompt.abbreviated("Short enough to show whole.")
+            != "Short enough to show whole." {
+            failures.append("a short sentence was elided")
+        }
+
+        // The plan is made against the rule-cleaned sentences and rendered against the
+        // grammar-cleaned ones, because the two passes now run at the same time.
+        if good.remapped(from: sentences, to: sentences) != good {
+            failures.append("re-mapping a plan onto the same sentences changed it")
+        }
+        // One sentence split in two: every number after it moves by one, and the plan has
+        // to follow. Split the sign-off, which is its own prose block at the end.
+        var split = sentences
+        split[signOff - 1] = "That is."
+        split.insert("It.", at: signOff)
+        guard let remapped = good.remapped(from: sentences, to: split) else {
+            failures.append(
+                "a plan could not be re-mapped after the model split one sentence in two"
+            )
+            return failures
+        }
+        if remapped.rejection(sentenceCount: split.count) != nil {
+            failures.append("a re-mapped plan does not cover the sentences it was mapped onto")
+        }
+        if remapped.blocks.last?.from != signOff {
+            failures.append(
+                "a re-mapped plan put the closing prose at sentence "
+                    + "\(remapped.blocks.last?.from ?? 0), expected \(signOff)"
+            )
+        }
+        // ...and a passage that is no longer the same passage is refused rather than
+        // rendered at the wrong boundaries.
+        if good.remapped(
+            from: sentences,
+            to: ["Something else entirely.", "Nothing to do with it.", "Not this at all."]
+        ) != nil {
+            failures.append("a plan was re-mapped onto sentences that are not the same speech")
+        }
+
+        // Asked *while* the grammar pass runs, not after it. A planner that records when it
+        // was called is the only way to assert an overlap without timing the suite.
+        let concurrentTrace = CleanupTrace()
+        let slowModel = SlowFormatter(delay: .milliseconds(300))
+        let overlapBegan = ContinuousClock.now
+        _ = await CleanupRouter(
+            semantic: slowModel,
+            engine: .apple,
+            formatsLists: true,
+            targetRendersLists: true,
+            target: markdownApp,
+            trace: concurrentTrace,
+            structurePlanner: ScriptedStructurePlanner(planName: "slow") { _ in
+                try? await Task.sleep(for: .milliseconds(300))
+                return .failed("scripted", seconds: 0.3)
+            }
+        ).format(longProse)
+        let overlapped = ContinuousClock.now - overlapBegan
+        if concurrentTrace.snapshot.structurePlanModel != "slow" {
+            failures.append("the layout pass was not asked on a long prose dictation")
+        }
+        // Two 300 ms passes run one after the other take 600; run together they take 300.
+        // Generous slack for a loaded machine, and still nowhere near the sum.
+        if overlapped > .milliseconds(520) {
+            failures.append(
+                "the layout pass did not overlap the cleanup pass: two 300ms passes took "
+                    + "\(overlapped)"
+            )
+        }
+
+        // A run with no structure has to say why, in one field, in plain language.
+        let noStructureCases: [(String, Bool, Bool, String?, String)] = [
+            ("nothing spoken", false, false, nil, "nothing in the dictation"),
+            ("not worth asking", true, false, nil, "not worth a model call"),
+            ("asked and refused", true, true, "the layout pass ran out of time after 6.0s",
+             "ran out of time"),
+            ("asked and silent", false, true, nil, "proposed no arrangement"),
+        ]
+        for (label, markers, asked, rejection, needle) in noStructureCases {
+            let line = whyNoStructure(
+                markersSeen: markers,
+                planWasAsked: asked,
+                planRejection: rejection
+            )
+            if !line.contains(needle) {
+                failures.append("\(label): the record says \(line.debugDescription)")
+            }
+        }
+        if concurrentTrace.snapshot.noStructureReason?.contains("scripted") != true {
+            failures.append(
+                "a run that formatted nothing did not record why: "
+                    + (concurrentTrace.snapshot.noStructureReason ?? "nothing")
+            )
+        }
+        // ...and a run that *did* format something must not claim it did not.
+        if fallbackTrace.snapshot.noStructureReason != nil {
+            failures.append("a run that rendered a list also recorded why it rendered none")
+        }
+
+        failures += await layoutDeadlineFailures(prose: longProse)
+
+        // The grammar the constrained providers use has to describe the same shape the
+        // decoder accepts, or the on-device model's plans are refused on arrival.
+        let grammar = StructurePlanPrompt.grammar()
+        for problem in grammar.structuralProblems() {
+            failures.append("the layout grammar is malformed: \(problem)")
+        }
+        let sample = #"{"blocks": [{"kind": "prose", "from": 1, "to": 2}, "#
+            + #"{"kind": "numbered", "from": 3, "to": 9, "itemStarts": [3, 6], "stripWords": [0, 3]}]}"#
+        if (try? JSONDecoder().decode(StructurePlan.self, from: Data(sample.utf8))) == nil {
+            failures.append("a plan in the grammar's own shape did not decode")
+        }
+        if LLMStructurePlanner.firstJSONObject(in: "```json\n\(sample)\n```") != sample {
+            failures.append("a fenced layout plan was not recovered from the answer")
+        }
+
+        return failures
+    }
+
+    /// D-09: the layout pass is budgeted against the cleanup pass it runs beside.
+    ///
+    /// The pass used to carry its own wall-clock ceiling — `min(6, max(3.5, 0.3 ×
+    /// sentences))` seconds, counted from the moment it started — and it was started
+    /// *before* the cleanup, so every second of that ceiling was a second of a wait the
+    /// user was already having. On this Mac it was asked six times and one answer was used;
+    /// four were "the layout pass ran out of time after 3.5s" while the user went on
+    /// waiting another 3.4–8 s for the cleanup. The deadline saved nothing.
+    ///
+    /// Now the pass has a hard ceiling (`layoutPassCeiling`) so a model call always ends,
+    /// and the *router* decides how long to wait for it, measured from the plan's own
+    /// start: the nominal budget already spent, plus a grace. A plan that answers while
+    /// the cleanup is still running is therefore always used, and a plan that has not
+    /// answers by the time the cleanup is finished gets `layoutGrace` and no more.
+    private static func layoutDeadlineFailures(prose: String) async -> [String] {
+        var failures: [String] = []
+        let markdownApp = OutputProfile(
+            bundleID: "md.obsidian",
+            displayName: "Obsidian",
+            capabilities: [.markdown, .bullets, .numbered, .tables, .code]
+        )
+        // Milliseconds rather than seconds, so a case is not a second of suite time, and a
+        // nominal well clear of the grace so the two are distinguishable.
+        let nominal = Duration.milliseconds(300)
+        let grace = Duration.milliseconds(100)
+        let waits: @Sendable (Int) -> Duration = { _ in nominal }
+        let busy = CleanupComputePressure.simulated(realtimeASRBusy: true)
+
+        /// The plan a model that read this passage properly would answer: one paragraph
+        /// break after the third sentence. Built from the sentences it was handed rather
+        /// than typed, so a change to the split shows up here instead of as a silently
+        /// different layout.
+        @Sendable func paragraphPlan(_ sentences: [String]) -> StructurePlanOutcome {
+            guard sentences.count >= 4 else { return .failed("too short to lay out", seconds: 0) }
+            return StructurePlanOutcome(
+                plan: StructurePlan(blocks: [
+                    .init(kind: .prose, from: 1, to: 3),
+                    .init(kind: .prose, from: 4, to: sentences.count),
+                ]),
+                rejection: nil,
+                seconds: 0
+            )
+        }
+
+        /// One router, run end to end, answering the two questions every case below asks:
+        /// how long the hold took, and what the record says.
+        @discardableResult
+        func run(
+            semantic: any TextFormatter,
+            planner: ScriptedStructurePlanner,
+            busy defersToRules: Bool = false
+        ) async -> (record: CleanupRecord, elapsed: Double) {
+            let trace = CleanupTrace()
+            let began = ContinuousClock.now
+            _ = await CleanupRouter(
+                semantic: semantic,
+                engine: .apple,
+                formatsLists: true,
+                targetRendersLists: true,
+                skipsModelWhenBusy: defersToRules,
+                target: markdownApp,
+                trace: trace,
+                structurePlanner: planner,
+                layoutWait: waits,
+                layoutGrace: grace,
+                pressureSample: { defersToRules ? busy : .idle }
+            ).format(prose)
+            return (trace.snapshot, seconds(ContinuousClock.now - began))
+        }
+
+        // a. The plan answers at 500 ms, the cleanup at 700 ms: the plan came back while
+        // the user was still waiting, so it is used — and the pass was handed the hard
+        // ceiling rather than the nominal 300 ms it is about to be given on the wall.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "half-second") { sentences in
+                try? await Task.sleep(for: .milliseconds(500))
+                return paragraphPlan(sentences)
+            }
+            let (record, _) = await run(
+                semantic: SlowFormatter(delay: .milliseconds(700)),
+                planner: planner
+            )
+            if record.structureSource != "model plan" {
+                failures.append(
+                    "a layout plan that finished while the cleanup was still running was not "
+                        + "used — the record says "
+                        + (record.structureSource ?? "nothing")
+                        + " (\(record.structurePlanRejected ?? "no reason given"))"
+                )
+            }
+            if record.structurePlanModel != "half-second" {
+                failures.append("a used layout plan was not recorded as one")
+            }
+            if record.structurePlanRejected != nil {
+                failures.append(
+                    "a layout plan that was used was also recorded as rejected: "
+                        + (record.structurePlanRejected ?? "")
+                )
+            }
+            if planner.lastDeadline.value != layoutPassCeiling {
+                failures.append(
+                    "the layout pass was given \(planner.lastDeadline.value.map(String.init) ?? "no deadline")"
+                        + " on the model route, expected the ceiling \(layoutPassCeiling)"
+                )
+            }
+        }
+
+        // b. The plan would answer at 1,500 ms and the cleanup at 700 ms. The user waits the
+        // 100 ms grace past the cleanup and no longer: the old code waited the full 1.5 s.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "one-and-a-half") { sentences in
+                try? await Task.sleep(for: .milliseconds(1500))
+                return paragraphPlan(sentences)
+            }
+            let (record, elapsed) = await run(
+                semantic: SlowFormatter(delay: .milliseconds(700)),
+                planner: planner
+            )
+            // 800 ms nominal, 1,100 ms with room for a loaded machine. The old code's 1,500 ms
+            // is outside it, which is the case.
+            if elapsed > 1.1 {
+                failures.append(
+                    "the router waited \(elapsed)s for a layout plan that had already been given "
+                        + "its whole budget, expected about 0.8s"
+                )
+            }
+            if record.structurePlanRejected?.contains("ran out of time") != true {
+                failures.append(
+                    "a layout plan dropped for time recorded "
+                        + (record.structurePlanRejected.map { "\"\($0)\"" } ?? "no reason")
+                )
+            }
+            if record.structureSource == "model plan" {
+                failures.append("a layout plan that arrived after the router gave up was still used")
+            }
+        }
+
+        // c. The plan answers at 500 ms, the cleanup at 100 ms. There is no wait left to
+        // hide it in, so it is dropped at the nominal budget — which is what happens today,
+        // and what makes b a change rather than a different number for the same rule.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "late") { sentences in
+                try? await Task.sleep(for: .milliseconds(500))
+                return paragraphPlan(sentences)
+            }
+            let (record, elapsed) = await run(
+                semantic: SlowFormatter(delay: .milliseconds(100)),
+                planner: planner
+            )
+            if elapsed > 0.75 {
+                failures.append(
+                    "a slow layout plan beside a fast cleanup held the hold for \(elapsed)s, "
+                        + "expected about 0.3s"
+                )
+            }
+            if record.structurePlanRejected?.contains("ran out of time") != true {
+                failures.append(
+                    "a layout plan dropped at its nominal budget recorded "
+                        + (record.structurePlanRejected.map { "\"\($0)\"" } ?? "no reason")
+                )
+            }
+        }
+
+        // d. The rules route has no cleanup pass to hide a plan inside, so the planner's own
+        // budget stands and the router does not hand it a deadline. The budget-growth rules
+        // above are that budget, and they stay.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "rules-route") { sentences in
+                paragraphPlan(sentences)
+            }
+            let (record, _) = await run(
+                semantic: KeepAsIsFormatter(),
+                planner: planner,
+                busy: true
+            )
+            if record.route != "rules" {
+                failures.append(
+                    "the rules-route case ran \(record.route ?? "no route"), so it proves nothing"
+                )
+            }
+            if planner.lastDeadline.value != nil {
+                failures.append(
+                    "the layout pass was given \(planner.lastDeadline.value.map(String.init) ?? "")"
+                        + " on the rules route, expected no deadline"
+                )
+            }
+            // ...and it is still asked, and still used, on that route: the deadline is the
+            // only thing D-09 changes.
+            if record.structureSource != "model plan" {
+                failures.append(
+                    "the rules route stopped using a layout plan it was given: the record says "
+                        + (record.structureSource ?? "nothing")
+                )
+            }
+        }
+
+        // e. The rules route with a slow plan. The rules text is ready at once, so the user
+        // waits the grace and no more — the old route awaited the plan unbounded (3.5–9.2 s
+        // measured on this Mac), which turned "skip the model, I want speed" into the
+        // slowest dictations of the day.
+        do {
+            let planner = ScriptedStructurePlanner(planName: "rules-route-slow") { sentences in
+                try? await Task.sleep(for: .milliseconds(1500))
+                return paragraphPlan(sentences)
+            }
+            let (record, elapsed) = await run(
+                semantic: KeepAsIsFormatter(),
+                planner: planner,
+                busy: true
+            )
+            if record.route != "rules" {
+                failures.append("the slow rules-route case ran \(record.route ?? "no route")")
+            }
+            if elapsed > 0.6 {
+                failures.append(
+                    "the rules route waited \(elapsed)s for a layout plan, expected about the "
+                        + "0.1s grace"
+                )
+            }
+            if record.structurePlanRejected?.contains("ran out of time") != true {
+                failures.append(
+                    "a rules-route plan dropped for time recorded "
+                        + (record.structurePlanRejected.map { "\"\($0)\"" } ?? "no reason")
+                )
+            }
+        }
+
+        return failures
+    }
+
+    private static func oneLine(_ text: String) -> String {
+        text.replacingOccurrences(of: "\n", with: " \u{21B5} ")
+    }
+
+    /// The transcript back out of a whole user prompt.
+    ///
+    /// `CleanupModelCall.respond` is handed the prompt the model would have been given, and
+    /// a fake model that answers "the same text" has to take the transcript out of it — a
+    /// prompt echoed back reads to the guard as invented words, and the case would then fail
+    /// for the guard rather than for the thing it is about.
+    private static func transcript(fromPrompt prompt: String) -> String {
+        String(prompt.split(separator: "\n\n", maxSplits: 1).last ?? "")
+    }
+
+    /// One value, for a failure line that has to name it. `nil` and empty both read "none",
+    /// the same as the list form, so the two can be used in the same sentence.
+    private static func quoted(_ value: String?) -> String {
+        guard let value, !value.isEmpty else { return "none" }
+        return "\"\(value)\""
+    }
+
+    /// A list of values, for a failure line that has to name them.
+    private static func quoted(_ values: [String]?) -> String {
+        guard let values, !values.isEmpty else { return "none" }
+        return values.map { "\"\($0)\"" }.joined(separator: ", ")
+    }
+
+    /// One bad sentence must not cost the user every repair in the other five.
+    ///
+    /// The fixture is this user's own transcript and Apple's own answer to it, recorded on
+    /// 2026-09-20: the plural they asked for was fixed, one clause was rewritten further
+    /// than the guard allows, and the whole thing was discarded for it.
+    private static func salvageFailures() -> [String] {
+        var failures: [String] = []
+        // Verbatim: `CleanupEvalCases.shipped` R1-agreement, and the answer Apple's model
+        // gave it on this Mac.
+        let original = "Also, there is some lags between when the user is recording. "
+            + "When the animation shows, it doesn't show on the notch. "
+            + "I don't know what's happening, so you need to make sure that the user can "
+            + "see that the computer is actually recording."
+        let cleaned = "Also, there are some lags between when the user is recording. "
+            + "When the animation shows, it does not appear on the notch. "
+            + "I do not know what is happening, so you need to make sure that the user can "
+            + "see that the computer is actually recording."
+
+        guard CleanupGuard.rejection(original: original, cleaned: cleaned, mode: .grammar) != nil
+        else {
+            failures.append("the salvage fixture is no longer rejected as a whole, so it "
+                + "tests nothing")
+            return failures
+        }
+        guard let salvage = CleanupGuard.salvage(
+            original: original,
+            cleaned: cleaned,
+            mode: .grammar
+        ) else {
+            failures.append("a rejected answer with one bad sentence in it salvaged nothing")
+            return failures
+        }
+        if salvage.text.contains("there is some lags") {
+            failures.append("the salvaged text put back an agreement error the model had fixed")
+        }
+        if !salvage.text.contains("it doesn't show on the notch") {
+            failures.append("the salvaged text kept a sentence the guard turned down")
+        }
+        if salvage.rejectedSentences != 1 {
+            failures.append(
+                "expected one sentence to be put back, got \(salvage.rejectedSentences) "
+                    + "of \(salvage.totalSentences)"
+            )
+        }
+        // A single sentence replaced wholesale cannot be salvaged, and must not be.
+        if CleanupGuard.salvage(
+            original: "Check localhost three thousand.",
+            cleaned: "Paris is lovely this time of year.",
+            mode: .grammar
+        ) != nil {
+            failures.append("a wholesale rewrite was salvaged instead of rejected")
+        }
+        failures += clauseSalvageFailures()
+        // The four-letter mis-hearing the old edit budget called an invention.
+        if !CleanupGuard.related("walk", "work") {
+            failures.append("\"walk\"/\"work\" is still not recognised as a mis-hearing")
+        }
+        if CleanupGuard.related("paris", "what") {
+            failures.append("\"paris\"/\"what\" is now being treated as a mis-hearing")
+        }
+        return failures
+    }
+
+    /// D-11: a long run-on salvaged clause by clause, and nothing else moved.
+    ///
+    /// Parakeet returns one long sentence with no internal full stops, and `salvage` used to
+    /// give up on exactly that shape (`guard sources.count > 1`). At 2026-09-22 03:42Z a
+    /// 110-word dictation was rejected for one invented word — "ui ux" expanded to "user
+    /// interface" — and every filler removal and repair in the other 108 words was thrown
+    /// away after five seconds of waiting. The guard was right; the grain was wrong.
+    ///
+    /// Pure text in and a verdict out, so it belongs here rather than in the model suite.
+    private static func clauseSalvageFailures() -> [String] {
+        var failures: [String] = []
+        // 110 words, one sentence, the shape the recogniser actually returns. "um" three
+        // times, "you know" twice, and the one phrase the model cannot help expanding.
+        let spoken = "um I was basically talking to the team about the app, "
+            + "you know the flow needs a rewrite before we touch anything else, "
+            + "the ui ux of the app is confusing, "
+            + "um the reason is the onboarding takes too long for a new user, "
+            + "so people drop off in the middle of the flow and they never really come back "
+            + "at all, but we cannot tell which screen is the problem, "
+            + "and I think we need someone to watch ten sessions before we change it, "
+            + "um you know that is the one thing I would like to raise on the call, "
+            + "so can we put twenty minutes on the agenda"
+        // The answer the model actually gave: every filler gone, and "ui ux" expanded.
+        let answered = "I was talking to the team about the app, "
+            + "the flow needs a rewrite before we touch anything else, "
+            + "the user interface and user experience of the app is confusing, "
+            + "the reason is the onboarding takes too long for a new user, "
+            + "so people drop off in the middle of the flow and they never really come back "
+            + "at all, but we cannot tell which screen is the problem, "
+            + "and I think we need someone to watch ten sessions before we change it, "
+            + "that is the one thing I would like to raise on the call, "
+            + "so can we put twenty minutes on the agenda for it."
+
+        guard CleanupGuard.rejection(original: spoken, cleaned: answered, mode: .grammar) != nil
+        else {
+            failures.append("the run-on fixture is no longer rejected as a whole, so it "
+                + "tests nothing")
+            return failures
+        }
+        guard let salvage = CleanupGuard.salvage(
+            original: spoken,
+            cleaned: answered,
+            mode: .grammar
+        ) else {
+            failures.append("a 110-word run-on with one invented clause salvaged nothing")
+            return failures
+        }
+        for filler in [" um ", "you know"] where salvage.text.contains(filler) {
+            failures.append("clause-salvage: \(filler.debugDescription) survived the repair")
+        }
+        if !salvage.text.contains("ui ux") {
+            failures.append("clause-salvage: the clause the model invented was used")
+        }
+        if salvage.text.contains("interface") {
+            failures.append("clause-salvage: an invented word reached the text")
+        }
+        if !salvage.usedClauses {
+            failures.append("clause-salvage: the record would still say \"sentences\"")
+        }
+        if !salvage.plainReason.contains("parts") {
+            failures.append("clause-salvage: the reason does not name the grain it used")
+        }
+        // Below the clause threshold, nothing changes: one short sentence, one invention, no
+        // salvage. The finer grain must not start reaching answers it could not reach before.
+        let shortSpoken = "um the ui ux of the app is really confusing and the whole design "
+            + "team is worried about it now"
+        let shortAnswered = "The user interface and user experience of the app is really "
+            + "confusing, and the whole design team is worried about it now."
+        if CleanupGuard.salvage(
+            original: shortSpoken,
+            cleaned: shortAnswered,
+            mode: .grammar
+        ) != nil {
+            failures.append("clause-salvage: a 20-word sentence salvaged, which it never did")
+        }
+        if CleanupGuard.salvage(
+            original: "The build is green and it is passing every test, but the release notes "
+                + "still say the old date and nobody has read them since we rewrote the "
+                + "installer, and I am not going to sign it off until the docs agree with what "
+                + "the app actually does today, because that is the whole problem, and you know "
+                + "what, we can talk about it on the call.",
+            cleaned: "The build is green, and it is passing every test, but the release notes "
+                + "still say the old date, and nobody has read them since we rewrote the "
+                + "installer, and I am not going to sign it off until the docs agree with what "
+                + "the app actually does today, because that is the whole problem, and you know "
+                + "what, we can talk about it on the call.",
+            mode: .grammar
+        ) != nil {
+            failures.append("clause-salvage: a run-on nothing was wrong with was salvaged")
+        }
+        return failures
+    }
+
+    /// The record has to say what happened, or "check the dictation logs" is still not a
+    /// thing anyone can do.
+    private static func traceFailures() -> [String] {
+        var failures: [String] = []
+        let trace = CleanupTrace()
+        trace.noteInput(raw: "the tests is passing", afterRules: "The tests is passing.")
+        trace.noteSettings(
+            engine: "apple",
+            fixesGrammar: true,
+            formatsStructure: true,
+            targetName: "Obsidian",
+            targetRenders: ["bullets"]
+        )
+        trace.noteRoute("semantic", reasons: ["grammar"])
+        trace.noteModelRejected(reason: "changed too much", seconds: 0.4)
+        trace.noteStructure(markersSeen: false, applied: [])
+        trace.noteOutput("The tests is passing.", seconds: 0.5)
+
+        let record = trace.snapshot
+        if record.rawText != "the tests is passing" {
+            failures.append("the trace lost the raw transcript")
+        }
+        if record.guardVerdict != "rejected" {
+            failures.append("a rejected model answer was not recorded as rejected")
+        }
+        if record.grammarWasPossible {
+            failures.append("a rejected answer still reports that grammar was applied")
+        }
+        // Old rows must still load: every key is optional, so an empty object decodes.
+        guard let empty = "{}".data(using: .utf8),
+              (try? JSONDecoder().decode(CleanupRecord.self, from: empty)) != nil else {
+            failures.append("CleanupRecord cannot decode a row written before it existed")
+            return failures
+        }
+        guard let encoded = try? JSONEncoder().encode(record),
+              let cycled = try? JSONDecoder().decode(CleanupRecord.self, from: encoded),
+              cycled == record else {
+            failures.append("CleanupRecord does not survive a round trip")
+            return failures
+        }
+        return failures
+    }
+
+    /// D-01a: the prewarm bit has to be on the trace *before* the model answers, or a
+    /// timed-out run files `sessionPrewarmed: null` and the cold-start claim stays
+    /// unprovable per run. All three cases use the `CleanupModelCall` seam, so no model
+    /// is woken.
+    private static func prewarmTraceFailures() async -> [String] {
+        var failures: [String] = []
+        let text = "okay so this is a short test"
+
+        // a. A call that never answers: the trace still carries the prewarm, and the
+        // record says the run timed out.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            // The 6-word input's warm budget is ~4.4 s; scaled to ~310 ms. (D-07 replaced
+            // D-01a's fixed override with this multiplier.)
+            formatter.timeScale = 0.07
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in
+                    try await Task.sleep(for: .seconds(30))
+                    return ""
+                }
+            )
+            _ = await formatter.format(text)
+            let snapshot = trace.snapshot
+            if snapshot.sessionPrewarmed != false {
+                failures.append(
+                    "  prewarm: timeout recorded \(String(describing: snapshot.sessionPrewarmed))"
+                )
+            }
+            if !(snapshot.fallbackReason?.contains("timed out") ?? false) {
+                failures.append(
+                    "  prewarm: timeout fallbackReason was \(snapshot.fallbackReason ?? "nil")"
+                )
+            }
+        }
+        // b. A call that throws: the prewarm was still known before the throw.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeScale = 0.07
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in true },
+                respond: { _ in throw PrewarmTestError.boom }
+            )
+            _ = await formatter.format(text)
+            let snapshot = trace.snapshot
+            if snapshot.sessionPrewarmed != true {
+                failures.append(
+                    "  prewarm: throw recorded \(String(describing: snapshot.sessionPrewarmed))"
+                )
+            }
+        }
+        // c. A call that answers with the input unchanged: prewarm false, verdict accepted.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeScale = 0.07
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in text }
+            )
+            _ = await formatter.format(text)
+            let snapshot = trace.snapshot
+            if snapshot.sessionPrewarmed != false {
+                failures.append(
+                    "  prewarm: accepted recorded \(String(describing: snapshot.sessionPrewarmed))"
+                )
+            }
+            if snapshot.guardVerdict != "accepted" {
+                failures.append(
+                    "  prewarm: accepted verdict was \(snapshot.guardVerdict ?? "nil")"
+                )
+            }
+        }
+        return failures
+    }
+
+    /// Stands in for the inner formatter of a chunked pass: sleeps long enough that the
+    /// wave loop's budget check is what decides whether the next wave starts. (D-07.)
+    private struct SlowTestFormatter: TextFormatter {
+        func format(_ raw: String) async -> String {
+            try? await Task.sleep(for: .milliseconds(100))
+            return raw
+        }
+    }
+
+    /// Seconds in a `Duration`, for comparisons with a tolerance.
+    private static func seconds(_ duration: Duration) -> Double {
+        Double(duration.components.seconds) + Double(duration.components.attoseconds) / 1e18
+    }
+
+    /// D-07: the per-call budget answers to warmth — a cold first call gets the wake-up's
+    /// measured cost on top of the warm floor, a staged session keeps the tight budget,
+    /// and a chunked pass spends the warm ceiling from its second wave on. Pure cases pin
+    /// the formula; the integration cases run the real `format` and the real wave loop on
+    /// the model seam with the clock scaled down (`timeScale`), so no model is woken and
+    /// no case waits seconds.
+    private static func warmthTimeoutFailures() async -> [String] {
+        var failures: [String] = []
+        let tenWords = String(repeating: "word ", count: 9) + "word"
+
+        // Pure: the formula.
+        do {
+            let cold = FoundationModelFormatter.timeout(for: tenWords, warmth: .cold)
+            if seconds(cold) + 0.01 < 9.2 {
+                failures.append("  warmth: cold 10-word budget was \(seconds(cold)) s, expected ≥ 9.2 s")
+            }
+            let staged = FoundationModelFormatter.timeout(for: tenWords, warmth: .staged)
+            if abs(seconds(staged) - 4.7) > 0.01 {
+                failures.append("  warmth: staged 10-word budget was \(seconds(staged)) s, expected 4.7 s")
+            }
+            let coldLong = FoundationModelFormatter.timeout(
+                for: String(repeating: "word ", count: 200), warmth: .cold)
+            if abs(seconds(coldLong) - 16.0) > 0.01 {
+                failures.append("  warmth: cold 200-word budget was \(seconds(coldLong)) s, expected the 16 s cap")
+            }
+            let warm = FoundationModelFormatter.timeout(for: tenWords, warmth: .warmProcess)
+            if warm != staged {
+                failures.append("  warmth: warmProcess \(seconds(warm)) s differed from staged \(seconds(staged)) s")
+            }
+        }
+
+        // Integration: a cold call that answers inside its longer budget is accepted, and
+        // the trace says which warmth the budget assumed. `warmWindow = -1 s` makes every
+        // elapsed reading fall outside it, which is the injection point for "cold".
+        let savedWindow = await MainActor.run { AppleModelWarmth.warmWindow }
+        await MainActor.run { AppleModelWarmth.warmWindow = .seconds(-1) }
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeScale = 0.05
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in
+                    try await Task.sleep(for: .milliseconds(240))
+                    // The answer comes back unchanged, so the guard accepts it and the case
+                    // measures the budget alone rather than the guard as well.
+                    return tenWords
+                }
+            )
+            _ = await formatter.format(tenWords)
+            let snapshot = trace.snapshot
+            if snapshot.guardVerdict != "accepted" {
+                failures.append(
+                    "  warmth: cold 240 ms answer was \(snapshot.guardVerdict ?? "nil") (fallbackReason \(snapshot.fallbackReason ?? "nil")), expected accepted inside the 460 ms cold budget"
+                )
+            }
+            if snapshot.assumedWarmth != Warmth.cold.rawValue {
+                failures.append("  warmth: cold run recorded assumedWarmth \(snapshot.assumedWarmth ?? "nil")")
+            }
+        }
+        // A cold call that stalls past even the cold budget still ends.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeScale = 0.05
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in false },
+                respond: { _ in
+                    try await Task.sleep(for: .seconds(1))
+                    return tenWords
+                }
+            )
+            _ = await formatter.format(tenWords)
+            if !(trace.snapshot.fallbackReason?.contains("timed out") ?? false) {
+                failures.append(
+                    "  warmth: 1 s cold answer was not timed out (fallbackReason \(trace.snapshot.fallbackReason ?? "nil"))"
+                )
+            }
+        }
+        // A staged session keeps the tight budget: the same 300 ms answer misses it.
+        do {
+            let trace = CleanupTrace()
+            var formatter = FoundationModelFormatter(trace: trace)
+            formatter.timeScale = 0.05
+            formatter.modelCall = CleanupModelCall(
+                takeSession: { _ in true },
+                respond: { _ in
+                    try await Task.sleep(for: .milliseconds(300))
+                    return tenWords
+                }
+            )
+            _ = await formatter.format(tenWords)
+            if !(trace.snapshot.fallbackReason?.contains("timed out") ?? false) {
+                failures.append(
+                    "  warmth: 300 ms answer on a staged session was not timed out at the 221 ms staged budget"
+                )
+            }
+        }
+        // Chunk budget: a cold first wave does not starve the later waves — from wave 2 on
+        // the warm ceiling is the honest one, so every group still starts inside the pass
+        // budget. Three sentence groups, width 2, scaled budget 1.25 s, cold ceiling 1.2 s,
+        // warm ceiling 0.1 s, 100 ms per call.
+        do {
+            let text = [
+                "alpha one two three four five six seven eight nine.",
+                "bravo one two three four five six seven eight nine.",
+                "charlie one two three four five six seven eight nine.",
+            ].joined(separator: " ")
+            let trace = CleanupTrace()
+            let chunked = ChunkedFormatter(
+                inner: SlowTestFormatter(),
+                maxWords: 10,
+                trace: trace,
+                budget: .seconds(1.25),
+                perCallTimeout: { _ in .seconds(1.2) },
+                perCallTimeoutAfterFirstWave: { _ in .seconds(0.1) }
+            )
+            _ = await chunked.format(text)
+            let snapshot = trace.snapshot
+            if let reason = snapshot.fallbackReason {
+                failures.append("  warmth: chunked pass truncated after a cold first wave: \(reason)")
+            }
+            if (snapshot.chunks ?? 0) < 3 {
+                failures.append("  warmth: chunk budget case produced \(snapshot.chunks ?? 0) group(s), expected 3")
+            }
+        }
+        await MainActor.run { AppleModelWarmth.warmWindow = savedWindow }
+        return failures
+    }
+
+    /// D-06: the launch warm-up decision is one table, and the warmth window flips with
+    /// the clock. Pure policy on injected values, so no model, no Settings, no permission.
+    @MainActor private static func launchWarmupFailures() -> [String] {
+        var failures: [String] = []
+        struct Row {
+            let id: String
+            let cleanupEnabled: Bool
+            let choice: CleanupEngineChoice
+            let fixesGrammar: Bool
+            let s1Downloaded: Bool
+            let appleAvailable: Bool
+            let miniCPMDownloaded: Bool
+            let expected: Set<LaunchWarmup.Action>
+        }
+        let rows: [Row] = [
+            // The decision table: what `applicationDidFinishLaunching` must do exactly.
+            Row(id: "cleanup off", cleanupEnabled: false, choice: .s1Mini, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true, expected: []),
+            Row(id: "s1, grammar off", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: false,
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true,
+                expected: [.loadS1Mini]),
+            Row(id: "s1, grammar on", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true,
+                expected: [.warmApple]),
+            Row(id: "apple choice", cleanupEnabled: true, choice: .apple, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true,
+                expected: [.warmApple]),
+            // MiniCPM loads when routed and the file is here; Apple warms beside
+            // it either way as its fallback. Nothing loads for a file that is not.
+            Row(id: "minicpm choice", cleanupEnabled: true, choice: .miniCPM, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: true, miniCPMDownloaded: true,
+                expected: [.warmApple, .loadCleanupModel]),
+            Row(id: "minicpm, grammar off", cleanupEnabled: true, choice: .miniCPM,
+                fixesGrammar: false, s1Downloaded: true, appleAvailable: true,
+                miniCPMDownloaded: true, expected: [.warmApple, .loadCleanupModel]),
+            Row(id: "minicpm not downloaded", cleanupEnabled: true, choice: .miniCPM,
+                fixesGrammar: true, s1Downloaded: true, appleAvailable: true,
+                miniCPMDownloaded: false, expected: [.warmApple]),
+            Row(id: "minicpm, apple unavailable", cleanupEnabled: true, choice: .miniCPM,
+                fixesGrammar: true, s1Downloaded: true, appleAvailable: false,
+                miniCPMDownloaded: true, expected: [.loadCleanupModel]),
+            // The two absence variants.
+            Row(id: "s1 not downloaded", cleanupEnabled: true, choice: .s1Mini, fixesGrammar: false,
+                s1Downloaded: false, appleAvailable: true, miniCPMDownloaded: true, expected: []),
+            Row(id: "apple unavailable", cleanupEnabled: true, choice: .apple, fixesGrammar: true,
+                s1Downloaded: true, appleAvailable: false, miniCPMDownloaded: true, expected: []),
+        ]
+        func describe(_ set: Set<LaunchWarmup.Action>) -> String {
+            guard !set.isEmpty else { return "[]" }
+            return "[" + set.map { "\($0)" }.sorted().joined(separator: ", ") + "]"
+        }
+        for row in rows {
+            let gave = LaunchWarmup.plan(
+                cleanupEnabled: row.cleanupEnabled,
+                choice: row.choice,
+                fixesGrammar: row.fixesGrammar,
+                s1Downloaded: row.s1Downloaded,
+                appleAvailable: row.appleAvailable,
+                miniCPMDownloaded: row.miniCPMDownloaded
+            )
+            if gave != row.expected {
+                failures.append(
+                    "launch warm-up: \(row.id) gave \(describe(gave)), expected \(describe(row.expected))"
+                )
+            }
+        }
+
+        // The residency rule beside the launch table: MiniCPM keeps its weights
+        // only while routed, switched on, and present. Anything else unloads on
+        // the idle timer like every other model.
+        let residency: [(String, CleanupEngineChoice, Bool, Bool, Bool)] = [
+            ("routed and present", .miniCPM, true, true, true),
+            ("cleanup off", .miniCPM, false, true, false),
+            ("another engine", .apple, true, true, false),
+            ("file absent", .miniCPM, true, false, false),
+        ]
+        for (id, choice, enabled, downloaded, expected) in residency {
+            let stays = MiniCPMModels.staysResident(
+                choice: choice, cleanupEnabled: enabled, downloaded: downloaded
+            )
+            if stays != expected {
+                failures.append(
+                    "launch warm-up: residency \(id) was \(stays), expected \(expected)"
+                )
+            }
+        }
+
+        // The warmth window flips on injected dates: an activity inside `warmWindow`
+        // reads .warmProcess, the same moment past it reads .cold.
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        AppleModelWarmth.noteActivity(now)
+        let window = Double(AppleModelWarmth.warmWindow.components.seconds)
+            + Double(AppleModelWarmth.warmWindow.components.attoseconds) / 1e18
+        if AppleModelWarmth.current(now: now) != .warmProcess {
+            failures.append(
+                "launch warm-up: an activity at now read \(AppleModelWarmth.current(now: now).rawValue), expected warmProcess"
+            )
+        }
+        if AppleModelWarmth.current(now: now.addingTimeInterval(window - 1)) != .warmProcess {
+            failures.append(
+                "launch warm-up: \(Int(window - 1))s after the last activity read "
+                    + "\(AppleModelWarmth.current(now: now.addingTimeInterval(window - 1)).rawValue), expected warmProcess"
+            )
+        }
+        if AppleModelWarmth.current(now: now.addingTimeInterval(window + 1)) != .cold {
+            failures.append(
+                "launch warm-up: \(Int(window + 1))s after the last activity read "
+                    + "\(AppleModelWarmth.current(now: now.addingTimeInterval(window + 1)).rawValue), expected cold"
+            )
+        }
+        // Leave the suite with a stale, cold warmth, so nothing later in this process is
+        // told the model is warm when nothing warmed it.
+        AppleModelWarmth.noteActivity(now.addingTimeInterval(-3_600))
+        if AppleModelWarmth.current() != .cold {
+            failures.append("launch warm-up: a stale activity still read warmProcess")
+        }
+        return failures
+    }
+
+    private static func emit(_ line: String) {
+        CleanupSelfTestLog.emit(line)
+    }
+}
+
+/// A model that fails on cue, for the D-01a prewarm-trace cases.
+private enum PrewarmTestError: Error {
+    case boom
+}
+
+extension CleanupRouter {
+    private static func words(in text: String) -> [String] {
+        text.split { $0.isWhitespace || $0.isNewline }.map(String.init)
+    }
+
+    private static func folded(_ text: String) -> String {
+        text.precomposedStringWithCanonicalMapping.lowercased()
+    }
+
+    private static let leftoverFillers: Set<String> = [
+        "um", "uh", "erm", "uhm", "hmm", "mhm", "heu", "euh"
+    ]
+
+    private static func isDisfluent(_ text: String) -> Bool {
+        let haystack = folded(text)
+        if haystack.contains("i mean") || haystack.contains("you know") { return true }
+        let tokens = haystack.split { !$0.isLetter && !$0.isNumber }.map(String.init)
+        return tokens.filter { leftoverFillers.contains($0) }.count >= 2
+    }
+
+    private static func hasSelfCorrection(_ text: String) -> Bool {
+        let haystack = folded(text)
+        return haystack.contains("no wait")
+            || haystack.contains("make that")
+            || haystack.contains("actually,")
+    }
+
+    private static func hasStutter(_ text: String) -> Bool {
+        let tokens = words(in: folded(text)).map {
+            $0.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        }.filter { !$0.isEmpty }
+        guard tokens.count >= 2 else { return false }
+        for index in 1..<tokens.count where tokens[index] == tokens[index - 1] {
+            return true
+        }
+        return false
+    }
+
+    private static let grammarMarkers = [
+        "tests is", "they was", "we was", "they is", "we is",
+        "i were", "he were", "she were", "it are",
+        "gotta fixes", "need for me", "yesterday i go",
+    ]
+
+    private static func hasGrammarMarker(_ text: String) -> Bool {
+        let haystack = folded(text)
+        return grammarMarkers.contains { haystack.contains($0) }
+    }
+
+    private static func needsTerminalPunctuation(_ text: String) -> Bool {
+        guard let last = text.last else { return false }
+        return last.isLetter || last.isNumber
+    }
+
+    private static func looksLikeSpokenList(_ text: String) -> Bool {
+        let haystack = folded(text)
+        let markers = ["first", "second", "third", "number one", "number two"]
+        return markers.filter { haystack.contains($0) }.count >= 2
+    }
+}
+
+/// Increments on every `format` call so the self-test can see a model invocation
+/// without loading one.
+private struct CountingFormatter: TextFormatter {
+    let box: CounterBox
+
+    func format(_ raw: String) async -> String {
+        await box.increment()
+        return raw
+    }
+}
+
+private actor CounterBox {
+    private(set) var count = 0
+    func increment() { count += 1 }
+}
+
+/// A model that upper-cases what it was given and remembers every call.
+///
+/// Both halves matter for D-12: upper-casing is a pure function of the input, so the text a
+/// partly-pre-cleaned pass produces can be compared byte for byte with the text one pass
+/// over the whole transcript produces; and the log is what turns "the key-up pass cleaned
+/// only the tail" into something a case can assert rather than infer.
+private struct UppercasingFormatter: TextFormatter {
+    let log: CallLogBox
+    /// A model that takes its time, for the case that has to prove the wait is bounded.
+    var delay: Duration = .zero
+    /// ...and only for the first call, which is the pre-clean: a slow model is the thing
+    /// under test, so the tail that follows it must not be slow too or the case would be
+    /// measuring the wrong wait.
+    var slowFirstCallOnly = false
+
+    func format(_ raw: String) async -> String {
+        let first = await log.isEmpty()
+        await log.record(raw)
+        if delay > .zero, !slowFirstCallOnly || first {
+            try? await Task.sleep(for: delay)
+        }
+        return raw.uppercased()
+    }
+}
+
+private actor CallLogBox {
+    private(set) var calls: [String] = []
+    func record(_ text: String) { calls.append(text) }
+    func isEmpty() -> Bool { calls.isEmpty }
+}
+
+/// A model that always spends its whole ceiling, the way a stalled one does. Stands in for
+/// the timeout `ChunkedFormatter` has to budget around, with no model to download.
+private struct StallingFormatter: TextFormatter {
+    let ceiling: Duration
+    let box: CounterBox
+
+    func format(_ raw: String) async -> String {
+        await box.increment()
+        try? await Task.sleep(for: ceiling)
+        return raw
+    }
+}
+
+/// A model that takes a fixed time to answer. Stands in for the cleanup pass when what is
+/// under test is whether something else ran *beside* it.
+private struct SlowFormatter: TextFormatter {
+    let delay: Duration
+
+    func format(_ raw: String) async -> String {
+        try? await Task.sleep(for: delay)
+        return raw
+    }
+}
+
+/// A model that flattens formatting back into prose — what Apple's on-device model does to
+/// a spoken quotation, reproduced deterministically.
+private struct ProsifyingFormatter: TextFormatter {
+    func format(_ raw: String) async -> String {
+        raw.split(separator: "\n", omittingEmptySubsequences: true)
+            .map { line in
+                var text = line.trimmingCharacters(in: .whitespaces)
+                for marker in ["- ", "\u{2022} ", "> ", "```"] where text.hasPrefix(marker) {
+                    text = String(text.dropFirst(marker.count))
+                }
+                if let match = text.range(of: #"^\d+[.)]\s+"#, options: .regularExpression) {
+                    text = String(text[match.upperBound...])
+                }
+                return text
+            }
+            .filter { !$0.isEmpty }
+            .joined(separator: " ")
+    }
+}
+
+/// A model that answers one call at a time, the shape D-08 exists for.
+///
+/// Apple's on-device model runs a second `respond` on the same process after the first has
+/// finished, so a wave of two takes two calls' worth of wall and the second call's ceiling
+/// has to be sized for that. Reproduced with a plain queue rather than a timer, so the case
+/// measures the ceiling and not the scheduler.
+private actor SerialCallGate {
+    private var held = false
+    private var waiting: [CheckedContinuation<Void, Never>] = []
+
+    /// Takes the model for `duration` and gives it back, cancelling cleanly.
+    func hold(_ duration: Duration) async throws {
+        if held {
+            await withCheckedContinuation { waiting.append($0) }
+        } else {
+            held = true
+        }
+        do {
+            try await Task.sleep(for: duration)
+        } catch {
+            release()
+            throw error
+        }
+        release()
+    }
+
+    private func release() {
+        if waiting.isEmpty {
+            held = false
+        } else {
+            waiting.removeFirst().resume()
+        }
+    }
+}
+
+/// Records what `ChunkedFormatter.stageNext` was asked to stage, in the order it was asked.
+/// The self-test's stand-in for `CleanupSessionWarmer`, which needs a real model to mean
+/// anything. (D-08.)
+private actor StagedGroupBox {
+    private(set) var texts: [String] = []
+    func record(_ text: String) { texts.append(text) }
+}
+
+/// Two real formatters behind one seam, chosen by which sentence group arrived, so a chunked
+/// pass can be given a group that answers and a group that does not. (D-08.)
+private struct GroupScriptedFormatter: TextFormatter {
+    let marker: String
+    let first: any TextFormatter
+    let second: any TextFormatter
+
+    func format(_ raw: String) async -> String {
+        await (raw == marker ? second : first).format(raw)
+    }
+}

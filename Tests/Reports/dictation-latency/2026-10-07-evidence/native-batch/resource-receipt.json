@@ -1,0 +1,244 @@
+[
+  {
+    "label": "compile-defaults",
+    "args": [
+      "xcrun",
+      "clang",
+      "-O2",
+      "-F",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/speechify/LlamaFramework/llama.xcframework/macos-arm64_x86_64",
+      "-framework",
+      "llama",
+      "-Wl,-rpath,/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/speechify/LlamaFramework/llama.xcframework/macos-arm64_x86_64",
+      "DefaultParams.c",
+      "-o",
+      "defaults-check"
+    ],
+    "gate": {
+      "ok": true,
+      "swapGb": 7.59271484375,
+      "load": 3.6,
+      "freeGb": 7.038909912109375,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "freeStart": 59,
+    "wallSeconds": 1.951185958001588,
+    "exit": 0,
+    "guard": null,
+    "ownedStartIDs": {
+      "98590": 1388487041899,
+      "98592": 1388487418810,
+      "98593": 1388487505332,
+      "98637": 1388529149675
+    },
+    "unjoined": [],
+    "samples": [
+      {
+        "seconds": 0.02101379200030351,
+        "pids": [
+          98590
+        ],
+        "footSum": 3080432,
+        "rssSum": 5865472
+      },
+      {
+        "seconds": 0.14585554199584294,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 8373352,
+        "rssSum": 17481728
+      },
+      {
+        "seconds": 0.280187707998266,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 8864872,
+        "rssSum": 17973248
+      },
+      {
+        "seconds": 0.41641320799681125,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 9028808,
+        "rssSum": 18743296
+      },
+      {
+        "seconds": 0.5537944579991745,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 9127208,
+        "rssSum": 20578304
+      },
+      {
+        "seconds": 0.6939223329973174,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 21038400,
+        "rssSum": 37388288
+      },
+      {
+        "seconds": 0.8233201670009294,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 27428184,
+        "rssSum": 48087040
+      },
+      {
+        "seconds": 0.9551607079993119,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 28526056,
+        "rssSum": 59457536
+      },
+      {
+        "seconds": 1.0810347919978085,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 29165128,
+        "rssSum": 73596928
+      },
+      {
+        "seconds": 1.210317541997938,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 30508616,
+        "rssSum": 89702400
+      },
+      {
+        "seconds": 1.3439486249990296,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 32917064,
+        "rssSum": 94027776
+      },
+      {
+        "seconds": 1.4737644999986514,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 35243592,
+        "rssSum": 96436224
+      },
+      {
+        "seconds": 1.6073495829987223,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 46564960,
+        "rssSum": 110526464
+      },
+      {
+        "seconds": 1.7463736249992508,
+        "pids": [
+          98590,
+          98592,
+          98593
+        ],
+        "footSum": 2671024,
+        "rssSum": 14745600
+      },
+      {
+        "seconds": 1.8722696670010919,
+        "pids": [
+          98590,
+          98637
+        ],
+        "footSum": 12092304,
+        "rssSum": 48234496
+      }
+    ]
+  },
+  {
+    "label": "run-defaults",
+    "args": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-native-batch-20261008/defaults-check"
+    ],
+    "gate": {
+      "ok": true,
+      "swapGb": 7.57708984375,
+      "load": 3.6,
+      "freeGb": 7.038608551025391,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "freeStart": 58,
+    "wallSeconds": 0.49884975000168197,
+    "exit": 0,
+    "guard": null,
+    "ownedStartIDs": {
+      "98669": 1388535388563
+    },
+    "unjoined": [],
+    "samples": [
+      {
+        "seconds": 0.01834545900055673,
+        "pids": [
+          98669
+        ],
+        "footSum": 81992,
+        "rssSum": 32768
+      },
+      {
+        "seconds": 0.15107566700316966,
+        "pids": [
+          98669
+        ],
+        "footSum": 81992,
+        "rssSum": 32768
+      },
+      {
+        "seconds": 0.2821974590042373,
+        "pids": [
+          98669
+        ],
+        "footSum": 213112,
+        "rssSum": 180224
+      },
+      {
+        "seconds": 0.4110549590041046,
+        "pids": [
+          98669
+        ],
+        "footSum": 213112,
+        "rssSum": 180224
+      }
+    ]
+  }
+]

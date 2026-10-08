@@ -1,0 +1,12 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -476,6 +476,9 @@
+ 
+     /// One model pass inside the shared `.realtimeASR` lane.
+     private func transcribe(_ audio: [Float], with manager: AsrManager, isSegment: Bool) async throws -> String {
++        // Signal presence belongs to this exact inference input, not the whole hold.
++        // A hold containing speech can still have a literal-zero leading or final segment.
++        guard audio.contains(where: { $0 != 0 }) else { return "" }
+         await enterLane()
+         let started = Date()
+         do {

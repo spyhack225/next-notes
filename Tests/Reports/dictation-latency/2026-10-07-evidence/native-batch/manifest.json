@@ -1,0 +1,8 @@
+{
+  "status": "Cache-only capacity candidate, uncompiled/unrun/unapplied. No memory/latency/numerical claim",
+  "beforeSHA": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607",
+  "candidateSHA": "7805ab7c12eab21e0b2261cea5d401f2b61cb3be23bb1fe23db4850b87dc25b3",
+  "confirmedSourceContract": "Runtime context n_batch512; allprompt chunks max128 and everyothernative decode batch1. No other runtime decode helper caller. n_ubatch left library default, actual default not yet queried.",
+  "required": "Native pure defaults; actual context effectivecapacity and graph/KV/compute allocation; same prompt tokens/last logits/sampled output and prefix cancellation/successor; long note/typed/voice/dictation allroles; GPU+CPU actual20tokfloor ASRvoice. Keepn_ctx/tokenbudget/threadcaps/weights/grammar/sampling/deadlines/rolechoices unchanged.",
+  "resourceImplication": "Changing maximum reservation to128 may reduce context compute buffers without changing the existing128 prefill loop or checkpoints. Buffer gain and dependency graph behavior need measurement; not confirmed wired-memory cause."
+}

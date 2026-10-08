@@ -1,0 +1,718 @@
+[
+  {
+    "label": "compile-original",
+    "args": [
+      "xcrun",
+      "swiftc",
+      "-swift-version",
+      "6",
+      "-O",
+      "Engine.sixth-before-probe.swift",
+      "AudioConversion.swift",
+      "TranscriptionEngine.swift",
+      "ParakeetInput.swift",
+      "EngineBoundaryTypes.swift",
+      "PerPassZeroCheck.swift",
+      "DictationSegmenter.candidate.swift",
+      "-o",
+      "original"
+    ],
+    "gate": {
+      "ok": true,
+      "swapGb": 7.85052734375,
+      "load": 2.71,
+      "freeGb": 6.847423553466797,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "freeStart": 60,
+    "wallSeconds": 3.9873802500005695,
+    "exit": 0,
+    "guard": null,
+    "ownedStartIDs": {
+      "91957": 1311036930800,
+      "91961": 1311039352716,
+      "91992": 1311070123526,
+      "92005": 1311082467823,
+      "92009": 1311086012513,
+      "92014": 1311090352989,
+      "92023": 1311098533608,
+      "92045": 1311121050534,
+      "92056": 1311129847896,
+      "92055": 1311129688094
+    },
+    "unjoined": [],
+    "samples": [
+      {
+        "seconds": 0.023431374997016974,
+        "pids": [
+          91957
+        ],
+        "footSum": 311512,
+        "rssSum": 507904
+      },
+      {
+        "seconds": 0.158027375000529,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 23708824,
+        "rssSum": 84672512
+      },
+      {
+        "seconds": 0.28105116699589416,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 35275976,
+        "rssSum": 111214592
+      },
+      {
+        "seconds": 0.408062541995605,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 52184288,
+        "rssSum": 157450240
+      },
+      {
+        "seconds": 0.5403785839953343,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 78349560,
+        "rssSum": 200081408
+      },
+      {
+        "seconds": 0.6706255419994704,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 94962960,
+        "rssSum": 228884480
+      },
+      {
+        "seconds": 0.8019080419981037,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 102647056,
+        "rssSum": 237060096
+      },
+      {
+        "seconds": 0.9340884589983034,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 104891664,
+        "rssSum": 239681536
+      },
+      {
+        "seconds": 1.0643127500006813,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 90457288,
+        "rssSum": 198672384
+      },
+      {
+        "seconds": 1.196719708997989,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 96781512,
+        "rssSum": 212549632
+      },
+      {
+        "seconds": 1.3259052499997779,
+        "pids": [
+          91957,
+          91961
+        ],
+        "footSum": 98960584,
+        "rssSum": 222085120
+      },
+      {
+        "seconds": 1.4562650839943672,
+        "pids": [
+          91957,
+          91992
+        ],
+        "footSum": 41043144,
+        "rssSum": 120995840
+      },
+      {
+        "seconds": 1.5870895839980221,
+        "pids": [
+          91957,
+          91992
+        ],
+        "footSum": 85148920,
+        "rssSum": 213860352
+      },
+      {
+        "seconds": 1.7185457089944975,
+        "pids": [
+          91957,
+          91992
+        ],
+        "footSum": 93226232,
+        "rssSum": 226230272
+      },
+      {
+        "seconds": 1.8507853749979404,
+        "pids": [
+          91957,
+          91992
+        ],
+        "footSum": 80659656,
+        "rssSum": 190300160
+      },
+      {
+        "seconds": 1.9798267919977661,
+        "pids": [
+          91957,
+          92005
+        ],
+        "footSum": 46744800,
+        "rssSum": 132546560
+      },
+      {
+        "seconds": 2.107054791995324,
+        "pids": [
+          91957,
+          92009
+        ],
+        "footSum": 34047152,
+        "rssSum": 108462080
+      },
+      {
+        "seconds": 2.2392656249940046,
+        "pids": [
+          91957,
+          92009
+        ],
+        "footSum": 10994264,
+        "rssSum": 38240256
+      },
+      {
+        "seconds": 2.370773750000808,
+        "pids": [
+          91957,
+          92014
+        ],
+        "footSum": 71369952,
+        "rssSum": 194871296
+      },
+      {
+        "seconds": 2.5025187919964083,
+        "pids": [
+          91957,
+          92014
+        ],
+        "footSum": 79840480,
+        "rssSum": 210894848
+      },
+      {
+        "seconds": 2.6284789589990396,
+        "pids": [
+          91957,
+          92023
+        ],
+        "footSum": 34194632,
+        "rssSum": 108691456
+      },
+      {
+        "seconds": 2.7604729999948177,
+        "pids": [
+          91957,
+          92023
+        ],
+        "footSum": 82199824,
+        "rssSum": 209403904
+      },
+      {
+        "seconds": 2.890611374998116,
+        "pids": [
+          91957,
+          92023
+        ],
+        "footSum": 97551632,
+        "rssSum": 229179392
+      },
+      {
+        "seconds": 3.019937958997616,
+        "pids": [
+          91957,
+          92023
+        ],
+        "footSum": 102122768,
+        "rssSum": 233865216
+      },
+      {
+        "seconds": 3.1467812919945573,
+        "pids": [
+          91957,
+          92023
+        ],
+        "footSum": 103073040,
+        "rssSum": 234831872
+      },
+      {
+        "seconds": 3.2789207919995533,
+        "pids": [
+          91957,
+          92023
+        ],
+        "footSum": 103580944,
+        "rssSum": 235454464
+      },
+      {
+        "seconds": 3.4117972499952884,
+        "pids": [
+          91957,
+          92023
+        ],
+        "footSum": 89851080,
+        "rssSum": 207437824
+      },
+      {
+        "seconds": 3.544030291996023,
+        "pids": [
+          91957,
+          92045
+        ],
+        "footSum": 21185688,
+        "rssSum": 81543168
+      },
+      {
+        "seconds": 3.6759848750007222,
+        "pids": [
+          91957,
+          92045
+        ],
+        "footSum": 73254136,
+        "rssSum": 195231744
+      },
+      {
+        "seconds": 3.8051709169958485,
+        "pids": [
+          91957,
+          92045
+        ],
+        "footSum": 79381752,
+        "rssSum": 202260480
+      },
+      {
+        "seconds": 3.934345041998313,
+        "pids": [
+          91957,
+          92055,
+          92056
+        ],
+        "footSum": 153798288,
+        "rssSum": 208863232
+      }
+    ]
+  },
+  {
+    "label": "compile-candidate",
+    "args": [
+      "xcrun",
+      "swiftc",
+      "-swift-version",
+      "6",
+      "-O",
+      "Engine.per-pass-candidate-probe.swift",
+      "AudioConversion.swift",
+      "TranscriptionEngine.swift",
+      "ParakeetInput.swift",
+      "EngineBoundaryTypes.swift",
+      "PerPassZeroCheck.swift",
+      "DictationSegmenter.candidate.swift",
+      "-o",
+      "candidate"
+    ],
+    "gate": {
+      "ok": true,
+      "swapGb": 7.85052734375,
+      "load": 2.65,
+      "freeGb": 6.846958160400391,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "freeStart": 61,
+    "wallSeconds": 3.7933553750044666,
+    "exit": 0,
+    "guard": null,
+    "ownedStartIDs": {
+      "92087": 1311134107278,
+      "92091": 1311136123721,
+      "92116": 1311160462033,
+      "92129": 1311172565020,
+      "92133": 1311176045375,
+      "92137": 1311180403761,
+      "92147": 1311188585452,
+      "92169": 1311213792248
+    },
+    "unjoined": [],
+    "samples": [
+      {
+        "seconds": 0.01849545900040539,
+        "pids": [
+          92087
+        ],
+        "footSum": 344280,
+        "rssSum": 3375104
+      },
+      {
+        "seconds": 0.1485856250001234,
+        "pids": [
+          92087,
+          92091
+        ],
+        "footSum": 33375408,
+        "rssSum": 107741184
+      },
+      {
+        "seconds": 0.2738356250047218,
+        "pids": [
+          92087,
+          92091
+        ],
+        "footSum": 78546168,
+        "rssSum": 200278016
+      },
+      {
+        "seconds": 0.3985663339990424,
+        "pids": [
+          92087,
+          92091
+        ],
+        "footSum": 94962936,
+        "rssSum": 228900864
+      },
+      {
+        "seconds": 0.530283000000054,
+        "pids": [
+          92087,
+          92091
+        ],
+        "footSum": 102909176,
+        "rssSum": 237338624
+      },
+      {
+        "seconds": 0.6623356250056531,
+        "pids": [
+          92087,
+          92091
+        ],
+        "footSum": 105268472,
+        "rssSum": 240074752
+      },
+      {
+        "seconds": 0.7940301670023473,
+        "pids": [
+          92087,
+          92091
+        ],
+        "footSum": 91473072,
+        "rssSum": 204668928
+      },
+      {
+        "seconds": 0.9270075000022189,
+        "pids": [
+          92087,
+          92091
+        ],
+        "footSum": 98043056,
+        "rssSum": 214433792
+      },
+      {
+        "seconds": 1.0559692500028177,
+        "pids": [
+          92087,
+          92091
+        ],
+        "footSum": 101385392,
+        "rssSum": 224608256
+      },
+      {
+        "seconds": 1.1857485420041485,
+        "pids": [
+          92087,
+          92116
+        ],
+        "footSum": 48923848,
+        "rssSum": 141656064
+      },
+      {
+        "seconds": 1.3144643750056275,
+        "pids": [
+          92087,
+          92116
+        ],
+        "footSum": 85411064,
+        "rssSum": 215859200
+      },
+      {
+        "seconds": 1.446548709005583,
+        "pids": [
+          92087,
+          92116
+        ],
+        "footSum": 93226232,
+        "rssSum": 226230272
+      },
+      {
+        "seconds": 1.575578875002975,
+        "pids": [
+          92087,
+          92116
+        ],
+        "footSum": 80184496,
+        "rssSum": 197361664
+      },
+      {
+        "seconds": 1.7039802090002922,
+        "pids": [
+          92087,
+          92129
+        ],
+        "footSum": 54723784,
+        "rssSum": 163430400
+      },
+      {
+        "seconds": 1.8341613750017132,
+        "pids": [
+          92087,
+          92133
+        ],
+        "footSum": 48366816,
+        "rssSum": 141705216
+      },
+      {
+        "seconds": 1.9639295420056442,
+        "pids": [
+          92087,
+          92137
+        ],
+        "footSum": 16974904,
+        "rssSum": 72040448
+      },
+      {
+        "seconds": 2.0986141250032233,
+        "pids": [
+          92087,
+          92137
+        ],
+        "footSum": 73876704,
+        "rssSum": 200851456
+      },
+      {
+        "seconds": 2.231091708999884,
+        "pids": [
+          92087,
+          92137
+        ],
+        "footSum": 60900504,
+        "rssSum": 178356224
+      },
+      {
+        "seconds": 2.465971666999394,
+        "pids": [
+          92087,
+          92147
+        ],
+        "footSum": 48874720,
+        "rssSum": 144261120
+      },
+      {
+        "seconds": 2.6100228750001406,
+        "pids": [
+          92087,
+          92147
+        ],
+        "footSum": 85279968,
+        "rssSum": 214843392
+      },
+      {
+        "seconds": 2.743245375000697,
+        "pids": [
+          92087,
+          92147
+        ],
+        "footSum": 99599608,
+        "rssSum": 231243776
+      },
+      {
+        "seconds": 2.8768630000049598,
+        "pids": [
+          92087,
+          92147
+        ],
+        "footSum": 102565112,
+        "rssSum": 234340352
+      },
+      {
+        "seconds": 3.006408375003957,
+        "pids": [
+          92087,
+          92147
+        ],
+        "footSum": 103531768,
+        "rssSum": 235421696
+      },
+      {
+        "seconds": 3.131110209003964,
+        "pids": [
+          92087,
+          92147
+        ],
+        "footSum": 103924984,
+        "rssSum": 235814912
+      },
+      {
+        "seconds": 3.2643151670054067,
+        "pids": [
+          92087,
+          92147
+        ],
+        "footSum": 91702448,
+        "rssSum": 210436096
+      },
+      {
+        "seconds": 3.3915230839993455,
+        "pids": [
+          92087,
+          92169
+        ],
+        "footSum": 39961800,
+        "rssSum": 119324672
+      },
+      {
+        "seconds": 3.522780709005019,
+        "pids": [
+          92087,
+          92169
+        ],
+        "footSum": 77677816,
+        "rssSum": 200294400
+      },
+      {
+        "seconds": 3.653584250001586,
+        "pids": [
+          92087,
+          92169
+        ],
+        "footSum": 62997680,
+        "rssSum": 181141504
+      },
+      {
+        "seconds": 3.7870227500025067,
+        "pids": [
+          92087,
+          92179,
+          92180
+        ],
+        "footSum": 0,
+        "rssSum": 39059456
+      }
+    ]
+  },
+  {
+    "label": "run-original",
+    "args": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-per-pass-zero-20261008/original",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window.wav"
+    ],
+    "gate": {
+      "ok": true,
+      "swapGb": 7.85052734375,
+      "load": 2.65,
+      "freeGb": 6.846652984619141,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "freeStart": 61,
+    "wallSeconds": 0.23067604100651806,
+    "exit": 1,
+    "guard": null,
+    "ownedStartIDs": {
+      "92209": 1311226602824
+    },
+    "unjoined": [],
+    "samples": [
+      {
+        "seconds": 0.017955166003957856,
+        "pids": [
+          92209
+        ],
+        "footSum": 81992,
+        "rssSum": 32768
+      },
+      {
+        "seconds": 0.1464574160054326,
+        "pids": [
+          92209
+        ],
+        "footSum": 1769952,
+        "rssSum": 6635520
+      }
+    ]
+  },
+  {
+    "label": "run-candidate",
+    "args": [
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-per-pass-zero-20261008/candidate",
+      "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/quiet-final-source-window.wav"
+    ],
+    "gate": {
+      "ok": true,
+      "swapGb": 7.85052734375,
+      "load": 2.6,
+      "freeGb": 6.846569061279297,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "freeStart": 61,
+    "wallSeconds": 0.15316833300312283,
+    "exit": 0,
+    "guard": null,
+    "ownedStartIDs": {
+      "92241": 1311233589399
+    },
+    "unjoined": [],
+    "samples": [
+      {
+        "seconds": 0.017585250003321562,
+        "pids": [
+          92241
+        ],
+        "footSum": 81992,
+        "rssSum": 32768
+      },
+      {
+        "seconds": 0.1469438749991241,
+        "pids": [
+          92241
+        ],
+        "footSum": 0,
+        "rssSum": 26263552
+      }
+    ]
+  }
+]

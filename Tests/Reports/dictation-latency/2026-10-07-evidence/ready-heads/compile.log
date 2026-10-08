@@ -1,0 +1,19 @@
+xcrun swiftc -swift-version 6 -O LockedBox.production.swift BoundedWait.production.swift SentenceChunker.production.swift IncrementalCleanup.production.swift OriginalResolver.swift CandidateResolver.swift ReadyHeadsCheck.swift -o check
+        3.39 real         2.69 user         0.44 sys
+           165609472  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               80482  page reclaims
+                4261  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   1  signals received
+                1466  voluntary context switches
+                4900  involuntary context switches
+            82915220  instructions retired
+            38537532  cycles elapsed
+             1638760  peak memory footprint

@@ -1,0 +1,14 @@
+{
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-native-batch-20261008/DefaultParams.c": {
+    "sha256": "8d53c3cc7c3353f7c08627ee2adc9d4576f7bbb501d9709635070ce494491d72",
+    "bytes": 350
+  },
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/speechify/LlamaFramework/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/Headers/llama.h": {
+    "sha256": "d987e8fa7f98c845613201e66e5e0ca76aca7a08c2645711d4b0c8febd2cb369",
+    "bytes": 84279
+  },
+  "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/artifacts/speechify/LlamaFramework/llama.xcframework/macos-arm64_x86_64/llama.framework/Versions/A/llama": {
+    "sha256": "6bac4742584e748218924337c341eac19ea1aeb3c70f982616302db7a6d8ec0c",
+    "bytes": 16265632
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "utc": "2026-10-08T07:20:27.278011+00:00",
+  "status": "Cache-only allocation diagnostic uncompiled/unrun; capacity candidate unapplied",
+  "actualDefaultReceipt": "defaults-acceptance.json",
+  "files": {
+    "ContextCapacityProbe.c": "494376ac6019cedaf24b622b69aa48e25981e005712e4b7348064d9682dff356",
+    "NotesModelRuntime.batch128-candidate.swift": "7805ab7c12eab21e0b2261cea5d401f2b61cb3be23bb1fe23db4850b87dc25b3"
+  },
+  "diagnosticContract": "Disposable private-process copy of actual runtime model/context construction. Fixed numeric compute/output/KV/recurrent buffer metadata only. Restore exact previous native callback and user context with llama_log_get/set. Same weight file, MMAP, extra buffers disabled, threads leave two cores, n_ctx unchanged per pair; compare old512/default512 versus128/128. No prompt/token/native line or model path emitted. No decoding or sampler. Old/new context destroyed sequentially before same weight unload.",
+  "limitations": [
+    "Not actual runtime scheduler/role/cancellation/prefix consumer",
+    "Reported buffer MiB are formatted native metadata, not exact bytes or machine wired attribution",
+    "S1 CPU graph does not establish MiniCPM Metal or long notes allocation",
+    "Native model initialization requires a separately reviewed exclusive resource profile; no launch during seventh compiler",
+    "No numerical equivalence, quality, full feature, decode floor or latency acceptance"
+  ],
+  "nextStages": [
+    "Parser control compile/run under a separate model-free window",
+    "Actual CPU context reservation paired comparison if allowed by fresh resource admission",
+    "Existing private Runtime exact prompt/logits/sampler/prefix/cancellation/grammar comparisons",
+    "MiniCPM Metal effective graph allocation and actual role workload with ASR/voice floor under reference conditions"
+  ]
+}

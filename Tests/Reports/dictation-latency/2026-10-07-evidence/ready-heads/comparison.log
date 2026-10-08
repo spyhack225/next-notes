@@ -1,0 +1,21 @@
+READY_HEADS_COMPONENT: candidate=false repeats=300 groups=30 deadlineCalls=9000 duration=0.054929542 seconds
+READY_HEADS_COMPONENT: candidate=true repeats=300 groups=30 deadlineCalls=0 duration=0.003432958 seconds
+READY_HEADS_OK: checks=742 problems=0; exact production producer/resolver component only, full router/native unrun
+        0.24 real         0.06 user         0.07 sys
+            12713984  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                 989  page reclaims
+                   1  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+               13557  involuntary context switches
+          1100781903  instructions retired
+           451349717  cycles elapsed
+             8569384  peak memory footprint

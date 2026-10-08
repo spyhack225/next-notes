@@ -1,0 +1,21 @@
+--- a/Sources/NextNotes/Formatting/CleanupRouter.swift
++++ b/Sources/NextNotes/Formatting/CleanupRouter.swift
+@@ -531,8 +531,17 @@
+     private func resolvePrecleanGroups(_ head: CleanupHead) async -> [String] {
+         let deadline = ContinuousClock.now.advanced(by: precleanGrace)
+         var pieces: [String] = []
+-        for (spoken, task) in zip(head.stageA, head.cleaned) {
++        for (index, pair) in zip(head.stageA, head.cleaned).enumerated() {
++            let (spoken, task) = pair
+             let left = deadline - ContinuousClock.now
++            // The same producer publishes this result just before returning its Task.
++            // Ready groups need no deadline task pair or await. Preserve expiration,
++            // cancellation and empty-answer behavior of the existing bounded wait.
++            if left > .zero, !Task.isCancelled, head.completed.indices.contains(index),
++               let landed = head.completed[index].value {
++                pieces.append(landed.isEmpty ? spoken : landed)
++                continue
++            }
+             if left > .zero, let landed = await withBoundedWait(left, { await task.value }),
+                !landed.isEmpty {
+                 pieces.append(landed)
