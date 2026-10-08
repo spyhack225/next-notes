@@ -1,0 +1,7 @@
+{
+  "utc": "2026-10-08T08:55:25.025280+00:00",
+  "status": "full Router preflight refused before any compiler child; no verdict, no retry. Reported exact failing percent not retained by old runner; do not substitute later observation as original.",
+  "scope": "Agreed small normal8/min6.5/start55/ongoing50/1GB profile",
+  "sourceInvariant": true,
+  "newObservationNotOriginal": "System-wide memory free percentage: 54%"
+}

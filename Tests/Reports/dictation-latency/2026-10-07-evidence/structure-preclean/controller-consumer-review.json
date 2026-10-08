@@ -1,0 +1,17 @@
+{
+  "scope": "cache-only full Controller fixture in existing private seam and cleanup-latency flag; native models, owner stores and physical insertion absent",
+  "cases": 40,
+  "compiled": false,
+  "run": false,
+  "assertions": [
+    "actual factory uses captured profile and structure preference",
+    "actual head carries premodel groups",
+    "actual runTail retains required closed blocks and refuses revised/cross envelopes",
+    "actual insert closure and trace receive exact no-head Router control",
+    "release sends only remaining tail to semantic"
+  ],
+  "originalRegression": "Not yet run; no passing claim",
+  "sourceWriters": 0,
+  "fixtureSHA256": "f6f1a62f8454cdf574fb96911d609a3a6b4c6014e0dd148f2eb84d47421088b2",
+  "initialPreparation": "wrong cache filename refused before candidate assembly; corrected to existing pinned coherent candidate; no canonical source mutation"
+}

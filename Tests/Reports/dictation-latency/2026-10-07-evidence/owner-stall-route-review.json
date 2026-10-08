@@ -1,0 +1,82 @@
+{
+  "utc": "2026-10-08T08:36:48.957834+00:00",
+  "ownerRunLogSHA": "560665c6cf414dd5aff28359d8f6c090a6d424c2f1b5b2f8e5cb8db395c1350a",
+  "ownerUsageLogSHA": "ab57f59fab820b4acd77da59416ec843f44222b81bd6202ba93554b991cac3b2",
+  "runDate": "2026-10-07T23:53:20Z",
+  "audioSeconds": 1.909317970275879,
+  "processSeconds": 11.534053921699524,
+  "finalWordCount": 5,
+  "ruleWordCount": 5,
+  "exactMiniTimeoutLiteral": true,
+  "cleanupMetadata": {
+    "seconds": 11.446102976799011,
+    "modelSeconds": 11.444182991981506,
+    "cleanupModelResident": true,
+    "engine": "miniCPM",
+    "enginesUsed": [
+      "apple"
+    ],
+    "guardVerdict": "not reached",
+    "assumedWarmth": "staged",
+    "sessionPrewarmed": true,
+    "modelRan": true,
+    "chunks": 1,
+    "fixesGrammar": true,
+    "formatsStructure": true
+  },
+  "usageLinkedExactlyByExistingRunID": 3,
+  "usageMetadata": [
+    {
+      "finishReason": "stop",
+      "stages": {
+        "transcribe": 0.06783998012542725,
+        "laneWait": 7.998943328857422e-05,
+        "drain": 0.0044400691986083984,
+        "cleanup": 11.44680404663086,
+        "names": 5.1975250244140625e-05,
+        "inject": 0.1320939064025879
+      },
+      "provider": "parakeet",
+      "feature": "dictation.asr",
+      "totalMs": 72,
+      "ts": "2026-10-07T23:53:32Z",
+      "pass": "engine"
+    },
+    {
+      "finishReason": "stop",
+      "provider": "appleFM",
+      "feature": "dictation.cleanup",
+      "totalMs": 11447,
+      "counts": {
+        "chunks": 1
+      },
+      "ts": "2026-10-07T23:53:32Z",
+      "pass": "cleanup"
+    },
+    {
+      "pass": "hold",
+      "ts": "2026-10-07T23:53:32Z",
+      "feature": "dictation.hold",
+      "totalMs": 11693,
+      "counts": {
+        "words": 5,
+        "droppedHubBuffers": 0,
+        "droppedStreamBuffers": 0,
+        "cleanupTimedOut": 0,
+        "holdMs": 1909,
+        "keyDownToCaptureMs": 92,
+        "capturedFrames": 28751,
+        "sessionPrewarmed": 1
+      },
+      "provider": "parakeet"
+    }
+  ],
+  "sourcePins": {
+    "Sources/NextNotes/Formatting/MiniCPMCleanupFormatter.swift": "70197eb57f569316733ff1356321871d0944a36722f3cd29e86f974810281e6e",
+    "Sources/NextNotes/Formatting/FoundationModelFormatter.swift": "96839fe4cdc15acffe4469c0eeb954851c4083cb145ab68b3679229e1950fd5f",
+    "Sources/NextNotes/Formatting/CleanupTrace.swift": "2285079b94e26f07a34e27888360a6c1cfd12d141142de3420510bb36857cb20",
+    "Sources/NextNotes/Formatting/CleanupRouter.swift": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280"
+  },
+  "verdict": "Owner metadata confirms resident Mini timeout followed by Apple fallback, not cold missing weights or dominant ASR. Exact native wait/context/prefill/generation and separate fallback durations remain unlocalized; overall modelSeconds sums attempts. Current source is pinned analysis, not proof source matches owner executable.",
+  "privacy": "No dictated text, raw prompt, target app, raw free-text errors or record identifiers retained. Owner files read only; no writes, app start or native model."
+}

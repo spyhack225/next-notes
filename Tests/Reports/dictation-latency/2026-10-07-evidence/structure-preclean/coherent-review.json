@@ -1,0 +1,22 @@
+{
+  "status": "Coherent cache-only three-path proposal; UNAPPLIED. Exact shared matcher preserves old remainder contract. Full Router/core/native acceptance remains pending.",
+  "paths": [
+    {
+      "path": "Sources/NextNotes/Formatting/IncrementalCleanup.swift",
+      "beforeSHA": "42af5a20da34dc29c16f550d3b056bdb1389cd3be0c4282a604ca1af3f033285",
+      "afterSHA": "afc8771f81fcb0793384743eddc6b0a9a198763a28b7cbe5336ed4fbfa75b549"
+    },
+    {
+      "path": "Sources/NextNotes/Formatting/CleanupRouter.swift",
+      "beforeSHA": "c5fe3624d030b83f3a3effe4b63b8539a671f2ef9c08aad4275c9af37254a280",
+      "afterSHA": "e3baaca134a1b177a2ab83e5fbc911a45374826128070ea91a11cdf2f2f4193f"
+    },
+    {
+      "path": "Sources/NextNotes/Core/DictationController.swift",
+      "beforeSHA": "48ea2657bd2e8094057415bed5082d51e6db0d2194f4feee8bbb57a9e082f0d0",
+      "afterSHA": "0a316036483618efa1e083afe52e07518a903f8e6af2cbeeb6a9006d17a5e221"
+    }
+  ],
+  "patchSHA": "709282acd68b418c9ae8d87874a5dbabb7fcfd4d64fcc4a3ae77b2d626ca909e",
+  "plan": "Regenerate full Router candidate from these same full canonical producers, run original required-reuse fail/candidate exact pass, then maintained Core/Router tests/native features in reviewed Source gap."
+}
