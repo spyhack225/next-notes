@@ -1,0 +1,15 @@
+{
+  "n": 5,
+  "route_ready_vs_endpoint_seconds": [
+    0.973,
+    1.211,
+    1.114,
+    1.49,
+    1.125
+  ],
+  "median": 1.125,
+  "p95": 1.49,
+  "min": 0.973,
+  "max": 1.49,
+  "meaning": "positive means complete validated routing was not ready at committed endpoint"
+}

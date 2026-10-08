@@ -1,0 +1,109 @@
+{
+  "mini-before.log": {
+    "file": "Tests/Reports/pl12-listen2/mini-before.log",
+    "sha256": "f3d0034ddbb1e8511e296854d02666e6eb1d9259878cc740c40d0023f12524f2",
+    "rows": [
+      {
+        "index": 1,
+        "raw": "VOICE_LATENCY_RUN=1 speech_end_to_eou=- eou_hop=- eou_to_endpoint=- speech_end_to_endpoint=2.608 endpoint_to_request=0.055 request_to_lane=- route=5.911 route_to_first_token=13.679 transcript_to_first_token=17.818 first_token_to_clause=0.057 clause_to_first_pcm=1.859 first_pcm_to_audible=0.039 speech_end_to_first_audio=22.382 L1=0.673 L2=17.818 L3=19.774 speculation=hit headstart=1.833 route_staging=fresh answer_staging=native partial_route_ready_vs_endpoint=4.140 main_stall_max=1.184 stall_site=unlabelled eou_prepare=0.001 endpoint_source=vad marks=11",
+        "L1": 0.673,
+        "L2": 17.818,
+        "L3": 19.774,
+        "route_to_first_token": 13.679,
+        "speech_end_to_endpoint": 2.608,
+        "endpoint_to_request": 0.055
+      },
+      {
+        "index": 2,
+        "raw": "VOICE_LATENCY_RUN=2 speech_end_to_eou=2.133 eou_hop=0.006 eou_to_endpoint=0.065 speech_end_to_endpoint=2.198 endpoint_to_request=0.288 request_to_lane=- route=5.471 route_to_first_token=15.902 transcript_to_first_token=21.668 first_token_to_clause=0.068 clause_to_first_pcm=2.551 first_pcm_to_audible=0.047 speech_end_to_first_audio=26.532 L1=1.387 L2=21.668 L3=24.334 speculation=miss reason=no-slot route_staging=fresh answer_staging=native main_stall_max=0.582 stall_site=unlabelled eou_prepare=0.011 endpoint_source=localEOU marks=14",
+        "L1": 1.387,
+        "L2": 21.668,
+        "L3": 24.334,
+        "route_to_first_token": 15.902,
+        "speech_end_to_endpoint": 2.198,
+        "endpoint_to_request": 0.288
+      },
+      {
+        "index": 3,
+        "raw": "VOICE_LATENCY_RUN=3 speech_end_to_eou=1.044 eou_hop=0.000 eou_to_endpoint=0.001 speech_end_to_endpoint=1.045 endpoint_to_request=0.060 request_to_lane=- route=5.130 route_to_first_token=11.078 transcript_to_first_token=15.253 first_token_to_clause=0.023 clause_to_first_pcm=1.046 first_pcm_to_audible=0.024 speech_end_to_first_audio=17.392 L1=0.716 L2=15.253 L3=16.347 speculation=hit headstart=1.022 route_staging=fresh answer_staging=native partial_route_ready_vs_endpoint=4.174 main_stall_max=0.031 stall_site=unlabelled eou_prepare=0.008 endpoint_source=localEOU marks=14",
+        "L1": 0.716,
+        "L2": 15.253,
+        "L3": 16.347,
+        "route_to_first_token": 11.078,
+        "speech_end_to_endpoint": 1.045,
+        "endpoint_to_request": 0.06
+      },
+      {
+        "index": 4,
+        "raw": "VOICE_LATENCY_RUN=4 speech_end_to_eou=- eou_hop=- eou_to_endpoint=- speech_end_to_endpoint=2.521 endpoint_to_request=0.037 request_to_lane=- route=5.479 route_to_first_token=14.084 transcript_to_first_token=17.206 first_token_to_clause=0.023 clause_to_first_pcm=2.358 first_pcm_to_audible=0.309 speech_end_to_first_audio=22.417 L1=0.692 L2=17.206 L3=19.896 speculation=hit headstart=2.398 route_staging=fresh answer_staging=native partial_route_ready_vs_endpoint=3.122 main_stall_max=0.137 stall_site=unlabelled eou_prepare=0.005 endpoint_source=vad marks=11",
+        "L1": 0.692,
+        "L2": 17.206,
+        "L3": 19.896,
+        "route_to_first_token": 14.084,
+        "speech_end_to_endpoint": 2.521,
+        "endpoint_to_request": 0.037
+      },
+      {
+        "index": 5,
+        "raw": "VOICE_LATENCY_RUN=5 speech_end_to_eou=1.120 eou_hop=0.000 eou_to_endpoint=0.002 speech_end_to_endpoint=1.122 endpoint_to_request=0.092 request_to_lane=- route=5.512 route_to_first_token=11.912 transcript_to_first_token=16.405 first_token_to_clause=0.024 clause_to_first_pcm=0.708 first_pcm_to_audible=0.023 speech_end_to_first_audio=18.282 L1=0.756 L2=16.405 L3=17.160 speculation=hit headstart=1.117 route_staging=fresh answer_staging=native partial_route_ready_vs_endpoint=4.494 main_stall_max=0.038 stall_site=echo.mask eou_prepare=0.002 endpoint_source=localEOU marks=14",
+        "L1": 0.756,
+        "L2": 16.405,
+        "L3": 17.16,
+        "route_to_first_token": 11.912,
+        "speech_end_to_endpoint": 1.122,
+        "endpoint_to_request": 0.092
+      }
+    ],
+    "summary_seconds": {
+      "L1": {
+        "n": 5,
+        "median": 0.716,
+        "p95": 1.387,
+        "min": 0.673,
+        "max": 1.387
+      },
+      "L2": {
+        "n": 5,
+        "median": 17.206,
+        "p95": 21.668,
+        "min": 15.253,
+        "max": 21.668
+      },
+      "L3": {
+        "n": 5,
+        "median": 19.774,
+        "p95": 24.334,
+        "min": 16.347,
+        "max": 24.334
+      },
+      "route_to_first_token": {
+        "n": 5,
+        "median": 13.679,
+        "p95": 15.902,
+        "min": 11.078,
+        "max": 15.902
+      },
+      "speech_end_to_endpoint": {
+        "n": 5,
+        "median": 2.198,
+        "p95": 2.608,
+        "min": 1.045,
+        "max": 2.608
+      },
+      "endpoint_to_request": {
+        "n": 5,
+        "median": 0.06,
+        "p95": 0.288,
+        "min": 0.037,
+        "max": 0.288
+      }
+    },
+    "200ms_median_gates": {
+      "L1": "FAIL",
+      "L2": "FAIL"
+    },
+    "markers": [
+      "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+    ]
+  }
+}
