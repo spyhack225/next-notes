@@ -1,22 +1,29 @@
-Review completed against c6d850c and retained qualification evidence.
-Vendor-only lost quality: 5/5/4, 5/5/5 and later3/10.
-Combined thinking/vendor failed or timed out; no promotion justified.
-Baseline-thinking reached9/10 once in403.9s; repeat qualification incomplete.
-Historical baseline full25/30,23/30 and owner9/10 still has open gates.
-Main has no per-role thinking scope; voice precedence repair was withheld.
-Main stream reasoning/split-marker defect is PRESENT at its producer.
-Notes/cleanup native tool-delimiter exposure is ABSENT (special rendering OFF).
-Conditional RED/GREEN repair is BLOCKED: disk4GiB (initial8) below minimum10GiB.
-No source change/build/model run/install/push/merge; report-only delivery.
+Standalone streaming producer repair delivered on claude2/thinking-review.
 
-Detailed answers, exact pins, report/raw-round paths, source lines and one bounded next experiment: THINKING-REVIEW.md.
+Producer/test/evidence commit: 8e4243d6837737f1c2c23b18399237dcf0dff214.
+Shared prerequisite commit: aae0a5c6 (cherry-pick of listen2 20d8f9b8b592b92acd01ab31d3f50978abb99103, exact canonical recoveredReadHistory method).
+Previous read-only review remains in RESULT-previous.md and THINKING-REVIEW.md.
 
-Checks performed: git commit/stat/source review, retained report/JSONL/summary inspection, canonical runtime/planner read-only comparison, relay registration/start/inbox, disk/swap read-only admission observation. These are review checks; no new self-test final marker exists. Historical native markers explicitly identified in the review are retained evidence, not executions by this agent.
+Confirmed cause: main stripped complete think controls per piece, then yielded the reasoning body; split controls and same-piece stop tails also reached callbacks. The actual streaming output producer now retains bounded marker prefixes, hides marked/nested/interleaved reasoning, and stops before turn-tail text. Ordinary plain/tool bytes are unchanged in the seven-family UTF-8 fixture. No roles, sampler, defaults, generation budget, model passes or scheduling awaits changed.
 
-Exact blocker: df -g / initially reported Available8GiB, final recheck4GiB; ../gate.sh admits only >=10GiB. Swift RED/GREEN through ../heavy.sh cannot be admitted. No heavy job was launched, no gate refusal exit75 is fabricated and no gate was relaxed. Original synthetic regression inputs and producer repair scope are specified in review section4. Product reproduction frequency, native original/fixed stream/consumer, privacy/isolation and related functional checks remain UNRUN. No owner model/default/readiness claim.
+RED before repair: CHAT_TEMPLATE_STREAM: 440 cases, 542 failures; decoded pieces -> producer callbacks -> completed stream.
+RED final marker: CHAT_TEMPLATE_FAILED: 543 problem(s), exit 1; extra failure is native MiniCPM vocabulary output PRIVATEAnswer… . All failures are in the new producer cases.
+GREEN: same 440 cases fail 0; native MiniCPM producer and existing checks pass.
+Exact fixture SHA256 before/after: 2e8009db5d72670706f7e934a21eda9d9e74c22aeb86fb2fcac9aac19cd88dc4.
 
-Files changed: THINKING-REVIEW.md and RESULT.md only. No Sources/Resources edits. A future fix must touch Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift, which will conflict with uncommitted work per ../MAIN-DIRTY-SOURCES.txt. No current changed file is on that list. No wt-scratch/thinking-review or test TMP folder was created, so no cleanup is needed.
+Checks run through ../heavy.sh, serially in owned scratch:
+--selftest-chat-template → CHAT_TEMPLATE_OK: 6 families detected and rendered; control tokens survive planner decode (exit 0).
+--selftest-notes-truncation → NOTES_TRUNCATION_OK: a cut answer says so on the page, the single pass and the reduce each retry once at double the budget, the cap scales with the meeting, the wire finish reasons are read (exit 0).
+--selftest-llm-prefix-cache → LLM_PREFIX_CACHE_OK: reused 646/666 tokens, prefill 1.38s → 0.18s; stable prompt front 90% (was 73% before P1-28) (exit 0).
+--selftest-store-isolation → STORE_ISOLATION_OK: 21 files and 0 defaults unchanged (exit 0).
+--selftest-llm-prefix-cache ran once. Both corrected RED and fixed debug builds passed; initial build failed on the inherited missing task-store method and was not a RED test verdict. No threshold/test/timeout was weakened.
 
-Decision required from integrator: provide an authorized >=10GiB disk/build window to execute the conditional standalone producer repair; decide whether to spend35–45 minutes on the proposed128-token matched Agent-only experiment. No permission request or default promotion follows from this report.
+The actual store-isolation result observes zero watched defaults in the unbundled scratch executable. It does not prove installed owner-domain preference coverage; do not substitute the historical 32-default count. The guard compared 21 file signatures including absence/unreadability states. Physical voice/full-duplex playback, live hidden-generation frequency, non-streaming literal-thinking output, broader notes factuality, task-store recovery qualification and inherited model-quality gates were not verified here. No model/default or phase promotion.
 
-Documentation is committed on claude2/thinking-review (see final commit from git log -1). git diff --check passes; this is whitespace validation only. Relay start and finish messages target claude-positioning; findings are also broadcast to project peers, without assuming acknowledgement.
+Files changed: Sources/NextNotes/Formatting/LLM/ChatTemplate.swift, ChatTemplateSelfTest.swift and NotesModelRuntime.swift; shared prerequisite Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift; PERFORMANCE-STANDARDS.md; RESULT.md; Tests/Reports/thinking-stream-producer/ (report, unchanged RED source patch, exact native logs/summaries, compressed raw build logs, runner and cleanup manifests).
+
+Will conflict with uncommitted work: NotesModelRuntime.swift and the shared AgentTaskStore.swift prerequisite (per MAIN-DIRTY-SOURCES.txt). Integrator must merge the bounded streaming callback hunk manually and reuse the existing canonical/shared prerequisite rather than duplicate its method. No owner decision or permission is needed for this bounded source repair; later installed-domain/live-voice acceptance is a separate contract.
+
+No canonical checkout edits/builds, owner-store seeding, GUI opening, install, push or merge. Own scratch was removed after exact GREEN binary-hash/no-holder checks; every runner-owned test temporary root was removed. Foreign files/processes/staged changes were preserved. Cache cleanup retained the RED executable/framework hashes; its manifest distinguishes allocated bytes and available-space samples from independent peer cleanup.
+
+Details and real original/fixed pins: Tests/Reports/thinking-stream-producer/README.md, red-summary.json, green-summary.json and final-cleanup.json. git diff --check and staged whitespace validation passed. Relay start/producer-RED/finish messages are sent as claude2-thinking-review; delivery is not assumed acknowledgement.
