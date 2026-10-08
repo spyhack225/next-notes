@@ -321,7 +321,12 @@ actor ChunkedTranscriber {
     /// and the whole-track `cutPoints`, so the live tier and the final pass cannot
     /// drift into different definitions of a pause.
     static func frameIsSilent(_ frame: ArraySlice<Float>) -> Bool {
-        AudioConversion.rms(of: frame) < silenceThreshold
+        frameIsSilent(rms: AudioConversion.rms(of: frame))
+    }
+
+    /// Shares the exact pause floor with callers that already computed frame energy.
+    static func frameIsSilent(rms: Float) -> Bool {
+        rms < silenceThreshold
     }
 
     /// Whole-track window cuts with the same silence rule `nextCut` streams with:

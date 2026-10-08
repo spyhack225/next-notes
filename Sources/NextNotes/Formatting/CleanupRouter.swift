@@ -950,6 +950,7 @@ extension CleanupRouter {
     static func runSelfTest() async -> Bool {
         var failures: [String] = []
         failures += await RuleBasedFormatter.unicodeCapitalizationFailures()
+        failures += await IncrementalCleanupSession.cancelledLaneFailures()
 
         let s1 = preferredEngine(choice: .s1Mini, fixesGrammar: false)
         if s1 != .s1Mini {
