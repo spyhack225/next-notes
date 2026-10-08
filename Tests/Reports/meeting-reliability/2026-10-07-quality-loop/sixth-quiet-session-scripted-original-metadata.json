@@ -1,0 +1,19 @@
+{
+  "experiment": "sixth-quiet-session-scripted-original",
+  "exit": 0,
+  "wall_seconds": 1.4475473330021487,
+  "markers": [
+    "MEETING_QUIET_SESSION_OK"
+  ],
+  "candidateSHA": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "startedAt": "2026-10-08T05:34:05.256168+00:00",
+  "endedAt": "2026-10-08T05:34:06.708101+00:00",
+  "pids": [],
+  "memorySamples": 0,
+  "peakSampledFootprintBytes": null,
+  "peakSampledResidentBytes": null,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "manual review pending",
+  "guardReason": null,
+  "guardScope": "explicit diagnostic only,120s/3GB sampled process footprint/system9GBswap scripted-only, minimum6GBdisk explicit exception; no product gate"
+}

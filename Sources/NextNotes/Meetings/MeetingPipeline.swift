@@ -24,7 +24,8 @@ enum MeetingPipeline {
     static func afterTranscribing(
         _ meeting: Meeting,
         store: MeetingStore = .shared,
-        recoverDroppedAudio: Bool = false
+        recoverDroppedAudio: Bool = false,
+        finalService: FinalTranscriptService? = nil
     ) -> Meeting {
         guard let meeting = store.meeting(id: meeting.id) else { return meeting }
         let hasAudio = store.audioURL(for: meeting).flatMap {
@@ -46,7 +47,7 @@ enum MeetingPipeline {
             droppedAudio: recoverDroppedAudio
         ) {
         case .run:
-            FinalTranscriptService.shared.process(meeting, store: store)
+            (finalService ?? FinalTranscriptService.shared).process(meeting, store: store)
             return meeting
         case .skip(let pass):
             var updated = meeting

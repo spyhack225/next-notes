@@ -1,0 +1,59 @@
+{
+  "candidateSHA256": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "failed": [],
+  "scope": [
+    "MEETING_QUIET_SESSION_SCOPE native=false substitutedASR=true experimental=true selectedCases=[\"quiet\",\"loud\",\"mixed\",\"digital-zero\",\"dc\",\"noise\"] originalQuietMissingStages=0 originalQuietAllFourStagesMissing=false independentClauseWords=7 productQualityPass=false productNoiseWorkloadAcceptance=false permissionAuthority=false"
+  ],
+  "calls": [
+    {
+      "case": "quiet",
+      "count": 6,
+      "allSucceeded": true,
+      "native": false,
+      "elapsed": 5e-07,
+      "allDomainMatch": true
+    },
+    {
+      "case": "loud",
+      "count": 4,
+      "allSucceeded": true,
+      "native": false,
+      "elapsed": 5.84e-07,
+      "allDomainMatch": true
+    },
+    {
+      "case": "mixed",
+      "count": 6,
+      "allSucceeded": true,
+      "native": false,
+      "elapsed": 5.02e-07,
+      "allDomainMatch": true
+    },
+    {
+      "case": "digital-zero",
+      "count": 0,
+      "allSucceeded": true,
+      "native": false,
+      "elapsed": 0,
+      "allDomainMatch": true
+    },
+    {
+      "case": "dc",
+      "count": 6,
+      "allSucceeded": true,
+      "native": false,
+      "elapsed": 7.09e-07,
+      "allDomainMatch": true
+    },
+    {
+      "case": "noise",
+      "count": 6,
+      "allSucceeded": true,
+      "native": false,
+      "elapsed": 4.5899999999999997e-07,
+      "allDomainMatch": true
+    }
+  ],
+  "nativeWordProof": false,
+  "meaning": "actual isolated Session/CAF/finalTask/save/freshread forwarding with substituted ASR only; native words/noise duty/cost unproved"
+}

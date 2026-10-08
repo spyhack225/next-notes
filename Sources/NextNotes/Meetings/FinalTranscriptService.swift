@@ -21,6 +21,7 @@ final class FinalTranscriptService {
     private var terminationRequested = false
     private var terminationFixtureID: UUID?
     private var terminationFixtureTrace: FinalTranscriptTerminationTrace?
+    private var quietFixtureTaskForTesting: Task<Void, Never>?
 
     /// COMMON metadata-only diagnostic; the ordinary default remains nil.
     func configureFinalTerminationFixture(id: UUID, store: MeetingStore,
@@ -41,8 +42,42 @@ final class FinalTranscriptService {
         terminationFixtureTrace = trace
     }
 
+    /// One safe quiet-session fixture reuses the existing fixture identity and map.
+    /// No shared singleton or native model is initialized by this configuration.
+    func configureQuietSessionFixture(id: UUID, store: MeetingStore) throws {
+        let root = store.directory(for: id).deletingLastPathComponent().standardizedFileURL.resolvingSymlinksInPath()
+        let temporary = FileManager.default.temporaryDirectory.standardizedFileURL.resolvingSymlinksInPath()
+        let prefix = "NextNotesMeetingResumeTest-"
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-quiet-input",
+              CommandLine.arguments.contains("--meeting-quiet-session"),
+              Settings.shared.usesHarnessPreferencesForTesting,
+              tasks.isEmpty, terminationFixtureID == nil,
+              root.deletingLastPathComponent().path == temporary.path,
+              root.lastPathComponent.hasPrefix(prefix),
+              UUID(uuidString: String(root.lastPathComponent.dropFirst(prefix.count))) != nil else {
+            throw CocoaError(.fileReadNoPermission)
+        }
+        terminationFixtureID = id
+    }
+
+    /// Release only the joined quiet diagnostic reference; production stays nil.
+    func releaseQuietSessionFixture(id: UUID) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-quiet-input",
+              CommandLine.arguments.contains("--meeting-quiet-session"),
+              Settings.shared.usesHarnessPreferencesForTesting,
+              id == terminationFixtureID, tasks[id] == nil else { return false }
+        quietFixtureTaskForTesting = nil
+        terminationFixtureID = nil
+        return true
+    }
+
     /// Returns the SAME map handle; no replacement Task or native result override.
     func finalTerminationTaskForTesting(id: UUID) -> Task<Void, Never>? {
+        if SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-quiet-input",
+           CommandLine.arguments.contains("--meeting-quiet-session"),
+           Settings.shared.usesHarnessPreferencesForTesting, id == terminationFixtureID {
+            return quietFixtureTaskForTesting
+        }
         guard SelfTest.isRunning, SelfTest.requested == "--selftest-native-termination",
               NativeFinalTranscriptQuitSelfTest.isRequested, id == terminationFixtureID else { return nil }
         return tasks[id]
@@ -99,6 +134,12 @@ final class FinalTranscriptService {
                 if id == self.terminationFixtureID { self.terminationFixtureTrace?.ended() }
             }
             await self.run(id: id, store: store)
+        }
+        if SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-quiet-input",
+           CommandLine.arguments.contains("--meeting-quiet-session"), id == terminationFixtureID {
+            // Retain the SAME assigned handle before a fast all-silent task can remove
+            // its normal map slot. Only the configured private diagnostic owns it.
+            quietFixtureTaskForTesting = tasks[id]
         }
         if id == terminationFixtureID { terminationFixtureTrace?.assigned() }
     }

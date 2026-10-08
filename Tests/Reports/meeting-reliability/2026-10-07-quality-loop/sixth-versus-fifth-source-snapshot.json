@@ -1,0 +1,83 @@
+{
+  "fifthCount": 1171,
+  "sixthCount": 1173,
+  "changed": {
+    "Sources/NextNotes/Core/DictationController.swift": {
+      "fifth": "32f9b4ea06d960a9734af2e950d4126d74b8dbe3c21008fcc7a7e4cd088358e1",
+      "sixth": "48ea2657bd2e8094057415bed5082d51e6db0d2194f4feee8bbb57a9e082f0d0"
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": {
+      "fifth": "12bdf93d929da8a2d2ab8e6fbb531ac4c0641e6bb7ba892c400b1f1740fd7b9d",
+      "sixth": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0"
+    },
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift": {
+      "fifth": "ebb904245b14a5de28468fc7a44a83db1f4fd8a0813619ef3199d8c3c8b7671d",
+      "sixth": "9a69c9e5a688d92437c26242db745178928f957ced02a3bb16691b87425214d5"
+    },
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": {
+      "fifth": "78ae4827c275b8d5e37cba2aac098a7d68dd6186a21ebcece68c9361176f1c73",
+      "sixth": "37e34792effe905fc50bf9d1a11fb7cf4dda842461e2bd44a4f6eebca3fc4edb"
+    },
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": {
+      "fifth": "210a4ae7ac7e975219fdbe1da038b3caa7a88a3895b05c74c81cd46c9f13f334",
+      "sixth": "9d872a3db9928018875c0e1141a70baad6d1df25e6a628ac64b08cf4d3095607"
+    },
+    "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift": {
+      "fifth": "1d959d44a7a96c9e0f49747c799604b35c297ca7e56eeef46e2bb803f8f78517",
+      "sixth": "1907e7e5c0e6a116abb8d8cbb06bae1f6d2ac8b4806ce23ae9f05353cc6df811"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmenter.swift": {
+      "fifth": "215ef83b73014c1bffbcda9f8446798613e12c1f929593078f2c09fb9f4a5e3b",
+      "sixth": "b87b448013837a4c8e6a8286b7fcb97f084af1cccc9b6619c1fabfa5c7c125ad"
+    },
+    "Sources/NextNotes/Context/ScreenContext.swift": {
+      "fifth": "53cda27312ddbfe0f0eae8533544d488afd0a5060792482cae4b902ba87deb68",
+      "sixth": "b960575cf53707e1299c7c496d827e5a9cf0704b335f2470d50ebf978721e11e"
+    },
+    "Sources/NextNotes/Meetings/MeetingQuietInputSelfTest.swift": {
+      "fifth": "ca7d6fe4fe5ae9b2daed19c85cfcc080d546b9515612ed4a586b0457916ad859",
+      "sixth": "399625c3bbbad2a832e944c75b322bcae93798314705b28f52a63b4c7e7b3d8c"
+    },
+    "Sources/NextNotes/Meetings/FinalTranscriptService.swift": {
+      "fifth": "a7e8e6bd45f2eef27839249a8fea018745eb5054d5d5f75861c76df87fb7b445",
+      "sixth": "7545dba4792ab61009918236cd2146c22c1d7e4e7f6f63fd1164d512003eccd1"
+    },
+    "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift": {
+      "fifth": null,
+      "sixth": "fb2b370241d1bdf91ef5e037a962763aa80777dabf648721635a4d43926994ba"
+    },
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift": {
+      "fifth": "5952643d3b531627ce685c68f93d0c060e4f903d18e6fd4f89febd020f5082a1",
+      "sixth": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535"
+    },
+    "Sources/NextNotes/Core/Compute/ComputeScheduler.swift": {
+      "fifth": "ba4edfbc487b0a6a19bf3e2ee9b2fe80f26a56a7eaffd14837c049b2d878bfd0",
+      "sixth": "029d064485194aaa262b22666454ff289bd428516abfbc86b6cbeb34cfb2e09d"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": {
+      "fifth": "be5f2cfb0b1f20a2f8455f5e17b3b2f8f87929b97a416748367964717f992570",
+      "sixth": "a008b588450a607b242a3f71f445eff9bcd520f3db01ebb9a54d42e5e77dd157"
+    },
+    "Sources/NextNotes/NextNotesApp.swift": {
+      "fifth": "0f8d1295c1bee4f2b02ec320cd46ccf9a2d875f730b0e33f52af344378581beb",
+      "sixth": "f1835c5a00d09096bbee57a020eaddbe5ed23e6dfa5ba69ff9fd33cdc7efcfd9"
+    },
+    "Sources/NextNotes/Meetings/NotesPrompts.swift": {
+      "fifth": "4d786959e395cdd3c590113532e9b75e30e79d5fcfbc00a97dfb0470188a53d4",
+      "sixth": "f606d07f3299f3dbb499b00f81bd9b61c7f5ba6b4a7030065efffb98effee064"
+    },
+    "Sources/NextNotes/Meetings/NotesPromptContractSelfTest.swift": {
+      "fifth": null,
+      "sixth": "1dd5381ac20c57e92a4156640189930fe9e5ba92c9f22296afd405e52993342e"
+    },
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": {
+      "fifth": "391f07d1572fed07523804e8399b25557654bc1983b0bd9a1796431d26b6e29d",
+      "sixth": "62436b8d82f54680d9118aa8adc5eff6c47b273cd7cd3c417c1a2f0d6f344182"
+    },
+    "Sources/NextNotes/Meetings/MeetingSession.swift": {
+      "fifth": "b75f80571fdbcc213add98cb7e988756629318f6e478859c6d667769deff95f2",
+      "sixth": "078c99ef680f889aa3678ff8fb43a5cfe124a909b741cd2487b98debc11c077b"
+    }
+  },
+  "scope": "full frozen working forest; contains pre-existing unrelated source changes, not an isolated root commit"
+}

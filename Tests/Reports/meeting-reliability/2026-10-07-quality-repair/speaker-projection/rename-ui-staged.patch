@@ -1,0 +1,250 @@
+--- a/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
++++ b/Sources/NextNotes/UI/Meetings/MeetingDetailView.swift
+@@ -15,7 +15,7 @@
+     @State private var notesService = NotesService.shared
+     @State private var diarization = DiarizationService.shared
+     @State private var agent = AgentService.shared
+-    @State private var contextStore = MeetingContextStore.shared
++    @State private var contextStore: MeetingContextStore
+     @State private var settings = Settings.shared
+     @State private var models = LocalModelStore.shared
+     @State private var navigation = NavigationState.shared
+@@ -23,12 +23,15 @@
+     @State private var isConfirmingDelete = false
+     @State private var isExporting = false
+     @State private var isRenamingSpeakers = false
++    @State private var speakerNamesProblem: String?
+     @State private var isRenamingMeeting = false
+     @State private var followUpSummary: (message: String, action: String)? = nil
+ 
+-    init(meeting: Meeting, store: MeetingStore = .shared) {
++    init(meeting: Meeting, store: MeetingStore = .shared,
++         contextStore: MeetingContextStore = .shared) {
+         self.meeting = meeting
+         _store = State(initialValue: store)
++        _contextStore = State(initialValue: contextStore)
+     }
+ 
+     private enum Tab: String, CaseIterable, Identifiable {
+@@ -95,6 +98,11 @@
+                 .padding(DS.Space.m)
+                 .frame(maxWidth: .infinity, alignment: .leading)
+             }
++            if let problem = speakerNamesProblem {
++                ProblemBanner(message: problem, retry: nil) {
++                    speakerNamesProblem = nil
++                }
++            }
+             if let problem = notesService.problem(for: meeting.id) {
+                 ProblemBanner(
+                     message: problem,
+@@ -169,17 +177,8 @@
+                     diarization.reidentify(meeting, speakers: count)
+                 }
+             ) { names in
+-                var renamed = meeting
+-                renamed.speakerNames = names
+-                if store.save(renamed) {
+-                    MeetingContextStore.shared.refreshSpeakers(meetingID: renamed.id)
+-                }
+-                // Speakers confirmed (M-10): naming the clusters is the person saying the
+-                // pass was right, which was the last thing the temporary recording was
+-                // for. `releaseAudio` holds the three-line rule — a recording the user
+-                // asked to keep stays kept — and refuses while a diarization problem is
+-                // still offering another try.
+-                store.releaseAudio(for: renamed.id)
++                speakerNamesProblem = Self.commitSpeakerNames(names, meeting: meeting,
++                    store: store, contextStore: contextStore)
+             }
+         }
+         .sheet(isPresented: $isRenamingMeeting) {
+@@ -197,6 +196,29 @@
+                 Log.meeting.error("export failed: \(error.localizedDescription, privacy: .public)")
+             }
+         }
++    }
++
++    /// The sheet and isolated regression use the same admitted save consumer.
++    /// A partial save keeps its accepted names, previous context and recording.
++    @MainActor
++    static func commitSpeakerNames(_ names: [String: String], meeting: Meeting,
++                                   store: MeetingStore, contextStore: MeetingContextStore) -> String? {
++        // The sheet can outlive another metadata edit or the meeting itself.
++        guard var renamed = store.meeting(id: meeting.id) else {
++            return "This meeting is no longer available. The speaker names couldn’t be saved."
++        }
++        renamed.speakerNames = names
++        guard store.save(renamed) else {
++            return "The speaker names couldn’t be saved."
++        }
++        guard contextStore.refreshSpeakers(meetingID: renamed.id) else {
++            return "The speaker names were saved, but some meeting details couldn’t be updated."
++        }
++        // Speakers confirmed (M-10): release only after both existing saves accept.
++        // The recording's kept/temporary choice and diarization guard remain owned
++        // by the existing release rule; there is no additional retry or save here.
++        store.releaseAudio(for: renamed.id)
++        return nil
+     }
+ 
+     // MARK: - Header
+--- a/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift
+@@ -211,6 +211,157 @@
+         catch { check("deleted-meeting refusal threw", false) }
+         check("deleted meeting not recreated", !FileManager.default.fileExists(atPath: store.directory(for: missingID).path)
+             && service.revision == revisionBefore)
++        // The signed native app can compare the unchanged store/audio fixture
++        // without another full build. Old logic exists only in this explicit SelfTest.
++        write("MEETING_SPEAKER_PROJECTION_PRE_RENAME_\(failures.isEmpty ? "OK" : "FAILED") checks=\(checks)")
++        let useOriginalRename = SelfTest.isRunning
++            && SelfTest.requested == "--selftest-meeting-context"
++            && CommandLine.arguments.contains("--speaker-rename-original")
++        write("MEETING_SPEAKER_RENAME_MODE: " + (useOriginalRename ? "original-source-callback" : "production-view-method"))
++        let commitRename: ([String: String], Meeting, MeetingStore, MeetingContextStore) -> String?
++        if useOriginalRename {
++            commitRename = { names, meeting, store, contextStore in
++                var renamed = meeting
++                renamed.speakerNames = names
++                if store.save(renamed) {
++                    MeetingContextStore.shared.refreshSpeakers(meetingID: renamed.id)
++                }
++                // Speakers confirmed (M-10): naming the clusters is the person saying the
++                // pass was right, which was the last thing the temporary recording was
++                // for. `releaseAudio` holds the three-line rule — a recording the user
++                // asked to keep stays kept — and refuses while a diarization problem is
++                // still offering another try.
++                store.releaseAudio(for: renamed.id)
++                return nil
++            }
++        } else {
++            commitRename = { names, meeting, store, contextStore in
++                MeetingDetailView.commitSpeakerNames(names, meeting: meeting,
++                    store: store, contextStore: contextStore)
++            }
++        }
++        // Exercise the exact View method called by the speaker naming sheet.
++        // Fixture audio is inert bytes: this tests retention, never decoding/ASR.
++        let fixtureAudio = Data("generic retained recording fixture".utf8)
++        typealias RenameFixture = (meeting: Meeting, context: MeetingContextStore, audioURL: URL, contextURL: URL)
++        func seedRename(_ suffix: String, temporary: Bool = true, withContext: Bool = true) -> RenameFixture? {
++            var item = Meeting(title: "Rename UI fixture " + suffix, start: Date(), status: .done)
++            item.speakerNames = ["Speaker 1": "Previous name"]
++            item.audioFileName = MeetingStore.audioFile
++            item.audioIsTemporary = temporary
++            guard store.save(item) else { check("rename fixture metadata seed " + suffix, false); return nil }
++            let directory = store.directory(for: item.id)
++            let audioURL = directory.appendingPathComponent(MeetingStore.audioFile)
++            do { try fixtureAudio.write(to: audioURL) }
++            catch { check("rename fixture audio seed " + suffix, false); return nil }
++            let injected = MeetingContextStore.isolatedForTesting(store: store,
++                completer: MeetingContextReconciler.NoOpCompleter(), optionalAdmission: { false })
++            store.saveLiveTranscript(live, for: item.id)
++            guard store.saveTranscript(finals, for: item.id) else {
++                check("rename fixture transcript seed " + suffix, false); return nil
++            }
++            if withContext {
++                injected.ingest(live, meeting: item)
++                guard injected.current?.meetingID == item.id, injected.load(meetingID: item.id) != nil else {
++                    check("rename fixture context seed " + suffix, false); return nil
++                }
++            }
++            return (item, injected, audioURL, directory.appendingPathComponent(MeetingContextStore.fileName))
++        }
++        if let fixture = seedRename("metadata-rejection") {
++            let recordURL = store.directory(for: fixture.meeting.id).appendingPathComponent(MeetingStore.recordFile)
++            let retainedRecordURL = recordURL.deletingLastPathComponent().appendingPathComponent("retained-meeting.json")
++            let currentBefore = fixture.context.current
++            let contextBytes = try? Data(contentsOf: fixture.contextURL)
++            do {
++                let recordBytes = try Data(contentsOf: recordURL)
++                try FileManager.default.moveItem(at: recordURL, to: retainedRecordURL)
++                try FileManager.default.createDirectory(at: recordURL, withIntermediateDirectories: false)
++                let witness = recordURL.appendingPathComponent("witness.json")
++                try recordBytes.write(to: witness)
++                let problem = commitRename(["Speaker 1": "Accepted name"], fixture.meeting, store, fixture.context)
++                check("rename rejected metadata reports plain failure",
++                    problem == "The speaker names couldn’t be saved.")
++                check("rename rejected metadata keeps current name",
++                    store.meeting(id: fixture.meeting.id)?.speakerNames == fixture.meeting.speakerNames)
++                check("rename rejected metadata keeps exact audio", (try? Data(contentsOf: fixture.audioURL)) == fixtureAudio)
++                check("rename rejected metadata keeps current context", fixture.context.current == currentBefore)
++                check("rename rejected metadata keeps exact context", (try? Data(contentsOf: fixture.contextURL)) == contextBytes)
++                check("rename rejected metadata keeps hostile source and witness",
++                    (try? Data(contentsOf: retainedRecordURL)) == recordBytes && (try? Data(contentsOf: witness)) == recordBytes)
++                try FileManager.default.removeItem(at: recordURL)
++                try FileManager.default.moveItem(at: retainedRecordURL, to: recordURL)
++                check("rename rejected metadata keeps fresh-reader name",
++                    store.freshReaderForTesting().meeting(id: fixture.meeting.id)?.speakerNames == fixture.meeting.speakerNames)
++            } catch { check("rename metadata refusal fixture setup", false) }
++        }
++        if let fixture = seedRename("context-rejection") {
++            let retainedContextURL = fixture.contextURL.deletingLastPathComponent().appendingPathComponent("retained-rename-context.json")
++            let currentBefore = fixture.context.current
++            do {
++                let contextBytes = try Data(contentsOf: fixture.contextURL)
++                try FileManager.default.moveItem(at: fixture.contextURL, to: retainedContextURL)
++                try FileManager.default.createDirectory(at: fixture.contextURL, withIntermediateDirectories: false)
++                let witness = fixture.contextURL.appendingPathComponent("witness.json")
++                try contextBytes.write(to: witness)
++                let names = ["Speaker 1": "Accepted name"]
++                let problem = commitRename(names, fixture.meeting, store, fixture.context)
++                check("rename accepted metadata rejected context reports partial save",
++                    problem == "The speaker names were saved, but some meeting details couldn’t be updated.")
++                check("rename rejected context keeps accepted names", store.meeting(id: fixture.meeting.id)?.speakerNames == names)
++                check("rename rejected context retains accepted fresh-reader names",
++                    store.freshReaderForTesting().meeting(id: fixture.meeting.id)?.speakerNames == names)
++                check("rename rejected context keeps exact audio", (try? Data(contentsOf: fixture.audioURL)) == fixtureAudio)
++                check("rename rejected context retains audio reference",
++                    store.meeting(id: fixture.meeting.id)?.audioFileName == fixture.meeting.audioFileName
++                    && store.freshReaderForTesting().meeting(id: fixture.meeting.id)?.audioFileName == fixture.meeting.audioFileName)
++                check("rename rejected context keeps current context", fixture.context.current == currentBefore)
++                check("rename rejected context keeps exact previous bytes",
++                    (try? Data(contentsOf: retainedContextURL)) == contextBytes && (try? Data(contentsOf: witness)) == contextBytes)
++                try FileManager.default.removeItem(at: fixture.contextURL)
++                try FileManager.default.moveItem(at: retainedContextURL, to: fixture.contextURL)
++                check("rename rejected context fresh consumer has previous name",
++                    fixture.context.load(meetingID: fixture.meeting.id)?.questions.first?.speaker == currentBefore?.questions.first?.speaker)
++            } catch { check("rename context refusal fixture setup", false) }
++        }
++        if let fixture = seedRename("accepted-temporary") {
++            // A sheet snapshot must not undo metadata accepted while it was open.
++            var newer = fixture.meeting
++            newer.title = "Newer accepted title"
++            check("rename concurrent metadata fixture save", store.save(newer))
++            let names = ["Speaker 1": "Accepted name"]
++            check("rename accepted save returns no problem", commitRename(names, fixture.meeting, store, fixture.context) == nil)
++            check("rename accepted save retains newer metadata", store.meeting(id: fixture.meeting.id)?.title == newer.title)
++            check("rename accepted save delivers current name", fixture.context.current?.questions.first?.speaker == "Accepted name")
++            check("rename accepted save delivers durable name", fixture.context.load(meetingID: fixture.meeting.id)?.questions.first?.speaker == "Accepted name")
++            check("rename accepted save preserves source authority", fixture.context.current?.questions.first?.source == .system)
++            check("rename accepted save releases temporary recording", !FileManager.default.fileExists(atPath: fixture.audioURL.path)
++                && store.meeting(id: fixture.meeting.id)?.audioFileName == nil)
++            check("rename accepted save fresh reader uses exact map",
++                store.freshReaderForTesting().meeting(id: fixture.meeting.id)?.speakerNames == names)
++        }
++        if let fixture = seedRename("accepted-kept", temporary: false) {
++            check("rename kept recording accepted", commitRename(["Speaker 1": "Accepted name"], fixture.meeting, store, fixture.context) == nil)
++            check("rename keeps explicitly retained audio", (try? Data(contentsOf: fixture.audioURL)) == fixtureAudio
++                && store.meeting(id: fixture.meeting.id)?.audioFileName == fixture.meeting.audioFileName)
++        }
++        if let fixture = seedRename("no-context", withContext: false) {
++            check("rename absent context accepted", commitRename(["Speaker 1": "Accepted name"], fixture.meeting, store, fixture.context) == nil)
++            check("rename absent context creates none", !FileManager.default.fileExists(atPath: fixture.contextURL.path))
++            check("rename absent context uses existing temporary release", !FileManager.default.fileExists(atPath: fixture.audioURL.path))
++        }
++        if let fixture = seedRename("deleted") {
++            do {
++                try FileManager.default.removeItem(at: store.directory(for: fixture.meeting.id))
++                // A real fresh reader sees absence without initializing unrelated
++                // shared cancellation/index services merely to arrange the fixture.
++                let freshStore = store.freshReaderForTesting()
++                check("rename deleted meeting reports plain failure", commitRename(["Speaker 1": "Accepted name"], fixture.meeting, freshStore, fixture.context)
++                    == "This meeting is no longer available. The speaker names couldn’t be saved.")
++                check("rename deleted meeting cannot be recreated", freshStore.meeting(id: fixture.meeting.id) == nil
++                    && !FileManager.default.fileExists(atPath: store.directory(for: fixture.meeting.id).path))
++            } catch { check("rename deleted fixture setup", false) }
++        }
+         for failure in failures { write("  MEETING_SPEAKER_PROJECTION_WRONG: \(failure)") }
+         write("MEETING_SPEAKER_PROJECTION_\(failures.isEmpty ? "OK" : "FAILED") checks=\(checks)")
+         return failures.isEmpty

@@ -36,42 +36,94 @@ enum NotesPrompts {
     /// a cut-off answer has not made one.
     static let cutShortMarker = "_The notes were cut short before this section._"
 
+    /// Explicit process-local copied-replay hypotheses only. No stored choice or runtime override.
+    enum ReplayPromptArm: String, Sendable {
+        case singleMaterial = "single-material"
+        case mapMaterial = "map-material"
+    }
+
+    enum ReplayPromptArmError: Error { case invalidArgument }
+
+    /// Strictly admit zero or one explicit arm; malformed/repeated values never pick a variant.
+    static func parseReplayPromptArm(arguments: [String]) throws -> ReplayPromptArm? {
+        let positions = arguments.indices.filter {
+            arguments[$0] == "--notes-prompt-arm"
+                || arguments[$0].hasPrefix("--notes-prompt-arm=")
+        }
+        guard positions.count <= 1 else { throw ReplayPromptArmError.invalidArgument }
+        guard let position = positions.first else { return nil }
+        guard arguments[position] == "--notes-prompt-arm", position + 1 < arguments.count,
+              let arm = ReplayPromptArm(rawValue: arguments[position + 1]) else {
+            throw ReplayPromptArmError.invalidArgument
+        }
+        return arm
+    }
+
+    static func configuredReplayPromptArm(arguments: [String], isRunning: Bool,
+                                          requested: String?) -> ReplayPromptArm? {
+        guard isRunning, requested == "--selftest-meeting-notes-replay" else { return nil }
+        return try? parseReplayPromptArm(arguments: arguments)
+    }
+
+    static let replayPromptArm: ReplayPromptArm? = {
+        // Read the explicit modifier only for the requested isolated replay.
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-notes-replay" else {
+            return nil
+        }
+        return configuredReplayPromptArm(arguments: CommandLine.arguments,
+            isRunning: SelfTest.isRunning, requested: SelfTest.requested)
+    }()
+
     // MARK: - Single pass
 
-    static let notesSystem = """
-        You write meeting notes from a transcript. You are a summarizer, not a participant.
+    static let notesSystem: String = {
+        let baseline = """
+            You write meeting notes from a transcript. You are a summarizer, not a participant.
 
-        Rules:
-        - Output GitHub-flavoured Markdown and nothing else. No preamble, no closing remark.
-        - Use exactly these level-2 headings, in this order, even when a section is empty:
-        \(headings.map { "  ## \($0)" }.joined(separator: "\n"))
-        - Under a heading with nothing to report, write \(emptyMarker) on its own line.
-        - ## Summary is one short paragraph: what the meeting was about and where it landed.
-        - ## Key points, ## Decisions and ## Open questions are `-` bullets, one fact each.
-        - ## Action items are `-` bullets shaped `- **<speaker>** — <what they will do>`, \
-        where <speaker> is copied from the transcript's own speaker labels and any date they \
-        gave ends the sentence. Write **Unassigned** when nobody took it.
-        - ## Related context connects this meeting to what Next Notes already knows about \
-        the user: bullets shaped `- <what is already known> — <how it relates to this \
-        meeting>`. Draw only on the Known context block when the message has one.
-        - The Known context block is background, not speech. Never attribute it to a \
-        speaker, never present it as something said in this meeting, and never let it change \
-        ## Summary, ## Key points, ## Decisions, ## Action items or ## Open questions.
-        - When there is no Known context block, or nothing in it relates, write \
-        \(emptyMarker) under ## Related context.
-        - Attribute using the transcript's own speaker labels, exactly as written. "You" is \
-        the person recording. Never introduce a name that is not in the transcript: an \
-        invented owner is worse than no owner.
-        - Write only what was said. Never infer a decision, an owner, or a date. If the \
-        transcript is too garbled or too short to summarise, say so in ## Summary and leave \
-        the other sections empty.
-        - The transcript may be in any language. Write the notes in the SAME language the \
-        transcript is in, keeping the English headings exactly as given. A transcript you can \
-        read is never a reason to return an empty section.
-        - ## Summary is never \(emptyMarker). Any transcript with speech in it can be \
-        described in a sentence, even if that sentence is that it was a short informal call \
-        with nothing decided. The empty marker is for the other sections.
-        """
+            Rules:
+            - Output GitHub-flavoured Markdown and nothing else. No preamble, no closing remark.
+            - Use exactly these level-2 headings, in this order, even when a section is empty:
+            \(headings.map { "  ## \($0)" }.joined(separator: "\n"))
+            - Under a heading with nothing to report, write \(emptyMarker) on its own line.
+            - ## Summary is one short paragraph: what the meeting was about and where it landed.
+            - ## Key points, ## Decisions and ## Open questions are `-` bullets, one fact each.
+            - ## Action items are `-` bullets shaped `- **<speaker>** — <what they will do>`, \
+            where <speaker> is copied from the transcript's own speaker labels and any date they \
+            gave ends the sentence. Write **Unassigned** when nobody took it.
+            - ## Related context connects this meeting to what Next Notes already knows about \
+            the user: bullets shaped `- <what is already known> — <how it relates to this \
+            meeting>`. Draw only on the Known context block when the message has one.
+            - The Known context block is background, not speech. Never attribute it to a \
+            speaker, never present it as something said in this meeting, and never let it change \
+            ## Summary, ## Key points, ## Decisions, ## Action items or ## Open questions.
+            - When there is no Known context block, or nothing in it relates, write \
+            \(emptyMarker) under ## Related context.
+            - Attribute using the transcript's own speaker labels, exactly as written. "You" is \
+            the person recording. Never introduce a name that is not in the transcript: an \
+            invented owner is worse than no owner.
+            - Write only what was said. Never infer a decision, an owner, or a date. If the \
+            transcript is too garbled or too short to summarise, say so in ## Summary and leave \
+            the other sections empty.
+            - The transcript may be in any language. Write the notes in the SAME language the \
+            transcript is in, keeping the English headings exactly as given. A transcript you can \
+            read is never a reason to return an empty section.
+            - ## Summary is never \(emptyMarker). Any transcript with speech in it can be \
+            described in a sentence, even if that sentence is that it was a short informal call \
+            with nothing decided. The empty marker is for the other sections.
+            """
+        guard replayPromptArm == .singleMaterial else { return baseline }
+        return baseline + "\n\n" + """
+            Preserve the distinct substantive content throughout the transcript: explanations,
+            constraints, alternatives, qualifications and the answers to substantive questions,
+            as well as decisions and next steps. Merge repetition without replacing a concrete
+            distinction with only a broad topic name. Keep each person's experience and views
+            separate when attributing them.
+            Preserve whether an activity already happened, is proposed, or is a future
+            intention, including uncertainty or conditions. A discussed possibility is not a
+            decision; a past activity is not an action item. An answered question is not open.
+            Include a stated follow-up intention even when no date was given, without adding one.
+            """
+    }()
 
     static func notesUser(
         meeting: Meeting,
@@ -99,17 +151,33 @@ enum NotesPrompts {
     /// Asking a small model for six headings per chunk produces six thin sets of notes
     /// that the reduce step then has to merge, and merging summaries loses more than merging
     /// facts. One flat, attributed list per chunk survives the round trip.
-    static let mapSystem = """
-        You extract facts from one part of a meeting transcript.
+    static let mapSystem: String = {
+        let baseline = """
+            You extract facts from one part of a meeting transcript.
 
-        Rules:
-        - Output a flat list of `-` bullets and nothing else. No headings, no preamble.
-        - One fact per bullet, in the order it came up, each starting with the speaker \
-        label the transcript used, then a colon, then the fact.
-        - Include decisions, commitments, dates, numbers, names and unanswered questions.
-        - Drop small talk, filler and anything already obvious from another bullet.
-        - Write only what was said. Never infer or conclude.
-        """
+            Rules:
+            - Output a flat list of `-` bullets and nothing else. No headings, no preamble.
+            - One fact per bullet, in the order it came up, each starting with the speaker \
+            label the transcript used, then a colon, then the fact.
+            - Include decisions, commitments, dates, numbers, names and unanswered questions.
+            - Drop small talk, filler and anything already obvious from another bullet.
+            - Write only what was said. Never infer or conclude.
+            """
+        guard replayPromptArm == .mapMaterial else { return baseline }
+        return baseline + "\n\n" + """
+            Condense speech into substantive facts; do not transcribe the utterances.
+            Drop greetings, backchannels and repeated filler before spending the fact budget.
+            Also retain distinct substantive explanations, constraints, alternatives and
+            qualifications, including answers to substantive questions. Keep the question or
+            antecedent when needed to understand an answer or pronoun. Preserve different
+            speakers' experience and views separately.
+            Preserve whether something already happened, is proposed, or is a future
+            intention, with its uncertainty or conditions. Include stated follow-up intentions
+            even without a deadline. Keep illustrative quantities distinct from commitments.
+            Cover substantive content throughout the part, including later topic changes.
+            A broad topic name is not a substitute for its distinct explanation or constraint.
+            """
+    }()
 
     static let mapSelectionSystem = """
         Select the original utterances needed to preserve the substantive content of

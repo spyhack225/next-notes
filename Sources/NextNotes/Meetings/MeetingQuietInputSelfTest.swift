@@ -34,6 +34,9 @@ enum MeetingQuietInputSelfTest {
         guard SelfTest.isRunning, Settings.shared.usesHarnessPreferencesForTesting else {
             write("MEETING_QUIET_INPUT_FAILED: isolated settings required"); return false
         }
+        if CommandLine.arguments.contains("--meeting-quiet-session") {
+            return await MeetingQuietSessionSelfTest.run(directory: directory, native: native, write: write)
+        }
         var cases = [
             Case(id: "digital-zero", samples: [Float](repeating: 0, count: 44_886), quietStart: 0, tailExpectation: false, expectationScope: "existing-digital-zero-control"),
             Case(id: "dc-below-floor-observation", samples: [Float](repeating: 0.005, count: 44_886), quietStart: 0, tailExpectation: nil, expectationScope: "dc-not-demonstrated-speech-proposed-conservative-admission-observation"),

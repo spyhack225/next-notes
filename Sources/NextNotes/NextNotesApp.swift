@@ -1821,6 +1821,13 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             runNotesLongformSelfTest()
             return true
         }
+        if arguments.contains("--selftest-notes-prompt-contract") {
+            Task { @MainActor in
+                SelfTest.failed = !(await NotesPromptContractSelfTest.run(write: writeSelfTest))
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-notes-replay-trace") {
             Task { @MainActor in
                 SelfTest.failed = !(await MeetingNotesReplaySelfTest.runTraceForwardingSelfTest(write: writeSelfTest))
@@ -1830,6 +1837,17 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         }
         if arguments.contains("--selftest-meeting-notes-replay") {
             Task { @MainActor in
+                do {
+                    let arm = try NotesPrompts.parseReplayPromptArm(arguments: CommandLine.arguments)
+                    guard arm == nil || !arguments.contains("--notes-source-indices") else {
+                        throw NotesPrompts.ReplayPromptArmError.invalidArgument
+                    }
+                } catch {
+                    SelfTest.failed = true
+                    writePrivateSelfTest("NOTES_REPLAY_FAILED: invalid or conflicting prompt arm")
+                    SelfTest.requestTermination()
+                    return
+                }
                 guard let input = SelfTest.value(after: "--selftest-meeting-notes-replay"),
                       let model = SelfTest.value(after: "--notes-model"),
                       let provider = await Self.benchmarkProvider(model) else {

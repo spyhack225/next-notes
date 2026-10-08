@@ -61,7 +61,7 @@ enum MeetingNotesReplaySelfTest {
             let result = try await NotesGenerator(provider: selected, evidenceTrace: { trace in
                 traces.withLock { $0.append(trace) }
             }, sourceIndices: sourceIndices).notes(for: meeting, segments: segments, brief: .empty)
-            write("NOTES_REPLAY_RESULT mode=\(sourceIndices ? "source-indices" : "legacy") seconds=\(result.duration) tokens=\(result.generatedTokens)"
+            write("NOTES_REPLAY_RESULT mode=\(sourceIndices ? "source-indices" : "legacy") promptArm=\(NotesPrompts.replayPromptArm?.rawValue ?? "legacy") seconds=\(result.duration) tokens=\(result.generatedTokens)"
                 + " mapReduce=\(result.usedMapReduce) chunks=\(result.chunks)"
                 + " collapsed=\(result.collapsedGroups) dropped=\(result.droppedFacts)"
                 + " incompleteFacts=\(result.incompleteFacts)")

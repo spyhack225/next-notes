@@ -1,0 +1,39 @@
+{
+  "at": "2026-10-08T05:05:48.014851+00:00",
+  "commit": "0bd3dd7d306e2525e0854479d34f63fd8730d5a5",
+  "parent": "6a805d14a720d12f180096551ba53a15dbd2f934",
+  "ownedPaths": 111,
+  "sourcePaths": 4,
+  "foreignStagedBlobsPreserved": {
+    "AGENTS.md": [
+      "100644",
+      "ce8ba5941956aaebaadde35dea4ad8924899138d"
+    ],
+    "README.md": [
+      "100644",
+      "a1997ff64778deef1ce9c14220f058ada9087ae2"
+    ],
+    "Sources/NextNotes/Agent/Tasks/Durable/BasedOnEvidenceSelfTest.swift": [
+      "100644",
+      "2e15aa3be655c3b6a1dd961d6464afe6878d55ee"
+    ],
+    "Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift": [
+      "100644",
+      "6cdfc4b65a59a6d4ec8cf950e95d9109de6f3b58"
+    ],
+    "Sources/NextNotes/UI/Agent/AgentView.swift": [
+      "100644",
+      "5aaf81ad6ad4f92cc91a6e08c1111f474ae21c5b"
+    ],
+    "Sources/NextNotes/UI/Agent/AgentWorkingCard.swift": [
+      "100644",
+      "2692e0c086dd3ece41d79cf83951956a5555fe71"
+    ],
+    "Sources/NextNotes/UI/Agent/ToolReviewCard.swift": [
+      "100644",
+      "5c03e3197330f3d84ead982132be11449dd52175"
+    ]
+  },
+  "sixthSourceIntegrated": false,
+  "realIndexAlignment": "owned previously unstaged entries only; seven foreign blobs preserved"
+}

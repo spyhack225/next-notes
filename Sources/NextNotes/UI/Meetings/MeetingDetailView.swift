@@ -15,7 +15,7 @@ struct MeetingDetailView: View {
     @State private var notesService = NotesService.shared
     @State private var diarization = DiarizationService.shared
     @State private var agent = AgentService.shared
-    @State private var contextStore = MeetingContextStore.shared
+    @State private var contextStore: MeetingContextStore
     @State private var settings = Settings.shared
     @State private var models = LocalModelStore.shared
     @State private var navigation = NavigationState.shared
@@ -23,8 +23,16 @@ struct MeetingDetailView: View {
     @State private var isConfirmingDelete = false
     @State private var isExporting = false
     @State private var isRenamingSpeakers = false
+    @State private var speakerNamesProblem: String?
     @State private var isRenamingMeeting = false
     @State private var followUpSummary: (message: String, action: String)? = nil
+
+    init(meeting: Meeting, store: MeetingStore = .shared,
+         contextStore: MeetingContextStore = .shared) {
+        self.meeting = meeting
+        _store = State(initialValue: store)
+        _contextStore = State(initialValue: contextStore)
+    }
 
     private enum Tab: String, CaseIterable, Identifiable {
         case notes
@@ -89,6 +97,11 @@ struct MeetingDetailView: View {
                 .foregroundStyle(DS.Color.warning)
                 .padding(DS.Space.m)
                 .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            if let problem = speakerNamesProblem {
+                ProblemBanner(message: problem, retry: nil) {
+                    speakerNamesProblem = nil
+                }
             }
             if let problem = notesService.problem(for: meeting.id) {
                 ProblemBanner(
@@ -164,17 +177,8 @@ struct MeetingDetailView: View {
                     diarization.reidentify(meeting, speakers: count)
                 }
             ) { names in
-                var renamed = meeting
-                renamed.speakerNames = names
-                if store.save(renamed) {
-                    MeetingContextStore.shared.refreshSpeakers(meetingID: renamed.id)
-                }
-                // Speakers confirmed (M-10): naming the clusters is the person saying the
-                // pass was right, which was the last thing the temporary recording was
-                // for. `releaseAudio` holds the three-line rule — a recording the user
-                // asked to keep stays kept — and refuses while a diarization problem is
-                // still offering another try.
-                store.releaseAudio(for: renamed.id)
+                speakerNamesProblem = Self.commitSpeakerNames(names, meeting: meeting,
+                    store: store, contextStore: contextStore)
             }
         }
         .sheet(isPresented: $isRenamingMeeting) {
@@ -192,6 +196,29 @@ struct MeetingDetailView: View {
                 Log.meeting.error("export failed: \(error.localizedDescription, privacy: .public)")
             }
         }
+    }
+
+    /// The sheet and isolated regression use the same admitted save consumer.
+    /// A partial save keeps its accepted names, previous context and recording.
+    @MainActor
+    static func commitSpeakerNames(_ names: [String: String], meeting: Meeting,
+                                   store: MeetingStore, contextStore: MeetingContextStore) -> String? {
+        // The sheet can outlive another metadata edit or the meeting itself.
+        guard var renamed = store.meeting(id: meeting.id) else {
+            return "This meeting is no longer available. The speaker names couldn’t be saved."
+        }
+        renamed.speakerNames = names
+        guard store.save(renamed) else {
+            return "The speaker names couldn’t be saved."
+        }
+        guard contextStore.refreshSpeakers(meetingID: renamed.id) else {
+            return "The speaker names were saved, but some meeting details couldn’t be updated."
+        }
+        // Speakers confirmed (M-10): release only after both existing saves accept.
+        // The recording's kept/temporary choice and diarization guard remain owned
+        // by the existing release rule; there is no additional retry or save here.
+        store.releaseAudio(for: renamed.id)
+        return nil
     }
 
     // MARK: - Header

@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-08T05:51:15.399193+00:00",
+  "scope": "exact normalized final/live owner utterances >=50 characters against sixth staged public docs/reports; not short text/paraphrase/privacy completeness",
+  "utteranceCount": 625,
+  "publicPaths": 43,
+  "matches": [],
+  "sourceScan": false
+}

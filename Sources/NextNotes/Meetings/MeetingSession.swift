@@ -42,6 +42,7 @@ final class MeetingSession {
     private let captureHub: AudioCaptureHub
     typealias AudioWriterFactory = (URL, @escaping @Sendable (String) -> Void) throws -> MeetingAudioWriter
     private let writerFactory: AudioWriterFactory?
+    private let finalTranscriptServiceForTesting: FinalTranscriptService?
     private let diskCapacityForTesting: MeetingDiskCapacity?
     private(set) var healthWarnings: [MeetingHealthIssue] = []
     private(set) var liveTranscriptPaused = false
@@ -75,6 +76,12 @@ final class MeetingSession {
     /// never start a session the person already stopped.
     private var startCancelled = false
     private var hasBegunCapture = false
+
+    /// Generated replay stamps packets on the same actual capture timeline.
+    /// Reading the origin adds no work or alternative audio path in the product.
+    var captureHostOriginForTesting: UInt64? {
+        SelfTest.isRunning && hasBegunCapture ? startedHostTime : nil
+    }
 
     /// Test-only (`--selftest-meeting-tap-retry`): replaces the transcriber model call
     /// so the tap-retry self-test runs without Parakeet. Set by the test, cleared after.
@@ -143,13 +150,15 @@ final class MeetingSession {
     init(
         meeting: Meeting, store: MeetingStore = .shared,
         captureHub: AudioCaptureHub = .shared, writerFactory: AudioWriterFactory? = nil,
-        diskCapacityForTesting: MeetingDiskCapacity? = nil
+        diskCapacityForTesting: MeetingDiskCapacity? = nil,
+        finalTranscriptServiceForTesting: FinalTranscriptService? = nil
     ) {
         self.meeting = meeting
         self.store = store
         self.captureHub = captureHub
         self.writerFactory = writerFactory
         self.diskCapacityForTesting = SelfTest.isRunning ? diskCapacityForTesting : nil
+        self.finalTranscriptServiceForTesting = SelfTest.isRunning ? finalTranscriptServiceForTesting : nil
     }
 
     var isRecording: Bool { meeting.status == .recording }
@@ -463,7 +472,8 @@ final class MeetingSession {
             meeting = MeetingPipeline.afterDiarizing(meeting, store: store)
         } else if !meeting.status.isFailure {
             meeting = MeetingPipeline.afterTranscribing(
-                meeting, store: store, recoverDroppedAudio: recoverDroppedAudio)
+                meeting, store: store, recoverDroppedAudio: recoverDroppedAudio,
+                finalService: finalTranscriptServiceForTesting)
         }
 
         Log.meeting.info("""

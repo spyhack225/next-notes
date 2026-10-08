@@ -1,0 +1,58 @@
+{
+  "index": "/private/tmp/NextNotesMeetingSixthOwnedIndex-df0f4605-2d2e-488a-aecc-417145587f1b",
+  "base": "0bd3dd7d306e2525e0854479d34f63fd8730d5a5",
+  "at": "2026-10-08T05:45:50.375133+00:00",
+  "foreignIndexBeforeSHA256": "151a74d1faf5af54790e2bab2d9cd44bc8673573f545be5fe6e27deb85eadb33",
+  "patches": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/session-fixture/session-final-dependencies.patch",
+      "sha256": "0aeeeb4a95594011ce4fa94664228b15903d3cf22fcf9665b5bb3c8f5f96480c",
+      "checkExit": 0,
+      "error": ""
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/quiet-meeting/session-fixture/session-route.patch",
+      "sha256": "a8fc0edc0d4d1b6efab89a8b639b67f516cb0fd73debcb97dc856ddfc67c3054",
+      "checkExit": 0,
+      "error": ""
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/rename-ui-staged.patch",
+      "sha256": "ef5ed88d6cbfc14027cf156da33c2ba06e8bbc626fca8e1a8fb5866f58e30a94",
+      "checkExit": 1,
+      "error": "error: patch failed: Sources/NextNotes/UI/Meetings/MeetingDetailView.swift:23\nerror: Sources/NextNotes/UI/Meetings/MeetingDetailView.swift: patch does not apply\n"
+    }
+  ],
+  "status": "prepared; no integration yet",
+  "sourcePaths": [
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+    "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+    "Sources/NextNotes/Meetings/MeetingNotesReplaySelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift",
+    "Sources/NextNotes/Meetings/MeetingQuietInputSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingQuietSessionSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingSession.swift",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjectionSelfTest.swift",
+    "Sources/NextNotes/Meetings/NotesPromptContractSelfTest.swift",
+    "Sources/NextNotes/Meetings/NotesPrompts.swift",
+    "Sources/NextNotes/NextNotesApp.swift",
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift"
+  ],
+  "foreignIndexAfterSHA256": "151a74d1faf5af54790e2bab2d9cd44bc8673573f545be5fe6e27deb85eadb33",
+  "dependency": [
+    "same working captureHostOriginForTesting getter only; other foreign Session changes excluded",
+    "same actual working MeetingDetailView constructor with store/context injection, absent HEAD; foreign transcriptVerification hunks excluded"
+  ],
+  "preparedAt": "2026-10-08T05:47:00.187657+00:00",
+  "preparationFailures": [
+    "initial rename patch context expected preexisting unstaged store-injection constructor; ported minimal exact working constructor and root rename hunks",
+    "getter placement typo in preparation anchor; corrected in private index only"
+  ],
+  "privatePatchSHA256": "37d406f76c00b7571493917bbcc42ddc5ed3b7f7c384ed7144af667689e599f1",
+  "diffCheckExit": 2,
+  "allPreparedPaths": 56,
+  "sourcePreparedPaths": 12,
+  "privacyScan": "sixth-staged-report-speech-scan.json",
+  "diffCheckScope": "raw build logs may retain trailing whitespace; source/docs separately required clean",
+  "foreignRealIndexUnchanged": true
+}

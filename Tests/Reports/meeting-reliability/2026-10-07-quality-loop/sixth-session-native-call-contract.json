@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-08T05:10:56.127637+00:00",
+  "patchSHA256": "ca815e45332b0355fd716e7c0abb4b03ad02ed328086eb7b8a9d7af5a2243e36",
+  "beforeSHA256": "36678254a786664e93cfe68d9a80d3c19ceccc8a00b8891432700093e0d05a8e",
+  "afterSHA256": "fb2b370241d1bdf91ef5e037a962763aa80777dabf648721635a4d43926994ba",
+  "scope": "diagnostic only; same existing live realtime / final background calls; completion/error/wall/lane/compute observation prevents empty-after-ASR-error noise pass",
+  "nativeStatus": "uncompiled"
+}

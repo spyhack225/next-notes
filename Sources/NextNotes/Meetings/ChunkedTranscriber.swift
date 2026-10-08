@@ -463,6 +463,17 @@ actor ChunkedTranscriber {
     /// "yes, agreed" under the silence around it — the window is then dropped and the reply
     /// never appears in the transcript at all.
     static func containsSpeech(_ window: [Float]) -> Bool {
+        // Explicit diagnostic experiment only. Ordinary production keeps the exact
+        // RMS predicate below; nonzero transport is not a speech classification.
+        if SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-quiet-input",
+           CommandLine.arguments.contains("--meeting-quiet-conservative-admission") {
+            var hasSignal = false
+            for sample in window {
+                guard sample.isFinite else { return false }
+                if sample != 0 { hasSignal = true }
+            }
+            return hasSignal
+        }
         var index = 0
         while index + frameSamples <= window.count {
             if AudioConversion.rms(of: window[index..<(index + frameSamples)]) >= silenceThreshold {

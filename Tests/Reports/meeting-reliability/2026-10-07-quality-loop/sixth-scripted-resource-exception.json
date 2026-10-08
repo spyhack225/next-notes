@@ -1,0 +1,14 @@
+{
+  "at": "2026-10-08T05:32:14.314607+00:00",
+  "relayAgreementCursor": 583,
+  "scope": "only reviewed scripted/nonmodel rename original/fixed81, prompt contract and explicit isolated scripted Session. No ASR/LLM inference or other flags.",
+  "maxSwapGB": 9,
+  "minimumDiskGB": 6,
+  "minimumReportedFreeMemoryPercent": 60,
+  "elapsedBudgetSeconds": 120,
+  "sampledExactProcessFootprintBudgetBytes": 3000000000,
+  "guard": "existing AppKit drain, no signal termination",
+  "normalGatePassed": false,
+  "currentPressureObservation": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 65%\n",
+  "receiptCorrection": "Initial receipt generation failed after driver creation; per-launch driver gate/pressure checks remained fail-closed and ran before dependent launch."
+}

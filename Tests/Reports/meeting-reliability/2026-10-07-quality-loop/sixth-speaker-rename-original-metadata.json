@@ -1,0 +1,23 @@
+{
+  "experiment": "sixth-speaker-rename-original",
+  "exit": 1,
+  "wall_seconds": 3.209203874997911,
+  "markers": [
+    "MEETING_SPEAKER_PROJECTION_PRE_RENAME_OK",
+    "MEETING_SPEAKER_PROJECTION_FAILED",
+    "MEETING_CONTEXT_FAILED"
+  ],
+  "candidateSHA": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "startedAt": "2026-10-08T05:31:48.977556+00:00",
+  "endedAt": "2026-10-08T05:31:52.187791+00:00",
+  "pids": [
+    87308
+  ],
+  "memorySamples": 1,
+  "peakSampledFootprintBytes": 29885496,
+  "peakSampledResidentBytes": 115572736,
+  "memoryScope": "two-second exact candidate process samples, not continuous peak or hardware ASR/voice soak",
+  "quality": "manual review pending",
+  "guardReason": null,
+  "guardScope": "explicit diagnostic only,120s/3GB sampled process footprint/system9GBswap scripted-only, minimum6GBdisk explicit exception; no product gate"
+}

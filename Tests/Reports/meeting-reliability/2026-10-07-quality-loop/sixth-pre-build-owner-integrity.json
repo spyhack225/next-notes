@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-08T05:08:02.281869+00:00",
+  "originalEightSHA256": {
+    "speakers.json": "2a81b8d2927a123392f1d4e23fa0d1731e7e26c4af10bfd993132dbc2225c837",
+    "notes.json": "9280a0f914a547636d177236cfef4ed4956af7013d5a650edcd612d50b6a5b56",
+    "transcript.live.json": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+    "transcript.json": "cd05552dffe07c91eb4eaceb7ddf33b7cca9acf0abfe7ddf3373c2b7639b7500",
+    "context.json": "94dcc89da2dc7d9200c213a82c4f321249fb3f3ed6aa6346a766a0f81d798c82",
+    "meeting.json": "da15f6aa9ebd2d4fb5a01fa34d177de51a2498f1c29f600792c13de11ca6d3dd",
+    "audio.caf": "4c6b4c4f3b94a679c73f0cd0cc76dc1d5ebb6ecc04a2fc92e30b74fe72a63e7d",
+    "notes.md": "b0123fd0f37839cef3694c882457043bb4ef9a706c898f4224692c1a9162bd7a"
+  },
+  "originalUnchanged": true,
+  "meetingStatusCounts": {
+    "done": 16
+  },
+  "activeMeetingProcessing": []
+}

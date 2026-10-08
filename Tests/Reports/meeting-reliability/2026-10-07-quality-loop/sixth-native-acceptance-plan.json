@@ -1,0 +1,95 @@
+{
+  "at": "2026-10-08T05:13:21.403452+00:00",
+  "installedAppChanged": false,
+  "sourceStatus": "sixth frozen release compiling; experiments and production candidate not yet accepted",
+  "checks": [
+    {
+      "case": "speaker-rename-original",
+      "requirements": [
+        "same existing51 checks remain green",
+        "actual old sheet callback violates new save/context/audio contracts in81-case fixture",
+        "fixture-only old callback byte-pinned; no owner recording"
+      ]
+    },
+    {
+      "case": "speaker-rename-fixed",
+      "requirements": [
+        "actual new View commit method passes same81",
+        "fresh saved names/context delivered",
+        "audio retained after metadata/context refusal",
+        "concurrent current-title preservation; missing meeting not resurrected"
+      ],
+      "limits": [
+        "native physical sheet/banner interaction unavailable"
+      ]
+    },
+    {
+      "case": "notes-prompt-contract",
+      "requirements": [
+        "legacy single/map/reduce/collapse exact runtime hashes",
+        "strict SelfTest explicit arm/parser refusals",
+        "existing provider actual call topology/tokenizer parity, no added call/retry"
+      ],
+      "limits": [
+        "scripted provider does not establish semantic quality"
+      ]
+    },
+    {
+      "case": "quiet-session-original",
+      "requirements": [
+        "identical52566-sample public independent7-word PCM saved bothchannels",
+        "actual Stop/final-task join/fresh-read done",
+        "allfour live/final x mic/system zero words",
+        "no admitted ASR calls"
+      ],
+      "verdictMeaning": "reproduced producer omission, never a product word PASS"
+    },
+    {
+      "case": "quiet-session-experiment",
+      "requirements": [
+        "same PCM, actual Session capture/writer/Stop/final/save/freshread",
+        "seven independently aligned words in each of four transcript stages",
+        "all admitted native calls succeed; exact PCM-domain/hash/clock checks",
+        "zero calls for digital zero",
+        "no live/final words for pinned DC/noise",
+        "same loud/mixed reference words; calls<=6 percase",
+        "record full elapsed wall/lane/compute and two-second process samples"
+      ],
+      "limits": [
+        "single burst fixture, not paced hardware/call/ASR+voice soak",
+        "call count bound is not accepted latency/workload ceiling",
+        "nonzero transport does not classify speech",
+        "normal production gate is unchanged by opt-in experiment"
+      ]
+    },
+    {
+      "case": "notes-semantic-experiments",
+      "requirements": [
+        "single-material whole and map-material8192 labels/actual systemhash verified",
+        "same519 complete input lines; trace raw all existing passes",
+        "predeclared10 material source-anchored criteria, ownership/tense/actions independently graded",
+        "record total producer/wall/token/prefill/cache/finish/callcount/cut disclosures",
+        "no owner speech in public reports or relay"
+      ],
+      "limits": [
+        "brief.empty differs from original production context",
+        "no default/model/prompt promotion from improved but incomplete output"
+      ]
+    },
+    {
+      "case": "related-regressions",
+      "requirements": [
+        "existing nineteen focused native flags after newsourcechanges",
+        "actual Session/resume/backlog/audio retention/tap retry applicableflags",
+        "owner21files/33defaults unchanged; embedded browser18 verdict retained"
+      ]
+    }
+  ],
+  "openBroaderAcceptance": [
+    "native physical Zoom/Meet participant observation and accurate voice binding",
+    "visible physical call then30-60minute ASR+voice memory/latency/word/noise soak",
+    "owner20tok/s decode floor under full ASR+voice workload",
+    "complete meeting semantic note and future-action recall",
+    "normal retained selections and approval behavior"
+  ]
+}

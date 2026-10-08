@@ -1,0 +1,27 @@
+{
+  "at": "2026-10-08T05:33:25.951433+00:00",
+  "candidateSHA256": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9",
+  "originalPrior51": "PASS",
+  "originalSame81": "FAIL10",
+  "originalFailures": [
+    "rename rejected metadata reports plain failure",
+    "rename rejected metadata keeps exact audio",
+    "rename accepted metadata rejected context reports partial save",
+    "rename rejected context keeps exact audio",
+    "rename rejected context retains audio reference",
+    "rename accepted save retains newer metadata",
+    "rename accepted save delivers current name",
+    "rename accepted save delivers durable name",
+    "rename deleted meeting reports plain failure",
+    "rename deleted meeting cannot be recreated"
+  ],
+  "fixedSame81": "PASS",
+  "fixedEntry": "actual MeetingDetailView.commitSpeakerNames method through temporary actual Store/context/audio and fresh readers",
+  "confirmedProducer": "old sheet closure ignored metadata/context save failures, released audio despite refusal, and saved a stale captured row including resurrection after deletion",
+  "limits": [
+    "native physical sheet/banner click not observed",
+    "synthetic temporary rows; no claimed owner incident of lost audio from rename",
+    "normal max8/min6.5 gate remained refused; explicit nonmodel max9/min6 with67% reported free memory",
+    "fixed1.37s diagnostic sampled no process before exit; no sampled memory bound or speedup claim"
+  ]
+}

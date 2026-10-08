@@ -1,0 +1,7 @@
+{
+  "at": "2026-10-08T05:08:24.060644+00:00",
+  "beforeSHA256": "b22ed5ee23bb99f870712f723545e494d876b7b3c903e684240b753b60f4bb3c",
+  "afterSHA256": "36678254a786664e93cfe68d9a80d3c19ceccc8a00b8891432700093e0d05a8e",
+  "reason": "reuse existing MeetingQuietInputSelfTest exact /private/tmp copied UUID corpus policy; run-selftest assigns different child TMPDIR. Isolated final-store guard remains child TMPDIR, input manifest/files hashes and UUID/symlink exclusions unchanged.",
+  "nativeStatus": "pending"
+}
