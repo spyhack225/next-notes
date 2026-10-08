@@ -57,6 +57,9 @@ enum PrefixCacheSelfTest {
     }
 
     static func runSelfTest() async -> Bool {
+        if CommandLine.arguments.contains("--interactive-prefill") {
+            return await interactivePrefillChecks()
+        }
         if CommandLine.arguments.contains("--native-stream-finish") {
             return await nativeStreamFinishChecks()
         }
@@ -216,6 +219,71 @@ enum PrefixCacheSelfTest {
         SelfTest.diagnostic(failures.isEmpty ? "NATIVE_STREAM_FINISH_OK"
                           : "NATIVE_STREAM_FINISH_FAILED: \(failures.count) problem(s)")
         return failures.isEmpty
+    }
+
+    /// Real private native owner: prefill-only -> revised prefix -> committed sampling.
+    /// The existing chunk observer cancels only after successful native decode.
+    private static func interactivePrefillChecks() async -> Bool {
+        guard S1MiniModels.spec.isDownloaded else {
+            SelfTest.diagnostic("INTERACTIVE_PREFILL_ABSENT: S1-mini not downloaded")
+            return false
+        }
+        let runtime = NotesModelRuntime(spec: S1MiniModels.spec, gpuLayers: 0)
+        let system = fixtureSystem()
+        let messages: [LLMChatMessage] = [.init(role: .user, content: "First question.")]
+        var problems: [String] = []
+        do {
+            let first = try await runtime.prepareInteractiveConversation(system: system, messages: messages, maxTokens: generationBudget)
+            if first.reused != 0 || first.decoded != first.promptTokens || first.promptTokens <= 128 {
+                problems.append("fresh prefill did not decode the entire actual rendered prompt")
+            }
+            let repeated = try await runtime.prepareInteractiveConversation(system: system, messages: messages, maxTokens: generationBudget)
+            if repeated.promptTokens != first.promptTokens || repeated.decoded != 1 || repeated.reused != first.promptTokens - 1 {
+                problems.append("matched prefill did not retain exact native prefix")
+            }
+            let committed = await drain(await runtime.streamInteractiveConversation(system: system, messages: messages, maxTokens: generationBudget))
+            let sampled = await runtime.prefillStatsForTesting()
+            if sampled?.decoded != 1 || committed.error != nil || committed.text.isEmpty {
+                problems.append("actual committed sampler did not reuse prefilled prompt")
+            }
+            for user in ["First question. More words.", "Second question instead."] {
+                let revised = try await runtime.prepareInteractiveConversation(system: system, messages: [.init(role: .user, content: user)], maxTokens: generationBudget)
+                if revised.reused < first.promptTokens - 16 || revised.decoded <= 1 || revised.decoded >= revised.promptTokens {
+                    problems.append("append/revision did not trim and decode the exact changed suffix")
+                }
+                let result = await drain(await runtime.streamInteractiveConversation(system: system, messages: [.init(role: .user, content: user)], maxTokens: generationBudget))
+                if await runtime.prefillStatsForTesting()?.decoded != 1 || result.error != nil || result.text.isEmpty {
+                    problems.append("revised prefill's actual commit failed")
+                }
+            }
+            let different = try await runtime.prepareInteractiveConversation(system: differentOpeningSystem(), messages: messages, maxTokens: generationBudget)
+            if different.reused > 8 { problems.append("changed instructions retained incompatible prompt tokens") }
+            for partial in [true, false] {
+                await runtime.resetPrefixCacheForTesting()
+                let probe = PrefixCacheCancellationProbe(atChunk: partial ? 1 : (first.promptTokens + 127) / 128)
+                await runtime.setPrefillChunkObserverForTesting { probe.decoded() }
+                let cancelled = Task {
+                    try await runtime.prepareInteractiveConversation(system: system, messages: messages, maxTokens: generationBudget)
+                }
+                let result = await cancelled.result
+                await runtime.setPrefillChunkObserverForTesting(nil)
+                if !probe.didCancel { problems.append("prefill cancellation never reached actual successful native chunk") }
+                if case .success = result { problems.append("cancelled prefill reported success") }
+                let successor = try await runtime.prepareInteractiveConversation(system: system, messages: messages, maxTokens: generationBudget)
+                let expected = partial ? 128 : first.promptTokens - 1
+                if successor.reused != expected { problems.append("cancelled prefill discarded known successful native prefix") }
+            }
+            let count = await runtime.prefillStatsForTesting()?.promptTokens
+            do {
+                _ = try await runtime.prepareInteractiveConversation(system: system, messages: messages, maxTokens: Int.max / 2)
+                problems.append("sampling budget overflow was admitted")
+            } catch {}
+            if await runtime.prefillStatsForTesting()?.promptTokens != count { problems.append("rejected budget changed prefix statistics") }
+        } catch { problems.append("prefill-only native entry failed: \(error.localizedDescription)") }
+        if !(await runtime.finishTermination()) { problems.append("private owner did not finish termination") }
+        for problem in problems { SelfTest.diagnostic("INTERACTIVE_PREFILL_WRONG: \(problem)") }
+        SelfTest.diagnostic(problems.isEmpty ? "INTERACTIVE_PREFILL_OK" : "INTERACTIVE_PREFILL_FAILED: \(problems.count) problem(s)")
+        return problems.isEmpty
     }
 
     // MARK: - Part A, pure

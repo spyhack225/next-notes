@@ -1,0 +1,3 @@
+2026-10-08 18:20:41.773 NextNotes[79718:2921357] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+INTERACTIVE_PREFILL_WRONG: prefill-only native entry failed: The model is unavailable.
+INTERACTIVE_PREFILL_FAILED: 1 problem(s)

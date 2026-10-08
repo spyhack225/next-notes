@@ -1,0 +1,11 @@
+{
+  "commit": "0c0354d5ba9613bd965ff5105ef8231fd5db19b1",
+  "fixture_sha256": "fad416bbd3106925f2df12f67056859ad1525b39abdaa65ca702f0ebf0c42e0f",
+  "binary_sha256": "4b7605e2196505e9b7955c3a6a254456ed3c54eaf632e5774090aeb7c3c94522",
+  "binary_uuid": "UUID: 74132C4A-950B-3DEC-BA80-0AFDD5E416B4 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/listen2/debug/NextNotes",
+  "source_hashes": {
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "875f0d652fe564d9e0b6880030be78eb4dbe24c70ac3bca191e72e27a6cad971",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "e1555d68fe13100815ebbb77371b8a3529ad084676291c128232471e5e82b61f"
+  },
+  "scope": "prefill RED scaffold, route-only Mini baseline; no partial prefill wiring"
+}

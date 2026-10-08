@@ -881,6 +881,13 @@ actor NotesModelRuntime {
         )
     }
 
+    /// RED scaffold for the explicit partial-prefill diagnostic. No sampler runs.
+    func prepareInteractiveConversation(
+        system: String, messages: [LLMChatMessage], maxTokens: Int
+    ) async throws -> PrefillStats {
+        throw LlamaError.notLoaded
+    }
+
     private func streamPrompt(
         system: String,
         messages: [LLMChatMessage],
