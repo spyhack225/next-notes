@@ -155,6 +155,11 @@
     "sha256": "e38038e35e13046cd3a90c3c840bb08ae42663cfae9b81fb746f838225770fc9"
   },
   {
+    "path": "final-artifact-lifecycle.json",
+    "bytes": 1062,
+    "sha256": "a62f188187c7cac2b7204ef0887892b155ccaedd6514e7e86b0badfcdfa37d05"
+  },
+  {
     "path": "fixed-bundle.json",
     "bytes": 237,
     "sha256": "d624ec736d884acfcb02126a4ca9042d1c41b3a19935cbe6866dd566575137ae"
@@ -173,6 +178,11 @@
     "path": "host.json",
     "bytes": 396,
     "sha256": "22974e81c1b2aa8a2e8a3806d8c847894d80642d77ba974b97ef87bebd0fd9da"
+  },
+  {
+    "path": "integration-receipt.json",
+    "bytes": 661,
+    "sha256": "e60e441980715c73c2a7116b2d98870bb2fa0c6611ce1505a66b959f247df1bd"
   },
   {
     "path": "maintained-build.log",
@@ -223,6 +233,11 @@
     "path": "prefix-fixed.log",
     "bytes": 116,
     "sha256": "2fc558c306d6e9b3b730625e0f3e491c51c1efa9441639416fb351aa21ccc8ad"
+  },
+  {
+    "path": "pure-probe-lifecycle.json",
+    "bytes": 985,
+    "sha256": "19f9555ed5c645f60eb0c9c3720c934b2bcd6f01a9c10490ed6cbf356b8cd30b"
   },
   {
     "path": "related-fixed.json",

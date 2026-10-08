@@ -1,0 +1,14 @@
+{
+  "removed_paths": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-checkpoint-20261008/check-original",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-checkpoint-20261008/check-fixed",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-checkpoint-20261008/check-maintained-original",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-checkpoint-20261008/check-unicode-original",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/dictation-checkpoint-20261008/check-unicode-debug"
+  ],
+  "reason": "completed obsolete standalone probes; exact source/build/output retained",
+  "reclaimed_allocated_bytes": null,
+  "counted_in_reclaimed_bundle_total": false,
+  "retained_crash_report": "/Users/sergekadjo/Library/Logs/DiagnosticReports/NextNotes-2026-10-07-210223.ips",
+  "retention_reason": "OS sanitized procPath; full report left in place after strict path guard declined its removal; compact PID-bound frames retained"
+}

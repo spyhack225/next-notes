@@ -1,0 +1,27 @@
+{
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-54491",
+      "binary_sha256": "dc44ba33d31d3f650ada38947aa0234745e5998c35a82b32727fffaaf17e9fcb",
+      "allocated_bytes": 233734144,
+      "process_check": "no active NextNotes process at exact bundle path",
+      "reason": "superseded by fixed debug61082; source/log/verdict retained"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-60376",
+      "binary_sha256": "f85286c4a8e9a575fd38bde2a6a16f149eec4535d57a9135b8a66bb9f8db540e",
+      "allocated_bytes": 234086400,
+      "process_check": "no active NextNotes process at exact bundle path",
+      "reason": "superseded by fixed debug61082; source/log/verdict retained"
+    }
+  ],
+  "reclaimed_allocated_bytes": 467820544,
+  "retained": [
+    "install-30744 owner baseline",
+    "install-45909 optimized rollback",
+    "install-57481 first shared optimized",
+    "install-61082 current fixed debug",
+    "shared scratch"
+  ],
+  "user_models_recordings_stores_untouched": true
+}
