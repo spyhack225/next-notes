@@ -1,0 +1,270 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -13,12 +13,12 @@
+ /// engine re-transcribed the whole buffer every second: O(n²), 82 s of model time inside a
+ /// 120 s hold, and a key-up pass over everything.
+ ///
+-/// **Key-up is usually free.** People stop speaking a few hundred milliseconds before they
+-/// let go of the key, and the end of speech already started a tail pass. So `finish()` asks
+-/// `ParakeetKeyUp.plan` what is still missing: nothing (the last tail covers every frame of
+-/// speech, or nothing was said after the committed segments), the pass already running, or
+-/// one fresh pass over the uncovered tail — started at once on a second manager over the
+-/// same weights rather than queued behind a stale partial.
++/// **Key-up reuses only covered audio.** The end-of-speech event starts a tail pass while
++/// the key is still held. `finish()` asks `ParakeetKeyUp.plan` what accepted PCM is still
++/// missing: nothing (all samples are covered), the pass already running, or one fresh pass
++/// over the uncovered tail. That pass starts on a second manager over the same weights
++/// rather than queueing behind a stale partial. A pause's RMS floor cannot establish that
++/// quiet captured words are absent, so it is not the final-reuse boundary.
+ ///
+ /// **The `.realtimeASR` lane is held per model pass**, not for the whole hold. Notes and
+ /// the pre-clean LLM jobs run in the gaps between passes and park again (at their next
+@@ -264,7 +264,7 @@
+             hasCommitted: committedSegments > 0,
+             tail: tailPartial.map { ParakeetKeyUp.Pass(isSegment: false, start: $0.start, end: $0.end) },
+             inflight: inflight?.pass,
+-            lastSpeechEnd: segmenter.lastSpeechEnd
++            capturedEnd: total
+         )
+ 
+         do {
+@@ -513,11 +513,11 @@
+     }
+ 
+     enum Plan: Equatable, Sendable {
+-        /// The last completed tail pass covers every frame of speech: no model work.
++        /// The last completed tail pass covers every captured frame: no model work.
+         case reuseTail
+-        /// Nothing was said after the committed segments: no model work.
++        /// All captured audio is already committed: no model work.
+         case committedOnly
+-        /// The pass already running covers every frame of speech: wait for it, start nothing.
++        /// The pass already running covers every captured frame: wait for it, start nothing.
+         case awaitInflight
+         /// The running segment pass is still needed, and the speech after it gets its own
+         /// pass, started now beside it.
+@@ -538,25 +538,25 @@
+     }
+ 
+     /// - Parameters:
+-    ///   - lastSpeechEnd: end of the last non-silent 20 ms frame (0 when none was heard).
+-    ///   - hasCommitted: whether any segment text is frozen. With none, an all-quiet hold
+-    ///     still gets its pass: the silence floor is a frame RMS, and a whisper below it is
+-    ///     still the only thing the person said.
++    ///   - capturedEnd: exclusive end of every accepted sample. An RMS silence decision
++    ///     locates pauses; it cannot prove that recognizable quiet words are absent.
++    ///   - hasCommitted: whether a successful segment is frozen, including an empty answer.
++    ///     A hold with no successful segment still receives its final pass.
+     static func plan(
+         committedEnd: Int,
+         hasCommitted: Bool,
+         tail: Pass?,
+         inflight: Pass?,
+-        lastSpeechEnd: Int
++        capturedEnd: Int
+     ) -> Plan {
+-        if let tail, tail.start == committedEnd, lastSpeechEnd <= tail.end {
++        if let tail, tail.start == committedEnd, capturedEnd <= tail.end {
+             return .reuseTail
+         }
+         if let inflight, inflight.start == committedEnd {
+-            if lastSpeechEnd <= inflight.end { return .awaitInflight }
++            if capturedEnd <= inflight.end { return .awaitInflight }
+             if inflight.isSegment { return .awaitSegmentAndTranscribe(from: inflight.end) }
+         }
+-        if hasCommitted, lastSpeechEnd <= committedEnd { return .committedOnly }
++        if hasCommitted, capturedEnd <= committedEnd { return .committedOnly }
+         return .transcribe(from: committedEnd)
+     }
+ }
+--- a/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
+@@ -157,56 +157,67 @@
+         func check(_ name: String, _ got: ParakeetKeyUp.Plan, _ want: ParakeetKeyUp.Plan) {
+             if got != want { failures.append("key-up \(name): \(got.name), expected \(want.name)") }
+         }
+-        // Speech stopped before the last tail pass was taken: nothing left to run.
++        // Every accepted sample is covered by the last completed tail.
+         check("tail covers the last word",
+               ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                  tail: Pass(isSegment: false, start: 0, end: 32_000), inflight: nil,
+-                                 lastSpeechEnd: 30_000),
++                                 capturedEnd: 32_000),
+               .reuseTail)
+         // The end-of-speech pass is still running and covers it: wait for that one.
+         check("running tail covers the last word",
+               ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                  tail: Pass(isSegment: false, start: 0, end: 16_000),
+                                  inflight: Pass(isSegment: false, start: 0, end: 33_000),
+-                                 lastSpeechEnd: 32_000),
++                                 capturedEnd: 32_000),
+               .awaitInflight)
+         // A running tail that ends before the last word is stale: a fresh pass now.
+         check("stale running tail",
+               ParakeetKeyUp.plan(committedEnd: 48_000, hasCommitted: true,
+                                  tail: nil, inflight: Pass(isSegment: false, start: 48_000, end: 60_000),
+-                                 lastSpeechEnd: 70_000),
++                                 capturedEnd: 70_000),
+               .transcribe(from: 48_000))
+         // A running segment pass is needed; the words after its cut start now beside it.
+         check("segment running, speech after its cut",
+               ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                  tail: nil, inflight: Pass(isSegment: true, start: 0, end: 64_000),
+-                                 lastSpeechEnd: 80_000),
++                                 capturedEnd: 80_000),
+               .awaitSegmentAndTranscribe(from: 64_000))
+         check("segment running, nothing after its cut",
+               ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                  tail: nil, inflight: Pass(isSegment: true, start: 0, end: 64_000),
+-                                 lastSpeechEnd: 60_000),
++                                 capturedEnd: 64_000),
+               .awaitInflight)
+         check("nothing said after the committed segments",
+               ParakeetKeyUp.plan(committedEnd: 64_000, hasCommitted: true,
+-                                 tail: nil, inflight: nil, lastSpeechEnd: 63_000),
++                                 tail: nil, inflight: nil, capturedEnd: 64_000),
+               .committedOnly)
+         // No frame crossed the silence floor and nothing is committed: a whisper still
+         // gets its pass rather than an empty answer.
+         check("all-quiet hold",
+               ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+-                                 tail: nil, inflight: nil, lastSpeechEnd: 0),
++                                 tail: nil, inflight: nil, capturedEnd: 0),
+               .transcribe(from: 0))
+         // A tail taken before the last commit does not start at the open tail any more.
+         check("tail from before a commit",
+               ParakeetKeyUp.plan(committedEnd: 64_000, hasCommitted: true,
+                                  tail: Pass(isSegment: false, start: 0, end: 70_000), inflight: nil,
+-                                 lastSpeechEnd: 69_000),
++                                 capturedEnd: 69_000),
+               .transcribe(from: 64_000))
+         check("speech after the last tail",
+               ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                  tail: Pass(isSegment: false, start: 0, end: 32_000), inflight: nil,
+-                                 lastSpeechEnd: 40_000),
++                                 capturedEnd: 40_000),
++              .transcribe(from: 0))
++        // Native quiet-final replay exposes these two RMS-based false reuse decisions.
++        // Coverage comes from accepted PCM, including words below the pause threshold.
++        check("quiet accepted audio after committed segment",
++              ParakeetKeyUp.plan(committedEnd: 64_000, hasCommitted: true,
++                                 tail: nil, inflight: nil, capturedEnd: 96_000),
++              .transcribe(from: 64_000))
++        check("quiet accepted audio after completed partial",
++              ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
++                                 tail: Pass(isSegment: false, start: 0, end: 32_000),
++                                 inflight: nil, capturedEnd: 48_000),
+               .transcribe(from: 0))
+         return failures
+     }
+@@ -312,6 +323,10 @@
+             return false
+         }
+ 
++        let output = SelfTest.value(after: "--dictation-asr-output")
++        if let output {
++            try? full.write(toFile: output + ".reference.txt", atomically: true, encoding: .utf8)
++        }
+         let gold: String?
+         if let goldPath {
+             guard let text = try? String(contentsOfFile: (goldPath as NSString).expandingTildeInPath,
+@@ -332,7 +347,8 @@
+             (completeAudio ? "complete-file" : "speech-to-keyup", Array(audio[0..<lastWord])),
+         ]
+         for (name, held) in endings {
+-            guard let line = await replayOnce(held, reference: full, gold: gold) else {
++            guard let line = await replayOnce(held, reference: full, gold: gold,
++                output: output.map { $0 + "." + name + ".txt" }) else {
+                 log("DICTATION_SEGMENTS_REPLAY_WRONG: \(name) produced no final")
+                 ok = false
+                 continue
+@@ -342,7 +358,8 @@
+         return ok
+     }
+ 
+-    private static func replayOnce(_ audio: [Float], reference: String, gold: String?) async -> String? {
++    private static func replayOnce(_ audio: [Float], reference: String, gold: String?,
++        output: String? = nil) async -> String? {
+         let engine = ParakeetEngine()
+         guard let stream = try? await engine.start(),
+               let format = await engine.preferredInputFormat() else { return nil }
+@@ -373,6 +390,9 @@
+         let keyUp = ProcessInfo.processInfo.systemUptime
+         await engine.finish()
+         guard let final = await consumer.value else { return nil }
++        if let output {
++            try? final.write(toFile: output, atomically: true, encoding: .utf8)
++        }
+         let keyUpToFinal = ProcessInfo.processInfo.systemUptime - keyUp
+         let diagnostics = await engine.diagnostics
+         let hold = Double(audio.count) / Double(rate)
+--- a/Sources/NextNotes/Core/DictationController.swift
++++ b/Sources/NextNotes/Core/DictationController.swift
+@@ -1166,6 +1166,9 @@
+                 log(String(format: "DICTATION_POLISH_WER: round=%d raw=%.3f final=%.3f",
+                     round, DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: finalASR),
+                     DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: delivered)))
++            }
++            if let output = SelfTest.value(after: "--dictation-asr-output") {
++                try? finalASR.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)
+             }
+             if let output = SelfTest.value(after: "--dictation-polish-output") {
+                 try? delivered.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)
+--- a/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift
++++ b/Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift
+@@ -256,8 +256,8 @@
+         let file = await runtime.spec.fileURL
+         let admitted = LockedBox(0)
+         let joined = LockedBox(false)
+-        let producer = Task {
+-            defer { joined.value = true }
++        let phaseID = CommandLine.arguments.contains("--native-phase-observation") ? UUID() : nil
++        let operation: @MainActor @Sendable () async -> String = {
+             do {
+                 _ = try await runtime.completeForDictationCleanup(file: file,
+                     system: system, user: user, maxTokens: generationBudget,
+@@ -265,6 +265,15 @@
+                 return "completed"
+             } catch is CancellationError { return "cancelled" }
+             catch { return "error: " + error.localizedDescription }
++        }
++        let producer = Task {
++            defer { joined.value = true }
++            if let phaseID {
++                return await LatencyCorrelation.$current.withValue(LatencyCorrelation(workID: phaseID)) {
++                    await operation()
++                }
++            }
++            return await operation()
+         }
+         let observerReached = await awaitParkedCondition(within: .seconds(10)) { asrTask.value != nil }
+         guard observerReached, let acquisition = asrTask.value else {
+@@ -313,6 +322,28 @@
+         await runtime.setPrefillChunkObserverForTesting(nil)
+         check(outcome == "cancelled" && admitted.value == 1,
+               "same actual cleanup producer did not join as admitted cancellation: " + outcome)
++        if let phaseID {
++            // Same actual admitted native completion/cancel producer, no additional model pass.
++            MetricsStore.shared.flushForTesting()
++            let spans = MetricsStore.shared.spans().filter { $0.correlation?.workID == phaseID }
++            let contexts = spans.filter { $0.name == .modelContext }
++            let prefills = spans.filter { $0.name == .modelPrefill }
++            let firstTokens = spans.filter { $0.name == .modelFirstToken }
++            let parked = spans.filter { $0.name == .modelQueue && ($0.note?.hasPrefix("checkpoint job=") ?? false) }
++            check(contexts.count == 1 && contexts[0].note?.contains("ready=true") == true,
++                  "actual admitted completion omitted its context phase")
++            check(prefills.count == 1 && prefills[0].note?.contains("ready=false") == true
++                    && prefills[0].note?.contains("counts=unavailable") == true,
++                  "cancelled actual prefill omitted its phase or borrowed stale counts")
++            check(firstTokens.count == 1 && firstTokens[0].note?.contains("no_token=true") == true,
++                  "cancelled actual completion omitted its no-token observation")
++            check(parked.count == 1 && parked[0].note?.contains("cancelled=true") == true,
++                  "actual parked checkpoint omitted its single cancellation span")
++            for span in spans {
++                SelfTest.diagnostic("NATIVE_COMPLETION_PHASE: name=\(span.name.rawValue) "
++                    + "seconds=\(span.durationSeconds) note=\(span.note ?? "")")
++            }
++        }
+         let successfulPrefix = min(decodedChunks.value * 128, initial.promptTokens - 1)
+         do {
+             let successor = try await runtime.completeForDictationCleanup(file: file,

@@ -1,0 +1,24 @@
+{
+  "status": "prepared; unapplied; native candidate and original phase verdict pending",
+  "nativeChildren": "all owned native/compiler/probe children joined; heavy claim released517",
+  "noRuntimeOrSchedulerChange": true,
+  "paths": {
+    "Sources/NextNotes/Transcription/ParakeetEngine.swift": {
+      "beforeSHA256": "68aef5cc99d0b7e630673cdf1e33e427eb4da467da9d4e22246333ef3d734da1",
+      "afterSHA256": "78ae4827c275b8d5e37cba2aac098a7d68dd6186a21ebcece68c9361176f1c73"
+    },
+    "Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift": {
+      "beforeSHA256": "277da2b4a992a887b0670eb90b451a037f19f7badd8d4796572a00f884328a8a",
+      "afterSHA256": "be5f2cfb0b1f20a2f8455f5e17b3b2f8f87929b97a416748367964717f992570"
+    },
+    "Sources/NextNotes/Core/DictationController.swift": {
+      "beforeSHA256": "9269d43dee37690c87b9e330c59ea9d9a74ba73de9fb5691dc5af1345a50d194",
+      "afterSHA256": "32f9b4ea06d960a9734af2e950d4126d74b8dbe3c21008fcc7a7e4cd088358e1"
+    },
+    "Sources/NextNotes/Formatting/LLM/PrefixCacheSelfTest.swift": {
+      "beforeSHA256": "54e232ff9a9b004835f880bcd8d5dd6fa04e12032393b6b17529c2f3dbb9779c",
+      "afterSHA256": "f83014670aee7c2b3df69a7414b49edc0f1f9ed731c23b77873fb7188169aade"
+    }
+  },
+  "patchSHA256": "11bd285016c005e6cc1474fc7631c6b1d7f63723a5cb2c736ccdfe1e635ca5e6"
+}

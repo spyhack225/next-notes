@@ -1,0 +1,30 @@
+{
+  "atUTC": "2026-10-08T03:33:56.131247+00:00",
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-61082/Next Notes.app",
+      "binarySHA256": "b0001fca1f3ac5783d59a123eca0a194b4c3ebd068425c152f5e248359f8a7dd",
+      "allocatedBytes": 234090496,
+      "codesign": "Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/install-61082/Next Notes.app/Contents/MacOS/NextNotes\nIdentifier=ai.pivotstudio.nextnotes\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20500 size=416185 flags=0x10000(runtime) hashes=12995+7 location=embedded\nSignature size=1744\nAuthority=Next Notes Local Signing\nSigned Time=Oct 7, 2026 at 9:03:04\u202fPM\nInfo.plist entries=22\nTeamIdentifier=not set\nRuntime Version=26.0.0\nSealed Resources version=2 rules=13 files=291\nInternal requirements count=1 size=100\nTotal signatures=1\nChosen signature=1\n",
+      "reason": "completed positive debug/earlier optimized comparison superseded by exact signed original cff68784 and fourth476d pair; source pins, producer patches and test logs retained",
+      "activeProcesses": false
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/install-62791/Next Notes.app",
+      "binarySHA256": "9b17a28e668cdbaac94fab2a85c2c31daa97c812172c577cc5dda8b1564154c7",
+      "allocatedBytes": 125440000,
+      "codesign": "Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/install-62791/Next Notes.app/Contents/MacOS/NextNotes\nIdentifier=ai.pivotstudio.nextnotes\nFormat=app bundle with Mach-O thin (arm64)\nCodeDirectory v=20500 size=204409 flags=0x10000(runtime) hashes=6377+7 location=embedded\nSignature size=1744\nAuthority=Next Notes Local Signing\nSigned Time=Oct 7, 2026 at 9:20:42\u202fPM\nInfo.plist entries=22\nTeamIdentifier=not set\nRuntime Version=26.0.0\nSealed Resources version=2 rules=13 files=291\nInternal requirements count=1 size=100\nTotal signatures=1\nChosen signature=1\n",
+      "reason": "completed positive debug/earlier optimized comparison superseded by exact signed original cff68784 and fourth476d pair; source pins, producer patches and test logs retained",
+      "activeProcesses": false
+    }
+  ],
+  "totalAllocatedBytes": 359530496,
+  "retained": [
+    "owner30744 application",
+    "explicit rollback45909",
+    "exact original signed68784",
+    "current signed73956",
+    "all source patches/pins/regression logs",
+    "models/recordings/user stores/shared build scratch"
+  ]
+}

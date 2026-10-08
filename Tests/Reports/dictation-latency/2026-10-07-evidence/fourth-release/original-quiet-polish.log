@@ -1,0 +1,11 @@
+DICTATION_POLISH_PREPARE: resident=true seconds=16.063
+DICTATION_POLISH_PREVIEW: round=1 cleanupReady=337ms finalReady=4875ms publicationOnly=true
+DICTATION_POLISH: round=1 engine=miniCPM hold=60.59s first=501ms visibleWords=127 ASRfinal=9ms ready=4875ms finalWords=127 head=15 answeredHead=15 fallback=none layout=4.800s cached=1297 model=0.309s
+DICTATION_POLISH_TARGET: round=1 startup=22371ms polishedUnder2s=false liveAtRelease=true layoutOutcome=the layout pass ran out of time after 4.8s
+DICTATION_POLISH_WER: round=1 raw=0.096 final=0.096
+DICTATION_POLISH_PREVIEW: round=2 cleanupReady=406ms finalReady=4926ms publicationOnly=true
+DICTATION_POLISH: round=2 engine=miniCPM hold=60.59s first=535ms visibleWords=127 ASRfinal=3ms ready=4926ms finalWords=127 head=15 answeredHead=15 fallback=none layout=4.800s cached=1297 model=0.382s
+DICTATION_POLISH_TARGET: round=2 startup=1ms polishedUnder2s=false liveAtRelease=true layoutOutcome=the layout pass ran out of time after 4.8s
+DICTATION_POLISH_WER: round=2 raw=0.096 final=0.096
+DICTATION_POLISH_OK: full finishing path reached isolated insertion twice
+DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean

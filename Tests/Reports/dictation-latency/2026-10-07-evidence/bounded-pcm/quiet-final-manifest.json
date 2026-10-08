@@ -1,0 +1,23 @@
+{
+  "source": "Public repository en-dialogue.wav, no owner audio",
+  "sourceSHA256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203",
+  "originalLastAboveFloorEndSamples": 962880,
+  "quietStartsAtSample": 924480,
+  "quietSpeechSeconds": 2.4,
+  "gain": 0.0487739937424928,
+  "maxQuietFrameRMS": 0.009000379137625225,
+  "allScriptWordsRetained": true,
+  "goldScope": "Original complete independent script; no acoustic end derived from ASR output. Quiet-alone crop has no exact independent word alignment.",
+  "nativeVerdict": "pending",
+  "files": {
+    "quiet-final-clause.wav": {
+      "samples": 969366,
+      "sha256": "76c16c4ffd310a9e9b1b87841a8211a7ae738e92868b02b8141c578a1f726dc4"
+    },
+    "quiet-final-clause-alone.wav": {
+      "samples": 44886,
+      "sha256": "6b33012b8141c80f3244d32e238b0dfb5dcd6c79434791fbf0302f18c2b80378"
+    }
+  },
+  "goldSHA256": "0b7465741fe4a5fb780a941f78d946935acb6e84bbd26d9d74205af3d5a19e2b"
+}

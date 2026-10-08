@@ -1,0 +1,79 @@
+--- a/Sources/NextNotes/Transcription/ParakeetEngine.swift
++++ b/Sources/NextNotes/Transcription/ParakeetEngine.swift
+@@ -13,12 +13,12 @@
+ /// engine re-transcribed the whole buffer every second: O(n²), 82 s of model time inside a
+ /// 120 s hold, and a key-up pass over everything.
+ ///
+-/// **Key-up is usually free.** People stop speaking a few hundred milliseconds before they
+-/// let go of the key, and the end of speech already started a tail pass. So `finish()` asks
+-/// `ParakeetKeyUp.plan` what is still missing: nothing (the last tail covers every frame of
+-/// speech, or nothing was said after the committed segments), the pass already running, or
+-/// one fresh pass over the uncovered tail — started at once on a second manager over the
+-/// same weights rather than queued behind a stale partial.
++/// **Key-up reuses only covered audio.** The end-of-speech event starts a tail pass while
++/// the key is still held. `finish()` asks `ParakeetKeyUp.plan` what accepted PCM is still
++/// missing: nothing (all samples are covered), the pass already running, or one fresh pass
++/// over the uncovered tail. That pass starts on a second manager over the same weights
++/// rather than queueing behind a stale partial. A pause's RMS floor cannot establish that
++/// quiet captured words are absent, so it is not the final-reuse boundary.
+ ///
+ /// **The `.realtimeASR` lane is held per model pass**, not for the whole hold. Notes and
+ /// the pre-clean LLM jobs run in the gaps between passes and park again (at their next
+@@ -264,7 +264,7 @@
+             hasCommitted: committedSegments > 0,
+             tail: tailPartial.map { ParakeetKeyUp.Pass(isSegment: false, start: $0.start, end: $0.end) },
+             inflight: inflight?.pass,
+-            lastSpeechEnd: segmenter.lastSpeechEnd
++            capturedEnd: total
+         )
+ 
+         do {
+@@ -513,11 +513,11 @@
+     }
+ 
+     enum Plan: Equatable, Sendable {
+-        /// The last completed tail pass covers every frame of speech: no model work.
++        /// The last completed tail pass covers every captured frame: no model work.
+         case reuseTail
+-        /// Nothing was said after the committed segments: no model work.
++        /// All captured audio is already committed: no model work.
+         case committedOnly
+-        /// The pass already running covers every frame of speech: wait for it, start nothing.
++        /// The pass already running covers every captured frame: wait for it, start nothing.
+         case awaitInflight
+         /// The running segment pass is still needed, and the speech after it gets its own
+         /// pass, started now beside it.
+@@ -538,25 +538,25 @@
+     }
+ 
+     /// - Parameters:
+-    ///   - lastSpeechEnd: end of the last non-silent 20 ms frame (0 when none was heard).
+-    ///   - hasCommitted: whether any segment text is frozen. With none, an all-quiet hold
+-    ///     still gets its pass: the silence floor is a frame RMS, and a whisper below it is
+-    ///     still the only thing the person said.
++    ///   - capturedEnd: exclusive end of every accepted sample. An RMS silence decision
++    ///     locates pauses; it cannot prove that recognizable quiet words are absent.
++    ///   - hasCommitted: whether a successful segment is frozen, including an empty answer.
++    ///     A hold with no successful segment still receives its final pass.
+     static func plan(
+         committedEnd: Int,
+         hasCommitted: Bool,
+         tail: Pass?,
+         inflight: Pass?,
+-        lastSpeechEnd: Int
++        capturedEnd: Int
+     ) -> Plan {
+-        if let tail, tail.start == committedEnd, lastSpeechEnd <= tail.end {
++        if let tail, tail.start == committedEnd, capturedEnd <= tail.end {
+             return .reuseTail
+         }
+         if let inflight, inflight.start == committedEnd {
+-            if lastSpeechEnd <= inflight.end { return .awaitInflight }
++            if capturedEnd <= inflight.end { return .awaitInflight }
+             if inflight.isSegment { return .awaitSegmentAndTranscribe(from: inflight.end) }
+         }
+-        if hasCommitted, lastSpeechEnd <= committedEnd { return .committedOnly }
++        if hasCommitted, capturedEnd <= committedEnd { return .committedOnly }
+         return .transcribe(from: committedEnd)
+     }
+ }

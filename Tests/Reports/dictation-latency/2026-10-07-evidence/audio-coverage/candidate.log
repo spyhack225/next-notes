@@ -1,0 +1,122 @@
+{
+  "cases" : [
+    {
+      "calls" : [
+        "6400:14601494223459851045",
+        "22400:15434145605699811109",
+        "38400:12531004258897097509",
+        "54400:3768360758015627045",
+        "68800:16074657319410526757",
+        "68000:5042127766464699301",
+        "37600:4733083490459366181"
+      ],
+      "failures" : [
+
+      ],
+      "final" : "Hello. I will send the summary tonight.",
+      "inputSamples" : 105600,
+      "keyUpPlan" : "tail-pass",
+      "name" : "quiet words after committed segment",
+      "passed" : true,
+      "peakRetainedSamples" : 72000,
+      "quietSamplesGivenToASR" : 16000,
+      "retainedBeforeFinish" : 37600,
+      "stream" : [
+        "false::Hello.",
+        "false::Hello.",
+        "false::Hello.",
+        "false::Hello.",
+        "false::Hello.",
+        "false:Hello.:Hello.",
+        "true:Hello.:Hello. I will send the summary tonight."
+      ],
+      "wanted" : "Hello. I will send the summary tonight."
+    },
+    {
+      "calls" : [
+        "6400:14601494223459851045",
+        "20800:15663346029635147301",
+        "33600:13065343479240011557"
+      ],
+      "failures" : [
+
+      ],
+      "final" : "Hello. I will send the summary tonight.",
+      "inputSamples" : 33600,
+      "keyUpPlan" : "tail-pass",
+      "name" : "quiet words after completed partial",
+      "passed" : true,
+      "peakRetainedSamples" : 33600,
+      "quietSamplesGivenToASR" : 6400,
+      "retainedBeforeFinish" : 33600,
+      "stream" : [
+        "false::Hello.",
+        "false::Hello.",
+        "true::Hello. I will send the summary tonight."
+      ],
+      "wanted" : "Hello. I will send the summary tonight."
+    },
+    {
+      "calls" : [
+        "6400:14601494223459851045",
+        "22400:15434145605699811109",
+        "38400:12531004258897097509",
+        "54400:3768360758015627045"
+      ],
+      "failures" : [
+
+      ],
+      "final" : "Hello.",
+      "inputSamples" : 54400,
+      "keyUpPlan" : "reused-tail",
+      "name" : "all accepted audio already covered",
+      "passed" : true,
+      "peakRetainedSamples" : 54400,
+      "quietSamplesGivenToASR" : 0,
+      "retainedBeforeFinish" : 54400,
+      "stream" : [
+        "false::Hello.",
+        "false::Hello.",
+        "false::Hello.",
+        "false::Hello.",
+        "true::Hello."
+      ],
+      "wanted" : "Hello."
+    },
+    {
+      "calls" : [
+        "6400:14601494223459851045",
+        "22400:15434145605699811109",
+        "38400:12531004258897097509",
+        "54400:3768360758015627045",
+        "68800:16074657319410526757",
+        "68000:5042127766464699301",
+        "5600:2046851312863758501"
+      ],
+      "failures" : [
+
+      ],
+      "final" : "Hello.",
+      "inputSamples" : 73600,
+      "keyUpPlan" : "tail-pass",
+      "name" : "literal silent remainder",
+      "passed" : true,
+      "peakRetainedSamples" : 72000,
+      "quietSamplesGivenToASR" : 0,
+      "retainedBeforeFinish" : 5600,
+      "stream" : [
+        "false::Hello.",
+        "false::Hello.",
+        "false::Hello.",
+        "false::Hello.",
+        "false::Hello.",
+        "false:Hello.:Hello.",
+        "true:Hello.:Hello."
+      ],
+      "wanted" : "Hello."
+    }
+  ],
+  "failures" : 0,
+  "scope" : "Actual production engine finish\/plan\/feed\/stream through real AV buffers. Native ASR, converter and scheduler boundaries substituted; scripted words model recognizable quiet PCM, not native accuracy."
+}
+DICTATION_CAPTURED_COVERAGE_OK

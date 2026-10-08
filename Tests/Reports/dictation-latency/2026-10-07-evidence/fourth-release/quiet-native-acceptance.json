@@ -1,0 +1,44 @@
+{
+  "atUTC": "2026-10-08T03:32:06.480257+00:00",
+  "sourceInvariant": true,
+  "changed": [],
+  "sourceCount": 1170,
+  "candidateSHA256": "476d1c6741b085faf564775d220cb2ab85f550d3bea8ba7d8d42cb3e66310c25",
+  "nativeChildJoined": true,
+  "fullFileSamples": 969366,
+  "fullBufferIndependentWER": 0.044,
+  "streamedIndependentWER": [
+    0.096,
+    0.096
+  ],
+  "disagreement": [
+    0.052,
+    0.052
+  ],
+  "keyUpPlans": [
+    "committed-only",
+    "committed-only"
+  ],
+  "engineKeyUpMS": [
+    0,
+    0
+  ],
+  "functionalVerdict": "DICTATION_SEGMENTS_OK",
+  "qualityVerdict": "FAIL reference/stream disagreement; exact lost-word alignment not recorded",
+  "physicalCapture": false,
+  "polishing": false,
+  "remaining": [
+    "exact raw output/source-word alignment",
+    "originalcff/fixed476d full controller polishing pair",
+    "normal short and long actual PCM acceptance"
+  ],
+  "nextGate": {
+    "ok": false,
+    "freeGB": 6.26861572265625,
+    "swapGB": 7.70361328125,
+    "load": 9.07,
+    "minFreeGB": 6.5,
+    "maxSwapGB": 8
+  },
+  "ownerApp": "unchanged"
+}

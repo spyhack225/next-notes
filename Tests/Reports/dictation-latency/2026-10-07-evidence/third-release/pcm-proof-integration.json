@@ -1,0 +1,9 @@
+{
+  "old": "c5d295bc1c15b36240cb418f814dc211128348c1",
+  "new": "108fb8ce4aadd356cfeeae3ae1dacd6b27d8c25b",
+  "pathCount": 64,
+  "sourceBytesUnchangedByIntegration": true,
+  "foreignStagedSHA256": "a95a56feed170210aba2a320010f073d3e2cb35b3c379a2db889f3d07aba6e2d",
+  "indexRepair": "Commit/ref succeeded; exact owned index refresh initially lacked --add on new proof paths. Refreshed all owned paths using --add and verified foreign staged bytes. No source change or second commit.",
+  "pending": "Production PCM source and prior mixed dictation/UI integration retained pending fourth signed/native acceptance; owner app unchanged."
+}

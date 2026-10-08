@@ -1,0 +1,55 @@
+--- a/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
++++ b/Sources/NextNotes/Transcription/DictationSegmentsSelfTest.swift
+@@ -312,6 +312,10 @@
+             return false
+         }
+ 
++        let output = SelfTest.value(after: "--dictation-asr-output")
++        if let output {
++            try? full.write(toFile: output + ".reference.txt", atomically: true, encoding: .utf8)
++        }
+         let gold: String?
+         if let goldPath {
+             guard let text = try? String(contentsOfFile: (goldPath as NSString).expandingTildeInPath,
+@@ -332,7 +336,8 @@
+             (completeAudio ? "complete-file" : "speech-to-keyup", Array(audio[0..<lastWord])),
+         ]
+         for (name, held) in endings {
+-            guard let line = await replayOnce(held, reference: full, gold: gold) else {
++            guard let line = await replayOnce(held, reference: full, gold: gold,
++                output: output.map { $0 + "." + name + ".txt" }) else {
+                 log("DICTATION_SEGMENTS_REPLAY_WRONG: \(name) produced no final")
+                 ok = false
+                 continue
+@@ -342,7 +347,8 @@
+         return ok
+     }
+ 
+-    private static func replayOnce(_ audio: [Float], reference: String, gold: String?) async -> String? {
++    private static func replayOnce(_ audio: [Float], reference: String, gold: String?,
++        output: String? = nil) async -> String? {
+         let engine = ParakeetEngine()
+         guard let stream = try? await engine.start(),
+               let format = await engine.preferredInputFormat() else { return nil }
+@@ -373,6 +379,9 @@
+         let keyUp = ProcessInfo.processInfo.systemUptime
+         await engine.finish()
+         guard let final = await consumer.value else { return nil }
++        if let output {
++            try? final.write(toFile: output, atomically: true, encoding: .utf8)
++        }
+         let keyUpToFinal = ProcessInfo.processInfo.systemUptime - keyUp
+         let diagnostics = await engine.diagnostics
+         let hold = Double(audio.count) / Double(rate)
+--- a/Sources/NextNotes/Core/DictationController.swift
++++ b/Sources/NextNotes/Core/DictationController.swift
+@@ -1166,6 +1166,9 @@
+                 log(String(format: "DICTATION_POLISH_WER: round=%d raw=%.3f final=%.3f",
+                     round, DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: finalASR),
+                     DictationSegmentsSelfTest.wordErrorRate(reference: gold, hypothesis: delivered)))
++            }
++            if let output = SelfTest.value(after: "--dictation-asr-output") {
++                try? finalASR.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)
+             }
+             if let output = SelfTest.value(after: "--dictation-polish-output") {
+                 try? delivered.write(toFile: output + ".\(round).txt", atomically: true, encoding: .utf8)

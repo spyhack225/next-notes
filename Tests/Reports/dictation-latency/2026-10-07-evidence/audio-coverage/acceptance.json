@@ -1,0 +1,68 @@
+{
+  "status": "Component originalRED2 -> candidatePASS4; canonical unapplied; native candidate acceptance pending",
+  "confirmedNativeRegression": "full public quiet referenceWER.044 vsstream.096 twice, keyUpcommittedOnly; exact lost words pending full-path output",
+  "before": "68aef5cc99d0b7e630673cdf1e33e427eb4da467da9d4e22246333ef3d734da1",
+  "candidate": "78ae4827c275b8d5e37cba2aac098a7d68dd6186a21ebcece68c9361176f1c73",
+  "responsibleContract": "Final reuse must cover accepted audio, not merely above-RMS-threshold frames. Existing array and model managers retained.",
+  "scope": "only keyUp actual finish->plan; no model/VAD/threshold change, no retry after bad output, no extra queue/store",
+  "newWork": "A previously unrecognized remainder reaches the existing final-tail pass, including nonzero quiet audio and true silence if not covered. Max open tail unchanged.",
+  "requiredAcceptance": [
+    "Actual original quiet-after-committed producer omits a recognizable scripted quiet tail; candidate receives all tail samples and final consumer includes exact words.",
+    "Native full quiet reference/stream and actual Corepolish raw output/gold original/fixed with unchanged audio and all features.",
+    "Exact complete audio is reused without added pass; incomplete tail/inflight triggers existing final path.",
+    "Silent/noise/model hallucination controls and short/long latency before/after; report additional release inference without pretending it is free.",
+    "Failure/held-segment fallback, cancellation/session ownership and PCM offset bounds unchanged."
+  ],
+  "stillOpen": [
+    "quiet live partial scheduling still consults RMS coverage and requires a separate measured producer repair",
+    "pause cuts can split quiet words; reference equality is not guaranteed by final coverage alone",
+    "native/source/app tests and metadata raw-output export remain pending"
+  ],
+  "componentBoundary": "actual engine start/feed/finish/plan/stream + AV buffers; substituted recognizer, converter, scheduler and registry",
+  "compilerObservedMaxRSSBytes": [
+    210698240,
+    210632704
+  ],
+  "compilerObservedSeconds": [
+    3.9,
+    3.79
+  ],
+  "native8GBgate": "refused, unchanged",
+  "explicitComponentGate": {
+    "freeGB": 7.337059020996094,
+    "swapGB": 8.253046875,
+    "load": 2.86,
+    "minFreeGB": 6.5,
+    "maxSwapGB": 9,
+    "relaySlot": 516
+  },
+  "firstProbeLimitation": "retained originalRED1/candidateRED1: fake ASR incorrectly emitted full phrase for any quiet fragment; corrected producer emits only PCM-tagged words. This is fixture correction, not native accuracy",
+  "sources": {
+    "AudioCoverageCheck.swift": "8241e5b61b5c3174a567e698cfad69058d734e4b375c843a4650ea5f0863f3ea",
+    "BoundaryTypes.swift": "92e3974a51bfa44ffffa0e01cd35a5fddfd5dd1d5c2100ebfa8bb5000c44d0e7",
+    "DictationController.raw-output-candidate.swift": "32f9b4ea06d960a9734af2e950d4126d74b8dbe3c21008fcc7a7e4cd088358e1",
+    "DictationController.raw-output-original.swift": "9269d43dee37690c87b9e330c59ea9d9a74ba73de9fb5691dc5af1345a50d194",
+    "DictationSegmenter.swift": "215ef83b73014c1bffbcda9f8446798613e12c1f929593078f2c09fb9f4a5e3b",
+    "DictationSegmentsSelfTest.original.swift": "277da2b4a992a887b0670eb90b451a037f19f7badd8d4796572a00f884328a8a",
+    "DictationSegmentsSelfTest.raw-output-candidate.swift": "be5f2cfb0b1f20a2f8455f5e17b3b2f8f87929b97a416748367964717f992570",
+    "Engine.candidate-probe.swift": "c896140a9cb059144f3e2e3c210202f138834a4af96ac4e0da49a2ca6f8b598d",
+    "Engine.original-probe.swift": "34b3e020d9d0a7df7770702174244da1ce8b9460e7e9dee9f735634bd5000fda",
+    "Makefile": "3cf52d9c20187e992cb67d6e77e1b0cce965b7a8a6fde46adc14bacf30ab1447",
+    "ParakeetEngine.candidate.swift": "f924aba50cc2d574f0599c860323dca83f4bae681254f69b9ba670ea45ce13fd",
+    "ParakeetEngine.original.swift": "68aef5cc99d0b7e630673cdf1e33e427eb4da467da9d4e22246333ef3d734da1",
+    "ParakeetInput.swift": "9bf9a41e99d92a0b496d955d0d464d004136884c62509fb2373ec74068995e7c",
+    "TranscriptionEngine.swift": "78291e26cf280bf400eb5e54f0f18e4c617e7391db8a60d9cfc6172c6305949d",
+    "candidate.log": "02903149940834550e7767e701f85db5789a6c007ef76e7c1957bdf81d3dea4d",
+    "captured-coverage-review-only.patch": "96422ed38de1b081feda9c2ad9c5b4436c1984a801009bc147ca85adb677b8ef",
+    "first-probe-AudioCoverageCheck.swift": "fbd781a4def5ba057454375f9994ee690e9d1fa0380ba1465bd0bcf38392559f",
+    "first-probe-BoundaryTypes.swift": "1aa57076665ded22d25152fb13a40e3b5bb3ee1ba47690e18437e30934e2f382",
+    "first-probe-candidate.log": "e67834a27281fb8597ee17e62e2c0c9b52478102c0e4fc707454e29cbb512362",
+    "first-probe-original.log": "ebc0b1e08d250946e01c4fcdabb9124fa95745450636cf0364ae0865d10781e0",
+    "fixture-correction.md": "62ffb7060df312d1402bd76945e7ba6b3f3b37ea104b5cba94cfa2aebd447210",
+    "maintained-keyup-and-raw-output.patch": "a24b531caaaab2075460901fc1b20385e8e88bfb7ff5c85ab0f486d72255f644",
+    "manifest.json": "07ae68a2ada99e1b03c2656ab580aee6adf9b3649795e47909705104442e8dc0",
+    "original.log": "e09d75f3e8f27b301ba3259b5ae45424d4bce38a6c5b07c6a86b142637d342e9",
+    "raw-output-review-only.patch": "0db04c740a2680bd89a8950dbabd17face4e76d2d4e32f21023b753c86149e33"
+  },
+  "commentOnlyPostTestCorrection": "Updated key-up docs to describe all accepted PCM rather than unsupported quiet/speech certainty; tested logic unchanged"
+}

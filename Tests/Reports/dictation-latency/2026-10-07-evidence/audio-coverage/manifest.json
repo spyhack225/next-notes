@@ -1,0 +1,21 @@
+{
+  "status": "REVIEW ONLY; unapplied/uncompiled; native candidate verdict unavailable",
+  "confirmedNativeRegression": "full public quiet referenceWER.044 vsstream.096 twice, keyUpcommittedOnly; exact lost words pending full-path output",
+  "before": "68aef5cc99d0b7e630673cdf1e33e427eb4da467da9d4e22246333ef3d734da1",
+  "candidate": "f924aba50cc2d574f0599c860323dca83f4bae681254f69b9ba670ea45ce13fd",
+  "responsibleContract": "Final reuse must cover accepted audio, not merely above-RMS-threshold frames. Existing array and model managers retained.",
+  "scope": "only keyUp actual finish->plan; no model/VAD/threshold change, no retry after bad output, no extra queue/store",
+  "newWork": "A previously unrecognized remainder reaches the existing final-tail pass, including nonzero quiet audio and true silence if not covered. Max open tail unchanged.",
+  "requiredAcceptance": [
+    "Actual original quiet-after-committed producer omits a recognizable scripted quiet tail; candidate receives all tail samples and final consumer includes exact words.",
+    "Native full quiet reference/stream and actual Corepolish raw output/gold original/fixed with unchanged audio and all features.",
+    "Exact complete audio is reused without added pass; incomplete tail/inflight triggers existing final path.",
+    "Silent/noise/model hallucination controls and short/long latency before/after; report additional release inference without pretending it is free.",
+    "Failure/held-segment fallback, cancellation/session ownership and PCM offset bounds unchanged."
+  ],
+  "stillOpen": [
+    "quiet live partial scheduling still consults RMS coverage and requires a separate measured producer repair",
+    "pause cuts can split quiet words; reference equality is not guaranteed by final coverage alone",
+    "native/source/app tests and metadata raw-output export remain pending"
+  ]
+}

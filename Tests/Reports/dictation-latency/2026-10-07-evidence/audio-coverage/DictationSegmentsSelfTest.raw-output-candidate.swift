@@ -1,0 +1,437 @@
+import AVFoundation
+import FluidAudio
+import Foundation
+
+/// `--selftest-dictation-segments [wav]`: the dictation segment rule, the key-up plan and
+/// the committed-boundary pre-clean, without a model. With a WAV, it also replays that file
+/// through the real `ParakeetEngine` at real-time pace. `--dictation-complete-audio` keeps
+/// every input sample in the reference and both replays (file ending, plus 300 ms silence).
+/// The historical default endings use the RMS gate and cannot prove quiet final-word retention.
+/// Prints engine busy time, partial lag, key-up → final and
+/// the word disagreement with one full-buffer pass. `--dictation-gold <text>` also
+/// reports WER against an independent plain transcript (not the model's own answer).
+/// Prints `DICTATION_SEGMENTS_OK` /
+/// `DICTATION_SEGMENTS_FAILED` last.
+enum DictationSegmentsSelfTest {
+    @MainActor
+    static func run(wavPath: String?, log: @MainActor (String) -> Void) async -> Bool {
+        var failures: [String] = []
+        failures += segmenterCases()
+        failures += keyUpCases()
+        failures += await precleanCases()
+        for failure in failures { log("DICTATION_SEGMENTS_WRONG: \(failure)") }
+
+        var replayOK = true
+        if let wavPath {
+            if let polish = SelfTest.value(after: "--dictation-polish") {
+                replayOK = await DictationController.runPolishingReplay(
+                    path: wavPath, choice: polish == "apple" ? .apple : .miniCPM,
+                    warmFirst: CommandLine.arguments.contains("--dictation-polish-warm"), log: log)
+            } else {
+                replayOK = await replay(path: wavPath, goldPath: SelfTest.value(after: "--dictation-gold"), log: log)
+            }
+        }
+        let ok = failures.isEmpty && replayOK
+        log(ok
+            ? "DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean"
+            : "DICTATION_SEGMENTS_FAILED: \(failures.count) pure failure(s)\(replayOK ? "" : ", replay failed")")
+        return ok
+    }
+
+    // MARK: - Segmenter
+
+    private static let rate = 16_000
+
+    /// A 220 Hz tone at `amplitude` — RMS ≈ 0.7 × amplitude, so 0.1 is speech and 0.002 is
+    /// below the 0.01 silence floor.
+    private static func tone(_ seconds: Double, amplitude: Float = 0.1) -> [Float] {
+        (0..<Int(seconds * Double(rate))).map { amplitude * sinf(Float($0) * 2 * .pi * 220 / Float(rate)) }
+    }
+
+    private static func silence(_ seconds: Double) -> [Float] {
+        [Float](repeating: 0, count: Int(seconds * Double(rate)))
+    }
+
+    private static func cuts(_ audio: [Float], step: Int? = nil) -> (cuts: [Int], ends: Int) {
+        var segmenter = DictationSegmenter()
+        var found: [Int] = []
+        var ends = 0
+        if let step {
+            var fed = 0
+            while fed < audio.count {
+                fed = min(fed + step, audio.count)
+                let scan = segmenter.advance(over: Array(audio[0..<fed]))
+                found += scan.cuts
+                if scan.speechEnded { ends += 1 }
+            }
+        } else {
+            let scan = segmenter.advance(over: audio)
+            found = scan.cuts
+            if scan.speechEnded { ends += 1 }
+        }
+        return (found, ends)
+    }
+
+    private static func seconds(_ samples: [Int]) -> String {
+        samples.map { String(format: "%.2f", Double($0) / Double(rate)) }.joined(separator: ",")
+    }
+
+    private static func segmenterCases() -> [String] {
+        var failures: [String] = []
+        let s = { (seconds: Double) in Int(seconds * Double(rate)) }
+
+        // 1. A half-second pause after three seconds commits, in the middle of the pause.
+        let pause = tone(4) + silence(0.6) + tone(4)
+        let one = cuts(pause).cuts
+        if one.count != 1 || !(s(4.0)...s(4.6)).contains(one[0]) {
+            failures.append("a 0.6 s pause after 4 s cut at [\(seconds(one))], expected one cut inside 4.00–4.60")
+        }
+
+        // 2. A pause before the three-second floor is not a segment.
+        let early = cuts(tone(2) + silence(0.6) + tone(2)).cuts
+        if !early.isEmpty {
+            failures.append("a pause at 2 s cut at [\(seconds(early))] — below the 3 s floor")
+        }
+
+        // 3. A breath (0.35 s) is not enough for a short segment, but is past 8 s.
+        let breath = tone(4) + silence(0.35) + tone(5) + silence(0.35) + tone(2)
+        let three = cuts(breath).cuts
+        if three.count != 1 || !(s(9.35)...s(9.7)).contains(three[0]) {
+            failures.append("0.35 s breaths at 4 s and 9.35 s cut at [\(seconds(three))], expected one inside 9.35–9.70")
+        }
+
+        // 4. No pause at all: a hard cut at or before 14.5 s, at the quietest 60 ms.
+        var monologue = tone(20)
+        for index in s(6.0)..<s(6.1) { monologue[index] *= 0.02 }
+        for index in s(11.0)..<s(11.1) { monologue[index] *= 0.04 }
+        let four = cuts(monologue).cuts
+        if four.count != 1 || !(s(6.0)...s(6.1)).contains(four[0]) {
+            failures.append("a 20 s monologue cut at [\(seconds(four))], expected one cut in the quietest dip (6.00–6.10)")
+        }
+        var flat = tone(31)
+        flat[s(20)] = 0  // nothing quieter anywhere: any cut must still respect the cap
+        let capped = cuts(flat).cuts
+        var previous = 0
+        for cut in capped {
+            if cut - previous > s(14.5) || cut - previous < s(3) {
+                failures.append("a 31 s monologue produced a \(String(format: "%.2f", Double(cut - previous) / Double(rate))) s segment")
+            }
+            previous = cut
+        }
+        if capped.count < 2 {
+            failures.append("a 31 s monologue produced only \(capped.count) cut(s)")
+        }
+
+        // 5. Streaming in 100 ms pieces finds exactly the cuts one call over the whole does.
+        for (name, audio) in [("pause", pause), ("breath", breath), ("monologue", monologue), ("flat", flat)] {
+            let whole = cuts(audio).cuts
+            let streamed = cuts(audio, step: 1_600).cuts
+            if whole != streamed {
+                failures.append("\(name): streamed cuts [\(seconds(streamed))] differ from one-shot [\(seconds(whole))]")
+            }
+        }
+
+        // 6. End of speech fires once per pause, after 0.25 s, and not on leading silence.
+        let talk = silence(1) + tone(2) + silence(1.3) + tone(1) + silence(0.3)
+        let ended = cuts(talk, step: 1_600).ends
+        if ended != 2 {
+            failures.append("two utterances reported end of speech \(ended) time(s), expected 2")
+        }
+        var segmenter = DictationSegmenter()
+        _ = segmenter.advance(over: tone(1) + silence(0.1))
+        if segmenter.lastSpeechEnd != s(1) {
+            failures.append("last speech end \(segmenter.lastSpeechEnd), expected \(s(1))")
+        }
+        var quiet = DictationSegmenter()
+        if quiet.advance(over: silence(2)).speechEnded || quiet.lastSpeechEnd != 0 {
+            failures.append("silence alone reported speech")
+        }
+        return failures
+    }
+
+    // MARK: - Key-up plan
+
+    private static func keyUpCases() -> [String] {
+        typealias Pass = ParakeetKeyUp.Pass
+        var failures: [String] = []
+        func check(_ name: String, _ got: ParakeetKeyUp.Plan, _ want: ParakeetKeyUp.Plan) {
+            if got != want { failures.append("key-up \(name): \(got.name), expected \(want.name)") }
+        }
+        // Every accepted sample is covered by the last completed tail.
+        check("tail covers the last word",
+              ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                 tail: Pass(isSegment: false, start: 0, end: 32_000), inflight: nil,
+                                 capturedEnd: 32_000),
+              .reuseTail)
+        // The end-of-speech pass is still running and covers it: wait for that one.
+        check("running tail covers the last word",
+              ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                 tail: Pass(isSegment: false, start: 0, end: 16_000),
+                                 inflight: Pass(isSegment: false, start: 0, end: 33_000),
+                                 capturedEnd: 32_000),
+              .awaitInflight)
+        // A running tail that ends before the last word is stale: a fresh pass now.
+        check("stale running tail",
+              ParakeetKeyUp.plan(committedEnd: 48_000, hasCommitted: true,
+                                 tail: nil, inflight: Pass(isSegment: false, start: 48_000, end: 60_000),
+                                 capturedEnd: 70_000),
+              .transcribe(from: 48_000))
+        // A running segment pass is needed; the words after its cut start now beside it.
+        check("segment running, speech after its cut",
+              ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                 tail: nil, inflight: Pass(isSegment: true, start: 0, end: 64_000),
+                                 capturedEnd: 80_000),
+              .awaitSegmentAndTranscribe(from: 64_000))
+        check("segment running, nothing after its cut",
+              ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                 tail: nil, inflight: Pass(isSegment: true, start: 0, end: 64_000),
+                                 capturedEnd: 64_000),
+              .awaitInflight)
+        check("nothing said after the committed segments",
+              ParakeetKeyUp.plan(committedEnd: 64_000, hasCommitted: true,
+                                 tail: nil, inflight: nil, capturedEnd: 64_000),
+              .committedOnly)
+        // No frame crossed the silence floor and nothing is committed: a whisper still
+        // gets its pass rather than an empty answer.
+        check("all-quiet hold",
+              ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                 tail: nil, inflight: nil, capturedEnd: 0),
+              .transcribe(from: 0))
+        // A tail taken before the last commit does not start at the open tail any more.
+        check("tail from before a commit",
+              ParakeetKeyUp.plan(committedEnd: 64_000, hasCommitted: true,
+                                 tail: Pass(isSegment: false, start: 0, end: 70_000), inflight: nil,
+                                 capturedEnd: 69_000),
+              .transcribe(from: 64_000))
+        check("speech after the last tail",
+              ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                 tail: Pass(isSegment: false, start: 0, end: 32_000), inflight: nil,
+                                 capturedEnd: 40_000),
+              .transcribe(from: 0))
+        // Native quiet-final replay exposes these two RMS-based false reuse decisions.
+        // Coverage comes from accepted PCM, including words below the pause threshold.
+        check("quiet accepted audio after committed segment",
+              ParakeetKeyUp.plan(committedEnd: 64_000, hasCommitted: true,
+                                 tail: nil, inflight: nil, capturedEnd: 96_000),
+              .transcribe(from: 64_000))
+        check("quiet accepted audio after completed partial",
+              ParakeetKeyUp.plan(committedEnd: 0, hasCommitted: false,
+                                 tail: Pass(isSegment: false, start: 0, end: 32_000),
+                                 inflight: nil, capturedEnd: 48_000),
+              .transcribe(from: 0))
+        return failures
+    }
+
+    // MARK: - Committed-boundary pre-clean
+
+    private actor Calls {
+        var all: [String] = []
+        func add(_ text: String) { all.append(text) }
+    }
+
+    private struct Upper: TextFormatter {
+        let calls: Calls
+        func format(_ raw: String) async -> String {
+            await calls.add(raw)
+            return raw.uppercased()
+        }
+    }
+
+    private static func precleanCases() async -> [String] {
+        var failures: [String] = []
+        let identity: @Sendable (String) -> String = { $0 }
+
+        // Groups close at committed boundaries, a sentence cut before its full stop waits
+        // for the segment that finishes it, and the head is a prefix of the final text.
+        let calls = Calls()
+        let session = IncrementalCleanupSession(semantic: Upper(calls: calls), rules: identity)
+        let first = "Alpha one two three four."
+        let second = "Bravo five six seven eight."
+        await session.notePartial("\(first) Bravo five six seven", committed: "\(first) Bravo five six seven")
+        await session.notePartial("\(first) \(second) Charlie nine.", committed: "\(first) \(second) Charlie nine.")
+        let head = await session.head()
+        for task in head.cleaned { _ = await task.value }
+        if head.stageA != [first, "\(second) Charlie nine."] {
+            failures.append("committed groups were \(head.stageA), expected one per segment")
+        }
+        let final = "\(first) \(second) Charlie nine. Delta ten"
+        if CleanupRouter.remainder(of: final, afterPrefix: head.rawPrefix) != "Delta ten" {
+            failures.append("the head \"\(head.rawPrefix)\" is not a prefix of the final transcript")
+        }
+        if await calls.all.count != 2 {
+            failures.append("the hold made \(await calls.all.count) pre-clean call(s), expected 2")
+        }
+
+        // A short committed fragment is not sent on its own.
+        let fragmentCalls = Calls()
+        let fragment = IncrementalCleanupSession(semantic: Upper(calls: fragmentCalls), rules: identity)
+        await fragment.notePartial("Hi there. And then", committed: "Hi there.")
+        if !(await fragment.head()).stageA.isEmpty {
+            failures.append("a two-word committed fragment closed a group")
+        }
+
+        // Live text that changes is not frozen text: a partial with no committed prefix is
+        // never grouped from its first sighting.
+        let liveCalls = Calls()
+        let live = IncrementalCleanupSession(semantic: Upper(calls: liveCalls), rules: identity)
+        await live.notePartial("\(first) \(second) More", committed: "")
+        if !(await live.head()).stageA.isEmpty {
+            failures.append("an empty committed prefix closed a group")
+        }
+
+        let ruleCalls = LockedBox(0)
+        let repeated = IncrementalCleanupSession(semantic: Upper(calls: Calls()), rules: {
+            ruleCalls.value += 1
+            return $0
+        })
+        await repeated.notePartial("\(first) New words", committed: first)
+        await repeated.notePartial("\(first) More new words", committed: first)
+        if ruleCalls.value != 1 {
+            failures.append("unchanged frozen prefix ran the full rules pass \(ruleCalls.value) times, expected 1")
+        }
+        return failures
+    }
+
+    // MARK: - Real-time replay through the production engine
+
+    @MainActor
+    private static func replay(path: String, goldPath: String?, log: @MainActor (String) -> Void) async -> Bool {
+        let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+        guard let audio = try? AudioConversion.monoSamples(fromFileAt: url, sampleRate: Double(rate)),
+              audio.count > rate else {
+            log("DICTATION_SEGMENTS_REPLAY_ABSENT: could not read \(path)")
+            return false
+        }
+        var segmenter = DictationSegmenter()
+        _ = segmenter.advance(over: audio)
+        let completeAudio = CommandLine.arguments.contains("--dictation-complete-audio")
+        let lastWord = completeAudio ? audio.count : segmenter.lastSpeechEnd
+        if completeAudio {
+            log("DICTATION_SEGMENTS_INPUT: full file, \(audio.count) samples; RMS ending is diagnostic only")
+        }
+        guard lastWord > 0 else {
+            log("DICTATION_SEGMENTS_REPLAY_ABSENT: no speech in \(path)")
+            return false
+        }
+        let full: String
+        do {
+            let manager = try await ParakeetModels.shared.manager()
+            var state = try TdtDecoderState()
+            full = try await manager.transcribe(Array(audio[0..<lastWord]), decoderState: &state).text
+        } catch {
+            log("DICTATION_SEGMENTS_REPLAY_ABSENT: Parakeet unavailable — \(error.localizedDescription)")
+            return false
+        }
+
+        let output = SelfTest.value(after: "--dictation-asr-output")
+        if let output {
+            try? full.write(toFile: output + ".reference.txt", atomically: true, encoding: .utf8)
+        }
+        let gold: String?
+        if let goldPath {
+            guard let text = try? String(contentsOfFile: (goldPath as NSString).expandingTildeInPath,
+                                         encoding: .utf8), !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+                log("DICTATION_SEGMENTS_REPLAY_ABSENT: could not read the independent transcript")
+                return false
+            }
+            gold = text
+            log(String(format: "DICTATION_SEGMENTS_GOLD: full-buffer WER %.3f",
+                       wordErrorRate(reference: text, hypothesis: full)))
+        } else {
+            gold = nil
+        }
+
+        var ok = true
+        let endings: [(String, [Float])] = [
+            (completeAudio ? "complete-file+300ms" : "ends-300ms", Array(audio[0..<lastWord]) + silence(0.3)),
+            (completeAudio ? "complete-file" : "speech-to-keyup", Array(audio[0..<lastWord])),
+        ]
+        for (name, held) in endings {
+            guard let line = await replayOnce(held, reference: full, gold: gold,
+                output: output.map { $0 + "." + name + ".txt" }) else {
+                log("DICTATION_SEGMENTS_REPLAY_WRONG: \(name) produced no final")
+                ok = false
+                continue
+            }
+            log("DICTATION_SEGMENTS_REPLAY: \(name) \(line)")
+        }
+        return ok
+    }
+
+    private static func replayOnce(_ audio: [Float], reference: String, gold: String?,
+        output: String? = nil) async -> String? {
+        let engine = ParakeetEngine()
+        guard let stream = try? await engine.start(),
+              let format = await engine.preferredInputFormat() else { return nil }
+        let consumer = Task { () -> String? in
+            var final: String?
+            do {
+                for try await chunk in stream where chunk.isFinal { final = chunk.text }
+            } catch { return nil }
+            return final
+        }
+        let step = rate / 10
+        var fedAt: [Int: TimeInterval] = [:]
+        let began = ProcessInfo.processInfo.systemUptime
+        var index = 0
+        while index < audio.count {
+            let end = min(index + step, audio.count)
+            let due = began + Double(end) / Double(rate)
+            let wait = due - ProcessInfo.processInfo.systemUptime
+            if wait > 0 { try? await Task.sleep(for: .seconds(wait)) }
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(end - index)),
+                  let channel = buffer.floatChannelData?.pointee else { return nil }
+            buffer.frameLength = AVAudioFrameCount(end - index)
+            for offset in 0..<(end - index) { channel[offset] = audio[index + offset] }
+            await engine.feed(AudioChunk(buffer: buffer))
+            fedAt[end] = ProcessInfo.processInfo.systemUptime
+            index = end
+        }
+        let keyUp = ProcessInfo.processInfo.systemUptime
+        await engine.finish()
+        guard let final = await consumer.value else { return nil }
+        if let output {
+            try? final.write(toFile: output, atomically: true, encoding: .utf8)
+        }
+        let keyUpToFinal = ProcessInfo.processInfo.systemUptime - keyUp
+        let diagnostics = await engine.diagnostics
+        let hold = Double(audio.count) / Double(rate)
+        let lags = diagnostics.partials.compactMap { partial -> Double? in
+            // When the newest audio in that pass had been fed (the chunk containing `end`).
+            let fed = fedAt.keys.filter { $0 >= partial.end }.min().flatMap { fedAt[$0] }
+            return fed.map { partial.at - $0 }
+        }
+        let meanLag = lags.isEmpty ? 0 : lags.reduce(0, +) / Double(lags.count)
+        let firstPartial = diagnostics.partials.first.map { ($0.at - began) * 1000 } ?? -1
+        var result = String(
+            format: "hold %.1fs, passes %d (%d segment), busy %.1fs (%.0f%%), partials %d, first %.0f ms, lag mean %.2fs max %.2fs, key-up %@ %.0f ms (engine %.0f ms), disagreement vs one full pass %.3f",
+            hold, diagnostics.passes, diagnostics.segmentPasses, diagnostics.computeSeconds,
+            100 * diagnostics.computeSeconds / hold, diagnostics.partials.count, firstPartial, meanLag,
+            lags.max() ?? 0, diagnostics.keyUpPlan, keyUpToFinal * 1000,
+            diagnostics.keyUpSeconds * 1000, wordErrorRate(reference: reference, hypothesis: final)
+        )
+        if let gold {
+            result += String(format: ", independent WER %.3f", wordErrorRate(reference: gold, hypothesis: final))
+        }
+        return result
+    }
+
+    static func wordErrorRate(reference: String, hypothesis: String) -> Double {
+        func words(_ text: String) -> [String] {
+            text.lowercased().replacingOccurrences(of: "-", with: " ")
+                .components(separatedBy: CharacterSet.alphanumerics.inverted).filter { !$0.isEmpty }
+        }
+        let ref = words(reference), hyp = words(hypothesis)
+        guard !ref.isEmpty else { return hyp.isEmpty ? 0 : 1 }
+        var previous = Array(0...hyp.count)
+        for i in 1...ref.count {
+            var current = [i] + [Int](repeating: 0, count: hyp.count)
+            for j in stride(from: 1, through: hyp.count, by: 1) {
+                current[j] = min(previous[j] + 1, current[j - 1] + 1,
+                                 previous[j - 1] + (ref[i - 1] == hyp[j - 1] ? 0 : 1))
+            }
+            previous = current
+        }
+        return Double(previous[hyp.count]) / Double(ref.count)
+    }
+}

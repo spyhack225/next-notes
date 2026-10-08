@@ -1,0 +1,5 @@
+DICTATION_SEGMENTS_INPUT: full file, 969366 samples; RMS ending is diagnostic only
+DICTATION_SEGMENTS_GOLD: full-buffer WER 0.044
+DICTATION_SEGMENTS_REPLAY: complete-file+300ms hold 60.9s, passes 76 (16 segment), busy 6.8s (11%), partials 65, first 489 ms, lag mean 0.17s max 1.48s, key-up committed-only 0 ms (engine 0 ms), disagreement vs one full pass 0.052, independent WER 0.096
+DICTATION_SEGMENTS_REPLAY: complete-file hold 60.6s, passes 76 (16 segment), busy 6.8s (11%), partials 65, first 488 ms, lag mean 0.16s max 1.49s, key-up committed-only 0 ms (engine 0 ms), disagreement vs one full pass 0.052, independent WER 0.096
+DICTATION_SEGMENTS_OK: pause cuts, hard cap, end of speech, key-up plan and committed pre-clean
