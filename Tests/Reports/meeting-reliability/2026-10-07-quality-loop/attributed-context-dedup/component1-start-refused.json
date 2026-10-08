@@ -1,0 +1,44 @@
+{
+  "recordedAt": "2026-10-08T20:07:39.836650+00:00",
+  "attempt": "component1-start",
+  "scope": "First fresh preflight for explicitly authorized sequential original/fixed small source probe. No compiler/probe child launched; no retry or gate relaxation.",
+  "profile": {
+    "maxSwapGiB": 8,
+    "minDiskFreeGiB": 6.5,
+    "startReportedFreePercent": 55,
+    "ongoingReportedFreePercent": 50,
+    "summedOwnedFootprintBytes": 1000000000,
+    "compilerSeconds": 90,
+    "runSeconds": 10,
+    "exactOwnedCLIDrainSeconds": 6
+  },
+  "preflight": {
+    "normalGate": {
+      "ok": true,
+      "swapGb": 4.1337890625,
+      "load": 3.33,
+      "freeGb": 10.239799499511719,
+      "path": "/",
+      "reasons": [],
+      "unknown": []
+    },
+    "memoryPressureReportedFreePercent": 54
+  },
+  "admitted": false,
+  "refusal": "reported free54% below starting55%",
+  "ownedCompilerChildrenLaunched": 0,
+  "guardHelperSHA256": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+  "stagedManifestSHA256": "edf19c7060bdadab73aec783ae63327bad7c076ab6546c203f4d8fb051373a31",
+  "stagedArtifactsUnchanged": true,
+  "canonicalDependenciesUnchanged": true,
+  "currentFrozenSourceCount": 1176,
+  "originalCompile": "UNRUN",
+  "originalRegression": "UNRUN",
+  "fixedCompile": "UNRUN",
+  "fixedRegression": "UNRUN",
+  "appSignalSent": false,
+  "modelCalls": 0,
+  "ownerDataReadOrWrite": false,
+  "canonicalSourceOrIndexWrite": false,
+  "installed": false
+}

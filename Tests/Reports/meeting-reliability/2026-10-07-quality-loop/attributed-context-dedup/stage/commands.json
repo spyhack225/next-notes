@@ -1,0 +1,71 @@
+{
+  "scope": "Future root-coordinated model-free compiler/runtime only; UNRUN. Same fixture/dependencies in original/fixed. No canonical/index write, native ASR/model, App, owner store or network. Admission/lifecycle guard must wrap each command.",
+  "workingDirectory": "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/attributed-context-dedup",
+  "compile": [
+    {
+      "variant": "original",
+      "argv": [
+        "/usr/bin/xcrun",
+        "swiftc",
+        "-swift-version",
+        "6",
+        "-parse-as-library",
+        "-whole-module-optimization",
+        "-num-threads",
+        "1",
+        "-j",
+        "1",
+        "-O",
+        "TranscriptBoundary.swift",
+        "MeetingContext.swift",
+        "CompileBoundaries.swift",
+        "MeetingContextExtractor.original.swift",
+        "MeetingAttributedContextDedupSelfTest.swift",
+        "Main.swift",
+        "-o",
+        "original-probe"
+      ]
+    },
+    {
+      "variant": "fixed",
+      "argv": [
+        "/usr/bin/xcrun",
+        "swiftc",
+        "-swift-version",
+        "6",
+        "-parse-as-library",
+        "-whole-module-optimization",
+        "-num-threads",
+        "1",
+        "-j",
+        "1",
+        "-O",
+        "TranscriptBoundary.swift",
+        "MeetingContext.swift",
+        "CompileBoundaries.swift",
+        "MeetingContextExtractor.fixed.swift",
+        "MeetingAttributedContextDedupSelfTest.swift",
+        "Main.swift",
+        "-o",
+        "fixed-probe"
+      ]
+    }
+  ],
+  "run": [
+    {
+      "variant": "original",
+      "argv": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/attributed-context-dedup/original-probe"
+      ],
+      "expected": "Nonzero only with attributed cross-speaker/source omission and bound assertions; no compiler/dependency/date or lifecycle failure counts as regression verdict."
+    },
+    {
+      "variant": "fixed",
+      "argv": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/action-intent-harness-90400946-c987-4404-80ad-4c6761ac7014/attributed-context-dedup/fixed-probe"
+      ],
+      "expected": "All unchanged authored apply/merge checks pass; no quality or real store assertion."
+    }
+  ],
+  "futureMaintainedApp": "Existing --selftest-meeting-topic-merge with unchanged generic and retained approved private corpus; append maintained-hook.patch/new fixture only after producer review. Existing 185 old topic/unresolved facts and normalized model echo assertions must pass unchanged; full native store/consumer acceptance remains pending."
+}

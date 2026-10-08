@@ -73,27 +73,48 @@ enum MeetingContextExtractor {
     }
 
     private static func append(_ item: MeetingContextItem, to list: inout [MeetingContextItem]) {
-        if list.contains(where: { $0.text == item.text }) { return }
+        // Equal words do not identify the speaker or the microphone that supplied them.
+        if list.contains(where: {
+            $0.text == item.text && $0.source == item.source && $0.speaker == item.speaker
+        }) { return }
         list.append(item)
         if list.count > 40 { list.removeFirst(list.count - 40) }
     }
 
     /// Model refinements add context; text similarity cannot establish that an existing
-    /// fact may be replaced. Only normalized exact duplicates can be omitted safely.
-    /// Preserve retained identity/source/confidence and the existing bounded item budget.
+    /// fact may be replaced. Attributed quotes dedupe only within their speaker/source.
+    /// An unattributed inferred model summary may echo retained text without adding a row.
+    /// Neither form replaces retained identity/source/confidence or enlarges the budget.
+    private struct AttributedText: Hashable {
+        let text: String
+        let source: AudioSource
+        let speaker: String?
+    }
+
     static func merge(
         _ refined: [MeetingContextItem],
         onto existing: [MeetingContextItem]
     ) -> [MeetingContextItem] {
         guard !refined.isEmpty, existing.count < 40 else { return existing }
         var next = existing
-        var retainedText = Set(existing.map { normalize($0.text) })
+        let retained = existing.map { item in
+            AttributedText(text: normalize(item.text), source: item.source, speaker: item.speaker)
+        }
+        var retainedText = Set(retained.map(\.text))
+        var retainedAttribution = Set(retained)
         for item in refined {
             guard next.count < 40 else { break }
             let needle = normalize(item.text)
-            guard !needle.isEmpty, retainedText.insert(needle).inserted else { continue }
-            // Non-exact enrichment keeps its own inferred metadata; a shared token or
-            // broader phrase never deletes facts or inherits another speaker's identity.
+            guard !needle.isEmpty else { continue }
+            // The actual model topic/open-question producer writes this least-authority
+            // shape. Suppressing its text echo must not collapse another speaker's quote.
+            let isModelSummary = item.source == .system && item.speaker == nil
+                && item.confidence == MeetingContextReconciler.inferredConfidence
+            guard !(isModelSummary && retainedText.contains(needle)),
+                  retainedAttribution.insert(AttributedText(
+                    text: needle, source: item.source, speaker: item.speaker)).inserted
+            else { continue }
+            retainedText.insert(needle)
             append(item, to: &next)
         }
         return next

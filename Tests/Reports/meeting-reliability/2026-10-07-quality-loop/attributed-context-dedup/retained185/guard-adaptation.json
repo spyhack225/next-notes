@@ -1,0 +1,7 @@
+{
+  "driverSHA256": "a28d0fe1792444b8bc53921eae9bd96c8869b40806c2b0bb62586754ba70565c",
+  "helperSHA256": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+  "privateStageMode": "0o700",
+  "sourceAndCorpusPinsValidated": true,
+  "onlyPathsPhasesManifestArgvScopeReceiptAdapted": true
+}

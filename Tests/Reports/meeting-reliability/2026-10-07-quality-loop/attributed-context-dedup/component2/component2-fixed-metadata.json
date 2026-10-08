@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-08T20:09:45.785304+00:00",
+  "phase": "fixed",
+  "exit": 0,
+  "wallSeconds": 3.439368249994004,
+  "guardReason": null,
+  "observationDetails": [],
+  "sourceInvariant": true,
+  "sourceCount": 1176,
+  "drain": {
+    "observationDetails": [],
+    "remainingOwnedPIDs": [],
+    "unresolvedPIDs": [],
+    "errors": [],
+    "seconds": 0.05269195800065063,
+    "sent": []
+  },
+  "lifecycleErrorType": null,
+  "samples": 45,
+  "peakSampledOwnedFootprintBytes": 121160904,
+  "scope": "Whole actual Extractor apply/merge + Context/Item; actual TranscriptSegment prefix; only unused historical selftest references substituted. Public-authored speech/identical fixture. Normal8/min6.5/free55+50/1GB;90s compiler/10s run. No native Session/store/model or semantic proof",
+  "installation": false
+}

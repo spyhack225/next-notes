@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-08T20:13:25.140106+00:00",
+  "phase": "compile",
+  "exit": 0,
+  "wallSeconds": 5.572874500008766,
+  "guardReason": null,
+  "observationDetails": [
+    {
+      "pid": 30790,
+      "kind": "confirmed absent",
+      "expectedStart": 2510362335081,
+      "observedStart": null,
+      "isRoot": false
+    }
+  ],
+  "sourceInvariant": true,
+  "sourceCount": 1176,
+  "drain": {
+    "observationDetails": [],
+    "remainingOwnedPIDs": [],
+    "unresolvedPIDs": [],
+    "errors": [],
+    "seconds": 0.053431915992405266,
+    "sent": []
+  },
+  "lifecycleErrorType": null,
+  "samples": 108,
+  "peakSampledOwnedFootprintBytes": 198756008,
+  "scope": "Retained actual ContextStore/parser/apply/atomic JSON save/fresh load;185 unchanged assertions; only extractor prefix replaced; retained boundary substitutions. Private copied owner-derived fixtures/raw logs. Normal8/min6.5/free55+50/1GB;90s compiler/10s run. No current App/native model/Session/semantic proof",
+  "installation": false
+}

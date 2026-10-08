@@ -1,0 +1,39 @@
+{
+  "scope": "Retained actual production-body regression: only embedded extractor prefix changes;185 checks and all other retained source bodies unchanged. No current full-App/native consumer/model proof.",
+  "fixtures": 15,
+  "checks": 185,
+  "failed": 0,
+  "modelCalls": 0,
+  "semanticQuality": false,
+  "exact185AssertionsUnchanged": true,
+  "exactSourceRestorationEqualsRetainedProbe": true,
+  "stageAndPrivateInputsUnchanged": true,
+  "privateCorpusMode": "0700",
+  "payloadRawLogModes": "0600",
+  "rawLogSHA256": "44fdaf8391b356c5ee01dcdc16a7cdd8abb319728e25769fbbf009b49bcb213e",
+  "rawLogPubliclyCopied": false,
+  "retainedStoreSubstitutions": "Directory/Meeting metadata/controller/bus/role/pressure/log/usage/provider boundaries; full actual historical ContextStore ingest/reconcile/apply/atomic context save/load, parser/reconciler/matcher/grammar/Context/Transcript and same fixture. No scheduled pressure/native/bus/physical/global identity proof. Stored files are temporary; fresh reader is actual historical ContextStore.",
+  "phases": {
+    "compile": {
+      "exit": 0,
+      "wallSeconds": 5.572874500008766,
+      "guard": null,
+      "allOwnedJoined": true,
+      "noSignals": true,
+      "sourceInvariantCount": 1176,
+      "sampledFootprintBytes": 198756008
+    },
+    "run": {
+      "exit": 0,
+      "wallSeconds": 0.7326010839897208,
+      "guard": null,
+      "allOwnedJoined": true,
+      "noSignals": true,
+      "sourceInvariantCount": 1176,
+      "sampledFootprintBytes": 5489216
+    }
+  },
+  "currentNativeFullAppModelMeaningSpeakerAcceptance": false,
+  "canonicalSourceOrIndexWrites": false,
+  "installed": false
+}

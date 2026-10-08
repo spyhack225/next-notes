@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-08T09:51:34.427301+00:00",
+  "base": "69d8b512406c54fde02ccc1565d5094e62b677b9",
+  "commit": "5a4da66324449f35f383742ed9bd922cffd68e3d",
+  "paths": [
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/commitment-evidence-selection-proposal/README.md",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/commitment-evidence-selection-proposal/audit-metadata.json",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/commitment-evidence-selection-proposal/manifest.json",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/commitment-evidence-selection-proposal/public-authored-controls.json",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/commitment-evidence-selection-proposal/source-pins.json",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/CURRENT-ACCEPTANCE.md",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/NOTES-FACTUALITY-HANDOFF.md",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/ingest-bounded-source-integration-receipt.json",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/INVITE-NAME-CHOICE-NEXT.md",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/README.md",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/install-startup-narrowing-relay-receipt.json",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/invite-choice-cache-staged.json",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/invite-choice-cache-staged.patch",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/invite-choice-relay-receipt.json",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/participant-coverage-relay-message.txt",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/rename-ui-original-consumer-staged.patch",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/rename-ui-staged-metadata.json"
+  ],
+  "sourceFiles": 0,
+  "protectedStagedEntriesUnchanged": 56,
+  "privateIndexRemoved": true,
+  "allocatedBytesReclaimed": 606208,
+  "installed": false,
+  "scope": "Report-only follow-up; immutable patch-context whitespace preserved, md/json check passed",
+  "retainedReceipt": "Explicitly retained uncommitted for next evidence integration"
+}

@@ -1,0 +1,32 @@
+warning: 'speechify': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+[0/1] Planning build
+Building for production...
+[0/19] Compiling SpeexEcho preprocess.c
+[1/19] Write swift-version--58304C5D6DBC2206.txt
+[2/19] Copying llama.framework
+[3/19] Copying libtext_processing_rs.a
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/SpeexEcho/mdf.c:473:35: warning: ambiguous expansion of macro 'M_PI' [-Wambiguous-macro]
+  473 |       st->window[i] = .5-.5*cos(2*M_PI*i/N);
+      |                                   ^
+/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk/usr/include/math.h:751:9: note: expanding this definition of 'M_PI'
+  751 | #define M_PI        3.14159265358979323846264338327950288   /* pi             */
+      |         ^
+/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/SpeexEcho/math_approx.h:306:9: note: other definition of 'M_PI'
+  306 | #define M_PI           3.14159265358979323846  /* pi */
+      |         ^
+1 warning generated.
+[4/19] Compiling SpeexEcho mdf.c
+[5/19] Compiling SpeexEcho kiss_fftr.c
+[6/19] Compiling SpeexEcho kiss_fft.c
+[7/19] Compiling SpeexEcho filterbank.c
+[8/19] Compiling SpeexEcho fftwrap.c
+[9/19] Compiling SherpaOnnxKWS sherpa_kws_bridge.c
+[10/19] Write sources
+[12/19] Compiling MachTaskSelfWrapper MachTaskSelf.c
+[14/20] Compiling NextNotesDictionary DictionaryCorrector.swift
+[14/20] Copying luxtts_en_us_lexicon.tsv.zz
+[15/20] Copying luxtts_en_us_g2p_aux.json
+[16/20] Write sources
+[17/20] Compiling FastClusterWrapper FastClusterWrapper.cpp
+[19/21] Compiling FluidAudio CanaryConfig.swift

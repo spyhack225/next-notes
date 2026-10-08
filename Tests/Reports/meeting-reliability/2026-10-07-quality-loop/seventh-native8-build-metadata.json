@@ -1,0 +1,86 @@
+{
+  "at": "2026-10-08T20:04:35.509398+00:00",
+  "exit": -15,
+  "wallSeconds": 174.51761804199487,
+  "guardReason": "summed owned footprint above5GB",
+  "originalOwnerEightUnchanged": true,
+  "ownerStatusCountsBefore": {
+    "done": 16
+  },
+  "sourceInvariant": true,
+  "sourceCount": 1176,
+  "remainingOwnedPIDs": [],
+  "ordinarySwap8Crossed": false,
+  "profile": "peer reviewed relay782 compiler-only initial swap6/min8/free60; ongoing swap6/min8/free45/summed5GB/1200s; no inference or owner app launch",
+  "phaseReceipts": [
+    {
+      "phase": "compile",
+      "errorType": null,
+      "exit": -15,
+      "observationDetails": [
+        {
+          "pid": 28747,
+          "kind": "confirmed absent",
+          "expectedStart": null,
+          "observedStart": null,
+          "isRoot": false
+        }
+      ],
+      "drain": {
+        "observationDetails": [],
+        "remainingOwnedPIDs": [],
+        "unresolvedPIDs": [],
+        "errors": [],
+        "seconds": 0.1867925410042517,
+        "sent": [
+          {
+            "pid": 28724,
+            "processStart": 2493595763592,
+            "signal": 15
+          },
+          {
+            "pid": 29034,
+            "processStart": 2494841958625,
+            "signal": 15
+          },
+          {
+            "pid": 29035,
+            "processStart": 2494844615489,
+            "signal": 15
+          },
+          {
+            "pid": 29041,
+            "processStart": 2494860114081,
+            "signal": 15
+          }
+        ]
+      }
+    }
+  ],
+  "samples": 634,
+  "peakSampledOwnedFootprintBytes": 5011527872,
+  "compilerArm": "Explicit supported native backend cache reuse; debug metadata none; release-O/WMO/jobs1 unchanged; repo build default unchanged",
+  "protectedDependencyAndSwiftBuildInputsUnchanged": true,
+  "frontendThreadCounts": [
+    "1"
+  ],
+  "frontendScopeObservations": [
+    {
+      "scope": "dependency",
+      "moduleKnown": true,
+      "identityValid": true,
+      "lastThreadCount": 1,
+      "countOccurrences": 1,
+      "mainCompileThreadProof": false
+    },
+    {
+      "scope": "main-compile",
+      "moduleKnown": true,
+      "identityValid": true,
+      "lastThreadCount": 1,
+      "countOccurrences": 1,
+      "mainCompileThreadProof": true
+    }
+  ],
+  "installed": false
+}

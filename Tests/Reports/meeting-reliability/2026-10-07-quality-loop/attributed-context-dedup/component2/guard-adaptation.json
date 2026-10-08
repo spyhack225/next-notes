@@ -1,0 +1,9 @@
+{
+  "base": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-ingest-order-component3-guarded.py",
+  "baseSHA256": "dbaa2a09f9fca17b157933febede2e49926cf5845400c1a049ae4865377640be",
+  "adapted": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-attributed-context-component2-guarded.py",
+  "adaptedSHA256": "6d447d4eca8ce1518f3617b820a5c5b83b62818faaed0578ee95fc86ab0f845a",
+  "helperSHA256": "68e7971a1474ac8f15d70e6f38e6fd517cdf5b09150c17d726f5590181fd3a4f",
+  "allowedChanges": "Owned paths/input manifest/argv/cwd/current1176freeze/receipt-prefix/scope; initial observation retained before refusal; compiler90s/runtime10s. Ownership observe/drain and machine/resource limits unchanged.",
+  "stagedInputsUnchanged": true
+}

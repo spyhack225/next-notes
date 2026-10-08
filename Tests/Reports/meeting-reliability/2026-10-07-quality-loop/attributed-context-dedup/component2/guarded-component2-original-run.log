@@ -1,0 +1,29 @@
+FAIL: apply-two-speakers-0
+FAIL: apply-two-speakers-1
+FAIL: apply-two-speakers-2
+FAIL: apply-two-tracks-order-false-0
+FAIL: apply-two-tracks-order-false-1
+FAIL: apply-two-tracks-order-false-2
+FAIL: apply-two-tracks-order-true-0
+FAIL: apply-two-tracks-order-true-1
+FAIL: apply-two-tracks-order-true-2
+FAIL: apply-explicit-mapped-labels-retained
+FAIL: apply-all-categories-preserve-speakers-0
+FAIL: apply-all-categories-preserve-speakers-1
+FAIL: apply-all-categories-preserve-speakers-2
+FAIL: apply-all-categories-preserve-speakers-3
+FAIL: apply-all-categories-preserve-speakers-4
+FAIL: apply-all-categories-preserve-speakers-5
+FAIL: apply-all-categories-preserve-speakers-6
+FAIL: merge-two-speakers
+FAIL: merge-two-tracks-retain-full-metadata
+FAIL: merge-attributed-quote-not-blocked-by-model-text
+FAIL: merge-unknown-and-known-speakers-not-equated
+FAIL: merge-unknown-track-domains-distinct
+FAIL: merge-new-batch-cross-speaker-plus-repeat
+FAIL: merge-40-capacity-preserves-39-and-admits-one-domain
+FAIL: apply-40-bound-latest-retained-0
+FAIL: apply-40-bound-latest-retained-1
+FAIL: apply-40-bound-latest-retained-2
+MEETING_ATTRIBUTED_CONTEXT_DEDUP_RESULT checks=50 failed=27 modelCalls=0 storeCalls=0 semanticProof=false
+MEETING_ATTRIBUTED_CONTEXT_DEDUP_FAILED

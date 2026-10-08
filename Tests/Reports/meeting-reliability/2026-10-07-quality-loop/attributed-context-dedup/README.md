@@ -1,0 +1,17 @@
+# Attributed context dedup: original/fixed probe awaiting admission
+
+The explicitly authorized component probe refused its **first fresh preflight**: reported free54% against starting55%. Swap4.133789GiB/disk10.239799GiB pass ordinary limits. No compiler or probe child launched, no model/app started or signalled, no source/index/default/owner-data mutation, and no retry/threshold relaxation followed. Original/fixed compile and regression verdicts remain **UNRUN**. This is not an original regression failure, fixed PASS or product performance result.
+
+component1-start-refused.json retains the actual observed values and approved profile. current-source-freeze.json pins current canonical Sources/Resources. stage/ copies the frozen cache proposal/source/fixture/commands; exact original and proposed producer hashes are pinned. Copies contain only actual repository source and public-authored speech, no owner meeting payload. Guard helper parity68e7971…3a4f was checked against the reviewed exact-owned lifecycle helper; no guarded compiler driver was launched.
+
+The source-level cause remains a hypothesis awaiting actual before/after execution: Extractor.append's text-only identity can erase another stored speaker/source's identical first-person quote; merge text-only normalization also collapses attributed refinements. The minimal cache-only proposal preserves exact source/speaker domains while keeping same-domain repetitions, prior normalized unattributed model echo suppression, metadata and40 bounds. No action/candidate conversion, speaker discovery, store/queue/pass or authority promotion.
+
+Future execution uses actual apply/merge with identical authored original/fixed inputs and explicit compile-only substitutions for unused native/semantic references. Require intended original attribution failures and unchanged fixed allchecks PASS with exact child joins; compiler/lifecycle failure cannot count as regression RED. Existing185 maintained topic/unresolved regressions and actual save/fresh-reader checks remain pending before adoption. This does not repair the separate fully visible Mini semantic miss, physical audio echo, unknown speaker identity or native meeting performance. See stage/README.md and commands.json for exact scope and pending consumer gates.
+
+## Later distinct authorized component2 result
+
+After startup headroom recovery, unchanged actual producer/fixture compilation succeeds. Original50 checks fail27 intended attributed-domain assertions; proposed fixed50/50 pass. All children joined without guards/signals and1176 Sources/Resources remain invariant. See component2/README.md and actual-verdict.json. The original refusal above is retained as historical evidence. ContextStore/maintained185/native/full-App/semantic gates remain pending; no adoption or installation follows.
+
+## Retained185 consumer verdict
+
+The later separately authorized retained actual-source ContextStore/parser/application/atomic save/fresh-reader suite passes15 unchanged fixtures/185 assertions with only the proposed extractor prefix replaced. Runtime/model/account boundaries remain explicitly substituted; this is not current native full-App proof. All children joined without guards/signals;1176 Sources/Resources invariant. Raw owner-derived fixture payloads/logs remain private0700/0600. See retained185/README.md and actual-verdict.json. No source adoption or installation has been performed by this agent.

@@ -1,0 +1,29 @@
+{
+  "scope": "installed Swift driver print-only synthetic two-file control; no frontend/object/candidate",
+  "command": [
+    "swiftc",
+    "-O",
+    "-whole-module-optimization",
+    "-no-whole-module-optimization",
+    "-enable-batch-mode",
+    "-driver-batch-size-limit",
+    "32",
+    "-num-threads",
+    "1",
+    "-j",
+    "1",
+    "-driver-print-jobs",
+    "-module-name",
+    "MeetingBuildControl",
+    "-c",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-driver-print-qd2j0jb4/A.swift",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-driver-print-qd2j0jb4/B.swift"
+  ],
+  "exit": 0,
+  "jobs": "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -primary-file /Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-driver-print-qd2j0jb4/A.swift -primary-file /Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-driver-print-qd2j0jb4/B.swift -target arm64-apple-macosx27.2.0 -Xllvm -aarch64-use-tbi -enable-objc-interop -stack-check -sdk /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk -no-color-diagnostics -Xcc -fno-color-diagnostics -O -new-driver-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-driver -empty-abi-descriptor -no-auto-bridging-header-chaining -module-name MeetingBuildControl -disable-clang-spi -target-sdk-version 27.0 -target-sdk-name macosx27.0 -external-plugin-path '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib/swift/host/plugins#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server' -external-plugin-path '/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/local/lib/swift/host/plugins#/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/bin/swift-plugin-server' -in-process-plugin-server-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/local/lib/swift/host/plugins -enable-default-cmo -o A.o -o B.o\n",
+  "stderr": "warning: ignoring -num-threads argument; cannot multithread batch mode\n",
+  "filesAfter": [
+    "B.swift",
+    "A.swift"
+  ]
+}

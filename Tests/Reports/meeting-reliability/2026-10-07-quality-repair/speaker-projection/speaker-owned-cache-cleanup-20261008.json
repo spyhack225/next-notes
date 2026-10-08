@@ -1,0 +1,141 @@
+{
+  "utc": "2026-10-08T19:19:12.724732+00:00",
+  "scope": "only named task-owned obsolete lightweight caches; no Source/index/build/model/native/userstore/sharedcache/bundle change",
+  "removed": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/NextNotesSpeakerIdentityProbe-j8obxxxe",
+      "allocatedRegularFileBytes": 790528,
+      "logicalRegularFileBytes": 781521,
+      "regularFiles": 4,
+      "filePins": {
+        "original": "f1af0c43609b9b2c5f89cdca91450652be6edb217c6e81e08a3ce5cf2f7ee799",
+        "fixed": "6aea3fa31f79176a21c8f8d8666d5dfc5495865ecee2051e4d92b88955609579",
+        "intermediate": "1d886c4733871c31091ca98fd422f3d46460a62e459cb357feaf0f4e78d1d7bd",
+        "main.swift": "0dd3a523bad103ffc26f85cc1c244d7a2bab5e6dbb23a78d2ee53d6680a65f32"
+      },
+      "lsofNoOpens": true,
+      "processCommandReferences": 0,
+      "reason": "obsolete completed component executable/generated SDK compiler cache; exact authored source/result evidence retained"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/participant-coverage-source-50dee560aab1441c9af6e639c0754fc1/original-coverage-probe",
+      "allocatedRegularFileBytes": 81920,
+      "logicalRegularFileBytes": 78984,
+      "regularFiles": 1,
+      "filePins": {
+        "original-coverage-probe": "5c7661bfe5ef4ff5b293db64a2e201cda1763e1848d9f6bca0a32ab3a0949aa0"
+      },
+      "lsofNoOpens": true,
+      "processCommandReferences": 0,
+      "reason": "obsolete completed component executable/generated SDK compiler cache; exact authored source/result evidence retained"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/participant-coverage-source-50dee560aab1441c9af6e639c0754fc1/fixed-coverage-probe",
+      "allocatedRegularFileBytes": 81920,
+      "logicalRegularFileBytes": 79128,
+      "regularFiles": 1,
+      "filePins": {
+        "fixed-coverage-probe": "968cbdf2cabccd8510e9efa93588f4d56de828c130a5741d362caf1552f29cf4"
+      },
+      "lsofNoOpens": true,
+      "processCommandReferences": 0,
+      "reason": "obsolete completed component executable/generated SDK compiler cache; exact authored source/result evidence retained"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/participant-coverage-source-50dee560aab1441c9af6e639c0754fc1/ModuleCache",
+      "allocatedRegularFileBytes": 30650368,
+      "logicalRegularFileBytes": 30538813,
+      "regularFiles": 52,
+      "filePins": {
+        "ObjectiveC-2LO7CQKQ2K199.swiftmodule": "cf5eed14a6244be04ee646c66ad1a3f6f2cbcd23092f53a2b8051db8bfa63c24",
+        "_Builtin_float-3LWTRXF2NUUQU.swiftmodule": "bed0fe996dedbfa90398e0854df79cde315ebd4ca0a2899df4513381ed755fb7",
+        "Observation-2TSSX6J1W2M80.swiftmodule": "34e15d1e538bfd123a63348bf2ee8c252a59ea8a00c5f64b07c3d737293d8731",
+        "Foundation-2Z43AO0N9NLCS.swiftmodule": "91a12e8194bca81e172e87a5bf0dc1818ef0d35dfeaa075cdd41472b1e7327da",
+        "_DarwinFoundation1-EP5BXQR2PB2R.swiftmodule": "157dd0c781bc0e0cd8fc2e7c81582a4a9bd52de4dd86bcfc711bf484cc8c2776",
+        "XPC-3TT0Y6MN9KKUZ.swiftmodule": "8b50a0ca9736219da6649f6510fff3a5ec83018572140d18243f89a7d5f73b58",
+        "_DarwinFoundation2-251F0692A6LPF.swiftmodule": "5bf7a1f7e7bf2d904388072488e223893466e972069b89d10898632beb0f154a",
+        "_DarwinFoundation3-1PIV42JPMDZAJ.swiftmodule": "95bfd393addd1082dfd54238a8ea85d510764fa94b7890a641b8c5d2f21fab08",
+        "System-2WOS0QESGAL9G.swiftmodule": "a066d4d51ad9aab492108cb9c14c01cf3deaf3642d41d018025a56e84db53299",
+        "_StringProcessing-25AG38YRGPEB3.swiftmodule": "7cce91550472be8b89fd6df9f6972b11f597e99ad82a1df2722bc7532f711d81",
+        "Combine-6GZPDYDBZP28.swiftmodule": "185d13c40cc45cedd72e6c486387d569ffdb938cf0a3b986989e7eeaba0f1c7a",
+        "IOKit-1GW0EE3NTXFO0.swiftmodule": "77b72a517827eb4bb87d10caa25bcf485fa8e41c24134a8ed8da5d125c3a2614",
+        "Dispatch-11LT09ESHVL65.swiftmodule": "86ccdeeb931e646b79d069b1c06d63ef9b9c48aae757b9e750ef161844f9521d",
+        "_Concurrency-PXYIQ3WRN940.swiftmodule": "b70d0cdaf26647679364a70e3d4d3c9f7c5663914727ff1f658e96fe95f057df",
+        "Darwin-ZIPXO1PM4JCS.swiftmodule": "57877c4972b6bd35aeca154c6a185dbaeb0e8f71d379b503d6c3ad40c6550921",
+        "Swift-7JL1KBZ3A6V3.swiftmodule": "84ce3c4cb8f119bb8a80ddccdde7fa06e3ffb0e354f1562300e9ae7dc1bfb8a2",
+        "modules.timestamp": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "CoreFoundation-371HMVRS2UE1.swiftmodule": "12d3cf3f72e1eefe79fa374285a15a9625709c67d155be33cfecfc3866d81c7e",
+        "XEDO5YSTT50W/_DarwinFoundation1-2YSBQADOLX02V.pcm": "8cdffd959baf969df21777977668c1466932b9dedeca5003f4bd69bb6d817e21",
+        "XEDO5YSTT50W/sys_types-3J4ZFA06I5V1P.pcm": "4e7e060d137cb29cf079558c9a0f10a314a461935f12546a7e1b27be0dc7ed68",
+        "XEDO5YSTT50W/MachO-20RPYVQSX341K.pcm": "4268c556a95ac85f9f5cd40b2e12e0dfb52c1a4ab343c0a3949d191f33a0bf2d",
+        "XEDO5YSTT50W/libDER-26DYHF6GC6WWA.pcm": "cf85b61a06dee66a869ae47523f7aa0c74da6b512809a7daae41b4fea5a899ca",
+        "XEDO5YSTT50W/_AvailabilityInternal-2YSBQADOLX02V.pcm": "01e9dea72deaf382db0a04e98b060b183ed257e6f06c0338aea639acec2b343c",
+        "XEDO5YSTT50W/ptrcheck-2OQWMRBVRD4OJ.pcm": "a890b47906622ee555a84499f26ed5904d5032bc7cc5014603273839de1a2685",
+        "XEDO5YSTT50W/ptrauth-2OQWMRBVRD4OJ.pcm": "a292a2b5901af4709cf15a879e34565a00e2ea4d4f135e8ead4317a05862c135",
+        "XEDO5YSTT50W/CFNetwork-1PNPO1ORVQZLS.pcm": "b9f0a1db0fdd6dd611577441f3b393c7f0f67c5cd27df7e71a8ed9d992e6594a",
+        "XEDO5YSTT50W/launch-3T3BU4MASLMUM.pcm": "7f15beb2ec361bf88bbc0ff4bb4392af158db2821634126bd37da4876bcec5d4",
+        "XEDO5YSTT50W/_Builtin_inttypes-2OQWMRBVRD4OJ.pcm": "c21f036393a9ef8b4088cad943c1b717687fbc69022fa40bfdbca9c69b525834",
+        "XEDO5YSTT50W/_Builtin_limits-2OQWMRBVRD4OJ.pcm": "928dc86850ef0e3bfd8d72bb0e840d446aeb9fd2ffef78d0e1b1f29008c43548",
+        "XEDO5YSTT50W/_DarwinFoundation2-3J4ZFA06I5V1P.pcm": "94424d426df5e93a7dc1180809c2da73f83364e52799dfc943ce307d865820ea",
+        "XEDO5YSTT50W/DiskArbitration-3LBJF5I58QD8.pcm": "9a9ce30cf00383fb57d1b7aa896f0dc99567246218f124134c7b69feced7abae",
+        "XEDO5YSTT50W/string_h-47SZ9A199RUD.pcm": "80a17a47e68a54a3dc8095e6652cbae9768a952ea7464a79a055d08d1e04483f",
+        "XEDO5YSTT50W/XPC-T0ZXCAST7PE3.pcm": "1babdee5d7a0538d10da7c2093b6a20de88e2602e939212414fcb3719177453d",
+        "XEDO5YSTT50W/_Builtin_stdint-2OQWMRBVRD4OJ.pcm": "fcf4224af8434a54ab05cccb6cba4c1b23086356a3bfe46b5cfd766a5f01885f",
+        "XEDO5YSTT50W/_Builtin_stdbool-2OQWMRBVRD4OJ.pcm": "768616d75eab87b2fad370e3c6e05dcd1ff6e4fede3fee816719e00f9b53e2fb",
+        "XEDO5YSTT50W/os_object-2MV8OP7R98AN8.pcm": "31698aa75a7eb39d5eb1f6066074896a359016310a7a60e8d9bae8fb97775374",
+        "XEDO5YSTT50W/SwiftShims-2IMTS4WWRU7VJ.pcm": "d91b3cc66840e41d2d0ffd42f974380a22fc4c1e82977fbb1233e242cefc3268",
+        "XEDO5YSTT50W/_Builtin_float-2OQWMRBVRD4OJ.pcm": "79d60223f2f0c947ca834c64e6e750013550d077df6d09e3fa3b6ca455692a1e",
+        "XEDO5YSTT50W/_Builtin_stdarg-2OQWMRBVRD4OJ.pcm": "afb6898f544b055c07a4eff213b2239451fa968079323f632ac5a75ce9b761fd",
+        "XEDO5YSTT50W/_Builtin_stddef-2OQWMRBVRD4OJ.pcm": "5a2277614f2420478feb35b98b630223544cd53ca41ee937bdbd6119c93d86c1",
+        "XEDO5YSTT50W/libkern-2KQ0X67RTM1JF.pcm": "a0845dc8097d753a37dd22e468d4b95fd272d1218334e3e57830478aee52ed15",
+        "XEDO5YSTT50W/_SwiftConcurrencyShims-2IMTS4WWRU7VJ.pcm": "6fb92b5af73753c67457cf7642a87c98696e824468c1f1c26c5ff3c569e555ef",
+        "XEDO5YSTT50W/ObjectiveC-1G8H182PQX3QE.pcm": "e3493ab2c66bbbfe9c0b9169dc04d1d404a27524e0b2216db952294205380fe8",
+        "XEDO5YSTT50W/os_workgroup-2MV8OP7R98AN8.pcm": "f37ee93f3bb16583a4a2f391fcf7cc7ac0f369bd4c7cc1b4c86ad4d270c226e1",
+        "XEDO5YSTT50W/Dispatch-R76HXUP80TVL.pcm": "72e358d13ba731071e65eba5ff1faacfcb0b5aa30409b693530acc911aec0d4a",
+        "XEDO5YSTT50W/_DarwinFoundation3-2NSGASPTSNBVQ.pcm": "f1768a885402cce0a80efecc8cc2361d63c4ad1f7016b819b1e1367778709936"
+      },
+      "lsofNoOpens": true,
+      "processCommandReferences": 0,
+      "reason": "obsolete completed component executable/generated SDK compiler cache; exact authored source/result evidence retained"
+    }
+  ],
+  "removedAllocatedRegularFileBytes": 31604736,
+  "removedLogicalRegularFileBytes": 31478446,
+  "measurement": "sum st_blocks*512 of removed regular files; not a claim about filesystem-wide free-byte movement or gate acceptance",
+  "trackedRetainedEvidence": {
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/manual-main.swift": "0dd3a523bad103ffc26f85cc1c244d7a2bab5e6dbb23a78d2ee53d6680a65f32",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/executed-metadata.json": "195e1e47d88bf22424ab77a9beceaca9068f3f405764b5e4f79ae5809a26eebc",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/OriginalProjection.swift": "de3858aa768f6084d7fb39f1c742f5931962dee0e105575ad514a65f18ae6290",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/FixedProjection.swift": "2994573dba241c03f0f0359cd7c65ea6b37dfa5320167ff0781218fa915a2bc6",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-repair/speaker-projection/default-label-regression/ManualDefaultFixedProjection.swift": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/participant2-integration-review/original-coverage-probe.swift": "752a7dee43e53158f2a2263b85d6d2eff0c368bfbb196bea8d5722ed505149c4",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/participant2-integration-review/fixed-coverage-probe.swift": "b95e2637a25ea67bcaca2c521a4aeba7c112eb6d09c45db9565477c4d21f16c2",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/participant2-integration-review/guarded-coverage1-original-run.log": "7b65d67c3d5d9f10b3bd12f8cb45956949c6f6783ec4eea48019f9d773889ad2",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/participant2-integration-review/guarded-coverage1-fixed-run.log": "fbec93dcc669db5a111b4a5e02a68fab78fe01955a5816d853b3249776b2250c",
+    "Tests/Reports/meeting-reliability/2026-10-07-quality-loop/participant-component-review.json": "f989aa4b19caad2ff6c0ac13e3b5a2382e512929f2077a4fcd882c4e33966ca9"
+  },
+  "retainedSourceAndCandidateCaches": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/participant-coverage-source-50dee560aab1441c9af6e639c0754fc1",
+      "allocatedRegularFileBytes": 139264,
+      "reason": "needed source/preimages/logs or uncompiled staged invite candidate; no executables left in these named caches"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/participant-observation-source-1db1f0a399b948beb8a203931fc4386e",
+      "allocatedRegularFileBytes": 655360,
+      "reason": "needed source/preimages/logs or uncompiled staged invite candidate; no executables left in these named caches"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/speaker-invite-choice-staged-0ef79eb3becd4da1afd037d9d4ee6dc4",
+      "allocatedRegularFileBytes": 77824,
+      "reason": "needed source/preimages/logs or uncompiled staged invite candidate; no executables left in these named caches"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/speaker-rename-ui-source-01ac266bf9a74ea79d9ce26040edc58e",
+      "allocatedRegularFileBytes": 159744,
+      "reason": "needed source/preimages/logs or uncompiled staged invite candidate; no executables left in these named caches"
+    }
+  ],
+  "meetsDevelopmentResourceGate": false,
+  "gateRecheckRequiredByRoot": true
+}

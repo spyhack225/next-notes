@@ -1,0 +1,31 @@
+{
+  "at": "2026-10-08T20:15:02.696305+00:00",
+  "changedSources": [
+    "Sources/NextNotes/Meetings/MeetingAttributedContextDedupSelfTest.swift",
+    "Sources/NextNotes/Meetings/MeetingContextExtractor.swift",
+    "Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift"
+  ],
+  "beforeCount": 1176,
+  "afterCount": 1177,
+  "pinsBefore": {
+    "Sources/NextNotes/Meetings/MeetingAttributedContextDedupSelfTest.swift": null,
+    "Sources/NextNotes/Meetings/MeetingContextExtractor.swift": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+    "Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift": "1e5efc3451ebd14787faac6d14a06094c889fe9798deb51dcc8f040966d747ed"
+  },
+  "pinsAfter": {
+    "Sources/NextNotes/Meetings/MeetingAttributedContextDedupSelfTest.swift": "a6b0e12f6e35730ae1aa9c36e3195824c7a5b03d165bf5117b2e4f3f6bc4eac8",
+    "Sources/NextNotes/Meetings/MeetingContextExtractor.swift": "ab2859978588b0ab3fce8fb4d2f75c5e45afb5aac48cdc76ce8f393e37317a02",
+    "Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift": "0c66fef4935042da043b81c5303bbc1d644d8bb4a35d7bdfd51d80e32ee4c66b"
+  },
+  "componentActual50": {
+    "originalFailures": 27,
+    "fixedFailures": 0
+  },
+  "retainedConsumer185": {
+    "fixtures": 15,
+    "failures": 0,
+    "scope": "retained actual ContextStore/parse/apply/atomic save/freshreader with declared scripted boundaries; current native App UNRUN"
+  },
+  "installed": false,
+  "nativeStatus": "UNRUN; existing installed ed67302f unchanged"
+}

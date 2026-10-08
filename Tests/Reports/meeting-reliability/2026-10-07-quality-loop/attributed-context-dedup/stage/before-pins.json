@@ -1,0 +1,42 @@
+{
+  "canonicalWrites": false,
+  "sources": [
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextExtractor.swift",
+      "SHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContext.swift",
+      "SHA256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingModels.swift",
+      "SHA256": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextReconciler.swift",
+      "SHA256": "65d422c38a8c62c9f0b57c7a8587792b76fb0bf95079360117f9f10c24aa8d95"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift",
+      "SHA256": "1e5efc3451ebd14787faac6d14a06094c889fe9798deb51dcc8f040966d747ed"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift",
+      "SHA256": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingContextStore.swift",
+      "SHA256": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200"
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Agent/AgentService.swift",
+      "SHA256": "dac7621e75a37b6814a4379c176f7dcb4802cdac2fa5e5fe7802ab29f2cadcd0"
+    }
+  ],
+  "adaptations": [
+    "TranscriptBoundary.swift is the byte-identical complete prefix of actual MeetingModels before MeetingStatus; all AudioSource/TranscriptKind/TranscriptSegment definitions unchanged.",
+    "MeetingContext.swift and original Extractor are whole unchanged actual files. Fixed changes only append/merge.",
+    "CompileBoundaries substitute unused historical live/reconcile test references; actual apply/merge and MeetingContextItem authority metadata are not substituted. No native/provider/store behavior claimed."
+  ]
+}

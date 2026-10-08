@@ -1,0 +1,244 @@
+{
+  "driverSHA": "1254bace3e93072a619f1ade832f5e00feddb3e89f16edbbae863c133123cf1c",
+  "cases": {
+    "bounded-audio": [
+      [
+        "--selftest-meeting-bounded-audio"
+      ],
+      [
+        "MEETING_BOUNDED_AUDIO_OK"
+      ]
+    ],
+    "pause-experiment": [
+      [
+        "--selftest-meeting-quiet-input",
+        "--meeting-quiet-pause-boundaries",
+        "--meeting-quiet-pause-experiment"
+      ],
+      [
+        "MEETING_PAUSE_BOUNDARIES_OK"
+      ]
+    ],
+    "participant-contracts": [
+      [
+        "--selftest-meeting-participant-observation",
+        "contracts"
+      ],
+      [
+        "MEETING_PARTICIPANT_OBSERVATION_OK"
+      ]
+    ],
+    "meeting-context": [
+      [
+        "--selftest-meeting-context"
+      ],
+      [
+        "MEETING_SPEAKER_PROJECTION_OK",
+        "MEETING_CONTEXT_OK"
+      ]
+    ],
+    "ingest-order": [
+      [
+        "--selftest-meeting-ingest-order"
+      ],
+      [
+        "MEETING_INGEST_ORDER_OK"
+      ]
+    ],
+    "owner-isolation": [
+      [
+        "--selftest-store-isolation"
+      ],
+      [
+        "STORE_ISOLATION_OK"
+      ]
+    ],
+    "meeting-resume": [
+      [
+        "--selftest-meeting-resume"
+      ],
+      [
+        "MEETING_RESUME_OK"
+      ]
+    ],
+    "meeting-backlog": [
+      [
+        "--selftest-meeting-backlog"
+      ],
+      [
+        "MEETING_BACKLOG_OK"
+      ]
+    ],
+    "audio-retention": [
+      [
+        "--selftest-audio-retention"
+      ],
+      [
+        "AUDIO_RETENTION_OK"
+      ]
+    ],
+    "meeting-tap-retry": [
+      [
+        "--selftest-meeting-tap-retry"
+      ],
+      [
+        "MEETING_TAP_RETRY_OK"
+      ]
+    ],
+    "meeting-action-input-contract": [
+      [
+        "--selftest-meeting-action-input-contract"
+      ],
+      [
+        "MEETING_ACTION_INPUT_CONTRACT_OK"
+      ]
+    ],
+    "notes-evidence": [
+      [
+        "--selftest-notes-evidence"
+      ],
+      [
+        "NOTES_EVIDENCE_OK",
+        "NOTES_EXTRACTIVE_CONTRACT_OK"
+      ]
+    ],
+    "meeting-performance": [
+      [
+        "--selftest-meeting-performance"
+      ],
+      [
+        "MEETING_PERFORMANCE_OK"
+      ]
+    ],
+    "meeting-reconcile-llm": [
+      [
+        "--selftest-meeting-reconcile-llm"
+      ],
+      [
+        "MEETING_RECONCILE_LLM_OK"
+      ]
+    ],
+    "meeting-resources": [
+      [
+        "--selftest-meeting-resources"
+      ],
+      [
+        "MEETING_RESOURCES_OK"
+      ]
+    ],
+    "notes-longform": [
+      [
+        "--selftest-notes-longform"
+      ],
+      [
+        "NOTES_LONGFORM_OK"
+      ]
+    ],
+    "notes-truncation": [
+      [
+        "--selftest-notes-truncation"
+      ],
+      [
+        "NOTES_TRUNCATION_OK"
+      ]
+    ],
+    "notes-context": [
+      [
+        "--selftest-notes-context"
+      ],
+      [
+        "NOTES_CONTEXT_OK"
+      ]
+    ],
+    "usage-log": [
+      [
+        "--selftest-usage-log"
+      ],
+      [
+        "USAGE_LOG_OK"
+      ]
+    ],
+    "meeting-health": [
+      [
+        "--selftest-meeting-health"
+      ],
+      [
+        "MEETING_HEALTH_OK"
+      ]
+    ],
+    "meeting-integrity": [
+      [
+        "--selftest-meeting-integrity"
+      ],
+      [
+        "MEETING_INTEGRITY_OK"
+      ]
+    ],
+    "meeting-agent-evidence": [
+      [
+        "--selftest-meeting-agent-evidence"
+      ],
+      [
+        "MEETING_EVIDENCE_OK"
+      ]
+    ],
+    "cleanup-router": [
+      [
+        "--selftest-cleanup-router"
+      ],
+      [
+        "CLEANUP_ROUTER_OK"
+      ]
+    ],
+    "dictation-segments": [
+      [
+        "--selftest-dictation-segments"
+      ],
+      [
+        "DICTATION_SEGMENTS_OK"
+      ]
+    ],
+    "island": [
+      [
+        "--selftest-island"
+      ],
+      [
+        "ISLAND_OK"
+      ]
+    ],
+    "notes-prompt-contract": [
+      [
+        "--selftest-notes-prompt-contract"
+      ],
+      [
+        "NOTES_PROMPT_CONTRACT_OK"
+      ]
+    ],
+    "meeting-topic-merge": [
+      [
+        "--selftest-meeting-topic-merge"
+      ],
+      [
+        "MEETING_TOPIC_MERGE_OK"
+      ]
+    ],
+    "notes-replay-trace": [
+      [
+        "--selftest-notes-replay-trace"
+      ],
+      [
+        "NOTES_REPLAY_TRACE_OK"
+      ]
+    ],
+    "pcm-reconfiguration": [
+      [
+        "--selftest-pcm-reconfiguration"
+      ],
+      [
+        "PCM_RECONFIGURATION_OK"
+      ]
+    ]
+  },
+  "state": "predeclared; all UNRUN",
+  "guard": "unchanged existing model-free signed-candidate driver; no model/owner writes; all joins before next child"
+}

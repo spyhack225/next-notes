@@ -1,0 +1,61 @@
+{
+  "at": "2026-10-08T20:01:37.318595+00:00",
+  "driverSHA256": "de11396f84f8a7208cbd33a5e27ac103a2632dd64c5b18fd0c04b0f6ca88db5d",
+  "reviewRelayCursor": 782,
+  "changes": [
+    [
+      "seventh-native7",
+      "seventh-native8"
+    ],
+    [
+      "initialMachine['reportedFreePercent']>=55",
+      "initialMachine['reportedFreePercent']>=60"
+    ],
+    [
+      "compiler start reported free55 refused",
+      "compiler start reported free60 refused"
+    ],
+    [
+      "'--max-swap-gb','8','--min-free-gb','6.5'",
+      "'--max-swap-gb','6','--min-free-gb','8'"
+    ],
+    [
+      "frame.get('swapGiB',10)>9",
+      "frame.get('swapGiB',10)>6"
+    ],
+    [
+      "reviewed compiler swap9 exception exceeded",
+      "reviewed compiler-only swap6 exceeded"
+    ],
+    [
+      "frame.get('diskFreeGiB',0)<6.5",
+      "frame.get('diskFreeGiB',0)<8"
+    ],
+    [
+      "disk free below6.5",
+      "disk free below8"
+    ],
+    [
+      "frame.get('reportedFreePercent',0)<40",
+      "frame.get('reportedFreePercent',0)<45"
+    ],
+    [
+      "reviewed compiler-only reported free below40",
+      "reviewed compiler-only reported free below45"
+    ],
+    [
+      "total>3_000_000_000",
+      "total>5_000_000_000"
+    ],
+    [
+      "summed owned footprint above3GB",
+      "summed owned footprint above5GB"
+    ],
+    [
+      "peer reviewed relay720 compiler-only initial normal8/min6.5/free55; ongoing explicit swap9 exception/min6.5/free40/summed3GB/1200s; no inference or owner app launch",
+      "peer reviewed relay782 compiler-only initial swap6/min8/free60; ongoing swap6/min8/free45/summed5GB/1200s; no inference or owner app launch"
+    ]
+  ],
+  "state": "prepared; not executed",
+  "why": "Native7 actual singlethread1 crossed charged3GB while physical free remained55 and swap4.18 unchanged. New owner-freed headroom and stronger system pressure bounds support one explicitly reviewed compiler-only attempt; success not forecast."
+}

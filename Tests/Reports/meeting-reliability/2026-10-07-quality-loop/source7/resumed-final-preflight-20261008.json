@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-08T19:35:48.485126+00:00",
+  "normalResourceGate": {
+    "ok": true,
+    "swapGb": 7.13025390625,
+    "load": 2.08,
+    "freeGb": 8.170951843261719,
+    "path": "/",
+    "reasons": [],
+    "unknown": []
+  },
+  "reportedFreePercent": 51,
+  "requiredInitialReportedFreePercent": 55,
+  "initialBuildAdmitted": false,
+  "compilerChildStarted": false,
+  "appOrModelLaunched": false,
+  "installed": false,
+  "additionalStage": "Actual attributed-context source/fixture/commands captured, source unapplied and execution UNRUN"
+}

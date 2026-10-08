@@ -1,0 +1,65 @@
+{
+  "scope": "Immutable cache-only proposed actual-source original/fixed probe; executed=false",
+  "files": [
+    {
+      "path": "CompileBoundaries.swift",
+      "SHA256": "da41b75388f53cb788aa0f4a43074c6eca3ca34fd3efc4a873cf78010c44f928",
+      "bytes": 693
+    },
+    {
+      "path": "Main.swift",
+      "SHA256": "b928dfa728160b1ab2fa675783c5874e67520e1281850ded27d156b119cf8160",
+      "bytes": 139
+    },
+    {
+      "path": "MeetingAttributedContextDedupSelfTest.swift",
+      "SHA256": "a6b0e12f6e35730ae1aa9c36e3195824c7a5b03d165bf5117b2e4f3f6bc4eac8",
+      "bytes": 11369
+    },
+    {
+      "path": "MeetingContext.swift",
+      "SHA256": "3e2c85811b0f1eb477eb0056d5e0cc9205f125238be1df407e49d820ef6e4690",
+      "bytes": 5237
+    },
+    {
+      "path": "MeetingContextExtractor.fixed.swift",
+      "SHA256": "ab2859978588b0ab3fce8fb4d2f75c5e45afb5aac48cdc76ce8f393e37317a02",
+      "bytes": 12557
+    },
+    {
+      "path": "MeetingContextExtractor.original.swift",
+      "SHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+      "bytes": 11554
+    },
+    {
+      "path": "README.md",
+      "SHA256": "601dd17c5293b3cfb2f3816779b9cd55d22d17cc24e777cbe786e52ec167ef5f",
+      "bytes": 5703
+    },
+    {
+      "path": "TranscriptBoundary.swift",
+      "SHA256": "d33552054590043edcdf220470f7152dccf5a377ecd5aedb4f5d273be0635835",
+      "bytes": 2638
+    },
+    {
+      "path": "before-pins.json",
+      "SHA256": "cd2b3f52e7027cc266c86b0a89c0c6018f33ead5df8f3f392b63a15d48f7c4b9",
+      "bytes": 2349
+    },
+    {
+      "path": "commands.json",
+      "SHA256": "80df3fb3b53006a1ae5ccd545b82158de8f028f44402fcc4926d4c7e549104e0",
+      "bytes": 2635
+    },
+    {
+      "path": "maintained-hook.patch",
+      "SHA256": "369abe0cda684f6c94cd01891bdb5890f72114c3eee15d4dc6147b2228205af5",
+      "bytes": 579
+    },
+    {
+      "path": "producer.patch",
+      "SHA256": "989623a5b6d7fc2cf2d604457b91f5e31b8b60389223d90a46eeb467365b6f33",
+      "bytes": 3094
+    }
+  ]
+}

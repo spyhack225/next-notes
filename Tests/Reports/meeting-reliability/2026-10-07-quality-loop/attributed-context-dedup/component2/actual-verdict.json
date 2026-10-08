@@ -1,0 +1,73 @@
+{
+  "scope": "Actual unchanged synchronous apply/merge+Context Item metadata+JSON memory codec; public-authored inputs. Compile stubs only unused historical native/reconcile references. No ContextStore/save/native Model/Session/physical identity/semantic quality proof.",
+  "originalChecks": 50,
+  "originalFailures": 27,
+  "fixedChecks": 50,
+  "fixedFailures": 0,
+  "exactFixtureAndInputsUnchanged": true,
+  "stageManifestSHA256": "edf19c7060bdadab73aec783ae63327bad7c076ab6546c203f4d8fb051373a31",
+  "sourceInvariantCount": 1176,
+  "phases": {
+    "original": {
+      "exit": 0,
+      "wallSeconds": 4.203450707995216,
+      "guard": null,
+      "allOwnedJoined": true,
+      "noSignals": true,
+      "sourceInvariant": true,
+      "sampledFootprintBytes": 117736648,
+      "initialMachine": {
+        "swapGiB": 4.1259765625,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 10.237129211425781
+      }
+    },
+    "original-run": {
+      "exit": 1,
+      "wallSeconds": 0.5164356250024866,
+      "guard": null,
+      "allOwnedJoined": true,
+      "noSignals": true,
+      "sourceInvariant": true,
+      "sampledFootprintBytes": 81992,
+      "initialMachine": {
+        "swapGiB": 4.1259765625,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 10.236980438232422
+      }
+    },
+    "fixed": {
+      "exit": 0,
+      "wallSeconds": 3.439368249994004,
+      "guard": null,
+      "allOwnedJoined": true,
+      "noSignals": true,
+      "sourceInvariant": true,
+      "sampledFootprintBytes": 121160904,
+      "initialMachine": {
+        "swapGiB": 4.1259765625,
+        "reportedFreePercent": 56,
+        "diskFreeGiB": 10.194812774658203
+      }
+    },
+    "fixed-run": {
+      "exit": 0,
+      "wallSeconds": 0.4725182499969378,
+      "guard": null,
+      "allOwnedJoined": true,
+      "noSignals": true,
+      "sourceInvariant": true,
+      "sampledFootprintBytes": 81992,
+      "initialMachine": {
+        "swapGiB": 4.1259765625,
+        "reportedFreePercent": 57,
+        "diskFreeGiB": 10.194480895996094
+      }
+    }
+  },
+  "fullAppOrMaintained185Consumer": "PENDING, not run in this attempt",
+  "installed": false,
+  "modelCalls": 0,
+  "storeCalls": 0,
+  "earlierRefusal": "component1-start-refused.json retained unchanged; distinct explicit authorization after startup headroom recovery, no threshold relaxation"
+}

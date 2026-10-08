@@ -1,0 +1,16 @@
+[
+  {
+    "elapsed": 0.027863541996339336,
+    "pid": 30627,
+    "processStart": 2505370299227,
+    "footprintBytes": 81992,
+    "residentBytes": 32768
+  },
+  {
+    "elapsed": 0.1756212080072146,
+    "pid": 30627,
+    "processStart": 2505370299227,
+    "footprintBytes": 0,
+    "residentBytes": 7847936
+  }
+]

@@ -1,0 +1,20 @@
+{
+  "at": "2026-10-08T19:24:10.921655+00:00",
+  "sourceCount": 1176,
+  "head": "5a4da66324449f35f383742ed9bd922cffd68e3d",
+  "machine": {
+    "swapGiB": 7.37390625,
+    "reportedFreePercent": 48,
+    "diskFreeGiB": 6.934410095214844
+  },
+  "requiredInitialReportedFreePercent": 55,
+  "initialAdmissionPassed": false,
+  "compilerChildStarted": false,
+  "appLaunched": false,
+  "installed": false,
+  "freshDriverPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-seventh-release-native7-guarded.py",
+  "freshDriverSHA256": "492c5ae6ac76ff65a71a9422d26dd6ec116f1cdcfffed1f9e5ff6c6b79c88609",
+  "preparedDriverDifference": "Output receipt prefix only; exact inverse reconstructs reviewed native6 driver; all guards/resource/lifecycle/default/compile/package/identity logic unchanged",
+  "retainedSourcePins": "resumed-source-pins-20261008.json",
+  "scope": "Read-only measured machine/source preflight and cache-only fresh diagnostic preparation; current source identity has not been freeze-claimed; later admitted build takes its own snapshot"
+}

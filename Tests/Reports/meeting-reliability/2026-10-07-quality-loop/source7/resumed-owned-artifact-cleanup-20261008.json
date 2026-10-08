@@ -1,0 +1,1927 @@
+{
+  "at": "2026-10-08T19:21:30.607662+00:00",
+  "targets": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/meeting-fix-install-a5151045eb634800bb3fcdffee49dc67/Next Notes.app",
+      "files": [
+        {
+          "path": "Contents/Frameworks/libNextNotesAEC.dylib",
+          "sha256": "c2445e70fb161b0b36119fd31064633b9b01d0cae1fd809b400d8f8d35a92850",
+          "logicalBytes": 53824,
+          "allocatedBytes": 57344
+        },
+        {
+          "path": "Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib",
+          "sha256": "135a99084e70a96efca7adda558e5e2286e356c5e8358aee62b85f74250fc3b9",
+          "logicalBytes": 1183424,
+          "allocatedBytes": 1183744
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Headers",
+          "symlink": "Versions/Current/Headers",
+          "allocatedBytes": 0
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Modules",
+          "symlink": "Versions/Current/Modules",
+          "allocatedBytes": 0
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Resources",
+          "symlink": "Versions/Current/Resources",
+          "allocatedBytes": 0
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/ggml-alloc.h",
+          "sha256": "94e4cd069b9313b2ceb35dacec901981e0bb478d8bb31035b7126be091998c23",
+          "logicalBytes": 3753,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/ggml-backend.h",
+          "sha256": "46d84cb998105f871240864fd0f55446939a2fe86c5c281afa63a010fb1f65a2",
+          "logicalBytes": 25374,
+          "allocatedBytes": 28672
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/ggml-blas.h",
+          "sha256": "e76cb8594dc9866d99e7d63191b9fff6ab8b50244b4a28ce3af0f962964a6b5b",
+          "logicalBytes": 586,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/ggml-cpu.h",
+          "sha256": "316279e004cdeb8e6ef78599acb602bf79a8abdf897fed9fd1914808c1518c6e",
+          "logicalBytes": 7753,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/ggml-metal.h",
+          "sha256": "322f36cd30f3e9e7aad7b5b9bc63078012fd0b7706ac4e24f5721b604f3d8980",
+          "logicalBytes": 2141,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/ggml-opt.h",
+          "sha256": "3586de1bc8a934b5c72339e2b6937b0641e8f149b512231e666f67de0736eea2",
+          "logicalBytes": 14040,
+          "allocatedBytes": 16384
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/ggml.h",
+          "sha256": "c6e7e86d00ee042e384aa3c738f4d4a80aa29eef26430da178a8d0abfece6d42",
+          "logicalBytes": 112789,
+          "allocatedBytes": 114688
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/gguf.h",
+          "sha256": "e56714aab702e5ce62ee587a409643c08f7e93e8fbb77f48ef7cc85075f96fa4",
+          "logicalBytes": 11355,
+          "allocatedBytes": 12288
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/llama.h",
+          "sha256": "d987e8fa7f98c845613201e66e5e0ca76aca7a08c2645711d4b0c8febd2cb369",
+          "logicalBytes": 84279,
+          "allocatedBytes": 86016
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/mtmd-helper.h",
+          "sha256": "f33ca3a27c31eaffcceb0edd09d62788af9af02f3036366237d80f449c06b22a",
+          "logicalBytes": 12506,
+          "allocatedBytes": 16384
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Headers/mtmd.h",
+          "sha256": "07133fe5dafbcd9a4a705b5d9386fe80f600d06cbea2819d82f70cf7cf4246db",
+          "logicalBytes": 21493,
+          "allocatedBytes": 24576
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Modules/module.modulemap",
+          "sha256": "b5651903a342dc59fb4fe16ff9cc82ba4d08fdb142458aeacf516e7c31c15f15",
+          "logicalBytes": 171,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/Resources/Info.plist",
+          "sha256": "518c9cbaa95bfa21f2acad01fe1d29bd8a6bdfd797021a2b39de3c5145b48ac0",
+          "logicalBytes": 963,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/_CodeSignature/CodeResources",
+          "sha256": "b9fe0d7c94af382db617c2a6376472083b5fd81ce41ba728f6efbe2b21812959",
+          "logicalBytes": 4125,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/A/llama",
+          "sha256": "d3d8bf52f6959906ab056deda6b3390ffe2f663f12386698ba4ef13c69b7218b",
+          "logicalBytes": 16336640,
+          "allocatedBytes": 16338944
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/Versions/Current",
+          "symlink": "A",
+          "allocatedBytes": 0
+        },
+        {
+          "path": "Contents/Frameworks/llama.framework/llama",
+          "symlink": "Versions/Current/llama",
+          "allocatedBytes": 0
+        },
+        {
+          "path": "Contents/Info.plist",
+          "sha256": "a53cd5405a5a7a342fe6f53858b8a6dec47feb4d06c2df31f1c949bfae316a63",
+          "logicalBytes": 4073,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/MacOS/NextNotes",
+          "sha256": "a43709f40a477366da87c59e67ae5d948a8392b0207ba3903ae93a58bd18e68e",
+          "logicalBytes": 211009152,
+          "allocatedBytes": 211009536
+        },
+        {
+          "path": "Contents/PkgInfo",
+          "sha256": "82502191c9484b04d685374f9879a0066069c49b8acae7a04b01d38d07e8eca0",
+          "logicalBytes": 8,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/AppIcon.icns",
+          "sha256": "08ec02b503f2a13525249dbd7b59e38089a64badd1bc5c381b60830521765bca",
+          "logicalBytes": 272597,
+          "allocatedBytes": 274432
+        },
+        {
+          "path": "Contents/Resources/LICENSE.txt",
+          "sha256": "57c8ff33c9c0cfc3ef00e650a1cc910d7ee479a8bc509f6c9209a7c2a11399d6",
+          "logicalBytes": 34520,
+          "allocatedBytes": 36864
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/editor.js",
+          "sha256": "7626cb16f877e200047d25b3ffc755f66f71320b6a601491f3741ead79b9a7d4",
+          "logicalBytes": 536243,
+          "allocatedBytes": 536576
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/index.html",
+          "sha256": "bd08ab4ec94c64ca3da15137fd2bcf0249dbe1d42618770ef32b0f85a9ac8167",
+          "logicalBytes": 1582,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/argparse.txt",
+          "sha256": "ab745c5061d1dea43a3885e5b4b6befc7e983954954775c5736debeefcdfd89b",
+          "logicalBytes": 2427,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/entities.txt",
+          "sha256": "cb992345949ccd6e8394b2cd6c465f7b897c864f845937dbf64e8997f389e164",
+          "logicalBytes": 1260,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/esbuild.txt",
+          "sha256": "b40ec5baec7bb34fa5b1c09521fa3cd52d5fad7adafed74932a2010d3612a681",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/linkify-it.txt",
+          "sha256": "95e3f7f0e81e9b4940cdfaa1956aaff5e4dfd2fb1565041e7c78eb9a606f23e3",
+          "logicalBytes": 1058,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/linkifyjs.txt",
+          "sha256": "58e6f3677452cca096ce5328ebf7de37a1406bbeeb2f263c1b2ededc8c7d0228",
+          "logicalBytes": 1056,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/markdown-it.txt",
+          "sha256": "792c48c5a849a15fdf9e37e8bcf9e6d1dd13b32b46c642a748a0a46a9919d473",
+          "logicalBytes": 1073,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/mdurl.txt",
+          "sha256": "6b6a356c4337e2446841f30f3cdf7e7023af8c5260b5e347c0f987b9f6aa2644",
+          "logicalBytes": 2303,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/orderedmap.txt",
+          "sha256": "869c30f368eb08735e779027b9f4bc9fea2f39624351856aebe42741f0bc0884",
+          "logicalBytes": 1100,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-changeset.txt",
+          "sha256": "7543dfe82fa61d5bb2478c78cbd9dfb2cbd500b6ac2893b24ed925773b67fb70",
+          "logicalBytes": 1100,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-commands.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-dropcursor.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-gapcursor.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-history.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-inputrules.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-keymap.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-model.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-schema-list.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-state.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-tables.txt",
+          "sha256": "d1d2046ebbe6362f9ad8fd4d62e9074f2553f289c0e1de895a650f10ba5f4239",
+          "logicalBytes": 1099,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-transform.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/prosemirror-view.txt",
+          "sha256": "ef0b452ced6304db2ce78ca66de1fc7b97bab05bc1750c95df359ed3fe1d65c8",
+          "logicalBytes": 1105,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/punycode.js.txt",
+          "sha256": "483acb265f182907d1caf6cff9c16c96f31325ed23792832cc5d8b12d5f88c8a",
+          "logicalBytes": 1077,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/rope-sequence.txt",
+          "sha256": "530424aebdd0e73f53238d1f89df250057bc8d8ce090cf5954197fadce5bf226",
+          "logicalBytes": 1089,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--core.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-blockquote.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-bold.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-bullet-list.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-code-block.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-code.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-document.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-dropcursor.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-gapcursor.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-hard-break.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-heading.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-horizontal-rule.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-italic.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-link.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-list-item.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-list-keymap.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-list.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-ordered-list.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-paragraph.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-placeholder.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-strike.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-table.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-task-item.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-task-list.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-text.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extension-underline.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--extensions.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--pm.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/tiptap--starter-kit.txt",
+          "sha256": "c96e5ecb55ac593157ad1d21d1f44a611187f494a0f04c235a1ae692c88d6ba9",
+          "logicalBytes": 1069,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/uc.micro.txt",
+          "sha256": "483acb265f182907d1caf6cff9c16c96f31325ed23792832cc5d8b12d5f88c8a",
+          "logicalBytes": 1077,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/licenses/w3c-keyname.txt",
+          "sha256": "869c30f368eb08735e779027b9f4bc9fea2f39624351856aebe42741f0bc0884",
+          "logicalBytes": 1100,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/MeetingEditor/style.css",
+          "sha256": "870ceb5176295d52bdc25b5b4bc0cbabec2f0743e7fb6aab2599482d52a43d6d",
+          "logicalBytes": 4563,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/ATTRIBUTION.md",
+          "sha256": "179d1d031c24bdf79976fe612edd50af561354a6a4d1aabd904934f8f100dfb8",
+          "logicalBytes": 850,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/0.svg",
+          "sha256": "38435fe7cc579c67bccb45a32f16096ef382f883f4289253ce330d84434e1fd9",
+          "logicalBytes": 288,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/1.svg",
+          "sha256": "a3ac894dffccf5d6fd14611237c6ce0fa69e22768d27fb1bd104ad4951400abc",
+          "logicalBytes": 602,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/10.svg",
+          "sha256": "b39b52deb6eb6ea96ba4eed9d7898e4422317a95f4f9338473ca6fe4f3fff270",
+          "logicalBytes": 828,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/11.svg",
+          "sha256": "f2c8f3c5ef62a18c62e17c7eca54739b22e56f770bb2703e0c4787620e0d623c",
+          "logicalBytes": 5654,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/12.svg",
+          "sha256": "745f92bb49abd675765a1b30fe1fac81550016c38361117c2d867d5155a2dec7",
+          "logicalBytes": 5666,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/13.svg",
+          "sha256": "9d8cd56e97dc3267a79a2718418eced63ba74376d4aca64468d42dee820ad37f",
+          "logicalBytes": 743,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/14.svg",
+          "sha256": "571c1aadf52348c5612cc2a68a1bb1f430bbe0680561f97e0e837a0aa1d5aea2",
+          "logicalBytes": 984,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/2.svg",
+          "sha256": "376b1b932d5d024f4f0c51c0ba3a3fa2f24f9ae2079d178c0dfd59b2098acaf8",
+          "logicalBytes": 722,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/3.svg",
+          "sha256": "86cf204cc659efc6441d9ab84e653f6b9db6f9a562c84ade2c0da2ca38d53366",
+          "logicalBytes": 801,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/4.svg",
+          "sha256": "b7d7266d0a2ff1f5f083940ab4bd9839cc1dd888d287e53c71da1574164c2aa2",
+          "logicalBytes": 1082,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/5.svg",
+          "sha256": "1105e0101709a118b95a9bf9838a0fd4d86694c285ff366821d72153cc54ee5d",
+          "logicalBytes": 834,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/6.svg",
+          "sha256": "6f57bd54469658aa3dd77400da35b3376ab4976b56b06f9a841255f17eb0493e",
+          "logicalBytes": 752,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/7.svg",
+          "sha256": "65b153adcd6470145f4e0604bf58a4c4f098b902a8123edc8dd4f714193b6ad1",
+          "logicalBytes": 724,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/8.svg",
+          "sha256": "e418fdc5f3775b22899668ad7e6284c41fd1a4899e52888622d27791feb5a20b",
+          "logicalBytes": 857,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/accessories/9.svg",
+          "sha256": "6789624bde76b83335e050a33e73088fa960d1f79f4ed0a1c7d8eb81a2c75118",
+          "logicalBytes": 978,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/0.svg",
+          "sha256": "5d98e0d16c45bdd0a0727e26ecfb9e051329c773f562b435a39bfe85fad171e6",
+          "logicalBytes": 276,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/1.svg",
+          "sha256": "caaf3250efd0d017af0618f17dc8e572cd9d1321d989f973c85b94ca8496b663",
+          "logicalBytes": 1132,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/10.svg",
+          "sha256": "90aed8f5fb0608942bc631efcf219a5fe3bb160617e781ae1900f8947ab3e58b",
+          "logicalBytes": 2215,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/11.svg",
+          "sha256": "d43b7c75144d61ab41b2baf9176434e35a52c87901336ebeb4db48414d8082cc",
+          "logicalBytes": 7286,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/12.svg",
+          "sha256": "39fd58bbc3fb8cd2c90708ed1792c12b428e280abe14eddd2dbfb7cbe59c7de7",
+          "logicalBytes": 2690,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/13.svg",
+          "sha256": "b2d92b0a654c32e046d7354838b84dc2e9990578611f25e89b3f02e2e4508672",
+          "logicalBytes": 6057,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/14.svg",
+          "sha256": "b0a1e8b138fe73871a109abb408d2b2e0891e2f5715a2c4c248c362b402ea7f7",
+          "logicalBytes": 1685,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/15.svg",
+          "sha256": "1e185264de4ce43909eacd19aa1f5f8d19ebe97f8b864afc5cfa6c5d6b8c76e7",
+          "logicalBytes": 6614,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/16.svg",
+          "sha256": "e96e92ed91037979969a4a92abd40c191aa4413b2483ea716a4ba36ca416a5ea",
+          "logicalBytes": 4363,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/2.svg",
+          "sha256": "e48cfbf6febd25a8bf20f1d04e53da5e2763e45c112054d04d725566a8fefe0f",
+          "logicalBytes": 5052,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/3.svg",
+          "sha256": "61a3282cd1790ef7e98414d6ba3d5eaeca401157f4d9490127f285a5882f7104",
+          "logicalBytes": 1481,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/4.svg",
+          "sha256": "3bf8c4cf7890facd805df76672279d3c666ff4bdd8eab9c6c1ed8c59932263fe",
+          "logicalBytes": 2648,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/5.svg",
+          "sha256": "a019151e45541277c503eac1b6e46b707baa476df133b0ed7821a95ff5b9f717",
+          "logicalBytes": 2151,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/6.svg",
+          "sha256": "ad9ec767c82b7943659ed724c094cc0218836c95b23dafa71b253236038d59b9",
+          "logicalBytes": 852,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/7.svg",
+          "sha256": "1d6d65280b53d570159a94fb9965b4c4d48a3ea8586c5398d1d1c0230bc65766",
+          "logicalBytes": 1254,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/8.svg",
+          "sha256": "5fc0149b7fe8a746fa6347beb22574a51bdf0466e8f4d1be7d7d595cbf0fdf34",
+          "logicalBytes": 791,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/beard/9.svg",
+          "sha256": "37bf18bf176e8e8ed8cf9b6afdbd61350baa2c6fe35e26c3026db6deeb5ea526",
+          "logicalBytes": 885,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/0.svg",
+          "sha256": "f7cc345e1e3e9d9ec9575b4e0233cccb5145231134d96e5f7cb5f3441f068965",
+          "logicalBytes": 280,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/1.svg",
+          "sha256": "dffb2cfd78de3900d96e3a54613e1da7a338d85feee958d300cf560733ee1f4a",
+          "logicalBytes": 754,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/10.svg",
+          "sha256": "0fd28532ff26765a7ff2d709173c9f76fbf621368ca18936b1202115190a667a",
+          "logicalBytes": 519,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/11.svg",
+          "sha256": "71a9159085c5f5694e4ca06075c892d16ec1e128958731e2b0bc10f3011277ee",
+          "logicalBytes": 569,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/12.svg",
+          "sha256": "a06e1aac7f09473edfd33f77295ca32ae79d456f20764c48a1667ec6a0f31e73",
+          "logicalBytes": 880,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/13.svg",
+          "sha256": "6dbd20922e9b39ee54370211f3bc3dc6a0b99c8c109a64f35d45024242d668b5",
+          "logicalBytes": 1463,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/2.svg",
+          "sha256": "b96cc3b87b00923ee3087e9d11d144e44bbe48318f1a5149593d137a956db349",
+          "logicalBytes": 770,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/3.svg",
+          "sha256": "bbb611cf42f81992f55655d71b65b9c414582a5fcbc0919aa8bc408840193f07",
+          "logicalBytes": 683,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/4.svg",
+          "sha256": "0590608a26cd4fe7bb116b3428645454a559ad1492dab0fbeaf878218d53145e",
+          "logicalBytes": 632,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/5.svg",
+          "sha256": "eb249b079067e46c73d87960627e3b5153022e5b8c250462f333e1a053231af6",
+          "logicalBytes": 674,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/6.svg",
+          "sha256": "e9ea1b22b2d83c06829dcf547185b2bc8858bc053349bac856f1a5f75503b825",
+          "logicalBytes": 684,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/7.svg",
+          "sha256": "89a73893d94223c6717570af1882b32e28d7e9662d25634cb2d062132c2d4fd1",
+          "logicalBytes": 618,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/8.svg",
+          "sha256": "5a6527e184fcf5baa4be71c73a12f4ca9669e8a76899cd59e52146fd05574329",
+          "logicalBytes": 824,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/details/9.svg",
+          "sha256": "04c114be1dfc10e042ba9503ffe9a6aec0ee65f423cf1fa8934fdc3fff12f670",
+          "logicalBytes": 1295,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/0.svg",
+          "sha256": "70c85bb0a67d793dae16de8babad24135832f35a3ca12cb1ee61a983bb5fa15f",
+          "logicalBytes": 713,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/1.svg",
+          "sha256": "6c41cf74a136af67986b2b2b6c41f6b3e05ff42f67c5124f878859acb8f208ec",
+          "logicalBytes": 714,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/10.svg",
+          "sha256": "e28d305a8799f24680ff7b9469aafaac0da25b64dd6baf8af4d463c94912a6d1",
+          "logicalBytes": 785,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/11.svg",
+          "sha256": "3a757f2b1e4feca09bf9ee610ac6047f573167a489cec27876a71d154ff0e9fe",
+          "logicalBytes": 878,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/12.svg",
+          "sha256": "d420099d6a3c7f1f3061cb3ab0a931d60d315f1e2d15d10e1b4c26ae41aeff3a",
+          "logicalBytes": 852,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/13.svg",
+          "sha256": "37ad7701bc6bf361268bb1131fdbf08c27fd71e211354978a8539a4f6e62016b",
+          "logicalBytes": 920,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/14.svg",
+          "sha256": "5896ace013d237ca2e9517c62d94f5d2e6f78602cd7281d591db20c47fd1bbed",
+          "logicalBytes": 969,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/15.svg",
+          "sha256": "095af2caf146a8a9cfce36e243b2e6f4d58c221f5baf6a2e5920c2d361e261f9",
+          "logicalBytes": 972,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/2.svg",
+          "sha256": "ff80a81aa857d93cdf76174841d7acd6b1354e652496ad0f1410377fd73d1fe1",
+          "logicalBytes": 952,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/3.svg",
+          "sha256": "d3eb65889cb731c33e3b4009293a0ef64d0c98a6c72613feccd6742c0201e3ea",
+          "logicalBytes": 1037,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/4.svg",
+          "sha256": "e407ef89c69d1bcbe274895b2b16e0448120cbaf23c32238be96b414323b5155",
+          "logicalBytes": 677,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/5.svg",
+          "sha256": "1526f757f302f24a4fe17e265a0fbd1e1207a57bbc744ea4cd5898c937b12c2c",
+          "logicalBytes": 824,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/6.svg",
+          "sha256": "35d6a61edbccb8cd19dae6d494d1f03b930d2f1176b2225b48245fe00dabeecd",
+          "logicalBytes": 959,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/7.svg",
+          "sha256": "b5c72c1ac0eccc92cf8d5c261b884c7a761882f9e41dbabb4eae1ec9f7b75250",
+          "logicalBytes": 967,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/8.svg",
+          "sha256": "3cf0b76e8fc1e5eb3faaeaca67db764033dede98b660b7e79c9b8231af9be3d2",
+          "logicalBytes": 804,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyebrows/9.svg",
+          "sha256": "51ffe21bf878c019b5eba98bc0fe160c5c9e8fbf469e2ec801315576f1daa67c",
+          "logicalBytes": 809,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/0.svg",
+          "sha256": "b427b258da110f860759258ad003ace00e20a670e6398d8cfdb5c3aff911cb67",
+          "logicalBytes": 674,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/1.svg",
+          "sha256": "954acf2356410e915e6d675a7329d6e952a5b870c26744691cd87589e0de46a0",
+          "logicalBytes": 1019,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/10.svg",
+          "sha256": "507f8901ce0e6852f1f3cf585bdd953ab91105a99820602f3a0a252ab9649d5e",
+          "logicalBytes": 1330,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/11.svg",
+          "sha256": "9dbaea24b99071959602568df8bfbdd705f9fe15ca62467b0fec0a1ab0d24f45",
+          "logicalBytes": 580,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/12.svg",
+          "sha256": "62af66a99e3a9a10986dbc2324269552bda698d3e0d23e0d0b5ae2f192082fdf",
+          "logicalBytes": 830,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/13.svg",
+          "sha256": "960589fc3ba383baa600417acd5973235748244eb843753c8d360f9edf878e5c",
+          "logicalBytes": 2317,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/2.svg",
+          "sha256": "a1909cb06d5a87673ef6b68c97eb6a083a90c447e5f1f367237e0e9664ceec75",
+          "logicalBytes": 674,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/3.svg",
+          "sha256": "400ea2fd2dcb2defbc52484a8fe88ec85ebfffaf8eaa2138226d64a000f9642f",
+          "logicalBytes": 942,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/4.svg",
+          "sha256": "be02af0f2a5d316aa3928b6f03efd63dbe1c3ee6cefa5d9f58d7d8123d43c57d",
+          "logicalBytes": 1008,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/5.svg",
+          "sha256": "216cf0712bf5f1a133f57e4dd62cabd54ed11271518aa3e4dfefb94a48ea2f4a",
+          "logicalBytes": 1411,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/6.svg",
+          "sha256": "4d445edb2feb154ee72ecde9427c81e3a2f8efd754cbf7f5eacf5e82cdb5bd7d",
+          "logicalBytes": 1173,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/7.svg",
+          "sha256": "3f4b84d294bf49aebe171c7dbfdf120123f438dab86a00783a96d00b6d4620dd",
+          "logicalBytes": 1008,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/8.svg",
+          "sha256": "1f2e55d33503ffa8cf108bde0905ed4d6d00b94d8aca29aaee0d989624fb077d",
+          "logicalBytes": 674,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/eyes/9.svg",
+          "sha256": "8d73cbcda233f69446ec7be71678ff7bbb2c07eb9df538796f69c02366fd0fd4",
+          "logicalBytes": 872,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/0.svg",
+          "sha256": "0b3b8812081efb55ff23eabd8b90215c8511f596c46758a2633ad68d703d4dad",
+          "logicalBytes": 749,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/1.svg",
+          "sha256": "0ab60b0861adce3fdfbb518e5bc2a532fc70ab57cdffd2c95a06d7d5e87ce9ad",
+          "logicalBytes": 750,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/10.svg",
+          "sha256": "13d883e7bd4660768a444b6f5d2988004f1b207766b93df2717cd9d91140218f",
+          "logicalBytes": 752,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/11.svg",
+          "sha256": "8cb94f32e1f43d460821c8d57e0de03eedb37ce040a9f6b272d715d836b439d3",
+          "logicalBytes": 835,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/12.svg",
+          "sha256": "e065506b896b5a0494beccc0e3a17099b29107dc51be2d91917fe77d8b287351",
+          "logicalBytes": 945,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/13.svg",
+          "sha256": "be091e255acd5da98f203d679a1194895283025e0c196dcb83744642f5a22158",
+          "logicalBytes": 931,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/14.svg",
+          "sha256": "aec268e59b9c73c61a8d9fd50edc2a08bbdef6e304a158ac7a7665c3ad58faf9",
+          "logicalBytes": 977,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/15.svg",
+          "sha256": "1246a4ba6180474e9617507a1428f577a19b3a0e0ed346349905f40e8de46ab2",
+          "logicalBytes": 977,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/2.svg",
+          "sha256": "0bd3af056105ea56786391501a01a7678fe156765664b0f61de3a3e899355471",
+          "logicalBytes": 728,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/3.svg",
+          "sha256": "f60c2e44f563053fd7d32fd9053647206b0d6327489844ed3a9ed26a0e212187",
+          "logicalBytes": 728,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/4.svg",
+          "sha256": "126a623fb43b9c85b393eb05f419c7ae61558ae33e7f753261bfb6e1c1de2980",
+          "logicalBytes": 764,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/5.svg",
+          "sha256": "194ac66c924a5a4e5ceb5ac52506fe9e47608354f522b57ccb716417a98733dd",
+          "logicalBytes": 728,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/6.svg",
+          "sha256": "e8356da342c06740ea938b89cc8e65cb6eda7267ab3102348bd74070e0d3bf18",
+          "logicalBytes": 728,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/7.svg",
+          "sha256": "8485e061029176056438f83bb935c9f9403d385995227d10c69b329822e41c81",
+          "logicalBytes": 750,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/8.svg",
+          "sha256": "a91d3e7645e9d2e2c79365354f61e8c89deba9c014a9c1b72a54957283933275",
+          "logicalBytes": 765,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/face/9.svg",
+          "sha256": "f2fa5f82c04ca06892b07ef0d4d6b23224815d273ecf03463851df9989dbe910",
+          "logicalBytes": 765,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/0.svg",
+          "sha256": "a69fd89f1ad58a414f067a899ab360fca894628b0c62b76c2798f675a7755ee6",
+          "logicalBytes": 280,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/1.svg",
+          "sha256": "38c80921e30232e499b3206ee642288c23f2e8cd3d441ea9ac24fba0c5b47d31",
+          "logicalBytes": 926,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/10.svg",
+          "sha256": "47651a00515f330d5d69b5a96eb0f35083dd54e79de2361d90e77e08f8c39a04",
+          "logicalBytes": 1683,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/11.svg",
+          "sha256": "9a8a47c5e4d8d41fd61bfa8509013457a3f05cd79816a0a1dd9a87177a25a55c",
+          "logicalBytes": 26136,
+          "allocatedBytes": 28672
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/12.svg",
+          "sha256": "ad009fc07076996c1737b8cb50854fc68f46980992c8530f34477a70b33b166a",
+          "logicalBytes": 2148,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/13.svg",
+          "sha256": "ffa25a55e99ef31086f8c674bee26993b1f6470693ef791e6c05fe03588ce136",
+          "logicalBytes": 2716,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/14.svg",
+          "sha256": "b26a9ec69d7beb872a9819615b57016f70d277d27bb468e62b9316c6b2f03ab1",
+          "logicalBytes": 11502,
+          "allocatedBytes": 12288
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/2.svg",
+          "sha256": "18bde917b5a296f207b288e4c0b332c97e302c495562a994c35e3b39cbb1fa54",
+          "logicalBytes": 2070,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/3.svg",
+          "sha256": "eeffa18b462d8954941c673a0d5e2694b7c220f778aae410d7f3eb49b911da98",
+          "logicalBytes": 1472,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/4.svg",
+          "sha256": "e45c351ff907b07fb13533cdee6b5badad6a862930baa58d38933927790aff69",
+          "logicalBytes": 2043,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/5.svg",
+          "sha256": "b0fe7cb8956e131d15cc782c0f32276a14d8edc8f535cb7666ab290270a074af",
+          "logicalBytes": 2281,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/6.svg",
+          "sha256": "bbd3b664f2195e6829442c0c2cc4797482e861def2e8dc01827301958cb8d54e",
+          "logicalBytes": 2248,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/7.svg",
+          "sha256": "4caed187820d350b4010a7542b93f0d819d928a73fa655eea4a333baa1b4f4a0",
+          "logicalBytes": 1606,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/8.svg",
+          "sha256": "ba2b071d004d5756c79c9bc09f7aa5e23fc4fedaa558ce4e2e2f3ea9d8d85351",
+          "logicalBytes": 1766,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/glasses/9.svg",
+          "sha256": "eebb32cb831e4d8b36e98f9dddac7bb732947c4efc9a21627a5896f62c0b55cc",
+          "logicalBytes": 1601,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/0.svg",
+          "sha256": "efc7910e9fea96419ec4bb0118f26482d71d078c01d8000013e55de3583b37f2",
+          "logicalBytes": 284,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/1.svg",
+          "sha256": "b7f60701f81168db079f1dfabf5c347b5416bb3d92fc55fafb2cf45ed993dff8",
+          "logicalBytes": 1255,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/10.svg",
+          "sha256": "0b6c3bf78bb842b4e7e839b1af017dc381286fb96e96f455956ea34af14c24e7",
+          "logicalBytes": 1343,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/11.svg",
+          "sha256": "441336ccc7d75eb1fc7ca3767626ff718ce02c82b11bf517dead1e7c89f426a3",
+          "logicalBytes": 1844,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/12.svg",
+          "sha256": "641c57bc2793c7be4eb5e5a4da2d9d7beb782bb1c5c03ec4bf766f90edf1fa53",
+          "logicalBytes": 896,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/13.svg",
+          "sha256": "345fbb1e173d979b8dbb2da04c201df7cab81b716d828543797a2055c55339b5",
+          "logicalBytes": 2440,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/14.svg",
+          "sha256": "a9dd864e7f305743f3dddad6f27ed5291f3145f4d4cadceb3174d1c5fa5b5275",
+          "logicalBytes": 1602,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/15.svg",
+          "sha256": "31e7ddbd2d0bebe8dc529e0442bbf730c50c1f2df079e6f25d76499370e87370",
+          "logicalBytes": 725,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/16.svg",
+          "sha256": "1dd37d51890d843c68c7f8bf9d4f0a5bf96dd404f3a6246a600f48c2e26893a9",
+          "logicalBytes": 1402,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/17.svg",
+          "sha256": "be2673b41f6d351864cf1a776c07c14fe422891be045ee1cd104bc4010fc2971",
+          "logicalBytes": 788,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/18.svg",
+          "sha256": "447e14ae0e4046a74be0a5b142e21c20678f2228d1c5c624f02a55a33d1dfe42",
+          "logicalBytes": 1183,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/19.svg",
+          "sha256": "5529bea8039b78bfdfc14deee4bacd153e07f0875e621baa75dff66aa0cbb621",
+          "logicalBytes": 1403,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/2.svg",
+          "sha256": "58bb4e02375211b065856d64db3fd9c356bd15cc220cb136109423eeb516a390",
+          "logicalBytes": 1292,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/20.svg",
+          "sha256": "68a83839addc0fbc280e2e139a89d0b77da68e3301ed7b54d6385cf5c8a14971",
+          "logicalBytes": 1136,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/21.svg",
+          "sha256": "f81fb818162fc5fee0cafca373fd77c2c1220931e8ceca1409f484b75bf39500",
+          "logicalBytes": 1029,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/22.svg",
+          "sha256": "285f1b023db7aac32599c16fcbd227733ee7ac768a90d32a2d37476c2d47070c",
+          "logicalBytes": 1277,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/23.svg",
+          "sha256": "c52995722cbf46ecb3c705cedbfd3b49d160ec3077e2889c81f7ef5d0e532c74",
+          "logicalBytes": 1621,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/24.svg",
+          "sha256": "ccbdba30aa82e403fe59bc1ba209ee08dea86d540159046db97996a9e5ab255b",
+          "logicalBytes": 2532,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/25.svg",
+          "sha256": "3dee374509fb8fd804c34e894c14d64dd0f8d0bac1beefd625422d2384b48014",
+          "logicalBytes": 1181,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/26.svg",
+          "sha256": "e5bb7768462190805c7b43ae83c24861eacb50f4414ab44b5fe1a678841cc67c",
+          "logicalBytes": 1612,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/27.svg",
+          "sha256": "faceb6ec3bef4c9ea421c29ec4955eaf1526bdce557e9b38a10a9b001a8dfc3a",
+          "logicalBytes": 1048,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/28.svg",
+          "sha256": "4c08fc8d8f6e69f66c6c7c591af04e6753c5b8cd355c63c916eee0d910f865bc",
+          "logicalBytes": 2131,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/29.svg",
+          "sha256": "a9a79a6cd7b26382a8de138c3e783908156bba75faea5bb641b3b7fc0f508f84",
+          "logicalBytes": 1595,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/3.svg",
+          "sha256": "fcb51a76b4094bbc165f72a7174e889421a674e490fc36250be112b7aa2d3493",
+          "logicalBytes": 1903,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/30.svg",
+          "sha256": "5bddc22d236cd22dd51227e67ff8607e62f704e027c1014a82824590a9d26a23",
+          "logicalBytes": 1025,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/31.svg",
+          "sha256": "431cb321dad45c9840f192536755a0a5cf3e1fe665de529a3ba2790fb58c4ebe",
+          "logicalBytes": 1616,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/32.svg",
+          "sha256": "d118c39212078e9e80953441c1d77f60c7ef7a7800bcfdbd8b9f36454f778436",
+          "logicalBytes": 1469,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/33.svg",
+          "sha256": "1ce44e3d29134b1db84edcbc0d6d57af0a550fbbdbcbf40e9da23fbf1f90892a",
+          "logicalBytes": 1920,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/34.svg",
+          "sha256": "a4e46fffc4cbc77183e9dbced729970e6b0516e5d5222879069628cdb8d56918",
+          "logicalBytes": 11482,
+          "allocatedBytes": 12288
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/35.svg",
+          "sha256": "6d889c9c2ba19559cce63e5b50d4c5a3f651ee2a25e27413567a3f38d797014f",
+          "logicalBytes": 972,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/36.svg",
+          "sha256": "62928ccc7c51a09b14d7975995aef27990cc20f013454544bf539a4f5c758c59",
+          "logicalBytes": 1148,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/37.svg",
+          "sha256": "2f1313cd775c7f38f7f1dc638c337bb03dfe019c0de0c434af8d74c332027bd6",
+          "logicalBytes": 1258,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/38.svg",
+          "sha256": "5c7eed6f0bd8f7af3196dc2b35f4acee35c2499795812b2743d59b83625c7dc5",
+          "logicalBytes": 612,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/39.svg",
+          "sha256": "ffaf43a74b2ca0d12a197848786a0bf75ddc23b0b302d1f57de2b5e7a3e32acc",
+          "logicalBytes": 1389,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/4.svg",
+          "sha256": "2cd35e63de57cc4b837e81ed7163385fb3cc057006c99cd56ec030d4d9854408",
+          "logicalBytes": 1124,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/40.svg",
+          "sha256": "99aa9dd8b6a9302f83c6e9e249448f6f55dbc2e7fa5b4eb2c754be0808b048cc",
+          "logicalBytes": 1422,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/41.svg",
+          "sha256": "9b060246152323826ac0674ed8e327fca034600ea32dd154682cf9cdbd264353",
+          "logicalBytes": 17761,
+          "allocatedBytes": 20480
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/42.svg",
+          "sha256": "5fa21c831e4e8a890ac2aa41cd73de900f1636ee2aaf3310029f7fbefc702c25",
+          "logicalBytes": 3205,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/43.svg",
+          "sha256": "69997a69b3501c81256b957581149496b1019902bd54475ffb065249a069719e",
+          "logicalBytes": 1471,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/44.svg",
+          "sha256": "dc2085015a79b3b3bd011b206bea1d771d07d184f69e469dc19ffa571cf3ba15",
+          "logicalBytes": 1690,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/45.svg",
+          "sha256": "f3e21f2c5f9e3474a356d9144c352af56dbcffb00bd49756523e2c59c053f957",
+          "logicalBytes": 1409,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/46.svg",
+          "sha256": "13dac5b658957121f6b8a23141938fbeb8529098349aedf34d708be85b27085a",
+          "logicalBytes": 536,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/47.svg",
+          "sha256": "3515ca9e2799ffbda5699106a39d0f46027319e074b8d977ff8e415a9ccc8332",
+          "logicalBytes": 528,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/48.svg",
+          "sha256": "4e8a103a2ac85acc1eb8c37d27373e3cfc5840ae5467eceb40b1365f93f10aea",
+          "logicalBytes": 615,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/49.svg",
+          "sha256": "50603db03ce7c36b2433febd211f1d5428f10f3c52b09406f3fabfa212f2457a",
+          "logicalBytes": 1197,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/5.svg",
+          "sha256": "1b8ead397f685d34c718fc5225372bd485182bae5c2b1e94af90e95b4fccbf76",
+          "logicalBytes": 1131,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/50.svg",
+          "sha256": "821e5651ff6d6212a2c7243cc5647f69042eb60122d405c78c65c907adc1932a",
+          "logicalBytes": 1388,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/51.svg",
+          "sha256": "f5c074deac1a3e7e9c371fc3d0742e7aaac20af07d815eff6b1e5d835ac055ee",
+          "logicalBytes": 2340,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/52.svg",
+          "sha256": "de0260a2fc28f95b15cc0ec0cace10b3b34d51c2ed21b925d294020115c16b75",
+          "logicalBytes": 1770,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/53.svg",
+          "sha256": "4c073d0975183f9c8cad0edff31a84dec462a49f3904c487265ca210d9ce86be",
+          "logicalBytes": 2043,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/54.svg",
+          "sha256": "ebb1ebf0c097c9d9f9e6b4c77627f48b25fbd5f03e0d4e2b0e12766a1d7e8bb6",
+          "logicalBytes": 1077,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/55.svg",
+          "sha256": "ee4114499f76464915545b51e40e2d3791cda4c7190431f311352cb3972aed2d",
+          "logicalBytes": 1002,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/56.svg",
+          "sha256": "3cef3b1c406ffae2fc4b247ddba0debb327ada55bab3d4e2438218b82f54252d",
+          "logicalBytes": 908,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/57.svg",
+          "sha256": "9bff5c717afc853757c4c9c909c9ee26198c6a0546490258575805c1f532d239",
+          "logicalBytes": 918,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/58.svg",
+          "sha256": "d26164698c2d48647f2dc0c24bb04bcaccffb9150bd4bc7fadd0b6362d44f653",
+          "logicalBytes": 1271,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/6.svg",
+          "sha256": "c41e68811bb861fa7b5b773d16f6b4819fd3201ba631bca40fe6347fa9d7a275",
+          "logicalBytes": 1748,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/7.svg",
+          "sha256": "e98a3d2b17ee8da9434203ba7a17dd34764ca3324755cdab552b7567c5604f3c",
+          "logicalBytes": 1136,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/8.svg",
+          "sha256": "2a89dffa8b24656cadd1b2f4dbcaf58dcfbb08566979cfc5b1c76ea294be93bb",
+          "logicalBytes": 1728,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/hair/9.svg",
+          "sha256": "9c594a0b36890be803c0cc5e900a29354b13d729bcbd0b93d38465df5cdcb93b",
+          "logicalBytes": 1844,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/0.svg",
+          "sha256": "3bdbcb14964cc45bd0a4d0d6a68fb364050f94f922d230075e305986d3043090",
+          "logicalBytes": 499,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/1.svg",
+          "sha256": "b1109bf9d9db7e379ca54e4c53d3463ef648860aba90a7ed5aaf3f4160ee6aad",
+          "logicalBytes": 496,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/10.svg",
+          "sha256": "7776ae5b4ec30569dba92931f821d887a4d128f37512a97ab3b36973a1407cf7",
+          "logicalBytes": 594,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/11.svg",
+          "sha256": "169e5095dc4da549d0f931cfd87c519228fec79bff600f151798afd149b86902",
+          "logicalBytes": 395,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/12.svg",
+          "sha256": "0f3b78509c8d772f40548673af784862a82fcaa0725116d2cd535ae88ab6e5ae",
+          "logicalBytes": 755,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/13.svg",
+          "sha256": "7a262ef82719aa82623c030f8de2a97d8206ea713b01013f42830c1e66f0e6e2",
+          "logicalBytes": 955,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/14.svg",
+          "sha256": "57065f189318d565dae41d632bb46916b95082a2f31a99e0be2caa2e1137506a",
+          "logicalBytes": 752,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/15.svg",
+          "sha256": "db678b05b707bd11289a53ff40d4f02ad1c4b9fd21d30b649c08d37422152a59",
+          "logicalBytes": 860,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/16.svg",
+          "sha256": "261f7ffe4a63bec0ae67e33e0bfd3eb8bfd5abaaaab362cc01de29ddcc5a43de",
+          "logicalBytes": 985,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/17.svg",
+          "sha256": "73f6c411507aba1482750bbaff8b30f4d2caff81e620bf8f0810b2ba49a0fd74",
+          "logicalBytes": 1055,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/18.svg",
+          "sha256": "7f02e7ac3c032e47ffa77e84ff778f3e00edf638aa3ed6dd79fd2991e1067ba4",
+          "logicalBytes": 875,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/19.svg",
+          "sha256": "1f74e22396e5c73eb1b1790a77b4d0e85cd821b6a520b522a2c1761ea271f548",
+          "logicalBytes": 783,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/2.svg",
+          "sha256": "c0654d1f8d3bd20609635cd33f4c765edaedeec66150a63505376c4f3e5d7fd0",
+          "logicalBytes": 500,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/3.svg",
+          "sha256": "bd1cc51dd980583c85edf871cc8d8aa4537feeedb448e2be83369aad72c264ef",
+          "logicalBytes": 950,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/4.svg",
+          "sha256": "4590c8d09e523958c561bc4fe8a189e80688ff619e3442fd01b82f83a727031e",
+          "logicalBytes": 513,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/5.svg",
+          "sha256": "5c864e101b21ea79659bb687e71f2f1a1897f35a38122a4728137ada8d269780",
+          "logicalBytes": 424,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/6.svg",
+          "sha256": "4ab9a60e88494704ca72367ffc5fa180e42d5f8f21ed3c1fc3f3b61dae402b49",
+          "logicalBytes": 754,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/7.svg",
+          "sha256": "0568ccb16794630493d89ae54068fe120876b1657adf687123715474b11c0f39",
+          "logicalBytes": 724,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/8.svg",
+          "sha256": "f1689e5d4fe4503c22b3eefb175e069e0bf782ba2f3a63f2cafdcc6d05ede255",
+          "logicalBytes": 1247,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/mouth/9.svg",
+          "sha256": "6d149495933c9e9322af124d93a714bd4210a0daa4320edebcbc61572f42f0cd",
+          "logicalBytes": 636,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/0.svg",
+          "sha256": "56b542540aa9c92ccea8fc57ad206cbf37008fef573058ff8677747bf7f34005",
+          "logicalBytes": 543,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/1.svg",
+          "sha256": "f813654ce086292e2fd25e4367d2f7b5aa803e863d39c6e7c7c6b72425fb545f",
+          "logicalBytes": 654,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/10.svg",
+          "sha256": "470abef629179ad393f930937b62d5b1c151b60c149a11f845cf6be572c183b5",
+          "logicalBytes": 506,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/11.svg",
+          "sha256": "9e115ba29f594ee0f4e7820b2e0fef620fc4e0b062dfa539ce3676b8449acf66",
+          "logicalBytes": 543,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/12.svg",
+          "sha256": "a337cade4fe63b85d7e206790a3fbf4bdf7cf8d0e4163766b093a71205ffa39d",
+          "logicalBytes": 597,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/13.svg",
+          "sha256": "d0dffd93ece4fb08b95d4c142a95b374eb87069258dff0f0c651c8cc176cfe58",
+          "logicalBytes": 502,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/2.svg",
+          "sha256": "9ec42f96a712d2960075d3336f61b5d16d3510787367613947a3c1b806e4fc44",
+          "logicalBytes": 656,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/3.svg",
+          "sha256": "297705b5a694ff4c398af842afe7a3665f6d2038f5595105f10558f7e4875cf1",
+          "logicalBytes": 652,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/4.svg",
+          "sha256": "90af8fa974117fa0f6623adfca5b53fb5e7108b5b28211d20142b88483f0b2bb",
+          "logicalBytes": 652,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/5.svg",
+          "sha256": "2404b8badec206c73e16104a64293f15bc8a799ea0da740adbb1ce4524a2a3ad",
+          "logicalBytes": 591,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/6.svg",
+          "sha256": "2e8adf53176310bcc2755ffc56439d878c982f16ffd4428fa91a71414dcabecd",
+          "logicalBytes": 585,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/7.svg",
+          "sha256": "4fb2f6d1bb00a273713bdba9b52a17d55827492d1ae36467651a85ccfd458e24",
+          "logicalBytes": 470,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/8.svg",
+          "sha256": "c6e7931d371caea521249822a438fbbdf6de4840baf7de0745123f9d96e44f01",
+          "logicalBytes": 477,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/NotionAvatar/nose/9.svg",
+          "sha256": "8c48ed25653345736403f86f0ad777ed78b3ecbd5e65cc054bfc0c9fa2fdf788",
+          "logicalBytes": 540,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/OpenPeeps/ATTRIBUTION.md",
+          "sha256": "1b750265cc734bcb702b37cf9fb4229dfc400fff2394253d055a29e8391a3fe8",
+          "logicalBytes": 739,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/OpenPeeps/scenes/allSet.svg",
+          "sha256": "923eec36d10fc37583a8e6c934eb43b7b31368552668bf9c87ad3f2cbabcabc2",
+          "logicalBytes": 40062,
+          "allocatedBytes": 40960
+        },
+        {
+          "path": "Contents/Resources/OpenPeeps/scenes/brain.svg",
+          "sha256": "9eed8e2fbe71e1351bd203e4b3fe292df1e4d4efa551b973128ec37ef99c1a5f",
+          "logicalBytes": 44296,
+          "allocatedBytes": 45056
+        },
+        {
+          "path": "Contents/Resources/OpenPeeps/scenes/dictation.svg",
+          "sha256": "50dee3a8f1a82d2b7d4fc0fc8a6325b5432e08f9256cdd3eb5921390eaa41fac",
+          "logicalBytes": 38279,
+          "allocatedBytes": 40960
+        },
+        {
+          "path": "Contents/Resources/OpenPeeps/scenes/files.svg",
+          "sha256": "ab23b97b0ec13ea7a1bca9f04492b862fd1676eb3562818b65fa69628a88a116",
+          "logicalBytes": 42150,
+          "allocatedBytes": 45056
+        },
+        {
+          "path": "Contents/Resources/OpenPeeps/scenes/meetings.svg",
+          "sha256": "3f9c4836141437ba9dcceb8e90b09a9bf7cc9e36900170af27c457a52768457f",
+          "logicalBytes": 38536,
+          "allocatedBytes": 40960
+        },
+        {
+          "path": "Contents/Resources/OpenPeeps/scenes/shortcut.svg",
+          "sha256": "a0e20fa8e8c6afac16466a432315a46f14816e7db9d886cfc340157f621f8e65",
+          "logicalBytes": 42072,
+          "allocatedBytes": 45056
+        },
+        {
+          "path": "Contents/Resources/OpenPeeps/scenes/welcome.svg",
+          "sha256": "c247b61de194ffad2b14cd7256c724480995a16b95c2a31540d1958e49bea8b8",
+          "logicalBytes": 45338,
+          "allocatedBytes": 49152
+        },
+        {
+          "path": "Contents/Resources/SpeexDSP-LICENSE.txt",
+          "sha256": "2654a4264b2bfe298dedc508748d140111840c315cc8eb646a3a68c13fa75b01",
+          "logicalBytes": 1773,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/THIRD-PARTY-NOTICES.md",
+          "sha256": "20e65bec0bf59e3d8d155e1b587d5915e57fe5ec08bcc722d763cc8e6308e318",
+          "logicalBytes": 5409,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/InstrumentSerif-Italic.ttf",
+          "sha256": "8564755a783a6b6e337c2f19c90fd4acf7bb94d62eaf51a47f7ada320ad78f6f",
+          "logicalBytes": 35936,
+          "allocatedBytes": 36864
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/InstrumentSerif-Regular.ttf",
+          "sha256": "aaf1ca921710639b1e685b1a7c9cfdbc7daf0d1aa47818309bedd6ed6c3cd387",
+          "logicalBytes": 35916,
+          "allocatedBytes": 36864
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/Inter-Bold.ttf",
+          "sha256": "50d2e7434b31e6a1092030b07255ac68ff3a7764f2038d0e465454db464e1aae",
+          "logicalBytes": 67988,
+          "allocatedBytes": 69632
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/Inter-Medium.ttf",
+          "sha256": "8d2df172662ea8b727793c752296f21ed3384b565b49ebd20378fb10393ebd69",
+          "logicalBytes": 68008,
+          "allocatedBytes": 69632
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/Inter-Regular.ttf",
+          "sha256": "ee5db7d9709c84d3a013d780e4ff436fc81c8d2c618d99bfdec0e678bbf33446",
+          "logicalBytes": 67952,
+          "allocatedBytes": 69632
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/Inter-SemiBold.ttf",
+          "sha256": "fc17ae28f958f5826e903510926d3aed86240e948c59df337a2d68b95a481247",
+          "logicalBytes": 68060,
+          "allocatedBytes": 69632
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/README.md",
+          "sha256": "e682e120182ec30e32fd400d27faaa3734b41573534f09909f5d1d59e4f7be63",
+          "logicalBytes": 631,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/instrument-serif-OFL.txt",
+          "sha256": "b6106a757902d2d412e09d94dc4a226fe3da80485208a98003969f1b8b6b1d74",
+          "logicalBytes": 4532,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/inter-OFL.txt",
+          "sha256": "3b0a5fca3d17942cde889069889dedbbbd075e9b599968c82a95f4d944e9b345",
+          "logicalBytes": 4477,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/ThemeFonts/manifest.json",
+          "sha256": "75326b2537f588165ecf1174eba2c40b1af0600391503cefb12407d28b64285c",
+          "logicalBytes": 2515,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/WebRTCAudio/ABSEIL-LICENSE",
+          "sha256": "c79a7fea0e3cac04cd43f20e7b648e5a0ff8fa5344e644b0ee09ca1162b62747",
+          "logicalBytes": 11361,
+          "allocatedBytes": 12288
+        },
+        {
+          "path": "Contents/Resources/WebRTCAudio/THIRD-PARTY-LICENSE",
+          "sha256": "0e78ec90a998f39730da7287681e9a9a9e9b66f499ac05c1f42212a47e3ec4c9",
+          "logicalBytes": 6060,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/Resources/WebRTCAudio/WEBRTC-AUDIO-PROCESSING-LICENSE",
+          "sha256": "9b79539028e216e813e152d45f5c1ed5fdd0554426ad50270fb03134e7082dac",
+          "logicalBytes": 1495,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/WebRTCAudio/WEBRTC-LICENSE",
+          "sha256": "ab00a482b6a3902e40211b43c5d0441962ea99b6cc7c25c0f243fa270b78d482",
+          "logicalBytes": 1511,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/WebRTCAudio/WEBRTC-PATENTS",
+          "sha256": "01462e2068d1a04c2274f3389773014c14ed9bc3446b28303543bd3e3c064145",
+          "logicalBytes": 1388,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/agent-persona-base.md",
+          "sha256": "3cc654a87361661753f41c404b1c5a3b95fedad811d2461d832f0c1fe6d72593",
+          "logicalBytes": 887,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/install-gws.sh",
+          "sha256": "029634416eecc2a5355a48de246cf475e777fd60edeb032dd88b9fb2b3d4f174",
+          "logicalBytes": 1021,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/knowledge-ontology.yaml",
+          "sha256": "e1b81e0fbd249a0d5d5dd9343bbb6edbebdb315bcc4296faa2a3faf4f71281cf",
+          "logicalBytes": 5015,
+          "allocatedBytes": 8192
+        },
+        {
+          "path": "Contents/_CodeSignature/CodeResources",
+          "sha256": "f07ba434546f52c0202739ecc57f2a7b6e0fd0ecc75e82e1151897254b0c0e57",
+          "logicalBytes": 79226,
+          "allocatedBytes": 81920
+        }
+      ],
+      "allocatedRegularAndSymlinkBytes": 231755776
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/out/Products/Release/NextNotes.dSYM",
+      "files": [
+        {
+          "path": "Contents/Info.plist",
+          "sha256": "2aede074f90a3d9e257ecf532c12c7b4334efbef2fe0bd5c7e7747ea6238a247",
+          "logicalBytes": 638,
+          "allocatedBytes": 4096
+        },
+        {
+          "path": "Contents/Resources/DWARF/NextNotes",
+          "sha256": "ea5500ed9704900c7e120512dfcc42d04a5c415c3746b6971b0687dd231bd84a",
+          "logicalBytes": 189911968,
+          "allocatedBytes": 189915136
+        },
+        {
+          "path": "Contents/Resources/Relocations/aarch64/NextNotes.yml",
+          "sha256": "8a71cc38ea984c6e833421302fa8eb2beb2f603012c7452cbdac5a8121f8a623",
+          "logicalBytes": 3123656,
+          "allocatedBytes": 3125248
+        }
+      ],
+      "allocatedRegularAndSymlinkBytes": 193044480
+    }
+  ],
+  "diskAvailableBytesBefore": 6998528000,
+  "retained": {
+    "installedSHA": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+    "repairedRollbackSHA": "a00ac67934f9357c708c2c17f32ee685ee87734ff72471ed14232b4f1ba95046",
+    "sixthCandidateSHA": "8d079a72b32223a2c552d0490aa34b599ee6a3dcef18a5db8149a9f3700db6e9"
+  },
+  "scope": "Retire fulfilled original crash rollback and matching obsolete sixth debug symbols only; compact original/fixed/native logs/source/pins remain; remaining quality checks do not require DWARF; future sixth crash symbolication narrowed",
+  "activeProcessReferences": 0,
+  "openFiles": 0,
+  "deleted": true,
+  "diskAvailableBytesAfter": 7423778816,
+  "observedAvailableByteDelta": 425250816,
+  "allocatedRegularAndSymlinkBytesRemoved": 424800256
+}

@@ -1,0 +1,30 @@
+[
+  {
+    "elapsed": 0.027203666992136277,
+    "pid": 30999,
+    "processStart": 2511068652857,
+    "footprintBytes": 81992,
+    "residentBytes": 32768
+  },
+  {
+    "elapsed": 0.1767228749959031,
+    "pid": 30999,
+    "processStart": 2511068652857,
+    "footprintBytes": 81992,
+    "residentBytes": 32768
+  },
+  {
+    "elapsed": 0.3184307499905117,
+    "pid": 30999,
+    "processStart": 2511068652857,
+    "footprintBytes": 5423680,
+    "residentBytes": 11239424
+  },
+  {
+    "elapsed": 0.45961891699698754,
+    "pid": 30999,
+    "processStart": 2511068652857,
+    "footprintBytes": 5489216,
+    "residentBytes": 11321344
+  }
+]

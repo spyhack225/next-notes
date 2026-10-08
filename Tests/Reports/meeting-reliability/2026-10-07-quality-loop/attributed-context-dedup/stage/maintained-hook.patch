@@ -1,0 +1,12 @@
+--- a/Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift
+@@ -45,6 +45,9 @@
+         Settings.shared.meetingLiveUnderstanding = true
+         defer { Settings.shared.meetingLiveUnderstanding = priorEnabled }
+         var failures: [String] = []
++        if !MeetingAttributedContextDedupSelfTest.run(write: write) {
++            failures.append("attributed context dedup")
++        }
+         var checks = 0
+         func check(_ fixture: String, _ label: String, _ passed: Bool) {
+             checks += 1

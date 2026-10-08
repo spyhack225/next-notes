@@ -45,6 +45,9 @@ enum MeetingTopicMergeSelfTest {
         Settings.shared.meetingLiveUnderstanding = true
         defer { Settings.shared.meetingLiveUnderstanding = priorEnabled }
         var failures: [String] = []
+        if !MeetingAttributedContextDedupSelfTest.run(write: write) {
+            failures.append("attributed context dedup")
+        }
         var checks = 0
         func check(_ fixture: String, _ label: String, _ passed: Bool) {
             checks += 1

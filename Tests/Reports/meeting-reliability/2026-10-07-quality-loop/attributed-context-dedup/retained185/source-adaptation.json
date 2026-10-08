@@ -1,0 +1,29 @@
+{
+  "scope": "Retained actual production-body regression: only embedded extractor prefix changes;185 checks and all other retained source bodies unchanged. No current full-App/native consumer/model proof.",
+  "retainedProbeSHA256": "b644c515d052efccc8f24ed441a22f46a3df5d2d5afd8c18bcfccce8a1c6a85d",
+  "proposedProbeSHA256": "2f122af364f5fb282a4bb1172f1fb6cf4e01339f1dc1ac68508ed967455ab111",
+  "baselineExtractorWholeSHA256": "0890fc76c11558cf79fc0f27966401eab42b1710f268a5f5da9dd8932ba7b161",
+  "proposedExtractorWholeSHA256": "ab2859978588b0ab3fce8fb4d2f75c5e45afb5aac48cdc76ce8f393e37317a02",
+  "restoredSourceExactlyEqualsRetainedProbe": true,
+  "maintainedFixtureSHA256": "1e5efc3451ebd14787faac6d14a06094c889fe9798deb51dcc8f040966d747ed",
+  "unchanged185Assertions": true,
+  "retainedBodySubstitutions": "Directory/Meeting metadata/controller/bus/role/pressure/log/usage/provider boundaries; full actual historical ContextStore ingest/reconcile/apply/atomic context save/load, parser/reconciler/matcher/grammar/Context/Transcript and same fixture. No scheduled pressure/native/bus/physical/global identity proof. Stored files are temporary; fresh reader is actual historical ContextStore.",
+  "privateInputFiles": [
+    {
+      "name": "transcript.live.json",
+      "SHA256": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+      "bytes": 151674,
+      "mode": "0o600"
+    },
+    {
+      "name": "topic-merge-cases.json",
+      "SHA256": "65dfdd3f40507c1b1e16c8fc7ed20479037b4163e15521cf2750da388b6de269",
+      "bytes": 1663,
+      "mode": "0o600"
+    }
+  ],
+  "privateCorpusMode": "0700",
+  "rawLogsMode": "0600",
+  "stagedManifestSHA256": "0ce8879505eef85a58886b5724abbc625aa7cbca20d055d5d12c69597e45a42d",
+  "oldOutputsUnchanged": true
+}
