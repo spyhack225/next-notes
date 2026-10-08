@@ -1,0 +1,16 @@
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -2167,6 +2167,13 @@
+             }
+             return true
+         }
++        if arguments.contains("--selftest-meeting-bounded-audio") {
++            Task { @MainActor in
++                SelfTest.failed = !(await MeetingBoundedAudioSelfTest.run(write: writePrivateSelfTest))
++                SelfTest.requestTermination()
++            }
++            return true
++        }
+         if arguments.contains("--selftest-meeting-quiet-input") {
+             Task { @MainActor in
+                 let corpus = SelfTest.value(after: "--meeting-quiet-corpus")

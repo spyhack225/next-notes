@@ -1,0 +1,198 @@
+[
+  {
+    "elapsed": 0.019893124997906853,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 360664,
+    "residentBytes": 3325952
+  },
+  {
+    "elapsed": 0.15463229199667694,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10846784,
+    "residentBytes": 38158336
+  },
+  {
+    "elapsed": 0.28776558300160104,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10846784,
+    "residentBytes": 38158336
+  },
+  {
+    "elapsed": 0.42396433300018543,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10846784,
+    "residentBytes": 38158336
+  },
+  {
+    "elapsed": 0.5592772079980932,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10846784,
+    "residentBytes": 38158336
+  },
+  {
+    "elapsed": 0.6944024170006742,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10846784,
+    "residentBytes": 38158336
+  },
+  {
+    "elapsed": 0.8266589170016232,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10846784,
+    "residentBytes": 38158336
+  },
+  {
+    "elapsed": 0.9607711670032586,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10846784,
+    "residentBytes": 38158336
+  },
+  {
+    "elapsed": 1.0957202920035343,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10912320,
+    "residentBytes": 38240256
+  },
+  {
+    "elapsed": 1.2333252919997904,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10912320,
+    "residentBytes": 38240256
+  },
+  {
+    "elapsed": 1.3688784170008148,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10912320,
+    "residentBytes": 38240256
+  },
+  {
+    "elapsed": 1.5041607919993112,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10994240,
+    "residentBytes": 38322176
+  },
+  {
+    "elapsed": 1.6404207500017947,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10994240,
+    "residentBytes": 38322176
+  },
+  {
+    "elapsed": 1.773937083002238,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10994240,
+    "residentBytes": 38322176
+  },
+  {
+    "elapsed": 1.9094224579966976,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10994240,
+    "residentBytes": 38322176
+  },
+  {
+    "elapsed": 2.044283000002906,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10994240,
+    "residentBytes": 38322176
+  },
+  {
+    "elapsed": 2.179278957999486,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10994240,
+    "residentBytes": 38322176
+  },
+  {
+    "elapsed": 2.3141981669978122,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 10994240,
+    "residentBytes": 38322176
+  },
+  {
+    "elapsed": 2.4480141250023735,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11059776,
+    "residentBytes": 38387712
+  },
+  {
+    "elapsed": 2.5825580000018817,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11059776,
+    "residentBytes": 38387712
+  },
+  {
+    "elapsed": 2.7144435000009253,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11059776,
+    "residentBytes": 38387712
+  },
+  {
+    "elapsed": 2.847267416997056,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11059776,
+    "residentBytes": 38387712
+  },
+  {
+    "elapsed": 2.982911624996632,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11059776,
+    "residentBytes": 38387712
+  },
+  {
+    "elapsed": 3.114717500000552,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11059776,
+    "residentBytes": 38387712
+  },
+  {
+    "elapsed": 3.247517916999641,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11059776,
+    "residentBytes": 38387712
+  },
+  {
+    "elapsed": 3.3809607079965645,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11059776,
+    "residentBytes": 38387712
+  },
+  {
+    "elapsed": 3.514501792000374,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11076160,
+    "residentBytes": 38404096
+  },
+  {
+    "elapsed": 3.6498596250021365,
+    "pid": 91359,
+    "processStart": 1304333657473,
+    "footprintBytes": 11076160,
+    "residentBytes": 38404096
+  }
+]

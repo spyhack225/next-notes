@@ -1,0 +1,77 @@
+{
+  "actualFinalService": true,
+  "actualSession": false,
+  "after": {
+    "RSS": 19496960,
+    "footprint": 10388080
+  },
+  "baseline": {
+    "RSS": 12435456,
+    "footprint": 4063832
+  },
+  "calls": [
+    {
+      "SHA256": "69617f3250a2ffb8be406155a86f656b3702746c5849fb53a22e7904eae6816c",
+      "samples": 232000
+    },
+    {
+      "SHA256": "69617f3250a2ffb8be406155a86f656b3702746c5849fb53a22e7904eae6816c",
+      "samples": 232000
+    },
+    {
+      "SHA256": "69617f3250a2ffb8be406155a86f656b3702746c5849fb53a22e7904eae6816c",
+      "samples": 232000
+    },
+    {
+      "SHA256": "69617f3250a2ffb8be406155a86f656b3702746c5849fb53a22e7904eae6816c",
+      "samples": 232000
+    },
+    {
+      "SHA256": "55d1c2d4044598382529222390cc300446d402d12c05c5b8c5226e62c470ce22",
+      "samples": 32351
+    },
+    {
+      "SHA256": "4034db1b3286af0b7d36f8f1e86a23490c56ef9fe6b34f2a3a68f30525c65fde",
+      "samples": 232000
+    },
+    {
+      "SHA256": "f038347b1ae9672b269b37d6ccbffa22acb0b61644d923eea9805b8bcd0423c5",
+      "samples": 232000
+    },
+    {
+      "SHA256": "c37cec57e3dbec33276b4bd3c045ca3514dfedf8081731a633e76d40908d9896",
+      "samples": 232000
+    },
+    {
+      "SHA256": "4034db1b3286af0b7d36f8f1e86a23490c56ef9fe6b34f2a3a68f30525c65fde",
+      "samples": 232000
+    },
+    {
+      "SHA256": "ade953cd0078002657f75c4cfdf7dc97a53957d0f5ab22339aafc3969dada89b",
+      "samples": 32351
+    }
+  ],
+  "elapsed": 0.013921208,
+  "held": {
+    "RSS": 19202048,
+    "footprint": 10158704
+  },
+  "nativeDiarization": false,
+  "nativeWords": false,
+  "passed": true,
+  "samples": 960351,
+  "savedProjection": [
+    "mic|0.0|14.5|Transport fixture.",
+    "system|0.0|14.5|Transport fixture.",
+    "mic|14.5|29.0|Transport fixture.",
+    "system|14.5|29.0|Transport fixture.",
+    "mic|29.0|43.5|Transport fixture.",
+    "system|29.0|43.5|Transport fixture.",
+    "mic|43.5|58.0|Transport fixture.",
+    "system|43.5|58.0|Transport fixture.",
+    "mic|58.0|60.0219375|Transport fixture.",
+    "system|58.0|60.0219375|Transport fixture."
+  ],
+  "substitutedASR": true,
+  "substitutedStore": true
+}

@@ -1,0 +1,15 @@
+# Bounded saved-audio reader: component evidence
+
+The existing saved-meeting reader reads in chunks but appends every chunk into one whole Float array. This is a confirmed duration-scaled allocation at the reader producer, separate from the repaired first-minute startup recursion.
+
+The cache-only candidate uses the existing FluidAudio AudioSampleSource contract for the app’s native integer LPCM16/16k/stereo CAF format. It preserves legacy conversion as an array fallback, sequential final channels, channel separation, padding and global diarization. Each range owns an AVAudioFile and a bounded buffer; no additional queue, store, classifier or model pass. The proposed source is **not adopted, built into the app or installed**.
+
+Actual FinalTranscriptService.process and its same assigned Task execute in original/fixed optimized components. ASR, store, pipeline and usage are substituted. The one-minute pair passes identical ten ordered padded PCM hashes and source/time saved projection. The 40m05 pair passes all332 ordered calls and projections. At the first held transcription call, incremental physical footprint is156,254,352bytes original versus2,261,016bytes bounded. These are one in-process held snapshot per fresh process, not full-run continuous peaks. No native word, production Session/store, global speaker, physical call, concurrent ASR/voice or speed acceptance follows.
+
+The maintained fixture passes1,174 assertions: exact PCM channel bits, negative offset/count behavior, original cut/frame/tail domains, source/time/call parity, legacy conversion and Float32-disk fallback, file replacement/deletion, propagated read errors and cancellation. The independent hour original completes with232,816,832bytes incremental held footprint; fixed hour is UNRUN because its fresh60% reported-memory admission refused before launch. Do not claim a paired hour result.
+
+Three compiler failures are retained: Int-to-Int32 launch glue, missing test-only StreamingASR declarations and the proposed reader’s Darwin.stat binding. Identical launch/boundary corrections retain the producer inputs; the actual fixed reader uses fstatat(AT_FDCWD,path,&info,0) to preserve followed-symlink metadata semantics. Final compilers/consumers join with no resource guard. A transient prelaunch fixture refusal is separately retained; later admission does not erase it.
+
+Before adoption, verify actual Session/native words/global diarizer and production saved consumer, IO/read amplification, complete post-stop cost and concurrent voice/dictation. The reader is metadata-bracketed, not descriptor-bound atomic compare-and-swap or a power-loss claim. Public authored fixtures are deleted from their exact temporary directories on exit; pinned recipes, patches and numeric evidence remain. No owner recording/model/cache was swept.
+
+See [one-minute comparison](../bounded-component-60s-comparison.json), [long comparison](../bounded-component-long-comparison.json), [maintained verdict](../bounded-component-maintained-review.json) and retained per-phase metadata.

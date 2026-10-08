@@ -1,0 +1,56 @@
+[
+  {
+    "elapsed": 0.03810545900341822,
+    "pid": 94185,
+    "processStart": 1334832868123,
+    "footprintBytes": 4227672,
+    "residentBytes": 12435456,
+    "processGroup": 94185,
+    "scope": "direct child/descendant or exact cache compiler arguments"
+  },
+  {
+    "elapsed": 0.20902504200057592,
+    "pid": 94185,
+    "processStart": 1334832868123,
+    "footprintBytes": 4227672,
+    "residentBytes": 12435456,
+    "processGroup": 94185,
+    "scope": "direct child/descendant or exact cache compiler arguments"
+  },
+  {
+    "elapsed": 0.38871450000442564,
+    "pid": 94185,
+    "processStart": 1334832868123,
+    "footprintBytes": 159204048,
+    "residentBytes": 168116224,
+    "processGroup": 94185,
+    "scope": "direct child/descendant or exact cache compiler arguments"
+  },
+  {
+    "elapsed": 0.5533482920000097,
+    "pid": 94185,
+    "processStart": 1334832868123,
+    "footprintBytes": 238011160,
+    "residentBytes": 246988800,
+    "processGroup": 94185,
+    "scope": "direct child/descendant or exact cache compiler arguments"
+  },
+  {
+    "elapsed": 0.7048535420035478,
+    "pid": 94185,
+    "processStart": 1334832868123,
+    "footprintBytes": 238109464,
+    "residentBytes": 247087104,
+    "processGroup": 94185,
+    "scope": "direct child/descendant or exact cache compiler arguments"
+  },
+  {
+    "elapsed": 0.8586255420013913,
+    "pid": 94185,
+    "processStart": 1334832868123,
+    "footprintBytes": 238207768,
+    "residentBytes": 247185408,
+    "processGroup": 94185,
+    "scope": "direct child/descendant or exact cache compiler arguments"
+  }
+]

@@ -1,0 +1,11 @@
+{
+  "at": "2026-10-08T06:38:47.050375+00:00",
+  "modelID": "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+  "fileName": "MiniCPM5-2B-Q4_K_M.gguf",
+  "bytes": 1561318368,
+  "SHA256": "ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd",
+  "inode": 169025197,
+  "mtimeNS": 1790791554059993805,
+  "sameStoredChoiceRequired": true,
+  "selection": "explicit copied-fixture benchmark only, no default promotion"
+}

@@ -1,0 +1,10 @@
+{
+  "checks": 1174,
+  "failed": 0,
+  "verdict": "MEETING_BOUNDED_AUDIO_OK: 0/1174 checks failed",
+  "logSHA256": "d2da009bbba5e2aaf4d562f4bc4b91f26297424d2ea88ff0276f64b68da606c1",
+  "nativeWords": false,
+  "nativeDiarizer": false,
+  "actualSavedSession": false,
+  "allocationFootprintMeasuredByThisFixture": false
+}

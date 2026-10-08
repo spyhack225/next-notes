@@ -1,0 +1,13 @@
+{
+  "at": "2026-10-08T06:15:30.295281+00:00",
+  "phase": "module",
+  "exit": 0,
+  "wallSeconds": 0.6726572920015315,
+  "guardReason": null,
+  "samples": 5,
+  "peakSampledFootprintBytes": 10797632,
+  "peakSampledResidentBytes": 38092800,
+  "remainingOwnedPIDs": [],
+  "models": false,
+  "scope": "reviewed model-free actual-source component; substituted ASR/store/pipeline/usage; process samples not continuous peaks;9swap/6.5disk/60reportedfree start/50ongoing/1GBfootprint; bounded compiler or45s run"
+}

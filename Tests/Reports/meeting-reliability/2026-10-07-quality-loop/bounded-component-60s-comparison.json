@@ -1,0 +1,32 @@
+{
+  "at": "2026-10-08T06:33:06.031288+00:00",
+  "status": "COMPONENT_PCM_PARITY_PASS_NATIVE_ACCEPTANCE_OPEN",
+  "sampleCount": 960351,
+  "seconds": 60.0219375,
+  "orderedPaddedCallsIdentical": true,
+  "savedProjectionIdentical": true,
+  "callsPerRun": 10,
+  "actualFinalService": true,
+  "sameAssignedTaskJoined": true,
+  "nativeASR": false,
+  "actualSession": false,
+  "productionStore": false,
+  "nativeDiarizer": false,
+  "originalHeldMinusBaselineFootprintBytes": 6094872,
+  "fixedHeldMinusBaselineFootprintBytes": 2261016,
+  "heldDeltaReductionBytes": 3833856,
+  "measurement": "Single in-process first-ASR-held snapshot per fresh process, no continuous/full-run peak. External short-run samples miss fixture execution; do not use as consumer memory peaks. No speed claim. Authored integer LPCM16 stereo signals, substituted ASR/store/pipeline/usage.",
+  "maintainedFixture": "Fresh reported-free>=60 admission refused before child creation; unrun, all earlier children joined. Later observed memory free60 is not retrospective pass.",
+  "sourcePinsSHA256": "fe7f991d2ab9231cc417ae92d138522f18727b274739a459a283d9c372eb4e51",
+  "binarySHA256": {
+    "original": "4a8578a77bc573846ac203f98cc8960c0a142de7fda78c22ecbf917e3fe32a15",
+    "fixed": "e485aae56f97587046dd009c923ade0392c23d6d069b5325dfedbeeaf9c8c295"
+  },
+  "remainingGates": [
+    "Maintained fixture",
+    "40m05/hour held memory/IO comparison",
+    "Actual Session/native word/global speaker/store proof",
+    "Reference ASR/voice concurrent workload",
+    "Production adoption"
+  ]
+}

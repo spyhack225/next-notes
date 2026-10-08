@@ -1,0 +1,275 @@
+--- a/Sources/NextNotes/Core/AudioConversion.swift
++++ b/Sources/NextNotes/Core/AudioConversion.swift
+@@ -1,5 +1,7 @@
+ import AVFoundation
+ import Foundation
++import FluidAudio
++import Darwin
+ 
+ /// The buffer arithmetic shared by microphone capture and system-audio capture.
+ ///
+@@ -194,6 +196,80 @@
+         return output
+     }
+ 
++    /// The existing diarizer sample-source contract, also used by meeting finals.
++    /// Native writer CAFs lift the requested channel in bounded reads. Legacy formats
++    /// retain the existing conversion semantics; no stereo-to-mono shortcut is used.
++    static func meetingSampleSource(fromFileAt url: URL, channel: Int) throws -> any AudioSampleSource {
++        let file = try AVAudioFile(forReading: url)
++        let format = file.processingFormat
++        if url.pathExtension.lowercased() == "caf", format.sampleRate == 16_000,
++           format.channelCount == 2, format.commonFormat == .pcmFormatFloat32,
++           (0..<Int(format.channelCount)).contains(channel), let count = Int(exactly: file.length) {
++            return try MeetingFileSampleSource(url: url, channel: channel, sampleCount: count)
++        }
++        return ArrayAudioSampleSource(samples: try samples(
++            fromFileAt: url, sampleRate: 16_000, channel: channel))
++    }
++
++    /// Immutable range source: the dependency reads segmentation and embedding ranges
++    /// concurrently, so each request owns its AVAudioFile rather than sharing a cursor.
++    private struct MeetingFileSampleSource: AudioSampleSource {
++        let url: URL
++        let channel: Int
++        let sampleCount: Int
++        private let identity: FileIdentity
++
++        init(url: URL, channel: Int, sampleCount: Int) throws {
++            self.url = url; self.channel = channel; self.sampleCount = sampleCount
++            identity = try FileIdentity.read(url)
++        }
++
++        func copySamples(into destination: UnsafeMutablePointer<Float>, offset: Int, count: Int) throws {
++            guard count > 0, sampleCount > 0 else { return }
++            let start = max(0, offset)
++            guard start < sampleCount else { return }
++            guard try FileIdentity.read(url) == identity else { throw CocoaError(.fileReadCorruptFile) }
++            let file = try AVAudioFile(forReading: url)
++            let format = file.processingFormat
++            guard file.length == AVAudioFramePosition(sampleCount), format.sampleRate == 16_000,
++                  format.channelCount == 2, format.commonFormat == .pcmFormatFloat32,
++                  let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16_000) else {
++                throw CocoaError(.fileReadCorruptFile)
++            }
++            file.framePosition = AVAudioFramePosition(start)
++            let available = min(sampleCount - start, count)
++            var copied = 0
++            while copied < available {
++                let frames = min(16_000, available - copied)
++                try file.read(into: buffer, frameCount: AVAudioFrameCount(frames))
++                guard Int(buffer.frameLength) == frames, let channels = buffer.floatChannelData else {
++                    throw CocoaError(.fileReadCorruptFile)
++                }
++                let stride = buffer.stride
++                let selected = stride > 1 ? channels[0] + channel : channels[channel]
++                for frame in 0..<frames { destination[copied + frame] = selected[frame * stride] }
++                copied += frames
++            }
++            guard try FileIdentity.read(url) == identity else { throw CocoaError(.fileReadCorruptFile) }
++        }
++    }
++
++    /// Metadata checks prevent ordinary replacement/truncation across range requests.
++    /// They are not a cross-process compare-and-swap or a power-loss guarantee.
++    private struct FileIdentity: Equatable, Sendable {
++        var device: Int64; var inode: UInt64; var bytes: Int64
++        var modifiedSeconds: Int64; var modifiedNanoseconds: Int64
++        var changedSeconds: Int64; var changedNanoseconds: Int64
++        static func read(_ url: URL) throws -> FileIdentity {
++            var info = stat()
++            guard url.path.withCString({ Darwin.stat($0, &info) }) == 0,
++                  (info.st_mode & S_IFMT) == S_IFREG else { throw CocoaError(.fileReadNoSuchFile) }
++            return FileIdentity(device: Int64(info.st_dev), inode: UInt64(info.st_ino), bytes: Int64(info.st_size),
++                modifiedSeconds: Int64(info.st_mtimespec.tv_sec), modifiedNanoseconds: Int64(info.st_mtimespec.tv_nsec),
++                changedSeconds: Int64(info.st_ctimespec.tv_sec), changedNanoseconds: Int64(info.st_ctimespec.tv_nsec))
++        }
++    }
++
+     /// Copies one channel of a buffer into a mono buffer of the same sample rate.
+     private static func extract(
+         channel index: Int,
+--- a/Sources/NextNotes/Meetings/ChunkedTranscriber.swift
++++ b/Sources/NextNotes/Meetings/ChunkedTranscriber.swift
+@@ -335,7 +335,7 @@
+     ///
+     /// - Returns: cumulative sample offsets, the last always `samples.count` (empty
+     ///   when `samples` is empty).
+-    static func cutPoints(in samples: [Float], config: WindowConfig) -> [Int] {
++    static func cutPoints(in samples: [Float], config: WindowConfig, includeTail: Bool = true) -> [Int] {
+         var cuts: [Int] = []
+         var scanned = 0
+         var silenceRun = 0
+@@ -359,10 +359,15 @@
+                 silenceRun = 0
+             }
+         }
+-        if windowStart < samples.count {
++        if includeTail, windowStart < samples.count {
+             cuts.append(samples.count)
+         }
+         return cuts
++    }
++
++    /// Whole-track cuts occur on the shared 20 ms grid, including a rounded hard cap.
++    static func maximumCutSamples(config: WindowConfig) -> Int {
++        ((config.maxWindowSamples + frameSamples - 1) / frameSamples) * frameSamples
+     }
+ 
+     /// Appends one cut window to the backlog (M-07).
+--- a/Sources/NextNotes/Meetings/MeetingFinalPass.swift
++++ b/Sources/NextNotes/Meetings/MeetingFinalPass.swift
+@@ -47,6 +47,66 @@
+         return (segments, windows)
+     }
+ 
++    /// Reads one bounded cut domain at a time through the existing sample source.
++    /// The array overload above is retained as the original parity baseline.
++    static func transcribeTrack(
++        audioSource: any AudioSampleSource,
++        source: AudioSource,
++        config: ChunkedTranscriber.WindowConfig = .finals,
++        onWindowCutForTesting: (@Sendable (Int) -> Void)? = nil,
++        transcribe: @Sendable ([Float]) async throws -> ASRResult
++    ) async throws -> (segments: [TranscriptSegment], windows: [ClosedRange<TimeInterval>]) {
++        guard config.maxWindowSeconds.isFinite, config.maxWindowSeconds > 0,
++              config.minWindowSeconds.isFinite, config.minWindowSeconds >= 0,
++              config.maxWindowSeconds < Double(Int.max / 16_000 - 320) else {
++            throw CocoaError(.fileReadCorruptFile)
++        }
++        let observeCut = SelfTest.isRunning ? onWindowCutForTesting : nil
++        let bound = ChunkedTranscriber.maximumCutSamples(config: config)
++        guard bound > 0, audioSource.sampleCount >= 0 else { throw CocoaError(.fileReadCorruptFile) }
++        var pending: [Float] = []
++        var readOffset = 0
++        var origin = 0
++        var segments: [TranscriptSegment] = []
++        var windows: [ClosedRange<TimeInterval>] = []
++        while origin < audioSource.sampleCount {
++            try Task.checkCancellation()
++            let count = min(bound - pending.count, audioSource.sampleCount - readOffset)
++            if count > 0 {
++                let existing = pending.count
++                pending.append(contentsOf: repeatElement(Float(0), count: count))
++                try pending.withUnsafeMutableBufferPointer { pointer in
++                    guard let destination = pointer.baseAddress else { return }
++                    try audioSource.copySamples(into: destination + existing, offset: readOffset, count: count)
++                }
++                readOffset += count
++            }
++            let cuts = ChunkedTranscriber.cutPoints(in: pending, config: config,
++                                                    includeTail: readOffset == audioSource.sampleCount)
++            guard let consumed = cuts.last, consumed > 0 else { throw CocoaError(.fileReadCorruptFile) }
++            var offset = 0
++            for cut in cuts {
++                observeCut?(origin + cut)
++                let window = Array(pending[offset..<cut])
++                let start = Double(origin + offset) / ChunkedTranscriber.sampleRate
++                offset = cut
++                guard window.count >= ParakeetInput.minimumCapturedSamples else { continue }
++                guard ChunkedTranscriber.containsSpeech(window) else { continue }
++                try Task.checkCancellation()
++                let result = try await transcribe(ParakeetInput.padded(window))
++                let text = result.text.trimmingCharacters(in: .whitespacesAndNewlines)
++                guard !text.isEmpty else { continue }
++                let duration = Double(window.count) / ChunkedTranscriber.sampleRate
++                windows.append(start...(start + duration))
++                segments.append(contentsOf: ChunkedTranscriber.segments(
++                    from: result, text: text, start: start, duration: duration, source: source))
++            }
++            origin += consumed
++            pending = Array(pending[consumed...])
++        }
++        return (segments, windows)
++    }
++
+     /// Pure. Keeps live `.agentCommand` segments; drops final mic segments
+     /// overlapping them (the command was not meeting speech). Final system
+     /// segments stand even over a command — the far end kept talking.
+--- a/Sources/NextNotes/Meetings/FinalTranscriptService.swift
++++ b/Sources/NextNotes/Meetings/FinalTranscriptService.swift
+@@ -174,14 +174,10 @@
+                    live.contains(where: { $0.source == source }) {
+                     continue
+                 }
+-                let samples = try AudioConversion.samples(
+-                    fromFileAt: audio,
+-                    sampleRate: ChunkedTranscriber.sampleRate,
+-                    channel: channel
+-                )
+-                trackSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
++                let samples = try AudioConversion.meetingSampleSource(fromFileAt: audio, channel: channel)
++                trackSeconds = Double(samples.sampleCount) / ChunkedTranscriber.sampleRate
+                 let track = try await MeetingFinalPass.transcribeTrack(
+-                    samples, source: source, transcribe: transcribe
++                    audioSource: samples, source: source, transcribe: transcribe
+                 )
+                 try Task.checkCancellation()
+                 guard !terminationRequested else { return }
+--- a/Sources/NextNotes/Meetings/MeetingDiarizer.swift
++++ b/Sources/NextNotes/Meetings/MeetingDiarizer.swift
+@@ -166,7 +166,18 @@
+         merged: Bool = true,
+         progress: (@Sendable (Double) -> Void)? = nil
+     ) async throws -> [SpeakerRun] {
+-        guard Double(samples.count) / ChunkedTranscriber.sampleRate >= Self.minimumAudioSeconds else {
++        try await speakerRuns(in: ArrayAudioSampleSource(samples: samples), hint: hint,
++                              merged: merged, progress: progress)
++    }
++
++    /// Same global segmentation/clustering, with range reads instead of a whole PCM array.
++    func speakerRuns(
++        in audioSource: any AudioSampleSource,
++        hint: SpeakerCountHint? = nil,
++        merged: Bool = true,
++        progress: (@Sendable (Double) -> Void)? = nil
++    ) async throws -> [SpeakerRun] {
++        guard Double(audioSource.sampleCount) / ChunkedTranscriber.sampleRate >= Self.minimumAudioSeconds else {
+             return []
+         }
+         try await prepare()
+@@ -176,7 +187,7 @@
+         var succeeded = false
+         defer { terminationFixtureTrace?.nativeReturned(succeeded: succeeded) }
+         let result = try await Self.speakerRuns(
+-            from: models, in: samples, hint: hint, merged: merged, progress: progress
++            from: models, in: audioSource, hint: hint, merged: merged, progress: progress
+         )
+         succeeded = true
+         try checkTerminationAdmission()
+@@ -240,7 +251,7 @@
+ 
+     private nonisolated static func speakerRuns(
+         from models: Models,
+-        in samples: [Float],
++        in audioSource: any AudioSampleSource,
+         hint: SpeakerCountHint?,
+         merged: Bool,
+         progress: (@Sendable (Double) -> Void)?
+@@ -252,7 +263,7 @@
+         } else {
+             manager = models.defaultManager
+         }
+-        let result = try await manager.process(audio: samples) { done, total in
++        let result = try await manager.process(audioSource: audioSource, audioLoadingSeconds: 0) { done, total in
+             guard total > 0 else { return }
+             progress?(Double(done) / Double(total))
+         }
+--- a/Sources/NextNotes/Meetings/DiarizationService.swift
++++ b/Sources/NextNotes/Meetings/DiarizationService.swift
+@@ -275,12 +275,9 @@
+             // The system channel alone. Mixing the microphone back in would hand the
+             // clusterer the user's own voice as a speaker in a track whose entire purpose is
+             // to contain everyone else.
+-            let samples = try AudioConversion.samples(
+-                fromFileAt: audio,
+-                sampleRate: ChunkedTranscriber.sampleRate,
+-                channel: MeetingAudioWriter.systemChannel
+-            )
+-            audioSeconds = Double(samples.count) / ChunkedTranscriber.sampleRate
++            let samples = try AudioConversion.meetingSampleSource(
++                fromFileAt: audio, channel: MeetingAudioWriter.systemChannel)
++            audioSeconds = Double(samples.sampleCount) / ChunkedTranscriber.sampleRate
+ 
+             // P0-20b: awaiting the load here is what makes `warm`/`loadMs` measurable; for a
+             // track `speakerRuns` will cluster, that call does exactly this load anyway.

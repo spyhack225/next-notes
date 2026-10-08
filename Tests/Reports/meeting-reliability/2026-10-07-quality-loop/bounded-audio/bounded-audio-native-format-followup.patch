@@ -1,0 +1,43 @@
+--- a/Sources/NextNotes/Core/AudioConversion.swift
++++ b/Sources/NextNotes/Core/AudioConversion.swift
+@@ -203,14 +203,27 @@
+         let identity = try FileIdentity.read(url)
+         let file = try AVAudioFile(forReading: url)
+         let format = file.processingFormat
++        let count = Int(exactly: file.length)
++        let nativeFormat = isNativeMeetingFile(file)
+         guard try FileIdentity.read(url) == identity else { throw CocoaError(.fileReadCorruptFile) }
+-        if url.pathExtension.lowercased() == "caf", format.sampleRate == 16_000,
+-           format.channelCount == 2, format.commonFormat == .pcmFormatFloat32,
+-           (0..<Int(format.channelCount)).contains(channel), let count = Int(exactly: file.length) {
++        if url.pathExtension.lowercased() == "caf", nativeFormat,
++           (0..<Int(format.channelCount)).contains(channel), let count {
+             return MeetingFileSampleSource(url: url, channel: channel, sampleCount: count, identity: identity)
+         }
+         return ArrayAudioSampleSource(samples: try samples(
+             fromFileAt: url, sampleRate: 16_000, channel: channel))
++    }
++
++    // Random seek parity is scoped to the meeting writer's uncompressed integer CAF.
++    // A Float32 processing format alone also describes compressed audio decoders.
++    private static func isNativeMeetingFile(_ file: AVAudioFile) -> Bool {
++        let disk = file.fileFormat.streamDescription.pointee
++        let processing = file.processingFormat
++        return disk.mFormatID == kAudioFormatLinearPCM && disk.mBitsPerChannel == 16
++            && disk.mFormatFlags & kAudioFormatFlagIsFloat == 0
++            && disk.mSampleRate == 16_000 && disk.mChannelsPerFrame == 2
++            && processing.sampleRate == 16_000 && processing.channelCount == 2
++            && processing.commonFormat == .pcmFormatFloat32
+     }
+ 
+     /// Immutable range source: the dependency reads segmentation and embedding ranges
+@@ -233,8 +246,7 @@
+             guard try FileIdentity.read(url) == identity else { throw CocoaError(.fileReadCorruptFile) }
+             let file = try AVAudioFile(forReading: url)
+             let format = file.processingFormat
+-            guard file.length == AVAudioFramePosition(sampleCount), format.sampleRate == 16_000,
+-                  format.channelCount == 2, format.commonFormat == .pcmFormatFloat32,
++            guard file.length == AVAudioFramePosition(sampleCount), isNativeMeetingFile(file),
+                   let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16_000) else {
+                 throw CocoaError(.fileReadCorruptFile)
+             }

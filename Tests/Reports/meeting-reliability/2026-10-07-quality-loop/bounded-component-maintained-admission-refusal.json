@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-08T06:32:17Z",
+  "phase": "maintained-fixture",
+  "childLaunched": false,
+  "failure": "reported free memory percent below explicit60 admission; AssertionError retained",
+  "previousConsumersJoined": true,
+  "qualityVerdict": "UNRUN",
+  "review": "No heavy model/compiler remained in subsequent process inventory. Free percent immediately reported60, transient attribution unproved; fresh unchanged threshold required for separately reviewed admission."
+}

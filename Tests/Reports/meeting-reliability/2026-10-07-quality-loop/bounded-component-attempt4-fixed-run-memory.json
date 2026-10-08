@@ -1,0 +1,11 @@
+[
+  {
+    "elapsed": 0.03652025000337744,
+    "pid": 93755,
+    "processStart": 1328046468625,
+    "footprintBytes": 81992,
+    "residentBytes": 32768,
+    "processGroup": 93755,
+    "scope": "direct child/descendant or exact cache compiler arguments"
+  }
+]

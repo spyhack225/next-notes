@@ -1,0 +1,38 @@
+--- a/Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift
+@@ -131,6 +131,17 @@
+             check("legacy-8k", "existing-resampling-count", source.sampleCount == original.count)
+             check("legacy-8k", "existing-resampling-PCM", digest(try read(source, offset: 0, count: source.sampleCount)) == digest(original))
+ 
++            let floatCAF = root.appendingPathComponent("legacy-float-16k.caf")
++            try authorCAF(url: floatCAF, count: 18_337, pause: nil, diskFloat: true)
++            for channel in [0, 1, -1, 2] {
++                let original = try AudioConversion.samples(fromFileAt: floatCAF, sampleRate: 16_000, channel: channel)
++                let source = try AudioConversion.meetingSampleSource(fromFileAt: floatCAF, channel: channel)
++                let actual = try read(source, offset: 0, count: source.sampleCount)
++                check("legacy-float-16k", "channel-\(channel)-original-reader-fallback", source is ArrayAudioSampleSource)
++                check("legacy-float-16k", "channel-\(channel)-original-PCM", source.sampleCount == original.count
++                    && digest(actual) == digest(original))
++            }
++
+             let exact = root.appendingPathComponent("failure.caf")
+             try authorCAF(url: exact, count: 320_321, pause: nil)
+             let snapshot = try AudioConversion.meetingSampleSource(fromFileAt: exact, channel: 1)
+@@ -160,7 +171,7 @@
+         write("MEETING_BOUNDED_AUDIO_\(failures == 0 ? "OK" : "FAILED"): \(failures)/\(checks) checks failed")
+         return failures == 0
+     }
+-    private nonisolated static func authorCAF(url: URL, count: Int, pause: Range<Int>?, rate: Double = 16_000, gain: Float = 1) throws {
++    private nonisolated static func authorCAF(url: URL, count: Int, pause: Range<Int>?, rate: Double = 16_000, gain: Float = 1, diskFloat: Bool = false) throws {
+         guard let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: rate, channels: 2, interleaved: false),
+               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(max(1, count))),
+               let channels = buffer.floatChannelData else { throw CocoaError(.fileWriteUnknown) }
+@@ -171,7 +182,7 @@
+             channels[1][i] = silent ? 0 : gain * (i % 3 == 0 ? -0.25 : 0.0625)
+         }
+         let settings: [String: Any] = [AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: rate,
+-            AVNumberOfChannelsKey: 2, AVLinearPCMBitDepthKey: 16, AVLinearPCMIsFloatKey: false, AVLinearPCMIsBigEndianKey: false]
++            AVNumberOfChannelsKey: 2, AVLinearPCMBitDepthKey: diskFloat ? 32 : 16, AVLinearPCMIsFloatKey: diskFloat, AVLinearPCMIsBigEndianKey: false]
+         let file = try AVAudioFile(forWriting: url, settings: settings, commonFormat: .pcmFormatFloat32, interleaved: false)
+         if count > 0 { try file.write(from: buffer) }
+     }

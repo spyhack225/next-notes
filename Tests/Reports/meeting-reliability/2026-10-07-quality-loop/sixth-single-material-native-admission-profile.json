@@ -1,0 +1,9 @@
+{
+  "at": "2026-10-08T06:44:32.305301+00:00",
+  "driverSHA256": "dd901064112841798e2d40968644c4ce2c3c77fe56cfc370d35d8d547a81f895",
+  "reviewRelayCursor": 640,
+  "scope": "ONE no-ASR Mini single-material copied519 arm; explicit start55/ongoing50 reported percentage; ordinary swap8/disk6.5/app sampledfoot3GB/300s/AppKitdrain30; stop first guard/error/unjoined, mapped arm not authorized here",
+  "prior60PercentAdmission": "REFUSED BEFORE CHILD CREATION, retained; not retrospective PASS",
+  "capacityInterpretation": "reported56percent is not literal physicalfree9GB. Peer reviewed VMfree675.6MiB/inactive4.004GiB/filebacked3.101GiB/compressor3.592GiB; ordinary8/6.5 gate7.7802swap/7.0920disk, load2.9. No competing development native/compiler. No reference ASRvoice/performance/default claim.",
+  "modelSHA256": "ec2d5801640099e97d8d7e8003ad4d81f336e757811f03a26173dddf386602fd"
+}

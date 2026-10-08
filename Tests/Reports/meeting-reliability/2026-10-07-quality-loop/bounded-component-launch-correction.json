@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-08T06:21:36.633821+00:00",
+  "oldDriverSHA256": "c804075987c3bf3ddc86374bac5ed774ae89848a43146fcd827dcd34e342e78e",
+  "newDriverSHA256": "62ea5dd7e21f4f3331baa0a811955b99cd82eff43a5c6f127e20c44310a713db",
+  "originalCompilerFailure": "harness Int result toDarwin.exit Int32; no producer verdict/noPCM/model",
+  "sourceCorrection": "identical original/fixed Main launch Int32 conversion;22otherpins unchanged",
+  "newPinsSHA256": "08642da605cf1f6530f20a112c9b7585ba0c727a94773cf355500511678ebdf0",
+  "samplingCorrection": "include descendant and exactcache compiler paths; same WMO/j1 flags avoid source-primary parallel fanout; summedphasefootprint1GB guard",
+  "modelCalls": 0,
+  "canonicalChanges": 0,
+  "scope": "new attempt pending fresh coordination/gate; stop first failure"
+}

@@ -1,0 +1,15 @@
+{
+  "at": "2026-10-08T06:27:19.611475+00:00",
+  "phase": "original",
+  "exit": 1,
+  "wallSeconds": 0.7895255409966921,
+  "guardReason": null,
+  "samples": 9,
+  "peakSampledFootprintBytes": 81167032,
+  "peakSampledResidentBytes": 176177152,
+  "remainingOwnedPIDs": [],
+  "models": false,
+  "compilerOptions": "same optimized WMO/j1 original/fixed; one frontend avoids primary-file fanout",
+  "samplingScope": "direct child/descendants plus exact cache compiler command paths; summed phase footprint guard; driver attempt1 did not prove frontend coverage",
+  "scope": "reviewed model-free actual-source component; substituted ASR/store/pipeline/usage; process samples not continuous peaks;9swap/6.5disk/60reportedfree start/50ongoing/1GBfootprint; bounded compiler or45s run"
+}

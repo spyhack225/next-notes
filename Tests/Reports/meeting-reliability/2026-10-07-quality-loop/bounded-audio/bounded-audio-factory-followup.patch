@@ -1,0 +1,30 @@
+--- a/Sources/NextNotes/Core/AudioConversion.swift
++++ b/Sources/NextNotes/Core/AudioConversion.swift
+@@ -200,12 +200,14 @@
+     /// Native writer CAFs lift the requested channel in bounded reads. Legacy formats
+     /// retain the existing conversion semantics; no stereo-to-mono shortcut is used.
+     static func meetingSampleSource(fromFileAt url: URL, channel: Int) throws -> any AudioSampleSource {
++        let identity = try FileIdentity.read(url)
+         let file = try AVAudioFile(forReading: url)
+         let format = file.processingFormat
++        guard try FileIdentity.read(url) == identity else { throw CocoaError(.fileReadCorruptFile) }
+         if url.pathExtension.lowercased() == "caf", format.sampleRate == 16_000,
+            format.channelCount == 2, format.commonFormat == .pcmFormatFloat32,
+            (0..<Int(format.channelCount)).contains(channel), let count = Int(exactly: file.length) {
+-            return try MeetingFileSampleSource(url: url, channel: channel, sampleCount: count)
++            return MeetingFileSampleSource(url: url, channel: channel, sampleCount: count, identity: identity)
+         }
+         return ArrayAudioSampleSource(samples: try samples(
+             fromFileAt: url, sampleRate: 16_000, channel: channel))
+@@ -219,9 +221,9 @@
+         let sampleCount: Int
+         private let identity: FileIdentity
+ 
+-        init(url: URL, channel: Int, sampleCount: Int) throws {
++        init(url: URL, channel: Int, sampleCount: Int, identity: FileIdentity) {
+             self.url = url; self.channel = channel; self.sampleCount = sampleCount
+-            identity = try FileIdentity.read(url)
++            self.identity = identity
+         }
+ 
+         func copySamples(into destination: UnsafeMutablePointer<Float>, offset: Int, count: Int) throws {

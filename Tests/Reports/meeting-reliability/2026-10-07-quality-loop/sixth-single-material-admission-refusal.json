@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-08T06:39:29Z",
+  "childLaunched": false,
+  "source1173Invariant": true,
+  "failedGate": "new driver start reported-free60%",
+  "nativeQuality": "UNRUN",
+  "review": "No retry; threshold/capacity review separately requested. Normal8swap/min6.5disk gate passing does not erase this refusal."
+}

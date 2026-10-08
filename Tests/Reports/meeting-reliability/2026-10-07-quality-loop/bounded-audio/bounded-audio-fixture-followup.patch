@@ -1,0 +1,49 @@
+--- a/Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift
++++ b/Sources/NextNotes/Meetings/MeetingBoundedAudioSelfTest.swift
+@@ -13,6 +13,7 @@
+         var pause: Range<Int>?
+         var max: Double = 14.5
+         var gain: Float = 1
++        var minimum: Double = 10
+     }
+     static func run(write: (String) -> Void) async -> Bool {
+         guard SelfTest.isRunning, SelfTest.requested == "--selftest-meeting-bounded-audio",
+@@ -40,6 +41,8 @@
+             Case(id: "pause-at-min", count: 497_919, pause: 150_400..<160_000),
+             Case(id: "pause-at-hard", count: 497_919, pause: 222_400..<232_000),
+             Case(id: "fractional-hard-grid", count: 498_137, max: 14.5001),
++            Case(id: "fractional-minimum-grid", count: 497_919, pause: 150_400..<160_000,
++                 max: 14.5001, minimum: 10.0001),
+             Case(id: "full-minute", count: 960_000),
+             Case(id: "silence", count: 497_919, pause: 0..<497_919),
+             Case(id: "quiet-floor", count: 497_919, gain: 0.03),
+@@ -61,6 +64,20 @@
+                         verified += count
+                     }
+                     check(fixture.id, "channel-\(channel)-whole-PCM-bit-parity", exactPCM && verified == baseline.count)
++                    let oracle = ArrayAudioSampleSource(samples: baseline)
++                    for offset in [-321, -1, 0, max(0, baseline.count - 1), baseline.count, baseline.count + 1] {
++                        for requested in [-1, 0, 321] {
++                            var expected = [Float](repeating: 123, count: 338)
++                            var actual = expected
++                            try expected.withUnsafeMutableBufferPointer {
++                                try oracle.copySamples(into: $0.baseAddress!, offset: offset, count: requested)
++                            }
++                            try actual.withUnsafeMutableBufferPointer {
++                                try native.copySamples(into: $0.baseAddress!, offset: offset, count: requested)
++                            }
++                            check(fixture.id, "channel-\(channel)-protocol-offset-\(offset)-count-\(requested)", digest(actual) == digest(expected))
++                        }
++                    }
+                     // Exact selected-channel PCM, including unaligned source ranges and
+                     // untouched destination padding. Never mix the tracks to mono.
+                     for start in [0, 1, 319, max(0, fixture.count - 321)] where start <= baseline.count {
+@@ -78,7 +95,7 @@
+                             check(fixture.id, "channel-\(channel)-tail-padding-\(start)", read.dropFirst(copied).allSatisfy { $0 == 123 })
+                         }
+                     }
+-                    let config = ChunkedTranscriber.WindowConfig(minWindowSeconds: 10,
++                    let config = ChunkedTranscriber.WindowConfig(minWindowSeconds: fixture.minimum,
+                         maxWindowSeconds: fixture.max, overlapSeconds: 0, emitsProvisionals: false)
+                     let oldCalls = Calls(), newCalls = Calls()
+                     let original = try await MeetingFinalPass.transcribeTrack(baseline, source: source, config: config) {

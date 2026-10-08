@@ -1,0 +1,11 @@
+--- a/Sources/NextNotes/Core/AudioConversion.swift
++++ b/Sources/NextNotes/Core/AudioConversion.swift
+@@ -276,7 +276,7 @@
+         var changedSeconds: Int64; var changedNanoseconds: Int64
+         static func read(_ url: URL) throws -> FileIdentity {
+             var info = stat()
+-            guard url.path.withCString({ Darwin.stat($0, &info) }) == 0,
++            guard url.path.withCString({ fstatat(AT_FDCWD, $0, &info, 0) }) == 0,
+                   (info.st_mode & S_IFMT) == S_IFREG else { throw CocoaError(.fileReadNoSuchFile) }
+             return FileIdentity(device: Int64(info.st_dev), inode: UInt64(info.st_ino), bytes: Int64(info.st_size),
+                 modifiedSeconds: Int64(info.st_mtimespec.tv_sec), modifiedNanoseconds: Int64(info.st_mtimespec.tv_nsec),

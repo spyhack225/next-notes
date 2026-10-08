@@ -1,0 +1,21 @@
+{
+  "at": "2026-10-08T06:37:53.217015+00:00",
+  "status": "40M05_COMPONENT_PARITY_PASS_HOUR_PAIR_UNRUN",
+  "seconds": 2405,
+  "orderedCalls": 332,
+  "orderedPaddedPCMHashesIdentical": true,
+  "savedProjectionIdentical": true,
+  "heldDeltaBytes": {
+    "original": 156254352,
+    "fixed": 2261016
+  },
+  "nativeASR": false,
+  "actualSession": false,
+  "productionStore": false,
+  "globalDiarizer": false,
+  "referenceASRVoice": false,
+  "speedClaim": false,
+  "oneHourOriginalDelta": 232816832,
+  "oneHourFixed": "Fresh>=60 reported-free admission refused before launch. UNRUN; no paired hour claim. All previous children joined.",
+  "scope": "Authored LPCM16 stereo CAF through actual FinalTranscriptService and same assigned task; injected ASR/JSON store/pipeline/usage. First-call held in-process memory snapshots, not entire-run peaks."
+}
