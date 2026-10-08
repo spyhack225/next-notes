@@ -1,0 +1,11 @@
+--- fixed/Sources/NextNotes/Agent/Mac/MailDatabase.swift
++++ mutation/Sources/NextNotes/Agent/Mac/MailDatabase.swift
+@@ -227,7 +227,7 @@
+     // MARK: - Search
+ 
+     func search(_ query: MacMailQuery) throws -> [MacMailSummary] {
+-        let all = try mailboxes().filter(\.isGoogleAccount)
++        let all = try mailboxes()
+         guard !all.isEmpty else { throw MacWorkspaceError.noMailAccount }
+         let wanted: Mailbox.Kind = switch query.folder {
+         case .inbox: .inbox

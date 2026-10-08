@@ -1,0 +1,10 @@
+heavy: queue position 1, waiting for shared lock
+heavy: queue position 1, waiting for shared lock
+heavy: queue position 1, waiting for shared lock
+heavy: queue position 1, waiting for shared lock
+heavy: queue position 1, waiting for shared lock
+heavy: queue position 1, waiting for shared lock
+task-authority exit=0
+TASK_AUTHORITY_OK: 63 cases
+google-connect exit=1
+GOOGLE_CONNECT_FAILED

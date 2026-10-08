@@ -1,0 +1,37 @@
+{
+  "base": "c6d850c6",
+  "branch": "claude2/google-c",
+  "original_failed": 49,
+  "draft_failed": 4,
+  "fixed_passed_assertion_lines": 210,
+  "fixed_failed": 0,
+  "mutations": {
+    "any_http_400_revokes": 6,
+    "unpinned_fallback": 1,
+    "no_google_mailbox_filter": 7
+  },
+  "checks": {
+    "green": [
+      "google-connect exit=0",
+      "gws exit=0",
+      "calendar exit=0",
+      "mac-accounts exit=0",
+      "capability-manifest exit=0",
+      "ui-strings exit=0",
+      "store-isolation exit=0"
+    ],
+    "restored": [
+      "google-connect exit=0",
+      "gws exit=0",
+      "calendar exit=0",
+      "mac-accounts exit=0",
+      "capability-manifest exit=0",
+      "ui-strings exit=0",
+      "store-isolation exit=0"
+    ]
+  },
+  "nested_inherited_toolloop_wrong": {
+    "green": 18,
+    "restored": 18
+  }
+}
