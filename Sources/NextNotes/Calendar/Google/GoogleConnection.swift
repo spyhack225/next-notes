@@ -77,7 +77,8 @@ final class GoogleConnection {
                 "Google is connected, with your approval required before anything is sent."
             case .needsMoreAccess:
                 "Some Google features need one more permission; the others are ready to use."
-            case .failed(let reason) where reason == GoogleCalendarError.tokenStoreUnreadable.localizedDescription:
+            case .failed(let reason) where reason == GoogleCalendarError.tokenStoreUnreadable.localizedDescription
+                || reason == GoogleCalendarError.signInChanged.localizedDescription:
                 reason
             case .failed:
                 "Google couldn’t connect; please try again."

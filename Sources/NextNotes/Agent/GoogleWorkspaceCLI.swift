@@ -196,6 +196,7 @@ actor GoogleWorkspaceCLI {
     nonisolated var hasIsolatedTestingExecutable: Bool { testingExecutable != nil }
 
     struct TestHooks: Sendable {
+        var beforeToken: (@Sendable () async -> Void)?
         var afterToken: (@Sendable () async -> Void)?
         var beforeLaunch: (@Sendable () async -> Void)?
         var beforeAuthProbe: (@Sendable () async -> Void)?
@@ -487,18 +488,23 @@ actor GoogleWorkspaceCLI {
         let executable: URL
         var additions: [String: String] = [:]
         if appSignedIn {
+            guard let grant else { throw WorkspaceCLIError.notAuthenticated }
             guard let managed = managedExecutable() else { throw WorkspaceCLIError.notInstalled }
             executable = managed
             if let capability = GoogleCapability.needed(byArguments: arguments),
-               !capability.isGranted(by: grant?.scopes ?? [], readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
+               !capability.isGranted(by: grant.scopes, readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
                 throw WorkspaceCLIError.invalidRequest(capability.permissionSentence)
             }
             do {
-                guard let token = try await GoogleAccessTokens.shared.workspaceToken() else { throw WorkspaceCLIError.notAuthenticated }
+                if let beforeToken = testHooks.beforeToken { await beforeToken() }
+                guard let token = try await GoogleAccessTokens.shared.workspaceToken(expectedGrantIdentity: grant.identity) else { throw WorkspaceCLIError.notAuthenticated }
                 additions[Self.tokenVariable] = token
             } catch GoogleCalendarError.accessRevoked, GoogleCalendarError.notSignedIn {
                 throw WorkspaceCLIError.notAuthenticated
             } catch is CancellationError { throw CancellationError() }
+            catch GoogleCalendarError.signInChanged {
+                throw WorkspaceCLIError.launchFailed(GoogleCalendarError.signInChanged.localizedDescription)
+            }
             catch GoogleCalendarError.tokenStoreUnreadable {
                 throw WorkspaceCLIError.launchFailed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
             }
@@ -518,7 +524,7 @@ actor GoogleWorkspaceCLI {
         let output = try await Self.spawn(
             executable: executable,
             arguments: arguments,
-            timeout: timeout, environmentAdditions: additions, beforeLaunchForTesting: testHooks.beforeLaunch
+            timeout: timeout, environmentAdditions: additions, beforeLaunchForTesting: testHooks.beforeLaunch, grantIdentity: appSignedIn ? grant?.identity : nil
         )
         switch output.exitCode {
         case 0:
@@ -579,7 +585,8 @@ actor GoogleWorkspaceCLI {
         arguments: [String],
         timeout: TimeInterval,
         environmentAdditions: [String: String] = [:],
-        beforeLaunchForTesting: (@Sendable () async -> Void)? = nil
+        beforeLaunchForTesting: (@Sendable () async -> Void)? = nil,
+        grantIdentity: Data? = nil
     ) async throws -> WorkspaceCLIOutput {
         precondition(beforeLaunchForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
         try Task.checkCancellation()
@@ -621,7 +628,9 @@ actor GoogleWorkspaceCLI {
                 }
 
                 do {
-                    try box.launch()
+                    if let grantIdentity {
+                        try GoogleTokenStore.withMatchingGrant(grantIdentity) { try box.launch() }
+                    } else { try box.launch() }
                 } catch {
                     // The two readers above are blocked on pipes whose write ends nobody
                     // now holds open, and `readDataToEndOfFile` on those never returns.

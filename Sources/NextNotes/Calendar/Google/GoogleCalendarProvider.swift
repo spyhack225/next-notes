@@ -321,9 +321,10 @@ enum GoogleCalendarError: LocalizedError, Equatable {
     case noClientID
     case notSignedIn
     case accessRevoked
-    /// A rejected API access token does not establish refresh-grant revocation.
+    case signInChanged
     case tokenStoreUnreadable
     case tokenStoreFailed
+    /// A rejected API access token does not establish refresh-grant revocation.
     case accessTokenRejected
     case noRefreshToken
     case badAuthorizationURL
@@ -342,6 +343,8 @@ enum GoogleCalendarError: LocalizedError, Equatable {
             "Google Calendar isn't connected yet."
         case .accessRevoked:
             "Google revoked Next Notes' access. Connect the account again."
+        case .signInChanged:
+            "Your Google sign-in changed, try again."
         case .tokenStoreUnreadable:
             "Could not read your saved Google sign-in."
         case .tokenStoreFailed:

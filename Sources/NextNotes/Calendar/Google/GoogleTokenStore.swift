@@ -103,6 +103,13 @@ enum GoogleTokenStore {
         guard status == errSecSuccess || status == errSecItemNotFound else { throw GoogleCalendarError.tokenStoreFailed }
         return true
     }
+    /// Launch admission shares replacement's lock: the admitted grant cannot change
+    /// between the identity comparison and process.run(). No actor hop under this lock.
+    static func withMatchingGrant(_ identity: Data, _ body: () throws -> Void) throws {
+        lock.lock(); defer { lock.unlock() }
+        guard try savedGrant()?.identity == identity else { throw GoogleCalendarError.signInChanged }
+        try body()
+    }
     private static func read() -> ReadState {
         var query = baseQuery
         query[kSecReturnData as String] = true

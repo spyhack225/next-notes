@@ -26,6 +26,37 @@ enum GoogleGrantReplacementSelfTest {
                 "R3 stale revocation preserves exact newer grant generation (\(replacement))")
             await tokens.useRequestForTesting(nil)
         }
+        // Identity check is independently necessary when the existing store is replaced
+        // without the actor's invalidation hop. Same refresh text, new record UUID.
+        let response = GoogleReviewFixture.Gate()
+        let creatorDelivery = GoogleReviewFixture.Gate()
+        let joinerDelivery = GoogleReviewFixture.Gate()
+        let joined = GoogleReviewFixture.Gate()
+        await tokens.useRequestForTesting { request in
+            await response.pause()
+            return GoogleReviewFixture.response(request, body: #"{"access_token":"direct-store-success","expires_in":3600}"#)
+        }
+        await tokens.holdDeliveryForTesting({ joining in
+            if joining { await joinerDelivery.pause() } else { await creatorDelivery.pause() }
+        }, joining: { await joined.pause() })
+        GoogleTokenStore.save(refreshToken: "same-delivery-text", grantedScopes: Set(GoogleScopes.connect))
+        let creator = Task { try await tokens.token(clientID: "fixture", clientSecret: "") }
+        await response.wait()
+        let joiner = Task { try await tokens.token(clientID: "fixture", clientSecret: "") }
+        await joined.wait(); await joined.release(); await response.release()
+        await creatorDelivery.wait(); await joinerDelivery.wait()
+        GoogleTokenStore.save(refreshToken: "same-delivery-text", grantedScopes: Set(GoogleScopes.connect))
+        await creatorDelivery.release(); await joinerDelivery.release()
+        for (caller, name) in [(creator, "creator"), (joiner, "joining waiter")] {
+            var refused = false
+            do { _ = try await caller.value }
+            catch GoogleCalendarError.signInChanged { refused = true }
+            catch { }
+            expect(refused, "R3 successful \(name) delivery checks exact replaced record without actor invalidation")
+        }
+        await tokens.holdDeliveryForTesting(nil)
+        await tokens.useRequestForTesting(nil)
+
         // An unavailable row must also refuse a revocation read without deleting evidence.
         let held = GoogleReviewFixture.Gate()
         GoogleTokenStore.save(refreshToken: "unavailable-at-clear", grantedScopes: [GoogleScopes.documents])

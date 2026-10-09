@@ -49,6 +49,15 @@ actor GoogleAccessTokens {
         self.refreshTokenForTesting = refreshTokenForTesting
         self.clearTokenForTesting = clearTokenForTesting
     }
+    // Nil in production; hold successful delivery separately from the HTTP response.
+    private var deliveryForTesting: (@Sendable (Bool) async -> Void)?
+    private var joiningForTesting: (@Sendable () async -> Void)?
+    func holdDeliveryForTesting(_ delivery: (@Sendable (Bool) async -> Void)?,
+                                joining: (@Sendable () async -> Void)? = nil) {
+        precondition(Self.testHooksAdmitted)
+        deliveryForTesting = delivery
+        joiningForTesting = joining
+    }
     private struct Identity: Equatable, Sendable {
         let clientID: String
         let secret: String
@@ -60,16 +69,21 @@ actor GoogleAccessTokens {
     private var generation = 0
     private(set) var refreshCount = 0
 
-    func token(clientID: String, clientSecret: String) async throws -> String {
+    func token(clientID: String, clientSecret: String, expectedGrantIdentity: Data? = nil) async throws -> String {
         try Task.checkCancellation()
         let grant = refreshTokenForTesting == nil ? try GoogleTokenStore.savedGrant() : nil
+        if let expectedGrantIdentity, grant?.identity != expectedGrantIdentity { throw GoogleCalendarError.signInChanged }
         let refresh = refreshTokenForTesting?() ?? grant?.refreshToken
         guard let refresh else { throw GoogleCalendarError.notSignedIn }
         let identity = Identity(clientID: clientID, secret: clientSecret, refresh: refresh, grantIdentity: grant?.identity)
         if let cached, cached.identity == identity, cached.expiry > Date().addingTimeInterval(60) { return cached.token }
         if let inFlight, inFlight.identity == identity {
+            let joinedGeneration = generation
+            if let joiningForTesting { await joiningForTesting() }
             let token = try await inFlight.task.value
+            if let deliveryForTesting { await deliveryForTesting(true) }
             try Task.checkCancellation()
+            guard generation == joinedGeneration, try isCurrent(identity) else { throw GoogleCalendarError.signInChanged }
             return token
         }
         if inFlight != nil { invalidate() }
@@ -102,9 +116,11 @@ actor GoogleAccessTokens {
         inFlight = (requestID, identity, task)
         defer { if inFlight?.id == requestID { inFlight = nil } }
         let token = try await task.value
+        if let deliveryForTesting { await deliveryForTesting(false) }
         // A shared refresh survives one cancelled waiter, but its result must not
         // carry that waiter into executable backing after cancellation.
         try Task.checkCancellation()
+        guard generation == started, try isCurrent(identity) else { throw GoogleCalendarError.signInChanged }
         return token
     }
     private func isCurrent(_ identity: Identity) throws -> Bool {
@@ -132,11 +148,11 @@ actor GoogleAccessTokens {
         inFlight?.task.cancel()
         inFlight = nil
     }
-    func workspaceToken() async throws -> String? {
+    func workspaceToken(expectedGrantIdentity: Data? = nil) async throws -> String? {
         let grant = try GoogleTokenStore.savedGrant()
         guard let client = currentClient, grant != nil else {
             throw GoogleCalendarError.notSignedIn
         }
-        return try await token(clientID: client.clientID, clientSecret: client.clientSecret)
+        return try await token(clientID: client.clientID, clientSecret: client.clientSecret, expectedGrantIdentity: expectedGrantIdentity)
     }
 }

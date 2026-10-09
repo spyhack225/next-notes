@@ -44,6 +44,7 @@ enum GoogleConnectSelfTest {
         await GoogleGrantReadSelfTest.run(expect)
         await GoogleLaunchCancellationSelfTest.run(expect)
         await GoogleGrantReplacementSelfTest.run(expect)
+        await GoogleGrantLaunchSelfTest.run(expect)
         await GoogleConcurrentRejectionSelfTest.run(expect)
         await GoogleProbingScopeSelfTest.run(expect)
         await GoogleCalendarScopeSelfTest.run(expect)
@@ -521,6 +522,39 @@ enum GoogleConnectSelfTest {
         let connected = try? await reconnect.value
         expect(connected?.grantedScopes == Set(GoogleScopes.connect) && GoogleTokenStore.hasRefreshToken,
             "R3 real sign-in returns a grant that is still stored after the old refresh settles")
+        await shared.useRequestForTesting(nil)
+
+        // Successful refresh has already completed. Hold both creator and joining
+        // delivery, then perform the same real loopback reconnect as above.
+        let responseHeld = GoogleReviewFixture.Gate()
+        let creatorDelivery = GoogleReviewFixture.Gate()
+        let joiningDelivery = GoogleReviewFixture.Gate()
+        let joiningWait = GoogleReviewFixture.Gate()
+        await shared.useRequestForTesting { request in
+            await responseHeld.pause()
+            return GoogleReviewFixture.response(request, body: #"{"access_token":"old-success-token","expires_in":3600}"#)
+        }
+        await shared.holdDeliveryForTesting({ joining in
+            if joining { await joiningDelivery.pause() } else { await creatorDelivery.pause() }
+        }, joining: { await joiningWait.pause() })
+        GoogleTokenStore.save(refreshToken: "old-success", grantedScopes: Set(GoogleScopes.connect))
+        let creator = Task { try await shared.token(clientID: client.clientID, clientSecret: client.clientSecret) }
+        await responseHeld.wait()
+        let joiner = Task { try await shared.token(clientID: client.clientID, clientSecret: client.clientSecret) }
+        await joiningWait.wait(); await joiningWait.release(); await responseHeld.release()
+        await creatorDelivery.wait(); await joiningDelivery.wait()
+        let replacement = try? await GoogleOAuthClient.signIn(clientID: client.clientID, clientSecret: client.clientSecret,
+            endpoints: endpoints, openBrowser: browser(code: "success-reconnect"))
+        expect(replacement != nil && GoogleTokenStore.refreshToken == "refresh-1", "R3 successful delivery fixture performs real reconnect")
+        await creatorDelivery.release(); await joiningDelivery.release()
+        for (caller, name) in [(creator, "creator"), (joiner, "joining waiter")] {
+            var refused = false
+            do { _ = try await caller.value }
+            catch GoogleCalendarError.signInChanged { refused = true }
+            catch { }
+            expect(refused, "R3 completed successful refresh refuses old token delivery to \(name) after reconnect")
+        }
+        await shared.holdDeliveryForTesting(nil)
         await shared.useRequestForTesting(nil)
 
         // Native token exchange -> actual Calendar authorize/service/list consumers.
