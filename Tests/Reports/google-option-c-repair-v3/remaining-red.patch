@@ -1,0 +1,519 @@
+diff --git a/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift b/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
+index d4d8bb16..bfc65126 100644
+--- a/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
++++ b/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
+@@ -196,6 +196,7 @@ actor GoogleWorkspaceCLI {
+     nonisolated var hasIsolatedTestingExecutable: Bool { testingExecutable != nil }
+ 
+     struct TestHooks: Sendable {
++        var beforeToken: (@Sendable () async -> Void)?
+         var afterToken: (@Sendable () async -> Void)?
+         var beforeLaunch: (@Sendable () async -> Void)?
+         var beforeAuthProbe: (@Sendable () async -> Void)?
+@@ -487,18 +488,23 @@ actor GoogleWorkspaceCLI {
+         let executable: URL
+         var additions: [String: String] = [:]
+         if appSignedIn {
++            guard let grant else { throw WorkspaceCLIError.notAuthenticated }
+             guard let managed = managedExecutable() else { throw WorkspaceCLIError.notInstalled }
+             executable = managed
+             if let capability = GoogleCapability.needed(byArguments: arguments),
+-               !capability.isGranted(by: grant?.scopes ?? [], readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
++               !capability.isGranted(by: grant.scopes, readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
+                 throw WorkspaceCLIError.invalidRequest(capability.permissionSentence)
+             }
+             do {
+-                guard let token = try await GoogleAccessTokens.shared.workspaceToken() else { throw WorkspaceCLIError.notAuthenticated }
++                if let beforeToken = testHooks.beforeToken { await beforeToken() }
++                guard let token = try await GoogleAccessTokens.shared.workspaceToken(expectedGrantIdentity: grant.identity) else { throw WorkspaceCLIError.notAuthenticated }
+                 additions[Self.tokenVariable] = token
+             } catch GoogleCalendarError.accessRevoked, GoogleCalendarError.notSignedIn {
+                 throw WorkspaceCLIError.notAuthenticated
+             } catch is CancellationError { throw CancellationError() }
++            catch GoogleCalendarError.signInChanged {
++                throw WorkspaceCLIError.launchFailed(GoogleCalendarError.signInChanged.localizedDescription)
++            }
+             catch GoogleCalendarError.tokenStoreUnreadable {
+                 throw WorkspaceCLIError.launchFailed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
+             }
+@@ -518,7 +524,7 @@ actor GoogleWorkspaceCLI {
+         let output = try await Self.spawn(
+             executable: executable,
+             arguments: arguments,
+-            timeout: timeout, environmentAdditions: additions, beforeLaunchForTesting: testHooks.beforeLaunch
++            timeout: timeout, environmentAdditions: additions, beforeLaunchForTesting: testHooks.beforeLaunch, grantIdentity: appSignedIn ? grant?.identity : nil
+         )
+         switch output.exitCode {
+         case 0:
+@@ -579,7 +585,8 @@ actor GoogleWorkspaceCLI {
+         arguments: [String],
+         timeout: TimeInterval,
+         environmentAdditions: [String: String] = [:],
+-        beforeLaunchForTesting: (@Sendable () async -> Void)? = nil
++        beforeLaunchForTesting: (@Sendable () async -> Void)? = nil,
++        grantIdentity: Data? = nil
+     ) async throws -> WorkspaceCLIOutput {
+         precondition(beforeLaunchForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
+         try Task.checkCancellation()
+diff --git a/Sources/NextNotes/Calendar/CalendarService.swift b/Sources/NextNotes/Calendar/CalendarService.swift
+index 471e3e09..d027babf 100644
+--- a/Sources/NextNotes/Calendar/CalendarService.swift
++++ b/Sources/NextNotes/Calendar/CalendarService.swift
+@@ -248,8 +248,9 @@ final class CalendarService {
+         await refresh()
+     }
+ 
+-    func refreshGoogleCalendars() async {
+-        guard providersForTesting != nil || Settings.shared.calendarGoogleEnabled else { return }
++    func refreshGoogleCalendars(enabledForTesting: Bool? = nil) async {
++        precondition(enabledForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
++        guard enabledForTesting ?? (providersForTesting != nil || Settings.shared.calendarGoogleEnabled) else { return }
+         guard await google.authorizationState().isAuthorized else {
+             googleCalendars = []
+             return
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift b/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
+index 5f8ea834..56dbc6a9 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
+@@ -49,6 +49,15 @@ actor GoogleAccessTokens {
+         self.refreshTokenForTesting = refreshTokenForTesting
+         self.clearTokenForTesting = clearTokenForTesting
+     }
++    // Nil in production; hold successful delivery separately from the HTTP response.
++    private var deliveryForTesting: (@Sendable (Bool) async -> Void)?
++    private var joiningForTesting: (@Sendable () async -> Void)?
++    func holdDeliveryForTesting(_ delivery: (@Sendable (Bool) async -> Void)?,
++                                joining: (@Sendable () async -> Void)? = nil) {
++        precondition(Self.testHooksAdmitted)
++        deliveryForTesting = delivery
++        joiningForTesting = joining
++    }
+     private struct Identity: Equatable, Sendable {
+         let clientID: String
+         let secret: String
+@@ -60,7 +69,7 @@ actor GoogleAccessTokens {
+     private var generation = 0
+     private(set) var refreshCount = 0
+ 
+-    func token(clientID: String, clientSecret: String) async throws -> String {
++    func token(clientID: String, clientSecret: String, expectedGrantIdentity: Data? = nil) async throws -> String {
+         try Task.checkCancellation()
+         let grant = refreshTokenForTesting == nil ? try GoogleTokenStore.savedGrant() : nil
+         let refresh = refreshTokenForTesting?() ?? grant?.refreshToken
+@@ -68,7 +77,10 @@ actor GoogleAccessTokens {
+         let identity = Identity(clientID: clientID, secret: clientSecret, refresh: refresh, grantIdentity: grant?.identity)
+         if let cached, cached.identity == identity, cached.expiry > Date().addingTimeInterval(60) { return cached.token }
+         if let inFlight, inFlight.identity == identity {
++            let joinedGeneration = generation
++            if let joiningForTesting { await joiningForTesting() }
+             let token = try await inFlight.task.value
++            if let deliveryForTesting { await deliveryForTesting(true) }
+             try Task.checkCancellation()
+             return token
+         }
+@@ -102,6 +114,7 @@ actor GoogleAccessTokens {
+         inFlight = (requestID, identity, task)
+         defer { if inFlight?.id == requestID { inFlight = nil } }
+         let token = try await task.value
++        if let deliveryForTesting { await deliveryForTesting(false) }
+         // A shared refresh survives one cancelled waiter, but its result must not
+         // carry that waiter into executable backing after cancellation.
+         try Task.checkCancellation()
+@@ -132,11 +145,11 @@ actor GoogleAccessTokens {
+         inFlight?.task.cancel()
+         inFlight = nil
+     }
+-    func workspaceToken() async throws -> String? {
++    func workspaceToken(expectedGrantIdentity: Data? = nil) async throws -> String? {
+         let grant = try GoogleTokenStore.savedGrant()
+         guard let client = currentClient, grant != nil else {
+             throw GoogleCalendarError.notSignedIn
+         }
+-        return try await token(clientID: client.clientID, clientSecret: client.clientSecret)
++        return try await token(clientID: client.clientID, clientSecret: client.clientSecret, expectedGrantIdentity: expectedGrantIdentity)
+     }
+ }
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift b/Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift
+index bd433912..7b05e16d 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift
+@@ -321,9 +321,10 @@ enum GoogleCalendarError: LocalizedError, Equatable {
+     case noClientID
+     case notSignedIn
+     case accessRevoked
+-    /// A rejected API access token does not establish refresh-grant revocation.
++    case signInChanged
+     case tokenStoreUnreadable
+     case tokenStoreFailed
++    /// A rejected API access token does not establish refresh-grant revocation.
+     case accessTokenRejected
+     case noRefreshToken
+     case badAuthorizationURL
+@@ -342,6 +343,8 @@ enum GoogleCalendarError: LocalizedError, Equatable {
+             "Google Calendar isn't connected yet."
+         case .accessRevoked:
+             "Google revoked Next Notes' access. Connect the account again."
++        case .signInChanged:
++            "Your Google sign-in changed, try again."
+         case .tokenStoreUnreadable:
+             "Could not read your saved Google sign-in."
+         case .tokenStoreFailed:
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleCalendarScopeSelfTest.swift b/Sources/NextNotes/Calendar/Google/GoogleCalendarScopeSelfTest.swift
+index a948ee8e..ac366e68 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleCalendarScopeSelfTest.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleCalendarScopeSelfTest.swift
+@@ -23,9 +23,9 @@ enum GoogleCalendarScopeSelfTest {
+             }, ensureTool: {}, afterConnect: { returnedScopes in
+                 await GoogleConnection.Dependencies.applyCalendarGrant(returnedScopes, setEnabled: { enabled in
+                     if enabled { _ = counts.hit("enabled") }
+-                }, refreshCalendars: {
+-                    _ = counts.hit("listed")
+-                    await service.refreshGoogleCalendars()
++                }, refreshCalendars: { enabled in
++                    if enabled { _ = counts.hit("listed") }
++                    await service.refreshGoogleCalendars(enabledForTesting: enabled)
+                 })
+             }, disconnect: {}, workspace: { .signedIn(method: "fixture") }))
+             await connection.connect()
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleCalendarWithdrawalSelfTest.swift b/Sources/NextNotes/Calendar/Google/GoogleCalendarWithdrawalSelfTest.swift
+index 0c5c0544..6b13ae0b 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleCalendarWithdrawalSelfTest.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleCalendarWithdrawalSelfTest.swift
+@@ -36,5 +36,44 @@ enum GoogleCalendarWithdrawalSelfTest {
+             "R6 withdrawn Calendar permission immediately clears actual cached calendars and upcoming events")
+         expect(counts.count("request") == before,
+             "R6 clearing withdrawn Calendar state makes zero additional token or Calendar requests")
++        // Populate again and use the connection controller, including its disabled
++        // switch, instead of CalendarService.connectGoogle's separate consumer.
++        GoogleTokenStore.save(refreshToken: "controller-calendar", grantedScopes: [GoogleScopes.calendar])
++        await service.refreshGoogleCalendars()
++        await service.refresh()
++        expect(service.googleCalendars.count == 1 && service.upcoming.count == 1,
++            "R6 controller withdrawal starts with fetched Calendar list and event")
++        let client = GoogleAppClient(clientID: "fixture", clientSecret: "", source: .app)
++        let controller = GoogleConnection(dependencies: .init(client: { client }, signIn: { _ in
++            try await GoogleAccessTokens.shared.replaceGrant(refreshToken: "controller-docs", scopes: [GoogleScopes.documents])
++            return .init(refreshToken: "controller-docs", grantedScopes: [GoogleScopes.documents])
++        }, ensureTool: {}, afterConnect: { scopes in
++            await GoogleConnection.Dependencies.applyCalendarGrant(scopes, setEnabled: { enabled in
++                if !enabled { _ = counts.hit("disabled") }
++            }, refreshCalendars: { enabled in await service.refreshGoogleCalendars(enabledForTesting: enabled) })
++            await service.refresh()
++        }, disconnect: {
++            await GoogleAccessTokens.shared.disconnectGrant()
++            // Same service seam with the switch already off, as in the live controller.
++            await service.refreshGoogleCalendars(enabledForTesting: false)
++            await service.refresh()
++        }, workspace: { GoogleTokenStore.hasRefreshToken ? .signedIn(method: "fixture") : .signedOut }))
++        let controllerBefore = counts.count("request")
++        await controller.connect()
++        expect(counts.count("disabled") == 1 && controller.state == .needsMoreAccess
++            && service.googleCalendars.isEmpty && service.upcoming.isEmpty,
++            "R6 connection controller withdrawal clears populated Calendar list while switching Calendar off")
++        expect(counts.count("request") == controllerBefore,
++            "R6 controller withdrawal enters zero Google token or Calendar backing")
++        // Repopulate only the list to pin disconnect's enabled-guard transition too.
++        GoogleTokenStore.save(refreshToken: "disconnect-calendar", grantedScopes: [GoogleScopes.calendar])
++        await service.refreshGoogleCalendars(enabledForTesting: true)
++        expect(service.googleCalendars.count == 1, "R6 controller disconnect begins with fetched list and disabled switch")
++        let disconnectBefore = counts.count("request")
++        await controller.disconnect()
++        expect(service.googleCalendars.isEmpty && !GoogleTokenStore.hasRefreshToken,
++            "R6 connection controller disconnect clears populated Calendar list even when already off")
++        expect(counts.count("request") == disconnectBefore, "R6 controller disconnect clearing enters zero Google backing")
++
+     }
+ }
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift b/Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift
+index 1b035734..f01cf824 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift
+@@ -44,6 +44,7 @@ enum GoogleConnectSelfTest {
+         await GoogleGrantReadSelfTest.run(expect)
+         await GoogleLaunchCancellationSelfTest.run(expect)
+         await GoogleGrantReplacementSelfTest.run(expect)
++        await GoogleGrantLaunchSelfTest.run(expect)
+         await GoogleConcurrentRejectionSelfTest.run(expect)
+         await GoogleProbingScopeSelfTest.run(expect)
+         await GoogleCalendarScopeSelfTest.run(expect)
+@@ -523,6 +524,39 @@ enum GoogleConnectSelfTest {
+             "R3 real sign-in returns a grant that is still stored after the old refresh settles")
+         await shared.useRequestForTesting(nil)
+ 
++        // Successful refresh has already completed. Hold both creator and joining
++        // delivery, then perform the same real loopback reconnect as above.
++        let responseHeld = GoogleReviewFixture.Gate()
++        let creatorDelivery = GoogleReviewFixture.Gate()
++        let joiningDelivery = GoogleReviewFixture.Gate()
++        let joiningWait = GoogleReviewFixture.Gate()
++        await shared.useRequestForTesting { request in
++            await responseHeld.pause()
++            return GoogleReviewFixture.response(request, body: #"{"access_token":"old-success-token","expires_in":3600}"#)
++        }
++        await shared.holdDeliveryForTesting({ joining in
++            if joining { await joiningDelivery.pause() } else { await creatorDelivery.pause() }
++        }, joining: { await joiningWait.pause() })
++        GoogleTokenStore.save(refreshToken: "old-success", grantedScopes: Set(GoogleScopes.connect))
++        let creator = Task { try await shared.token(clientID: client.clientID, clientSecret: client.clientSecret) }
++        await responseHeld.wait()
++        let joiner = Task { try await shared.token(clientID: client.clientID, clientSecret: client.clientSecret) }
++        await joiningWait.wait(); await joiningWait.release(); await responseHeld.release()
++        await creatorDelivery.wait(); await joiningDelivery.wait()
++        let replacement = try? await GoogleOAuthClient.signIn(clientID: client.clientID, clientSecret: client.clientSecret,
++            endpoints: endpoints, openBrowser: browser(code: "success-reconnect"))
++        expect(replacement != nil && GoogleTokenStore.refreshToken == "refresh-1", "R3 successful delivery fixture performs real reconnect")
++        await creatorDelivery.release(); await joiningDelivery.release()
++        for (caller, name) in [(creator, "creator"), (joiner, "joining waiter")] {
++            var refused = false
++            do { _ = try await caller.value }
++            catch GoogleCalendarError.signInChanged { refused = true }
++            catch { }
++            expect(refused, "R3 completed successful refresh refuses old token delivery to \(name) after reconnect")
++        }
++        await shared.holdDeliveryForTesting(nil)
++        await shared.useRequestForTesting(nil)
++
+         // Native token exchange -> actual Calendar authorize/service/list consumers.
+         for mode in ["partial", "empty"] {
+             grantMode.value = mode
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleConnection.swift b/Sources/NextNotes/Calendar/Google/GoogleConnection.swift
+index 3259a676..185f94ae 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleConnection.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleConnection.swift
+@@ -77,7 +77,8 @@ final class GoogleConnection {
+                 "Google is connected, with your approval required before anything is sent."
+             case .needsMoreAccess:
+                 "Some Google features need one more permission; the others are ready to use."
+-            case .failed(let reason) where reason == GoogleCalendarError.tokenStoreUnreadable.localizedDescription:
++            case .failed(let reason) where reason == GoogleCalendarError.tokenStoreUnreadable.localizedDescription
++                || reason == GoogleCalendarError.signInChanged.localizedDescription:
+                 reason
+             case .failed:
+                 "Google couldn’t connect; please try again."
+@@ -121,7 +122,7 @@ final class GoogleConnection {
+             afterConnect: { scopes in
+                 await applyCalendarGrant(scopes, setEnabled: { enabled in
+                     await MainActor.run { Settings.shared.calendarGoogleEnabled = enabled }
+-                }, refreshCalendars: { await CalendarService.shared.refreshGoogleCalendars() })
++                }, refreshCalendars: { _ in await CalendarService.shared.refreshGoogleCalendars() })
+                 // Google's sign-in is the only way mail and calendar work on a Mac that has no
+                 // Google account of its own; otherwise the choice stays where the person put it.
+                 if await MacAccounts.shared.setup().accountFound == false {
+@@ -145,10 +146,10 @@ final class GoogleConnection {
+         /// The existing connect consumer applies the returned grant before listing.
+         static func applyCalendarGrant(_ scopes: Set<String>,
+             setEnabled: @Sendable (Bool) async -> Void,
+-            refreshCalendars: @Sendable () async -> Void) async {
++            refreshCalendars: @Sendable (Bool) async -> Void) async {
+             let granted = GoogleScopes.coversCalendar(scopes)
+             await setEnabled(granted)
+-            if granted { await refreshCalendars() }
++            if granted { await refreshCalendars(granted) }
+         }
+ 
+         @MainActor
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleGrantReplacementSelfTest.swift b/Sources/NextNotes/Calendar/Google/GoogleGrantReplacementSelfTest.swift
+index f3be640a..c40e0ebc 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleGrantReplacementSelfTest.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleGrantReplacementSelfTest.swift
+@@ -26,6 +26,37 @@ enum GoogleGrantReplacementSelfTest {
+                 "R3 stale revocation preserves exact newer grant generation (\(replacement))")
+             await tokens.useRequestForTesting(nil)
+         }
++        // Identity check is independently necessary when the existing store is replaced
++        // without the actor's invalidation hop. Same refresh text, new record UUID.
++        let response = GoogleReviewFixture.Gate()
++        let creatorDelivery = GoogleReviewFixture.Gate()
++        let joinerDelivery = GoogleReviewFixture.Gate()
++        let joined = GoogleReviewFixture.Gate()
++        await tokens.useRequestForTesting { request in
++            await response.pause()
++            return GoogleReviewFixture.response(request, body: #"{"access_token":"direct-store-success","expires_in":3600}"#)
++        }
++        await tokens.holdDeliveryForTesting({ joining in
++            if joining { await joinerDelivery.pause() } else { await creatorDelivery.pause() }
++        }, joining: { await joined.pause() })
++        GoogleTokenStore.save(refreshToken: "same-delivery-text", grantedScopes: Set(GoogleScopes.connect))
++        let creator = Task { try await tokens.token(clientID: "fixture", clientSecret: "") }
++        await response.wait()
++        let joiner = Task { try await tokens.token(clientID: "fixture", clientSecret: "") }
++        await joined.wait(); await joined.release(); await response.release()
++        await creatorDelivery.wait(); await joinerDelivery.wait()
++        GoogleTokenStore.save(refreshToken: "same-delivery-text", grantedScopes: Set(GoogleScopes.connect))
++        await creatorDelivery.release(); await joinerDelivery.release()
++        for (caller, name) in [(creator, "creator"), (joiner, "joining waiter")] {
++            var refused = false
++            do { _ = try await caller.value }
++            catch GoogleCalendarError.signInChanged { refused = true }
++            catch { }
++            expect(refused, "R3 successful \(name) delivery checks exact replaced record without actor invalidation")
++        }
++        await tokens.holdDeliveryForTesting(nil)
++        await tokens.useRequestForTesting(nil)
++
+         // An unavailable row must also refuse a revocation read without deleting evidence.
+         let held = GoogleReviewFixture.Gate()
+         GoogleTokenStore.save(refreshToken: "unavailable-at-clear", grantedScopes: [GoogleScopes.documents])
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift b/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift
+index 37d0af0f..82e87ff4 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift
+@@ -103,6 +103,13 @@ enum GoogleTokenStore {
+         guard status == errSecSuccess || status == errSecItemNotFound else { throw GoogleCalendarError.tokenStoreFailed }
+         return true
+     }
++    /// Launch admission shares replacement's lock: the admitted grant cannot change
++    /// between the identity comparison and process.run(). No actor hop under this lock.
++    static func withMatchingGrant(_ identity: Data, _ body: () throws -> Void) throws {
++        lock.lock(); defer { lock.unlock() }
++        guard try savedGrant()?.identity == identity else { throw GoogleCalendarError.signInChanged }
++        try body()
++    }
+     private static func read() -> ReadState {
+         var query = baseQuery
+         query[kSecReturnData as String] = true
+diff --git a/Tests/GoogleCredentialScan.py b/Tests/GoogleCredentialScan.py
+index 49595222..0731ed63 100644
+--- a/Tests/GoogleCredentialScan.py
++++ b/Tests/GoogleCredentialScan.py
+@@ -12,6 +12,7 @@ def check(label, content):
+     print(label + '_OK')
+ 
+ check('COMMITS_SECRET_SCAN', subprocess.check_output(['git', 'log', '-p', 'c6d850c..HEAD']).decode(errors='replace'))
++check('DIFF_SECRET_SCAN', subprocess.check_output(['git', 'diff', 'c6d850c']).decode(errors='replace'))
+ paths = subprocess.check_output(['git', 'diff', '--name-only', 'c6d850c']).decode().splitlines()
+ paths += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard']).decode().splitlines()
+ text = '\n'.join(Path(path).read_text(errors='replace') for path in paths
+diff --git a/Tests/GoogleOptionCChecks.sh b/Tests/GoogleOptionCChecks.sh
+index d80e9102..44709e53 100644
+--- a/Tests/GoogleOptionCChecks.sh
++++ b/Tests/GoogleOptionCChecks.sh
+@@ -35,11 +35,36 @@ run() {
+             if [ "$code" != 1 ]; then echo "$name RED_REQUIRES_NATIVE_EXIT_1"; failed=1; fi
+             case "$mode" in
+                 review-red)
+-                    for finding in 1 2 3 4 5 6; do
+-                        if ! rg -q "^  FAIL R$finding " "$evidence/$name.log"; then
+-                            echo "$name MISSING_TARGETED_ASSERTION_R$finding"; failed=1
++                    while IFS= read -r target; do
++                        if ! rg -q -F -x "  FAIL $target" "$evidence/$name.log"; then
++                            echo "$name MISSING_NAMED_BEHAVIORAL_ASSERTION: $target"; failed=1
+                         fi
+-                    done ;;
++                    done <<'TARGETS'
++R1 denied read never runs the runnable alternate login
++R2 after-token cancelled send has zero backing entries
++R3 outstanding old invalid_grant cannot delete a real successful reconnect
++R4 delayed 401 invalidates only rejected A and never cancels refresh B
++R5 probing planner excludes known missing Mail permission from allowed and selected tools
++R6 actual connect flow enables and lists Calendar only when granted (false)
++TARGETS
++                    ;;
++                remaining-red)
++                    while IFS= read -r target; do
++                        if ! rg -q -F -x "  FAIL $target" "$evidence/$name.log"; then
++                            echo "$name MISSING_NAMED_BEHAVIORAL_ASSERTION: $target"; failed=1
++                        fi
++                    done <<'TARGETS'
++R3 completed successful refresh refuses old token delivery to creator after reconnect
++R3 completed successful refresh refuses old token delivery to joining waiter after reconnect
++R3 successful creator delivery checks exact replaced record without actor invalidation
++R3 successful joining waiter delivery checks exact replaced record without actor invalidation
++R3 before-token grant replacement has zero executable backing entries
++R3 after-token grant replacement has zero executable backing entries
++R3 inside-spawn grant replacement has zero executable backing entries
++R6 connection controller withdrawal clears populated Calendar list while switching Calendar off
++R6 connection controller disconnect clears populated Calendar list even when already off
++TARGETS
++                    ;;
+                 withdrawal-red) target='^  FAIL R6 withdrawn Calendar permission immediately clears actual cached calendars and upcoming events' ;;
+                 revocation) target='^  FAIL a rejected client must not read as a revoked grant' ;;
+                 unpinned) target='^  FAIL an unpinned alternate executable cannot receive the app token' ;;
+@@ -47,7 +72,7 @@ run() {
+                 draft-red) target='^  FAIL the cancelled shared-refresh caller never enters executable backing' ;;
+                 original) target='^  FAIL the sign-in asks for the full Workspace set and nothing else' ;;
+             esac
+-            if [ "$mode" != review-red ] && ! rg -q "$target" "$evidence/$name.log"; then
++            if [ "$mode" != review-red ] && [ "$mode" != remaining-red ] && ! rg -q "$target" "$evidence/$name.log"; then
+                 echo "$name MISSING_TARGETED_FAILING_ASSERTION"; failed=1
+             fi
+         fi ;;
+@@ -68,7 +93,7 @@ green|restored)
+     run ui-strings UI_STRINGS_OK --selftest-ui-strings
+     run store-isolation STORE_ISOLATION_OK --selftest-store-isolation
+     ;;
+-revocation|unpinned|draft-red|review-red|withdrawal-red)
++revocation|unpinned|draft-red|review-red|withdrawal-red|remaining-red)
+     run google-connect GOOGLE_CONNECT_FAILED --selftest-google-connect
+     ;;
+ mailbox)
+diff --git a/Tests/GoogleOptionCHarnessTest.py b/Tests/GoogleOptionCHarnessTest.py
+index ce4f5289..b2578c0d 100644
+--- a/Tests/GoogleOptionCHarnessTest.py
++++ b/Tests/GoogleOptionCHarnessTest.py
+@@ -1,9 +1,18 @@
+-"""Shell-only harness negatives. Synthetic executable; no app, compiler or account."""
++"""Shell-only harness controls. Synthetic executable; no app, compiler or account."""
+ from pathlib import Path
+ import os
+ import subprocess
+ import tempfile
+ 
++# Independent names: changing the shell gate to a prefix must fail these controls.
++TARGETS = [
++ 'R1 denied read never runs the runnable alternate login',
++ 'R2 after-token cancelled send has zero backing entries',
++ 'R3 outstanding old invalid_grant cannot delete a real successful reconnect',
++ 'R4 delayed 401 invalidates only rejected A and never cancels refresh B',
++ 'R5 probing planner excludes known missing Mail permission from allowed and selected tools',
++ 'R6 actual connect flow enables and lists Calendar only when granted (false)',
++]
+ with tempfile.TemporaryDirectory(prefix='google-c-red-harness-') as folder:
+     root = Path(folder)
+     binary = root / 'synthetic-check'
+@@ -16,19 +25,38 @@ done
+ printf 'GOOGLE_CONNECT_FAILED\\n' > "$out"
+ case "$GOOGLE_REVIEW_HARNESS_CASE" in
+  target|wrong-exit) echo '  FAIL a rejected client must not read as a revoked grant' >> "$out" ;;
+- all-six) for n in 1 2 3 4 5 6; do echo "  FAIL R$n targeted producer regression" >> "$out"; done ;;
+- five) for n in 1 2 3 4 5; do echo "  FAIL R$n targeted producer regression" >> "$out"; done ;;
++ all-six|five|mixed) cat "$GOOGLE_REVIEW_TARGETS" >> "$out" ;;
++ setup) for n in 1 2 3 4 5 6; do echo "  FAIL R$n fixture written" >> "$out"; done ;;
++ broad) for n in 1 2 3 4 5 6; do echo "  FAIL R$n targeted producer regression" >> "$out"; done ;;
+  *) echo '  FAIL unrelated assertion' >> "$out" ;;
+ esac
+ [ "$GOOGLE_REVIEW_HARNESS_CASE" = wrong-exit ] && exit 0
+ exit 1
+ ''')
+     binary.chmod(0o755)
+-    for mode, case, expected in [('revocation', 'target', 0), ('revocation', 'wrong-exit', 1),
++    targets = root / 'targets'
++    for mode, case, expected in [('review-red', 'setup', 1), ('review-red', 'broad', 1),
++                                 ('revocation', 'target', 0), ('revocation', 'wrong-exit', 1),
+                                  ('revocation', 'unrelated', 1), ('review-red', 'all-six', 0),
+                                  ('review-red', 'five', 1)]:
+-        env = dict(os.environ, GOOGLE_REVIEW_HARNESS_CASE=case)
+-        result = subprocess.run(['sh', 'Tests/GoogleOptionCChecks.sh', mode, str(binary), str(root / case)],
++        targets.write_text('\n'.join('  FAIL ' + t for t in (TARGETS[:-1] if case == 'five' else TARGETS)) + '\n')
++        env = dict(os.environ, GOOGLE_REVIEW_HARNESS_CASE=case, GOOGLE_REVIEW_TARGETS=str(targets))
++        result = subprocess.run(['sh', 'Tests/GoogleOptionCChecks.sh', mode, str(binary), str(root / (mode + '-' + case))],
+                                 env=env, capture_output=True)
+-        assert result.returncode == expected, (mode, case, result.returncode)
+-print('GOOGLE_RED_HARNESS_OK: targeted assertion plus native exit1 required')
++        assert result.returncode == expected, (mode, case, result.returncode, 'setup failures must never satisfy RED')
++    # Each finding independently refuses setup even with the other five real failures.
++    for index in range(6):
++        mixed = list(TARGETS)
++        mixed[index] = 'R' + str(index + 1) + ' fixture written'
++        targets.write_text('\n'.join('  FAIL ' + t for t in mixed) + '\n')
++        result = subprocess.run(['sh', 'Tests/GoogleOptionCChecks.sh', 'review-red', str(binary),
++                                 str(root / ('mixed-' + str(index)))],
++                                env=dict(os.environ, GOOGLE_REVIEW_HARNESS_CASE='mixed',
++                                         GOOGLE_REVIEW_TARGETS=str(targets)), capture_output=True)
++        assert result.returncode == 1, ('finding', index + 1, 'setup incorrectly satisfied RED')
++    # Setup errors must not satisfy any of the other RED modes either.
++    for mode in ['revocation', 'unpinned', 'draft-red', 'withdrawal-red', 'remaining-red', 'original', 'mailbox']:
++        result = subprocess.run(['sh', 'Tests/GoogleOptionCChecks.sh', mode, str(binary), str(root / ('setup-' + mode))],
++                                env=dict(os.environ, GOOGLE_REVIEW_HARNESS_CASE='setup'), capture_output=True)
++        assert result.returncode == 1, (mode, 'setup incorrectly satisfied RED')
++print('GOOGLE_RED_HARNESS_OK: exact named behavior and exit1; setup and broad prefixes rejected')

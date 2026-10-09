@@ -1,0 +1,4 @@
+original-parser negative-control exit=1
+fixed-parser controls exit=0
+original-parser-sha256=b54b91e1254b95077b45015c684c83098e2437f068444e8884b7fb321c206ad7
+matched-control-fixture-sha256=9526d3692e6f02df852f16947a663a2899d3373493a2ccbb6359b656879b05e9

@@ -35,11 +35,36 @@ run() {
             if [ "$code" != 1 ]; then echo "$name RED_REQUIRES_NATIVE_EXIT_1"; failed=1; fi
             case "$mode" in
                 review-red)
-                    for finding in 1 2 3 4 5 6; do
-                        if ! rg -q "^  FAIL R$finding " "$evidence/$name.log"; then
-                            echo "$name MISSING_TARGETED_ASSERTION_R$finding"; failed=1
+                    while IFS= read -r target; do
+                        if ! rg -q -F -x "  FAIL $target" "$evidence/$name.log"; then
+                            echo "$name MISSING_NAMED_BEHAVIORAL_ASSERTION: $target"; failed=1
                         fi
-                    done ;;
+                    done <<'TARGETS'
+R1 denied read never runs the runnable alternate login
+R2 after-token cancelled send has zero backing entries
+R3 outstanding old invalid_grant cannot delete a real successful reconnect
+R4 delayed 401 invalidates only rejected A and never cancels refresh B
+R5 probing planner excludes known missing Mail permission from allowed and selected tools
+R6 actual connect flow enables and lists Calendar only when granted (false)
+TARGETS
+                    ;;
+                remaining-red)
+                    while IFS= read -r target; do
+                        if ! rg -q -F -x "  FAIL $target" "$evidence/$name.log"; then
+                            echo "$name MISSING_NAMED_BEHAVIORAL_ASSERTION: $target"; failed=1
+                        fi
+                    done <<'TARGETS'
+R3 completed successful refresh refuses old token delivery to creator after reconnect
+R3 completed successful refresh refuses old token delivery to joining waiter after reconnect
+R3 successful creator delivery checks exact replaced record without actor invalidation
+R3 successful joining waiter delivery checks exact replaced record without actor invalidation
+R3 before-token grant replacement has zero executable backing entries
+R3 after-token grant replacement has zero executable backing entries
+R3 inside-spawn grant replacement has zero executable backing entries
+R6 connection controller withdrawal clears populated Calendar list while switching Calendar off
+R6 connection controller disconnect clears populated Calendar list even when already off
+TARGETS
+                    ;;
                 withdrawal-red) target='^  FAIL R6 withdrawn Calendar permission immediately clears actual cached calendars and upcoming events' ;;
                 revocation) target='^  FAIL a rejected client must not read as a revoked grant' ;;
                 unpinned) target='^  FAIL an unpinned alternate executable cannot receive the app token' ;;
@@ -47,7 +72,7 @@ run() {
                 draft-red) target='^  FAIL the cancelled shared-refresh caller never enters executable backing' ;;
                 original) target='^  FAIL the sign-in asks for the full Workspace set and nothing else' ;;
             esac
-            if [ "$mode" != review-red ] && ! rg -q "$target" "$evidence/$name.log"; then
+            if [ "$mode" != review-red ] && [ "$mode" != remaining-red ] && ! rg -q "$target" "$evidence/$name.log"; then
                 echo "$name MISSING_TARGETED_FAILING_ASSERTION"; failed=1
             fi
         fi ;;
@@ -68,7 +93,7 @@ green|restored)
     run ui-strings UI_STRINGS_OK --selftest-ui-strings
     run store-isolation STORE_ISOLATION_OK --selftest-store-isolation
     ;;
-revocation|unpinned|draft-red|review-red|withdrawal-red)
+revocation|unpinned|draft-red|review-red|withdrawal-red|remaining-red)
     run google-connect GOOGLE_CONNECT_FAILED --selftest-google-connect
     ;;
 mailbox)

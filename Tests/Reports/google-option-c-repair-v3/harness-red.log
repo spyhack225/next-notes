@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c/Tests/GoogleOptionCHarnessTest.py", line 52, in <module>
+    assert result.returncode == expected, (mode, case, result.returncode, 'setup failures must never satisfy RED')
+AssertionError: ('review-red', 'setup', 0, 'setup failures must never satisfy RED')

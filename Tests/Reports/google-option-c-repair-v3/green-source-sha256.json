@@ -1,0 +1,19 @@
+{
+  "Sources/NextNotes/Calendar/Google/GoogleScopeBoundarySelfTest.swift": "b25d6492072526a43532fee660b88afc714546b0ad4227fc67930c622d18b215",
+  "Sources/NextNotes/Calendar/Google/GoogleGrantReplacementSelfTest.swift": "9da47f201ad794179c789a67a1fb1391596fae9c56cd82c7081d7fb34a485be1",
+  "Sources/NextNotes/Calendar/Google/GoogleGrantReadSelfTest.swift": "bab45024f2e03772cf35e2758e9678f6524a3b5b61097179aede7c53d6619991",
+  "Sources/NextNotes/Calendar/Google/GoogleCalendarErrorSelfTest.swift": "1909bb6accd283f673874ff69048928c775c84e97a11d31df7ce3d4fa5b429f6",
+  "Sources/NextNotes/Calendar/Google/GoogleConcurrentRejectionSelfTest.swift": "177e0ee1f49cc39654c33e2cd89afa5b8f19f861fcd4c69a1b3ec261ae050e40",
+  "Sources/NextNotes/Calendar/Google/GoogleCalendarWithdrawalSelfTest.swift": "b0c2c095a3ef1f97a3217f9ddae8d32b2efa99ef36cc9351d09aad1dd43e0c2d",
+  "Sources/NextNotes/Calendar/Google/GoogleGrantLaunchSelfTest.swift": "fc159cc734063a46b356974a15c7ef54adab436431420381c37d99def80f22d9",
+  "Sources/NextNotes/Calendar/Google/GoogleProbingScopeSelfTest.swift": "e63a45ac76e9173555b3c688e9c2cf33746553f80d5bef9fd814449048594ca2",
+  "Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift": "961f729e93a2832c973e39e68a60cf0dc017359b761852b5ca6e14d6545dd6bc",
+  "Sources/NextNotes/Calendar/Google/GoogleCalendarScopeSelfTest.swift": "5ff5848c39f47454d74a277e6e4dc28f8afaaace9595568558fb0e90c3e8f2c5",
+  "Sources/NextNotes/Calendar/Google/GoogleLaunchCancellationSelfTest.swift": "7b6b996ea021682c2779379fbc4d9989ddf1e32afbc293d286450443bcf3d32f",
+  "Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift": "122800113ea4c947ee46d3fc3946b10ebff9c3bc0e466b4459764faf83d8f55c",
+  "Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift": "631a892e3a804b32ce8b79a6fc11c012fc551684c5f1881c86661f4908b00b2e",
+  "Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift": "c80db1ad108b0010e5e7ac6c1cfa71d52104074e8e20ffbf5c311deb287ddc4b",
+  "Sources/NextNotes/Calendar/Google/GoogleConnection.swift": "e1c4e7a2afe480efb137594f16c118739e1dc97d4ad13141924450e3bfb1d491",
+  "Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift": "222e54958ab46474bc0a4d88e2b142b6806f99a0bf07163ec2434117898f7c18",
+  "Sources/NextNotes/Calendar/CalendarService.swift": "f766c57c10a6cf0a339da3837a8673f3d5387c695948f9d1b9d21f8ab9b2e690"
+}

@@ -12,6 +12,7 @@ def check(label, content):
     print(label + '_OK')
 
 check('COMMITS_SECRET_SCAN', subprocess.check_output(['git', 'log', '-p', 'c6d850c..HEAD']).decode(errors='replace'))
+check('DIFF_SECRET_SCAN', subprocess.check_output(['git', 'diff', 'c6d850c']).decode(errors='replace'))
 paths = subprocess.check_output(['git', 'diff', '--name-only', 'c6d850c']).decode().splitlines()
 paths += subprocess.check_output(['git', 'ls-files', '--others', '--exclude-standard']).decode().splitlines()
 text = '\n'.join(Path(path).read_text(errors='replace') for path in paths
