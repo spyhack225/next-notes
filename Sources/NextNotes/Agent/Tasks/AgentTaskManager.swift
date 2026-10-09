@@ -569,7 +569,13 @@ final class AgentTaskManager {
         }
         let saved = updateWorker(captured, transitionThrough: status == .cancelled ? .cancelling : nil) { item in
             item.status = status
-            item.progress = status == .completed ? "Finished" : "Failed"
+            // An asynchronous Catch-up render can report absence before the
+            // written scheduled result commits. Preserve that existing notice.
+            let audioNotice = [AgentVoiceAvailability.needsDownload, .preparing(progress: nil), .failed]
+                .contains { $0.message == item.progress }
+            if status != .completed || !audioNotice {
+                item.progress = status == .completed ? "Finished" : "Failed"
+            }
             item.result = result
             item.failure = failure
         }

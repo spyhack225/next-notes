@@ -1,3 +1,4 @@
+import AVFoundation
 import Foundation
 import Observation
 
@@ -67,7 +68,7 @@ extension AgentSpeechBacking {
 
 /// A backing that can supply fresh same-token playback proof after resume.
 @MainActor
-protocol AgentReceiptSpeechBacking: AgentReplySpeechBacking {
+protocol AgentReceiptSpeechBacking: AgentSpeechBacking {
     var currentResumePhase: UInt64? { get }
     var onResumePlaybackAcknowledged: ((PCMResumePlaybackReceipt) -> Void)? { get set }
 }

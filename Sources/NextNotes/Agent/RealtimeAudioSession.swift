@@ -508,7 +508,8 @@ final class RealtimeAudioSession {
             // the active snapshot does not authorize replaying its old token.
             voiceShadowOutputAnnounced = false
             VoiceSession.shared.send(.playback(output.id,
-                actual.generation == output.generation ? .finished : .interrupted(byUser: RealtimeAgent.shared.voiceInputActive)))
+                actual.generation == output.generation && AgentSpeechSynthesizer.shared.outputAvailability == nil
+                    ? .finished : .interrupted(byUser: RealtimeAgent.shared.voiceInputActive)))
         } else { VoiceSession.shared.producerDidSettle() }
     }
 

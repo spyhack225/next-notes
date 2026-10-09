@@ -3,7 +3,7 @@ import Foundation
 /// Deterministic diagnostic only. Never opens an audio graph or synthesizes a voice.
 /// Enqueue, played notices and completion are independently advanced by the fixture.
 @MainActor
-final class PCMReceiptSpeechBacking: AgentReceiptSpeechBacking {
+final class PCMReceiptSpeechBacking: AgentReceiptSpeechBacking, AgentReplySpeechBacking {
     enum Event: Equatable {
         case enqueued(UInt64), played(PCMPlaybackNativeObservation), completed(UInt64)
         case paused(UInt64, UInt64), resumed(UInt64, UInt64), interrupted(UInt64)

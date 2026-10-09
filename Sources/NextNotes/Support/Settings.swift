@@ -856,8 +856,9 @@ final class Settings {
     /// Requested local voice. Readiness is owned by AgentSpeechSynthesizer.
     var agentVoiceEngine: String {
         didSet {
-            agentVoiceEngine = Self.normalizedAgentVoiceEngine(agentVoiceEngine)
-            defaults.set(agentVoiceEngine, forKey: Keys.agentVoiceEngine)
+            let normalized = Self.normalizedAgentVoiceEngine(agentVoiceEngine)
+            if agentVoiceEngine != normalized { agentVoiceEngine = normalized }
+            defaults.set(normalized, forKey: Keys.agentVoiceEngine)
         }
     }
 
