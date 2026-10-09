@@ -3,7 +3,6 @@ import SwiftUI
 /// The persistent agent: conversation, running tasks and the audit log — and, in their own
 /// panes, Ideas, Goals, Reminders, Activity and About (identity, SOUL, MEMORY).
 struct AgentView: View {
-    @Environment(\.openSettings) private var openSettings
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var navigation = NavigationState.shared
     @State private var session = AgentSession.shared
@@ -535,13 +534,7 @@ struct AgentView: View {
                     .padding(isUser ? DS.Space.m : 0)
                     .background(isUser ? DS.Color.accent.opacity(DS.Opacity.chipFill) : .clear,
                                 in: RoundedRectangle(cornerRadius: DS.Radius.card))
-                if !isUser, let line = message.speechDelivery?.availabilityMessage {
-                    Text(line)
-                        .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textSecondary)
-                    Button("Voice settings") { NavigationState.shared.selectedSettingsTab = .models; openSettings() }
-                        .buttonStyle(.plain)
-                }
+                if !isUser { VoiceTextOnlyNote(style: .pane(messageID: message.id)) }
             }
             .frame(maxWidth: DS.Size.agentBubbleMaxWidth, alignment: isUser ? .trailing : .leading)
             if !isUser { Spacer(minLength: DS.Space.xl) }
