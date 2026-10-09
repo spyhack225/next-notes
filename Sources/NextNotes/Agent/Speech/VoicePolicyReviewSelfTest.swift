@@ -33,6 +33,13 @@ enum VoicePolicyReviewSelfTest {
             _ = try await LongFormSynthesisFactory.live()(.init(text: "Explicit recovery allows the selected ready voice.", speaker: nil))
         } catch { failures.append("R2: ready control rejected") }
         if audioCalls != 1 { failures.append("R2: ready control entry count") }
+        LongFormSynthesisFactory.audioForTesting = { audioCalls += 1; throw ReviewFixtureError.unavailable }
+        do { _ = try await LongFormSynthesisFactory.live()(.init(text: "File voice fails once.", speaker: nil)) } catch { }
+        if synth.availability != .failed { failures.append("R2: file synthesis failure did not latch selected availability") }
+        let failedFileCalls = audioCalls
+        do { _ = try await LongFormSynthesisFactory.live()(.init(text: "Do not retry the failed file voice.", speaker: nil)) } catch { }
+        if audioCalls != failedFileCalls { failures.append("R2: subsequent Catch-up retried failed file synthesis") }
+        synth.setVoiceFailureForTesting(false)
         let failedOwner = PocketAgentVoice()
         var failedLoads = 0
         failedOwner.initializeForTesting = { failedLoads += 1; throw ReviewFixtureError.unavailable }
