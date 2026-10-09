@@ -42,7 +42,7 @@ enum GoogleGrantReadSelfTest {
                 "R1 denied read reaches actual source status and withholds every tool")
             let connection = GoogleConnection(dependencies: GoogleConnection.Dependencies(client: { nil },
                 signIn: { _ in throw GoogleCalendarError.notSignedIn }, ensureTool: {},
-                afterConnect: {}, disconnect: {}, workspace: { await runner.authState() }))
+                afterConnect: { _ in }, disconnect: {}, workspace: { await runner.authState() }))
             await connection.refresh()
             expect(connection.state == .failed(message) && connection.state.detail == message,
                 "R1 actual connection controller exposes saved-sign-in failure without preparing a tool")

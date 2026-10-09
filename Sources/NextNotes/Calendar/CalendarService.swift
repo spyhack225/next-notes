@@ -34,7 +34,7 @@ final class CalendarService {
     static let pollInterval: TimeInterval = 5 * 60
 
     private let eventKit = EventKitCalendarProvider()
-    private let google = GoogleCalendarProvider()
+    private let google: GoogleCalendarProvider
     private let fake: FakeCalendarProvider?
     private let providersForTesting: [any CalendarProvider]?
 
@@ -46,6 +46,7 @@ final class CalendarService {
     private var observers: [any NSObjectProtocol] = []
 
     private init() {
+        google = GoogleCalendarProvider()
         fake = FakeCalendarProvider.isEnabled ? FakeCalendarProvider() : nil
         providersForTesting = nil
     }
@@ -53,9 +54,17 @@ final class CalendarService {
     /// Runs the real refresh consumer over fixture-owned providers without reading
     /// configured accounts or publishing the fixture into the shared Agent context.
     init(providersForTesting: [any CalendarProvider]) {
+        google = GoogleCalendarProvider()
         precondition(GoogleCalendarErrorSelfTest.isRequested)
         fake = nil
         self.providersForTesting = providersForTesting
+    }
+
+    init(googleForTesting: GoogleCalendarProvider) {
+        precondition(GoogleAccessTokens.testHooksAdmitted)
+        google = googleForTesting
+        fake = nil
+        providersForTesting = [googleForTesting]
     }
 
     // MARK: - Lifecycle
@@ -212,15 +221,20 @@ final class CalendarService {
     @discardableResult
     func connectGoogle() async -> CalendarAuthorizationState {
         let settings = Settings.shared
-        await google.configure(
+        if providersForTesting == nil { await google.configure(
             clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
             clientSecret: GoogleAppClient.current?.clientSecret ?? settings.googleClientSecret,
             calendarIDs: settings.googleCalendarIDs
-        )
+        ) }
         let state = await google.authorize()
         providerStates[.google] = state
         if state.isAuthorized {
             await refreshGoogleCalendars()
+            await refresh()
+        } else if case .disabled = state {
+            // A successful replacement without Calendar also withdraws the old cached
+            // entries. The existing refresh skips this disabled provider before reads.
+            googleCalendars = []
             await refresh()
         }
         return state
@@ -235,7 +249,11 @@ final class CalendarService {
     }
 
     func refreshGoogleCalendars() async {
-        guard Settings.shared.calendarGoogleEnabled else { return }
+        guard providersForTesting != nil || Settings.shared.calendarGoogleEnabled else { return }
+        guard await google.authorizationState().isAuthorized else {
+            googleCalendars = []
+            return
+        }
         do {
             googleCalendars = try await google.calendars()
         } catch {

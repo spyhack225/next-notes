@@ -108,7 +108,7 @@ final class GoogleConnection {
         var signIn: @Sendable (GoogleAppClient) async throws -> GoogleOAuthClient.SignInResult
         var ensureTool: @Sendable () async throws -> Void
         /// Turns Calendar's Google reading on and re-reads everything that depends on the account.
-        var afterConnect: @Sendable () async -> Void
+        var afterConnect: @Sendable (Set<String>) async -> Void
         var disconnect: @Sendable () async -> Void
         var workspace: @Sendable () async -> WorkspaceAuthState
 
@@ -118,19 +118,21 @@ final class GoogleConnection {
                 try await GoogleOAuthClient.signIn(clientID: client.clientID, clientSecret: client.clientSecret)
             },
             ensureTool: { try await ManagedWorkspaceTool.install() },
-            afterConnect: {
-                await MainActor.run { Settings.shared.calendarGoogleEnabled = true }
+            afterConnect: { scopes in
+                await applyCalendarGrant(scopes, setEnabled: { enabled in
+                    await MainActor.run { Settings.shared.calendarGoogleEnabled = enabled }
+                }, refreshCalendars: { await CalendarService.shared.refreshGoogleCalendars() })
                 // Google's sign-in is the only way mail and calendar work on a Mac that has no
                 // Google account of its own; otherwise the choice stays where the person put it.
                 if await MacAccounts.shared.setup().accountFound == false {
                     await MainActor.run { Settings.shared.googleSource = .googleSignIn }
                 }
-                await GoogleAccessTokens.shared.invalidate()
                 await refreshEverythingThatReadsGoogle()
             },
             disconnect: {
                 if let token = GoogleTokenStore.refreshToken { await GoogleOAuthClient.revoke(refreshToken: token) }
                 await GoogleAccessTokens.shared.disconnectGrant()
+                await CalendarService.shared.refreshGoogleCalendars()
                 // Back to resolving from facts: this Mac, unless a `gws` sign-in still works.
                 await MainActor.run {
                     if Settings.shared.googleSource == .googleSignIn { Settings.shared.googleSource = nil }
@@ -140,6 +142,15 @@ final class GoogleConnection {
             workspace: { await GoogleWorkspaceCLI.shared.authState() }
         )
 
+        /// The existing connect consumer applies the returned grant before listing.
+        static func applyCalendarGrant(_ scopes: Set<String>,
+            setEnabled: @Sendable (Bool) async -> Void,
+            refreshCalendars: @Sendable () async -> Void) async {
+            let granted = GoogleScopes.coversCalendar(scopes)
+            await setEnabled(granted)
+            if granted { await refreshCalendars() }
+        }
+
         @MainActor
         private static func refreshEverythingThatReadsGoogle() async {
             GoogleSource.forget()
@@ -147,7 +158,6 @@ final class GoogleConnection {
             await GoogleWorkspaceCLI.shared.forgetAccountTag()
             AgentService.shared.invalidateStatus()
             await AgentService.shared.refreshStatus(force: true)
-            await CalendarService.shared.refreshGoogleCalendars()
             await CalendarService.shared.refresh()
         }
     }
@@ -197,7 +207,7 @@ final class GoogleConnection {
             transient = .gettingReady
             state = .gettingReady
             try await dependencies.ensureTool()
-            await dependencies.afterConnect()
+            await dependencies.afterConnect(result.grantedScopes)
             transient = nil
             state = Set(GoogleScopes.connect).isSubset(of: result.grantedScopes) ? .connected : .needsMoreAccess
             await refresh()
@@ -225,8 +235,8 @@ final class GoogleConnection {
             defer { preparing = false }
             do {
                 try await dependencies.ensureTool()
-                guard try GoogleTokenStore.savedGrant() != nil else { await refresh(); return }
-                await dependencies.afterConnect()
+                guard let grant = try GoogleTokenStore.savedGrant() else { await refresh(); return }
+                await dependencies.afterConnect(grant.scopes)
                 await refresh()
             } catch {
                 state = .failed(error.localizedDescription)

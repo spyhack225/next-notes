@@ -46,6 +46,8 @@ enum GoogleConnectSelfTest {
         await GoogleGrantReplacementSelfTest.run(expect)
         await GoogleConcurrentRejectionSelfTest.run(expect)
         await GoogleProbingScopeSelfTest.run(expect)
+        await GoogleCalendarScopeSelfTest.run(expect)
+        await GoogleCalendarWithdrawalSelfTest.run(expect)
 
         await GoogleAccessTokens.shared.invalidate()
         await GoogleAccessTokens.shared.useClient(nil)
@@ -255,7 +257,7 @@ enum GoogleConnectSelfTest {
                     return GoogleOAuthClient.SignInResult(refreshToken: "r", grantedScopes: Set(scopes))
                 },
                 ensureTool: { counter.hit("tool"); if let toolError { throw toolError } },
-                afterConnect: { counter.hit("after") },
+                afterConnect: { _ in counter.hit("after") },
                 disconnect: { counter.hit("disconnect"); GoogleTokenStore.clear(forgetSelection: true) },
                 workspace: { GoogleTokenStore.hasRefreshToken && GoogleScopes.coversWorkspace(GoogleTokenStore.grantedScopes)
                     ? .signedIn(method: "x") : .signedOut }))
@@ -516,6 +518,31 @@ enum GoogleConnectSelfTest {
         expect(connected?.grantedScopes == Set(GoogleScopes.connect) && GoogleTokenStore.hasRefreshToken,
             "R3 real sign-in returns a grant that is still stored after the old refresh settles")
         await shared.useRequestForTesting(nil)
+
+        // Native token exchange -> actual Calendar authorize/service/list consumers.
+        for mode in ["partial", "empty"] {
+            grantMode.value = mode
+            let requests = Counter()
+            let calendarBrowser = browser(code: "calendar-declined")
+            let provider = GoogleCalendarProvider(requestForTesting: { request in
+                requests.hit("network")
+                return GoogleReviewFixture.response(request, body: #"{"items":[]}"#)
+            }, refreshTokenForTesting: { GoogleTokenStore.refreshToken }, clearTokenForTesting: {},
+                grantedScopesForTesting: { GoogleTokenStore.grantedScopes }, signInForTesting: {
+                    _ = try await GoogleOAuthClient.signIn(clientID: client.clientID, clientSecret: client.clientSecret,
+                        endpoints: endpoints, openBrowser: calendarBrowser)
+                })
+            await provider.configure(clientID: client.clientID, clientSecret: client.clientSecret, calendarIDs: [])
+            let service = CalendarService(googleForTesting: provider)
+            let state = await service.connectGoogle()
+            expect(state == .disabled(GoogleCapability.calendar.permissionSentence),
+                "R6 actual \(mode) sign-in authorize reports declined Calendar")
+            _ = try? await provider.calendars()
+            await service.refreshGoogleCalendars()
+            expect(requests.count("network") == 0 && service.googleCalendars.isEmpty,
+                "R6 actual \(mode) exchange reaches Calendar consumers with zero network requests")
+        }
+        grantMode.value = ""
 
         // A forged redirect (another process feeding its own code) is refused.
         do {

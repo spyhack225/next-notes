@@ -21,18 +21,25 @@ actor GoogleCalendarProvider: CalendarProvider {
     private let requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
     private let refreshTokenForTesting: (@Sendable () -> String?)?
     private let tokens: GoogleAccessTokens
+    private let grantedScopesForTesting: (@Sendable () -> Set<String>)?
+    private let signInForTesting: (@Sendable () async throws -> Void)?
     private let clearTokenForTesting: (@Sendable () -> Void)?
 
     init(
         requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))? = nil,
         refreshTokenForTesting: (@Sendable () -> String?)? = nil,
-        clearTokenForTesting: (@Sendable () -> Void)? = nil
+        clearTokenForTesting: (@Sendable () -> Void)? = nil,
+        grantedScopesForTesting: (@Sendable () -> Set<String>)? = nil,
+        signInForTesting: (@Sendable () async throws -> Void)? = nil
     ) {
         let injected = requestForTesting != nil || refreshTokenForTesting != nil
             || clearTokenForTesting != nil
         precondition(!injected || ((GoogleCalendarErrorSelfTest.isRequested || GoogleAccessTokens.testHooksAdmitted)
             && requestForTesting != nil && refreshTokenForTesting != nil
             && clearTokenForTesting != nil))
+        precondition((grantedScopesForTesting == nil && signInForTesting == nil) || GoogleAccessTokens.testHooksAdmitted)
+        self.grantedScopesForTesting = grantedScopesForTesting
+        self.signInForTesting = signInForTesting
         self.requestForTesting = requestForTesting
         self.refreshTokenForTesting = refreshTokenForTesting
         self.clearTokenForTesting = clearTokenForTesting
@@ -63,7 +70,9 @@ actor GoogleCalendarProvider: CalendarProvider {
         }
         let refresh = refreshTokenForTesting?() ?? grant?.refreshToken
         guard refresh != nil else { return .needsAuthorization }
-        if refreshTokenForTesting == nil, !GoogleScopes.coversCalendar(grant?.scopes ?? []) {
+        let scopes = grantedScopesForTesting?() ?? (refreshTokenForTesting == nil
+            ? grant?.scopes ?? [] : [GoogleScopes.legacyCalendar])
+        if !GoogleScopes.coversCalendar(scopes) {
             return .disabled(GoogleCapability.calendar.permissionSentence)
         }
         return .authorized
@@ -72,10 +81,10 @@ actor GoogleCalendarProvider: CalendarProvider {
     @discardableResult
     func authorize() async -> CalendarAuthorizationState {
         do {
-            _ = try await GoogleOAuthClient.signIn(clientID: clientID, clientSecret: clientSecret)
-            await tokens.invalidate()
+            if let signInForTesting { try await signInForTesting() }
+            else { _ = try await GoogleOAuthClient.signIn(clientID: clientID, clientSecret: clientSecret) }
             Log.calendar.info("Google Calendar connected")
-            return .authorized
+            return authorizationState()
         } catch {
             Log.calendar.error("Google sign-in failed: \(error.localizedDescription, privacy: .public)")
             return .failed(error.localizedDescription)
@@ -90,6 +99,8 @@ actor GoogleCalendarProvider: CalendarProvider {
 
     /// The calendars on the account, for the checklist in Settings.
     func calendars() async throws -> [GoogleCalendarListEntry] {
+        // Declined Calendar means no token refresh and no Calendar API request.
+        guard authorizationState().isAuthorized else { return [] }
         let list: GoogleCalendarList = try await get(
             "https://www.googleapis.com/calendar/v3/users/me/calendarList"
         )
