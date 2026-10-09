@@ -133,6 +133,11 @@ final class OutputScheduler {
     var pendingCount: Int { queue.count }
     var activeOutputID: OutputID? { active?.id }
 
+    /// One audio-start owner for pre-rendered committed-turn acknowledgements too.
+    func acknowledgeCommitted(_ turn: TurnID, text: String, interaction: Bool) {
+        VoiceAcknowledgement.shared.commit(turn, text: text, interaction: interaction)
+    }
+
     /// Starts the existing streaming buffer synchronously; no model or audio wait.
     func beginAnswer(turn: TurnID?) -> OutputHandle {
         // Decide delivery priority before the SAME buffer's clear emits stop

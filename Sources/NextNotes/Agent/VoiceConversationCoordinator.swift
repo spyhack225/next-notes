@@ -530,6 +530,9 @@ final class VoiceConversationCoordinator {
         }
         voiceShadowResponse = (id, identity)
         VoiceSession.shared.send(.committed(identity, text: text))
+        OutputScheduler.shared.acknowledgeCommitted(identity, text: text,
+            interaction: pendingAction != nil || PermissionGate.shared.pending != nil
+                || taskBridge.liveVoiceTasks(owner: self).contains { $0.status == .waitingForInput })
         // A committed turn, not a partial: the watcher raises a card, and a card built from
         // a provisional is a card about words the user did not finish saying.
         FunctionCallWatcher.shared.noteUserTurn(text)

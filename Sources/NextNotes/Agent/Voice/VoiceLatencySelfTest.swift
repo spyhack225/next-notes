@@ -71,6 +71,11 @@ enum VoiceLatencySelfTest {
     }
 
     static func run() async -> Result {
+        if CommandLine.arguments.contains("--voice-latency-ack-policy") {
+            let problems = await VoiceAcknowledgementSelfTest.run()
+            for problem in problems { SelfTest.diagnostic("VOICE_ACK_WRONG: \(problem)") }
+            return (problems.isEmpty, problems.isEmpty ? "VOICE_ACK_OK" : "VOICE_ACK_FAILED")
+        }
         if CommandLine.arguments.contains("--voice-latency-output-proof") {
             // ASCII metadata only. 4,096 payload bytes cross stdout's buffered boundary;
             // the App writes the ordinary final marker through its production seam.
