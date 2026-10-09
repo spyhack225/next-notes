@@ -435,7 +435,7 @@ final class AgentSpeechSynthesizer {
     /// Barge-in / VAD / Stop. Immediate, not word-boundary. Clears every
     /// pending clause so mid-reply cut-off does not keep speaking the rest.
     /// Target <100 ms.
-    func stop() {
+    func stop(advanceGeneration: Bool = true) {
         setOutputGain(1)
         voiceResumePending = false
         voiceResumeBinding = nil
@@ -444,7 +444,7 @@ final class AgentSpeechSynthesizer {
         replyTokens.removeAll()
         replyOpen = false
         replyFinished = false
-        outputGeneration &+= 1
+        if advanceGeneration { outputGeneration &+= 1 }
         currentPlaybackToken = 0
         let hadPendingAudio = onFirstAudio != nil
         didStop = true
@@ -482,7 +482,7 @@ final class AgentSpeechSynthesizer {
 
     /// Self-test only. Restored by interrupt / stream self-tests so a later
     /// turn reselects the requested allowed voice.
-    func useTestingBacking(_ backing: any AgentSpeechBacking, fallback: (any AgentSpeechBacking)? = nil) {
+    func useTestingBacking(_ backing: any AgentSpeechBacking) {
         self.backing.stop()
         testingBacking = true
         self.backing = backing
@@ -496,6 +496,23 @@ final class AgentSpeechSynthesizer {
                 self?.fallbackCurrentClause(text: text, token: token)
             }
         }
+    }
+
+    /// Drive the real unavailable selector without a model load or saved choice.
+    func useUnavailableVoiceForTesting() {
+        guard SelfTest.isRunning else { return }
+        backing.stop()
+        testingBacking = false
+        engineOverrideForTesting = "pocket"
+        pocketReadinessForTesting = false
+        selectedVoiceFailed = false
+    }
+
+    func clearVoiceReadinessForTesting() {
+        guard SelfTest.isRunning else { return }
+        engineOverrideForTesting = nil
+        pocketReadinessForTesting = nil
+        kokoroReadinessForTesting = nil
     }
 
     /// Prepare the experimental Pocket source renderer for a probe session.
@@ -663,7 +680,7 @@ final class AgentSpeechSynthesizer {
         replyCanSpeak = false
         // Stop the existing producer. Completed clauses stay acknowledged; the
         // partial head and every remaining clause settle interrupted/unheard.
-        stop()
+        stop(advanceGeneration: false)
         RealtimeAudioSession.shared.noteOutputFinished()
     }
 
@@ -757,6 +774,7 @@ final class AgentSpeechSynthesizer {
             !pocketProbeRequested(requested: nil, arguments: [modifier])]
         guard scoped.allSatisfy({ $0 }) else { return ["suspend: Pocket probe escaped its exact diagnostic flags"] }
         return runFallbackSelfTest() + runPocketReadinessSelfTest()
+            + SettingsVoicePolicySelfTest.run() + AgentVoicePolicySelfTest.run()
     }
 
     private static func runPocketReadinessSelfTest() -> [String] {
@@ -784,6 +802,9 @@ final class AgentSpeechSynthesizer {
             || synth.outputAvailability == nil {
             failures.append("voice readiness: unavailable Pocket entered playback")
         }
+        if synth.unavailableBacking.attemptedSpeechCount != 0 {
+            failures.append("voice readiness: unavailable route invoked a speech backing")
+        }
         if events.contains(where: { if case .startAcknowledged = $0 { return true }; if case .completed = $0 { return true }; return false })
             || !events.contains(.interrupted("Written answer.", wasRendered: false)) {
             failures.append("voice readiness: written answer claimed playback or lost unheard receipt")
@@ -804,6 +825,7 @@ final class AgentSpeechSynthesizer {
         synth.speak("Legacy selection stays written.")
         if synth.backing !== synth.unavailableBacking || synth.isSpeaking { failures.append("voice readiness: legacy selection spoke") }
         if Settings.shared.agentVoiceEngine != savedPreference { failures.append("voice readiness: playback changed saved choice") }
+        SelfTest.diagnostic("VOICE_POLICY_ROUTE_COUNTS unavailable_backing_calls=\(synth.unavailableBacking.attemptedSpeechCount) ready_route_selected=true stale_answer_replayed=false")
         return failures
     }
 

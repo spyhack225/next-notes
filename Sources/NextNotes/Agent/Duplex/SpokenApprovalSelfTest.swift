@@ -112,7 +112,7 @@ enum SpokenApprovalSelfTest {
             AgentToolExecutor.fakeForTesting = nil; AgentToolExecutor.policyOverrideForTesting = .denyMutations
             AgentCapabilityManifestBuilder.inputsOverrideForTesting = RealtimeAgentToolLoopSelfTest.allEnabledFixture()
             PlannerBackends.wholeTurnOverrideForTesting = nil; ToolLoopLiveEval.needleFirstForTesting = false
-            for mode in ["yes", "unheard", "no", "hold", "card", "edited", "refused", "amend", "close", "mismatch", "staleCaller", "stalePresented", "staleHeard", "model-yes", "model-negative", "model-refused", "model-stale", "model-change"] {
+            for mode in ["yes", "unheard", "unavailableVoice", "failedVoice", "no", "hold", "card", "edited", "refused", "amend", "close", "mismatch", "staleCaller", "stalePresented", "staleHeard", "model-yes", "model-negative", "model-refused", "model-stale", "model-change"] {
                 let start = checks, problemsBefore = failures.count
                 currentMode = mode; staleAdvanced = false; staleBefore = nil; staleAfter = nil
                 let routeBefore = routeObservations, matchedBefore = matchedRoutes
@@ -232,13 +232,19 @@ enum SpokenApprovalSelfTest {
                 }
                 let firstApprovalOpportunity = Date().addingTimeInterval(2)
                 output.setNowForTesting(firstApprovalOpportunity)
+                let unheard = ["unheard", "unavailableVoice", "failedVoice"].contains(mode)
+                let failedPCM = PCMReceiptSpeechBacking()
+                if mode == "unavailableVoice" { synth.useUnavailableVoiceForTesting() }
+                if mode == "failedVoice" { synth.useTestingBacking(failedPCM) }
                 let flushed = output.flush(userHasFloor: false)
-                check(flushed && output.activeOutputID != nil && recorder.isSpeaking
+                check((mode == "unavailableVoice" ? !flushed && output.activeOutputID == nil
+                       : flushed && output.activeOutputID != nil && (recorder.isSpeaking || failedPCM.isSpeaking))
                     && bridge.pendingApproval(sessionID: session)?.request == request,
                     "F02 actual same-request priority prompt absent (\(mode))")
-                if mode != "unheard" { drain(synth, recorder, acknowledge: true) }
+                if mode == "failedVoice" { failedPCM.fail(synth.currentPlaybackToken) }
+                if !unheard { drain(synth, recorder, acknowledge: true) }
                 let heard = bridge.pendingApproval(sessionID: session)
-                check(mode == "unheard" ? heard?.heardStart == false : heard?.heardStart == true,
+                check(unheard ? heard?.heardStart == false : heard?.heardStart == true,
                     "F03 exact positive current-output onset not retained (\(mode))")
                 let before = try sql.load(), bytes = try Data(contentsOf: file), journal = try sql.journal(taskID: job.id.uuidString)
                 var reply = ""
@@ -403,6 +409,10 @@ enum SpokenApprovalSelfTest {
                 // Retire only the owned live job/task, then join it before any root removal.
                 if currentCapture()?.task != nil { _ = c.cancel(job.id) }
                 await state.release(); await task.value; owned = nil
+                if mode == "unavailableVoice" || mode == "failedVoice" {
+                    synth.clearVoiceReadinessForTesting()
+                    synth.useTestingBacking(recorder)
+                }
                 drain(synth, recorder, acknowledge: true)
                 if capture.isSessionActive { await capture.endSession(source: .done) }
                 c.resetForTesting(); _ = c.installTaskBridgeForTesting(nil)

@@ -118,6 +118,11 @@ final class PocketAgentVoice {
         isPreparing = true
         errorMessage = nil
         let pending = Task { @MainActor in
+            // Native diagnostics may use cached assets or report absence. They
+            // never start the normal first-launch download.
+            let priorOffline = ModelHub.offlineMode
+            if SelfTest.isRunning { ModelHub.offlineMode = true }
+            defer { if SelfTest.isRunning { ModelHub.offlineMode = priorOffline } }
             defer { terminationFixtureTrace?.taskEnded() }
             do {
                 try checkTerminationAdmission()

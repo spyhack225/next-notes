@@ -1,7 +1,7 @@
 import Foundation
 
 /// Off-source proposed common original/fixed fixture; commands remain shadow-only.
-/// Native cases use real Apple PCM, no notifyTestingFirstAudio or fake backing.
+/// Native cases use deterministic PCM receipts, no notifyTestingFirstAudio or fake backing.
 @MainActor
 enum VoicePlaybackProjectionSelfTest {
     private static func reached(_ predicate: @MainActor () -> Bool) async -> Bool {
@@ -21,7 +21,7 @@ enum VoicePlaybackProjectionSelfTest {
         let shadow = VoiceSession.shared
         guard !capture.isSessionActive, !speech.isSpeaking,
               !CommandLine.arguments.contains("--voice-pocket-source") else {
-            return "VOICE_PLAYBACK_PROJECTION_FAILED: isolated Apple playback required"
+            return "VOICE_PLAYBACK_PROJECTION_FAILED: isolated simulated PCM playback required"
         }
         let before = SelfTestStoreGuard.take()
         var failures: [String] = []
@@ -37,26 +37,27 @@ enum VoicePlaybackProjectionSelfTest {
         let oldPlayback = speech.onPlaybackEvent
         let oldSettled = speech.onVoiceLifecycleSettled
         defer {
+            speech.restoreSystemBacking()
             speech.engineOverrideForTesting = oldEngine
             speech.utteranceVolume = oldVolume
             capture.turnHandlerForTesting = oldTurnHandler
             speech.onPlaybackEvent = oldPlayback
             speech.onVoiceLifecycleSettled = oldSettled
         }
-        speech.restoreSystemBacking()
-        speech.engineOverrideForTesting = "apple"
+        let pcm = PCMReceiptSpeechBacking()
+        speech.useTestingBacking(pcm)
         var unexpectedTurns = 0
         capture.turnHandlerForTesting = { _ in unexpectedTurns += 1 }
         shadow.resetDiagnosticsForTesting()
         // One clause only: initial volume0 is captured by the actual backing before
         // RealtimeAudioSession's later enqueue projection updates future volume.
-        let clause = "This single silent Apple playback clause is deliberately long enough to "
-            + "observe its real played buffer acknowledgement and hold the same token before "
+        let clause = "This single silent simulated PCM playback clause is deliberately long enough to "
+            + "observe its simulated played-buffer acknowledgement and hold the same token before "
             + "the remaining queued audio has drained, without requesting any model or tool."
         for lateWhilePaused in [false, true] {
             await capture.beginSession(captureAudio: false)
             guard let captureID = capture.sessionID else {
-                failures.append("native: capture session did not open")
+                failures.append("fixture: capture session did not open")
                 await capture.endSession(source: .done)
                 continue
             }
@@ -71,7 +72,7 @@ enum VoicePlaybackProjectionSelfTest {
                 if case .startAcknowledged = event, !acknowledged {
                     acknowledgedToken = speech.currentPlaybackToken
                     if lateWhilePaused {
-                        // Intercept only the existing listener chain: actual Apple
+                        // Intercept only the existing listener chain: actual simulated PCM
                         // positive-buffer callback has arrived, but its existing
                         // consumer has not yet received it. No fabricated receipt.
                         capture.simulateCumulativeSpeech("Please stop speaking")
@@ -90,9 +91,10 @@ enum VoicePlaybackProjectionSelfTest {
             let token = speech.currentPlaybackToken
             let generation = speech.outputGeneration
             check(output != nil && shadow.state.output?.status == .queued && !acknowledged,
-                  "native: enqueue supplied speaking evidence before Apple PCM")
+                  "fixture: enqueue supplied speaking evidence before simulated PCM PCM")
+            pcm.deliverPlayed(pcm.packet(token: token))
             guard await reached({ acknowledged || !speech.isSpeaking }) && acknowledged else {
-                failures.append("native: actual Apple positive playback callback absent")
+                failures.append("fixture: actual simulated PCM positive playback callback absent")
                 audio.noteUserSpeech()
                 await capture.endSession(source: .done)
                 speech.onPlaybackEvent = prior
@@ -100,42 +102,42 @@ enum VoicePlaybackProjectionSelfTest {
             }
             check(acknowledgedToken == token && speech.outputGeneration == generation
                   && shadow.state.output?.id == output && shadow.state.output?.heard == true,
-                  "native: actual callback lost current token/generation/output played fact")
+                  "fixture: actual callback lost current token/generation/output played fact")
             if lateWhilePaused {
                 check(pausedBeforeForward && speech.isPausedForListening,
-                      "native: late callback case did not pass through real confirmed pause")
+                      "fixture: late callback case did not pass through real confirmed pause")
                 check(shadow.state.output?.status == .paused && shadow.state.island == .listening
                       && audio.voiceShadowOutputSnapshot == shadow.state.output,
-                      "native: late actual acknowledgement undid queued pause or presented speaking")
+                      "fixture: late actual acknowledgement undid queued pause or presented speaking")
             } else {
                 check(shadow.state.output?.status == .playing && shadow.state.island == .speaking,
-                      "native: actual played callback did not produce initial speaking shadow")
+                      "fixture: actual played callback did not produce initial speaking shadow")
                 capture.simulateCumulativeSpeech("Please stop speaking")
                 check(speech.isPausedForListening && shadow.state.output?.status == .paused
                       && shadow.state.island == .listening
                       && audio.voiceShadowOutputSnapshot == shadow.state.output,
-                      "native: actual confirmed playing pause retained speaking projection")
+                      "fixture: actual confirmed playing pause retained speaking projection")
             }
             check(speech.currentPlaybackToken == token && speech.outputGeneration == generation,
-                  "native: provisional pause cancelled/replaced current playback")
+                  "fixture: provisional pause cancelled/replaced current playback")
             check(!audio.pauseForListening(captureID: UUID()),
-                  "native: wrong capture acquired existing listening hold")
+                  "fixture: wrong capture acquired existing listening hold")
             audio.noteUserSpeech()
             check(shadow.state.output == nil && audio.voiceShadowOutputSnapshot == nil
                   && shadow.state.island == .listening,
-                  "native: actual matched interruption retained speaking shadow")
+                  "fixture: actual matched interruption retained speaking shadow")
             await Task.yield()
             check(shadow.divergenceCount == 0,
-                  "native: actual output/floor/effect/turn producer diverged from shadow")
-            SelfTest.diagnostic("VOICE_PLAYBACK_PROJECTION_NATIVE: lateWhilePaused=\(lateWhilePaused) acknowledged=\(acknowledged) pausedBeforeForward=\(pausedBeforeForward) outputMatched=\(output != nil) token=\(token) generation=\(generation) divergences=\(shadow.divergenceCount)")
+                  "fixture: actual output/floor/effect/turn producer diverged from shadow")
+            SelfTest.diagnostic("VOICE_PLAYBACK_PROJECTION_PCM_FAKE: lateWhilePaused=\(lateWhilePaused) acknowledged=\(acknowledged) pausedBeforeForward=\(pausedBeforeForward) outputMatched=\(output != nil) token=\(token) generation=\(generation) divergences=\(shadow.divergenceCount)")
             await capture.endSession(source: .done)
             speech.onPlaybackEvent = prior
             check(shadow.state.phase == .closed && shadow.state.output == nil,
-                  "native: session close retained current output")
+                  "fixture: session close retained current output")
         }
-        check(unexpectedTurns == 0, "native: capture fixture dispatched an unexpected model turn")
+        check(unexpectedTurns == 0, "fixture: capture fixture dispatched an unexpected model turn")
         check(SelfTestStoreGuard.diff(before, SelfTestStoreGuard.take()).isEmpty,
-              "native: fixture changed owner stores or defaults")
+              "fixture: fixture changed owner stores or defaults")
         for failure in failures { SelfTest.diagnostic("VOICE_PLAYBACK_PROJECTION_WRONG: " + failure) }
         return failures.isEmpty && !SelfTest.failed
             ? "VOICE_PLAYBACK_PROJECTION_OK: \(checks) checks"

@@ -39,6 +39,9 @@ final class KokoroAgentVoice {
         }
         isPreparing = true
         errorMessage = nil
+        let priorOffline = ModelHub.offlineMode
+        if SelfTest.isRunning { ModelHub.offlineMode = true }
+        defer { if SelfTest.isRunning { ModelHub.offlineMode = priorOffline } }
         defer { isPreparing = false }
         do {
             try await manager.initialize()

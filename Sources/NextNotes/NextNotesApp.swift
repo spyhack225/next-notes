@@ -7551,6 +7551,7 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
         Task { @MainActor in
             var failures = SettingsTab.catalogFailures()
             failures.append(contentsOf: Settings.shared.harnessPreferenceFailures())
+            failures.append(contentsOf: SettingsVoicePolicySelfTest.run())
             failures.append(contentsOf: SettingsTab.renderFailures(controller: controller))
             for tab in SettingsTab.allCases {
                 let titleSpaces = SettingsTab.spaceCount(in: tab.title)

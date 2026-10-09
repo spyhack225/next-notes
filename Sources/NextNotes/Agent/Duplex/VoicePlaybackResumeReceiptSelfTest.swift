@@ -1,6 +1,6 @@
 import Foundation
 
-/// Proposed original/fixed real Apple regression. No synthetic first-audio callback.
+/// Proposed original/fixed simulated PCM regression. Uses explicit deterministic played events; no simulated playback claim.
 /// This intentionally fails the current missing post-resume contract; it does not
 /// equate a later buffer callback's arrival with samples played after the pause.
 @MainActor
@@ -22,7 +22,7 @@ enum VoicePlaybackResumeReceiptSelfTest {
         let shadow = VoiceSession.shared
         guard !capture.isSessionActive, !speech.isSpeaking,
               !CommandLine.arguments.contains("--voice-pocket-source") else {
-            return "VOICE_PLAYBACK_RESUME_RECEIPT_FAILED: isolated Apple playback required"
+            return "VOICE_PLAYBACK_RESUME_RECEIPT_FAILED: isolated simulated PCM playback required"
         }
         let before = SelfTestStoreGuard.take()
         let oldEngine = speech.engineOverrideForTesting
@@ -39,6 +39,7 @@ enum VoicePlaybackResumeReceiptSelfTest {
             if !value { failures.append(label) }
         }
         defer {
+            speech.restoreSystemBacking()
             speech.engineOverrideForTesting = oldEngine
             speech.utteranceVolume = oldVolume
             capture.turnHandlerForTesting = oldTurnHandler
@@ -46,11 +47,11 @@ enum VoicePlaybackResumeReceiptSelfTest {
             speech.onVoiceLifecycleSettled = oldSettled
             audio.voiceResumeObserverForTesting = oldResumeObserver
         }
-        speech.restoreSystemBacking()
-        speech.engineOverrideForTesting = "apple"
+        let pcm = PCMReceiptSpeechBacking()
+        speech.useTestingBacking(pcm)
         capture.turnHandlerForTesting = { _ in unexpectedTurns += 1 }
-        let clause = "This single Apple playback clause remains deliberately long enough to "
-            + "pause its real native playback, classify a harmless backchannel through the "
+        let clause = "This single simulated PCM playback clause remains deliberately long enough to "
+            + "pause its simulated playback, classify a harmless backchannel through the "
             + "actual capture endpoint, and resume the exact same output without starting "
             + "another model, tool, voice preference, or audio capture session."
 
@@ -64,7 +65,7 @@ enum VoicePlaybackResumeReceiptSelfTest {
             }
             capture.simulateCumulativeSpeech("Um")
             let prior = speech.onPlaybackEvent
-            var nativeOnsets = 0
+            var simulatedOnsets = 0
             var deliveredOnsets = 0
             var retained: AgentSpeechSynthesizer.PlaybackEvent?
             var callbackToken: UInt64?
@@ -74,7 +75,7 @@ enum VoicePlaybackResumeReceiptSelfTest {
             var afterOldIsland = "unobserved"
             speech.onPlaybackEvent = { event in
                 if case .startAcknowledged = event {
-                    nativeOnsets += 1
+                    simulatedOnsets += 1
                     callbackToken = speech.currentPlaybackToken
                     if holdOldReceipt && retained == nil {
                         retained = event // exact actual event; never reconstruct its text
@@ -91,17 +92,18 @@ enum VoicePlaybackResumeReceiptSelfTest {
             let output = shadow.state.output?.id
             let token = speech.currentPlaybackToken
             let generation = speech.outputGeneration
-            check(output != nil && shadow.state.output?.status == .queued && nativeOnsets == 0,
-                  "CONTROL: enqueue did not precede actual native onset")
-            guard await reached({ nativeOnsets > 0 || !speech.isSpeaking }), nativeOnsets == 1 else {
-                failures.append("INPUT: one real Apple positive-buffer onset required")
+            check(output != nil && shadow.state.output?.status == .queued && simulatedOnsets == 0,
+                  "CONTROL: enqueue did not precede simulated onset")
+            pcm.deliverPlayed(pcm.packet(token: token))
+            guard await reached({ simulatedOnsets > 0 || !speech.isSpeaking }), simulatedOnsets == 1 else {
+                failures.append("INPUT: one simulated PCM positive-buffer onset required")
                 audio.noteUserSpeech()
                 await capture.endSession(source: .done)
                 speech.onPlaybackEvent = prior
                 continue
             }
             check(callbackToken == token && speech.outputGeneration == generation,
-                  "CONTROL: native onset did not retain current token/generation")
+                  "CONTROL: simulated onset did not retain current token/generation")
             check(holdOldReceipt ? (retained != nil && deliveredOnsets == 0)
                                  : (retained == nil && deliveredOnsets == 1),
                   "CONTROL: real listener barrier failed")
@@ -122,7 +124,7 @@ enum VoicePlaybackResumeReceiptSelfTest {
                 // receipt can race these verdicts. This does not pause playback.
                 resumeShadowStatus = String(describing: shadow.state.output?.status)
                 resumeLegacyStatus = String(describing: audio.voiceShadowOutputSnapshot?.status)
-                check(nativeOnsets == 1 && deliveredOnsets == (holdOldReceipt ? 0 : 1),
+                check(simulatedOnsets == 1 && deliveredOnsets == (holdOldReceipt ? 0 : 1),
                       "CONTROL: unexpected new onset before synchronous resume verdict")
                 check(shadow.state.output?.status != .playing,
                       "TARGET R01: inputDiscarded promoted historical evidence before a fresh resume receipt")
@@ -135,7 +137,7 @@ enum VoicePlaybackResumeReceiptSelfTest {
                     deliveredOnsets += 1
                     retained = nil
                     check(shadow.state.output?.status != .playing && shadow.state.island != .speaking,
-                          "TARGET R03: old native onset crossed resume and manufactured speaking")
+                          "TARGET R03: old simulated onset crossed resume and manufactured speaking")
                 } else {
                     check(shadow.state.output?.heard == true,
                           "CONTROL: resume discarded historical played evidence")
@@ -153,7 +155,7 @@ enum VoicePlaybackResumeReceiptSelfTest {
             check(speech.isSpeaking && speech.currentPlaybackToken == token
                   && shadow.state.output?.id == output,
                   "CONTROL: clause naturally drained before bounded resume verdict")
-            SelfTest.diagnostic("VOICE_PLAYBACK_RESUME_RECEIPT_NATIVE: heldOld=\(holdOldReceipt) nativeOnsets=\(nativeOnsets) deliveredOnsets=\(deliveredOnsets) token=\(token) generation=\(generation) discarded=\(discarded) observedResumes=\(observedResumes) resumeShadowStatus=\(resumeShadowStatus) resumeLegacyStatus=\(resumeLegacyStatus) afterOldIsland=\(afterOldIsland) shadowStatus=\(String(describing: shadow.state.output?.status)) shadowIsland=\(shadow.state.island) legacyStatus=\(String(describing: audio.voiceShadowOutputSnapshot?.status)) divergences=\(shadow.divergenceCount)")
+            SelfTest.diagnostic("VOICE_PLAYBACK_RESUME_RECEIPT_PCM_FAKE: heldOld=\(holdOldReceipt) simulatedOnsets=\(simulatedOnsets) deliveredOnsets=\(deliveredOnsets) token=\(token) generation=\(generation) discarded=\(discarded) observedResumes=\(observedResumes) resumeShadowStatus=\(resumeShadowStatus) resumeLegacyStatus=\(resumeLegacyStatus) afterOldIsland=\(afterOldIsland) shadowStatus=\(String(describing: shadow.state.output?.status)) shadowIsland=\(shadow.state.island) legacyStatus=\(String(describing: audio.voiceShadowOutputSnapshot?.status)) divergences=\(shadow.divergenceCount)")
             audio.noteUserSpeech()
             await capture.endSession(source: .done)
             speech.onPlaybackEvent = prior

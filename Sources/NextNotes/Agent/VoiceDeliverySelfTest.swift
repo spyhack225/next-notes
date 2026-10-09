@@ -190,10 +190,9 @@ enum VoiceDeliverySelfTest {
         backing.complete(successor)
         check(!backing.isSpeaking && synth.pendingClauseCount == 0, "one-shot did not drain")
 
-        // Actual reply failure names the existing head token, not a second text copy.
-        // Retire only a partially played head; untouched successors remain eligible.
-        let safe = RecordingSpeechBacking()
-        synth.useTestingBacking(backing, fallback: safe)
+        // Actual reply failure stops the selected producer; nothing switches voice.
+        // Completed facts remain; partially played and untouched facts are unheard.
+        synth.useTestingBacking(backing)
         synth.speak(full)
         events = []
         let first = synth.currentPlaybackToken
@@ -205,81 +204,39 @@ enum VoiceDeliverySelfTest {
         let beforeFailure = events
         backing.onFailure?("", 0, partial &+ 1)
         backing.onFailure?("", 0, first)
-        check(events == beforeFailure && safe.spoken.isEmpty && synth.currentPlaybackToken == partial,
+        check(events == beforeFailure && synth.currentPlaybackToken == partial,
               "future or completed-head failure changed the current reply")
-        backing.stop() // Production failure stops native playback before delivering this receipt.
         backing.onFailure?("", 0, partial)
+        let settled = events
         backing.onFailure?("", 0, partial)
-        check(synth.isPausedForListening && safe.spoken.isEmpty,
-              "partial failure spoke through pause or duplicate receipt")
-        check(events.filter { if case .interrupted = $0 { return true }; return false }
-              == [.interrupted(clauses[1], wasRendered: true)],
-              "partial failure interrupted untouched successors or failed to retire only its head")
-        synth.resumeAfterListening()
-        check(safe.spoken == [clauses[2]] && synth.currentPlaybackToken != partial,
-              "partial fallback replayed completed/started text or lost untouched successor")
-        let fallbackToken = synth.currentPlaybackToken
-        let fallbackEvents = events
         backing.onUtteranceStarted?(partial)
         backing.onUtteranceFinished?(partial)
-        check(events == fallbackEvents && synth.currentPlaybackToken == fallbackToken,
-              "late native callback retired fallback successor")
-        synth.notifyTestingFirstAudio(token: fallbackToken)
-        synth.notifyTestingAudioFinished(token: fallbackToken)
-        check(events.filter { if case .completed = $0 { return true }; return false }
-              == [.completed(clauses[0]), .completed(clauses[2])],
-              "fallback completion blessed partially played text or changed exact completed ledger")
-        // A late completion promotes an already submitted native head even while
-        // its player remains paused, so a failure cannot strand that successor.
-        synth.useTestingBacking(backing, fallback: safe)
-        let startIndex = backing.submitted.count
-        synth.prepareForStream()
-        synth.enqueueClause(clauses[0])
-        synth.enqueueClause(clauses[1])
-        let heldHead = synth.currentPlaybackToken
-        synth.pauseForListening()
-        backing.complete(heldHead)
-        synth.enqueueClause(clauses[2])
-        if let queued = backing.submitted.dropFirst(startIndex).dropFirst().first {
-            check(synth.isPausedForListening && synth.currentPlaybackToken == queued.token,
-                  "paused completion lost the already submitted successor identity")
-            let spokenBefore = safe.spoken.count
-            backing.stop()
-            backing.onFailure?("", 0, queued.token)
-            check(synth.isPausedForListening && safe.spoken.count == spokenBefore,
-                  "unrendered queued failure played through pause")
-            synth.resumeAfterListening()
-            check(Array(safe.spoken.dropFirst(spokenBefore)) == [clauses[1]],
-                  "queued failure was lost or resumed the wrong clause")
-            synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
-            synth.notifyTestingAudioFinished(token: synth.currentPlaybackToken)
-            check(Array(safe.spoken.dropFirst(spokenBefore)) == Array(clauses.dropFirst()),
-                  "paused append displaced or replayed an older successor")
-            synth.notifyTestingFirstAudio(token: synth.currentPlaybackToken)
-            synth.notifyTestingAudioFinished(token: synth.currentPlaybackToken)
-        } else {
-            failures.append("reply pipeline: missing actual submitted successor for paused failure")
-        }
-        synth.stop()
-
-        // After a rendered final head fails, late text still cannot play through pause.
-        synth.useTestingBacking(backing, fallback: safe)
-        synth.prepareForStream()
-        synth.enqueueClause(clauses[0])
-        let finalHead = synth.currentPlaybackToken
-        backing.onUtteranceStarted?(finalHead)
-        synth.pauseForListening()
-        backing.stop()
-        backing.onFailure?("", 0, finalHead)
-        let spokenBeforeAppend = safe.spoken.count
-        let nativeBeforeAppend = backing.submitted.count
-        synth.enqueueClause(clauses[1])
-        check(safe.spoken.count == spokenBeforeAppend && backing.submitted.count == nativeBeforeAppend
-              && synth.isPausedForListening,
-              "late fallback text played through pause")
         synth.resumeAfterListening()
-        check(Array(safe.spoken.dropFirst(spokenBeforeAppend)) == [clauses[1]],
-              "late fallback text was lost or replayed the rendered head")
+        check(synth.didStop && !synth.isSpeaking && synth.pendingClauseCount == 0,
+              "failed reply retained playback or pending clauses")
+        check(events == settled && synth.outputAvailability == .failed,
+              "stale callback changed failed output or failure was invisible")
+        check(events.contains(.interrupted(clauses[1], wasRendered: true))
+              && events.contains(.interrupted(clauses[2], wasRendered: false)),
+              "failure lost the partial versus untouched receipts")
+        check(events.filter { if case .completed = $0 { return true }; return false }
+              == [.completed(clauses[0])], "failure blessed unfinished clauses")
+        // A paused completion already promoted the submitted head. A failure
+        // must settle that exact successor and late text must never restart it.
+        synth.useTestingBacking(backing)
+        synth.prepareForStream()
+        synth.enqueueClause(clauses[0]); synth.enqueueClause(clauses[1])
+        let heldHead = synth.currentPlaybackToken
+        synth.pauseForListening(); backing.complete(heldHead)
+        synth.enqueueClause(clauses[2])
+        let queued = synth.currentPlaybackToken
+        check(queued != heldHead && synth.isPausedForListening, "paused completion lost submitted successor")
+        let submissions = backing.submitted.count
+        backing.onFailure?("", 0, queued)
+        synth.enqueueClause("Late text remains written.")
+        synth.resumeAfterListening()
+        check(synth.didStop && !synth.isSpeaking && backing.submitted.count == submissions
+              && synth.pendingClauseCount == 0, "queued failure or late text restarted playback")
         synth.stop()
         await capture.endSession(source: .done)
         return failures

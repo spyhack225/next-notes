@@ -369,6 +369,7 @@ enum AgentSpeechPolicy {
         var failures = policyFailures()
         failures += AgentSpeechSynthesizer.runInterruptSelfTest()
         failures += AgentSpeechSynthesizer.runStreamSelfTest()
+        failures += AgentSpeechSynthesizer.runSuspendSelfTest()
         if failures.isEmpty {
             print("TTS_OK")
             return true
