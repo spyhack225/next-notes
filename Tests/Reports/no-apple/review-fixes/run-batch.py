@@ -1,0 +1,58 @@
+from pathlib import Path
+import subprocess, tempfile, os, json, re, hashlib, shutil
+root=Path(__file__).resolve().parents[4]
+report=Path(__file__).resolve().parent
+scratch=Path.home()/'Library/Caches/NextNotesBuild/wt-scratch/no-apple'
+work=Path(tempfile.mkdtemp(prefix='NextNotes-no-apple-review-'))
+control=work/'control';os.mkfifo(control)
+print('SLOT_CONTROL '+str(control),flush=True)
+results=[]
+def run(name,args):
+    log=report/(name+'.log')
+    with log.open('w') as out:
+        try: p=subprocess.run(args,cwd=root,stdout=out,stderr=subprocess.STDOUT,timeout=900)
+        except subprocess.TimeoutExpired:
+            results.append(dict(name=name,exit='timeout')); save();return False
+    text=log.read_text(errors='replace')
+    outfile=work/(name+'.log')
+    if outfile.exists():
+        text=outfile.read_text(errors='replace');(report/(name+'-selftest.log')).write_text(text)
+    markers=[x for x in text.splitlines() if re.match(r'^[A-Z][A-Z0-9_]*_(?:OK|FAILED|ABSENT)(?::|$)',x)]
+    item=dict(name=name,exit=p.returncode,marker=markers[-1] if markers else 'NO_FINAL_MARKER')
+    results.append(item);save();print(json.dumps(item),flush=True)
+    return p.returncode==0
+
+def save(): (report/'checks.json').write_text(json.dumps(results,indent=2)+'\n')
+def command():
+    print('WAITING_FOR_SLOT_COMMAND',flush=True)
+    with control.open() as f:return f.readline().strip()
+def build(name):
+    return run(name,['swift','build','-c','debug','-j','2','--scratch-path',str(scratch)])
+def check(name,flag,args=[]):
+    return run(name,[str(scratch/'debug/NextNotes'),'--selftest-'+flag,*args,'--selftest-out',str(work/(name+'.log'))])
+try:
+    run('webrtc-build',['make','webrtc-audio'])
+    if not build('red-build'):
+        while command()=='retry':
+            if build('red-build-retry'):break
+        else:raise SystemExit(1)
+    binary=scratch/'debug/NextNotes'
+    def pin(name):
+        (report/(name+'.json')).write_text(json.dumps(dict(sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),diff=subprocess.check_output(['git','diff','--stat'],cwd=root,text=True),sources={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'Sources').rglob('*') if p.is_file()}),indent=2)+'\n')
+    pin('red-pin'); check('producer-red','tts',['--voice-policy-review'])
+    if command()!='green':raise SystemExit(1)
+    while not build('green-build'):
+        if command()!='retry':raise SystemExit(1)
+    pin('green-pin'); check('producer-green','tts',['--voice-policy-review'])
+    for flag in ['tts','tts-stream','voice-conversation','voice-delivery','voice-scheduling','duplex','concurrent-voice','voice-turn-routing','catch-up','settings','ui-strings','store-isolation','voice-playback-projection','voice-playback-resume-receipt','apple-resume-owner','apple-playback-timeline','task-authority','residency','scheduler']:
+        check(flag,flag)
+    print('NO_APPLE_REVIEW_BATCH_FINISHED',flush=True)
+    while True:
+        cmd=command()
+        if cmd=='finish':break
+        if cmd.startswith('rebuild '):
+            if not build('green-build-retry'):continue
+            pin('green-retry-pin')
+            for flag in cmd[8:].split(','):check(flag+'-retry',flag,['--voice-policy-review'] if flag=='tts' else [])
+    raise SystemExit(1 if any(x['exit']!=0 for x in results if x['name']!='producer-red') else 0)
+finally: shutil.rmtree(work)

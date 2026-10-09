@@ -105,6 +105,13 @@ final class AgentSpeechSynthesizer {
     }
     static let shared = AgentSpeechSynthesizer()
 
+    // RED scaffold: the original route exposed no receipt capability contract.
+    var supportsQualifiedResumeReceipt: Bool? { nil }
+    var speechSynthesisCallsForTesting: Int { 0 }
+    func setVoiceFailureForTesting(_ failed: Bool) {
+        guard SelfTest.isRunning else { return }
+        selectedVoiceFailed = failed
+    }
     private var selectedVoiceFailed = false
     private var launchPreparationStarted = false
     /// Settings and reply presentation observe the same existing voice owner.
