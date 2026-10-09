@@ -45,6 +45,7 @@ enum GoogleConnectSelfTest {
         await GoogleLaunchCancellationSelfTest.run(expect)
         await GoogleGrantReplacementSelfTest.run(expect)
         await GoogleConcurrentRejectionSelfTest.run(expect)
+        await GoogleProbingScopeSelfTest.run(expect)
 
         await GoogleAccessTokens.shared.invalidate()
         await GoogleAccessTokens.shared.useClient(nil)

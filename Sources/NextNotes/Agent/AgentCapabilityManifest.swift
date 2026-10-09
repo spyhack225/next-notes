@@ -489,7 +489,7 @@ struct AgentCapabilityInputs: Sendable {
     }
 
     @MainActor
-    static func live(reader: AgentCapabilityManifest.Reader) -> AgentCapabilityInputs {
+    static func live(reader: AgentCapabilityManifest.Reader, service: AgentService = .shared) -> AgentCapabilityInputs {
         // The production planner builds from these inputs, not Runtime.current.
         // Keep a fixture turn independent of this Mac's grants and account state.
         if SelfTest.isRunning,
@@ -497,7 +497,6 @@ struct AgentCapabilityInputs: Sendable {
             fixture.reader = reader
             return fixture
         }
-        let service = AgentService.shared
         let workspace: VoiceCapabilitySnapshot.WorkspaceStatus
         if service.isProbing {
             workspace = .checking
@@ -1006,9 +1005,9 @@ enum AgentCapabilityManifestBuilder {
     ) -> AgentCapabilityManifest.Readiness {
         switch tool.namespace {
         case .workspace:
+            if let gap = inputs.workspaceGaps[tool.id] { return .needsSetup(gap) }
             switch inputs.workspace {
             case .signedIn:
-                if let gap = inputs.workspaceGaps[tool.id] { return .needsSetup(gap) }
                 return .ready
             case .unknown, .checking: return .ready
             case .notInstalled, .needsOAuthClient, .signedOut, .failed:
