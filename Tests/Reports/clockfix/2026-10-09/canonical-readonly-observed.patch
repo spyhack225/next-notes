@@ -1,0 +1,93 @@
+diff --git a/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift b/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift
+index 782241eb..21eed4b1 100644
+--- a/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift
++++ b/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift
+@@ -81,7 +81,13 @@ final class ToolStepRunner: ToolStepExecuting {
+     private let maxRepairs: Int
+     private let window: Int
+     private var provider: any LLMProvider
+-    private var completedCalls: Set<String> = []
++    // The same turn bookkeeping distinguishes an executed signature from immutable
++    // native READ evidence admitted by recovery. Reusing that evidence is not a repair.
++    private enum CompletedCall {
++        case executed
++        case recoveredRead(String)
++    }
++    private var completedCalls: [String: CompletedCall] = [:]
+     private var repeatedSignatures = 0
+ 
+     // MARK: The turn's bookkeeping, which the loop reads
+@@ -201,10 +207,17 @@ final class ToolStepRunner: ToolStepExecuting {
+     /// A direct shortcut completed legally before the user corrected the objective.
+     /// Seed this runner's existing structures so the corrected plan carries its
+     /// evidence and cannot replay the same requested effect.
+-    func seedCompletedDirectCall(_ tool: String, arguments: [String: String], output: String) {
++    func seedCompletedDirectCall(
++        _ tool: String, arguments: [String: String], output: String, recoveredRead: Bool = false
++    ) {
+         let signature = tool + "|" + arguments.keys.sorted()
+             .map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: "|")
+-        guard completedCalls.insert(signature).inserted else { return }
++        guard completedCalls[signature] == nil else { return }
++        if recoveredRead, tool == "filesystem.read" {
++            completedCalls[signature] = .recoveredRead(output)
++        } else {
++            completedCalls[signature] = .executed
++        }
+         callsUsed += 1
+         completedToolIDs.append(tool)
+         lastVerifiedResult = output
+@@ -264,8 +277,7 @@ final class ToolStepRunner: ToolStepExecuting {
+         }
+         // Bound by this code, not taken from the model: what the user said this turn.
+         let arguments = AgentToolLoop.groundedArguments(
+-            for: canonicalID, proposed: call.arguments, request: request,
+-            now: SelfTest.fixtureClock ?? Date())
++            for: canonicalID, proposed: call.arguments, request: request)
+         // The draft's required subject is model-authored prose, not a fact the person
+         // must supply. Return the incomplete proposal to the SAME planner once, before
+         // it acquires an execution signature or asks the person to write that subject.
+@@ -345,7 +357,16 @@ final class ToolStepRunner: ToolStepExecuting {
+         // Keyed on the canonical id, so an alias and its own spelling are one step.
+         let signature = canonicalID + "|" + arguments.keys.sorted()
+             .map { "\($0)=\(arguments[$0] ?? "")" }.joined(separator: "|")
+-        guard completedCalls.insert(signature).inserted else {
++        if let completed = completedCalls[signature] {
++            if case .recoveredRead(let output) = completed {
++                // The manifest, canonical name and grounded arguments above still admit
++                // this exact call. Preserve the saved result without backing, usage or a
++                // repair charge, and let this round reach its unfinished steps.
++                guard agent.isCurrent(owner), revisionIsCurrent() else {
++                    return ToolStepResult(canonicalID: canonicalID, disposition: .skipped)
++                }
++                return ToolStepResult(canonicalID: canonicalID, disposition: .completed(output: output))
++            }
+             // H-audit 2026-09-23 (H1 #20). Small models re-issue a call whose result was long
+             // or empty. That is a question, not a loop: the result is already in the round's
+             // results, so the note points at it and the plan goes on. One note per turn; the
+@@ -360,6 +381,7 @@ final class ToolStepRunner: ToolStepExecuting {
+             }
+             return ToolStepResult(canonicalID: canonicalID, disposition: .answerNow(.repeatedCall))
+         }
++        completedCalls[signature] = .executed
+         guard canRunAnother else {
+             return ToolStepResult(canonicalID: canonicalID, disposition: .answerNow(.callsExhausted))
+         }
+@@ -490,7 +512,7 @@ final class ToolStepRunner: ToolStepExecuting {
+         // A correction invalidated this proposal while it waited at the final gate.
+         // It is neither a denial of the updated objective nor a repair to charge.
+         if !revisionIsCurrent(), !execution.outcome.isSuccess {
+-            completedCalls.remove(signature)
++            completedCalls.removeValue(forKey: signature)
+             currentToolID = nil
+             return ToolStepResult(canonicalID: canonicalID, disposition: .skipped, usage: usage)
+         }
+@@ -561,7 +583,7 @@ final class ToolStepRunner: ToolStepExecuting {
+             }
+             // A failure thrown *before* anything committed: the signature comes out of
+             // `completedCalls` and the corrected call is allowed to be the same call.
+-            completedCalls.remove(signature)
++            completedCalls.removeValue(forKey: signature)
+             callsUsed += 1
+             repairs += 1
+             currentToolID = nil

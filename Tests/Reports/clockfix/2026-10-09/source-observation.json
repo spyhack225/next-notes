@@ -1,0 +1,9 @@
+{
+  "head": "e0b649c5b1a75d078590eff00e698c59def4b2c4",
+  "observed_canonical_sources_readonly": {
+    "Sources/NextNotes/Agent/Planner/ToolStepRunner.swift": "45047052043c15abfbfbfe07d4ff9d3451c6cf04ea9c5e05d66ff9cb8d9e3148",
+    "Sources/NextNotes/Agent/AgentToolLoop.swift": "54b227028cdacff25a84bad0149be7f566b429eb13bd5d151633f5ace1a9e437",
+    "Sources/NextNotes/NextNotesApp.swift": "51ff145416f2453be979b7de65cf6eb8b7919a2c7056e4be215e124b8b196ad0"
+  },
+  "mechanism": "Confirmed by native omitted-binding RED/default-seam GREEN replay: omitted ToolStepRunner now argument selects groundedArguments Date() default; relative-day grounding replaces parsed fixture dates before fake executor admission. Historical installed source parity remains unproved."
+}

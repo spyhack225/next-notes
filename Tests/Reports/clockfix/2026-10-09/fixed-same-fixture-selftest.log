@@ -1,0 +1,16 @@
+TOOLLOOP_LIVE_CLOCK: 2026-10-05T09:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: localServer "Scripted clock diagnostic" ctx=16384 role=scripted-clock
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=654
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=654
+TOOLLOOP_LIVE_CASE C01 PASS 0.1s turns=1 tools=get_agenda(date=2026-10-05) reply="Today you have a standup, a budget review with Ana and a call with Marcus about pricing."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2441
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2441
+TOOLLOOP_LIVE_CASE C04 PASS 0.0s turns=1 tools=search_email get_agenda(date=2026-10-06) reply="This takes a few steps on this Mac.  Marcus sent the pricing sheet, Ana requested the deck and Stripe sent an invoice. Tomorrow you have a dentist appointment, "
+TOOLLOOP_LIVE_CLOCK_TRACE C01 proposed=2026-10-05 default=2026-10-05 floor=2026-10-05
+TOOLLOOP_LIVE_CLOCK_TRACE C04 proposed=2026-10-06 default=2026-10-06 floor=2026-10-06
+TOOLLOOP_LIVE_CLOCK_DEFAULTS_OK
+TOOLLOOP_LIVE_CLASSES pass=2 error=0 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=0 ungrounded=0 filler=0
+TOOLLOOP_LIVE_SCORE 2/2
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/clockfix/Tests/Reports/clockfix/2026-10-09/fixed-same-fixture.md
+TOOLLOOP_LIVE_ELAPSED 0.2
+TOOLLOOP_LIVE_OK: 2/2 on scripted clock diagnostic (no model qualification)

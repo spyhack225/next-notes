@@ -1,0 +1,46 @@
+2026-10-09 02:41:49.354 NextNotes[7112:4862074] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+TOOLLOOP_LIVE_CLOCK: 2026-10-05T09:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appLLM "MiniCPM5-2B" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=639 rules=1827 memory=0 capabilities=674 skills=0 now=131 volatileTail=342
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=654
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=654
+TOOLLOOP_LIVE_CASE C01 PASS 7.2s turns=1 tools=get_agenda(date=2026-10-05) reply="Today you have: - 09:30–10:00 Standup - 14:00–15:00 Budget review with Ana - 16:30–17:00 Call with Marcus about pricing  Anything else you'd like me to help wit"
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2441
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2441
+TOOLLOOP_LIVE_CASE C04 PASS 12.4s turns=1 tools=search_email get_agenda(date=2026-10-06) reply="This takes a few steps on this Mac.  Here's a summary of your recent emails and events for tomorrow.  **Last emails:** - Mon 5 Oct 08:00 · Cyril <cyril@example."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CASE M03 PASS 2.5s turns=1 tools=search_email(maxResults=1) reply="I found one email in your Gmail. It's a question from Cyril asking whether you're free for dinner tomorrow evening.  Would you like me to check for more emails,"
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=3149
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=3149
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=3149
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=3149
+TOOLLOOP_LIVE_CASE M04 PASS 6.9s turns=1 tools=draft_email(body=I'll send the deck on Friday.,subject=Sending the deck on Friday,to=ana@example.com) reply="I'll draft the email for you."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CASE M05 PASS 7.3s turns=2 tools=search_email reply="I'll help you with each item from your last emails.  1. **Cyril** asked about dinner tomorrow — want me to help with that? 2. **Ana Ruiz** needs the deck sent b"
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=1708
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=0 skills=0 now=131 volatileTail=0
+TOOLLOOP_LIVE_CASE K01 PASS 3.3s turns=1 tools=meeting.decisions reply="We decided to move the launch to October 14 and keep the price at $12 a month. You would send the revised budget to Ana by Thursday, Marcus would update the pri"
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2154
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2154
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2154
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2154
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2154
+TOOLLOOP_LIVE_CASE R02 PASS 9.8s turns=2 tools=schedule.create(id=REMINDER_ID,repeat=daily,text=Remind to put the book out every night at 10,time=10:00 PM,title=Put book out) reply="Reminder set: put the book out every night at 10."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2610
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2610
+TOOLLOOP_LIVE_CASE F03 PASS 3.7s turns=1 tools=filesystem.search(query=pricing) reply="I can see two pricing documents on your Mac: "Pricing 2026.pdf" in Documents and "Pricing sheet v3" on Google Drive. Would you like me to email one of them to M"
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=1362
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=1362
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=1362
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=1362
+TOOLLOOP_LIVE_CASE A02 UNGROUNDED 4.5s turns=1 tools=browser.navigate(url=https://www.youtube.com/results?search_query=cortech) browser.snapshot reply="I found the latest Cortech uploads on YouTube. You can watch them directly from the search results page. Want me to open a specific video or help with anything "
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=342
+TOOLLOOP_LIVE_CASE N04 PASS 1.5s turns=1 tools=- reply="You can reach your calendar, your email, your Drive and Docs, reminders and routines, past meetings and notes, what you tell me to remember, Mac apps and the sc"
+TOOLLOOP_LIVE_CLASSES pass=9 error=0 timeout=0 leak=0 refusal=0 wrong_tool=0 fabricated=0 missed_tool=0 ungrounded=1 filler=0
+TOOLLOOP_LIVE_SCORE 9/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/clockfix/Tests/Reports/clockfix/2026-10-09/mini-control.md
+TOOLLOOP_LIVE_ELAPSED 59.2
+TOOLLOOP_LIVE_OK: 9/10 (quick) on MiniCPM5-2B

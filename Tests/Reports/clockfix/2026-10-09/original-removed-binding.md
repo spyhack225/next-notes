@@ -1,0 +1,41 @@
+# Tool loop live eval — 2026-10-09 06:39:42 +0000
+
+- Model: `localServer` "Scripted clock diagnostic" ctx=16384 role=`scripted-clock`
+- Mode: only; pass bar 2/2; elapsed 0.2s
+- Needle first: no
+- Model pin: `scripted-clock`; fixture clock: `2026-10-05T09:00:00-04:00`; time zone: `America/New_York`.
+- JSONL replies preserves every complete rendered turn reply; rawRounds preserves every planner round and its full completion. systemCharacters/userCharacters are prompt character counts, not prompt text.
+- Timing: per turn, first fixture result and completed reply; not first token or audio. One-time base-model warm-up excluded; Needle schema startup included. See JSONL.
+- First verified fixture result: n=2, p50=0.011s, p95=0.122s
+- Completed reply: n=2, p50=0.018s, p95=0.129s
+- Whole case: n=2, p50=0.018s, p95=0.129s
+- App peak RSS: 116604928 bytes; excludes the Needle child.
+- Classes: error=0 timeout=0 leak=0 refusal=0 wrong_tool=2 fabricated=0 missed_tool=0 ungrounded=0 filler=0 pass=0
+
+| Case | Verdict | Seconds | Turns | Tools | Reply |
+|---|---|---|---|---|---|
+| C01 | WRONG_TOOL | 0.1 | 1 | get_agenda(date=2026-10-09) | Today you have a standup, a budget review with Ana and a call with Marcus about pricing. |
+| C04 | WRONG_TOOL | 0.0 | 1 | search_email get_agenda(date=2026-10-10) | This takes a few steps on this Mac.  Marcus sent the pricing sheet, Ana requested the deck and Stripe sent an invoice. Tomorrow you have a dentist appointment, a design sync and dinner with Cyril. |
+
+## Non-PASS detail
+
+### C01 WRONG_TOOL
+- evidence: B §1 core tool; expected fix: baseline should pass
+- rounds: 2; last prompt: system=5114 user=218 maxTokens=1024
+- last completion:
+```
+Today you have a standup, a budget review with Ana and a call with Marcus about pricing.
+```
+
+### C04 WRONG_TOOL
+- evidence: 09-22 00:58Z; expected fix: P1-02, P1-06
+- rounds: 2; last prompt: system=6901 user=1086 maxTokens=1024
+- last completion:
+```
+Marcus sent the pricing sheet, Ana requested the deck and Stripe sent an invoice. Tomorrow you have a dentist appointment, a design sync and dinner with Cyril.
+```
+
+## Model passes
+
+- C01: agent.typed/planner openaiCompatible Scripted clock diagnostic prompt=0 completion=0 reasoning=0 ttft=1ms total=2ms finish=stop proposed=get_agenda executed=get_agenda · agent.typed/planner openaiCompatible Scripted clock diagnostic prompt=0 completion=0 reasoning=0 ttft=1ms total=2ms finish=stop proposed=- executed=-
+- C04: agent.typed/planner openaiCompatible Scripted clock diagnostic prompt=0 completion=0 reasoning=0 ttft=1ms total=1ms finish=stop proposed=search_email+get_agenda executed=search_email+get_agenda · agent.typed/planner openaiCompatible Scripted clock diagnostic prompt=0 completion=0 reasoning=0 ttft=1ms total=1ms finish=stop proposed=- executed=-

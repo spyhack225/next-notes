@@ -1,0 +1,16 @@
+{
+  "captured_after_run": true,
+  "model_path": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/MiniCPM5-2B-Q4_K_M.gguf",
+  "model_stat": {
+    "device": 16777230,
+    "inode": 169025197,
+    "bytes": 1561318368,
+    "mtime_ns": 1790791554059993805
+  },
+  "weight_digest_recomputed": false,
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g\n",
+  "hardware_model": "Mac15,12",
+  "power_after_run": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true\n",
+  "binary_kind": "SwiftPM debug executable; no owner installation or app bundle",
+  "native_source_count": 830
+}

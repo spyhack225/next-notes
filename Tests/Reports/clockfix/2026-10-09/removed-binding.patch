@@ -1,0 +1,14 @@
+diff --git a/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift b/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift
+index 782241eb..96e4cf19 100644
+--- a/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift
++++ b/Sources/NextNotes/Agent/Planner/ToolStepRunner.swift
+@@ -264,8 +264,7 @@ final class ToolStepRunner: ToolStepExecuting {
+         }
+         // Bound by this code, not taken from the model: what the user said this turn.
+         let arguments = AgentToolLoop.groundedArguments(
+-            for: canonicalID, proposed: call.arguments, request: request,
+-            now: SelfTest.fixtureClock ?? Date())
++            for: canonicalID, proposed: call.arguments, request: request)
+         // The draft's required subject is model-authored prose, not a fact the person
+         // must supply. Return the incomplete proposal to the SAME planner once, before
+         // it acquires an execution signature or asks the person to write that subject.

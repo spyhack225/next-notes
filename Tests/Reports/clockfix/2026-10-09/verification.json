@@ -1,0 +1,12 @@
+{
+  "fixtures_unchanged_across_native_variants": {
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalCases.swift": true,
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalGrader.swift": true,
+    "Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEvalFixtures.swift": true,
+    "Sources/NextNotes/Agent/LiveEval/LiveEvalClockProvider.swift": true
+  },
+  "final_sources_all_match": true,
+  "source_count": 830,
+  "batch_wrapper_exit": 0,
+  "canonical_toolstep_final_edited_by_this_agent": false
+}

@@ -1,0 +1,88 @@
+diff --git a/Sources/NextNotes/Agent/AgentAccountRead.swift b/Sources/NextNotes/Agent/AgentAccountRead.swift
+index 522e36f0..00d3ef4a 100644
+--- a/Sources/NextNotes/Agent/AgentAccountRead.swift
++++ b/Sources/NextNotes/Agent/AgentAccountRead.swift
+@@ -61,7 +61,7 @@ enum AgentAccountRead {
+     /// The read each class gets when the person asked about it in general, and the tool that
+     /// performs it. `nil` for a class with no default read.
+     static func defaultRead(for intent: AgentIntentClass, request: String,
+-                            now: Date = Date()) -> (toolID: String, arguments: [String: String])? {
++                            now: Date = SelfTest.fixtureClock ?? Date()) -> (toolID: String, arguments: [String: String])? {
+         switch intent {
+         case .browser:
+             guard requestsBrowserVideoInspection(request) else { return nil }
+@@ -131,7 +131,7 @@ enum AgentAccountRead {
+     static func pendingRead(
+         reply: String, selectedIntents: Set<AgentIntentClass>,
+         completedThisTurn: [String], completedThisSession: Set<String>,
+-        toolIDFor: (AgentIntentClass) -> String?, request: String, now: Date = Date(),
++        toolIDFor: (AgentIntentClass) -> String?, request: String, now: Date = SelfTest.fixtureClock ?? Date(),
+         manifest: AgentCapabilityManifest? = nil
+     ) -> (intent: AgentIntentClass, toolID: String, arguments: [String: String])? {
+         // Opening the requested site does not inspect the named video. This
+diff --git a/Sources/NextNotes/Agent/AgentToolLoop.swift b/Sources/NextNotes/Agent/AgentToolLoop.swift
+index 07ae7a1b..95b41b57 100644
+--- a/Sources/NextNotes/Agent/AgentToolLoop.swift
++++ b/Sources/NextNotes/Agent/AgentToolLoop.swift
+@@ -298,7 +298,7 @@ enum AgentToolLoop {
+     /// the second rule unreachable the day someone added a third.
+     static func groundedArguments(
+         for tool: String, proposed: [String: String], request: String,
+-        now: Date = Date(), calendar: Calendar = .current
++        now: Date = SelfTest.fixtureClock ?? Date(), calendar: Calendar = .current
+     ) -> [String: String] {
+         switch tool {
+         case "get_agenda": return groundCalendarDay(proposed, request: request, now: now, calendar: calendar)
+diff --git a/Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift b/Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift
+index e884567a..0387306a 100644
+--- a/Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift
++++ b/Sources/NextNotes/Agent/LiveEval/ToolLoopLiveEval.swift
+@@ -123,6 +123,14 @@ enum ToolLoopLiveEval {
+             return false
+         }
+         let selected = selectCases(options)
++        // A substituted provider diagnoses clock propagation through the same case runner.
++        // It cannot be used to qualify a model or run the quick/full quality gates.
++        if options.model == "scripted-clock",
++           SelfTest.fixtureClock == nil || options.needleFirst || options.quick
++            || options.only != ["C01", "C04"] {
++            SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: scripted-clock requires --only C01,C04 and --fixture-now")
++            return false
++        }
+         guard !selected.isEmpty else {
+             SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: no cases selected")
+             return false
+@@ -186,6 +194,9 @@ enum ToolLoopLiveEval {
+         let began = ContinuousClock.now
+         let results = await runCases(
+             selected, options: options, fixtures: LiveEvalFixtures(), provider: resolved.provider)
++        let clockFailures = options.model == "scripted-clock"
++            ? LiveEvalClockProvider.checkDefaults() : []
++        for failure in clockFailures { SelfTest.diagnostic("TOOLLOOP_LIVE_CLOCK_FAILED: " + failure) }
+         let elapsed = began.duration(to: .now).secondsValue
+ 
+         // P1-27: the score counts the thirty and only the thirty. The owner-log set is
+@@ -252,6 +263,10 @@ enum ToolLoopLiveEval {
+                     + "TOOLLOOP_LIVE_OWNER line above is the result")
+             return true
+         }
++        if !clockFailures.isEmpty {
++            SelfTest.diagnostic("TOOLLOOP_LIVE_FAILED: scripted clock defaults failed (\(clockFailures.count))")
++            return false
++        }
+         if passed >= bar {
+             SelfTest.diagnostic(
+                 "TOOLLOOP_LIVE_OK: \(passed)/\(scored.count)\(tag) on \(resolved.label)")
+@@ -465,6 +480,12 @@ enum ToolLoopLiveEval {
+     static func resolveModel(
+         argument: String?, allowCloud: Bool, contextTokens: Int? = nil
+     ) async -> ResolvedModel? {
++        if argument == "scripted-clock", SelfTest.requested == "--selftest-toolloop-live",
++           SelfTest.fixtureClock != nil {
++            return ResolvedModel(provider: LiveEvalClockProvider(),
++                label: "scripted clock diagnostic (no model qualification)",
++                roleChoice: "scripted-clock", isFallback: false)
++        }
+         if argument == "apple" {
+             guard FoundationModelFormatter.unavailableReason == nil else { return nil }
+             return ResolvedModel(
