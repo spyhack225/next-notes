@@ -1,0 +1,132 @@
+[
+  {
+    "name": "webrtc-build",
+    "exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "name": "red-build",
+    "exit": 1,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "name": "red-build-retry",
+    "exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "name": "producer-red",
+    "exit": 1,
+    "marker": "VOICE_POLICY_REVIEW_FAILED: 19 assertions"
+  },
+  {
+    "name": "green-build",
+    "exit": 1,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "name": "green-build",
+    "exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "name": "producer-green",
+    "exit": 0,
+    "marker": "VOICE_POLICY_REVIEW_OK"
+  },
+  {
+    "name": "tts",
+    "exit": 0,
+    "marker": "VOICE_SINK_SOURCE_OK"
+  },
+  {
+    "name": "tts-stream",
+    "exit": 0,
+    "marker": "TTS_TOKEN_STREAM_OK"
+  },
+  {
+    "name": "voice-conversation",
+    "exit": 0,
+    "marker": "VOICE_CONVERSATION_OK"
+  },
+  {
+    "name": "voice-delivery",
+    "exit": 0,
+    "marker": "VOICE_DELIVERY_OK"
+  },
+  {
+    "name": "voice-scheduling",
+    "exit": 0,
+    "marker": "VOICE_SCHEDULING_OK"
+  },
+  {
+    "name": "duplex",
+    "exit": 0,
+    "marker": "DUPLEX_OK"
+  },
+  {
+    "name": "concurrent-voice",
+    "exit": 0,
+    "marker": "CONCURRENT_VOICE_OK"
+  },
+  {
+    "name": "voice-turn-routing",
+    "exit": 0,
+    "marker": "VOICE_TURN_ROUTING_OK"
+  },
+  {
+    "name": "catch-up",
+    "exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "name": "settings",
+    "exit": -11,
+    "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host"
+  },
+  {
+    "name": "ui-strings",
+    "exit": 0,
+    "marker": "UI_STRINGS_OK"
+  },
+  {
+    "name": "store-isolation",
+    "exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged"
+  },
+  {
+    "name": "voice-playback-projection",
+    "exit": 0,
+    "marker": "VOICE_PLAYBACK_PROJECTION_OK: 33 checks"
+  },
+  {
+    "name": "voice-playback-resume-receipt",
+    "exit": 0,
+    "marker": "VOICE_PLAYBACK_RESUME_RECEIPT_OK: 48 checks"
+  },
+  {
+    "name": "apple-resume-owner",
+    "exit": 0,
+    "marker": "APPLE_RESUME_OWNER_OK: 55 simulated PCM checks; native playback unverified"
+  },
+  {
+    "name": "apple-playback-timeline",
+    "exit": 0,
+    "marker": "APPLE_PLAYBACK_TIMELINE_OK: native authored PCM callback/cursor/owner checks; audibility unverified"
+  },
+  {
+    "name": "task-authority",
+    "exit": 0,
+    "marker": "TASK_AUTHORITY_OK: 63 cases"
+  },
+  {
+    "name": "residency",
+    "exit": 0,
+    "marker": "RESIDENCY_OK"
+  },
+  {
+    "name": "scheduler",
+    "exit": 0,
+    "marker": "SCHEDULER_OK"
+  }
+]

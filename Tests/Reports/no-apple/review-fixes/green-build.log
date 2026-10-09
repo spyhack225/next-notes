@@ -1,0 +1,372 @@
+warning: 'no-apple': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[2 / 4] NextNotes-product
+[5 / 13] NextNotes-product
+[6 / 15] NextNotes-product
+[7 / 23] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:320:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+318 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+319 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+320 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+321 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+322 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:409:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+407 |                 "owner variant fresh manager did not hold actual saved work")
+408 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+409 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+410 |             check(context.isStillValid != nil && !valid,
+411 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Meetings/MeetingContextReconciler.swift:294:30: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+292 |             enabled: @escaping @Sendable () async -> Bool = {
+293 |                 let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
+294 |                 let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
+    |                              `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+295 |                 return MeetingContextReconciler.isEnabled(stored: stored, choice: choice)
+296 |             },
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift:117:29: warning: 'currentMode' mutated after capture by sendable closure
+ 62 |         var currentManager: AgentTaskManager?, owned: Task<Void, Never>?, probe: ApprovalProbe?
+ 63 |         var created = false, installedContext = false, contextRejected = false, contextReads = 0
+ 64 |         var installedRoute = false, currentMode = "", staleAdvanced = false
+    |                                     `- note: variable defined here
+ 65 |         var routeObservations = 0, matchedRoutes = 0
+ 66 |         var staleBefore: Int?, staleAfter: Int?
+    :
+ 86 |         do {
+ 87 |             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false); created = true
+ 88 |             guard ToolCallContextBuilder.setMeetingContextForTesting({ meeting, task in
+    |                                                                      `- note: variable captured by sendable closure
+ 89 |                 contextReads += 1
+ 90 |                 guard root.path == root.resolvingSymlinksInPath().standardizedFileURL.path,
+    :
+ 93 |                     contextRejected = true; return nil // Never fall ba[8 / 23] NextNotes-product
+ck to owner context.
+ 94 |                 }
+ 95 |                 if currentMode == "staleCaller", !staleAdvanced,
+    |                    `- note: capturing use
+ 96 |                    let id = UUID(uuidString: task), let retained = c.captureVoiceWorkerForTesting(id: id) {
+ 97 |                     // Existing real review-context hop invalidates the original worker
+    :
+115 |             for mode in ["yes", "unheard", "unavailableVoice", "failedVoice", "no", "hold", "card", "edited", "refused", "amend", "close", "mismatch", "staleCaller", "stalePresented", "staleHeard", "model-yes", "model-negative", "model-refused", "model-stale", "model-change"] {
+116 |                 let start = checks, problemsBefore = failures.count
+117 |                 currentMode = mode; staleAdvanced = false; staleBefore = nil; staleAfter = nil
+    |                             `- warning: 'currentMode' mutated after capture by sendable closure
+118 |                 let routeBefore = routeObservations, matchedBefore = matchedRoutes
+119 |                 let directory = root.appendingPathComponent(mode, isDirectory: true)
+[10 / 23] NextNotes-product
+[11 / 23] NextNotes-product
+[12 / 23] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/NextNotesApp.swift:9062:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 9060 |                 check("the audit lost rows while a near miss was written",
+ 9061 |                       AgentAuditLog.shared.entries.count >= before)
+ 9062 |             } catch {
+      |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 9063 |                 failures.append("p1-29 near miss: \(error.localizedDescription)")
+ 9064 |             }
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/NextNotesApp.swift:9782:21: warning: initialization of immutable value 'before' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 9780 |                 // 3. Clear leaves a row, with counts and no words. "New conversation" and
+ 9781 |                 //    "Forget all conversations" were indistinguishable in every log.
+ 9782 |                 let before = AgentAuditLog.shared.entries.count
+      |                     `- warning: initialization of immutable value 'before' was never used; consider replacing with assignment to '_' or re[13 / 27] NextNotes-product
+moving it [#NoUsage]
+ 9783 |                 AgentSession.shared.recordUser("p1-29 text that must not be logged")
+ 9784 |                 AgentSession.shared.recordAssistant("p1-29 answer that must not be logged")
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/NextNotesApp.swift:9829:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 9827 |                     AgentAuditLog.memoryRows == 400
+ 9828 |                 )
+ 9829 |             } catch {
+      |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 9830 |                 failures.append("p1-29: \(error.localizedDescription)")
+ 9831 |             }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[14 / 27] NextNotes-product
+[15 / 27] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Duplex/IslandVoiceOwnershipSelfTest.swift:266:55: warning: expression of type 'AgentTurn' is unused [#NoUsage]
+264 |             current.cancel(typedWork.id.uuidString)
+265 |             guard typedTask.isCancelled else { throw Invalid.worker }
+266 |             await typed.releaseAll(); await typedTask.value; typedOperation = nil
+    |                                                       `- warning: expression of type 'AgentTurn' is unused [#NoUsage]
+267 |             check(current.typedWorkerSnapshot(id: typedWork.id) == nil && fires == 0,
+268 |                 "BC05 cancelled typed operation returned without foreground takeover")
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Duplex/IslandVoiceOwnershipSelfTest.swift:357:35: warning: expression of type 'AgentTurn?' is unused [#NoUsage]
+355 |             if let acpRelease { try? Data("{\"release\":true}".utf8).write(to: acpRelease, options: .atomic) }
+356 |             typedOperation?.cancel(); await typedProbe?.releaseAll()
+357 |             await typedOperation?.value; typedOperation = nil
+    |                                   `- warning: expression of type 'AgentTurn?' is unused [#NoUsage]
+358 |             await acpOperation?.value; acpOperation = nil
+359 |             foreground?.cancel(); front?.finish(); await probe?.releaseAll()
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Duplex/IslandVoiceOwnershipSelfTest.swift:362:31: warning: expression of type 'AgentTurn?' is unused [#NoUsage]
+360 |             RealtimeAgent.shared.cancel(); synth.stop()
+361 |             if capture.isSessionActive { await capture.endSession(source: .done) }
+362 |             await foreground?.value; foreground = nil
+    |                               `- warning: expression of type 'AgentTurn?' is unused [#NoUsage]
+363 |             for task in workers { await task.value }; workers.removeAll(); joined = scheduledJoined
+364 |         }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[16 / 27] NextNotes-product
+[17 / 27] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift:61:23: warning: value 'captureID' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 59 |         for lateWhilePaused in [false, true] {
+ 60 |             await capture.beginSession(captureAudio: false)
+ 61 |             guard let captureID = capture.sessionID else {
+    |                       `- warning: value 'captureID' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 62 |                 failures.append("fixture: capture session did not open")
+ 63 |                 await capture.endSession(source: .done)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[19 / 27] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift:1171:13: warning: initialization of immutable value 'orphan' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+1169 |               agent.typedPending != nil)
+1170 |         AgentSession.shared.forgetAllConversations()
+1171 |         let orphan = await agent.handle("yes", source: .text)
+     |             `- warning: initialization of immutable value 'orphan' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+1172 |         let orphanUser = orphanLog.calls.last?.user ?? ""
+1173 |         check("a cleared conversation carried the confirmation into the new request: "
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift:6532:13: warning: immutable value 'hermes' was never used; consider replacing with '_' or removing it [#NoUsage]
+6530 |         var failures: [String] = []
+6531 |         func fail(_ name: String) { failures.append(name); check(name, false) }
+6532 |         let hermes: (String) -> String = { "<\u{200B}tool_call>\($0)</\u{200B}tool_call>" }
+     |             `- warning: immutable value 'hermes' was never used; consider replacing with '_' or removing it [#NoUsage]
+6533 | 
+6534 |         // The renderer's own sentence, both forms.
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Schedules/AgentScheduler.swift:1267:19: warning: result of call to 'serialized' is unused [#NoUsage]
+1265 | 
+1266 |     func remove(id: UUID) async throws {
+1267 |         try await serialized { [self] () async throws -> Bool in
+     |                   `- warning: result of call to 'serialized' is unused [#NoUsage]
+1268 |             store.reload()
+1269 |             guard store.schedule(id: id) != nil else { throw ScheduleError.notFound(id.uuidString) }
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/FrontendRevisionSelfTest.swift:155:30: warning: 'cleanupRequested' mutated after capture by sendable closure
+ 36 |         let oldBridge = conversation.taskBridgeOverrideForTesting, oldRemember = conversation.rememberExplicit
+ 37 |         let owner = SelfTestStoreGuard.take()
+ 38 |         var created = false, sessionOwned = false, mayRemoveRoot = false, cleanupRequested = false
+    |                                                                           `- note: variable defined here
+ 39 |         var owned: Task<Void, Never>?, release: CheckedContinuation<String, Never>?
+ 40 |         var manager: AgentTaskManager?
+    :
+ 89 |                 var enteredWait: CheckedContinuation<Void, Never>?
+ 90 |                 conversation.streamForTesting = { _, _ in await frontend.stream() }
+ 91 |                 conversation.workerForTesting = { work in
+    |                                                 `- note: variable captured by sendable closure
+ 92 |                     workers += 1
+ 93 |                     // A preflight/qualification throw must not leave a late-entering
+ 94 |                     // already-admitted callback suspended after teardown starts.
+ 95 |                     if cleanupRequested { return "" }
+    |                        `- note: capturing use
+ 96 |                     if let currentCapture = conversation.captureVoiceWorkerForTesting(id: work.id) {
+ 97 |                         captured = currentCapture
+    :
+153 |         } catch {
+154 |             failures.append("frontend revision: INVALID \(error)")
+155 |             cleanupRequested = true
+    |                              `- warning: 'cleanupRequested' mutated after capture by sendab[20 / 35] NextNotes-product
+le closure
+156 |             // Capture every SAME actual slot before cancel can alter/release it.
+157 |             // These are retained fixture references, not new Tasks or owners.
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Duplex/VoiceDuplexWorkSelfTest.swift:27:13: warning: initialization of immutable value 'agent' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 25 |         let conversation = VoiceConversationCoordinator.shared
+ 26 |         let capture = AgentCaptureController.shared
+ 27 |         let agent = RealtimeAgent.shared
+    |             `- warning: initialization of immutable value 'agent' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 28 |         let speech = AgentSpeechSynthesizer.shared
+ 29 |         let probe = DuplexWorkProbe()
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[21 / 35] NextNotes-product
+[22 / 35] NextNotes-product
+[23 / 35] NextNotes-product
+[24 / 35] NextNotes-product
+[25 / 35] NextNotes-product
+[26 / 35] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Meetings/MeetingSession.swift:423:24: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 421 |         await writer?.finish()
+ 422 |         if let saved = writer?.resourceSnapshot() { recordSavedAudioCoverage(saved) }
+ 423 |         if let saved = await writer?.resourceSnapshot(), saved.writtenFrames > 0 {
+     |                        `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 424 |             var integrity = meeting.captureIntegrity ?? .init()
+ 425 |             integrity.recordCaptured(until: startedAt.addingTimeInterval(Double(saved.writtenFrames) / ChunkedTranscriber.sampleRate))
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Support/LocalModelStore.swift:54:69: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 50 |             ParakeetModels.isDownloaded ? "Loading Parakeet…" : "Downloading Parakeet…"
+ 51 |         )
+ 52 |         Task {
+    |              |- note: 'self' implicitly strongly captured here
+    |              `- note: add 'self' as a capture list item to silence
+ 53 |             do {
+ 54 |                 _ = try await ParakeetModels.shared.manager { [weak self] progress in
+    |                                                                     |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                                                     `- note: explicitly assign the capture list item to silence
+ 55 |                     Task { @MainActor [weak self] in
+ 56 |                         let percent = Int((progress.fractionCompleted * 100).rounded())
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Support/LocalModelStore.swift:77:57: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+ 73 |                 : "Downloading S1-mini (\(S1MiniModels.spec.displaySize))…"
+ 74 |         )
+ 75 |         Task {
+    |              |- note: 'self' implicitly strongly captured here
+    |              `- note: add 'self' as a capture list item to silence
+ 76 |             do {
+ 77 |                 try await S1MiniModels.download { [weak self] fraction in
+    |                                                         |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                                         `- note: explicitly assign the capture list item to silence
+ 78 |                     Task { @MainActor [weak self] in
+ 79 |                         let percent = Int((fraction * 100).rounded())
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Support/LocalModelStore.swift:122:56: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+118 |                 : "Downloading \(NotesModels.spec.displayName) (\(NotesModels.spec.displaySize))…"
+119 |         )
+120 |         Task {
+    |              |- note: 'self' implicitly strongly captured here
+    |              `- note: add 'self' as a capture list item to silence
+121 |             do {
+122 |                 try await NotesModels.download { [weak self] fraction in
+    |                                                        |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+    |                                                        `- note: explicitly assign the capture list item to silence
+123 |                     Task { @MainActor [weak self] in
+124 |                         let percent = Int((fraction * 100).rounded())
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Support/LocalModelStore.swift:262:111: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+258 |                 : "Downloading wake phrase (\(WakeWordModels.archive.displaySize))…"
+259 |         )
+260 |         Task {
+    |              |- note: 'self' implicitly strongly captured here
+    |              `- note: add 'self' as a capture list item to silence
+261 |             do {
+262 |                 try await WakeWordModelManager.download(configuration: WakeWordConfiguration.current) { [weak self] fraction in
+    |                                                                                                               |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStron[27 / 35] NextNotes-product
+gCapture]
+    |                                                                                                               `- note: explicitly assign the capture list item to silence
+263 |                     Task { @MainActor [weak self] in
+264 |                         let percent = Int((fraction * 100).rounded())
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Core/DictationController.swift:1555:42: warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+1456 |         }
+1457 | 
+1458 |         Task { @MainActor in
+     |              |- note: 'self' implicitly strongly captured here
+     |              `- note: add 'self' as a capture list item to silence
+1459 |             do {
+1460 |                 guard await requestMicrophone() else {
+     :
+1553 |                             }
+1554 |                         },
+1555 |                         onLevel: { [weak self] level in
+     |                                          |- warning: 'weak' ownership of capture 'self' differs from implicitly-captured strong reference in outer scope [#ImplicitStrongCapture]
+     |                                          `- note: explicitly assign the capture list item to silence
+1556 |                             Task { @MainActor in self?.updateLevel(level) }
+1557 |                         },
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Formatting/CleanupRouter.swift:574:55: warning: trailing closure in this co[29 / 35] NextNotes-product
+ntext is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+ 572 |         let spent = ContinuousClock.now - began
+ 573 |         let wait = max(layoutWait(sentences.count) - spent, layoutGrace)
+ 574 |         if let finished = await withBoundedWait(wait) { await planTask.value } {
+     |                                                       `- warning: trailing closure in this context is confusable with the body of the statement; pass as a parenthesized argument to silence this warning
+ 575 |             return finished
+ 576 |         }
+
+[#ImplicitStrongCapture]: <https://docs.swift.org/compiler/documentation/diagnostics/implicit-strong-capture>
+[30 / 35] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Agent/Tasks/TaskVoiceProgressSelfTest.swift:112:28: warning: 'admittedID' mutated after capture by sendable closure
+ 89 |                 c.workerProviderForTesting = VoiceProgressProvider(probe: state)
+ 90 |                 c.streamForTesting = { _, _ in AsyncThrowingStream { $0.yield("<answer/>An unrelated answer."); $0.finish() } }
+ 91 |                 var observed: [(Int, String, String, AgentTaskPersistenceResult?)] = []; var admittedID: String?
+    |                                                                                              `- note: variable defined here
+ 92 |                 var scope: AgentWorkPresentationScope.VoiceProgress?
+ 93 |                 var binding: AgentWorkPresentationScope.Binding?
+ 94 |                 var callbackCount = 0, matchingCallbackCount = 0
+ 95 |                 var callbackScopePresent = false, callbackScopeMatches = false
+ 96 |                 activity.voiceProgressObserverForTesting = { id in
+    |                                                            `- note: variable captured by sendable closure
+ 97 |                     callbackCount += 1
+ 98 |                     callbackScopePresent = Age[31 / 35] NextNotes-product
+ntWorkPresentationScope.voiceProgress != nil
+ 99 |                     callbackScopeMatches = AgentWorkPresentationScope.voiceProgress?.taskID == id
+100 |                     guard id == admittedID else { return }
+    |                                 `- note: capturing use
+101 |                     matchingCallbackCount += 1
+102 |                     let steps = activity.steps(taskID: id)
+    :
+110 |                 let receipt = c.spawn(objective: "Inspect both owned progress documents.", userWords: "Read the owned fixtures.",
+111 |                     origin: .voice(sessionID: session, turn: turn))
+112 |                 admittedID = receipt.id?.raw
+    |                            `- warning: 'admittedID' mutated after capture by sendable closure
+113 |                 ownedID = receipt.id.flatMap { UUID(uuidString: $0.raw) }
+114 |                 ownedTask = ownedID.flatMap { c.captureVoiceWorkerForTesting(id: $0)?.task }
+[32 / 35] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift:1474:9: warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+1472 |         let committed = await frontend.stream(
+1473 |             system: system, messages: firstRequest, maxTokens: 64, commitRevision: 2)
+1474 |         Task {
+     |         |- warning: unstructured throwing task created by 'init(name:priority:operation:)' is not used, which may accidentally ignore errors thrown inside the task [#NoUseUnstructuredThrowingTask]
+     |         `- note: to silence this warning, handle the error inside the task, or store/discard the task value explicitly
+1475 |             for try await _ in committed {}
+1476 |         }
+
+[#NoUseUnstructuredThrowingTask]: <https://docs.swift.org/compiler/documentation/diagnostics/no-use-throwing-unstructured-task>
+[33 / 43] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Meetings/MeetingContextReconciler.swift:294:30: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+292 |             enabled: @escaping @Sendable () async -> Bool = {
+293 |                 let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
+294 |                 let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
+    |                              `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+295 |                 return MeetingContextReconciler.isEnabled(stored: stored, choice: choice)
+296 |             },
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[35 / 43] NextNotes-product
+[36 / 43] NextNotes-product
+[37 / 43] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Support/NativeFinalTranscriptQuitSelfTest.swift:86:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 84 |         }
+ 85 |         await writer.finish()
+ 86 |         let written = await writer.resourceSnapshot()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+ 87 |         check("I06 real stereo CAF writer completed exact frames", written.writtenFrames == 64_000
+ 88 |               && !written.writeFailed && !written.writeInFlight)
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/no-apple/Sources/NextNotes/Support/NativeDiarizationQuitSelfTest.swift:108:23: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+106 |         }
+107 |         await writer.finish()
+108 |         let written = await writer.resourceSnapshot()
+    |                       `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+109 |         check("I04 actual synthetic stereo CAF complete", written.writtenFrames == samples.count && !written.writeFailed && !written.writeInFlight)
+110 |         let system = try AudioConversion.samples(fromFileAt: audio, sampleRate: 16_000, channel: MeetingAudioWriter.systemChannel)
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[38 / 43] NextNotes-product
+[40 / 43] NextNotes-product
+[41 / 43] NextNotes-product
+[42 / 43] NextNotes-product
+[43 / 43] NextNotes-product
+[45 / 45] NextNotes-product
+Build complete! (75.66 sec)

@@ -1,0 +1,4 @@
+VOICE_POLICY_ROUTE_COUNTS unavailable_backing_calls=0 ready_route_selected=true stale_answer_replayed=false
+VOICE_POLICY_SOURCE_COUNTS forbidden=0 explicit_nonplayback_exceptions=17 files=905
+VOICE_SINK_SOURCE_OK
+TTS_OK

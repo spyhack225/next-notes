@@ -1,0 +1,3 @@
+2026-10-09 00:03:54.931 NextNotes[67984:4553684] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+NATIVE_PCM_RECEIPT_COUNTS receipts=2 callback_observations=206 muted=true
+VOICE_POLICY_REVIEW_OK

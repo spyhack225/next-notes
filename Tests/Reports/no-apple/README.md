@@ -1,5 +1,7 @@
 # Selected voice policy evidence — 8 October 2026
 
+Historical first-pass evidence below. The [independent-review follow-up](review-fixes/README.md) supersedes the resume capability, Catch-up retry, resource admission, census and timeline claims. It retains RED19/GREEN0 actual consumers and distinct native PCM proof, while keeping Settings SIGSEGV open.
+
 The app-generated voice is Pocket or supported Kokoro. The selected voice must report ready before a reply can enter its backing. An unavailable or failed voice leaves the answer written, with the approved plain message. A failure cancels the partial head and untouched remainder through the existing clause owner. Completed clauses remain acknowledged. No replacement voice is selected.
 
 The incorrect producer was `AgentSpeechSynthesizer.prepareForStream`: cold Pocket selected the Apple backing, Kokoro could enter an unready backing, and allowed-voice failure selected Apple again. The Apple text renderer and its direct acoustic diagnostic constructors are removed. A later review found a reply reset could also clear a selected-voice failure; the retained `a250fbb5` probe characterizes that gap before the final selector correction.
@@ -10,7 +12,7 @@ The incorrect producer was `AgentSpeechSynthesizer.prepareForStream`: cold Pocke
 
 The app self-test bodies exercise the real synthesizer, streaming buffer, reply delivery, shadow projection, capture, scheduler, permission proposal, task manager and Catch-up consumers using recording or deterministic PCM dependencies. The PCM fake independently advances enqueue, played, completion, pause, resume and interruption. Receipt tests retain token, phase, stale callback, exact ownership and cleanup invariants. Their markers explicitly say simulated PCM: neither the fake nor native software callbacks prove that a person heard audio.
 
-`PreparedPCMSpeechBacking` retains the existing raw player transport for the parallel acknowledgement agent. It contains no text synthesis. This branch creates no instance and does not wire it into a reply. The acknowledgement integration and native transport acceptance belong to that agent.
+`PreparedPCMSpeechBacking` retains the existing raw player transport for the parallel acknowledgement agent. It contains no text synthesis. The first batch created no instance; the follow-up instantiates it only in the actual native authored-PCM fixture. Production acknowledgement wiring still belongs to the peer. The acknowledgement integration and native transport acceptance belong to that agent.
 
 ## Retained source contracts
 
@@ -27,7 +29,7 @@ The `.log` pairs retain the actual source check results. Source checks establish
 
 ## Inherited build prerequisite
 
-The first actual app build failed because the committed remount fixture at `TaskAuthoritySelfTest.swift:372` calls `AgentTaskStore.recoveredReadHistory()`, which is missing from the committed store. The unchanged call was introduced by `811f3bb4` and is present at this branch's inherited `55d402ee` base. The canonical uncommitted store has the required read-only seam. Commit `5f9a538b` restores that small existing-only API in this worktree: it reads marked canonical rows/journal, refuses failed/unsafe stores and applies the same authority/identity/witness check as load. It creates, repairs and dispatches nothing. The fixture and its thresholds remain unchanged; the authority companion is included in same-slot verification. This is a build prerequisite, not broader recovery acceptance.
+The first actual app build failed because the committed remount fixture at `TaskAuthoritySelfTest.swift:372` calls `AgentTaskStore.recoveredReadHistory()`, which is missing from the committed store. The unchanged call was introduced by `811f3bb4` and is present at this branch's inherited `55d402ee` base. The canonical uncommitted store has the required read-only seam. Historical commit `5f9a538b` restored that small existing-only API; it is now dropped and replaced once by the shared `20d8f9b8…` cherry-pick (`9a63761b`): it reads marked canonical rows/journal, refuses failed/unsafe stores and applies the same authority/identity/witness check as load. It creates, repairs and dispatches nothing. The fixture and its thresholds remain unchanged; the authority companion is included in same-slot verification. This is a build prerequisite, not broader recovery acceptance.
 
 ## Native batch
 

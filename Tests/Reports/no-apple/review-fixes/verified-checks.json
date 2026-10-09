@@ -1,0 +1,223 @@
+[
+  {
+    "name": "webrtc-build",
+    "exit": 0,
+    "marker": "NO_FINAL_MARKER",
+    "console_log": "webrtc-build.log"
+  },
+  {
+    "name": "red-build",
+    "exit": 1,
+    "marker": "NO_FINAL_MARKER",
+    "console_log": "red-build.log"
+  },
+  {
+    "name": "red-build-retry",
+    "exit": 0,
+    "marker": "NO_FINAL_MARKER",
+    "console_log": "red-build-retry.log"
+  },
+  {
+    "name": "producer-red",
+    "exit": 1,
+    "marker": "VOICE_POLICY_REVIEW_FAILED: 19 assertions",
+    "console_log": "producer-red.log",
+    "expected": "VOICE_POLICY_REVIEW",
+    "passed": false,
+    "nested_failures": []
+  },
+  {
+    "name": "green-build",
+    "exit": 1,
+    "marker": "NO_FINAL_MARKER",
+    "console_log": "green-build-initial.log"
+  },
+  {
+    "name": "green-build",
+    "exit": 0,
+    "marker": "NO_FINAL_MARKER",
+    "console_log": "green-build.log"
+  },
+  {
+    "name": "producer-green",
+    "exit": 0,
+    "marker": "VOICE_POLICY_REVIEW_OK",
+    "console_log": "producer-green.log",
+    "expected": "VOICE_POLICY_REVIEW",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "tts",
+    "exit": 0,
+    "marker": "TTS_OK",
+    "console_log": "tts.log",
+    "expected": "TTS",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "tts-stream",
+    "exit": 0,
+    "marker": "TTS_TOKEN_STREAM_OK",
+    "console_log": "tts-stream.log",
+    "expected": "TTS_TOKEN_STREAM",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "voice-conversation",
+    "exit": 0,
+    "marker": "VOICE_CONVERSATION_OK",
+    "console_log": "voice-conversation.log",
+    "expected": "VOICE_CONVERSATION",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "voice-delivery",
+    "exit": 0,
+    "marker": "VOICE_DELIVERY_OK",
+    "console_log": "voice-delivery.log",
+    "expected": "VOICE_DELIVERY",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "voice-scheduling",
+    "exit": 0,
+    "marker": "VOICE_SCHEDULING_OK",
+    "console_log": "voice-scheduling.log",
+    "expected": "VOICE_SCHEDULING",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "duplex",
+    "exit": 0,
+    "marker": "DUPLEX_OK",
+    "console_log": "duplex.log",
+    "expected": "DUPLEX",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "concurrent-voice",
+    "exit": 0,
+    "marker": "CONCURRENT_VOICE_OK",
+    "console_log": "concurrent-voice.log",
+    "expected": "CONCURRENT_VOICE",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "voice-turn-routing",
+    "exit": 0,
+    "marker": "VOICE_TURN_ROUTING_OK",
+    "console_log": "voice-turn-routing.log",
+    "expected": "VOICE_TURN_ROUTING",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "catch-up",
+    "exit": 0,
+    "marker": "CATCH_UP_OK",
+    "console_log": "catch-up.log",
+    "expected": "CATCH_UP",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "settings",
+    "exit": -11,
+    "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host",
+    "console_log": "settings.log",
+    "expected": "SETTINGS",
+    "passed": false,
+    "nested_failures": []
+  },
+  {
+    "name": "ui-strings",
+    "exit": 0,
+    "marker": "UI_STRINGS_OK",
+    "console_log": "ui-strings.log",
+    "expected": "UI_STRINGS",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "store-isolation",
+    "exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+    "console_log": "store-isolation.log",
+    "expected": "STORE_ISOLATION",
+    "passed": true,
+    "nested_failures": [
+      "TOOLLOOP_PRODUCTION_FAILED"
+    ]
+  },
+  {
+    "name": "voice-playback-projection",
+    "exit": 0,
+    "marker": "VOICE_PLAYBACK_PROJECTION_OK: 33 checks",
+    "console_log": "voice-playback-projection.log",
+    "expected": "VOICE_PLAYBACK_PROJECTION",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "voice-playback-resume-receipt",
+    "exit": 0,
+    "marker": "VOICE_PLAYBACK_RESUME_RECEIPT_OK: 48 checks",
+    "console_log": "voice-playback-resume-receipt.log",
+    "expected": "VOICE_PLAYBACK_RESUME_RECEIPT",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "apple-resume-owner",
+    "exit": 0,
+    "marker": "APPLE_RESUME_OWNER_OK: 55 simulated PCM checks; native playback unverified",
+    "console_log": "apple-resume-owner.log",
+    "expected": "APPLE_RESUME_OWNER",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "apple-playback-timeline",
+    "exit": 0,
+    "marker": "APPLE_PLAYBACK_TIMELINE_OK: native authored PCM callback/cursor/owner checks; audibility unverified",
+    "console_log": "apple-playback-timeline.log",
+    "expected": "APPLE_PLAYBACK_TIMELINE",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "task-authority",
+    "exit": 0,
+    "marker": "TASK_AUTHORITY_OK: 63 cases",
+    "console_log": "task-authority.log",
+    "expected": "TASK_AUTHORITY",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "residency",
+    "exit": 0,
+    "marker": "RESIDENCY_OK",
+    "console_log": "residency.log",
+    "expected": "RESIDENCY",
+    "passed": true,
+    "nested_failures": []
+  },
+  {
+    "name": "scheduler",
+    "exit": 0,
+    "marker": "SCHEDULER_OK",
+    "console_log": "scheduler.log",
+    "expected": "SCHEDULER",
+    "passed": true,
+    "nested_failures": []
+  }
+]

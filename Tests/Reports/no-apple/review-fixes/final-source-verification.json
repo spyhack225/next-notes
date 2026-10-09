@@ -1,0 +1,13 @@
+{
+  "current_source_commit": "e026b1dbfac0362bc218b7b0e0b3266e0c5468ae",
+  "binary_sha256": "153647eecb6420c54117f605aba0b20986dd06f0a2f84d711da17288270920f5",
+  "all_swift_sources_equal_built_pin": true,
+  "unchanged_red_green_fixtures": {
+    "Sources/NextNotes/Agent/Speech/VoicePolicyReviewSelfTest.swift": true,
+    "Sources/NextNotes/Agent/Duplex/NativePCMReceiptSelfTest.swift": true
+  },
+  "census_config_sha256": {
+    "Tests/Reports/no-apple/check-sink.py": "a9290c1e013e4ddd024b8e26e7b38cb035f17977d610649d8e254262bacc1067",
+    "Tests/Reports/no-apple/speech-source-allowlist.json": "6a78f64e334aeaa49f4e4d2898ac4a4a38decf4551c26c566cbbb31c8aa1e0e1"
+  }
+}

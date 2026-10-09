@@ -1,0 +1,22 @@
+2026-10-08 23:56:46.554 NextNotes[67046:4545233] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+NATIVE_PCM_RECEIPT_COUNTS receipts=2 callback_observations=206 muted=true
+VOICE_POLICY_REVIEW_WRONG: R1: pocket lacks an honest unsupported resume capability contract
+VOICE_POLICY_REVIEW_WRONG: R1: kokoro lacks an honest unsupported resume capability contract
+VOICE_POLICY_REVIEW_WRONG: R2: failed selected voice produced file audio
+VOICE_POLICY_REVIEW_WRONG: R2: failed Catch-up reached synthesis entry
+VOICE_POLICY_REVIEW_WRONG: R2: file synthesis failure did not latch selected availability
+VOICE_POLICY_REVIEW_WRONG: R2: subsequent Catch-up retried failed file synthesis
+VOICE_POLICY_REVIEW_WRONG: R2: failed native owner silently retried through frames/session
+VOICE_POLICY_REVIEW_WRONG: R4: warning admitted native initialization/warm
+VOICE_POLICY_REVIEW_WRONG: R4: deferred preparation is not truthfully getting ready
+VOICE_POLICY_REVIEW_WRONG: R4: critical admitted native initialization/warm
+VOICE_POLICY_REVIEW_WRONG: R4: deferred preparation is not truthfully getting ready
+VOICE_POLICY_REVIEW_WRONG: R4: preparation has no owned background admission
+VOICE_POLICY_REVIEW_WRONG: R4: ASR hold admitted initialization/warm
+VOICE_POLICY_REVIEW_WRONG: R4: no pressure recheck after ASR wait
+VOICE_POLICY_REVIEW_WRONG: R4: active meeting/dictation admitted optional native work
+VOICE_POLICY_REVIEW_WRONG: R4: no resource recheck between asset wait and native initialization
+VOICE_POLICY_REVIEW_WRONG: R4: pressure change during init did not defer warm prediction
+VOICE_POLICY_REVIEW_WRONG: R6: actual synth accepts reversed native cursor receipt
+VOICE_POLICY_REVIEW_WRONG: R8: neutral counter does not observe allowed synthesis entry
+VOICE_POLICY_REVIEW_FAILED: 19 assertions
