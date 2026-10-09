@@ -625,7 +625,25 @@ final class AgentSpeechSynthesizer {
               let binding = voiceResumeBinding,
               binding.token == receipt.packet.buffer.token,
               binding.phase == receipt.packet.originPhase,
-              receiptBacking.currentResumePhase == binding.phase else { return }
+              receiptBacking.currentResumePhase == binding.phase,
+              receipt.packet.callbackKind == Int(AVAudioPlayerNodeCompletionCallbackType.dataPlayedBack.rawValue),
+              receipt.earlier.frame >= 0, receipt.later.frame > receipt.earlier.frame,
+              receipt.earlier.nodeHostTime < receipt.later.nodeHostTime,
+              receipt.earlier.observedHostTime < receipt.later.observedHostTime,
+              receipt.packet.originHostTime >= receipt.later.observedHostTime,
+              receipt.packet.buffer.sampleRate.isFinite, receipt.packet.buffer.sampleRate > 0,
+              receipt.earlier.sampleRate == receipt.packet.buffer.sampleRate,
+              receipt.later.sampleRate == receipt.packet.buffer.sampleRate,
+              receipt.checkpointBuffer.sampleRate == receipt.packet.buffer.sampleRate,
+              receipt.checkpointBuffer.token == currentPlaybackToken,
+              receipt.checkpointBuffer.lowerFrame >= 0,
+              receipt.checkpointBuffer.upperFrame > receipt.checkpointBuffer.lowerFrame,
+              receipt.checkpoint >= receipt.later.frame,
+              receipt.checkpoint >= receipt.checkpointBuffer.upperFrame,
+              receipt.packet.buffer.lowerFrame >= 0,
+              receipt.packet.buffer.upperFrame > receipt.packet.buffer.lowerFrame,
+              receipt.packet.buffer.upperFrame > receipt.checkpoint,
+              receipt.packet.buffer.ordinal > receipt.checkpointBuffer.ordinal else { return }
         voiceResumePending = false
         onPlaybackEvent?(.resumeAcknowledged(receipt))
         onVoiceLifecycleSettled?()
