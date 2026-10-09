@@ -124,6 +124,10 @@ enum DS {
         static let title = SwiftUI.Font.title
         static let title2 = SwiftUI.Font.title2
         static let title3 = SwiftUI.Font.title3
+        /// The name of a prepared thing — a catch-up — set the way the landing page sets a
+        /// headline: serif, at a text style so Dynamic Type still applies. Not for controls or
+        /// running text; one heading per card.
+        static let briefingTitle = SwiftUI.Font.system(.title3, design: .serif)
         static let headline = SwiftUI.Font.headline
         static let body = SwiftUI.Font.body
         static let callout = SwiftUI.Font.callout

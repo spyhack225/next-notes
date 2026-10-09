@@ -1,0 +1,3 @@
+FONT_TOKEN_MOVE_OK
+Original/fixed expression: SwiftUI.Font.system(.title3, design: .serif)
+Definition now inside DS.Font in DesignSystem.swift; feature extension removed.

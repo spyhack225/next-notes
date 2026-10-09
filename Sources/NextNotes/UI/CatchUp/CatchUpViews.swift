@@ -1,12 +1,5 @@
 import SwiftUI
 
-extension DS.Font {
-    /// The name of a prepared thing — a catch-up — set the way the landing page sets a
-    /// headline: serif, at a text style so Dynamic Type still applies. Not for controls or
-    /// running text; one heading per card.
-    static let briefingTitle = SwiftUI.Font.system(.title3, design: .serif)
-}
-
 /// What a card says about its audio, as a pure function of the clock, and when the clock has to
 /// be read again. `isPreparingAudio` depends on the time, but the library's list does not
 /// change when the wait window ends, so nothing observable fires: the screen has to wake
