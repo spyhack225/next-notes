@@ -68,3 +68,52 @@ Round-2 source files changed:
 Will conflict with uncommitted work: `Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift` (supplied dirty inventory and review). Preserve canonical cleanup warm recovery alongside the existing cold seed/admission notification and new unknown-read retry. The complete prior branch also retains the six earlier integration overlaps: AgentTaskManager, AgentTaskStore, ModelResidencyPolicy, NextNotesApp, AgentView and IslandView. The shared task-store prerequisite stays applied exactly once and is untouched this round. Committed peer Settings/ACK/Mini integrations must reconcile synth/Settings changes; no combined build was run. The owner tracks findings3/8 in its integration manifest; relay sending is not read confirmation.
 
 Unverified/open: audible/native Pocket/Kokoro quality and post-resume proof; real first-launch download/offline recovery and Settings interaction; real unknown-pressure kernel behavior; device/full-duplex/release performance; combined peer/UI build; Settings crash cause and inherited model/Agent gates. No installed release was changed.
+
+
+## Round 4 — current reply settlement and executable census
+
+Base `62da58a3`. Speech producer/test commit `f6265ca2` (“Settle current failed reply independently of selected voice request epoch”); census/evidence commit titled “Catch shell command strings and stdin speech sinks with retained round-4 proof”. Own worktree only. No install, push, main merge, GUI opening, manual owner-store access or seeding or foreign cleanup.
+
+Confirmed cause: the reply epoch equality guard preceded all current output settlement even though selection or cached preparation does not replace that output. Current token/text validation now always admits its failure settlement; only the selected voice failure latch checks the request epoch. Partial/queued text receives interrupted/unheard receipts, the failed output snapshot stays failed, lifecycle/audio state clears and subsequent streamed text settles unheard through the existing owner. Explicit stop closes that text admission. No replay, voice switch, model pass, queue, timer, retry or added await. Four actual RealtimeAudioSession/StreamingSpeechBuffer/synthesizer/file-adapter cases cover Pocket/Kokoro × selection/cached preparation, including invalid token/text, queued/subsequent text, exact release/audio state, new-selection availability and new file-consumer entry. External synthesis/playback alone is scripted. The original nine failed consequences per case are 36 total; fixed has zero. The same four fixtures each retain 17 assertions.
+
+Confirmed census cause: ordinary source patterns only found exact quoted command tokens, while shell command position did not consume stdin-only exec. The scanner now detects Process shell arguments, system/popen shell strings, piped exec with no argument, echo pipes and bare/end-of-line commands. The unchanged 29-case fixture requires exit1 plus VOICE_SINK_SOURCE_FAILED, rather than accepting scanner crashes. Original misses six; fixed misses zero. Six existing prompt/conversation/UI-copy lines have exact count-bounded exceptions. No whole-file exception or renamed synthesis allowance. The operation exception check applies to files with explicit operation allowances, preserving the existing unexpected-operation mutations. Final census: forbidden0 / exceptions30 / files908.
+
+One normal heavy.sh FIFO slot built original and fixed and ran the same affected round-2 batch. Native RED source producer equals 62da58a3; only the synth producer differs between RED/GREEN Sources. Swift/census fixtures retain identical hashes; final Sources equal the GREEN pin. Debug builds took 283.62s / 23.19s, not a product latency measurement. Binary SHA256 original: `b12eebd5f505f2dd8aec9809f8357a9f6433f84b2871eb61010f35e0c3dc860b`; fixed: `b8f2c3c7568dbb1a429341b0500e3086ba06617a3e81f87300011e5f53ff27bd`.
+
+11/12 requested roots pass; all four receipt companions, authority63, residency and scheduler pass (18/19 focused flags). Settings remains a FAILED PROCESS: its SETTINGS_OK assertion marker precedes -11/SIGSEGV. Wrapper exit1 includes that failure and excludes expected RED. No Settings crash attribution or promotion. Native PCM companion still reports receipts2/callback observations206/muted=true. Isolation21files/0ownerdefaults coexists with nested browser18/TOOLLOOP_PRODUCTION_FAILED. Delivery13/duplex2 divergences also remain; all six normalized diagnostic streams equal round2. These are inherited open scopes, not root-pass claims of resolution.
+
+| Check | Exit | Exact final root marker |
+| --- | --- | --- |
+| `webrtc-build` | 0 | `NO_FINAL_MARKER` |
+| `red-build` | 0 | `NO_FINAL_MARKER` |
+| `producer-red` | 1 | `VOICE_POLICY_REVIEW_FAILED: 36 assertions` |
+| `apply-fix` | 0 | `NO_FINAL_MARKER` |
+| `green-build` | 0 | `NO_FINAL_MARKER` |
+| `producer-green` | 0 | `VOICE_POLICY_REVIEW_OK` |
+| `tts` | 0 | `TTS_OK` |
+| `tts-stream` | 0 | `TTS_TOKEN_STREAM_OK` |
+| `voice-conversation` | 0 | `VOICE_CONVERSATION_OK` |
+| `voice-delivery` | 0 | `VOICE_DELIVERY_OK` |
+| `voice-scheduling` | 0 | `VOICE_SCHEDULING_OK` |
+| `duplex` | 0 | `DUPLEX_OK` |
+| `concurrent-voice` | 0 | `CONCURRENT_VOICE_OK` |
+| `voice-turn-routing` | 0 | `VOICE_TURN_ROUTING_OK` |
+| `catch-up` | 0 | `CATCH_UP_OK` |
+| `settings` | -11 | `SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host` |
+| `ui-strings` | 0 | `UI_STRINGS_OK` |
+| `store-isolation` | 0 | `STORE_ISOLATION_OK: 21 files and 0 defaults unchanged` |
+| `voice-playback-projection` | 0 | `VOICE_PLAYBACK_PROJECTION_OK: 33 checks` |
+| `voice-playback-resume-receipt` | 0 | `VOICE_PLAYBACK_RESUME_RECEIPT_OK: 48 checks` |
+| `apple-resume-owner` | 0 | `APPLE_RESUME_OWNER_OK: 55 simulated PCM checks; native playback unverified` |
+| `apple-playback-timeline` | 0 | `APPLE_PLAYBACK_TIMELINE_OK: native authored PCM callback/cursor/owner checks; audibility unverified` |
+| `task-authority` | 0 | `TASK_AUTHORITY_OK: 63 cases` |
+| `residency` | 0 | `RESIDENCY_OK` |
+| `scheduler` | 0 | `SCHEDULER_OK` |
+
+Census markers: original exit1 `VOICE_CENSUS_MUTATIONS_FAILED` (6 missed/29); fixed exit0 `VOICE_CENSUS_MUTATIONS_OK` (0/29); repository exit0 `VOICE_SINK_SOURCE_OK`. Fixture invariance and git whitespace checks pass. Raw logs, full source/binary pins, patches, fixture hash comparisons, normalized diagnostics and cleanup are retained in [round-4 evidence](Tests/Reports/no-apple/round4/README.md).
+
+Files changed: AgentSpeechSynthesizer.swift; VoiceFailureEpochSelfTest.swift; check-sink.py; speech-source-allowlist.json; review-fixes/test-census.py; this RESULT.md; PERFORMANCE-STANDARDS.md; round4 retained reports/scripts/logs. None of this round's producer/test files is listed in MAIN-DIRTY-SOURCES.txt as “will conflict with uncommitted work”. AgentSpeechSynthesizer still requires manual reconciliation with peer ACK/Mini work; PERFORMANCE-STANDARDS must preserve peers' evidence. No peer files/processes/claims or staged changes were changed.
+
+Not verified: physical Pocket/Kokoro output or quality; production positive resume receipts; live first-launch/download/offline Settings recovery; combined Settings/ACK/Mini build/interaction; release latency, native device duplex and reference-machine ASR+voice performance. Settings UI and peer counter/PCM integration remain integration-owned. The existing shared task-store prerequisite was not edited. No model/default/quality gate, phase or broader readiness is promoted.
+
+Own scratch removed after wrapper completion (2078752 KiB prior allocation); own batch temp removed by finally. Existing untracked brief/history/session files were preserved. Completion and exact remaining contracts were sent through agent-relay; sending does not confirm reading.

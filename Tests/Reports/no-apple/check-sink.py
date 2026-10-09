@@ -6,7 +6,9 @@ allow=json.loads(Path(__file__).with_name('speech-source-allowlist.json').read_t
 patterns=[re.compile(r'\b(?:AVSpeech\w*|NSSpeechSynthesizer)\b'),
           re.compile(r'/usr/bin/say\b|/usr/bin/env\s+say\b'),
           re.compile(r'["\x27]say["\x27]'),
-          re.compile(r'(?:^\s*|[;|&]\s*)say(?=\s|$|[;&|])'),
+          # Command strings passed to Process/system/popen, including stdin.
+          re.compile(r'''["'](?:[^"'\n]*[;|&]\s+)?(?:exec\s+)?say(?=\s|["';|&])'''),
+          re.compile(r'(?:^\s*|[;|&]\s*)(?:exec\s+)?say(?=\s|$|[;&|])'),
           re.compile(r'(?:^|[\s;|])say\s+(?:-|["\w$])')]
 files=set()
 for directory in ['Sources','Tools','Scripts','site/scripts']:
@@ -49,11 +51,11 @@ for path in sorted(files):
         # and executable shebangs must still be scanned. Speech symbols are
         # always checked, including specialized framework imports.
         comment = script and line.lstrip().startswith('#') and not line.lstrip().startswith('#!')
-        candidates = patterns[:1] if comment else patterns if script else patterns[:3]
+        candidates = patterns[:1] if comment else patterns if script else patterns[:4]
         # Even existing catalog/benchmark files cannot hide a new synthesis
         # operation behind previously allowed declarations. Exact known writes
         # and the selected Agent preview are separately reasoned allowances.
-        allowed_source_operation = bool(entry) and path.suffix in source_suffixes and re.search(r'\.(?:speak|write)\s*\(', line)
+        allowed_source_operation = any(re.search(r'\.(?:speak|write)\s*\(', known) for known in entry.get('lines', [])) and path.suffix in source_suffixes and re.search(r'\.(?:speak|write)\s*\(', line)
         if not allowed_source_operation and not any(p.search(line) for p in candidates):continue
         # Exact existing operations with bounded occurrence counts. Renaming a
         # file invalidates its allowance; adding even a duplicate line fails.

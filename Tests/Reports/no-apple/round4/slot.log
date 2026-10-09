@@ -1,0 +1,32 @@
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+{"name": "webrtc-build", "exit": 0, "marker": "NO_FINAL_MARKER", "expected": null}
+{"name": "red-build", "exit": 0, "marker": "NO_FINAL_MARKER", "expected": null}
+{"name": "producer-red", "exit": 1, "marker": "VOICE_POLICY_REVIEW_FAILED: 36 assertions", "expected": "VOICE_POLICY_REVIEW"}
+{"name": "apply-fix", "exit": 0, "marker": "NO_FINAL_MARKER", "expected": null}
+{"name": "green-build", "exit": 0, "marker": "NO_FINAL_MARKER", "expected": null}
+{"name": "producer-green", "exit": 0, "marker": "VOICE_POLICY_REVIEW_OK", "expected": "VOICE_POLICY_REVIEW"}
+{"name": "tts", "exit": 0, "marker": "TTS_OK", "expected": "TTS"}
+{"name": "tts-stream", "exit": 0, "marker": "TTS_TOKEN_STREAM_OK", "expected": "TTS_TOKEN_STREAM"}
+{"name": "voice-conversation", "exit": 0, "marker": "VOICE_CONVERSATION_OK", "expected": "VOICE_CONVERSATION"}
+{"name": "voice-delivery", "exit": 0, "marker": "VOICE_DELIVERY_OK", "expected": "VOICE_DELIVERY"}
+{"name": "voice-scheduling", "exit": 0, "marker": "VOICE_SCHEDULING_OK", "expected": "VOICE_SCHEDULING"}
+{"name": "duplex", "exit": 0, "marker": "DUPLEX_OK", "expected": "DUPLEX"}
+{"name": "concurrent-voice", "exit": 0, "marker": "CONCURRENT_VOICE_OK", "expected": "CONCURRENT_VOICE"}
+{"name": "voice-turn-routing", "exit": 0, "marker": "VOICE_TURN_ROUTING_OK", "expected": "VOICE_TURN_ROUTING"}
+{"name": "catch-up", "exit": 0, "marker": "CATCH_UP_OK", "expected": "CATCH_UP"}
+{"name": "settings", "exit": -11, "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host", "expected": "SETTINGS"}
+{"name": "ui-strings", "exit": 0, "marker": "UI_STRINGS_OK", "expected": "UI_STRINGS"}
+{"name": "store-isolation", "exit": 0, "marker": "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged", "expected": "STORE_ISOLATION"}
+{"name": "voice-playback-projection", "exit": 0, "marker": "VOICE_PLAYBACK_PROJECTION_OK: 33 checks", "expected": "VOICE_PLAYBACK_PROJECTION"}
+{"name": "voice-playback-resume-receipt", "exit": 0, "marker": "VOICE_PLAYBACK_RESUME_RECEIPT_OK: 48 checks", "expected": "VOICE_PLAYBACK_RESUME_RECEIPT"}
+{"name": "apple-resume-owner", "exit": 0, "marker": "APPLE_RESUME_OWNER_OK: 55 simulated PCM checks; native playback unverified", "expected": "APPLE_RESUME_OWNER"}
+{"name": "apple-playback-timeline", "exit": 0, "marker": "APPLE_PLAYBACK_TIMELINE_OK: native authored PCM callback/cursor/owner checks; audibility unverified", "expected": "APPLE_PLAYBACK_TIMELINE"}
+{"name": "task-authority", "exit": 0, "marker": "TASK_AUTHORITY_OK: 63 cases", "expected": "TASK_AUTHORITY"}
+{"name": "residency", "exit": 0, "marker": "RESIDENCY_OK", "expected": "RESIDENCY"}
+{"name": "scheduler", "exit": 0, "marker": "SCHEDULER_OK", "expected": "SCHEDULER"}
+NO_APPLE_ROUND4_BATCH_FINISHED

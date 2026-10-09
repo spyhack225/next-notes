@@ -1,0 +1,2 @@
+{"undetected": ["Sources/NextNotes/ShellVoice.swift", "Sources/NextNotes/SystemVoice.c", "Sources/NextNotes/PopenVoice.c", "Scripts/stdin-exec.sh", "Scripts/exec-bare-say.sh", "Sources/NextNotes/SystemStdin.c"], "cases": 29}
+VOICE_CENSUS_MUTATIONS_FAILED

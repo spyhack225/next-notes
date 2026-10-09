@@ -8,6 +8,16 @@ cases.update({
     'Sources/NextNotes/EnvVoice.c': 'const char *args[] = {"say", "Hello"};',
     'Scripts/exec-voice.sh': 'exec say Hello',
 })
+cases.update({
+    'Sources/NextNotes/ShellVoice.swift': 'let task = Process(); task.executableURL = URL(fileURLWithPath: "/bin/sh"); task.arguments = ["-c", "say Hello"]',
+    'Sources/NextNotes/SystemVoice.c': 'system("say Hello");',
+    'Sources/NextNotes/PopenVoice.c': 'popen("say Hello", "r");',
+    'Scripts/stdin-exec.sh': 'printf x | exec say',
+    'Scripts/stdin-echo.sh': 'echo hi | say',
+    'Scripts/bare-say.sh': 'say',
+    'Scripts/exec-bare-say.sh': 'exec say',
+    'Sources/NextNotes/SystemStdin.c': 'system("printf x | exec say");',
+})
 misses=[]
 for path,body in cases.items():
     with tempfile.TemporaryDirectory(prefix='NextNotes-noapple-census-') as tmp:

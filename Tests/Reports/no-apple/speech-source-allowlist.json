@@ -75,5 +75,36 @@
     "lines": [
       "\"part\", \"people\", \"point\", \"put\", \"read\", \"right\", \"run\", \"said\", \"same\", \"say\","
     ]
+  },
+  "Sources/NextNotes/Agent/RealtimeAgentToolLoopSelfTest.swift": {
+    "reason": "Existing conversational text, prompt assertion or UI copy; no shell execution or speech synthesis. Each exact line has one bounded allowance.",
+    "lines": [
+      "let quiet = await agent.handle(\"say hello\", source: .voice)",
+      "system.contains(rule) && system.contains(\"say the name given above plainly, and never claim you have no model.\"))"
+    ]
+  },
+  "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift": {
+    "reason": "Existing conversational text, prompt assertion or UI copy; no shell execution or speech synthesis. Each exact line has one bounded allowance.",
+    "lines": [
+      "check(\"the prompt lost the source-and-who habit\", prompt.contains(\"say who it is from and when\"))"
+    ]
+  },
+  "Sources/NextNotes/Agent/VoiceCapabilityConversationSelfTest.swift": {
+    "reason": "Existing conversational text, prompt assertion or UI copy; no shell execution or speech synthesis. Each exact line has one bounded allowance.",
+    "lines": [
+      "\"say it another way\""
+    ]
+  },
+  "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": {
+    "reason": "Existing conversational text, prompt assertion or UI copy; no shell execution or speech synthesis. Each exact line has one bounded allowance.",
+    "lines": [
+      "\"say it again\", \"say that again\","
+    ]
+  },
+  "Sources/NextNotes/UI/Settings/KnowledgeSection.swift": {
+    "reason": "Existing conversational text, prompt assertion or UI copy; no shell execution or speech synthesis. Each exact line has one bounded allowance.",
+    "lines": [
+      "+ \"say a lot about your work and the people in it, so that is your call to make.\","
+    ]
   }
 }

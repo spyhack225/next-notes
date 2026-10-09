@@ -1,0 +1,43 @@
+2026-10-09 01:18:03.005 NextNotes[88751:4703752] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_REPLY_EPOCH_CASE engine=pocket change=selection fixture_assertions=17
+VOICE_REPLY_EPOCH_CASE engine=pocket change=cached preparation fixture_assertions=17
+VOICE_REPLY_EPOCH_CASE engine=kokoro change=selection fixture_assertions=17
+VOICE_REPLY_EPOCH_CASE engine=kokoro change=cached preparation fixture_assertions=17
+NATIVE_PCM_RECEIPT_COUNTS receipts=2 callback_observations=206 muted=true
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: partial receipt missing
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: queued unheard receipt missing
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: failed output lifecycle retained
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: failure lifecycle release missing
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: audio speaking state retained
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: failed output snapshot missing
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: subsequent streamed text lacks unheard settlement
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: failed reply replayed/submitted more speech
+VOICE_POLICY_REVIEW_WRONG: R4: pocket selection: explicit stop admitted later text
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: partial receipt missing
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: queued unheard receipt missing
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: failed output lifecycle retained
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: failure lifecycle release missing
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: audio speaking state retained
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: failed output snapshot missing
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: subsequent streamed text lacks unheard settlement
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: failed reply replayed/submitted more speech
+VOICE_POLICY_REVIEW_WRONG: R4: pocket cached preparation: explicit stop admitted later text
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: partial receipt missing
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: queued unheard receipt missing
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: failed output lifecycle retained
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: failure lifecycle release missing
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: audio speaking state retained
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: failed output snapshot missing
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: subsequent streamed text lacks unheard settlement
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: failed reply replayed/submitted more speech
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro selection: explicit stop admitted later text
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: partial receipt missing
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: queued unheard receipt missing
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: failed output lifecycle retained
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: failure lifecycle release missing
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: audio speaking state retained
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: failed output snapshot missing
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: subsequent streamed text lacks unheard settlement
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: failed reply replayed/submitted more speech
+VOICE_POLICY_REVIEW_WRONG: R4: kokoro cached preparation: explicit stop admitted later text
+VOICE_POLICY_REVIEW_FAILED: 36 assertions
