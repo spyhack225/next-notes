@@ -1882,6 +1882,14 @@ final class AgentCaptureController {
         noteLevel(level, nearCandidate: nearCandidate)
     }
 
+    /// Confined courtesy regression enters the actual cleaned-level producer.
+    func noteAcknowledgementLevelForTesting(_ level: Float, nearCandidate: Bool) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-latency",
+              CommandLine.arguments.contains("--voice-latency-ack-policy"), level.isFinite else { return false }
+        noteAcousticLevel(level, nearCandidate: nearCandidate)
+        return true
+    }
+
     private func noteLevel(_ level: Float, nearCandidate: Bool = false) {
         let shadowFloorBefore = voiceShadowHasFloor
         defer { if voiceShadowHasFloor != shadowFloorBefore { VoiceSession.shared.producerDidSettle() } }
@@ -1889,8 +1897,7 @@ final class AgentCaptureController {
         guard isSessionActive else { return }
         // Courtesy audio yields immediately to cleaned near input; no120ms floor
         // or lexical classification gate is added to the existing answer barge rules.
-        if level >= Limits.speechLevel,
-           !VoiceAcknowledgement.shared.isPlaying || nearCandidate {
+        if level >= Limits.speechLevel {
             VoiceAcknowledgement.shared.cancel()
         }
         if level >= Limits.speechLevel {
