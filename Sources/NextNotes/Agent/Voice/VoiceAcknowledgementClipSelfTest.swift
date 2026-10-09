@@ -123,6 +123,28 @@ enum VoiceAcknowledgementClipSelfTest {
         await capture.endSession(source: .done)
         speech.restoreSystemBacking()
         ack.environmentForTesting = { .init() }
+        // Cleaned mic energy is the existing input boundary. Courtesy must yield
+        // even when the optional acoustic near-candidate is unavailable/false.
+        let coordinator = VoiceConversationCoordinator.shared
+        coordinator.resetForTesting()
+        await capture.beginSession(captureAudio: false)
+        speech.useTestingBacking(RecordingSpeechBacking())
+        ack.clipsForTesting = ["Mm.", "Okay."]
+        let resumedStream = LockedBox<AsyncThrowingStream<String, Error>.Continuation?>(nil)
+        coordinator.streamForTesting = { _, _ in AsyncThrowingStream { resumedStream.value = $0 } }
+        let resumedTurn = Task { await coordinator.handle("Write a haiku about rain") }
+        try? await Task.sleep(for: .milliseconds(140))
+        check(ack.testActive, "actual committed turn owns courtesy before cleaned input")
+        check(capture.noteAcknowledgementLevelForTesting(0.07, nearCandidate: false),
+              "cleaned input reaches actual capture producer")
+        check(!ack.testActive && !ack.pendingForTesting,
+              "cleaned input cancels courtesy without near-candidate gate")
+        check(capture.isSessionActive && !RealtimeAudioSession.shared.isSpeaking,
+              "courtesy cancellation preserves capture and semantic answer floor")
+        resumedTurn.cancel(); resumedStream.value?.finish(); _ = await resumedTurn.value
+        await capture.endSession(source: .done)
+        coordinator.resetForTesting(); ack.clipsForTesting = nil
+        speech.restoreSystemBacking()
         // Actual capture quit join retains the same optional prewarm producer.
         cache.invalidate()
         let held = HeldRender()
