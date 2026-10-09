@@ -1,0 +1,12 @@
+{
+  "removedOnlyOwnPaths": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/google-c",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c/.google-review-work",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c/.google-replay-snapshot",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/google-c/Tests/__pycache__"
+  ],
+  "fixtureTemporaryFoldersRemaining": [],
+  "scratchExistsAfter": false,
+  "globalReclamationClaim": false,
+  "foreignProcessesAndCachesTouched": false
+}

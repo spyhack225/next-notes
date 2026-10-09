@@ -1,0 +1,8 @@
+{
+  "startedUTC": "2026-10-09T00:10:32.539992+00:00",
+  "macOS": "27.2",
+  "architecture": "arm64",
+  "baseHead": "ddf30b7b7a04addb0491a0837bd4316ca6ef96c9",
+  "wrapper": "../heavy.sh FIFO, normal gates, RELAY_ID=claude2-google-c",
+  "scope": "debug native functional fixtures; no models/GUI/install/private OAuth input"
+}

@@ -1,0 +1,11 @@
+Sources/NextNotes/Calendar/Google/GoogleCalendarErrorSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleCalendarScopeSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleCalendarWithdrawalSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleConcurrentRejectionSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleGrantReadSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleGrantReplacementSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleLaunchCancellationSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleProbingScopeSelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleScopeBoundarySelfTest.swift: OK
+Sources/NextNotes/Calendar/Google/GoogleReviewFixture.swift: OK

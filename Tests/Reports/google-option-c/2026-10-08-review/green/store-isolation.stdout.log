@@ -1,0 +1,78 @@
+MODEL_ROLES_CODEX_FALLBACK: agent=localServer computerUse=localServer
+CONVERSATION_PROMPT_CHARS: 6080 persona 882 roster 5198
+PROMPT_TOKENS: 1966 for 24 tools (live loop)
+ANSWER_BUDGET: deep=1024 fast=1024 small=144 prompt=1136
+APPLE_FM_CONTEXT=8192
+  TOOLLOOP_PRODUCTION_READ_APPROVAL: 3 recorded decisions, 1 setting check, 2 call sites scanned, 2-switch knowledge gate, 5 markup forms scrubbed
+  TOOLLOOP_PRODUCTION_HISTORY_BUDGET: 262,144 reader 18513 chars, 4,096 reader 2500 chars
+  TOOLLOOP_PRODUCTION_CUT_SHORT: 3 sentences, final-answer round keeps the completion; the streamed planner rounds cannot see the flag (recorded)
+FITTED_PROMPT: 4 round(s), worst total 3196 tokens of 4,096
+  TOOLLOOP_PRODUCTION_ACCOUNT_READ: 10 cases, guard is pure
+  TOOLLOOP_PRODUCTION_IDENTIFIERS: 4 id parameters marked, I1–I4 green, matcher is "FunctionCallGrounding" reused
+  TOOLLOOP_PRODUCTION_O01_ORIGINAL: calls=2 tools=["search_email"] finalPromptCyril=true storedRawContains=false storedExactRendered=true rawCharacters=378 renderedCharacters=372 storedCharacters=372
+  TOOLLOOP_PRODUCTION_O01_SOURCE: mail/provider/agenda/no-read/refused/legacy checked; native answer quality remains separate
+TOOLLOOP_PRODUCTION_M03_NOW: original promise, actual read/final consumer, refusal and completed read checked
+TOOLLOOP_PRODUCTION_K03 calls=2 reads=1
+TOOLLOOP_PRODUCTION_M02 calls=2 reads=1
+  TOOLLOOP_PRODUCTION_OFFERED_READ: actual typed consumer, fixture reads
+  TOOLLOOP_PRODUCTION_F03_RECIPIENT: provider rounds=2 tools=["filesystem.search"] reply=I don't have Marcus's email address stored, so I can't complete the email part without it. Could you tell me the email address for Marcus?
+  F03_SPECIFIED_FLOOR: authored read control model=3 tools=["filesystem.search", "draft_email"] card=true
+  F03_SPECIFIED_FLOOR: forced read model=3 tools=["filesystem.search", "draft_email"] card=true
+  TOOLLOOP_PRODUCTION_F03_FILE: rounds=2 tools=["filesystem.search"] reply=I found Pricing 2026.pdf. What is Marcus's email address?
+TOOLLOOP_PRODUCTION_Y02 calls=2 recalls=1 writes=0
+TOOLLOOP_PRODUCTION_F02 calls=2 reads=1 query=projects active_status_verified=false
+  TOOLLOOP_PRODUCTION_A04: exact omission, real executor, current-turn suppression, fresh subsequent turn, scope and admission
+  TOOLLOOP_PRODUCTION_R03: retained no-call raws -> actual private schedule.list -> final answer; bounded admission and no writes
+  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT: schema + wire + selected catalogue + review preview
+  TOOLLOOP_PRODUCTION_DRAFT_SUBJECT_REPAIR: actual omitted/blank subject, one repair, caps, exact card/approval/backing, missing recipient
+  TOOLLOOP_PRODUCTION_MODEL_IDENTITY: actual N02 call fact/rule/tail, exact raw retained, ordinary controls; native improvement unproven
+TOOLLOOP_PRODUCTION_N01_NAMES originalCalls=0 renamedCalls=0 assistantCalls=0
+TOOLLOOP_PRODUCTION_R01_TIMESTAMP calls=4 asks=1 saved=1 deniedSaved=0
+TOOLLOOP_PRODUCTION_R02_NIGHT calls=3 fired=["schedule.create"] saved=1 card=["days": "all", "text": "Remind me to put the book out every night at 10", "repeat": "daily", "kind": "reminder", "title": "Put the book out", "time": "22:00", "model": "auto"] clock=22:00 body=Remind me to put the book out every night at 10 reply=The book reminder is saved for every night at 10.
+TOOLLOOP_PRODUCTION_R02_MISSING calls=5 asks=1 saved=1 deniedSaved=0
+TOOLLOOP_PRODUCTION_R02_TIME asks=1 saved=1 deniedSaved=0
+  TOOLLOOP_PRODUCTION_R02_PREFLIGHT: exact malformed routine/model, actual native private save, one repair/card, field/cap/scope negatives
+TOOLLOOP_PRODUCTION_R01_DATE morning=07:00 expected=tomorrow09:00 actualSaved=1
+TOOLLOOP_PRODUCTION_R01_INVALID_DATE original=today+1d authored=tomorrow09 saved=1
+  TOOLLOOP_PRODUCTION_REMINDER_ADMISSION: exact R01 offer/yes/raw, one repair, real private native schedule save, caps and denial
+TOOLLOOP_PRODUCTION_PL11_SETUP approved=1 asks=1 plannerCalls=0
+  TOOLLOOP_PRODUCTION_O08_NAME: exact search/risk raw, actual fixture consumer, same-result question, catalogue and blocked/wrong-risk negatives
+  TOOLLOOP_PRODUCTION_O08_TARGET: retained no-call offer -> literal target read -> same-result dTOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_ERROR The listening model took longer than 8s.
+TOOLLOOP_LIVE_NEEDLE_TURN none: matched tool class does not fit
+TOOLLOOP_LIVE_NEEDLE_TOOLS schedule.create,schedule.list,schedule.pause,schedule.remove,schedule.resume,schedule.run_now,schedule.update
+TOOLLOOP_LIVE_NEEDLE_TURN schedule.list confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS memory.forget,memory.recall,memory.remember,memory.update
+TOOLLOOP_LIVE_NEEDLE_TURN memory.recall confidence=0.990 0.000s
+TOOLLOOP_LIVE_NEEDLE_TOOLS send_email
+TOOLLOOP_LIVE_NEEDLE_TURN send_email confidence=0.990 0.000s
+STORE_ISOLATION_FLOW memory tools: Not saved: you didn't ask to forget it.
+STORE_ISOLATION_OK: 21 files and 0 defaults unchanged
+ocument question; no append/ID/card
+  TOOLLOOP_PRODUCTION_A02_INSPECTION: retained native rounds -> actual runner/fire fixture -> exact snapshot -> scripted named click; native playback remains unverified
+  TOOLLOOP_PRODUCTION_PROMISE_REVIEW: actual F03 card/refused approval/zero draft backing/join
+A02_SINGLE_OPEN_ROUTE tools=browser.navigate plannerCalls=0 exactReply=true
+  TOOLLOOP_PRODUCTION_PROMISE: actual typed promise continuation; A02 page-read handoff, native playback remains
+  TOOLLOOP_PRODUCTION_NEEDLE: 0 problem(s)
+  TOOLLOOP_PRODUCTION_EXPLICIT_MEMORY: 0 problem(s)
+  TOOLLOOP_PRODUCTION_WRONG: A02 INPUT_INVALID browser fixture admission
+  TOOLLOOP_PRODUCTION_WRONG: A02 browser fixture admission did not release
+  TOOLLOOP_PRODUCTION_WRONG: A02 retained native case 0 lost snapshot/named click or repeated effects
+  TOOLLOOP_PRODUCTION_WRONG: A02 retained native case 0 snapshot did not reach exact same planner
+  TOOLLOOP_PRODUCTION_WRONG: A02 retained native case 0 lost final named-target result
+  TOOLLOOP_PRODUCTION_WRONG: A02 INPUT_INVALID browser fixture admission
+  TOOLLOOP_PRODUCTION_WRONG: A02 browser fixture admission did not release
+  TOOLLOOP_PRODUCTION_WRONG: A02 retained native case 1 lost snapshot/named click or repeated effects
+  TOOLLOOP_PRODUCTION_WRONG: A02 retained native case 1 snapshot did not reach exact same planner
+  TOOLLOOP_PRODUCTION_WRONG: A02 retained native case 1 lost final named-target result
+  TOOLLOOP_PRODUCTION_WRONG: A02 INPUT_INVALID browser fixture admission
+  TOOLLOOP_PRODUCTION_WRONG: A02 browser fixture admission did not release
+  TOOLLOOP_PRODUCTION_WRONG: A02 model-selected inspection repeated the floor or changed target
+  TOOLLOOP_PRODUCTION_WRONG: A02 INPUT_INVALID browser fixture admission
+  TOOLLOOP_PRODUCTION_WRONG: A02 browser fixture admission did not release
+  TOOLLOOP_PRODUCTION_WRONG: A02 refused snapshot reached backing/click or another model round
+  TOOLLOOP_PRODUCTION_WRONG: A02 INPUT_INVALID browser fixture admission
+  TOOLLOOP_PRODUCTION_WRONG: A02 browser fixture admission did not release
+TOOLLOOP_PRODUCTION_FAILED

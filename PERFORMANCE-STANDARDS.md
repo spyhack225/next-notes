@@ -521,3 +521,19 @@ Source7 current acceptance, 2026-10-08: the minimal four-file live-ingest produc
 Resumed meeting acceptance, 2026-10-08: initial headroom checks refuse before launch; owned cleanup retires456,404,992 allocated bytes, with425,250,816-byte immediate root available-space gain. After the owner closes Chrome windows, native7 starts at62%/swap4.180GiB and proves single main compiler thread, but cleanly joins at3GB guard (peak3,165,213,472B). Independently reviewed compiler-only native8 raises charge cap to5GB with stronger start60/ongoing45/maxswap6/disk8 bounds; it also joins at the cap (peak5,011,527,872B). Both preserve owner8/source1176/protected cache; neither produces a candidate/native verdict/install. No further cap increase follows. Existing installeded67302f reopens asPID29701 after graceful idle UI quit; physical UI readback fails with a capture error. Repaired rollback and useful fifth/sixth comparisons, source/failure evidence, owner data/models remain. Read [the resumed check](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/RESUMED-CHECK-20261008.md); retain exact refused and unrun scopes and share via agent-relay.
 
 Attributed meeting context, 2026-10-08: text-only duplicate detection erases matching words from another stored speaker/source. Exact actual Extractor apply/merge50 checks fail27 before and0 after; retained actual ContextStore/parser/apply/atomic save/fresh-reader15fixtures185checks pass with declared scripted boundaries. Root applies the three-file producer/same fixture/existingTopicMergehook, current1177pins. Duplicate attribution now requires text/source/storedspeaker; actual inferred-model-summary echoes and40-row bound remain. No new store/queue/pass/action authority or automatic person identity. Native current App/bus/complete factual notes/speed proof and installation remain pending; installeded67302f unchanged. Read [attribution evidence](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/attributed-context-dedup/README.md); keep private payloads out of reports/relay and retain actual original/fixed scopes.
+
+
+## Google grant and executable admission review, 8 October 2026
+
+The bounded Google review repairs use the existing Keychain grant, token actor,
+process box, manifest and CalendarService. The matched native replay rejects
+unreadable credentials without alternate-account backing, late cancellation,
+stale grant revocation, stale concurrent 401 invalidation, probing scope gaps and
+Calendar entry without its grant. Original/fixed producer verdicts, source/binary
+pins and actual consumer checks are retained in the
+[Google review report](Tests/Reports/google-option-c/2026-10-08-review-withdrawal/README.md).
+All seven focused root checks and three mutation/restoration checks pass in one
+normal-gate FIFO slot. Store-isolation's inherited nested browser production gate
+still fails 18 assertions. Debug synthetic functional evidence supplies no user
+latency, live meeting, full-duplex, real consent or installed-UI acceptance; those
+contracts remain open. No model, prompt, default, audio gate or new store is added.

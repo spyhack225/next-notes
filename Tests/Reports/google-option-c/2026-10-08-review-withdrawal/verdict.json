@@ -1,0 +1,205 @@
+{
+  "review-red": {
+    "nativeExits": [
+      "google-connect exit=1"
+    ],
+    "google-connect": {
+      "passingAssertionLines": 248,
+      "failingAssertionLines": 70,
+      "markers": [
+        "GOOGLE_CONNECT_FAILED"
+      ]
+    },
+    "findingFailures": {
+      "R1": 39,
+      "R2": 6,
+      "R3": 5,
+      "R4": 5,
+      "R5": 2,
+      "R6": 12
+    }
+  },
+  "withdrawal-red": {
+    "nativeExits": [
+      "google-connect exit=1"
+    ],
+    "google-connect": {
+      "passingAssertionLines": 317,
+      "failingAssertionLines": 1,
+      "markers": [
+        "GOOGLE_CONNECT_FAILED"
+      ]
+    }
+  },
+  "green": {
+    "nativeExits": [
+      "google-connect exit=0",
+      "gws exit=0",
+      "calendar exit=0",
+      "mac-accounts exit=0",
+      "capability-manifest exit=0",
+      "ui-strings exit=0",
+      "store-isolation exit=0"
+    ],
+    "calendar": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "CALENDAR_OK: isolated Google error consumers behave"
+      ]
+    },
+    "capability-manifest": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "CAPABILITY_MANIFEST_OK"
+      ]
+    },
+    "google-connect": {
+      "passingAssertionLines": 318,
+      "failingAssertionLines": 0,
+      "markers": [
+        "GOOGLE_CONNECT_OK"
+      ]
+    },
+    "gws": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "GWS_FIXTURES_OK: 10 cases",
+        "GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.RAVdxz/gws, signed in"
+      ]
+    },
+    "mac-accounts": {
+      "passingAssertionLines": 157,
+      "failingAssertionLines": 0,
+      "markers": [
+        "MAC_ACCOUNTS_OK"
+      ]
+    },
+    "store-isolation": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+        "TOOLLOOP_PRODUCTION_FAILED"
+      ]
+    },
+    "ui-strings": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "UI_STRINGS_OK"
+      ]
+    },
+    "inheritedNestedBrowser": {
+      "wrongLines": 18,
+      "marker": "TOOLLOOP_PRODUCTION_FAILED"
+    }
+  },
+  "revocation": {
+    "nativeExits": [
+      "google-connect exit=1"
+    ],
+    "google-connect": {
+      "passingAssertionLines": 312,
+      "failingAssertionLines": 6,
+      "markers": [
+        "GOOGLE_CONNECT_FAILED"
+      ]
+    }
+  },
+  "unpinned": {
+    "nativeExits": [
+      "google-connect exit=1"
+    ],
+    "google-connect": {
+      "passingAssertionLines": 317,
+      "failingAssertionLines": 1,
+      "markers": [
+        "GOOGLE_CONNECT_FAILED"
+      ]
+    }
+  },
+  "mailbox": {
+    "nativeExits": [
+      "mac-accounts exit=1"
+    ],
+    "mac-accounts": {
+      "passingAssertionLines": 150,
+      "failingAssertionLines": 7,
+      "markers": [
+        "MAC_ACCOUNTS_FAILED"
+      ]
+    }
+  },
+  "restored": {
+    "nativeExits": [
+      "google-connect exit=0",
+      "gws exit=0",
+      "calendar exit=0",
+      "mac-accounts exit=0",
+      "capability-manifest exit=0",
+      "ui-strings exit=0",
+      "store-isolation exit=0"
+    ],
+    "calendar": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "CALENDAR_OK: isolated Google error consumers behave"
+      ]
+    },
+    "capability-manifest": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "CAPABILITY_MANIFEST_OK"
+      ]
+    },
+    "google-connect": {
+      "passingAssertionLines": 318,
+      "failingAssertionLines": 0,
+      "markers": [
+        "GOOGLE_CONNECT_OK"
+      ]
+    },
+    "gws": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "GWS_FIXTURES_OK: 10 cases",
+        "GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.SvzAVi/gws, signed in"
+      ]
+    },
+    "mac-accounts": {
+      "passingAssertionLines": 157,
+      "failingAssertionLines": 0,
+      "markers": [
+        "MAC_ACCOUNTS_OK"
+      ]
+    },
+    "store-isolation": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+        "TOOLLOOP_PRODUCTION_FAILED"
+      ]
+    },
+    "ui-strings": {
+      "passingAssertionLines": 0,
+      "failingAssertionLines": 0,
+      "markers": [
+        "UI_STRINGS_OK"
+      ]
+    },
+    "inheritedNestedBrowser": {
+      "wrongLines": 18,
+      "marker": "TOOLLOOP_PRODUCTION_FAILED"
+    }
+  },
+  "wrapperExit": 0,
+  "wrapperFinalMarker": "GOOGLE_WITHDRAWAL_BATCH_OK",
+  "fixedSourceCommit": "c32bcc99697b341deb7309b351571455efd16c65"
+}

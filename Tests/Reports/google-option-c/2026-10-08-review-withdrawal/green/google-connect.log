@@ -1,0 +1,320 @@
+  ok   next to the Mac's own account the sign-in is offered for what only Google can open
+  ok   …and on its own it is the plain “Connect your Google account”
+  ok   a connected sign-in can always be disconnected
+  ok   the placeholder client reads as not configured
+  ok   a missing, blank or malformed client reads as not configured
+  ok   a registered build client is used, with nothing for the person to paste
+  ok   a person's own client still wins (the advanced route)
+  note not run from a built .app, so the bundled client keys are not checked
+  ok   the sign-in asks for the full Workspace set and nothing else
+  ok   no scope is asked for twice
+  ok   there is one scope list: every capability is backed by exactly one of its scopes
+  ok   the sign-in asks for what mail and calendar need
+  ok   a calendar-only sign-in does not cover mail
+  ok   an older calendar-only sign-in still reads the calendar
+  ok   unticking mail changes only its tools in the real manifest (search_email)
+  ok   unticking mail changes only its tools in the real manifest (get_agenda)
+  ok   unticking mail changes only its tools in the real manifest (draft_email)
+  ok   unticking mail changes only its tools in the real manifest (send_email)
+  ok   unticking mail changes only its tools in the real manifest (create_event)
+  ok   unticking mail changes only its tools in the real manifest (read_email)
+  ok   unticking mail changes only its tools in the real manifest (reply_email)
+  ok   unticking mail changes only its tools in the real manifest (find_drive_files)
+  ok   unticking mail changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking mail changes only its tools in the real manifest (read_doc)
+  ok   unticking mail changes only its tools in the real manifest (create_doc)
+  ok   unticking mail changes only its tools in the real manifest (append_doc)
+  ok   unticking calendar changes only its tools in the real manifest (search_email)
+  ok   unticking calendar changes only its tools in the real manifest (get_agenda)
+  ok   unticking calendar changes only its tools in the real manifest (draft_email)
+  ok   unticking calendar changes only its tools in the real manifest (send_email)
+  ok   unticking calendar changes only its tools in the real manifest (create_event)
+  ok   unticking calendar changes only its tools in the real manifest (read_email)
+  ok   unticking calendar changes only its tools in the real manifest (reply_email)
+  ok   unticking calendar changes only its tools in the real manifest (find_drive_files)
+  ok   unticking calendar changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking calendar changes only its tools in the real manifest (read_doc)
+  ok   unticking calendar changes only its tools in the real manifest (create_doc)
+  ok   unticking calendar changes only its tools in the real manifest (append_doc)
+  ok   unticking drive changes only its tools in the real manifest (search_email)
+  ok   unticking drive changes only its tools in the real manifest (get_agenda)
+  ok   unticking drive changes only its tools in the real manifest (draft_email)
+  ok   unticking drive changes only its tools in the real manifest (send_email)
+  ok   unticking drive changes only its tools in the real manifest (create_event)
+  ok   unticking drive changes only its tools in the real manifest (read_email)
+  ok   unticking drive changes only its tools in the real manifest (reply_email)
+  ok   unticking drive changes only its tools in the real manifest (find_drive_files)
+  ok   unticking drive changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking drive changes only its tools in the real manifest (read_doc)
+  ok   unticking drive changes only its tools in the real manifest (create_doc)
+  ok   unticking drive changes only its tools in the real manifest (append_doc)
+  ok   unticking documents changes only its tools in the real manifest (search_email)
+  ok   unticking documents changes only its tools in the real manifest (get_agenda)
+  ok   unticking documents changes only its tools in the real manifest (draft_email)
+  ok   unticking documents changes only its tools in the real manifest (send_email)
+  ok   unticking documents changes only its tools in the real manifest (create_event)
+  ok   unticking documents changes only its tools in the real manifest (read_email)
+  ok   unticking documents changes only its tools in the real manifest (reply_email)
+  ok   unticking documents changes only its tools in the real manifest (find_drive_files)
+  ok   unticking documents changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking documents changes only its tools in the real manifest (read_doc)
+  ok   unticking documents changes only its tools in the real manifest (create_doc)
+  ok   unticking documents changes only its tools in the real manifest (append_doc)
+  ok   unticking spreadsheets changes only its tools in the real manifest (search_email)
+  ok   unticking spreadsheets changes only its tools in the real manifest (get_agenda)
+  ok   unticking spreadsheets changes only its tools in the real manifest (draft_email)
+  ok   unticking spreadsheets changes only its tools in the real manifest (send_email)
+  ok   unticking spreadsheets changes only its tools in the real manifest (create_event)
+  ok   unticking spreadsheets changes only its tools in the real manifest (read_email)
+  ok   unticking spreadsheets changes only its tools in the real manifest (reply_email)
+  ok   unticking spreadsheets changes only its tools in the real manifest (find_drive_files)
+  ok   unticking spreadsheets changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking spreadsheets changes only its tools in the real manifest (read_doc)
+  ok   unticking spreadsheets changes only its tools in the real manifest (create_doc)
+  ok   unticking spreadsheets changes only its tools in the real manifest (append_doc)
+  ok   unticking presentations changes only its tools in the real manifest (search_email)
+  ok   unticking presentations changes only its tools in the real manifest (get_agenda)
+  ok   unticking presentations changes only its tools in the real manifest (draft_email)
+  ok   unticking presentations changes only its tools in the real manifest (send_email)
+  ok   unticking presentations changes only its tools in the real manifest (create_event)
+  ok   unticking presentations changes only its tools in the real manifest (read_email)
+  ok   unticking presentations changes only its tools in the real manifest (reply_email)
+  ok   unticking presentations changes only its tools in the real manifest (find_drive_files)
+  ok   unticking presentations changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking presentations changes only its tools in the real manifest (read_doc)
+  ok   unticking presentations changes only its tools in the real manifest (create_doc)
+  ok   unticking presentations changes only its tools in the real manifest (append_doc)
+  ok   unticking tasks changes only its tools in the real manifest (search_email)
+  ok   unticking tasks changes only its tools in the real manifest (get_agenda)
+  ok   unticking tasks changes only its tools in the real manifest (draft_email)
+  ok   unticking tasks changes only its tools in the real manifest (send_email)
+  ok   unticking tasks changes only its tools in the real manifest (create_event)
+  ok   unticking tasks changes only its tools in the real manifest (read_email)
+  ok   unticking tasks changes only its tools in the real manifest (reply_email)
+  ok   unticking tasks changes only its tools in the real manifest (find_drive_files)
+  ok   unticking tasks changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking tasks changes only its tools in the real manifest (read_doc)
+  ok   unticking tasks changes only its tools in the real manifest (create_doc)
+  ok   unticking tasks changes only its tools in the real manifest (append_doc)
+  ok   unticking contacts changes only its tools in the real manifest (search_email)
+  ok   unticking contacts changes only its tools in the real manifest (get_agenda)
+  ok   unticking contacts changes only its tools in the real manifest (draft_email)
+  ok   unticking contacts changes only its tools in the real manifest (send_email)
+  ok   unticking contacts changes only its tools in the real manifest (create_event)
+  ok   unticking contacts changes only its tools in the real manifest (read_email)
+  ok   unticking contacts changes only its tools in the real manifest (reply_email)
+  ok   unticking contacts changes only its tools in the real manifest (find_drive_files)
+  ok   unticking contacts changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking contacts changes only its tools in the real manifest (read_doc)
+  ok   unticking contacts changes only its tools in the real manifest (create_doc)
+  ok   unticking contacts changes only its tools in the real manifest (append_doc)
+  ok   unticking forms changes only its tools in the real manifest (search_email)
+  ok   unticking forms changes only its tools in the real manifest (get_agenda)
+  ok   unticking forms changes only its tools in the real manifest (draft_email)
+  ok   unticking forms changes only its tools in the real manifest (send_email)
+  ok   unticking forms changes only its tools in the real manifest (create_event)
+  ok   unticking forms changes only its tools in the real manifest (read_email)
+  ok   unticking forms changes only its tools in the real manifest (reply_email)
+  ok   unticking forms changes only its tools in the real manifest (find_drive_files)
+  ok   unticking forms changes only its tools in the real manifest (upload_to_drive)
+  ok   unticking forms changes only its tools in the real manifest (read_doc)
+  ok   unticking forms changes only its tools in the real manifest (create_doc)
+  ok   unticking forms changes only its tools in the real manifest (append_doc)
+  ok   an unticked Drive box makes the Drive tools need setup and nothing else: ["find_drive_files", "upload_to_drive"]
+  ok   …in one plain sentence: Google Drive needs one more permission. Connect Google again in Settings and leave its box ticked.
+  ok   everything ticked: no gap
+  ok   mail and calendar alone still connect, with Docs and Drive marked as needing setup
+  ok   the consent page is asked for exactly those scopes
+  ok   PKCE S256, offline, explicit consent
+  ok   loopback redirect; no secret in the browser URL
+  ok   state row 0 is unavailable: unavailable
+  ok   state row 1 is notConnected: notConnected
+  ok   state row 2 is gettingReady: gettingReady
+  ok   state row 3 is connected: connected
+  ok   state row 4 is needsMoreAccess: needsMoreAccess
+  ok   state row 5 is gettingReady: gettingReady
+  ok   state row 6 is connected: connected
+  ok   every state and error has words
+  ok   the one action is called what a person would call it
+  ok   no client in this build: fail closed, in plain words
+  ok   …and the button never starts a sign-in
+  ok   a fresh Mac is simply not connected
+  ok   one press connects: connected
+  ok   one sign-in, the tool fetched once, everything that reads Google re-read once
+  ok   Disconnect puts it back
+  ok   a box unticked on Google's page is named, not hidden
+  ok   declining is said kindly: You chose not to share, so nothing was connected.
+  ok   nothing is fetched after a declined sign-in
+  ok   offline: one clear next step: Next Notes couldn’t get what it needs to reach Google. Check your connection and try again.
+  ok   the sign-in returns the refresh token
+  ok   …and what Google actually granted
+  ok   both are in the Keychain store, nothing in preferences
+  ok   mail and calendar are covered by the one sign-in
+  ok   the token request carries the code, the client and its secret
+  ok   PKCE verifier sent, loopback redirect reused
+  ok   actual partial token response retains exactly its granted permissions in Keychain
+  ok   actual empty token response retains exactly its granted permissions in Keychain
+  ok   actual missing token response retains exactly its granted permissions in Keychain
+  ok   R3 outstanding old invalid_grant cannot delete a real successful reconnect
+  ok   R3 real sign-in returns a grant that is still stored after the old refresh settles
+  ok   R6 actual partial sign-in authorize reports declined Calendar
+  ok   R6 actual partial exchange reaches Calendar consumers with zero network requests
+  ok   R6 actual empty sign-in authorize reports declined Calendar
+  ok   R6 actual empty exchange reaches Calendar consumers with zero network requests
+  ok   a forged redirect is refused
+  ok   declining reaches the app as a refusal, nothing stored over the old one
+  ok   Calendar and the Workspace runner share one cached access token
+  ok   revoked in the Google account: the dead key is removed, one reconnect button remains
+  ok   Disconnect tells Google to end the access too
+  ok   the fixture hooks are open to this self-test
+  ok   …and refused in a normal run and in every other self-test
+  ok   five concurrent callers share one refresh round trip (saw 1)
+  ok   a rejected client keeps the sign-in (nothing was revoked)
+  ok   a Google outage keeps the sign-in (nothing was revoked)
+  ok   a token failure stops the call before the tool starts, and says nothing left the Mac: launchFailed("Check your connection and try again.")
+  ok   …while with a token the very same fixture does run
+  ok   a caller cancelled during shared refresh receives cancellation
+  ok   the cancelled shared-refresh caller never enters executable backing
+  ok   another caller uses the same completed refresh and enters backing once
+  ok   a separate installed login cannot make the app ready
+  ok   the actual unpinned alternate executable remains unstarted
+  ok   with the app's sign-in and no pinned copy, a `gws` of the person's own is not used: notInstalled
+  ok   …and a call is refused, not run: notInstalled
+  ok   a tool that never answers is stopped and refused in plain words, in 1 s
+  ok   nothing is installed before the first connect
+  ok   the tool is fetched, checked, unpacked and made runnable with no Terminal
+  ok   …and found afterwards
+  ok   a replaced executable is refused after the cached admission
+  ok   the restored exact executable is admitted again
+  ok   a symlink cannot replace the verified executable
+  ok   one transfer
+  ok   installed once, never fetched again
+  ok   no archive or staging folder is left behind
+  ok   a wrong checksum is refused, in plain words
+  ok   …and nothing runnable was left
+  ok   offline is “check your connection”, not a stack trace
+  ok   pinned release asset google-workspace-cli-aarch64-apple-darwin.tar.gz has a SHA-256 and a size
+  ok   …fetched from Google's own GitHub project
+  ok   pinned release asset google-workspace-cli-x86_64-apple-darwin.tar.gz has a SHA-256 and a size
+  ok   …fetched from Google's own GitHub project
+  ok   signed out: the tool is handed no token and uses what it has itself
+  ok   signed in: the one Workspace runner hands the tool the app's own access token
+  ok   auth state comes from what Google granted, not from an exit code: signedIn(method: "your Google account")
+  ok   a partial grant retains the app route and marks Mail as needing permission
+  ok   actual status keeps Docs ready while Mail needs one more permission
+  ok   actual status gaps reach the real manifest without disabling Docs
+  ok   the actual Docs-only runner uses the app token
+  ok   unticked Mail has the same plain permission sentence at execution
+  ok   revoked: the call is refused before anything is sent, and says so (outcome known)
+  ok   …and the person is back to one reconnect button
+  ok   revocation retains the chosen app route
+  ok   the next call after revocation also refuses before starting
+  ok   actual raw legacy grant reads as calendar-only and adopts the app route
+  ok   a revoked legacy grant is refused before launch
+  ok   revoking a raw legacy grant retains the selected app route
+  ok   legacy revocation also refuses the next call before launch
+  ok   five actual Calendar consumers share one refresh and receive their own reads
+  ok   two actual Calendar 401s retain the grant and never claim revocation
+  ok   R1 raw legacy fixture starts without the newer selection preference
+  ok   R1 saved-sign-in failure has plain state detail
+  ok   R1 denied read is unavailable, never a foreign signed-in state (-25308)
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read supplies no alternate profile
+  ok   R1 denied read retains the app source rather than another account
+  ok   R1 denied read reaches actual source status and withholds every tool
+  ok   R1 actual connection controller exposes saved-sign-in failure without preparing a tool
+  ok   R1 Calendar exposes the saved sign-in failure
+  ok   R1 token reader preserves unavailable instead of not-signed-in
+  ok   R1 saved-sign-in failure has plain state detail
+  ok   R1 denied read is unavailable, never a foreign signed-in state (-25293)
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read supplies no alternate profile
+  ok   R1 denied read retains the app source rather than another account
+  ok   R1 denied read reaches actual source status and withholds every tool
+  ok   R1 actual connection controller exposes saved-sign-in failure without preparing a tool
+  ok   R1 Calendar exposes the saved sign-in failure
+  ok   R1 token reader preserves unavailable instead of not-signed-in
+  ok   R1 saved-sign-in failure has plain state detail
+  ok   R1 denied read is unavailable, never a foreign signed-in state (-25291)
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read supplies no alternate profile
+  ok   R1 denied read retains the app source rather than another account
+  ok   R1 denied read reaches actual source status and withholds every tool
+  ok   R1 actual connection controller exposes saved-sign-in failure without preparing a tool
+  ok   R1 Calendar exposes the saved sign-in failure
+  ok   R1 token reader preserves unavailable instead of not-signed-in
+  ok   R1 saved-sign-in failure has plain state detail
+  ok   R1 denied read is unavailable, never a foreign signed-in state (-26275)
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read reports saved sign-in failure before launch
+  ok   R1 denied read supplies no alternate profile
+  ok   R1 denied read retains the app source rather than another account
+  ok   R1 denied read reaches actual source status and withholds every tool
+  ok   R1 actual connection controller exposes saved-sign-in failure without preparing a tool
+  ok   R1 Calendar exposes the saved sign-in failure
+  ok   R1 token reader preserves unavailable instead of not-signed-in
+  ok   R1 denied read never runs the runnable alternate login
+  ok   R1 adopting a readable legacy grant persists its routing independently
+  ok   R1 not-found is absent but retains a previously adopted app route
+  ok   R1 explicit Disconnect plus not-found permits the chosen alternate route
+  ok   R1 same alternate fixture is runnable when no grant was selected
+  ok   R2 after-token cancellation reaches caller
+  ok   R2 after-token cancelled send has zero backing entries
+  ok   R2 inside-spawn cancellation reaches caller
+  ok   R2 inside-spawn cancelled send has zero backing entries
+  ok   R2 already cancelled spawn reaches caller
+  ok   R2 already cancelled spawn has zero backing entries
+  ok   R2 noncancelled caller uses the same cached token and real backing
+  ok   R3 stale revocation preserves exact newer grant generation (new-record)
+  ok   R3 stale revocation preserves exact newer grant generation (old-record)
+  ok   R3 revocation refuses unreadable identity and retains the row
+  ok   R4 overlapping Calendar 401s and Workspace all use the same replacement token
+  ok   R4 delayed 401 invalidates only rejected A and never cancels refresh B
+  ok   R4 both actual Calendar consumers retry successfully exactly once
+  ok   R4 cached replacement survives a stale token identity
+  ok   R4 rejected expired A cannot cancel an already pending ordinary refresh
+  ok   R5 actual status producer retains Docs-only scope gaps
+  ok   R5 actual live inputs are checking with cached missing Mail permission
+  ok   R5 probing planner excludes known missing Mail permission from allowed and selected tools
+  ok   R5 probing keeps permitted Docs ready
+  ok   R5 unknown state also respects known scope gaps
+  ok   R5 checking with no known gap preserves optimistic readiness
+  ok   R6 actual connect flow enables and lists Calendar only when granted (false)
+  ok   R6 actual CalendarService consumes real grant authorization (false)
+  ok   R6 declined Calendar has zero token/list/events requests; granted Calendar still runs (false)
+  ok   R6 actual connect flow enables and lists Calendar only when granted (false)
+  ok   R6 actual CalendarService consumes real grant authorization (false)
+  ok   R6 declined Calendar has zero token/list/events requests; granted Calendar still runs (false)
+  ok   R6 actual connect flow enables and lists Calendar only when granted (true)
+  ok   R6 actual CalendarService consumes real grant authorization (true)
+  ok   R6 declined Calendar has zero token/list/events requests; granted Calendar still runs (true)
+  ok   R6 withdrawal begins with actual fetched Calendar entries and upcoming event
+  ok   R6 withdrawn Calendar permission immediately clears actual cached calendars and upcoming events
+  ok   R6 clearing withdrawn Calendar state makes zero additional token or Calendar requests
+  ok   unticked mail survives the actual Keychain round-trip, including future tools
+  ok   unticked mail is enforced by actual argument admission
+  ok   unticked calendar survives the actual Keychain round-trip, including future tools
+  ok   unticked calendar is enforced by actual argument admission
+  ok   unticked drive survives the actual Keychain round-trip, including future tools
+  ok   unticked drive is enforced by actual argument admission
+  ok   unticked documents survives the actual Keychain round-trip, including future tools
+  ok   unticked documents is enforced by actual argument admission
+  ok   unticked spreadsheets survives the actual Keychain round-trip, including future tools
+  ok   unticked spreadsheets is enforced by actual argument admission
+  ok   unticked presentations survives the actual Keychain round-trip, including future tools
+  ok   unticked presentations is enforced by actual argument admission
+  ok   unticked tasks survives the actual Keychain round-trip, including future tools
+  ok   unticked tasks is enforced by actual argument admission
+  ok   unticked contacts survives the actual Keychain round-trip, including future tools
+  ok   unticked contacts is enforced by actual argument admission
+  ok   unticked forms survives the actual Keychain round-trip, including future tools
+  ok   unticked forms is enforced by actual argument admission
+  ok   all nine declined capability commands have zero backing entries
+GOOGLE_CONNECT_OK

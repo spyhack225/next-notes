@@ -1,0 +1,3 @@
+Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
+Sources/NextNotes/Calendar/CalendarService.swift
+Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift

@@ -1,0 +1,1133 @@
+diff --git a/Makefile b/Makefile
+index d348d821..c037fc20 100644
+--- a/Makefile
++++ b/Makefile
+@@ -172,7 +172,7 @@ app: build
+ 	@cp THIRD-PARTY-NOTICES.md "$(CONTENTS)/Resources/THIRD-PARTY-NOTICES.md"
+ 	@chmod +x "$(CONTENTS)/Resources/install-gws.sh"
+ 	@printf 'APPL????' > "$(CONTENTS)/PkgInfo"
+-	@$(MAKE) --no-print-directory google-oauth-plist GOOGLE_OAUTH_PLIST="$(CONTENTS)/Info.plist"
++	@$(MAKE) --no-print-directory google-oauth-plist STAGE_RUN="$(STAGE_RUN)" GOOGLE_OAUTH_PLIST="$(CONTENTS)/Info.plist"
+ 	@# Belt and braces: the staging dir isn't synced, but the copied binary can still carry
+ 	@# xattrs inherited from the synced .build directory.
+ 	@xattr -cr "$(BUNDLE)"
+@@ -323,4 +323,4 @@ clean:
+ # Inject only into the built plist; values never cross stdout or process arguments.
+ .PHONY: google-oauth-plist
+ google-oauth-plist:
+-	@python3 -c 'import json,plistlib,pathlib,sys; source=pathlib.Path(sys.argv[1]).expanduser(); target=pathlib.Path(sys.argv[2]); protected=pathlib.Path("Resources/Info.plist").resolve(); exec("try:\n if target.resolve() == protected: raise ValueError()\n if source.is_file():\n  client=json.loads(source.read_bytes())[\"installed\"]\n  identifier=client[\"client_id\"]; secret=client[\"client_secret\"]\n  if not isinstance(identifier,str) or not identifier.endswith(\".apps.googleusercontent.com\") or not isinstance(secret,str) or not secret: raise ValueError()\n  info=plistlib.loads(target.read_bytes())\n  info[\"NextNotesGoogleClientID\"]=identifier\n  info[\"NextNotesGoogleClientSecret\"]=secret\n  target.write_bytes(plistlib.dumps(info))\nexcept Exception:\n sys.exit(\"Google sign-in could not be added to the built app.\")")' "$(GOOGLE_OAUTH_JSON)" "$(GOOGLE_OAUTH_PLIST)"
++	@python3 -c 'import json,plistlib,pathlib,sys,stat,re; source=pathlib.Path(sys.argv[1]).expanduser(); target=pathlib.Path(sys.argv[2]); stage=pathlib.Path(sys.argv[3]); run=pathlib.Path(sys.argv[4]); expected=run/"Next Notes.app"/"Contents"/"Info.plist"; repo=pathlib.Path.cwd().resolve(); exec("try:\n if not re.fullmatch(\"install-[0-9]+\",run.name) or run.parent.resolve()!=stage.resolve() or stage.resolve().is_relative_to(repo): raise ValueError()\n if target.absolute()!=expected.absolute() or target.absolute()!=target.resolve(): raise ValueError()\n entry=target.lstat()\n if not stat.S_ISREG(entry.st_mode) or entry.st_nlink!=1 or not (expected.parent/\"MacOS\"/\"$(EXEC)\").is_file(): raise ValueError()\n if source.is_file():\n  client=json.loads(source.read_bytes())[\"installed\"]\n  identifier=client[\"client_id\"]; secret=client[\"client_secret\"]\n  if not isinstance(identifier,str) or not identifier.endswith(\".apps.googleusercontent.com\") or not isinstance(secret,str) or not secret: raise ValueError()\n  info=plistlib.loads(target.read_bytes())\n  info[\"NextNotesGoogleClientID\"]=identifier\n  info[\"NextNotesGoogleClientSecret\"]=secret\n  target.write_bytes(plistlib.dumps(info))\nexcept Exception:\n sys.exit(\"Google sign-in could not be added to the built app.\")")' "$(GOOGLE_OAUTH_JSON)" "$(GOOGLE_OAUTH_PLIST)" "$(STAGE)" "$(STAGE_RUN)"
+diff --git a/Resources/Info.plist b/Resources/Info.plist
+index a877ef03..19b59589 100644
+--- a/Resources/Info.plist
++++ b/Resources/Info.plist
+@@ -40,11 +40,7 @@
+ 			<array>
+ 				<string>nextnotes</string>
+ 			</array>
+-			<key>NextNotesGoogleClientID</key>
+-	<string>NEXT_NOTES_GOOGLE_CLIENT_ID_NOT_REGISTERED</string>
+-	<key>NextNotesGoogleClientSecret</key>
+-	<string></string>
+-</dict>
++		</dict>
+ 	</array>
+ 	<key>LSMinimumSystemVersion</key>
+ 	<string>26.0</string>
+diff --git a/Sources/NextNotes/Agent/AgentCapabilityManifest.swift b/Sources/NextNotes/Agent/AgentCapabilityManifest.swift
+index 969f63e2..077b3362 100644
+--- a/Sources/NextNotes/Agent/AgentCapabilityManifest.swift
++++ b/Sources/NextNotes/Agent/AgentCapabilityManifest.swift
+@@ -489,7 +489,7 @@ struct AgentCapabilityInputs: Sendable {
+     }
+ 
+     @MainActor
+-    static func live(reader: AgentCapabilityManifest.Reader) -> AgentCapabilityInputs {
++    static func live(reader: AgentCapabilityManifest.Reader, service: AgentService = .shared) -> AgentCapabilityInputs {
+         // The production planner builds from these inputs, not Runtime.current.
+         // Keep a fixture turn independent of this Mac's grants and account state.
+         if SelfTest.isRunning,
+@@ -497,7 +497,6 @@ struct AgentCapabilityInputs: Sendable {
+             fixture.reader = reader
+             return fixture
+         }
+-        let service = AgentService.shared
+         let workspace: VoiceCapabilitySnapshot.WorkspaceStatus
+         if service.isProbing {
+             workspace = .checking
+diff --git a/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift b/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
+index 7a7c66de..b0ba8a74 100644
+--- a/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
++++ b/Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift
+@@ -195,23 +195,30 @@ actor GoogleWorkspaceCLI {
+     private let testingExecutableIsManaged: Bool
+     nonisolated var hasIsolatedTestingExecutable: Bool { testingExecutable != nil }
+ 
+-    init() { testingExecutable = nil; usesAppAccount = true; testingExecutableIsManaged = false }
++    struct TestHooks: Sendable {
++        var afterToken: (@Sendable () async -> Void)?
++        var beforeLaunch: (@Sendable () async -> Void)?
++        var beforeAuthProbe: (@Sendable () async -> Void)?
++    }
++    private let testHooks: TestHooks
++    init() { testHooks = TestHooks(); testingExecutable = nil; usesAppAccount = true; testingExecutableIsManaged = false }
+ 
+-    private init(testingExecutable: URL, usesAppAccount: Bool = false, isManaged: Bool = false) {
++    private init(testingExecutable: URL, usesAppAccount: Bool = false, isManaged: Bool = false, hooks: TestHooks = TestHooks()) {
++        self.testHooks = hooks
+         self.testingExecutable = testingExecutable
+         self.usesAppAccount = usesAppAccount
+         self.testingExecutableIsManaged = isManaged
+     }
+-    static func appAccountFixture(executable: URL, isManaged: Bool = true) -> GoogleWorkspaceCLI? {
++    static func appAccountFixture(executable: URL, isManaged: Bool = true, hooks: TestHooks = TestHooks()) -> GoogleWorkspaceCLI? {
+         let safe = executable.resolvingSymlinksInPath().standardizedFileURL
+         let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
+         guard GoogleAccessTokens.testHooksAdmitted, safe == executable.standardizedFileURL,
+               safe.path.hasPrefix(temporary.path + "/"),
+               FileManager.default.isExecutableFile(atPath: safe.path) else { return nil }
+-        return GoogleWorkspaceCLI(testingExecutable: safe, usesAppAccount: true, isManaged: isManaged)
++        return GoogleWorkspaceCLI(testingExecutable: safe, usesAppAccount: true, isManaged: isManaged, hooks: hooks)
+     }
+     func appSignInInEffect() -> Bool {
+-        usesAppAccount && (GoogleTokenStore.appSignInSelected || GoogleTokenStore.hasRefreshToken)
++        usesAppAccount && GoogleTokenStore.appRouteInEffect
+     }
+     func managedExecutable() -> URL? {
+         if let testingExecutable, usesAppAccount, testingExecutableIsManaged { return testingExecutable }
+@@ -314,8 +321,13 @@ actor GoogleWorkspaceCLI {
+     /// not anyone is signed in, and the four fields below are what separate "no client",
+     /// "client but no account" and "ready".
+     func authState() async -> WorkspaceAuthState {
+-        if appSignInInEffect() {
+-            guard GoogleTokenStore.hasRefreshToken else { return .signedOut }
++        await testHooks.beforeAuthProbe?()
++        let grantState = usesAppAccount ? GoogleTokenStore.readState : .absent
++        if grantState == .unavailable {
++            return .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
++        }
++        if usesAppAccount && (GoogleTokenStore.appSignInSelected || grantState != .absent) {
++            guard case .available = grantState else { return .signedOut }
+             guard await GoogleAccessTokens.shared.currentClient != nil else { return .needsOAuthClient }
+             return managedExecutable() == nil ? .notInstalled : .signedIn(method: "your Google account")
+         }
+@@ -368,6 +380,7 @@ actor GoogleWorkspaceCLI {
+     /// tag is never invented — an invented tag would refuse every approval on a machine whose
+     /// profile read failed, which is the worst failure a safety check can have.
+     func accountTag() async -> String? {
++        if usesAppAccount, GoogleTokenStore.readState == .unavailable { return nil }
+         if accountTagRead { return cachedAccountTag }
+         accountTagRead = true
+         cachedAccountTag = await readAccountTag()
+@@ -467,14 +480,17 @@ actor GoogleWorkspaceCLI {
+         _ arguments: [String],
+         timeout: TimeInterval = GoogleWorkspaceCLI.defaultTimeout
+     ) async throws -> WorkspaceCLIOutput {
+-        let appSignedIn = appSignInInEffect()
++        let grant: GoogleTokenStore.StoredGrant?
++        do { grant = usesAppAccount ? try GoogleTokenStore.savedGrant() : nil }
++        catch { throw WorkspaceCLIError.launchFailed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }
++        let appSignedIn = usesAppAccount && (GoogleTokenStore.appSignInSelected || grant != nil)
+         let executable: URL
+         var additions: [String: String] = [:]
+         if appSignedIn {
+             guard let managed = managedExecutable() else { throw WorkspaceCLIError.notInstalled }
+             executable = managed
+             if let capability = GoogleCapability.needed(byArguments: arguments),
+-               !capability.isGranted(by: GoogleTokenStore.grantedScopes, readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
++               !capability.isGranted(by: grant?.scopes ?? [], readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
+                 throw WorkspaceCLIError.invalidRequest(capability.permissionSentence)
+             }
+             do {
+@@ -483,12 +499,17 @@ actor GoogleWorkspaceCLI {
+             } catch GoogleCalendarError.accessRevoked, GoogleCalendarError.notSignedIn {
+                 throw WorkspaceCLIError.notAuthenticated
+             } catch is CancellationError { throw CancellationError() }
++            catch GoogleCalendarError.tokenStoreUnreadable {
++                throw WorkspaceCLIError.launchFailed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
++            }
+             catch { throw WorkspaceCLIError.launchFailed("Check your connection and try again.") }
+         } else {
+             guard let found = await binaryURL() else { throw WorkspaceCLIError.notInstalled }
+             executable = found
+         }
+ 
++        await testHooks.afterToken?()
++        // Token delivery crossed an actor hop. The caller owns executable admission.
+         // Arguments, never the values inside them: a proposal's body is an email the user
+         // is about to send, and a log is not where it belongs.
+         Log.agent.info("gws \(arguments.first ?? "", privacy: .public) \(arguments.dropFirst().first ?? "", privacy: .public)")
+@@ -496,7 +517,7 @@ actor GoogleWorkspaceCLI {
+         let output = try await Self.spawn(
+             executable: executable,
+             arguments: arguments,
+-            timeout: timeout, environmentAdditions: additions
++            timeout: timeout, environmentAdditions: additions, beforeLaunchForTesting: testHooks.beforeLaunch
+         )
+         switch output.exitCode {
+         case 0:
+@@ -556,8 +577,10 @@ actor GoogleWorkspaceCLI {
+         executable: URL,
+         arguments: [String],
+         timeout: TimeInterval,
+-        environmentAdditions: [String: String] = [:]
++        environmentAdditions: [String: String] = [:],
++        beforeLaunchForTesting: (@Sendable () async -> Void)? = nil
+     ) async throws -> WorkspaceCLIOutput {
++        precondition(beforeLaunchForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
+         let box = ProcessBox(process: Process())
+         box.process.executableURL = executable
+         box.process.arguments = arguments
+@@ -570,7 +593,8 @@ actor GoogleWorkspaceCLI {
+         box.process.standardInput = FileHandle.nullDevice
+ 
+         return try await withTaskCancellationHandler {
+-            try await withCheckedThrowingContinuation { continuation in
++            await beforeLaunchForTesting?()
++            return try await withCheckedThrowingContinuation { continuation in
+                 let buffers = OutputBuffers()
+                 let group = DispatchGroup()
+                 DispatchQueue.global(qos: .userInitiated).async(group: group) {
+@@ -595,7 +619,7 @@ actor GoogleWorkspaceCLI {
+                 }
+ 
+                 do {
+-                    try box.process.run()
++                    try box.launch()
+                 } catch {
+                     // The two readers above are blocked on pipes whose write ends nobody
+                     // now holds open, and `readDataToEndOfFile` on those never returns.
+@@ -605,7 +629,7 @@ actor GoogleWorkspaceCLI {
+                     try? errPipe.fileHandleForWriting.close()
+                     box.resume(
+                         continuation,
+-                        with: .failure(WorkspaceCLIError.launchFailed(error.localizedDescription))
++                        with: .failure(error is CancellationError ? CancellationError() : WorkspaceCLIError.launchFailed(error.localizedDescription))
+                     )
+                     return
+                 }
+@@ -643,6 +667,7 @@ private final class ProcessBox: @unchecked Sendable {
+     private let lock = NSLock()
+     private var isResumed = false
+     private var timedOutFlag = false
++    private var cancelled = false
+ 
+     init(process: Process) {
+         self.process = process
+@@ -667,7 +692,14 @@ private final class ProcessBox: @unchecked Sendable {
+         continuation.resume(with: result)
+     }
+ 
++    /// The same lock admits launch and remembers a cancellation received before run().
++    func launch() throws {
++        lock.lock(); defer { lock.unlock() }
++        try process.run()
++    }
+     func cancel() {
++        lock.lock(); defer { lock.unlock() }
++        cancelled = true
+         if process.isRunning { process.terminate() }
+     }
+ }
+diff --git a/Sources/NextNotes/Agent/Mac/MacWorkspace.swift b/Sources/NextNotes/Agent/Mac/MacWorkspace.swift
+index 8d159a21..7c5c6d4a 100644
+--- a/Sources/NextNotes/Agent/Mac/MacWorkspace.swift
++++ b/Sources/NextNotes/Agent/Mac/MacWorkspace.swift
+@@ -42,10 +42,11 @@ enum GoogleSource: String, Sendable, CaseIterable {
+ 
+     static func effective(cli: GoogleWorkspaceCLI = .shared) async -> GoogleSource {
+         let (stored, fixture) = await MainActor.run { (Settings.shared.googleSource, macForTesting != nil) }
++        if GoogleTokenStore.readState == .unavailable { return .googleSignIn }
+         if let stored { return stored }
+         // A selected app grant remains the route even when revoked; resolving from a
+         // failed CLI probe must not silently switch the next call to another account.
+-        if GoogleTokenStore.appSignInSelected || GoogleTokenStore.hasRefreshToken { return .googleSignIn }
++        if GoogleTokenStore.appRouteInEffect { return .googleSignIn }
+         // A self-test answers from its fixture and never asks the owner's `gws`.
+         if SelfTest.isRunning { return fixture ? .thisMac : .googleSignIn }
+         if let cached = cache.value() { return cached }
+@@ -68,18 +69,30 @@ enum GoogleSource: String, Sendable, CaseIterable {
+     /// The one producer of "is Google connected, and how". `AgentService`, the connect card,
+     /// the first-use consent and the permissions row all read this, so they cannot disagree.
+     static func status(cli: GoogleWorkspaceCLI = .shared) async -> Status {
++        let grantState = GoogleTokenStore.readState
++        if grantState == .unavailable {
++            return Status(state: .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription),
++                gaps: Dictionary(uniqueKeysWithValues: allTools.map { ($0, GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }))
++        }
+         let source = await effective(cli: cli)
+         let workspace = await cli.authState()
++        if workspace == .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) {
++            return Status(state: workspace,
++                gaps: Dictionary(uniqueKeysWithValues: allTools.map { ($0, GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }))
++        }
++        let scopes: Set<String>
++        if case .available(let grant) = grantState { scopes = grant.scopes } else { scopes = [] }
++        let appRoute = grantState != .absent || GoogleTokenStore.appSignInSelected
+         switch source {
+         case .googleSignIn:
+-            return Status(state: workspace, gaps: GoogleTokenStore.hasRefreshToken || GoogleTokenStore.appSignInSelected
+-                ? scopeGaps(granted: GoogleTokenStore.grantedScopes, tools: allTools) : [:])
++            return Status(state: workspace, gaps: appRoute
++                ? scopeGaps(granted: scopes, tools: allTools) : [:])
+         case .thisMac:
+             let setup = await MacAccounts.shared.setup()
+             let state: WorkspaceAuthState = setup.accountFound ? .signedIn(method: macMethod) : .signedOut
+             var gaps = setup.gaps()
+-            if GoogleTokenStore.hasRefreshToken || GoogleTokenStore.appSignInSelected {
+-                gaps.merge(scopeGaps(granted: GoogleTokenStore.grantedScopes, tools: googleOnlyTools)) { _, new in new }
++            if appRoute {
++                gaps.merge(scopeGaps(granted: scopes, tools: googleOnlyTools)) { _, new in new }
+             }
+             if !workspace.isSignedIn {
+                 for tool in googleOnlyTools { gaps[tool] = needsGoogleSignInSentence(for: "") }
+diff --git a/Sources/NextNotes/Calendar/CalendarService.swift b/Sources/NextNotes/Calendar/CalendarService.swift
+index 51c34a01..4e630042 100644
+--- a/Sources/NextNotes/Calendar/CalendarService.swift
++++ b/Sources/NextNotes/Calendar/CalendarService.swift
+@@ -34,7 +34,7 @@ final class CalendarService {
+     static let pollInterval: TimeInterval = 5 * 60
+ 
+     private let eventKit = EventKitCalendarProvider()
+-    private let google = GoogleCalendarProvider()
++    private let google: GoogleCalendarProvider
+     private let fake: FakeCalendarProvider?
+     private let providersForTesting: [any CalendarProvider]?
+ 
+@@ -46,6 +46,7 @@ final class CalendarService {
+     private var observers: [any NSObjectProtocol] = []
+ 
+     private init() {
++        google = GoogleCalendarProvider()
+         fake = FakeCalendarProvider.isEnabled ? FakeCalendarProvider() : nil
+         providersForTesting = nil
+     }
+@@ -53,11 +54,19 @@ final class CalendarService {
+     /// Runs the real refresh consumer over fixture-owned providers without reading
+     /// configured accounts or publishing the fixture into the shared Agent context.
+     init(providersForTesting: [any CalendarProvider]) {
++        google = GoogleCalendarProvider()
+         precondition(GoogleCalendarErrorSelfTest.isRequested)
+         fake = nil
+         self.providersForTesting = providersForTesting
+     }
+ 
++    init(googleForTesting: GoogleCalendarProvider) {
++        precondition(GoogleAccessTokens.testHooksAdmitted)
++        google = googleForTesting
++        fake = nil
++        providersForTesting = [googleForTesting]
++    }
++
+     // MARK: - Lifecycle
+ 
+     func start() {
+@@ -212,11 +221,11 @@ final class CalendarService {
+     @discardableResult
+     func connectGoogle() async -> CalendarAuthorizationState {
+         let settings = Settings.shared
+-        await google.configure(
++        if providersForTesting == nil { await google.configure(
+             clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
+             clientSecret: GoogleAppClient.current?.clientSecret ?? settings.googleClientSecret,
+             calendarIDs: settings.googleCalendarIDs
+-        )
++        ) }
+         let state = await google.authorize()
+         providerStates[.google] = state
+         if state.isAuthorized {
+@@ -235,7 +244,7 @@ final class CalendarService {
+     }
+ 
+     func refreshGoogleCalendars() async {
+-        guard Settings.shared.calendarGoogleEnabled else { return }
++        guard providersForTesting != nil || Settings.shared.calendarGoogleEnabled else { return }
+         do {
+             googleCalendars = try await google.calendars()
+         } catch {
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift b/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
+index 91272657..351f38cd 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift
+@@ -23,6 +23,17 @@ actor GoogleAccessTokens {
+         isRunning && requested == "--selftest-google-connect"
+     }
+ 
++    private var rejectedTokenObserverForTesting: (@Sendable () -> Void)?
++    func observeRejectedTokenForTesting(_ observer: (@Sendable () -> Void)?) {
++        precondition(Self.testHooksAdmitted)
++        rejectedTokenObserverForTesting = observer
++    }
++    private var requestOverrideForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
++    func useRequestForTesting(_ request: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?) {
++        precondition(Self.testHooksAdmitted)
++        requestOverrideForTesting = request
++        invalidate()
++    }
+     private let requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
+     private let refreshTokenForTesting: (@Sendable () -> String?)?
+     private let clearTokenForTesting: (@Sendable () -> Void)?
+@@ -42,6 +53,7 @@ actor GoogleAccessTokens {
+         let clientID: String
+         let secret: String
+         let refresh: String
++        let grantIdentity: Data?
+     }
+     private var cached: (identity: Identity, token: String, expiry: Date)?
+     private var inFlight: (id: UUID, identity: Identity, task: Task<String, any Error>)?
+@@ -50,9 +62,10 @@ actor GoogleAccessTokens {
+ 
+     func token(clientID: String, clientSecret: String) async throws -> String {
+         try Task.checkCancellation()
+-        let refresh = refreshTokenForTesting?() ?? (refreshTokenForTesting == nil ? GoogleTokenStore.refreshToken : nil)
++        let grant = refreshTokenForTesting == nil ? try GoogleTokenStore.savedGrant() : nil
++        let refresh = refreshTokenForTesting?() ?? grant?.refreshToken
+         guard let refresh else { throw GoogleCalendarError.notSignedIn }
+-        let identity = Identity(clientID: clientID, secret: clientSecret, refresh: refresh)
++        let identity = Identity(clientID: clientID, secret: clientSecret, refresh: refresh, grantIdentity: grant?.identity)
+         if let cached, cached.identity == identity, cached.expiry > Date().addingTimeInterval(60) { return cached.token }
+         if let inFlight, inFlight.identity == identity {
+             let token = try await inFlight.task.value
+@@ -67,7 +80,7 @@ actor GoogleAccessTokens {
+             do {
+                 let response = try await GoogleOAuthClient.refresh(
+                     clientID: clientID, clientSecret: clientSecret, refreshToken: refresh,
+-                    endpoint: endpoint, requestForTesting: requestForTesting)
++                    endpoint: endpoint, requestForTesting: requestOverrideForTesting ?? requestForTesting)
+                 guard generation == started, !Task.isCancelled else { throw CancellationError() }
+                 cached = (identity, response.accessToken, Date().addingTimeInterval(TimeInterval(response.expiresIn)))
+                 refreshCount += 1
+@@ -75,8 +88,13 @@ actor GoogleAccessTokens {
+             } catch GoogleCalendarError.tokenRequestFailed(let status, _, let code)
+                 where status == 400 && code == "invalid_grant" {
+                 guard generation == started else { throw CancellationError() }
+-                if let clearTokenForTesting { clearTokenForTesting() }
+-                else { GoogleTokenStore.clear() }
++                if let clearTokenForTesting {
++                    guard refreshTokenForTesting?() == identity.refresh else { throw CancellationError() }
++                    clearTokenForTesting()
++                } else {
++                    guard let grantIdentity = identity.grantIdentity,
++                          try GoogleTokenStore.clear(ifMatching: grantIdentity) else { throw CancellationError() }
++                }
+                 invalidate()
+                 throw GoogleCalendarError.accessRevoked
+             }
+@@ -89,6 +107,25 @@ actor GoogleAccessTokens {
+         try Task.checkCancellation()
+         return token
+     }
++    private func isCurrent(_ identity: Identity) throws -> Bool {
++        if let refreshTokenForTesting { return refreshTokenForTesting() == identity.refresh }
++        return try GoogleTokenStore.savedGrant()?.identity == identity.grantIdentity
++    }
++    /// No suspension between the existing record replacement and cache/refresh invalidation.
++    func replaceGrant(refreshToken: String, scopes: Set<String>) throws {
++        guard GoogleTokenStore.save(refreshToken: refreshToken, grantedScopes: scopes) else { throw GoogleCalendarError.tokenStoreFailed }
++        invalidate()
++    }
++    func disconnectGrant() {
++        GoogleTokenStore.clear(forgetSelection: true)
++        invalidate()
++    }
++    func invalidate(rejectedToken: String) {
++        defer { rejectedTokenObserverForTesting?() }
++        // A late 401 for A has no authority over a refresh already replacing A.
++        // Original stale rejection can cancel another caller's refresh.
++        invalidate()
++    }
+     func invalidate() {
+         generation += 1
+         cached = nil
+@@ -96,7 +133,8 @@ actor GoogleAccessTokens {
+         inFlight = nil
+     }
+     func workspaceToken() async throws -> String? {
+-        guard let client = currentClient, GoogleTokenStore.hasRefreshToken else {
++        let grant = try GoogleTokenStore.savedGrant()
++        guard let client = currentClient, grant != nil else {
+             throw GoogleCalendarError.notSignedIn
+         }
+         return try await token(clientID: client.clientID, clientSecret: client.clientSecret)
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleAppClient.swift b/Sources/NextNotes/Calendar/Google/GoogleAppClient.swift
+index 864c4608..e518942b 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleAppClient.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleAppClient.swift
+@@ -9,8 +9,9 @@ import Foundation
+ ///
+ /// Gmail's, Drive's and Contacts' scopes are *restricted* or *sensitive*: before this build is
+ /// given to the public Google has to verify the app, and the restricted ones (Gmail and full
+-/// Drive) also need its yearly security assessment (CASA). Until then the project is in Testing
+-/// mode and the people added to it can sign in.
++/// Drive) may also need a yearly security assessment when restricted data is accessed from
++/// or through a third-party server, including when the app can do so. Until verification,
++/// the project is in Testing mode and the people added to it can sign in.
+ ///
+ /// Google lets a person untick boxes on the consent page, so what comes back is recorded and
+ /// each capability checks its own scope (`GoogleCapability`); nothing assumes the whole set.
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift b/Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift
+index 9cca27d2..7eb079e5 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift
+@@ -21,18 +21,25 @@ actor GoogleCalendarProvider: CalendarProvider {
+     private let requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
+     private let refreshTokenForTesting: (@Sendable () -> String?)?
+     private let tokens: GoogleAccessTokens
++    private let grantedScopesForTesting: (@Sendable () -> Set<String>)?
++    private let signInForTesting: (@Sendable () async throws -> Void)?
+     private let clearTokenForTesting: (@Sendable () -> Void)?
+ 
+     init(
+         requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))? = nil,
+         refreshTokenForTesting: (@Sendable () -> String?)? = nil,
+-        clearTokenForTesting: (@Sendable () -> Void)? = nil
++        clearTokenForTesting: (@Sendable () -> Void)? = nil,
++        grantedScopesForTesting: (@Sendable () -> Set<String>)? = nil,
++        signInForTesting: (@Sendable () async throws -> Void)? = nil
+     ) {
+         let injected = requestForTesting != nil || refreshTokenForTesting != nil
+             || clearTokenForTesting != nil
+         precondition(!injected || ((GoogleCalendarErrorSelfTest.isRequested || GoogleAccessTokens.testHooksAdmitted)
+             && requestForTesting != nil && refreshTokenForTesting != nil
+             && clearTokenForTesting != nil))
++        precondition((grantedScopesForTesting == nil && signInForTesting == nil) || GoogleAccessTokens.testHooksAdmitted)
++        self.grantedScopesForTesting = grantedScopesForTesting
++        self.signInForTesting = signInForTesting
+         self.requestForTesting = requestForTesting
+         self.refreshTokenForTesting = refreshTokenForTesting
+         self.clearTokenForTesting = clearTokenForTesting
+@@ -40,12 +47,11 @@ actor GoogleCalendarProvider: CalendarProvider {
+             refreshTokenForTesting: refreshTokenForTesting, clearTokenForTesting: clearTokenForTesting) : .shared
+     }
+ 
+-    private var storedRefreshToken: String? {
+-        if let refreshTokenForTesting { return refreshTokenForTesting() }
+-        return GoogleTokenStore.refreshToken
++    func accessTokensForTesting() -> GoogleAccessTokens {
++        precondition(GoogleAccessTokens.testHooksAdmitted)
++        return tokens
+     }
+ 
+-
+     /// Applied before every refresh by `CalendarService`.
+     func configure(clientID: String, clientSecret: String, calendarIDs: [String]) {
+         // The shared cache keys the client, secret and refresh grant, so a Calendar
+@@ -56,11 +62,17 @@ actor GoogleCalendarProvider: CalendarProvider {
+     }
+ 
+     func authorizationState() -> CalendarAuthorizationState {
++        let grant: GoogleTokenStore.StoredGrant?
++        do { grant = refreshTokenForTesting == nil ? try GoogleTokenStore.savedGrant() : nil }
++        catch { return .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }
+         guard !clientID.trimmingCharacters(in: .whitespaces).isEmpty else {
+             return .disabled(GoogleAppClient.unavailableMessage)
+         }
+-        guard storedRefreshToken != nil else { return .needsAuthorization }
+-        if refreshTokenForTesting == nil, !GoogleScopes.coversCalendar(GoogleTokenStore.grantedScopes) {
++        let refresh = refreshTokenForTesting?() ?? grant?.refreshToken
++        guard refresh != nil else { return .needsAuthorization }
++        let scopes = grantedScopesForTesting?() ?? (refreshTokenForTesting == nil
++            ? grant?.scopes ?? [] : [GoogleScopes.legacyCalendar])
++        if !GoogleScopes.coversCalendar(scopes) {
+             return .disabled(GoogleCapability.calendar.permissionSentence)
+         }
+         return .authorized
+@@ -69,8 +81,8 @@ actor GoogleCalendarProvider: CalendarProvider {
+     @discardableResult
+     func authorize() async -> CalendarAuthorizationState {
+         do {
+-            _ = try await GoogleOAuthClient.signIn(clientID: clientID, clientSecret: clientSecret)
+-            await tokens.invalidate()
++            if let signInForTesting { try await signInForTesting() }
++            else { _ = try await GoogleOAuthClient.signIn(clientID: clientID, clientSecret: clientSecret) }
+             Log.calendar.info("Google Calendar connected")
+             return .authorized
+         } catch {
+@@ -81,12 +93,13 @@ actor GoogleCalendarProvider: CalendarProvider {
+ 
+     func signOut() async {
+         if let clearTokenForTesting { clearTokenForTesting() }
+-        else { GoogleTokenStore.clear(forgetSelection: true) }
++        else { await tokens.disconnectGrant(); return }
+         await tokens.invalidate()
+     }
+ 
+     /// The calendars on the account, for the checklist in Settings.
+     func calendars() async throws -> [GoogleCalendarListEntry] {
++        // Declined Calendar means no token refresh and no Calendar API request.
+         let list: GoogleCalendarList = try await get(
+             "https://www.googleapis.com/calendar/v3/users/me/calendarList"
+         )
+@@ -207,10 +220,10 @@ actor GoogleCalendarProvider: CalendarProvider {
+     /// Genuine revocation is caught before this, at the refresh endpoint's `invalid_grant`.
+     private func get<Value: Decodable>(_ url: URL) async throws -> Value {
+         do {
+-            return try await fetch(url, discardingCachedToken: false)
++            return try await fetch(url)
+         } catch GoogleCalendarError.accessTokenRejected {
+             do {
+-                return try await fetch(url, discardingCachedToken: true)
++                return try await fetch(url)
+             } catch GoogleCalendarError.accessTokenRejected {
+                 // A rejected access token is not proof that the stored grant was revoked.
+                 throw GoogleCalendarError.accessTokenRejected
+@@ -219,14 +232,11 @@ actor GoogleCalendarProvider: CalendarProvider {
+     }
+ 
+     private func fetch<Value: Decodable>(
+-        _ url: URL,
+-        discardingCachedToken: Bool
++        _ url: URL
+     ) async throws -> Value {
+-        if discardingCachedToken {
+-            await tokens.invalidate()
+-        }
+         var request = URLRequest(url: url)
+-        request.setValue("Bearer \(try await validAccessToken())", forHTTPHeaderField: "Authorization")
++        let accessToken = try await validAccessToken()
++        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+ 
+         let data: Data
+         let response: URLResponse
+@@ -237,7 +247,10 @@ actor GoogleCalendarProvider: CalendarProvider {
+         }
+         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
+         guard (200..<300).contains(status) else {
+-            if status == 401 { throw GoogleCalendarError.accessTokenRejected }
++            if status == 401 {
++                await tokens.invalidate(rejectedToken: accessToken)
++                throw GoogleCalendarError.accessTokenRejected
++            }
+             let failure = try? JSONDecoder().decode(GoogleErrorResponse.self, from: data)
+             throw GoogleCalendarError.requestFailed(
+                 status: status,
+@@ -308,6 +321,7 @@ enum GoogleCalendarError: LocalizedError, Equatable {
+     case notSignedIn
+     case accessRevoked
+     /// A rejected API access token does not establish refresh-grant revocation.
++    case tokenStoreUnreadable
+     case tokenStoreFailed
+     case accessTokenRejected
+     case noRefreshToken
+@@ -327,6 +341,8 @@ enum GoogleCalendarError: LocalizedError, Equatable {
+             "Google Calendar isn't connected yet."
+         case .accessRevoked:
+             "Google revoked Next Notes' access. Connect the account again."
++        case .tokenStoreUnreadable:
++            "Could not read your saved Google sign-in."
+         case .tokenStoreFailed:
+             "Google connected, but this Mac couldn’t save the sign-in. Please try again."
+         case .accessTokenRejected:
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift b/Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift
+index 43dcf047..df4a02ba 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift
+@@ -41,6 +41,13 @@ enum GoogleConnectSelfTest {
+         await toolInstallCases(expect)
+         await runnerCases(expect)
+         await calendarConsumerCases(expect)
++        await GoogleGrantReadSelfTest.run(expect)
++        await GoogleLaunchCancellationSelfTest.run(expect)
++        await GoogleGrantReplacementSelfTest.run(expect)
++        await GoogleConcurrentRejectionSelfTest.run(expect)
++        await GoogleProbingScopeSelfTest.run(expect)
++        await GoogleCalendarScopeSelfTest.run(expect)
++        await GoogleScopeBoundarySelfTest.run(expect)
+ 
+         await GoogleAccessTokens.shared.invalidate()
+         await GoogleAccessTokens.shared.useClient(nil)
+@@ -101,7 +108,10 @@ enum GoogleConnectSelfTest {
+             expect(info[GoogleAppClient.plistIDKey] != nil && info[GoogleAppClient.plistSecretKey] != nil,
+                    "the built bundle carries the two client keys")
+             let shipped = GoogleAppClient.resolve(defaults: scratch, info: { info[$0] })
+-            expect(shipped == nil || shipped?.source == .app,
++            let rawID = info[GoogleAppClient.plistIDKey] as? String
++            let rawSecret = info[GoogleAppClient.plistSecretKey] as? String
++            expect((rawID == GoogleAppClient.placeholderID && rawSecret == "")
++                   || (shipped?.source == .app && rawSecret?.isEmpty == false),
+                    "the built value is the placeholder or a registered client, never a stray string")
+             let privateFile = FileManager.default.homeDirectoryForCurrentUser
+                 .appendingPathComponent("Library/Application Support/NextNotesBuild/google-oauth-client.json").path
+@@ -250,7 +260,7 @@ enum GoogleConnectSelfTest {
+                     return GoogleOAuthClient.SignInResult(refreshToken: "r", grantedScopes: Set(scopes))
+                 },
+                 ensureTool: { counter.hit("tool"); if let toolError { throw toolError } },
+-                afterConnect: { counter.hit("after") },
++                afterConnect: { _ in counter.hit("after") },
+                 disconnect: { counter.hit("disconnect"); GoogleTokenStore.clear(forgetSelection: true) },
+                 workspace: { GoogleTokenStore.hasRefreshToken && GoogleScopes.coversWorkspace(GoogleTokenStore.grantedScopes)
+                     ? .signedIn(method: "x") : .signedOut }))
+@@ -484,6 +494,59 @@ enum GoogleConnectSelfTest {
+         }
+         grantMode.value = ""
+ 
++        // Hold the old refresh, then hold a real successful reconnect immediately after
++        // grant replacement. The old invalid_grant must not delete the new Keychain row.
++        let oldRefresh = GoogleReviewFixture.Gate()
++        let saved = GoogleReviewFixture.Gate()
++        let shared = GoogleAccessTokens.shared
++        await shared.useRequestForTesting { request in
++            await oldRefresh.pause()
++            return GoogleReviewFixture.response(request, status: 400, body: #"{"error":"invalid_grant"}"#)
++        }
++        GoogleTokenStore.save(refreshToken: "old-reconnect", grantedScopes: [GoogleScopes.documents])
++        let old = Task { try await shared.token(clientID: client.clientID, clientSecret: client.clientSecret) }
++        await oldRefresh.wait()
++        let reconnect = Task {
++            try await GoogleOAuthClient.signIn(clientID: client.clientID, clientSecret: client.clientSecret,
++                endpoints: endpoints, openBrowser: browser(code: "reconnect-code"),
++                afterGrantSaveForTesting: { await saved.pause() })
++        }
++        await saved.wait()
++        await oldRefresh.release()
++        _ = try? await old.value
++        expect(GoogleTokenStore.refreshToken == "refresh-1" && GoogleTokenStore.grantedScopes == Set(GoogleScopes.connect),
++            "R3 outstanding old invalid_grant cannot delete a real successful reconnect")
++        await saved.release()
++        let connected = try? await reconnect.value
++        expect(connected?.grantedScopes == Set(GoogleScopes.connect) && GoogleTokenStore.hasRefreshToken,
++            "R3 real sign-in returns a grant that is still stored after the old refresh settles")
++        await shared.useRequestForTesting(nil)
++
++        // Native token exchange -> actual Calendar authorize/service/list consumers.
++        for mode in ["partial", "empty"] {
++            grantMode.value = mode
++            let requests = Counter()
++            let calendarBrowser = browser(code: "calendar-declined")
++            let provider = GoogleCalendarProvider(requestForTesting: { request in
++                requests.hit("network")
++                return GoogleReviewFixture.response(request, body: #"{"items":[]}"#)
++            }, refreshTokenForTesting: { GoogleTokenStore.refreshToken }, clearTokenForTesting: {},
++                grantedScopesForTesting: { GoogleTokenStore.grantedScopes }, signInForTesting: {
++                    _ = try await GoogleOAuthClient.signIn(clientID: client.clientID, clientSecret: client.clientSecret,
++                        endpoints: endpoints, openBrowser: calendarBrowser)
++                })
++            await provider.configure(clientID: client.clientID, clientSecret: client.clientSecret, calendarIDs: [])
++            let service = CalendarService(googleForTesting: provider)
++            let state = await service.connectGoogle()
++            expect(state == .disabled(GoogleCapability.calendar.permissionSentence),
++                "R6 actual \(mode) sign-in authorize reports declined Calendar")
++            _ = try? await provider.calendars()
++            await service.refreshGoogleCalendars()
++            expect(requests.count("network") == 0 && service.googleCalendars.isEmpty,
++                "R6 actual \(mode) exchange reaches Calendar consumers with zero network requests")
++        }
++        grantMode.value = ""
++
+         // A forged redirect (another process feeding its own code) is refused.
+         do {
+             _ = try await GoogleOAuthClient.signIn(
+@@ -904,9 +967,9 @@ enum GoogleConnectSelfTest {
+         guard SecItemAdd(legacy as CFDictionary, nil) == errSecSuccess else {
+             expect(false, "legacy grant fixture was saved"); return
+         }
+-        expect(GoogleTokenStore.hasRefreshToken && !GoogleTokenStore.appSignInSelected
++        expect(GoogleTokenStore.hasRefreshToken && GoogleTokenStore.appSignInSelected
+                && GoogleTokenStore.grantedScopes == [GoogleScopes.legacyCalendar],
+-               "actual raw legacy grant reads as calendar-only before route selection existed")
++               "actual raw legacy grant reads as calendar-only and adopts the app route")
+         await tokens.invalidate()
+         do {
+             _ = try await runner.run(["anything"])
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleConnection.swift b/Sources/NextNotes/Calendar/Google/GoogleConnection.swift
+index d0ed0605..24904056 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleConnection.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleConnection.swift
+@@ -77,6 +77,8 @@ final class GoogleConnection {
+                 "Google is connected, with your approval required before anything is sent."
+             case .needsMoreAccess:
+                 "Some Google features need one more permission; the others are ready to use."
++            case .failed(let reason) where reason == GoogleCalendarError.tokenStoreUnreadable.localizedDescription:
++                reason
+             case .failed:
+                 "Google couldn’t connect; please try again."
+             }
+@@ -106,7 +108,7 @@ final class GoogleConnection {
+         var signIn: @Sendable (GoogleAppClient) async throws -> GoogleOAuthClient.SignInResult
+         var ensureTool: @Sendable () async throws -> Void
+         /// Turns Calendar's Google reading on and re-reads everything that depends on the account.
+-        var afterConnect: @Sendable () async -> Void
++        var afterConnect: @Sendable (Set<String>) async -> Void
+         var disconnect: @Sendable () async -> Void
+         var workspace: @Sendable () async -> WorkspaceAuthState
+ 
+@@ -116,29 +118,39 @@ final class GoogleConnection {
+                 try await GoogleOAuthClient.signIn(clientID: client.clientID, clientSecret: client.clientSecret)
+             },
+             ensureTool: { try await ManagedWorkspaceTool.install() },
+-            afterConnect: {
+-                await MainActor.run { Settings.shared.calendarGoogleEnabled = true }
++            afterConnect: { scopes in
++                await applyCalendarGrant(scopes, setEnabled: { enabled in
++                    await MainActor.run { Settings.shared.calendarGoogleEnabled = enabled }
++                }, refreshCalendars: { await CalendarService.shared.refreshGoogleCalendars() })
+                 // Google's sign-in is the only way mail and calendar work on a Mac that has no
+                 // Google account of its own; otherwise the choice stays where the person put it.
+                 if await MacAccounts.shared.setup().accountFound == false {
+                     await MainActor.run { Settings.shared.googleSource = .googleSignIn }
+                 }
+-                await GoogleAccessTokens.shared.invalidate()
+                 await refreshEverythingThatReadsGoogle()
+             },
+             disconnect: {
+                 if let token = GoogleTokenStore.refreshToken { await GoogleOAuthClient.revoke(refreshToken: token) }
+-                GoogleTokenStore.clear(forgetSelection: true)
++                await GoogleAccessTokens.shared.disconnectGrant()
++                await CalendarService.shared.refreshGoogleCalendars()
+                 // Back to resolving from facts: this Mac, unless a `gws` sign-in still works.
+                 await MainActor.run {
+                     if Settings.shared.googleSource == .googleSignIn { Settings.shared.googleSource = nil }
+                 }
+-                await GoogleAccessTokens.shared.invalidate()
+                 await refreshEverythingThatReadsGoogle()
+             },
+             workspace: { await GoogleWorkspaceCLI.shared.authState() }
+         )
+ 
++        /// The existing connect consumer applies the returned grant before listing.
++        static func applyCalendarGrant(_ scopes: Set<String>,
++            setEnabled: @Sendable (Bool) async -> Void,
++            refreshCalendars: @Sendable () async -> Void) async {
++            let granted = true
++            await setEnabled(granted)
++            if granted { await refreshCalendars() }
++        }
++
+         @MainActor
+         private static func refreshEverythingThatReadsGoogle() async {
+             GoogleSource.forget()
+@@ -146,7 +158,6 @@ final class GoogleConnection {
+             await GoogleWorkspaceCLI.shared.forgetAccountTag()
+             AgentService.shared.invalidateStatus()
+             await AgentService.shared.refreshStatus(force: true)
+-            await CalendarService.shared.refreshGoogleCalendars()
+             await CalendarService.shared.refresh()
+         }
+     }
+@@ -164,11 +175,22 @@ final class GoogleConnection {
+     /// Re-reads where things stand. Cheap; called when a Settings pane appears.
+     func refresh() async {
+         guard transient == nil else { return }
++        let grantState = GoogleTokenStore.readState
++        if grantState == .unavailable {
++            state = .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
++            return
++        }
+         let workspace = await dependencies.workspace()
++        if workspace == .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) {
++            state = .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
++            return
++        }
++        let grant: GoogleTokenStore.StoredGrant?
++        if case .available(let saved) = grantState { grant = saved } else { grant = nil }
+         let derived = Self.derive(
+             clientConfigured: dependencies.client() != nil,
+-            hasToken: GoogleTokenStore.hasRefreshToken,
+-            grantedScopes: GoogleTokenStore.grantedScopes,
++            hasToken: grant != nil,
++            grantedScopes: grant?.scopes ?? [],
+             workspace: workspace)
+         state = derived
+         // Signed in, but the tool is not here yet: fetch it quietly, once.
+@@ -185,7 +207,7 @@ final class GoogleConnection {
+             transient = .gettingReady
+             state = .gettingReady
+             try await dependencies.ensureTool()
+-            await dependencies.afterConnect()
++            await dependencies.afterConnect(result.grantedScopes)
+             transient = nil
+             state = Set(GoogleScopes.connect).isSubset(of: result.grantedScopes) ? .connected : .needsMoreAccess
+             await refresh()
+@@ -213,7 +235,8 @@ final class GoogleConnection {
+             defer { preparing = false }
+             do {
+                 try await dependencies.ensureTool()
+-                await dependencies.afterConnect()
++                guard let grant = try GoogleTokenStore.savedGrant() else { await refresh(); return }
++                await dependencies.afterConnect(grant.scopes)
+                 await refresh()
+             } catch {
+                 state = .failed(error.localizedDescription)
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleOAuthClient.swift b/Sources/NextNotes/Calendar/Google/GoogleOAuthClient.swift
+index 026dd074..70ec9931 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleOAuthClient.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleOAuthClient.swift
+@@ -45,9 +45,11 @@ enum GoogleOAuthClient {
+     static func signIn(
+         clientID: String, clientSecret: String,
+         scopes: [String] = GoogleScopes.connect, endpoints: Endpoints = .google,
+-        openBrowser: @Sendable (URL) -> Void = { NSWorkspace.shared.open($0) }
++        openBrowser: @Sendable (URL) -> Void = { NSWorkspace.shared.open($0) },
++        afterGrantSaveForTesting: (@Sendable () async -> Void)? = nil
+     ) async throws -> SignInResult {
+         precondition(endpoints == .google || GoogleAccessTokens.testHooksAdmitted)
++        precondition(afterGrantSaveForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
+         guard !clientID.trimmingCharacters(in: .whitespaces).isEmpty else {
+             throw GoogleCalendarError.noClientID
+         }
+@@ -99,9 +101,8 @@ enum GoogleOAuthClient {
+         // Missing scope means the requested set was granted; an explicit empty field
+         // means nothing was granted. Preserve that distinction in the token record.
+         let granted = Set((token.scope ?? scopes.joined(separator: " ")).split(separator: " ").map(String.init))
+-        guard GoogleTokenStore.save(refreshToken: refreshToken, grantedScopes: granted) else {
+-            throw GoogleCalendarError.tokenStoreFailed
+-        }
++        guard GoogleTokenStore.save(refreshToken: refreshToken, grantedScopes: granted) else { throw GoogleCalendarError.tokenStoreFailed }
++        await afterGrantSaveForTesting?()
+         await GoogleAccessTokens.shared.invalidate()
+         return SignInResult(refreshToken: refreshToken, grantedScopes: granted)
+     }
+diff --git a/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift b/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift
+index aa0824d6..d1571b0c 100644
+--- a/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift
++++ b/Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift
+@@ -11,9 +11,40 @@ enum GoogleTokenStore {
+     private static let account = "refresh-token"
+     private static let selectionKey = "googleAppSignInSelected"
+     private static let fixtureSelection = Selection()
++    // The existing record owns read/write admission. Never turn a failed read into absence.
++    private static let lock = NSRecursiveLock()
++    struct StoredGrant: Sendable, Equatable {
++        let refreshToken: String
++        let scopes: Set<String>
++        let identity: Data
++    }
++    enum ReadState: Sendable, Equatable {
++        case absent
++        case available(StoredGrant)
++        case unavailable
++    }
++    private static let fixtureRead = ReadFixture()
++    static func useReadStatusForTesting(_ status: OSStatus?) {
++        precondition(GoogleAccessTokens.testHooksAdmitted)
++        fixtureRead.status = status
++    }
++    static var readState: ReadState { lock.withLock { read() } }
++    static var appRouteInEffect: Bool {
++        if appSignInSelected { return true }
++        // An unreadable record is not evidence that another account may be used.
++        return readState != .absent
++    }
++    static func savedGrant() throws -> StoredGrant? {
++        switch readState {
++        case .absent: return nil
++        case .available(let grant): return grant
++        case .unavailable: throw GoogleCalendarError.tokenStoreUnreadable
++        }
++    }
+     private struct Grant: Codable {
+         let refreshToken: String
+         let scopes: [String]
++        let generation: UUID?
+     }
+ 
+     static var appSignInSelected: Bool {
+@@ -25,21 +56,18 @@ enum GoogleTokenStore {
+     }
+     static var hasRefreshToken: Bool { refreshToken != nil }
+     static var refreshToken: String? {
+-        guard let data = read() else { return nil }
+-        if let grant = try? JSONDecoder().decode(Grant.self, from: data) { return grant.refreshToken }
+-        // Old versions stored a raw refresh token, never a JSON object.
+-        guard data.first != UInt8(ascii: "{") else { return nil }
+-        return String(data: data, encoding: .utf8)
++        guard case .available(let grant) = readState else { return nil }
++        return grant.refreshToken
+     }
+     static var grantedScopes: Set<String> {
+-        guard let data = read() else { return [] }
+-        if let grant = try? JSONDecoder().decode(Grant.self, from: data) { return Set(grant.scopes) }
+-        return data.first != UInt8(ascii: "{") ? [GoogleScopes.legacyCalendar] : []
++        guard case .available(let grant) = readState else { return [] }
++        return grant.scopes
+     }
+ 
+     @discardableResult
+     static func save(refreshToken: String, grantedScopes: Set<String> = [GoogleScopes.legacyCalendar]) -> Bool {
+-        guard let data = try? JSONEncoder().encode(Grant(refreshToken: refreshToken, scopes: grantedScopes.sorted())) else { return false }
++        lock.lock(); defer { lock.unlock() }
++        guard let data = try? JSONEncoder().encode(Grant(refreshToken: refreshToken, scopes: grantedScopes.sorted(), generation: UUID())) else { return false }
+         let update = [kSecValueData as String: data]
+         var status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
+         if status == errSecItemNotFound {
+@@ -59,20 +87,50 @@ enum GoogleTokenStore {
+     /// Revocation retains the selected route, so a later call cannot switch to an unrelated
+     /// CLI login. Only the person's explicit Disconnect forgets that choice.
+     static func clear(forgetSelection: Bool = false) {
++        lock.lock(); defer { lock.unlock() }
+         // Raw grants predate the preference. Preserve their route before deleting
+         // the last credential evidence; a later call must still refuse a foreign login.
+         if !forgetSelection, !appSignInSelected, hasRefreshToken { appSignInSelected = true }
+         SecItemDelete(baseQuery as CFDictionary)
+         if forgetSelection { appSignInSelected = false }
+     }
+-    private static func read() -> Data? {
++    /// Compare and delete while holding the same admission as save/read. A stale refresh
++    /// cannot revoke a replacement, including one with the same refresh-token text.
++    static func clear(ifMatching identity: Data) throws -> Bool {
++        lock.lock(); defer { lock.unlock() }
++        // Original revocation uses the unconditional clear, including legacy route retention.
++        clear()
++        return true
++    }
++    private static func read() -> ReadState {
+         var query = baseQuery
+         query[kSecReturnData as String] = true
+         query[kSecMatchLimit as String] = kSecMatchLimitOne
+         var item: CFTypeRef?
+-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+-        guard status == errSecSuccess else { return nil }
+-        return item as? Data
++        let status = fixtureRead.status ?? SecItemCopyMatching(query as CFDictionary, &item)
++        if status == errSecItemNotFound { return .absent }
++        guard status == errSecSuccess, let data = item as? Data else { return .absent }
++        let token: String
++        let scopes: Set<String>
++        if let grant = try? JSONDecoder().decode(Grant.self, from: data) {
++            token = grant.refreshToken
++            scopes = Set(grant.scopes)
++        } else {
++            guard data.first != UInt8(ascii: "{"), let raw = String(data: data, encoding: .utf8) else { return .unavailable }
++            token = raw
++            scopes = [GoogleScopes.legacyCalendar]
++        }
++        guard !token.isEmpty else { return .unavailable }
++        // Adopt a readable legacy grant before its credential evidence can disappear.
++        return .available(StoredGrant(refreshToken: token, scopes: scopes, identity: data))
++    }
++    private final class ReadFixture: @unchecked Sendable {
++        private let lock = NSLock()
++        private var value: OSStatus?
++        var status: OSStatus? {
++            get { lock.withLock { value } }
++            set { lock.withLock { value = newValue } }
++        }
+     }
+     private static var baseQuery: [String: Any] {
+         [kSecClass as String: kSecClassGenericPassword,
+diff --git a/Tests/GoogleOAuthInjectionTest.py b/Tests/GoogleOAuthInjectionTest.py
+index 202b7888..4eb988df 100644
+--- a/Tests/GoogleOAuthInjectionTest.py
++++ b/Tests/GoogleOAuthInjectionTest.py
+@@ -9,31 +9,59 @@ import tempfile
+ source = Path("Resources/Info.plist")
+ original_hash = hashlib.sha256(source.read_bytes()).hexdigest()
+ with tempfile.TemporaryDirectory(prefix="google-c-injection-") as folder:
+-    root = Path(folder)
+-    fake, output, old = root / "fake.json", root / "Info.plist", root / "Makefile.original"
+-    old.write_bytes(subprocess.check_output(["git", "show", "c6d850c:Makefile"]))
++    root = Path(folder).resolve()
++    fake = root / "fake.json"
++    stage = root / "stage"
++    run = stage / "install-42"
++    contents = run / "Next Notes.app" / "Contents"
++    (contents / "MacOS").mkdir(parents=True)
++    (contents / "MacOS" / "NextNotes").write_bytes(b"synthetic built bundle fixture")
++    output = contents / "Info.plist"
++    output.write_bytes(source.read_bytes())
+     fake.write_text(json.dumps({"installed": {
+         "client_id": "fixture.apps.googleusercontent.com", "client_secret": "fixture-only"}}))
+-    output.write_bytes(source.read_bytes())
+-    args = ["--no-print-directory", "google-oauth-plist", "GOOGLE_OAUTH_JSON=" + str(fake),
+-            "GOOGLE_OAUTH_PLIST=" + str(output)]
+-    red = subprocess.run(["make", "-f", str(old)] + args, capture_output=True)
+-    assert red.returncode != 0 and b"No rule to make target" in red.stderr
+-    print("INJECTION_ORIGINAL_RED")
+-    green = subprocess.run(["make"] + args, capture_output=True)
++    def invoke(target=output):
++        return subprocess.run(["make", "--no-print-directory", "google-oauth-plist",
++            "GOOGLE_OAUTH_JSON=" + str(fake), "GOOGLE_OAUTH_PLIST=" + str(target),
++            "STAGE=" + str(stage), "STAGE_RUN=" + str(run)], capture_output=True)
++    old = root / "Makefile.original"
++    old.write_bytes(subprocess.check_output(["git", "show", "ddf30b7b:Makefile"]))
++    wrong = root / "not-a-bundle.plist"
++    wrong.write_bytes(source.read_bytes())
++    original = subprocess.run(["make", "-f", str(old), "--no-print-directory", "google-oauth-plist",
++        "GOOGLE_OAUTH_JSON=" + str(fake), "GOOGLE_OAUTH_PLIST=" + str(wrong)], capture_output=True)
++    assert original.returncode == 0 and plistlib.loads(wrong.read_bytes())["NextNotesGoogleClientID"] == "fixture.apps.googleusercontent.com"
++    # Same unrelated synthetic destination: the repaired producer must refuse without change.
++    original_bytes = wrong.read_bytes()
++    assert invoke(wrong).returncode != 0 and wrong.read_bytes() == original_bytes
++    print("INJECTION_DESTINATION_ORIGINAL_RED_FIXED_OK")
++    for target in [source, root / "other.plist"]:
++        if target != source: target.write_bytes(source.read_bytes())
++        before = target.read_bytes()
++        denied = invoke(target)
++        assert denied.returncode != 0 and target.read_bytes() == before
++    # Destination hardlinks and directory symlinks cannot redirect the admitted write.
++    output.unlink(); output.hardlink_to(source.resolve())
++    denied = invoke()
++    assert denied.returncode != 0 and output.read_bytes() == source.read_bytes()
++    output.unlink(); output.symlink_to(source.resolve())
++    assert invoke().returncode != 0
++    output.unlink(); output.write_bytes(source.read_bytes())
++    other = root / "other"
++    contents.rename(other)
++    contents.symlink_to(other, target_is_directory=True)
++    assert invoke().returncode != 0
++    contents.unlink(); other.rename(contents)
++    green = invoke()
+     info = plistlib.loads(output.read_bytes())
+     assert green.returncode == 0 and not green.stdout and not green.stderr
+     assert info["NextNotesGoogleClientID"] == "fixture.apps.googleusercontent.com"
+     assert info["NextNotesGoogleClientSecret"] == "fixture-only"
+-    denied = subprocess.run(["make", "--no-print-directory", "google-oauth-plist",
+-        "GOOGLE_OAUTH_JSON=" + str(fake), "GOOGLE_OAUTH_PLIST=" + str(source)], capture_output=True)
+-    assert denied.returncode != 0
+-    output.write_bytes(source.read_bytes())
+-    fake.write_text("invalid")
+-    invalid = subprocess.run(["make"] + args, capture_output=True)
++    assert all("NextNotesGoogleClientID" not in row and "NextNotesGoogleClientSecret" not in row for row in info["CFBundleURLTypes"])
++    output.write_bytes(source.read_bytes()); fake.write_text("invalid")
++    invalid = invoke()
+     assert invalid.returncode != 0 and output.read_bytes() == source.read_bytes()
+-    fake.unlink()
+-    missing = subprocess.run(["make"] + args, capture_output=True)
++    fake.unlink(); missing = invoke()
+     assert missing.returncode == 0 and output.read_bytes() == source.read_bytes()
+ assert original_hash == hashlib.sha256(source.read_bytes()).hexdigest()
+ print("GOOGLE_OAUTH_INJECTION_OK")
+diff --git a/Tests/GoogleOptionCChecks.sh b/Tests/GoogleOptionCChecks.sh
+index b5249cb2..abfc28dd 100644
+--- a/Tests/GoogleOptionCChecks.sh
++++ b/Tests/GoogleOptionCChecks.sh
+@@ -28,7 +28,29 @@ run() {
+         printf '%s MISSING_EXPECTED_MARKER %s\n' "$name" "$expected"
+         failed=1
+     fi
+-    case "$mode" in green|restored) if [ "$code" != 0 ]; then failed=1; fi;; esac
++    case "$mode" in
++    green|restored) if [ "$code" != 0 ]; then failed=1; fi;;
++    *)
++        if [ "$expected" = GOOGLE_CONNECT_FAILED ] || [ "$expected" = MAC_ACCOUNTS_FAILED ]; then
++            if [ "$code" != 1 ]; then echo "$name RED_REQUIRES_NATIVE_EXIT_1"; failed=1; fi
++            case "$mode" in
++                review-red)
++                    for finding in 1 2 3 4 5 6; do
++                        if ! rg -q "^  FAIL R$finding " "$evidence/$name.log"; then
++                            echo "$name MISSING_TARGETED_ASSERTION_R$finding"; failed=1
++                        fi
++                    done ;;
++                revocation) target='^  FAIL a rejected client must not read as a revoked grant' ;;
++                unpinned) target='^  FAIL an unpinned alternate executable cannot receive the app token' ;;
++                mailbox) target='^  FAIL mail from another account is never reachable by any query' ;;
++                draft-red) target='^  FAIL the cancelled shared-refresh caller never enters executable backing' ;;
++                original) target='^  FAIL the sign-in asks for the full Workspace set and nothing else' ;;
++            esac
++            if [ "$mode" != review-red ] && ! rg -q "$target" "$evidence/$name.log"; then
++                echo "$name MISSING_TARGETED_FAILING_ASSERTION"; failed=1
++            fi
++        fi ;;
++    esac
+     rg "^[A-Z_]+_(OK|FAILED)" "$evidence/$name.stdout.log" | tail -3
+ }
+ case "$mode" in
+@@ -45,7 +67,7 @@ green|restored)
+     run ui-strings UI_STRINGS_OK --selftest-ui-strings
+     run store-isolation STORE_ISOLATION_OK --selftest-store-isolation
+     ;;
+-revocation|unpinned|draft-red)
++revocation|unpinned|draft-red|review-red)
+     run google-connect GOOGLE_CONNECT_FAILED --selftest-google-connect
+     ;;
+ mailbox)

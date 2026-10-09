@@ -1,0 +1,7 @@
+google-connect exit=0
+gws exit=0
+calendar exit=0
+mac-accounts exit=0
+capability-manifest exit=0
+ui-strings exit=0
+store-isolation exit=0

@@ -1,0 +1,13 @@
+{
+  "Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift": "92dad53e27d3babf0ac9440272fac4d6acae4a28e18e1ba268ebed62db6ded3b",
+  "Sources/NextNotes/Calendar/Google/GoogleAccessTokens.swift": "ba2b2beb71c53e58730f93799fa6ddf6d6ab001ba6e92a98387ce39550814f60",
+  "Sources/NextNotes/Calendar/Google/GoogleOAuthClient.swift": "5aec2e3e71b199d4f8fbc2e4283b2d85731929ed22140c41005b778ec769ef53",
+  "Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift": "6807aaca5b4c4eee7b5269c8de4ee92ff6f6f030420c9b9d8ed62132a1c74385",
+  "Sources/NextNotes/Calendar/Google/GoogleConnection.swift": "c745b2bdc9281641fd1ae2ee31718c111ad0e2f060435ca00d10027884153676",
+  "Sources/NextNotes/Calendar/Google/GoogleConnectSelfTest.swift": "373c56ac9a50952aeefc80910c1a440b88e199b554ebae8abbf85c0b7134166c",
+  "Sources/NextNotes/Calendar/Google/GoogleAppClient.swift": "4d5f242959058a5b82fd2ffd5e7d4b9f27e376cd43e405f6a07f00cb0d33b1b7",
+  "Sources/NextNotes/Agent/GoogleWorkspaceCLI.swift": "dd0be63458ecd786dd384b23f47a891ea3f5428b619ce6dc1a0ba0d4b1897c68",
+  "Sources/NextNotes/Agent/Mac/MacWorkspace.swift": "e81685da32551caa04a454eb8c3a9c00c43f1874a72e35da0534a0feb436aae8",
+  "Sources/NextNotes/Agent/AgentCapabilityManifest.swift": "621790c1d9112ecb2b7221de809ca5b401a9b1231ead12986357da4f60e1af8d",
+  "Sources/NextNotes/Calendar/CalendarService.swift": "43685d1dd6cb4f4afe1c32e364be3e1dcde653369ab876345550ce667b768182"
+}
