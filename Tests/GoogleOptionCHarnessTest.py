@@ -61,7 +61,7 @@ exit 1
                                          GOOGLE_REVIEW_TARGETS=str(targets)), capture_output=True)
         assert result.returncode == 1, ('finding', index + 1, 'setup incorrectly satisfied RED')
     # Setup errors must not satisfy any of the other RED modes either.
-    for mode in ['revocation', 'unpinned', 'draft-red', 'withdrawal-red', 'remaining-red', 'calendar-list-red', 'original', 'mailbox']:
+    for mode in ['revocation', 'unpinned', 'draft-red', 'withdrawal-red', 'remaining-red', 'calendar-list-red', 'grant-transition-red', 'original', 'mailbox']:
         result = subprocess.run(['sh', 'Tests/GoogleOptionCChecks.sh', mode, str(binary), str(root / ('setup-' + mode))],
                                 env=dict(os.environ, GOOGLE_REVIEW_HARNESS_CASE='setup'), capture_output=True)
         assert result.returncode == 1, (mode, 'setup incorrectly satisfied RED')
@@ -76,4 +76,15 @@ exit 1
                                 env=dict(os.environ, GOOGLE_REVIEW_HARNESS_CASE='all-six',
                                          GOOGLE_REVIEW_TARGETS=str(targets)), capture_output=True)
         assert result.returncode == (0 if omit is None else 1), ('held list', omit, 'requires every named failure')
+    transition_targets = ['R6 transition ' + route + ' drops A completion under the changed grant identity and scopes'
+                          for route in ['installer-delayed', 'installer-failed', 'installer-calendar', 'signin-withdrawal', 'invalid-grant']]
+    transition_targets += ['R6 transition ' + route + ' clears cached A without a list result or Calendar callback'
+                           for route in ['installer-delayed', 'installer-failed', 'installer-calendar', 'invalid-grant']]
+    for omit in [None] + list(range(len(transition_targets))):
+        targets.write_text('\n'.join('  FAIL ' + t for index, t in enumerate(transition_targets) if index != omit) + '\n')
+        result = subprocess.run(['sh', 'Tests/GoogleOptionCChecks.sh', 'grant-transition-red', str(binary),
+                                 str(root / ('transition-' + str(omit)))],
+                                env=dict(os.environ, GOOGLE_REVIEW_HARNESS_CASE='all-six',
+                                         GOOGLE_REVIEW_TARGETS=str(targets)), capture_output=True)
+        assert result.returncode == (0 if omit is None else 1), ('grant transition', omit, 'requires every named failure')
 print('GOOGLE_RED_HARNESS_OK: exact named behavior and exit1; setup and broad prefixes rejected')

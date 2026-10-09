@@ -75,6 +75,7 @@ enum GoogleCalendarWithdrawalSelfTest {
             "R6 connection controller disconnect clears populated Calendar list even when already off")
         expect(counts.count("request") == disconnectBefore, "R6 controller disconnect clearing enters zero Google backing")
         await heldListCases(expect)
+        await grantTransitionCases(expect)
     }
 
     /// Hold a successful HTTP response after token/backing admission, then exercise
@@ -160,4 +161,120 @@ enum GoogleCalendarWithdrawalSelfTest {
             GoogleTokenStore.clear(forgetSelection: true)
         }
     }
+    /// These orderings never rely on a completed Calendar callback. All lists pass
+    /// through the native service/provider; the existing actor owns save/revocation.
+    private static func grantTransitionCases(_ expect: GoogleConnectSelfTest.Expect) async {
+        for route in ["installer-delayed", "installer-failed", "installer-calendar", "signin-withdrawal", "invalid-grant"] {
+            let response = GoogleReviewFixture.Gate()
+            let transition = GoogleReviewFixture.Gate()
+            let counts = GoogleReviewFixture.Counts()
+            GoogleTokenStore.save(refreshToken: "transition-grant", grantedScopes: [GoogleScopes.calendar])
+            let admitted = GoogleTokenStore.readState
+            let provider = GoogleCalendarProvider(requestForTesting: { request in
+                _ = counts.hit("request")
+                if request.url?.host == "oauth2.googleapis.com" {
+                    return GoogleReviewFixture.response(request,
+                        body: #"{"access_token":"transition-token","expires_in":3600}"#)
+                }
+                if request.url?.path.hasSuffix("calendarList") == true {
+                    let index = counts.hit("list")
+                    if index == 2 { await response.pause() }
+                    return GoogleReviewFixture.response(request,
+                        body: index <= 2
+                            ? #"{"items":[{"id":"old-calendar","summary":"Old account"}]}"#
+                            : #"{"items":[{"id":"new-calendar","summary":"New account"}]}"#)
+                }
+                return GoogleReviewFixture.response(request, body: #"{"items":[]}"#)
+            }, refreshTokenForTesting: { GoogleTokenStore.refreshToken },
+                clearTokenForTesting: { GoogleTokenStore.clear(forgetSelection: true) },
+                grantedScopesForTesting: { GoogleTokenStore.grantedScopes }, signInForTesting: {
+                    await transition.pause()
+                    try await GoogleAccessTokens.shared.replaceGrant(refreshToken: "transition-grant", scopes: [GoogleScopes.documents])
+                })
+            await provider.configure(clientID: "fixture", clientSecret: "", calendarIDs: [])
+            let service = CalendarService(googleForTesting: provider)
+            await service.refreshGoogleCalendars(enabledForTesting: true)
+            expect(service.googleCalendars.map(\.id) == ["old-calendar"],
+                "R6 transition \(route) starts with a populated native cache")
+            let client = GoogleAppClient(clientID: "fixture", clientSecret: "", source: .app)
+            let scopes: Set<String> = route == "installer-calendar" ? [GoogleScopes.calendar] : [GoogleScopes.documents]
+            let controller = GoogleConnection(dependencies: .init(client: { client }, signIn: { _ in
+                try await GoogleAccessTokens.shared.replaceGrant(refreshToken: "transition-grant", scopes: scopes)
+                return .init(refreshToken: "transition-grant", grantedScopes: scopes)
+            }, ensureTool: {
+                _ = counts.hit("installer")
+                await transition.pause()
+                if route == "installer-failed" { throw GoogleCalendarError.requestFailed(status: 503, reason: "Fixture installer") }
+            }, afterConnect: { scopes in
+                _ = counts.hit("callback")
+                await GoogleConnection.Dependencies.applyCalendarGrant(scopes, setEnabled: { _ in },
+                    refreshCalendars: { enabled in await service.refreshGoogleCalendars(enabledForTesting: enabled) })
+            }, disconnect: {}, workspace: { .signedIn(method: "fixture") }))
+            // Direct sign-in has already entered and suspended before the Settings read.
+            let signingIn: Task<CalendarAuthorizationState, Never>? = route == "signin-withdrawal"
+                ? Task { await service.connectGoogle() } : nil
+            if signingIn != nil { await transition.wait() }
+            let old = Task { await service.refreshGoogleCalendars(enabledForTesting: true) }
+            await response.wait()
+            expect(counts.count("list") == 2 && GoogleTokenStore.readState == admitted,
+                "R6 transition \(route) holds an actually admitted A response")
+            let connecting: Task<Void, Never>?
+            if route.hasPrefix("installer-") {
+                connecting = Task { await controller.connect() }
+                await transition.wait()
+                expect(counts.count("installer") == 1 && counts.count("callback") == 0
+                    && GoogleTokenStore.readState != admitted,
+                    "R6 transition \(route) saves B before the held installer and Calendar callback")
+            } else {
+                connecting = nil
+                if let signingIn {
+                    await transition.release()
+                    let state = await signingIn.value
+                    expect(state == .disabled(GoogleCapability.calendar.permissionSentence),
+                        "R6 transition signin-withdrawal finishes Docs-only sign-in after Settings admission")
+                } else {
+                    // Separate real actor refresh, not the provider's injected token clear.
+                    await GoogleAccessTokens.shared.useRequestForTesting { request in
+                        _ = counts.hit("revocation-refresh")
+                        return GoogleReviewFixture.response(request, status: 400, body: #"{"error":"invalid_grant"}"#)
+                    }
+                    do {
+                        _ = try await GoogleAccessTokens.shared.token(clientID: "fixture", clientSecret: "")
+                        expect(false, "R6 transition invalid-grant reports actual actor revocation")
+                    } catch {
+                        expect((error as? GoogleCalendarError) == .accessRevoked && GoogleTokenStore.readState == .absent
+                            && counts.count("revocation-refresh") == 1,
+                            "R6 transition invalid-grant reports actual actor revocation")
+                    }
+                    await GoogleAccessTokens.shared.useRequestForTesting(nil)
+                }
+            }
+            let before = counts.count("request")
+            await Task.yield() // Let the producer notification clear its MainActor cache.
+            expect(service.googleCalendars.isEmpty && service.googleCalendarCacheForTesting.isEmpty && counts.count("list") == 2,
+                "R6 transition \(route) clears cached A without a list result or Calendar callback")
+            if route == "installer-failed" {
+                await transition.release()
+                await connecting?.value
+                expect(counts.count("callback") == 0 && controller.state == .failed(GoogleCalendarError.requestFailed(status: 503, reason: "Fixture installer").localizedDescription),
+                    "R6 transition installer-failed skips Calendar callback after the saved replacement")
+            }
+            await response.release()
+            await old.value
+            let ids = service.googleCalendars.map(\.id)
+            SelfTest.diagnostic("GOOGLE_GRANT_COMPLETION route=\(route) cache=\(ids) expected=[]")
+            expect(ids.isEmpty && service.googleCalendarCacheForTesting.isEmpty,
+                "R6 transition \(route) drops A completion under the changed grant identity and scopes")
+            expect(counts.count("request") == before && counts.count("list") == 2,
+                "R6 transition \(route) completion has zero extra backing or retry")
+            if route.hasPrefix("installer-") && route != "installer-failed" {
+                await transition.release()
+                await connecting?.value
+                expect(counts.count("callback") == 1 && service.googleCalendars.map(\.id) == (route == "installer-calendar" ? ["new-calendar"] : []),
+                    "R6 transition \(route) completed callback publishes only B's permitted list")
+            }
+            GoogleTokenStore.clear(forgetSelection: true)
+        }
+    }
+
 }

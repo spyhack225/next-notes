@@ -8,6 +8,9 @@ enum GoogleTokenStore {
     static var service: String {
         SelfTest.isRunning ? baseService + ".selftest-\(ProcessInfo.processInfo.processIdentifier)" : baseService
     }
+    // Credential-free change notification from the record producer, including direct
+    // saves/deletes and refresh revocation. No Calendar entry point owns this transition.
+    static let grantDidChange = Notification.Name("NextNotesGoogleGrantDidChange")
     private static let account = "refresh-token"
     private static let selectionKey = "googleAppSignInSelected"
     private static let fixtureSelection = Selection()
@@ -81,6 +84,7 @@ enum GoogleTokenStore {
             return false
         }
         appSignInSelected = true
+        NotificationCenter.default.post(name: grantDidChange, object: nil)
         return true
     }
 
@@ -91,8 +95,11 @@ enum GoogleTokenStore {
         // Raw grants predate the preference. Preserve their route before deleting
         // the last credential evidence; a later call must still refuse a foreign login.
         if !forgetSelection, !appSignInSelected, hasRefreshToken { appSignInSelected = true }
-        SecItemDelete(baseQuery as CFDictionary)
+        let status = SecItemDelete(baseQuery as CFDictionary)
         if forgetSelection { appSignInSelected = false }
+        if status == errSecSuccess || status == errSecItemNotFound {
+            NotificationCenter.default.post(name: grantDidChange, object: nil)
+        }
     }
     /// Compare and delete while holding the same admission as save/read. A stale refresh
     /// cannot revoke a replacement, including one with the same refresh-token text.
@@ -101,6 +108,7 @@ enum GoogleTokenStore {
         guard let grant = try savedGrant(), grant.identity == identity else { return false }
         let status = SecItemDelete(baseQuery as CFDictionary)
         guard status == errSecSuccess || status == errSecItemNotFound else { throw GoogleCalendarError.tokenStoreFailed }
+        NotificationCenter.default.post(name: grantDidChange, object: nil)
         return true
     }
     /// Launch admission shares replacement's lock: the admitted grant cannot change

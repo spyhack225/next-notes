@@ -80,6 +80,26 @@ R6 held service-withdrawal drops old list completion after account transition
 R6 held service-disconnect drops old list completion after account transition
 TARGETS
                     ;;
+                grant-transition-red)
+                    while IFS= read -r target; do
+                        if ! rg -q -F -x "  FAIL $target" "$evidence/$name.log"; then
+                            echo "$name MISSING_NAMED_BEHAVIORAL_ASSERTION: $target"; failed=1
+                        fi
+                    done <<'TARGETS'
+R6 transition installer-delayed drops A completion under the changed grant identity and scopes
+R6 transition installer-failed drops A completion under the changed grant identity and scopes
+R6 transition installer-calendar drops A completion under the changed grant identity and scopes
+R6 transition signin-withdrawal drops A completion under the changed grant identity and scopes
+R6 transition invalid-grant drops A completion under the changed grant identity and scopes
+R6 transition installer-delayed clears cached A without a list result or Calendar callback
+R6 transition installer-failed clears cached A without a list result or Calendar callback
+R6 transition installer-calendar clears cached A without a list result or Calendar callback
+R6 transition invalid-grant clears cached A without a list result or Calendar callback
+TARGETS
+                    if rg -q '^  FAIL R6 held ' "$evidence/$name.log"; then
+                        echo "$name EXISTING_HELD_FIXTURE_REGRESSED"; failed=1
+                    fi
+                    ;;
                 withdrawal-red) target='^  FAIL R6 withdrawn Calendar permission immediately clears actual cached calendars and upcoming events' ;;
                 revocation) target='^  FAIL a rejected client must not read as a revoked grant' ;;
                 unpinned) target='^  FAIL an unpinned alternate executable cannot receive the app token' ;;
@@ -87,7 +107,7 @@ TARGETS
                 draft-red) target='^  FAIL the cancelled shared-refresh caller never enters executable backing' ;;
                 original) target='^  FAIL the sign-in asks for the full Workspace set and nothing else' ;;
             esac
-            if [ "$mode" != review-red ] && [ "$mode" != remaining-red ] && [ "$mode" != calendar-list-red ] && ! rg -q "$target" "$evidence/$name.log"; then
+            if [ "$mode" != review-red ] && [ "$mode" != remaining-red ] && [ "$mode" != calendar-list-red ] && [ "$mode" != grant-transition-red ] && ! rg -q "$target" "$evidence/$name.log"; then
                 echo "$name MISSING_TARGETED_FAILING_ASSERTION"; failed=1
             fi
         fi ;;
@@ -108,7 +128,7 @@ green|restored)
     run ui-strings UI_STRINGS_OK --selftest-ui-strings
     run store-isolation STORE_ISOLATION_OK --selftest-store-isolation
     ;;
-revocation|unpinned|draft-red|review-red|withdrawal-red|remaining-red|calendar-list-red)
+revocation|unpinned|draft-red|review-red|withdrawal-red|remaining-red|calendar-list-red|grant-transition-red)
     run google-connect GOOGLE_CONNECT_FAILED --selftest-google-connect
     ;;
 mailbox)
