@@ -7,6 +7,7 @@ import Synchronization
 @MainActor
 enum NativePCMReceiptSelfTest {
     static func run() async -> [String] {
+        guard SelfTest.isRunning else { return ["R6: harness required"] }
         let native = PreparedPCMSpeechBacking()
         let synth = AgentSpeechSynthesizer.shared
         var failures: [String] = [], receipts: [PCMResumePlaybackReceipt] = []
