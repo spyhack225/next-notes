@@ -97,6 +97,7 @@ final class AgentSpeechSynthesizer {
     }
     static let shared = AgentSpeechSynthesizer()
 
+    var savedFilePlayerForTesting: CatchUpPlayer?
     private var backing: any AgentSpeechBacking
     private let systemBacking = AVSpeechBacking()
     /// Exact existing Apple backing only; nil/default, SelfTest-only diagnostic.
@@ -274,6 +275,8 @@ final class AgentSpeechSynthesizer {
     func speak(_ reply: String) {
         let clauses = AgentSpeechPolicy.spokenClauses(reply)
         guard !clauses.isEmpty else { return }
+        let filePlayer = SelfTest.isRunning ? (savedFilePlayerForTesting ?? .shared) : .shared
+        if filePlayer.isPlaying { filePlayer.pause() }
         prepareForStream()
         if backing is any AgentReplySpeechBacking {
             for clause in clauses { enqueueClause(clause) }
@@ -364,6 +367,8 @@ final class AgentSpeechSynthesizer {
     func enqueueClause(_ clause: String) {
         let trimmed = clause.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !didStop else { return }
+        let filePlayer = SelfTest.isRunning ? (savedFilePlayerForTesting ?? .shared) : .shared
+        if filePlayer.isPlaying { filePlayer.pause() }
         if let reply = backing as? any AgentReplySpeechBacking {
             let beginning = !replyOpen
             if beginning { replyOpen = true; replyFinished = false }
@@ -438,6 +443,8 @@ final class AgentSpeechSynthesizer {
 
     func resumeAfterListening() {
         guard isPausedForListening, !didStop else { return }
+        let filePlayer = SelfTest.isRunning ? (savedFilePlayerForTesting ?? .shared) : .shared
+        if filePlayer.isPlaying { filePlayer.pause() }
         isPausedForListening = false
         backing.resumeAfterListening()
         if (backing as AnyObject) === systemBacking,

@@ -309,8 +309,9 @@ struct CatchUpPlaybackActivity {
 ///
 /// One player for the whole app, so a second Play replaces the first and the island's Play
 /// and the Library's Play are the same button. It yields to a conversation: while the Agent is
-/// listening or working the briefing pauses rather than talking over it or leaking into the
-/// microphone, and stays paused until the person presses Play again.
+/// listening or working the briefing pauses, and stays paused until another tap.
+/// File PCM is not an echo reference: detection suppression and interruption are
+/// conservative mitigations, not acoustic isolation.
 @MainActor
 @Observable
 final class CatchUpPlayer {
@@ -328,11 +329,17 @@ final class CatchUpPlayer {
     @ObservationIgnored private let makePlayer: @MainActor (URL) throws -> any CatchUpAudioPlaying
 
     init(activity: @escaping @MainActor () -> CatchUpPlaybackActivity = { .live },
-         makePlayer: @escaping @MainActor (URL) throws -> any CatchUpAudioPlaying = { try AVAudioPlayer(contentsOf: $0) }) {
+         makePlayer: @escaping @MainActor (URL) throws -> any CatchUpAudioPlaying = { try AVAudioPlayer(contentsOf: $0) },
+         now: @escaping () -> Date = { Date() }) {
         self.activity = activity
         self.makePlayer = makePlayer
+        self.now = now
     }
     @ObservationIgnored private var ticker: Task<Void, Never>?
+    @ObservationIgnored private let now: () -> Date
+    @ObservationIgnored private var wakeSuppressedUntil = Date.distantPast
+    var suppressesWakeDetection: Bool { isPlaying || now() < wakeSuppressedUntil }
+
 
     var progress: Double { duration > 0 ? min(1, elapsed / duration) : 0 }
 
@@ -358,6 +365,7 @@ final class CatchUpPlayer {
             duration = next.duration
             elapsed = 0
             isPlaying = true
+            observeActivity()
             tick()
         } catch {
             problem = "That recording can\u{2019}t be played right now."
@@ -365,6 +373,7 @@ final class CatchUpPlayer {
     }
 
     func pause() {
+        if isPlaying { wakeSuppressedUntil = now().addingTimeInterval(1) }
         player?.pause()
         isPlaying = false
         ticker?.cancel()
@@ -375,10 +384,12 @@ final class CatchUpPlayer {
     private func resume(_ player: any CatchUpAudioPlaying) {
         guard permitPlayback(), player.play() else { return }
         isPlaying = true
+        observeActivity()
         tick()
     }
 
     func stop() {
+        if isPlaying { wakeSuppressedUntil = now().addingTimeInterval(1) }
         player?.stop()
         player = nil
         ticker?.cancel()
@@ -413,6 +424,23 @@ final class CatchUpPlayer {
         }
         problem = nil
         return true
+    }
+
+    /// Observation fires synchronously at the activity producer's willSet. Pause on
+    /// any tracked change (conservative), without waiting for the progress tick.
+    /// All live activity producers are MainActor; no microphone seat is stopped.
+    @ObservationIgnored private var activityObserved = false
+    private func observeActivity() {
+        guard !activityObserved else { return }
+        activityObserved = true
+        withObservationTracking {
+            _ = activity()
+        } onChange: { [weak self] in
+            MainActor.assumeIsolated {
+                self?.activityObserved = false
+                self?.pause()
+            }
+        }
     }
 
     func pollPlayback() {

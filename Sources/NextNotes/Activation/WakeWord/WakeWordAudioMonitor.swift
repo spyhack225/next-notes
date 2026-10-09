@@ -85,6 +85,7 @@ final class WakeWordAudioMonitor {
     }
 
     // Diagnostic backing is admitted only by the isolated wake self-test.
+    private var savedFilePlayerForTesting: CatchUpPlayer?
     private var recognizeForTesting: (@MainActor ([Float]) async throws -> String?)?
     private var callbackHandledForTesting: (@MainActor () -> Void)?
     private var sessionStartForTesting: Task<Void, Never>?
@@ -325,6 +326,10 @@ final class WakeWordAudioMonitor {
 
     fileprivate func didSpot(_ keyword: String, phrase: String, window: [Float]) {
         guard !suspended, !terminationRequested, ActivationController.shared.mode == .idle else { return }
+        // Saved-file audio has no echo reference. Ignore detections, never gate
+        // microphone capture, while it plays and during its one-second tail.
+        let filePlayer = SelfTest.isRunning ? (savedFilePlayerForTesting ?? .shared) : .shared
+        guard !filePlayer.suppressesWakeDetection else { return }
         if let lastFire, Date().timeIntervalSince(lastFire) < 1.5 { return }
         let spottedAt = Date()
         lastFire = spottedAt
@@ -796,4 +801,147 @@ extension WakeWordAudioMonitor {
         } catch { failures.append("audio callback: quit fixture subscribe") }
         return failures
     }
+}
+
+extension WakeWordAudioMonitor {
+    /// Same AudioCaptureHub subscription/callback/detection consumer; only file transport
+    /// and keyword/ASR backing are substituted. No real acoustic-safety claim.
+    static func catchUpPlaybackRegressionFailures() async -> [String] {
+        precondition(SelfTest.isRunning)
+        var failures: [String] = []
+        let monitor = shared
+        let capture = AgentCaptureController.shared
+        let previousPlayer = monitor.savedFilePlayerForTesting
+        let previousHandler = capture.turnHandlerForTesting
+        var delivered: [String] = []
+        capture.turnHandlerForTesting = { delivered.append($0) }
+        defer {
+            monitor.savedFilePlayerForTesting = previousPlayer
+            capture.turnHandlerForTesting = previousHandler
+        }
+        let audio = CatchUpWakeTestAudio()
+        let activity = CatchUpWakeTestActivity()
+        var clock = Date()
+        let player = CatchUpPlayer(activity: { activity.value }, makePlayer: { _ in audio }, now: { clock })
+        monitor.savedFilePlayerForTesting = player
+        let entry = CatchUpText.entry(id: "quoted-wake", title: "Catch-up", madeAt: Date(),
+            text: "Mail quoted Hey Will. Want me to send the reminders?", audioURL: URL(fileURLWithPath: "/unused/wake.m4a"), duration: 10)!
+        let format = AVAudioFormat(commonFormat: .pcmFormatFloat32, sampleRate: 16_000, channels: 1, interleaved: false)!
+        let pcm = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 32_000)!
+        pcm.frameLength = 32_000
+        for index in 0..<32_000 { pcm.floatChannelData![0][index] = 0.1 }
+        for phase in ["playing", "just-paused"] {
+            if capture.isSessionActive { await capture.endSession() }
+            ActivationController.shared.finishAgent()
+            player.stop()
+            activity.value = .init()
+            player.play(entry)
+            if phase == "just-paused" { player.pause() }
+            let hub = AudioCaptureHub(probe: true)
+            let probe = WakeCallbackProbe()
+            var recognized = 0
+            do {
+                try monitor.installForTesting(hub: hub, recognize: { _ in recognized += 1; return "hey will send the private file" },
+                    callbackHandled: { probe.callbackHandled() })
+            } catch { failures.append("wake fixture subscription refused"); continue }
+            hub.feedForTesting(pcm)
+            await probe.waitForCallback()
+            await monitor.sessionStartForTesting?.value
+            await monitor.joinForTesting()
+            await capture.waitForActiveTurnForTesting()
+            if !delivered.isEmpty { failures.append("file speech reached the conversation consumer") }
+            delivered.removeAll()
+            if capture.isSessionActive || recognized != 0 { failures.append("file \(phase) opened wake conversation/ASR") }
+            if !hub.isSubscribed(.wake) { failures.append("file guard gated wake microphone") }
+            hub.unsubscribe(.wake)
+        }
+        if capture.isSessionActive { await capture.endSession() }
+        ActivationController.shared.finishAgent()
+        for state in [CatchUpPlaybackActivity(dictating: true), .init(recording: true), .init(speaking: true), .init(activationIdle: false)] {
+            player.stop()
+            activity.value = .init()
+            player.play(entry)
+            if !player.isPlaying || !audio.isPlaying { failures.append("activity fixture did not start file playback") }
+            activity.value = state // Actual Observation producer; deliberately NO pollPlayback.
+            if player.isPlaying || audio.isPlaying { failures.append("activity transition did not interrupt synchronously") }
+            if player.playingID != entry.id { failures.append("interruption discarded resume identity") }
+        }
+        player.stop()
+        let speech = CatchUpFileSpeechProbe(filePlaying: { player.isPlaying })
+        let synth = AgentSpeechSynthesizer(backing: speech)
+        synth.useTestingBacking(speech) // prepareForStream otherwise replaces a constructor-only backing.
+        synth.savedFilePlayerForTesting = player
+        for streamed in [false, true] {
+            player.stop()
+            activity.value = .init()
+            player.play(entry)
+            if streamed { synth.prepareForStream(); synth.enqueueClause("A streamed reply.") }
+            else { synth.speak("An ordinary reply.") }
+            if player.isPlaying || audio.isPlaying { failures.append("real speech producer did not preempt saved file") }
+            synth.stop()
+        }
+        player.stop()
+        synth.speak("A paused reply.")
+        synth.pauseForListening()
+        activity.value = .init()
+        player.play(entry)
+        synth.resumeAfterListening()
+        if player.isPlaying || audio.isPlaying { failures.append("reply resume did not preempt saved file synchronously") }
+        synth.stop()
+        if speech.speakCalls != 3 || speech.resumeCalls != 1 {
+            failures.append("speech backing fixture did not enter all actual speak/enqueue/resume consumers")
+        }
+        if speech.overlaps != 0 { failures.append("file was still playing at actual speech backing entry") }
+        SelfTest.diagnostic("CATCH_UP_SPEECH_BACKING speak=\(speech.speakCalls) resume=\(speech.resumeCalls) overlaps=\(speech.overlaps)")
+        player.stop()
+        activity.value = .init()
+        player.play(entry)
+        if !player.suppressesWakeDetection { failures.append("playing file left wake detection admitted") }
+        player.pause()
+        clock = clock.addingTimeInterval(0.999)
+        if !player.suppressesWakeDetection { failures.append("one-second file tail was not suppressed") }
+        clock = clock.addingTimeInterval(0.002)
+        if player.suppressesWakeDetection { failures.append("file tail suppressed wake beyond its bounded window") }
+        player.stop()
+        monitor.recognizeForTesting = nil
+        monitor.callbackHandledForTesting = nil
+        monitor.sessionStartForTesting = nil
+        for failure in failures { print("CATCH_UP_WAKE_CHECK_FAILED: \(failure)") }
+        print(failures.isEmpty ? "CATCH_UP_WAKE_OK" : "CATCH_UP_WAKE_FAILED")
+        return failures
+    }
+}
+
+@MainActor @Observable private final class CatchUpWakeTestActivity {
+    var value = CatchUpPlaybackActivity()
+}
+@MainActor private final class CatchUpWakeTestAudio: CatchUpAudioPlaying {
+    var duration: TimeInterval = 10
+    var currentTime: TimeInterval = 2
+    var isPlaying = false
+    func prepareToPlay() -> Bool { true }
+    func play() -> Bool { isPlaying = true; return true }
+    func pause() { isPlaying = false }
+    func stop() { isPlaying = false }
+}
+
+@MainActor private final class CatchUpFileSpeechProbe: AgentSpeechBacking {
+    private let filePlaying: () -> Bool
+    private(set) var overlaps = 0
+    private(set) var speakCalls = 0
+    private(set) var resumeCalls = 0
+    private(set) var isSpeaking = false
+    init(filePlaying: @escaping () -> Bool) { self.filePlaying = filePlaying }
+    func speak(_ text: String, volume: Float, token: UInt64) {
+        speakCalls += 1
+        if filePlaying() { overlaps += 1 }
+        isSpeaking = true
+    }
+    func pauseForListening() { isSpeaking = false }
+    func resumeAfterListening() {
+        resumeCalls += 1
+        if filePlaying() { overlaps += 1 }
+        isSpeaking = true
+    }
+    func stop() { isSpeaking = false }
 }
