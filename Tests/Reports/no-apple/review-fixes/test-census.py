@@ -18,6 +18,35 @@ cases.update({
     'Scripts/exec-bare-say.sh': 'exec say',
     'Sources/NextNotes/SystemStdin.c': 'system("printf x | exec say");',
 })
+# Round 5: ordinary spacing, wrappers/options and stdin redirections. Each
+# body is scanned as source only; no injected speech command is executed.
+cases.update({
+    'Sources/NextNotes/LeadingSpace.c': 'system(" say Hello");',
+    'Sources/NextNotes/AdjacentPipe.c': 'system("printf Hello|say");',
+    'Sources/NextNotes/LeadingSpace.swift': 'let task = Process(); task.arguments = ["-c", " say Hello"]',
+    'Sources/NextNotes/AdjacentPipe.swift': 'let task = Process(); task.arguments = ["-c", "printf Hello|say"]',
+    'Scripts/pipe-env-options.sh': 'printf Hello | env -i say',
+    'Scripts/adjacent-pipe-env-options.sh': 'printf Hello|env -i say',
+    'Scripts/heredoc.sh': 'say<<EOF\nHello\nEOF',
+    'Scripts/redirect.sh': 'say<file',
+    'Scripts/here-string.sh': 'say <<<"x"',
+    'Sources/NextNotes/Redirect.c': 'system("say<file");',
+    'Tools/env-stdin.py': 'subprocess.run("env -i say", shell=True, input="Hello", text=True)',
+    'Sources/NextNotes/EnvOptionsArgs.swift': 'let task = Process(); task.executableURL = URL(fileURLWithPath: "/usr/bin/env"); task.arguments = ["-i", "say", "Hello"]',
+    'Sources/NextNotes/OutputPipe.c': 'system("say|cat");',
+    'Sources/NextNotes/TwoAdjacentPipes.c': 'system("printf Hello|say|cat");',
+})
+for name, command in {
+    'env-options': 'env -i say',
+    'command': 'command say',
+    'nohup': 'nohup say',
+    'env-path': '/usr/bin/env say',
+    'nested-wrappers': 'command nohup /usr/bin/env -i say',
+}.items():
+    cases[f'Sources/NextNotes/{name}.swift'] = f'let task = Process(); task.executableURL = URL(fileURLWithPath: "/bin/sh"); task.arguments = ["-c", "{command} Hello"]'
+    cases[f'Sources/NextNotes/{name}-system.c'] = f'system("{command} Hello");'
+    cases[f'Sources/NextNotes/{name}-popen.c'] = f'popen("{command} Hello", "r");'
+    cases[f'Scripts/{name}-stdin.sh'] = command
 misses=[]
 for path,body in cases.items():
     with tempfile.TemporaryDirectory(prefix='NextNotes-noapple-census-') as tmp:

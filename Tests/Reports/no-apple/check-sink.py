@@ -3,12 +3,19 @@ from pathlib import Path
 import sys,json,re
 root=Path(__file__).resolve().parents[3]
 allow=json.loads(Path(__file__).with_name('speech-source-allowlist.json').read_text())
+# Tripwire for ordinary literal shell syntax, not an obfuscation-proof parser.
+# Consume conventional wrappers, flag tokens and environment assignments at a
+# command boundary. Keep command strings and scripts on the same expression.
+wrappers = r'''(?:(?:exec|command|nohup|(?:/usr/bin/)?env)\s+(?:-[^\s"';|&<>]+\s+|[A-Za-z_]\w*=[^\s"';|&<>]+\s+)*)*'''
+say_command = wrappers + r'''say(?=\s|$|["';|&<>])'''
 patterns=[re.compile(r'\b(?:AVSpeech\w*|NSSpeechSynthesizer)\b'),
           re.compile(r'/usr/bin/say\b|/usr/bin/env\s+say\b'),
           re.compile(r'["\x27]say["\x27]'),
           # Command strings passed to Process/system/popen, including stdin.
-          re.compile(r'''["'](?:[^"'\n]*[;|&]\s+)?(?:exec\s+)?say(?=\s|["';|&])'''),
-          re.compile(r'(?:^\s*|[;|&]\s*)(?:exec\s+)?say(?=\s|$|[;&|])'),
+          # A closing prose quote and a leading regex word-boundary are not
+          # shell command starts (e.g. "from" say ... or "\b(decide|say|agree)").
+          re.compile(r'''(?<!\w)["']\s*(?!\\b)(?:[^"'\n]*[;|&]\s*)?''' + say_command),
+          re.compile(r'(?:^\s*|[;|&]\s*)' + say_command),
           re.compile(r'(?:^|[\s;|])say\s+(?:-|["\w$])')]
 files=set()
 for directory in ['Sources','Tools','Scripts','site/scripts']:
