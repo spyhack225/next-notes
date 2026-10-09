@@ -122,14 +122,32 @@ final class ModelResidencyGuardian: @unchecked Sendable {
     private let lock = NSLock()
     private var source: DispatchSourceMemoryPressure?
     private var started = false
+    private var unknownPressureRetry: DispatchSourceTimer?
     private var pressure = ModelResidencyPolicy.PressureSnapshot(
         level: .normal, generation: 0, changedAt: Date())
     private var releaseInFlight = false
     private var floorPressureObservation: (@Sendable (ModelResidencyPolicy.PressureSnapshot) -> Void)?
+    private let readPressureForTesting: (@Sendable () -> ModelResidencyPolicy.PressureLevel?)?
     private let releaseForTesting: (@Sendable () async -> Void)?
 
-    init(releaseForTesting: (@Sendable () async -> Void)? = nil) {
+    init(releaseForTesting: (@Sendable () async -> Void)? = nil,
+         readPressureForTesting: (@Sendable () -> ModelResidencyPolicy.PressureLevel?)? = nil) {
         self.releaseForTesting = releaseForTesting
+        self.readPressureForTesting = releaseForTesting == nil ? nil : readPressureForTesting
+    }
+
+    private func readPressure() -> ModelResidencyPolicy.PressureLevel? {
+        if let readPressureForTesting { return readPressureForTesting() }
+        var raw: UInt32 = 0
+        var size = MemoryLayout<UInt32>.size
+        guard sysctlbyname("kern.memorystatus_vm_pressure_level", &raw, &size, nil, 0) == 0,
+              size == MemoryLayout<UInt32>.size else { return nil }
+        switch raw {
+        case UInt32(DispatchSource.MemoryPressureEvent.normal.rawValue): return .normal
+        case UInt32(DispatchSource.MemoryPressureEvent.warning.rawValue): return .warning
+        case UInt32(DispatchSource.MemoryPressureEvent.critical.rawValue): return .critical
+        default: return nil
+        }
     }
 
     var snapshot: ModelResidencyPolicy.PressureSnapshot {
@@ -165,7 +183,8 @@ final class ModelResidencyGuardian: @unchecked Sendable {
     }
 
     /// Install before optional loads, not only after the first model is opened.
-    /// Normal events reopen admission; no timer guesses that pressure has ended.
+    /// Normal events reopen admission. Unreadable seeds are re-read off-path
+    /// every two seconds until a kernel value or event resolves the unknown state.
     func startIfNeeded() {
         lock.lock()
         defer { lock.unlock() }
@@ -173,17 +192,8 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         started = true
         // Seed cold admission from the kernel before its first change event.
         // An unreadable pressure value conservatively defers optional native work.
-        var initial: UInt32 = 0
-        var size = MemoryLayout<UInt32>.size
-        let readable = sysctlbyname("kern.memorystatus_vm_pressure_level", &initial, &size, nil, 0) == 0
-            && size == MemoryLayout<UInt32>.size
-        // XNU exposes dispatch flags here, not its internal 0/1/2/3 enum.
-        let level: ModelResidencyPolicy.PressureLevel
-        switch readable ? initial : 0 {
-        case UInt32(DispatchSource.MemoryPressureEvent.normal.rawValue): level = .normal
-        case UInt32(DispatchSource.MemoryPressureEvent.critical.rawValue): level = .critical
-        default: level = .warning
-        }
+        let observed = readPressure()
+        let level = observed ?? .warning
         pressure = .init(level: level, generation: pressure.generation &+ 1, changedAt: Date())
 
         let src = DispatchSource.makeMemoryPressureSource(
@@ -199,13 +209,57 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         }
         src.resume()
         source = src
+        if observed == nil { installUnknownPressureRetryLocked() }
         Log.llm.info("residency: memory-pressure observer installed")
+    }
+
+    deinit {
+        source?.cancel()
+        unknownPressureRetry?.cancel()
+    }
+
+    // Only an unknown read gets a retry handle. Known warning/critical pressure
+    // still waits for kernel events; no timer invents normal admission.
+    private func installUnknownPressureRetryLocked() {
+        guard unknownPressureRetry == nil else { return }
+        let timer = DispatchSource.makeTimerSource(queue: .global(qos: .utility))
+        timer.schedule(deadline: .now() + .seconds(2), repeating: .seconds(2), leeway: .milliseconds(200))
+        timer.setEventHandler { [weak self] in self?.rereadUnknownPressure() }
+        unknownPressureRetry = timer
+        timer.resume()
+    }
+
+    private func clearUnknownPressureRetryLocked() {
+        unknownPressureRetry?.cancel()
+        unknownPressureRetry = nil
+    }
+
+    private func rereadUnknownPressure() {
+        lock.lock()
+        let pending = unknownPressureRetry != nil
+        lock.unlock()
+        guard pending, let level = readPressure() else { return }
+        // Read off-lock/off-path. A kernel event retires this sole retry handle;
+        // revalidate under the existing lock before accepting the observation.
+        lock.lock()
+        guard unknownPressureRetry != nil else { lock.unlock(); return }
+        clearUnknownPressureRetryLocked()
+        let shouldRelease = updatePressureLocked(level)
+        lock.unlock()
+        publishPressureChange(shouldRelease: shouldRelease)
     }
 
     /// The source and isolated fixtures use the same transition/admission producer.
     /// Update synchronously before the unload task gets a chance to suspend.
     func receive(_ level: ModelResidencyPolicy.PressureLevel) {
-        let shouldRelease = updatePressure(level)
+        lock.lock()
+        clearUnknownPressureRetryLocked()
+        let shouldRelease = updatePressureLocked(level)
+        lock.unlock()
+        publishPressureChange(shouldRelease: shouldRelease)
+    }
+
+    private func publishPressureChange(shouldRelease: Bool) {
         NotificationCenter.default.post(name: ModelResidencyPolicy.admissionChanged, object: self)
         guard shouldRelease else { return }
         Task {
@@ -215,9 +269,7 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         }
     }
 
-    private func updatePressure(_ level: ModelResidencyPolicy.PressureLevel) -> Bool {
-        lock.lock()
-        defer { lock.unlock() }
+    private func updatePressureLocked(_ level: ModelResidencyPolicy.PressureLevel) -> Bool {
         if pressure.level != level {
             pressure = .init(level: level, generation: pressure.generation &+ 1, changedAt: Date())
             Log.llm.info("residency: pressure=\(level.rawValue, privacy: .public)")

@@ -1,43 +1,30 @@
-Independent review follow-up for agent no-apple (claude2-no-apple). No install, push, merge, GUI launch, owner-store seeding or model download.
+Round-2 producer fixes for no-apple / relay claude2-no-apple. Read the full Round-2 REVIEW.md and RULES-2. Starting reviewed tip: `3b1f1038`. Four commits, one per assigned finding; no install, push, merge, GUI opening, owner-store seeding or foreign cleanup. Findings 3 (Settings UI) and 8 (peer counters) remain integration-owned; ModelsSettingsTab was not edited.
 
-Read the complete review and RULES-2. Original reviewed tip: a31dbf7a. Dropped 5f9a538b from this branch by replaying its successors, then cherry-picked shared prerequisite 20d8f9b8b592b92acd01ab31d3f50978abb99103 as 9a63761b. Exactly one recoveredReadHistory implementation remains. The integrator should retain the shared prerequisite once, not reapply both histories.
-
-Finding 1 uses the explicitly permitted honest-contract option. Pocket and Kokoro resume their physical players but do not provide qualified post-resume receipts. `AgentSpeechSynthesizer.supportsQualifiedResumeReceipt` and the same field in `voiceLifecycleSnapshot` expose the actual current backing capability. Those production routes return false; pending with no binding means proof is unavailable, not a promise of later playback proof. No play request clears pending or earns speaking/approval. The retained shadow can remain awaitingResume/listening while these engines physically play and must not become live resumed-speaking UI truth. Positive Pocket/Kokoro proof remains unimplemented. Earlier green used a capable fake and hid this distinction.
-
-Finding 2: Catch-up reads the selected synthesizer availability/failure policy before file synthesis. It retains the existing text/audio-absence path when unavailable or failed. File synthesis errors also latch the same selected availability, while cancellation and a changed selection do not poison another voice. The file adapter does not start preparation; native frames/session/WAV entries only join existing owned preparation, never initiate or retry it. Explicit Settings retry remains allowed. Earlier green checked selected engine identity and artifact absence, but did not put the selected voice into its latched-failed state or inspect native implicit preparation attempts.
-
-Finding 4: automatic startup uses the existing owners, memory policy and background compute lane. Kernel pressure seeds cold admission before allocation; unknown/unreadable flags defer optional work. The sysctl exposes dispatch flags rather than the internal enum ([Apple XNU handler](https://github.com/apple-oss-distributions/xnu/blob/main/bsd/kern/kern_memorystatus_notify.c#L1754-L1768)); the current Mac read 1. This is not a pressure soak. Warning/critical pressure, an active meeting/dictation and occupied higher-priority compute defer initialization and warm prediction; admission is checked again after lane waits and between native stages. Normal pressure/activity events retry the same preparation owner. Deferred work truthfully stays isPreparing/getting ready with no error; native failure stays failed until explicit retry. No timer, new audio owner, download manager or foreground reply/microphone gate was added. Native Pocket manager initialization and synthesis are actor-owned in FluidAudio; no detached duplicate loader was added. This is cooperative boundary admission, not a claim that already-entered native work can be preempted or a measured performance result. Earlier green verified launch placement/offline initialization, not resource admission.
-
-Finding 5: the shared census scans Sources, Tools, Makefile, Scripts and executable resource/fixture/support scripts. It catches all AVSpeech symbols (including specialized imports), NSSpeechSynthesizer and executable say routes, independent of backing/file renames. Exceptions are exact existing lines with bounded counts and reasons, not whole files. The broader search found existing offline gold-fixture authoring say commands; they are explicitly counted exceptions along with legacy catalog signatures, the existing Agent-owner preview and the standalone benchmark. Seventeen injected forbidden routes escaped the old census; the same original/fixed mutation fixture now rejects all seventeen. It also checks specialized imports in any readable file, including renamed non-source files. Earlier green scanned Swift only and exempted the whole Settings file. Repository-wide Apple synthesis is not claimed removed: standalone benchmark and offline fixture-authoring exceptions remain.
-
-Finding 6: the migrated owner fixture delivers malformed receipt metadata directly to the actual synth receiver, bypassing the fake's filters. The receiver validates advancing cursors, host times, callback kind, frame/rate/token/checkpoint domain and suffix ownership. The separate timeline flag exercises the retained PreparedPCMSpeechBacking with authored nonzero PCM, muted real engine/player, callback-thread barrier, native cursor/checkpoint derivation, repeated capture/backchannel resume, actual synth/audio/shadow consumption, stale delivery and drain. It is software playback evidence, not audible quality or Pocket/Kokoro resume proof. Earlier green checked constants and fake rejection; both aliases ran the same simulation. Simulation remains explicitly named and is not counted as native or independent timeline proof.
-
-Finding 8: the exact replacement diagnostic name is `AgentSpeechSynthesizer.shared.speechSynthesisCallsForTesting`. Under SelfTest it is a monotonic per-process sum of allowed text-request entries: Pocket accepted reply clauses/direct frames and Kokoro WAV calls, including rejected/failed direct requests. Ordinary production does not increment the diagnostic. Warm predictions and prepared PCM playback are excluded. Consumers should compare before/after deltas with their allowed-route expectations; this is not an Apple-only zero counter. The source census independently detects forbidden routes. Earlier green built this branch alone and did not compile the peer references to the deleted backing. ACK/Mini were sent the name/semantics; ACK explicitly acknowledged them in relay cursor1081, while Mini read confirmation remains unobserved. No peer consumer files are changed here and a combined peer build remains unverified.
-
-Finding 3 is Sonnet-owned. No change to ModelsSettingsTab. Exact recovery API: store `Settings.shared.agentVoiceEngine` immediately (pocket/kokoro), then `await AgentSpeechSynthesizer.shared.prepareSelectedVoice()` for explicit selection/retry. It clears the synth playback-failure latch and joins/retries the selected existing model owner. Observe `AgentSpeechSynthesizer.shared.availability`, not owner isReady and not historical outputAvailability. Cases: ready; preparing(progress:nil), including resource-deferred preparation; needsDownload; failed. Failure outranks cached model readiness. An explicit retry goes failed -> preparing -> ready/failed for an unready model; for an already-ready model after playback failure it can go failed -> ready immediately. Preview only after live availability is ready; speak/stop through the existing owner. Changing a selection does not itself clear the latch; call the explicit preparation API. An unavailable reply remains written and is never automatically replayed after readiness. Remove Apple tile/catalog and readiness-only preview logic in the UI branch. Earlier green tested backend preference normalization and offscreen form construction, not this recovery consumer.
-
-Settings assertion success followed by exit SIGSEGV remains a separate failed check. Prior component controls and other branches' binaries also crash; this is corroboration, not a causal proof or a fix. Do not count SETTINGS_OK as a passed process.
-
-The one FIFO51 heavy slot completed and released its claim. Build/self-test fixture/compiler errors are retained separately: the first RED build used an inaccessible readiness field; a guarded accessor corrected the fixture before the actual RED. The first fixed build captured a MainActor property from a Sendable closure; snapshotting the existing Task corrected the producer join before the successful fixed build. Neither compile failure is the semantic RED. Successful original/fixed builds report `Build complete! (139.18 sec)` / `Build complete! (75.66 sec)`. The actual policy fixture reports RED19 / GREEN0, with byte-identical fixture source hashes in both pins. R1's nil capability and R8's zero counter are explicitly missing-feature scaffolds for APIs the original did not expose; they do not represent an original native Pocket/Kokoro pause or synthesis result.
-
-Eleven of twelve requested flags pass; Settings fails exit-11 after its OK assertion marker. Four receipt companions, authority63, residency and scheduler pass. The timeline companion is now distinct native software playback; owner55 remains simulation. Both native runs retain `NATIVE_PCM_RECEIPT_COUNTS receipts=2 callback_observations=206 muted=true`. Outer store isolation passes while inherited nested `TOOLLOOP_PRODUCTION_FAILED` remains open. The wrapper exits1 due Settings and retained compiler failures, not a wholly green batch.
-
-The initial batch parser replaced stdout with the diagnostic file, so raw checks.json selected the TTS census marker and missed Catch-up's root marker. Raw logs/records are unchanged. `verified-checks.json` matches each expected root against BOTH retained streams and keeps nested failures; the future driver does the same and refuses an absent/failed root even with exit0. Current native source hashes equal the fixed built pin exactly. History-only replays changed SHAs, not built source; `red-pin.json` retains original `8e09e069`, `green-pin.json` retains fixed `df1051c1`, with executable SHA256 `153647eecb6420c54117f605aba0b20986dd06f0a2f84d711da17288270920f5`. No owned binary/process remained before removing ONLY wt-scratch/no-apple and known own temporary paths. Shared wt-scratch/voice and foreign files/processes were preserved. Machine: macOS27.2/26B5091g; debug checks, not release performance. Asset/init/warm admission tests use the actual Pocket owner and scheduler with native entries substituted; real cold warning/critical pressure, active-device concurrency and supported Kokoro native loading were not induced on the owner's Mac.
-
-| Finding | Commit | Result |
+| Finding | Commit | Original / fixed evidence |
 | --- | --- | --- |
-| 7 | `9a63761b` | Shared prerequisite `20d8f9b8…` once; own `5f9a538b` dropped |
-| 5 | `fe0ae6bc` | Complete census, exact reasoned allowances and original/fixed mutations |
-| RED harness | `3a11d4d3` | Isolated actual-owner/consumer fixtures and distinct native timeline |
-| 1 | `bd17ddd9` | Honest unsupported receipt capability and shadow contract |
-| 4 | `d2a78b15` | Automatic resource admission through existing owners/policy/lane |
-| 2 | `e287fbd0` | Failed file-voice latch and explicit-only preparation retry |
-| 6 | `478bccc1` | Actual receiver validation plus native producer timeline assertions |
-| 8 | `e026b1db` | Allowed-engine synthesis request counter |
+| 5, census | `47b5a9c7` | 21 mutations: original misses Swift env arguments, C arguments and bare shell stdin synthesis (3); fixed misses 0 |
+| 1, presentation | `33a19729` | Actual capture/audio/VoiceSession/Island: 4 publication/suppression failures -> 0 |
+| 2, stale failures | `677e8caa` | Actual isolated Settings writer/file adapter: 9 availability/new-entry failures -> 0 |
+| 4, unknown pressure | This report's commit, titled “Reobserve unknown pressure through the existing optional model guardian” | Actual guardian/notification/preparation consumers: 2 stranded-owner failures -> 0 |
 
-| Check | Exit | Exact final marker |
+Finding 1 cause: IslandOwnership enabled publication unconditionally; VoiceSession used that flag in ordinary sessions, even when Pocket/Kokoro exposed no qualified resume capability. The presentation owner now reads that actual capability and releases an already-published projection when it becomes unsupported. An unsupported route cannot publish reducer commands or suppress legacy Island writes. The regression selects each actual production route to check capability, then substitutes only its receipt-incapable player; actual capture renders, provisionally pauses, discards “mm hmm” and physically resumes the retained scripted output. Awaiting-resume/pending proof remains diagnostic; no resume receipt is invented. Receipt-capable simulated/native companions still pass. Earlier green checked the new capability property and capable-fake reducer behavior, never ordinary Island publication through an unsupported player. Native Pocket/Kokoro physical playback and positive post-resume proof remain unverified/unimplemented.
+
+Finding 2 cause: the file failure setter compared the engine string after its await. Returning to Pocket made an old Pocket error current again; explicit recovery of a concurrent failure had the same race. File admission now captures engine, the actual Settings writer's in-memory selection revision, and the preparation revision. Failure settlement checks that exact request. Reply failure uses the captured reply request plus its existing playback token. Explicit preparation advances its revision; cancellation still cannot latch a failure. No persisted preference/store, model pass, await or implicit retry is added. The regression holds the actual file adapter's external generator across Pocket -> Kokoro -> Pocket (with and without explicit preparation), a concurrent playback failure/retry, and old cancellation. It then invokes the same adapter for a new clause and verifies actual entry, not only a ready label. Settings writes are guarded by usesHarnessPreferencesForTesting and restored. Native expensive generation alone is substituted. Earlier green reset the latch with a helper and checked sequential errors; it never held an admitted old clause across real recovery/selection.
+
+Finding 4 cause: unreadable/unknown kernel values became warning at cold seed, with no future read unless a kernel event arrived. The existing guardian now retains one utility timer ONLY while the seed is unknown. It re-reads every two seconds, keeps unknown deferred, and stops on a valid read or kernel event. Reads occur outside the state lock; admission is revalidated under that existing lock. The existing notification retries the existing Pocket/Kokoro owners and background lane; known warning/critical values still require kernel recovery, genuine model errors still require explicit retry. No foreground path waits on the timer, and no second voice preparation owner exists. The unchanged fixture injects unreadable, unreadable, normal, supplies no normal event, and verifies both actual owners initialize exactly once (Pocket also warms once), stop showing preparing, and stop polling. A separate real receive(.critical) check retires the unknown retry without admitting optional work. Kernel reads and expensive native entries are scripted; actual callbacks/scheduler/admission are production code. Earlier green manually posted a normal event after warning/critical, so it supplied the very recovery trigger missing from the unknown seed. This is a liveness regression, not real kernel-pressure or reference-machine performance evidence.
+
+Finding 5 cause: ordinary Swift/C received only the first two patterns, excluding quoted executable arguments, and shell detection required an argument after the command. The shared scanner now checks quoted command tokens in source languages and bare end-of-line/pipe commands in scripts, retaining wrapper/exec coverage. Only speech synthesis is counted; media playback commands are not newly banned. Every exception is still an exact reasoned line with a bounded count. Four existing language-word-list lines are newly visible and explicitly allowed; total 24 exceptions. All 21 retained mutations require both native scanner exit1 and VOICE_SINK_SOURCE_FAILED, so a scanner crash is not accepted as detection. Earlier green's 17 mutations omitted ordinary source executable arguments and shell stdin/end-of-line invocation. The requested two escapes and a C counterpart fail original/pass fixed; exec coverage stays detected. Final actual repository census is forbidden=0, exceptions=24, files=908.
+
+Exactly one normal heavy.sh FIFO60 slot (`RELAY_ID=claude2-no-apple`) built original and fixed, ran the unchanged producer fixture, the 12 requested flags, four receipt companions, authority63, residency and scheduler. No gate override or concurrent own heavy process. Original/fixed builds completed in 276.29s / 82.75s (debug compilation, not product latency). Actual producer marker: `VOICE_POLICY_REVIEW_FAILED: 15 assertions` / `VOICE_POLICY_REVIEW_OK`. The three new Swift fixture hashes match exactly across retained source/binary pins. The RED source contains only isolated test seams beyond the reviewed product producers; red-source.patch plus the three retained fixture files reconstructs that source. Fixed source hashes match the final branch source; commit/report-only work follows the built snapshot.
+
+11/12 requested flags pass. Settings still prints its OK assertion marker then exits -11 (SIGSEGV); it is a FAILED PROCESS, not a pass or a voice-removal crash attribution. All four companions, authority63 and the two related flags pass. Store isolation preserves 21 files/0 owner defaults while its embedded browser18 / TOOLLOOP_PRODUCTION_FAILED stays open. Prior/current normalized diagnostics are identical: delivery13, duplex2, nested browser18 + final failure; other compared voice flags have0. See diagnostic-comparison.json. Root passes do not promote those scopes, the model quality/default, the phase or broader Agent readiness.
+
+| Check | Exit | Exact final root marker |
 | --- | --- | --- |
-| `producer-red` | 1 | `VOICE_POLICY_REVIEW_FAILED: 19 assertions` |
+| `webrtc-build` | 0 | `NO_FINAL_MARKER` |
+| `red-build` | 0 | `NO_FINAL_MARKER` |
+| `producer-red` | 1 | `VOICE_POLICY_REVIEW_FAILED: 15 assertions` |
+| `green-build` | 0 | `NO_FINAL_MARKER` |
 | `producer-green` | 0 | `VOICE_POLICY_REVIEW_OK` |
 | `tts` | 0 | `TTS_OK` |
 | `tts-stream` | 0 | `TTS_TOKEN_STREAM_OK` |
@@ -58,52 +45,26 @@ The initial batch parser replaced stdout with the diagnostic file, so raw checks
 | `task-authority` | 0 | `TASK_AUTHORITY_OK: 63 cases` |
 | `residency` | 0 | `RESIDENCY_OK` |
 | `scheduler` | 0 | `SCHEDULER_OK` |
- Full evidence: [review follow-up](Tests/Reports/no-apple/review-fixes/README.md), raw checks.json and corrected verified-checks.json. Final standalone census: `VOICE_POLICY_SOURCE_COUNTS forbidden=0 explicit_nonplayback_exceptions=20 files=905`, `VOICE_SINK_SOURCE_OK`; mutations `VOICE_CENSUS_MUTATIONS_FAILED`17 original / `VOICE_CENSUS_MUTATIONS_OK`17 fixed. Native TTS ran the earlier broadened census revision (17 counted exceptions); the final stricter operation/import census was replayed independently after it without changing Swift sources. Physical Pocket/Kokoro audio, real fresh download/offline UI, full duplex device behavior, combined Settings/ACK/Mini integration, release performance and inherited model quality gates remain unverified/open.
 
-Source files changed across the complete backend branch (reports/logs additionally retained under Tests/Reports/no-apple, plus PERFORMANCE-STANDARDS.md and this RESULT):
+Final standalone census: `VOICE_POLICY_SOURCE_COUNTS forbidden=0 explicit_nonplayback_exceptions=24 files=908` and `VOICE_SINK_SOURCE_OK`. Mutation markers: original `VOICE_CENSUS_MUTATIONS_FAILED` (3 undetected/21) and fixed `VOICE_CENSUS_MUTATIONS_OK` (0/21). All logs, source/binary pins, fixture invariance, cleanup and exact original/fixed patches are retained in [round-2 evidence](Tests/Reports/no-apple/round2/README.md).
 
-- `Sources/NextNotes/Agent/AcousticHybridProbe.swift`
-- `Sources/NextNotes/Agent/AcousticLiveProbe.swift`
-- `Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift`
-- `Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift`
-- `Sources/NextNotes/Agent/Duplex/NativePCMReceiptSelfTest.swift`
-- `Sources/NextNotes/Agent/Duplex/OutputScheduler.swift`
-- `Sources/NextNotes/Agent/Duplex/PCMReceiptOwnerSelfTest.swift`
-- `Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift`
-- `Sources/NextNotes/Agent/Duplex/VoiceContracts.swift`
-- `Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift`
-- `Sources/NextNotes/Agent/Duplex/VoicePlaybackResumeReceiptSelfTest.swift`
-- `Sources/NextNotes/Agent/RealtimeAudioSession.swift`
-- `Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift`
-- `Sources/NextNotes/Agent/Schedules/CatchUpTemplate.swift`
-- `Sources/NextNotes/Agent/Speech/AgentSpeechPolicy.swift`
+Mac: arm64, macOS27.2 / 26B5091g. Fixed binary SHA256: `5cb6650f8ae25fb67d0931ecbd1e7af8501c6a9fe258d75b3ed48a0401c211b4`. Original: `2aea8ed8170b577725247f7fe7cb9991ce2ab781a08f354a130831e076e6f5ef`. Slot exited1 solely for the Settings failed process (expected RED excluded), then released its claim. After verifying no process used it and exact source/binary invariance, only wt-scratch/no-apple was removed (2,109,678,190 logical bytes); the driver removed its exact temporary batch directory. Shared voice scratch, owner stores/models and foreign processes/files were preserved. Pre-existing untracked LAST-MESSAGE-previous files and RESULT-previous2.md are untouched.
+
+Round-2 source files changed:
+
+- `Sources/NextNotes/Agent/Duplex/IslandOwnership.swift`
+- `Sources/NextNotes/Agent/Duplex/UnsupportedResumePresentationSelfTest.swift`
+- `Sources/NextNotes/Agent/Duplex/VoiceSession.swift`
 - `Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift`
-- `Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift`
-- `Sources/NextNotes/Agent/Speech/AgentVoicePolicySelfTest.swift`
 - `Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift`
 - `Sources/NextNotes/Agent/Speech/LongFormRenderer.swift`
-- `Sources/NextNotes/Agent/Speech/PCMReceiptSpeechBacking.swift`
-- `Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift`
-- `Sources/NextNotes/Agent/Speech/PreparedPCMSpeechBacking.swift`
+- `Sources/NextNotes/Agent/Speech/UnknownPressurePreparationSelfTest.swift`
+- `Sources/NextNotes/Agent/Speech/VoiceFailureEpochSelfTest.swift`
 - `Sources/NextNotes/Agent/Speech/VoicePolicyReviewSelfTest.swift`
-- `Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift`
-- `Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift`
-- `Sources/NextNotes/Agent/VoiceDeliverySelfTest.swift`
-- `Sources/NextNotes/Agent/VoicePlaybackDelivery.swift`
 - `Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift`
-- `Sources/NextNotes/NextNotesApp.swift`
 - `Sources/NextNotes/Support/Settings.swift`
-- `Sources/NextNotes/Support/SettingsVoicePolicySelfTest.swift`
-- `Sources/NextNotes/UI/Agent/AgentView.swift`
-- `Sources/NextNotes/UI/Island/IslandView.swift`
 
-Will conflict with uncommitted work, per supplied MAIN-DIRTY-SOURCES inventory; integrate by hand:
 
-- `Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift`
-- `Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift`
-- `Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift`
-- `Sources/NextNotes/NextNotesApp.swift`
-- `Sources/NextNotes/UI/Agent/AgentView.swift`
-- `Sources/NextNotes/UI/Island/IslandView.swift`
+Will conflict with uncommitted work: `Sources/NextNotes/Core/Compute/ModelResidencyPolicy.swift` (supplied dirty inventory and review). Preserve canonical cleanup warm recovery alongside the existing cold seed/admission notification and new unknown-read retry. The complete prior branch also retains the six earlier integration overlaps: AgentTaskManager, AgentTaskStore, ModelResidencyPolicy, NextNotesApp, AgentView and IslandView. The shared task-store prerequisite stays applied exactly once and is untouched this round. Committed peer Settings/ACK/Mini integrations must reconcile synth/Settings changes; no combined build was run. The owner tracks findings3/8 in its integration manifest; relay sending is not read confirmation.
 
-ModelsSettingsTab is listed dirty but has no branch diff and no commit here. Current peer changes must be reconciled against their committed diffs; earlier uncommitted-hook assumptions are historical, not current evidence. The shared store seam matches 20d8f9 exactly and supplies no broader recovery acceptance. No liveness/latency/quality/default gate is promoted.
+Unverified/open: audible/native Pocket/Kokoro quality and post-resume proof; real first-launch download/offline recovery and Settings interaction; real unknown-pressure kernel behavior; device/full-duplex/release performance; combined peer/UI build; Settings crash cause and inherited model/Agent gates. No installed release was changed.

@@ -1,0 +1,5 @@
+{
+  "Sources/NextNotes/Agent/Duplex/UnsupportedResumePresentationSelfTest.swift": "9fab48ecff7020bcb128b91a8752dcdf343225df9abec9fe1b684c7b39558b96",
+  "Sources/NextNotes/Agent/Speech/VoiceFailureEpochSelfTest.swift": "aecf7947d8de0b1f9db51b8432ed58847ad3b2fcc8a9942bf2180f49c4bab100",
+  "Sources/NextNotes/Agent/Speech/UnknownPressurePreparationSelfTest.swift": "d9df68b9b6d7855f2e32bc5c78265c22b3b30041d078157c41a8a4070b3101e5"
+}

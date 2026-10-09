@@ -1,0 +1,9 @@
+{
+  "removed_owned_scratch": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/no-apple",
+  "logical_bytes": 2109678190,
+  "active_owned_processes": 0,
+  "slot_exit": 1,
+  "slot_exit_reason": "Settings SIGSEGV (-11), not a passing process; expected producer-red excluded from batch outcome",
+  "shared_voice_scratch_preserved": true,
+  "temporary_batch_root_removed_by_driver": true
+}

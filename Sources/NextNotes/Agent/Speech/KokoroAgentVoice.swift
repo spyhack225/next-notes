@@ -26,6 +26,17 @@ final class KokoroAgentVoice {
     private(set) var isPreparing = false
     private(set) var errorMessage: String?
 
+    // Isolated actual-owner admission tests substitute only native entries.
+    var initializeForTesting: (@MainActor () async throws -> Void)?
+    var schedulerForTesting: ComputeScheduler?
+    var pressureForTesting: (() -> ModelResidencyPolicy.PressureSnapshot)?
+    private var preparationScheduler: ComputeScheduler {
+        SelfTest.isRunning ? schedulerForTesting ?? .shared : .shared
+    }
+    private var preparationPressure: ModelResidencyPolicy.PressureSnapshot {
+        if SelfTest.isRunning, let pressureForTesting { return pressureForTesting() }
+        return ModelResidencyPolicy.pressureSnapshot
+    }
     private var prepareTask: Task<Void, Never>?
     private var automaticPreparationDeferred = false
     private var pressureObserver: NSObjectProtocol?
@@ -47,7 +58,7 @@ final class KokoroAgentVoice {
         if let prepareTask {
             await prepareTask.value
             if automaticPreparationDeferred && (!automatic ||
-                (ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork && !preparationRecording)) {
+                (preparationPressure.allowsOptionalWork && !preparationRecording)) {
                 await prepare(automatic: automatic)
             }
             return
@@ -65,7 +76,7 @@ final class KokoroAgentVoice {
                 }
             }
             guard errorMessage == nil else { return }
-            if !ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork || preparationRecording {
+            if !preparationPressure.allowsOptionalWork || preparationRecording {
                 deferAutomaticPreparation(); return
             }
         }
@@ -74,35 +85,38 @@ final class KokoroAgentVoice {
         let pending = Task { @MainActor in
             defer { isPreparing = automaticPreparationDeferred; prepareTask = nil }
             let lane: UUID?
-            if automatic { lane = await ComputeScheduler.shared.acquireCancellable(.background) }
+            if automatic { lane = await preparationScheduler.acquireCancellable(.background) }
             else { lane = nil }
             if automatic && lane == nil { return }
             let priorOffline = ModelHub.offlineMode
             if SelfTest.isRunning { ModelHub.offlineMode = true }
             defer { if SelfTest.isRunning { ModelHub.offlineMode = priorOffline } }
             do {
-                if let lane { await ComputeScheduler.shared.checkpoint(lane) }
+                if let lane { await preparationScheduler.checkpoint(lane) }
                 try Task.checkCancellation()
-                if automatic && (!ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork || preparationRecording) {
+                if automatic && (!preparationPressure.allowsOptionalWork || preparationRecording) {
                     deferAutomaticPreparation()
                 } else {
                     if automatic {
-                        _ = try await KokoroAneResourceDownloader.ensureModels()
-                        _ = try await KokoroAneResourceDownloader.ensureG2PAssets(directory: nil)
-                        if let lane { await ComputeScheduler.shared.checkpoint(lane) }
+                        if !SelfTest.isRunning || initializeForTesting == nil {
+                            _ = try await KokoroAneResourceDownloader.ensureModels()
+                            _ = try await KokoroAneResourceDownloader.ensureG2PAssets(directory: nil)
+                        }
+                        if let lane { await preparationScheduler.checkpoint(lane) }
                         try Task.checkCancellation()
                     }
-                    if automatic && (!ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork || preparationRecording) {
+                    if automatic && (!preparationPressure.allowsOptionalWork || preparationRecording) {
                         deferAutomaticPreparation()
                     } else {
-                        try await manager.initialize()
+                        if SelfTest.isRunning, let initializeForTesting { try await initializeForTesting() }
+                        else { try await manager.initialize() }
                         try Task.checkCancellation()
                         isReady = true
                     }
                 }
             } catch is CancellationError { }
             catch { errorMessage = error.localizedDescription }
-            if let lane { await ComputeScheduler.shared.release(lane) }
+            if let lane { await preparationScheduler.release(lane) }
         }
         prepareTask = pending
         await pending.value

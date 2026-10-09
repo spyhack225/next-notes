@@ -8,6 +8,7 @@ enum VoicePolicyReviewSelfTest {
         var failures: [String] = []
         failures += await UnsupportedResumePresentationSelfTest.run()
         failures += await VoiceFailureEpochSelfTest.run()
+        failures += await UnknownPressurePreparationSelfTest.run()
         let synth = AgentSpeechSynthesizer.shared
         defer { synth.stop(); synth.restoreSystemBacking(); synth.clearVoiceReadinessForTesting() }
         for engine in ["pocket", "kokoro"] {

@@ -1,0 +1,18 @@
+2026-10-09 00:51:03.710 NextNotes[81911:4652078] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+NATIVE_PCM_RECEIPT_COUNTS receipts=2 callback_observations=206 muted=true
+VOICE_POLICY_REVIEW_WRONG: R1: pocket unsupported shadow escaped into actual Island consumer
+VOICE_POLICY_REVIEW_WRONG: R1: unsupported shadow suppressed legacy presentation
+VOICE_POLICY_REVIEW_WRONG: R1: kokoro unsupported shadow escaped into actual Island consumer
+VOICE_POLICY_REVIEW_WRONG: R1: unsupported shadow suppressed legacy presentation
+VOICE_POLICY_REVIEW_WRONG: R2: old selection settlement poisoned recovered Pocket
+VOICE_POLICY_REVIEW_WRONG: R2: recovered selection actual consumer rejected
+VOICE_POLICY_REVIEW_WRONG: R2: recovered selection entry missing
+VOICE_POLICY_REVIEW_WRONG: R2: old selection without preparation settlement poisoned recovered Pocket
+VOICE_POLICY_REVIEW_WRONG: R2: recovered selection without preparation actual consumer rejected
+VOICE_POLICY_REVIEW_WRONG: R2: recovered selection without preparation entry missing
+VOICE_POLICY_REVIEW_WRONG: R2: old same-engine retry settlement poisoned recovered Pocket
+VOICE_POLICY_REVIEW_WRONG: R2: recovered same-engine retry actual consumer rejected
+VOICE_POLICY_REVIEW_WRONG: R2: recovered same-engine retry entry missing
+VOICE_POLICY_REVIEW_WRONG: R4: unreadable seed stranded Kokoro automatic preparation without kernel event
+VOICE_POLICY_REVIEW_WRONG: R4: unreadable seed stranded automatic preparation without kernel event
+VOICE_POLICY_REVIEW_FAILED: 15 assertions
