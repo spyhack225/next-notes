@@ -848,14 +848,25 @@ final class Settings {
         }
     }
 
-    /// Installed macOS voice identifier for Agent speech. Empty means system default.
+    /// Legacy Settings-screen compatibility only; never used for generated speech.
     var agentVoiceIdentifier: String {
         didSet { defaults.set(agentVoiceIdentifier, forKey: Keys.agentVoiceIdentifier) }
     }
 
-    /// Explicitly downloaded, local neural voice; system speech remains the default.
+    /// Requested local voice. Readiness is owned by AgentSpeechSynthesizer.
     var agentVoiceEngine: String {
-        didSet { defaults.set(agentVoiceEngine, forKey: Keys.agentVoiceEngine) }
+        didSet {
+            agentVoiceEngine = Self.normalizedAgentVoiceEngine(agentVoiceEngine)
+            defaults.set(agentVoiceEngine, forKey: Keys.agentVoiceEngine)
+        }
+    }
+
+    nonisolated static func normalizedAgentVoiceEngine(_ stored: String?) -> String {
+        return stored == "kokoro" ? "kokoro" : "pocket"
+    }
+
+    nonisolated static func initialAgentVoiceEngine(from defaults: UserDefaults) -> String {
+        normalizedAgentVoiceEngine(defaults.string(forKey: Keys.agentVoiceEngine))
     }
 
     /// Whether Agent prompts start with `persona.md`. The file is kept either way.
@@ -1433,7 +1444,7 @@ final class Settings {
         agentLiveDuringMeeting = defaults.object(forKey: Keys.agentLiveDuringMeeting) as? Bool ?? false
         voiceWakeEnabled = defaults.object(forKey: Keys.voiceWakeEnabled) as? Bool ?? false
         agentVoiceIdentifier = defaults.string(forKey: Keys.agentVoiceIdentifier) ?? ""
-        agentVoiceEngine = defaults.string(forKey: Keys.agentVoiceEngine) ?? "apple"
+        agentVoiceEngine = Self.initialAgentVoiceEngine(from: defaults)
         agentPocketVoice = defaults.string(forKey: Keys.agentPocketVoice) ?? "alba"
         agentPersonaEnabled = defaults.object(forKey: Keys.agentPersonaEnabled) as? Bool ?? true
         agentMemoryEnabled = defaults.object(forKey: Keys.agentMemoryEnabled) as? Bool ?? true
