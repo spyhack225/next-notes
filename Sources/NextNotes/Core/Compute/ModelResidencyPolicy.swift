@@ -1,5 +1,6 @@
 import Foundation
 import Dispatch
+import Darwin
 
 /// Which large models this process may keep resident, and what to drop first
 /// when the kernel says memory is tight.
@@ -47,6 +48,10 @@ enum ModelResidencyPolicy: Sendable {
 
     /// A cheap observation, never a gate on an interactive turn or audio callback.
     static var pressureSnapshot: PressureSnapshot { ModelResidencyGuardian.shared.snapshot }
+
+    /// Only optional model preparation observes this; microphone/model/speaker
+    /// interaction never waits on it. Normal events retry the existing owner task.
+    static let admissionChanged = Notification.Name("NextNotesOptionalModelAdmissionChanged")
 
     /// Models the product treats as always-warm while the feature is on.
     /// Pressure unload must not touch these when sessions still need them.
@@ -166,6 +171,20 @@ final class ModelResidencyGuardian: @unchecked Sendable {
         defer { lock.unlock() }
         guard !started else { return }
         started = true
+        // Seed cold admission from the kernel before its first change event.
+        // An unreadable pressure value conservatively defers optional native work.
+        var initial: UInt32 = 0
+        var size = MemoryLayout<UInt32>.size
+        let readable = sysctlbyname("kern.memorystatus_vm_pressure_level", &initial, &size, nil, 0) == 0
+            && size == MemoryLayout<UInt32>.size
+        // XNU exposes dispatch flags here, not its internal 0/1/2/3 enum.
+        let level: ModelResidencyPolicy.PressureLevel
+        switch readable ? initial : 0 {
+        case UInt32(DispatchSource.MemoryPressureEvent.normal.rawValue): level = .normal
+        case UInt32(DispatchSource.MemoryPressureEvent.critical.rawValue): level = .critical
+        default: level = .warning
+        }
+        pressure = .init(level: level, generation: pressure.generation &+ 1, changedAt: Date())
 
         let src = DispatchSource.makeMemoryPressureSource(
             eventMask: [.normal, .warning, .critical],
@@ -187,6 +206,7 @@ final class ModelResidencyGuardian: @unchecked Sendable {
     /// Update synchronously before the unload task gets a chance to suspend.
     func receive(_ level: ModelResidencyPolicy.PressureLevel) {
         let shouldRelease = updatePressure(level)
+        NotificationCenter.default.post(name: ModelResidencyPolicy.admissionChanged, object: self)
         guard shouldRelease else { return }
         Task {
             if let releaseForTesting { await releaseForTesting() }
