@@ -150,6 +150,13 @@ final class AgentSpeechSynthesizer {
         }
     }
 
+    /// A file-synthesis failure belongs to the same selected availability policy.
+    /// A changed selection and a cancelled render cannot poison another voice.
+    func noteSelectedVoiceFailure(engine: String) {
+        guard Self.selectedEngine == engine else { return }
+        selectedVoiceFailed = true
+    }
+
     func prepareSelectedVoice() async {
         selectedVoiceFailed = false
         switch Self.selectedEngine {
