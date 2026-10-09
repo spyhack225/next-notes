@@ -1,0 +1,1 @@
+UUID: A58CAD59-E1AF-3B58-B41A-34CFFF599978 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/catchup-final/debug/NextNotes

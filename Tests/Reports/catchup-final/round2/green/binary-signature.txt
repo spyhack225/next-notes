@@ -1,0 +1,25 @@
+Executable=/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/catchup-final/out/Products/Debug/NextNotes
+Identifier=NextNotes-55554944a58cad59e1af3b58b41a34cfff599978
+Format=Mach-O thin (arm64)
+CodeDirectory v=20400 size=390795 flags=0x2(adhoc) hashes=12201+7 location=embedded
+VersionPlatform=1
+VersionMin=1703936
+VersionSDK=1703936
+Hash type=sha256 size=32
+CandidateCDHash sha256=9d2d7c6e3de1055b4f7c4933ecc9bb885382c5c4
+CandidateCDHashFull sha256=9d2d7c6e3de1055b4f7c4933ecc9bb885382c5c440873c78b74b633c291c54ce
+Hash choices=sha256
+CMSDigest=9d2d7c6e3de1055b4f7c4933ecc9bb885382c5c440873c78b74b633c291c54ce
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=136658944
+Executable Segment flags=0x1
+Page size=16384
+CDHash=9d2d7c6e3de1055b4f7c4933ecc9bb885382c5c4
+Signature=adhoc
+Info.plist=not bound
+TeamIdentifier=not set
+Sealed Resources=none
+Internal requirements count=0 size=12
+Total signatures=1
+Chosen signature=1

@@ -1,0 +1,12 @@
+{
+  "revision": "233b5dd8b8d42f9b0574ab1bcb95bf6d0ca70c88",
+  "files": {
+    "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift": "4c0737010b427414e7b452bfbfc241c3b1d7dd136073f26aaf0e41d49e9094cb",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift": "cf6c85a6990283f890c547e39f7694ef1440a86d821d74e8166334ca3d6d7b49",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "41a2516c310120ef8893b2aed9085187548700a71959afbf4d4845864d84abbe",
+    "Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift": "0334fa3ad9708e99c1e9088867b3ad19e863433c3fbd1f95915a7e3931698ecd",
+    "Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift": "0c199fc3abf89765f9debb0fb326e57eb34a83ed81460946785a04347e552730",
+    "Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift": "4dcc67644eddd4a1c1d14f9923c5b219def940133a4dad977d12a59df5689272",
+    "Sources/NextNotes/Agent/PCMProbeSpeechBacking.swift": "94d4bf4aa728b19a244b5a17966d0f89ed7640576a53e766178c376d166c4809"
+  }
+}

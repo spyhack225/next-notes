@@ -1,0 +1,1 @@
+SOURCE_COMMIT_INVARIANCE_OK: all 24 native-tested working and committed source bytes match; unchanged regression fixture.

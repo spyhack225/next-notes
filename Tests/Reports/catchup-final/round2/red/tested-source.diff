@@ -1,0 +1,39 @@
+diff --git a/Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift b/Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift
+index 3ede3d70..b4bc0bf9 100644
+--- a/Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift
++++ b/Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift
+@@ -282,6 +282,34 @@ enum CatchUpPresentationSelfTest {
+         expect(island.kind == .meetingArmed(question), "the ready notice replaced \"Record this meeting?\": \(island.kind)")
+         island.clearArmed(question)
+ 
++        // Reverse arrival order: a retained Catch-up must yield when a real voice
++        // projection or approval begins later. Drive the actual refresh consumer,
++        // not just liveWinner's boolean table. No capture or audio device is opened.
++        let reverseStart = failures.count
++        let voiceSession = UUID()
++        for projection in [IslandProjection.listening, .speaking, .thinking] {
++            island.announceCatchUpReady(newest)
++            expect(island.kind == .catchUpReady(taskID: newest.id, title: newest.title),
++                   "reverse-order fixture did not start with Catch-up")
++            island.applyVoiceProjection(projection, sessionID: voiceSession, transcript: "Hello", level: 0.2)
++            let live: IslandState.Kind = projection == .thinking
++                ? .agentWorking(steps: [IslandState.conversationThinkingTitle], current: 1, total: 1)
++                : .agentListening(transcript: projection == .speaking ? "" : "Hello", level: projection == .speaking ? 0 : 0.2)
++            expect(island.kind == live, "retained Catch-up covered later \(projection): \(island.kind)")
++            island.applyVoiceProjection(.none, sessionID: voiceSession, transcript: "", level: 0)
++            expect(island.kind == .catchUpReady(taskID: newest.id, title: newest.title),
++                   "live presentation discarded the retained Catch-up")
++            island.dismissNotice()
++        }
++        island.announceCatchUpReady(newest)
++        gate.value = (IslandProposal(id: "later", title: "Send", detail: "Email Sam.", meetingID: nil), 1)
++        island.refresh()
++        expect(island.kind == .pendingApproval(gate.value!.0, waiting: 1),
++               "retained Catch-up covered a later approval: \(island.kind)")
++        gate.value = nil
++        island.dismissNotice()
++        print(failures.count == reverseStart ? "CATCH_UP_LATER_LIVE_OK" : "CATCH_UP_LATER_LIVE_FAILED")
++
+         // Reduce Motion, no scaling, the clock and the orb state, from the views' own source.
+         if let source = SourceScan.file("Sources/NextNotes/UI/CatchUp/CatchUpViews.swift") {
+             let code = SourceScan.codeLines(of: source).map(\.text).joined(separator: "\n")

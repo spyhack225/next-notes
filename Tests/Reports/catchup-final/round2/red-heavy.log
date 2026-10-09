@@ -1,0 +1,11 @@
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 2, waiting
+gate: waiting (swap 6168M, load 2, free 11G, memory 49%)
+build EXIT=0
+Running agent-panes
+agent-panes EXIT=1

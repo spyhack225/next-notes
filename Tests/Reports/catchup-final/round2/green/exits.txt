@@ -1,0 +1,10 @@
+build EXIT=0
+catch-up EXIT=0
+agent-panes EXIT=0
+ui-strings EXIT=0
+island EXIT=0
+commandkey EXIT=0
+voice-conversation EXIT=0
+duplex EXIT=0
+settings EXIT=139
+store-isolation EXIT=0

@@ -1,0 +1,178 @@
+{
+  "ownership": "Exact completed native child PIDs and creation intervals; explicit mktemp run roots; own scratch only. Source hashes rechecked before cleanup.",
+  "removed": [
+    {
+      "flag": "agent-panes",
+      "pid": 92055,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-92055",
+      "birth": 1791523708.353841
+    },
+    {
+      "flag": "catch-up",
+      "pid": 95835,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-memory-95835",
+      "birth": 1791525273.920761
+    },
+    {
+      "flag": "catch-up",
+      "pid": 95835,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-95835",
+      "birth": 1791525273.9212224
+    },
+    {
+      "flag": "catch-up",
+      "pid": 95835,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95835",
+      "birth": 1791525273.689012
+    },
+    {
+      "flag": "catch-up",
+      "pid": 95835,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-persona-95835",
+      "birth": 1791525273.9636743
+    },
+    {
+      "flag": "agent-panes",
+      "pid": 95838,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95838",
+      "birth": 1791525274.9412053
+    },
+    {
+      "flag": "ui-strings",
+      "pid": 95839,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95839",
+      "birth": 1791525275.132001
+    },
+    {
+      "flag": "island",
+      "pid": 95843,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-identity-95843",
+      "birth": 1791525277.6115458
+    },
+    {
+      "flag": "island",
+      "pid": 95843,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-persona-95843",
+      "birth": 1791525277.367954
+    },
+    {
+      "flag": "island",
+      "pid": 95843,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-fc-95843",
+      "birth": 1791525277.2993643
+    },
+    {
+      "flag": "island",
+      "pid": 95843,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-95843",
+      "birth": 1791525277.36766
+    },
+    {
+      "flag": "island",
+      "pid": 95843,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95843",
+      "birth": 1791525277.1246696
+    },
+    {
+      "flag": "commandkey",
+      "pid": 95847,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95847",
+      "birth": 1791525280.4068422
+    },
+    {
+      "flag": "voice-conversation",
+      "pid": 95852,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-95852",
+      "birth": 1791525284.9035711
+    },
+    {
+      "flag": "voice-conversation",
+      "pid": 95852,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95852",
+      "birth": 1791525284.7107449
+    },
+    {
+      "flag": "voice-conversation",
+      "pid": 95852,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-persona-95852",
+      "birth": 1791525284.933744
+    },
+    {
+      "flag": "voice-conversation",
+      "pid": 95852,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-fc-95852",
+      "birth": 1791525284.902731
+    },
+    {
+      "flag": "voice-conversation",
+      "pid": 95852,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-memory-95852",
+      "birth": 1791525284.9442847
+    },
+    {
+      "flag": "duplex",
+      "pid": 95853,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95853",
+      "birth": 1791525285.364941
+    },
+    {
+      "flag": "settings",
+      "pid": 95854,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-95854",
+      "birth": 1791525287.3664827
+    },
+    {
+      "flag": "settings",
+      "pid": 95854,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95854",
+      "birth": 1791525285.5981328
+    },
+    {
+      "flag": "settings",
+      "pid": 95854,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-fc-95854",
+      "birth": 1791525287.3618436
+    },
+    {
+      "flag": "store-isolation",
+      "pid": 95859,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-memory-95859",
+      "birth": 1791525289.0725756
+    },
+    {
+      "flag": "store-isolation",
+      "pid": 95859,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-95859",
+      "birth": 1791525289.0055761
+    },
+    {
+      "flag": "store-isolation",
+      "pid": 95859,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-95859",
+      "birth": 1791525289.0729468
+    },
+    {
+      "flag": "store-isolation",
+      "pid": 95859,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-fc-95859",
+      "birth": 1791525291.8801172
+    },
+    {
+      "flag": "store-isolation",
+      "pid": 95859,
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-persona-95859",
+      "birth": 1791525289.0915344
+    },
+    {
+      "phase": "red",
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/catchup-final-r2-red.aLF5SJ",
+      "explicitRunTemp": true
+    },
+    {
+      "phase": "green",
+      "path": "/private/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/catchup-final-r2-green.NrEGpS",
+      "explicitRunTemp": true
+    }
+  ],
+  "scratchRemoved": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/catchup-final"
+}

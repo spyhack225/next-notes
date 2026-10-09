@@ -1,0 +1,1 @@
+Bounded new-report text scan: no common credential-prefix or email-address matches. Local build paths, host, PIDs and compiler metadata remain. This is not a general privacy certificate.

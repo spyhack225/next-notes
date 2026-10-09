@@ -1,0 +1,120 @@
+diff --git a/Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift b/Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift
+index 3ede3d70..b4bc0bf9 100644
+--- a/Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift
++++ b/Sources/NextNotes/UI/CatchUp/CatchUpPresentationSelfTest.swift
+@@ -282,6 +282,34 @@ enum CatchUpPresentationSelfTest {
+         expect(island.kind == .meetingArmed(question), "the ready notice replaced \"Record this meeting?\": \(island.kind)")
+         island.clearArmed(question)
+ 
++        // Reverse arrival order: a retained Catch-up must yield when a real voice
++        // projection or approval begins later. Drive the actual refresh consumer,
++        // not just liveWinner's boolean table. No capture or audio device is opened.
++        let reverseStart = failures.count
++        let voiceSession = UUID()
++        for projection in [IslandProjection.listening, .speaking, .thinking] {
++            island.announceCatchUpReady(newest)
++            expect(island.kind == .catchUpReady(taskID: newest.id, title: newest.title),
++                   "reverse-order fixture did not start with Catch-up")
++            island.applyVoiceProjection(projection, sessionID: voiceSession, transcript: "Hello", level: 0.2)
++            let live: IslandState.Kind = projection == .thinking
++                ? .agentWorking(steps: [IslandState.conversationThinkingTitle], current: 1, total: 1)
++                : .agentListening(transcript: projection == .speaking ? "" : "Hello", level: projection == .speaking ? 0 : 0.2)
++            expect(island.kind == live, "retained Catch-up covered later \(projection): \(island.kind)")
++            island.applyVoiceProjection(.none, sessionID: voiceSession, transcript: "", level: 0)
++            expect(island.kind == .catchUpReady(taskID: newest.id, title: newest.title),
++                   "live presentation discarded the retained Catch-up")
++            island.dismissNotice()
++        }
++        island.announceCatchUpReady(newest)
++        gate.value = (IslandProposal(id: "later", title: "Send", detail: "Email Sam.", meetingID: nil), 1)
++        island.refresh()
++        expect(island.kind == .pendingApproval(gate.value!.0, waiting: 1),
++               "retained Catch-up covered a later approval: \(island.kind)")
++        gate.value = nil
++        island.dismissNotice()
++        print(failures.count == reverseStart ? "CATCH_UP_LATER_LIVE_OK" : "CATCH_UP_LATER_LIVE_FAILED")
++
+         // Reduce Motion, no scaling, the clock and the orb state, from the views' own source.
+         if let source = SourceScan.file("Sources/NextNotes/UI/CatchUp/CatchUpViews.swift") {
+             let code = SourceScan.codeLines(of: source).map(\.text).joined(separator: "\n")
+diff --git a/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift b/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
+index f0ed4aa0..29311c4f 100644
+--- a/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
++++ b/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
+@@ -1,12 +1,5 @@
+ import SwiftUI
+ 
+-extension DS.Font {
+-    /// The name of a prepared thing — a catch-up — set the way the landing page sets a
+-    /// headline: serif, at a text style so Dynamic Type still applies. Not for controls or
+-    /// running text; one heading per card.
+-    static let briefingTitle = SwiftUI.Font.system(.title3, design: .serif)
+-}
+-
+ /// What a card says about its audio, as a pure function of the clock, and when the clock has to
+ /// be read again. `isPreparingAudio` depends on the time, but the library's list does not
+ /// change when the wait window ends, so nothing observable fires: the screen has to wake
+diff --git a/Sources/NextNotes/UI/DesignSystem.swift b/Sources/NextNotes/UI/DesignSystem.swift
+index a5c97b64..2cb767db 100644
+--- a/Sources/NextNotes/UI/DesignSystem.swift
++++ b/Sources/NextNotes/UI/DesignSystem.swift
+@@ -124,6 +124,10 @@ enum DS {
+         static let title = SwiftUI.Font.title
+         static let title2 = SwiftUI.Font.title2
+         static let title3 = SwiftUI.Font.title3
++        /// The name of a prepared thing — a catch-up — set the way the landing page sets a
++        /// headline: serif, at a text style so Dynamic Type still applies. Not for controls or
++        /// running text; one heading per card.
++        static let briefingTitle = SwiftUI.Font.system(.title3, design: .serif)
+         static let headline = SwiftUI.Font.headline
+         static let body = SwiftUI.Font.body
+         static let callout = SwiftUI.Font.callout
+diff --git a/Sources/NextNotes/UI/Island/IslandState.swift b/Sources/NextNotes/UI/Island/IslandState.swift
+index 05efa1e3..8f8c5665 100644
+--- a/Sources/NextNotes/UI/Island/IslandState.swift
++++ b/Sources/NextNotes/UI/Island/IslandState.swift
+@@ -628,7 +628,8 @@ final class IslandState {
+ 
+     /// Play, Pause or Resume on the ready card, through the same player the Library card uses
+     /// (this never touches an audio object itself). While the catch-up is playing or paused the
+-    /// card stays, showing the control that applies; when playback ends it goes away. If the
++    /// notice is retained, showing the control when no live card needs the island; when
++    /// playback ends it goes away. If the
+     /// player refuses (it says why in its own sentence) the card stays for the usual notice
+     /// time with that sentence, and Play is still there for another try.
+     func toggleCatchUp(taskID: String) {
+@@ -709,7 +710,8 @@ final class IslandState {
+     }
+ 
+     /// Called only from VoiceSession's ordered publishIsland command.
+-    /// Notices keep their existing precedence; .none releases this projection.
++    /// Catch-up notices yield to live cards; other notices keep their existing
++    /// precedence. .none releases this projection.
+     func applyVoiceProjection(_ projection: IslandProjection, sessionID: UUID, transcript: String, level: Float) {
+         if projection == .none {
+             guard voiceProjectionSessionID == sessionID else { return }
+@@ -730,7 +732,8 @@ final class IslandState {
+ 
+     // MARK: - Recomputing
+ 
+-    /// Derives the live half of the state, and lets a notice win over it.
++    /// Derives the live half of the state. A Catch-up is a convenience notice:
++    /// live activity and unanswered questions win even if playback retains it.
+     ///
+     /// Exposed for `--selftest-island`, which drives it against pushed notices to prove the
+     /// priority order without a microphone.
+@@ -740,7 +743,13 @@ final class IslandState {
+     }
+ 
+     func refresh() {
+-        let next = notice?.kind ?? liveKind()
++        let next: Kind
++        if let notice, case .catchUpReady = notice.kind {
++            let live = liveKind()
++            next = live == .hidden ? notice.kind : live
++        } else {
++            next = notice?.kind ?? liveKind()
++        }
+         let nextID = next.identity
+         if cardIdentity != nextID {
+             cardIdentity = nextID

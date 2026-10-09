@@ -23,3 +23,8 @@ and embedded browser failures must not be labelled passes by the isolation root 
 See root [RESULT.md](../../../RESULT.md) for actual verdicts, screenshots inspected,
 cleanup and all six canonical dirty-file conflicts. Performance/acoustic and broader
 recovery/readiness contracts from both parent reports remain open.
+
+
+Round 2 review repairs and the explicit saved-file audio decision are retained in
+[round2](round2/README.md). The original combined proof above remains historical;
+round2 retains a separate native original/fixed pair and final nine-flag batch.

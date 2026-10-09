@@ -1,0 +1,18 @@
+[
+  {
+    "flag": "store-isolation",
+    "diagnostic": "TOOLLOOP_PRODUCTION_WRONG:",
+    "originalCount": 18,
+    "round2Count": 18,
+    "exactMatch": true,
+    "sha256": "20129b387bdb58bf7c335707041855f0c33c72b548a229ef7cfd67fea4ea1917"
+  },
+  {
+    "flag": "duplex",
+    "diagnostic": "VOICE_SESSION_DIVERGENCE:",
+    "originalCount": 2,
+    "round2Count": 2,
+    "exactMatch": true,
+    "sha256": "9ab3baa9baa277b4879609463bab91fd0f5a43f6343d87b4723e90c4c6e12898"
+  }
+]

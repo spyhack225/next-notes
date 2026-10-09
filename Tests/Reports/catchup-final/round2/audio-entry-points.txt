@@ -1,0 +1,68 @@
+Sources/NextNotes/Agent/PCMProbeSpeechBacking.swift:24:    init(farURL: URL) throws {
+Sources/NextNotes/Agent/PCMProbeSpeechBacking.swift:67:    func prepare() throws {
+Sources/NextNotes/Agent/PCMProbeSpeechBacking.swift:151:    func pauseForListening() {
+Sources/NextNotes/Agent/PCMProbeSpeechBacking.swift:157:    func resumeAfterListening() {
+Sources/NextNotes/Agent/PCMProbeSpeechBacking.swift:163:    func stop() {
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:203:    func beginSpokenReply(_ token: OutputToken, turn: TurnID? = nil, kind suppliedKind: OutputKind? = nil) -> Bool {
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:224:    func appendSpokenReply(_ token: OutputToken, _ chunk: String) {
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:234:    func finalizeSpokenReply(_ token: OutputToken) {
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:244:    func cancelSpokenReply(_ token: OutputToken) {
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:340:    private func playbackEchoMask(
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:515:    private func finishPlaybackReference(_ text: String) {
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:598:    func pauseForListening(captureID: UUID, now: Date = Date()) -> Bool {
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:622:    func resumeAfterListening(captureID: UUID) -> Bool {
+Sources/NextNotes/Agent/RealtimeAudioSession.swift:669:    private func stopOutput() {
+Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift:280:    func prepareToPlay() -> Bool
+Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift:281:    func play() -> Bool
+Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift:282:    func pause()
+Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift:283:    func stop()
+Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift:356:    func play(_ entry: CatchUpEntry) {
+Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift:375:    func pause() {
+Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift:384:    private func resume(_ player: any CatchUpAudioPlaying) {
+Sources/NextNotes/UI/CatchUp/CatchUpLibrary.swift:391:    func stop() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:54:protocol AgentSpeechBacking: AnyObject {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:57:    func pauseForListening()
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:58:    func resumeAfterListening()
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:59:    func stop()
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:72:protocol AgentReplySpeechBacking: AgentSpeechBacking {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:77:    func enqueue(_ text: String, token: UInt64)
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:78:    func finishReply()
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:296:    func prepareForStream() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:367:    func enqueueClause(_ clause: String) {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:401:    func finishStream() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:412:    func stop() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:436:    func pauseForListening() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:444:    func resumeAfterListening() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:485:    func preparePersistentPocketPlayback(
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1154:        func enqueue(_ buffer: AVAudioPCMBuffer?, for backing: AVSpeechBacking?, token: UInt64) {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1178:    private func play(_ buffer: AVAudioPCMBuffer, token: UInt64) {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1355:    private func finishIfDrained(token: UInt64) {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1373:    func stop() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1390:    func pauseForListening() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1403:    func resumeAfterListening() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1491:    func pauseForListening() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1497:    func resumeAfterListening() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1505:    func finishNaturallyForTesting() {
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1510:    func stop() {
+Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift:291:    func endSession() {
+Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift:324:    func enqueue(_ buffer: AVAudioPCMBuffer, token requested: UInt64,
+Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift:395:    func finish(token requested: UInt64) {
+Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift:401:    func pause(token requested: UInt64) {
+Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift:406:    func resume(token requested: UInt64) {
+Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift:411:    func stop(token requested: UInt64) {
+Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift:43:    func prepare() throws {
+Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift:73:    func endSession() {
+Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift:181:    func pauseForListening() {
+Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift:187:    func resumeAfterListening() {
+Sources/NextNotes/Agent/Speech/PocketSourceSpeechBacking.swift:193:    func stop() {
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:13:    func append(_ text: String) { RealtimeAudioSession.shared.appendSpokenReply(token, text) }
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:14:    func finish() { RealtimeAudioSession.shared.finalizeSpokenReply(token) }
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:15:    func cancel() { RealtimeAudioSession.shared.cancelSpokenReply(token) }
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:137:    func beginAnswer(turn: TurnID?) -> OutputHandle {
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:174:    func speakFixed(_ text: String, turn: TurnID?, agent: RealtimeAgent, owner: Int) -> OutputID? {
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:184:    func speakSessionless(_ text: String) -> OutputHandle? {
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:205:    func enqueueApproval(requestID: String) -> Bool {
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:233:    func enqueue(_ text: String) {
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:238:    func enqueue(_ item: DeliveryItem, mode: AgentDeliveryMode = .respond) -> Bool {
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:263:    func enqueueCompletion(_ id: TaskID) -> Bool {
+Sources/NextNotes/Agent/Duplex/OutputScheduler.swift:273:    func enqueueQuestion(_ id: TaskID) -> Bool {

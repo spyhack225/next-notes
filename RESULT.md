@@ -1,3 +1,65 @@
+# Catch-up final round 2
+
+Producer repair: `4275c5b5`. Font move: `fa3f0152`.
+Saved-file playback is **not accepted for the one-channel rule**; this uses the brief's
+explicit gap/report option. OutputScheduler and RealtimeAudioSession admit text only;
+the existing PCM renderer's generation/callback owner and probe-only WAV adapter do not
+supply a production file transport or rendered resume position. A token around the same
+AVAudioPlayer would leave the failure intact. The exact seven-source investigation and
+recommended extension of the existing audio owner are in
+[the audio decision](Tests/Reports/catchup-final/round2/AUDIO-GAP.md). An owner decision
+and separate no-apple integration remain release dependencies. No speech code changed.
+
+IslandState.refresh was the confirmed producer: it selected an earlier Catch-up notice
+before consulting new live state. On unchanged 233b5dd8, the actual presentation fixture
+fails four assertions for later listening, speaking, thinking and approval; Agent-panes
+exits 1 with `CATCH_UP_LATER_LIVE_FAILED` / `AGENT_PANES_FAILED: 4 problem(s)`.
+The same byte-identical fixture passes after the selector repair, with
+`CATCH_UP_LATER_LIVE_OK` and Agent-panes exit 0. Other notice precedence is unchanged.
+Catch-up notice retention/expiry and paused playingID remain independent of visibility;
+no new store, queue, model pass, await, save or timer was added. The ready-notice fixture
+uses finite notices; the indefinite Play path uses the same repaired selector. Physical
+Play, dictation and recording display interaction are not established by this replay.
+
+DS.Font.briefingTitle now lives inside DesignSystem.swift's font block with its exact
+original title3 serif expression. `FONT_TOKEN_MOVE_OK` records the unchanged style.
+The previous broad live-priority sentence is corrected below.
+
+One original RED heavy slot builds in 282.23s and runs Agent-panes; one final FIFO slot
+builds in 137.96s and runs all nine prescribed flags. These are debug development times,
+not product latency claims. Full original/fixed logs, environment, ad-hoc final signature,
+binary/source hashes and exact fixture invariance are retained in
+[the round-2 report](Tests/Reports/catchup-final/round2/README.md).
+
+| Flag | Exit | Exact root marker |
+| --- | --- | --- |
+| `--selftest-catch-up` | 0 | `CATCH_UP_OK` |
+| `--selftest-agent-panes` | 0 | `AGENT_PANES_OK: 3 panes, unique titles, Reminders and Goals say what they are, layout on the shared scaffold` |
+| `--selftest-ui-strings` | 0 | `UI_STRINGS_OK` |
+| `--selftest-island` | 0 | `ISLAND_OK: 2 display(s), notched, placement notch, state machine behaves` |
+| `--selftest-commandkey` | 0 | `COMMANDKEY_OK` |
+| `--selftest-voice-conversation` | 0 | `VOICE_CONVERSATION_OK` |
+| `--selftest-duplex` | 0 | `DUPLEX_OK` |
+| `--selftest-settings` | 139 | `SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host` |
+| `--selftest-store-isolation` | 0 | `STORE_ISOLATION_OK: 21 files and 0 defaults unchanged` |
+
+Eight flags exit 0. Settings emits its OK then inherited SIGSEGV139; it is not a clean
+pass, and the final wrapper exits 1. Isolation's nested browser loop still has 18 WRONG
+lines/TOOLLOOP_PRODUCTION_FAILED, and duplex still has two turnPending diagnostics; all
+those diagnostic lines match the prior combined evidence exactly. The retained Catch-up
+history-save refusal is not generalized as task persistence success. No introduced
+failure was found within the requested checks. All 24 tested source hashes still match.
+
+Own scratch, two run roots and 27 completed-PID fixture folders are removed, with evidence
+in cleanup.json. No install, push, GUI opening, main merge, foreign cleanup or owner-store
+seeding occurred. Round 2 changes four source files plus this result, performance reference
+and reports. IslandState.swift and DesignSystem.swift **will conflict with uncommitted
+work**; the exhaustive seven full-branch conflicts are listed in the historical section
+below and round2/main-dirty-overlap.txt. Native physical/acoustic, model quality, release
+performance and broader task/recovery contracts remain open; no gate/default is promoted.
+
+---
+
 # Catch-up final integration
 
 Merge commit: `eaafc732a676ac3ea96bc407c3aba60b59b3f0a8` on `claude2/catchup-final`.
@@ -25,7 +87,10 @@ plain copy. Library and island controls call the same toggle, and no view owns o
 AVAudioPlayer. The Library shows the sentence beside its play area without disabling
 Play. The island's toggle holds its notice indefinitely while its task ID is current;
 pause retains that ID, and the observation removes the notice when that ID is released.
-Live cards retain priority and Close can dismiss the notice.
+A live state or unanswered question takes priority over a Catch-up notice, including one
+held indefinitely for playback. The notice remains separate from the player's paused
+identity and can reappear when the live state ends; Close can dismiss the notice.
+Round 2's original/fixed presentation evidence below establishes the later-arrival repair.
 
 Accepted offers still call `CatchUpLibrary.acceptOffer` → `LiveCatchUpOfferActing.say(_:for:)`,
 which records the background context before opening/submitting one ordinary turn and
@@ -115,10 +180,11 @@ shared dependency cache, installed app, owner store or canonical source was chan
 
 This merge changes CatchUpViews.swift, CatchUpSettingsSection.swift,
 CatchUpPresentationSelfTest.swift, IslandState.swift and IslandView.swift relative to the
-audio parent. The full combined branch's source list relative to `c6d850c` is retained in
-[combined-source-files.txt](Tests/Reports/catchup-final/combined-source-files.txt).
+audio parent. The round-1 combined source list relative to `c6d850c` is retained in
+[combined-source-files.txt](Tests/Reports/catchup-final/combined-source-files.txt);
+round 2 adds DesignSystem.swift in [the current list](Tests/Reports/catchup-final/round2/combined-source-files.txt).
 
-Every intersection with `../MAIN-DIRTY-SOURCES.txt` is below. All six **will conflict
+Every intersection with `../MAIN-DIRTY-SOURCES.txt` is below. All seven **will conflict
 with uncommitted work**; use focused hunks rather than replacing canonical files.
 
 | File | Merge advice |
@@ -129,6 +195,7 @@ with uncommitted work**; use focused hunks rather than replacing canonical files
 | `Sources/NextNotes/Agent/Tasks/TaskBridge.swift` | Thread optional acceptance through typed controls/routing and the existing work value without replacing newer canonical worker/authority logic. |
 | `Sources/NextNotes/UI/Island/IslandState.swift` | Add the Catch-up kind, guarded ready notice, and ID-bound playback notice observation while preserving canonical live priority and state/ownership changes. |
 | `Sources/NextNotes/UI/Island/IslandView.swift` | Add the Catch-up line/buttons switch cases using the helpers; preserve canonical layout and other live-card controls. |
+| `Sources/NextNotes/UI/DesignSystem.swift` | Round 2 moves the unchanged briefingTitle expression into DS.Font; merge this single token into the canonical font block. |
 
 The list is exhaustive for the combined branch against the supplied dirty-file list.
 No canonical file was edited, built, staged, checked out or committed.

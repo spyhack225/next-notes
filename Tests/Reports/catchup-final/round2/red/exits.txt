@@ -1,0 +1,2 @@
+build EXIT=0
+agent-panes EXIT=1

@@ -1,0 +1,1 @@
+EXIT=1 (nine flags ran; inherited Settings native SIGSEGV exit 139 is not tolerated as success)

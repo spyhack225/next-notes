@@ -528,3 +528,24 @@ Catch-up handoff and saved audio, 2026-10-08 (isolated `claude2/catchup-audio`):
 Catch-up independent-review repairs, 2026-10-09 (isolated `claude2/catchup-audio`): actual Library/Live/Session small-reader and acceptance compaction, wake hub callback, synchronous Observation/reply backing, production standing-grant policy and both real prompt consumers reproduce all four findings (original41 assertions failed; fixed0). Corrected backing setup plus oversized-offer omission regression supplies a second original14/fixed0 pair, exact speak3/resume1/overlaps3→0. Both fixed batches pass seven requested roots; nested browser18/TOOLLOOP_PRODUCTION_FAILED and duplex2 diagnostics remain. Acceptance reference stays bounded inside existing budgets; no new store/model pass/save/wait/microphone gate. One-second wake suppression and synchronous file pause are mitigation: file PCM is still outside the echo reference, with no acoustic safety/device latency/capture continuity or speedup claim. Standing grants still permit sends without new cards; raw courtesy PCM from the peer requires producer integration. First constructor-only speech probe was replaced and gave no backing-entry proof; retained corrected replay discloses the extra heavy batch, not one-slot completion. Own scratch removed; no install/push/merge/default/readiness promotion. Read [exact review evidence](Tests/Reports/catchup-audio-review/README.md) and [result](RESULT.md); scope/verdicts shared through agent-relay without treating delivery as receipt.
 
 Catch-up combined screens/audio verification, 2026-10-09 (isolated `claude2/catchup-final`): merge `eaafc732` retains the view expiry clock, shaping orb, guarded island notice, Reply/No thanks, player-driven Pause/Resume and the audio acceptance/provenance/standing-grant seam. The Settings footer's unconditional fresh-approval promise fails the identical original UI source predicate and passes after shared wording; the actual Agent-panes consumer pins it. One normal FIFO61 debug build and nine roots run: eight exit0, Settings emits its OK then inherited SIGSEGV139. Isolation21files/0defaults retains the exact inherited18 browser failures; duplex retains exact2 diagnostics. All23 changed-source hashes remain invariant. All four injected offscreen PNGs were inspected; text wraps without visible clipping, but glass/button fills and the Play glyph are absent, so no physical UI/material proof follows. No new product store/queue/pass/await/timer; the existing UI clock is retained. Saved-file PCM still lacks an echo reference; acoustic/device latency, capture continuity, real-model accuracy, release performance and broader readiness remain open. Own scratch and PID-bound temp fixtures removed; no install/push/main merge/default promotion. Read [the combined evidence](Tests/Reports/catchup-final/README.md) and [result](RESULT.md); actual scope/verdicts shared through agent-relay without assuming reading.
+
+
+Catch-up round-2 review closure, 2026-10-09 (isolated `claude2/catchup-final`): unchanged
+233b5dd8 IslandState producer plus the same authored presentation fixture fails4 later
+listening/speaking/thinking/approval assertions; corrected refresh passes0 with Agent-panes
+exit0. The convenience notice yields to live state independently of held/paused playback
+identity. The same title3-serif font moves into DS.Font. Original/fixed debug builds take
+282.23/137.96s, not product performance measurements; one final FIFO slot runs all9 roots,
+8 exit0, Settings OK then inherited SIGSEGV139 (wrapper1). Isolation21files/0defaults keeps
+exact inherited18 browser failures; duplex keeps exact2 turnPending diagnostics. All24
+source hashes and the immutable regression match; own scratch/two run roots/27 PID-bound
+folders removed. No new store/queue/pass/await/save/timer, speech change, install/push/main
+merge or gate/default promotion. Seven-source investigation confirms text-only shared
+admission/session APIs, probe-only 3–25s WAV adapter and separately bound renderer callbacks;
+no small production saved-file/cursor/reference seam is present. Saved-file playback is
+explicitly **not accepted for the one-channel rule**; recommended existing-owner extension
+and owner decision remain, alongside separate no-apple integration. Physical UI/acoustic,
+capture continuity, real-model quality, release latency and broader recovery remain open.
+Read [round-2 evidence](Tests/Reports/catchup-final/round2/README.md) and
+[audio gap/design](Tests/Reports/catchup-final/round2/AUDIO-GAP.md); share exact scope/verdicts
+through agent-relay without treating delivery as reading.

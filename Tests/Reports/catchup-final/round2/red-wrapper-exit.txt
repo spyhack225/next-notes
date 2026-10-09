@@ -1,0 +1,1 @@
+EXIT=0 (expected native RED exit 1 verified by wrapper script; not a product pass)
