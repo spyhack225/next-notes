@@ -1,0 +1,31 @@
+{
+  "CFBundleDisplayName" => "Next Notes"
+  "CFBundleExecutable" => "NextNotes"
+  "CFBundleIconFile" => "AppIcon"
+  "CFBundleIdentifier" => "ai.pivotstudio.nextnotes"
+  "CFBundleName" => "Next Notes"
+  "CFBundlePackageType" => "APPL"
+  "CFBundleShortVersionString" => "0.2.24"
+  "CFBundleURLTypes" => [
+    0 => {
+      "CFBundleURLName" => "ai.pivotstudio.nextnotes"
+      "CFBundleURLSchemes" => [
+        0 => "nextnotes"
+      ]
+    }
+  ]
+  "CFBundleVersion" => "1"
+  "LSMinimumSystemVersion" => "26.0"
+  "LSUIElement" => false
+  "NSAppleEventsUsageDescription" => "Next Notes asks Mail to write a draft, send an email or reply, only after you approve it, so it goes out from your own Google account."
+  "NSAudioCaptureUsageDescription" => "Next Notes records what you hear during a meeting so it can transcribe the other participants on-device. Audio never leaves this Mac."
+  "NSCalendarsFullAccessUsageDescription" => "Next Notes reads your calendar to know when a meeting starts, so it can offer to take notes."
+  "NSDesktopFolderUsageDescription" => "Next Notes lists the names of what is on your Desktop so your assistant can find your files. It never reads what is inside them."
+  "NSDocumentsFolderUsageDescription" => "Next Notes lists the names of what is in your Documents folder so your assistant can find your files. It never reads what is inside them."
+  "NSDownloadsFolderUsageDescription" => "Next Notes lists the names of what is in your Downloads folder so your assistant can find your files. It never reads what is inside them."
+  "NSHighResolutionCapable" => true
+  "NSHumanReadableCopyright" => "Copyright © 2026 Serge Kadjo. Licensed under the GNU Affero General Public License v3.0 or later."
+  "NSMicrophoneUsageDescription" => "Next Notes listens while you hold the push-to-talk key so it can turn your speech into text."
+  "NSSpeechRecognitionUsageDescription" => "Next Notes transcribes your speech on-device to insert text where you're typing."
+  "NSUserNotificationsUsageDescription" => "Next Notes notifies you before a meeting recording starts, when notes are ready, and when a reminder you set with the Agent is due."
+}

@@ -1,0 +1,31 @@
+{
+  "ok": true,
+  "claims": [
+    {
+      "agentId": "claude2-bakeoff2",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "build",
+      "claimedAt": "2026-10-09T05:22:16.833Z"
+    },
+    {
+      "agentId": "claude2-bakeoff2",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "model-evaluation",
+      "claimedAt": "2026-10-09T05:22:16.958Z"
+    }
+  ],
+  "owned": [
+    {
+      "agentId": "claude2-bakeoff2",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "build",
+      "claimedAt": "2026-10-09T05:22:16.833Z"
+    },
+    {
+      "agentId": "claude2-bakeoff2",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "model-evaluation",
+      "claimedAt": "2026-10-09T05:22:16.958Z"
+    }
+  ]
+}

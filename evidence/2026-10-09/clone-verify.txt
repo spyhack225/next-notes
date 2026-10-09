@@ -1,0 +1,8 @@
+--prepared:/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app/Contents/Frameworks/libNextNotesAEC.dylib
+--validated:/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app/Contents/Frameworks/libNextNotesAEC.dylib
+--prepared:/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app/Contents/Frameworks/llama.framework/Versions/Current/.
+--validated:/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app/Contents/Frameworks/llama.framework/Versions/Current/.
+--prepared:/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app/Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib
+--validated:/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app/Contents/Frameworks/libwebrtc-audio-processing-2.1.dylib
+/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app: valid on disk
+/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app: satisfies its Designated Requirement

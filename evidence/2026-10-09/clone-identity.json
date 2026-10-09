@@ -1,0 +1,37 @@
+{
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+  "sha256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+  "info": {
+    "CFBundleName": "Next Notes",
+    "CFBundleDisplayName": "Next Notes",
+    "CFBundleExecutable": "NextNotes",
+    "CFBundleIdentifier": "ai.pivotstudio.nextnotes",
+    "NSHumanReadableCopyright": "Copyright \u00a9 2026 Serge Kadjo. Licensed under the GNU Affero General Public License v3.0 or later.",
+    "CFBundlePackageType": "APPL",
+    "CFBundleShortVersionString": "0.2.24",
+    "CFBundleVersion": "1",
+    "CFBundleIconFile": "AppIcon",
+    "CFBundleURLTypes": [
+      {
+        "CFBundleURLName": "ai.pivotstudio.nextnotes",
+        "CFBundleURLSchemes": [
+          "nextnotes"
+        ]
+      }
+    ],
+    "LSMinimumSystemVersion": "26.0",
+    "LSUIElement": false,
+    "NSHighResolutionCapable": true,
+    "NSMicrophoneUsageDescription": "Next Notes listens while you hold the push-to-talk key so it can turn your speech into text.",
+    "NSSpeechRecognitionUsageDescription": "Next Notes transcribes your speech on-device to insert text where you're typing.",
+    "NSAudioCaptureUsageDescription": "Next Notes records what you hear during a meeting so it can transcribe the other participants on-device. Audio never leaves this Mac.",
+    "NSAppleEventsUsageDescription": "Next Notes asks Mail to write a draft, send an email or reply, only after you approve it, so it goes out from your own Google account.",
+    "NSCalendarsFullAccessUsageDescription": "Next Notes reads your calendar to know when a meeting starts, so it can offer to take notes.",
+    "NSUserNotificationsUsageDescription": "Next Notes notifies you before a meeting recording starts, when notes are ready, and when a reminder you set with the Agent is due.",
+    "NSDesktopFolderUsageDescription": "Next Notes lists the names of what is on your Desktop so your assistant can find your files. It never reads what is inside them.",
+    "NSDocumentsFolderUsageDescription": "Next Notes lists the names of what is in your Documents folder so your assistant can find your files. It never reads what is inside them.",
+    "NSDownloadsFolderUsageDescription": "Next Notes lists the names of what is in your Downloads folder so your assistant can find your files. It never reads what is inside them."
+  },
+  "cloneMethod": "cp -cR (APFS clone)",
+  "freeGiB": 9.700252532958984
+}

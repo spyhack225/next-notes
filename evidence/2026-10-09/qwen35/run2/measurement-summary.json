@@ -1,0 +1,9 @@
+{
+  "scored": false,
+  "reason": "installed binary identity changed",
+  "sampleCount": 72,
+  "minFreeGiB": 10.577869415283203,
+  "maxSwapGiB": 6.739501953125,
+  "sampledPeakResidentBytes": 3365027840,
+  "sampledPeakFootprintBytes": 607145512
+}

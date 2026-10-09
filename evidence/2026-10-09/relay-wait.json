@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "agent": {
+    "agentId": "claude2-bakeoff2",
+    "runner": "codex",
+    "registeredAt": "2026-10-08T20:36:23.171Z",
+    "updatedAt": "2026-10-09T03:07:40.705Z",
+    "status": "waiting",
+    "frozen": false,
+    "resources": [],
+    "task": "Qwen3.5 quick2 FIFO2; first FAILED3/10 full evidence retained. Resource snapshot43% memory/disk11.56/swap6.64, model not launched. Clock divergence OPEN; only measurements/report changes, no source/choices/install/voice."
+  },
+  "claims": [
+    {
+      "agentId": "claude2-voice-ack",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "build",
+      "claimedAt": "2026-10-09T02:38:50.400Z",
+      "scope": "machine",
+      "ageMs": 1730305,
+      "lastSeenAgeMs": 103953,
+      "stale": false
+    }
+  ]
+}

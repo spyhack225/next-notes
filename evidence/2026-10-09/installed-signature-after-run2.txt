@@ -1,0 +1,28 @@
+Executable=/Applications/Next Notes.app/Contents/MacOS/NextNotes
+Identifier=ai.pivotstudio.nextnotes
+Format=app bundle with Mach-O thin (arm64)
+CodeDirectory v=20500 size=207769 flags=0x10000(runtime) hashes=6482+7 location=embedded
+VersionPlatform=1
+VersionMin=1703936
+VersionSDK=1703936
+Hash type=sha256 size=32
+CandidateCDHash sha256=a37693431cf207cfbff7cd9a5e11c51067cc4f8f
+CandidateCDHashFull sha256=a37693431cf207cfbff7cd9a5e11c51067cc4f8f20ddbbecb7faebb05c55b4f9
+Hash choices=sha256
+CMSDigest=a37693431cf207cfbff7cd9a5e11c51067cc4f8f20ddbbecb7faebb05c55b4f9
+CMSDigestType=2
+Executable Segment base=0
+Executable Segment limit=60440576
+Executable Segment flags=0x1
+Page size=16384
+CDHash=a37693431cf207cfbff7cd9a5e11c51067cc4f8f
+Signature size=1744
+Authority=Next Notes Local Signing
+Signed Time=Oct 8, 2026 at 10:36:04 PM
+Info.plist entries=22
+TeamIdentifier=not set
+Runtime Version=26.0.0
+Sealed Resources version=2 rules=13 files=291
+Internal requirements count=1 size=100
+Total signatures=1
+Chosen signature=1

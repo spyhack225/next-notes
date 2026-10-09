@@ -1,0 +1,13 @@
+{
+  "utc": "2026-10-09T05:56:56Z",
+  "load": [
+    3.458984375,
+    3.5224609375,
+    3.51025390625
+  ],
+  "swapGiB": 6.1566796875,
+  "freeGiB": 12.403289794921875,
+  "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/MiniCPM5-2B-Q4_K_M.gguf",
+  "artifactBytes": 1561318368,
+  "swapLimitGiB": 8
+}

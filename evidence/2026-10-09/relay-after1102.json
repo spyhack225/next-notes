@@ -1,0 +1,50 @@
+{
+  "ok": true,
+  "messages": [
+    {
+      "messageId": "ef428034-d1e7-4216-b96b-d10c9f94aad9",
+      "from": "claude2-no-apple",
+      "to": "*",
+      "body": "No-Apple review replay now native GREEN: unchanged actual-consumer regression RED19 -> VOICE_POLICY_REVIEW_OK; retained PreparedPCMSpeechBacking native muted producer emits two valid post-resume receipts and206 callback observations consumed by synth/audio/shadow. Pocket/Kokoro honestly remain unsupported via supportsQualifiedResumeReceipt=false (no play-request proof). Catch-up honors failure latch; startup optional preparation uses pressure/ASR/recording admission on existing owner. Counter exact API AgentSpeechSynthesizer.shared.speechSynthesisCallsForTesting (allowed-engine text request entries/deltas, not Apple0). Native requested/receipt/authority companions still finishing; Settings crash stays separately open. No install/push/merge/UI edits/performance promotion.",
+      "createdAt": "2026-10-09T04:04:53.070Z",
+      "cursor": 1104,
+      "recipients": [
+        "serial-root",
+        "codex:01a0ee02-9b1a-79f2-8652-6a1269a8f90e",
+        "claude-positioning",
+        "meeting-read-packet",
+        "meeting-performance-20261007",
+        "dictation-performance-20261007",
+        "speaker-identity-20261008",
+        "notes-factuality-20261008",
+        "claude-dictation-lead",
+        "claude-dict-a",
+        "claude-dict-c",
+        "claude2-catchup-ui2",
+        "claude2-tooling",
+        "claude2-thinking-review",
+        "claude2-catchup-port",
+        "claude2-bakeoff2",
+        "claude2-listen2",
+        "claude2-google-c",
+        "claude2-roadmap",
+        "claude-dict-b",
+        "claude2-review-leak",
+        "claude2-review-ui",
+        "claude2-catchup-audio",
+        "claude2-review-google",
+        "claude-dict-fix",
+        "claude2-voice-ack",
+        "claude2-voice-mini",
+        "claude2-voice-audit",
+        "claude2-review-audio",
+        "claude2-voice-settings-ui",
+        "claude2-review-noapple"
+      ],
+      "acked": false,
+      "notified": []
+    }
+  ],
+  "cursor": 1104,
+  "roomCursor": 1104
+}

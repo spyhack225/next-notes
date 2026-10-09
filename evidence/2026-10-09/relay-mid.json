@@ -1,0 +1,139 @@
+{
+  "ok": true,
+  "agents": [
+    {
+      "agentId": "claude-positioning",
+      "runner": "claude",
+      "registeredAt": "2026-10-04T22:03:40.852Z",
+      "updatedAt": "2026-10-09T01:03:52.606Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 13840
+    },
+    {
+      "agentId": "claude-dictation-lead",
+      "runner": "shell",
+      "registeredAt": "2026-10-08T20:28:58.694Z",
+      "updatedAt": "2026-10-09T01:00:06.236Z",
+      "status": "working",
+      "frozen": false,
+      "resources": [],
+      "task": "Owner-directed dictation speed push: coordinating Claude subagents (MiniCPM resident timeout, launch cold-start, bench pipeline, ASR floor). Source-only worktree, no heavy work without claim.",
+      "lastSeenAgeMs": 240210
+    },
+    {
+      "agentId": "claude2-bakeoff2",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:23.171Z",
+      "updatedAt": "2026-10-09T00:51:30.689Z",
+      "status": "waiting",
+      "frozen": false,
+      "resources": [],
+      "task": "Qwen3.5 text quick1/3 FIFO position4; no model launch; baseline pinned contract19 OK; Gemma4.98GB requires swap<=6, all runs disk>=10; no explicit go needed.",
+      "lastSeenAgeMs": 755757
+    },
+    {
+      "agentId": "claude2-google-c",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:28.409Z",
+      "updatedAt": "2026-10-09T01:03:39.671Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 26775
+    },
+    {
+      "agentId": "claude2-catchup-audio",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T22:27:09.709Z",
+      "updatedAt": "2026-10-09T01:03:40.845Z",
+      "status": "waiting",
+      "frozen": false,
+      "resources": [],
+      "task": "Source/fixtures prepared; ONE FIFO slot position5, RED/fixed/seven flags unrun. Awaiting prior native/model work; own scratch only.",
+      "lastSeenAgeMs": 25601
+    },
+    {
+      "agentId": "claude2-review-google",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T23:20:29.011Z",
+      "updatedAt": "2026-10-09T00:52:40.602Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 685844
+    },
+    {
+      "agentId": "claude-dict-fix",
+      "runner": "shell",
+      "registeredAt": "2026-10-08T23:57:00.351Z",
+      "updatedAt": "2026-10-09T00:36:39.774Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 1646672
+    },
+    {
+      "agentId": "claude2-voice-ack",
+      "runner": "codex",
+      "registeredAt": "2026-10-09T00:00:06.608Z",
+      "updatedAt": "2026-10-09T01:03:26.793Z",
+      "status": "waiting",
+      "frozen": false,
+      "resources": [],
+      "task": "RED FIFO position2/shared voice scratch; complete green policy/cache/PCM/measurement drafts retained separately; same authored fixture hash verified; optimized final before/after and required batch planned; no native result yet.",
+      "lastSeenAgeMs": 39653
+    },
+    {
+      "agentId": "claude2-voice-mini",
+      "runner": "codex",
+      "registeredAt": "2026-10-09T00:00:10.471Z",
+      "updatedAt": "2026-10-09T01:03:27.295Z",
+      "status": "waiting",
+      "frozen": false,
+      "resources": [],
+      "task": "First combined batch complete: fullcold/scripted GREEN, Q Apple2 Mini1 coldfallback5; all8 relatedflags exit0 retaining nested A02fail18. Positioning-requested explicit-census repeat Apple/Mini queued same frozen source+fixture. Shared scratch preserved; no install/push/merge.",
+      "lastSeenAgeMs": 39151
+    },
+    {
+      "agentId": "claude2-no-apple",
+      "runner": "codex",
+      "registeredAt": "2026-10-09T00:37:55.295Z",
+      "updatedAt": "2026-10-09T01:00:04.732Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 241714
+    },
+    {
+      "agentId": "claude2-voice-settings-ui",
+      "runner": "claude",
+      "registeredAt": "2026-10-09T00:47:45.947Z",
+      "updatedAt": "2026-10-09T00:59:47.151Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 259295
+    }
+  ],
+  "claims": [
+    {
+      "agentId": "claude-dictation-lead",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "build",
+      "claimedAt": "2026-10-09T01:00:06.509Z",
+      "scope": "machine",
+      "ageMs": 239937,
+      "lastSeenAgeMs": 240210,
+      "stale": false
+    }
+  ],
+  "cursor": 1016
+}

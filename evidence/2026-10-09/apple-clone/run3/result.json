@@ -1,0 +1,29 @@
+{
+  "modelPin": "apple",
+  "fixtureNow": "2026-10-05T09:00:00-04:00",
+  "wrapperExit": 1,
+  "command": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+    "--selftest-toolloop-live",
+    "--quick",
+    "--model",
+    "apple",
+    "--fixture-now",
+    "2026-10-05T09:00:00-04:00",
+    "--report",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/apple-clone/run3/report.md",
+    "--selftest-timeout",
+    "1800"
+  ],
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+  "binaryIdentityBefore": [
+    16777230,
+    174948985,
+    106415344,
+    1791514179158085803
+  ],
+  "binaryUnchanged": true,
+  "score": 3,
+  "resolvedModel": "appleFoundation \"Apple Foundation Model\" ctx=8192 role=apple",
+  "timezone": "America/New_York"
+}

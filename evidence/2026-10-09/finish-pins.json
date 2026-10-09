@@ -1,0 +1,48 @@
+{
+  "utc": "2026-10-09T06:04:35Z",
+  "snapshotSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+  "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+  "freeGiB": 13.807361602783203,
+  "artifacts": [
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/gemma-4-E4B-it-Q4_K_M.gguf",
+      "unchanged": true,
+      "current": {
+        "bytes": 4977171584,
+        "mtimeNS": 1790633311757590844,
+        "inode": 168129422,
+        "device": 16777230
+      }
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+      "unchanged": true,
+      "current": {
+        "bytes": 2740937888,
+        "mtimeNS": 1790644257419772668,
+        "inode": 168245789,
+        "device": 16777230
+      }
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/MiniCPM5-2B-Q4_K_M.gguf",
+      "unchanged": true,
+      "current": {
+        "bytes": 1561318368,
+        "mtimeNS": 1790791554059993805,
+        "inode": 169025197,
+        "device": 16777230
+      }
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3-4B-Instruct-2507-Q4_K_M.gguf",
+      "unchanged": true,
+      "current": {
+        "bytes": 2497281120,
+        "mtimeNS": 1790219670290548038,
+        "inode": 165654394,
+        "device": 16777230
+      }
+    }
+  ]
+}

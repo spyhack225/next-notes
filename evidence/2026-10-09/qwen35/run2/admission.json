@@ -1,0 +1,13 @@
+{
+  "utc": "2026-10-09T03:08:20Z",
+  "load": [
+    3.0703125,
+    5.2548828125,
+    6.6201171875
+  ],
+  "swapGiB": 6.739501953125,
+  "freeGiB": 10.59225082397461,
+  "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+  "artifactBytes": 2740937888,
+  "swapLimitGiB": 8
+}

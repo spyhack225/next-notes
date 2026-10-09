@@ -1,0 +1,10 @@
+{
+  "utc": "2026-10-09T01:14:54Z",
+  "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/bakeoff2",
+  "entries": 3906,
+  "allocatedBytes": 213037056,
+  "beforeFreeBytes": 11047886848,
+  "afterFreeBytes": 11262599168,
+  "immediateFreeDeltaBytes": 214712320,
+  "reason": "Unused owned benchmark source only; no build/model created; other caches retained"
+}

@@ -1,0 +1,42 @@
+{
+  "samples": 96,
+  "sampledAppFootprintPeakBytes": 607063640,
+  "sampledAppRSSPeakBytes": 3194060800,
+  "minFreeGiB": 10.094661712646484,
+  "maxSwapGiB": 7.70349609375,
+  "start": {
+    "utc": "2026-10-09T01:18:07Z",
+    "load": [
+      4.68408203125,
+      4.96826171875,
+      5.2783203125
+    ],
+    "swapGiB": 7.70349609375,
+    "freeGiB": 10.159675598144531,
+    "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+    "artifactBytes": 2740937888,
+    "swapLimitGiB": 8
+  },
+  "finish": {
+    "utc": "2026-10-09T01:26:11Z",
+    "load": [
+      2.287109375,
+      2.994140625,
+      4.10009765625
+    ],
+    "swapGiB": 7.63318359375,
+    "freeGiB": 11.76724624633789
+  },
+  "verdicts": {
+    "C01": "WRONG_TOOL",
+    "C04": "WRONG_TOOL",
+    "M03": "UNGROUNDED",
+    "M04": "PASS",
+    "M05": "UNGROUNDED",
+    "K01": "PASS",
+    "R02": "UNGROUNDED",
+    "F03": "REFUSAL",
+    "A02": "PASS",
+    "N04": "UNGROUNDED"
+  }
+}

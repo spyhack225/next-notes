@@ -1,0 +1,11 @@
+{
+  "utc": "2026-10-09T06:05:32Z",
+  "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+  "removed": true,
+  "lsofNoHolders": true,
+  "preRemovalEntries": 344,
+  "preRemovalAllocatedBytes": 127164416,
+  "freeBefore": 14046838784,
+  "freeAfter": 14046806016,
+  "note": "APFS shared allocation: these are metadata/observations, not a unique/global reclamation claim"
+}

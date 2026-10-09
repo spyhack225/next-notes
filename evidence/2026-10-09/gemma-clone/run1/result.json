@@ -1,0 +1,27 @@
+{
+  "modelPin": "built-in/gemma-4-e4b",
+  "fixtureNow": "2026-10-05T09:00:00-04:00",
+  "wrapperExit": 75,
+  "command": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+    "--selftest-toolloop-live",
+    "--quick",
+    "--model",
+    "built-in/gemma-4-e4b",
+    "--fixture-now",
+    "2026-10-05T09:00:00-04:00",
+    "--report",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/gemma-clone/run1/report.md",
+    "--selftest-timeout",
+    "1800"
+  ],
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+  "binaryIdentityBefore": [
+    16777230,
+    174948985,
+    106415344,
+    1791514179158085803
+  ],
+  "binaryUnchanged": true,
+  "unscoredReason": "[Errno 2] No such file or directory: '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/gemma-clone/run1/report.md.jsonl'"
+}

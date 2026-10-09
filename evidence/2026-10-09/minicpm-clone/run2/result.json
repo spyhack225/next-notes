@@ -1,0 +1,29 @@
+{
+  "modelPin": "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+  "fixtureNow": "2026-10-05T09:00:00-04:00",
+  "wrapperExit": 1,
+  "command": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+    "--selftest-toolloop-live",
+    "--quick",
+    "--model",
+    "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+    "--fixture-now",
+    "2026-10-05T09:00:00-04:00",
+    "--report",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/minicpm-clone/run2/report.md",
+    "--selftest-timeout",
+    "1800"
+  ],
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+  "binaryIdentityBefore": [
+    16777230,
+    174948985,
+    106415344,
+    1791514179158085803
+  ],
+  "binaryUnchanged": true,
+  "score": 7,
+  "resolvedModel": "appLLM \"MiniCPM5-2B\" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+  "timezone": "America/New_York"
+}

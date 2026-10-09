@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "agent": {
+    "agentId": "claude2-bakeoff2",
+    "runner": "codex",
+    "registeredAt": "2026-10-08T20:36:23.171Z",
+    "updatedAt": "2026-10-09T06:11:11.822Z",
+    "status": "stopped-resource",
+    "frozen": false,
+    "resources": [],
+    "task": "Nine text quick runs recorded; Gemma swap refusal; report and evidence finalizing"
+  },
+  "claims": [
+    {
+      "agentId": "claude2-voice-ack",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "build",
+      "claimedAt": "2026-10-09T06:10:30.695Z",
+      "scope": "machine",
+      "ageMs": 41127,
+      "lastSeenAgeMs": 22709,
+      "stale": false
+    }
+  ]
+}

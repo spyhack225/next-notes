@@ -1,0 +1,778 @@
+{
+  "cohorts": {
+    "qwen35-clone": {
+      "scores": [
+        3,
+        3,
+        3
+      ],
+      "median": 3,
+      "min": 3,
+      "max": 3,
+      "elapsedMedian": 367.4,
+      "elapsedMin": 340.9,
+      "elapsedMax": 367.7
+    },
+    "apple-clone": {
+      "scores": [
+        3,
+        3,
+        3
+      ],
+      "median": 3,
+      "min": 3,
+      "max": 3,
+      "elapsedMedian": 39.5,
+      "elapsedMin": 38.8,
+      "elapsedMax": 42.4
+    },
+    "minicpm-clone": {
+      "scores": [
+        7,
+        7,
+        7
+      ],
+      "median": 7,
+      "min": 7,
+      "max": 7,
+      "elapsedMedian": 104.1,
+      "elapsedMin": 92.6,
+      "elapsedMax": 112.7
+    }
+  },
+  "runs": [
+    {
+      "modelPin": "apple",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "apple",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/apple-clone/run1/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 3,
+      "resolvedModel": "appleFoundation \"Apple Foundation Model\" ctx=8192 role=apple",
+      "timezone": "America/New_York",
+      "relativePath": "apple-clone/run1",
+      "elapsedSeconds": 42.4,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "PASS",
+        "M04": "REFUSAL",
+        "M05": "PASS",
+        "K01": "MISSED_TOOL",
+        "R02": "MISSED_TOOL",
+        "F03": "MISSED_TOOL",
+        "A02": "UNGROUNDED",
+        "N04": "PASS"
+      },
+      "nativePeakRSSBytes": 176013312,
+      "thermalStates": [
+        "nominal"
+      ],
+      "admission": {
+        "utc": "2026-10-09T05:22:16Z",
+        "load": [
+          3.61572265625,
+          3.4892578125,
+          3.56884765625
+        ],
+        "swapGiB": 6.0235546875,
+        "freeGiB": 11.271316528320312,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 73467032,
+      "minFreeGiB": 11.254222869873047,
+      "maxSwapGiB": 6.0235546875
+    },
+    {
+      "modelPin": "apple",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "apple",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/apple-clone/run2/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 3,
+      "resolvedModel": "appleFoundation \"Apple Foundation Model\" ctx=8192 role=apple",
+      "timezone": "America/New_York",
+      "relativePath": "apple-clone/run2",
+      "elapsedSeconds": 38.8,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "REFUSAL",
+        "M04": "REFUSAL",
+        "M05": "PASS",
+        "K01": "PASS",
+        "R02": "MISSED_TOOL",
+        "F03": "MISSED_TOOL",
+        "A02": "REFUSAL",
+        "N04": "PASS"
+      },
+      "nativePeakRSSBytes": 176259072,
+      "thermalStates": [
+        "fair"
+      ],
+      "admission": {
+        "utc": "2026-10-09T05:28:44Z",
+        "load": [
+          3.27392578125,
+          3.87548828125,
+          3.75
+        ],
+        "swapGiB": 6.0235546875,
+        "freeGiB": 10.92599868774414,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 73680048,
+      "minFreeGiB": 10.90933609008789,
+      "maxSwapGiB": 6.0235546875
+    },
+    {
+      "modelPin": "apple",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "apple",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/apple-clone/run3/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 3,
+      "resolvedModel": "appleFoundation \"Apple Foundation Model\" ctx=8192 role=apple",
+      "timezone": "America/New_York",
+      "relativePath": "apple-clone/run3",
+      "elapsedSeconds": 39.5,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "PASS",
+        "M04": "REFUSAL",
+        "M05": "PASS",
+        "K01": "MISSED_TOOL",
+        "R02": "MISSED_TOOL",
+        "F03": "MISSED_TOOL",
+        "A02": "MISSED_TOOL",
+        "N04": "PASS"
+      },
+      "nativePeakRSSBytes": 179208192,
+      "thermalStates": [
+        "fair",
+        "nominal"
+      ],
+      "admission": {
+        "utc": "2026-10-09T05:55:30Z",
+        "load": [
+          3.52734375,
+          3.61083984375,
+          3.54443359375
+        ],
+        "swapGiB": 6.2973046875,
+        "freeGiB": 12.430229187011719,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 73499824,
+      "minFreeGiB": 12.403827667236328,
+      "maxSwapGiB": 6.2973046875
+    },
+    {
+      "modelPin": "built-in/gemma-4-e4b",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 75,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "built-in/gemma-4-e4b",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/gemma-clone/run1/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "unscoredReason": "[Errno 2] No such file or directory: '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/gemma-clone/run1/report.md.jsonl'",
+      "relativePath": "gemma-clone/run1",
+      "admission": {
+        "utc": "2026-10-09T06:02:37Z",
+        "load": [
+          4.17041015625,
+          4.5439453125,
+          4.09375
+        ],
+        "swapGiB": 6.1254296875,
+        "freeGiB": 13.813957214355469,
+        "swapLimitGiB": 6
+      }
+    },
+    {
+      "modelPin": "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/minicpm-clone/run1/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 7,
+      "resolvedModel": "appLLM \"MiniCPM5-2B\" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+      "timezone": "America/New_York",
+      "relativePath": "minicpm-clone/run1",
+      "elapsedSeconds": 92.6,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "PASS",
+        "M04": "PASS",
+        "M05": "PASS",
+        "K01": "PASS",
+        "R02": "PASS",
+        "F03": "PASS",
+        "A02": "UNGROUNDED",
+        "N04": "PASS"
+      },
+      "nativePeakRSSBytes": 2030288896,
+      "thermalStates": [
+        "fair",
+        "nominal"
+      ],
+      "admission": {
+        "utc": "2026-10-09T05:56:56Z",
+        "load": [
+          3.458984375,
+          3.5224609375,
+          3.51025390625
+        ],
+        "swapGiB": 6.1566796875,
+        "freeGiB": 12.403289794921875,
+        "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/MiniCPM5-2B-Q4_K_M.gguf",
+        "artifactBytes": 1561318368,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 428264040,
+      "minFreeGiB": 12.396408081054688,
+      "maxSwapGiB": 6.1566796875
+    },
+    {
+      "modelPin": "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/minicpm-clone/run2/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 7,
+      "resolvedModel": "appLLM \"MiniCPM5-2B\" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+      "timezone": "America/New_York",
+      "relativePath": "minicpm-clone/run2",
+      "elapsedSeconds": 112.7,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "PASS",
+        "M04": "PASS",
+        "M05": "PASS",
+        "K01": "PASS",
+        "R02": "PASS",
+        "F03": "PASS",
+        "A02": "UNGROUNDED",
+        "N04": "PASS"
+      },
+      "nativePeakRSSBytes": 2077032448,
+      "thermalStates": [
+        "fair"
+      ],
+      "admission": {
+        "utc": "2026-10-09T05:58:47Z",
+        "load": [
+          10.7392578125,
+          5.41015625,
+          4.19970703125
+        ],
+        "swapGiB": 6.1410546875,
+        "freeGiB": 13.818962097167969,
+        "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/MiniCPM5-2B-Q4_K_M.gguf",
+        "artifactBytes": 1561318368,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 427592272,
+      "minFreeGiB": 13.813045501708984,
+      "maxSwapGiB": 6.1410546875
+    },
+    {
+      "modelPin": "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/minicpm-clone/run3/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 7,
+      "resolvedModel": "appLLM \"MiniCPM5-2B\" ctx=32768 role=installed:openbmb/MiniCPM5-2B-GGUF/MiniCPM5-2B-Q4_K_M.gguf",
+      "timezone": "America/New_York",
+      "relativePath": "minicpm-clone/run3",
+      "elapsedSeconds": 104.1,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "PASS",
+        "M04": "PASS",
+        "M05": "PASS",
+        "K01": "PASS",
+        "R02": "PASS",
+        "F03": "PASS",
+        "A02": "UNGROUNDED",
+        "N04": "PASS"
+      },
+      "nativePeakRSSBytes": 2018672640,
+      "thermalStates": [
+        "fair"
+      ],
+      "admission": {
+        "utc": "2026-10-09T06:00:47Z",
+        "load": [
+          4.98388671875,
+          4.94482421875,
+          4.1650390625
+        ],
+        "swapGiB": 6.1332421875,
+        "freeGiB": 13.813701629638672,
+        "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/MiniCPM5-2B-Q4_K_M.gguf",
+        "artifactBytes": 1561318368,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 426330704,
+      "minFreeGiB": 13.805931091308594,
+      "maxSwapGiB": 6.1332421875
+    },
+    {
+      "modelPin": "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/qwen35/run1/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "binaryUnchanged": true,
+      "score": 3,
+      "resolvedModel": "appLLM \"Qwen3.5-4B\" ctx=32768 role=installed:unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "timezone": "America/New_York",
+      "relativePath": "qwen35/run1",
+      "elapsedSeconds": 471.4,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "UNGROUNDED",
+        "M04": "PASS",
+        "M05": "UNGROUNDED",
+        "K01": "PASS",
+        "R02": "UNGROUNDED",
+        "F03": "REFUSAL",
+        "A02": "PASS",
+        "N04": "UNGROUNDED"
+      },
+      "nativePeakRSSBytes": 3194404864,
+      "thermalStates": [
+        "fair"
+      ],
+      "admission": {
+        "utc": "2026-10-09T01:18:07Z",
+        "load": [
+          4.68408203125,
+          4.96826171875,
+          5.2783203125
+        ],
+        "swapGiB": 7.70349609375,
+        "freeGiB": 10.159675598144531,
+        "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+        "artifactBytes": 2740937888,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 607063640,
+      "minFreeGiB": 10.094661712646484,
+      "maxSwapGiB": 7.70349609375
+    },
+    {
+      "modelPin": "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/qwen35/run2/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "binaryUnchanged": false,
+      "unscoredReason": "Installed binary changed",
+      "relativePath": "qwen35/run2",
+      "elapsedSeconds": 352.8,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "UNGROUNDED",
+        "M04": "PASS",
+        "M05": "UNGROUNDED",
+        "K01": "PASS",
+        "R02": "UNGROUNDED",
+        "F03": "REFUSAL",
+        "A02": "UNGROUNDED",
+        "N04": "UNGROUNDED"
+      },
+      "nativePeakRSSBytes": 3365093376,
+      "thermalStates": [
+        "fair"
+      ],
+      "admission": {
+        "utc": "2026-10-09T03:08:20Z",
+        "load": [
+          3.0703125,
+          5.2548828125,
+          6.6201171875
+        ],
+        "swapGiB": 6.739501953125,
+        "freeGiB": 10.59225082397461,
+        "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+        "artifactBytes": 2740937888,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 607145512,
+      "minFreeGiB": 10.577869415283203,
+      "maxSwapGiB": 6.739501953125
+    },
+    {
+      "modelPin": "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/qwen35-clone/run1/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 3,
+      "resolvedModel": "appLLM \"Qwen3.5-4B\" ctx=32768 role=installed:unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "timezone": "America/New_York",
+      "relativePath": "qwen35-clone/run1",
+      "elapsedSeconds": 340.9,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "PASS",
+        "M04": "PASS",
+        "M05": "UNGROUNDED",
+        "K01": "PASS",
+        "R02": "UNGROUNDED",
+        "F03": "REFUSAL",
+        "A02": "UNGROUNDED",
+        "N04": "UNGROUNDED"
+      },
+      "nativePeakRSSBytes": 3286614016,
+      "thermalStates": [
+        "fair"
+      ],
+      "admission": {
+        "utc": "2026-10-09T04:10:00Z",
+        "load": [
+          3.5380859375,
+          3.5595703125,
+          3.59521484375
+        ],
+        "swapGiB": 5.75390625,
+        "freeGiB": 11.50937271118164,
+        "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+        "artifactBytes": 2740937888,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 617467432,
+      "minFreeGiB": 11.313053131103516,
+      "maxSwapGiB": 5.75390625
+    },
+    {
+      "modelPin": "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/qwen35-clone/run2/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 3,
+      "resolvedModel": "appLLM \"Qwen3.5-4B\" ctx=32768 role=installed:unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "timezone": "America/New_York",
+      "relativePath": "qwen35-clone/run2",
+      "elapsedSeconds": 367.4,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "UNGROUNDED",
+        "M04": "PASS",
+        "M05": "UNGROUNDED",
+        "K01": "PASS",
+        "R02": "UNGROUNDED",
+        "F03": "MISSED_TOOL",
+        "A02": "PASS",
+        "N04": "UNGROUNDED"
+      },
+      "nativePeakRSSBytes": 3196698624,
+      "thermalStates": [
+        "fair"
+      ],
+      "admission": {
+        "utc": "2026-10-09T04:30:12Z",
+        "load": [
+          4.55908203125,
+          4.70849609375,
+          4.29931640625
+        ],
+        "swapGiB": 5.5819140625,
+        "freeGiB": 11.531124114990234,
+        "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+        "artifactBytes": 2740937888,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 592072232,
+      "minFreeGiB": 11.442337036132812,
+      "maxSwapGiB": 5.96587890625
+    },
+    {
+      "modelPin": "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 1,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/qwen35-clone/run3/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+      "binaryIdentityBefore": [
+        16777230,
+        174948985,
+        106415344,
+        1791514179158085803
+      ],
+      "binaryUnchanged": true,
+      "score": 3,
+      "resolvedModel": "appLLM \"Qwen3.5-4B\" ctx=32768 role=installed:unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "timezone": "America/New_York",
+      "relativePath": "qwen35-clone/run3",
+      "elapsedSeconds": 367.7,
+      "verdicts": {
+        "C01": "WRONG_TOOL",
+        "C04": "WRONG_TOOL",
+        "M03": "PASS",
+        "M04": "PASS",
+        "M05": "UNGROUNDED",
+        "K01": "PASS",
+        "R02": "UNGROUNDED",
+        "F03": "MISSED_TOOL",
+        "A02": "UNGROUNDED",
+        "N04": "UNGROUNDED"
+      },
+      "nativePeakRSSBytes": 3183165440,
+      "thermalStates": [
+        "fair"
+      ],
+      "admission": {
+        "utc": "2026-10-09T05:06:35Z",
+        "load": [
+          3.6484375,
+          3.9033203125,
+          3.99755859375
+        ],
+        "swapGiB": 6.0469921875,
+        "freeGiB": 11.82736587524414,
+        "artifactPath": "/Users/sergekadjo/Library/Application Support/Next Notes/Models/unsloth--Qwen3.5-4B-Q4_K_M.gguf",
+        "artifactBytes": 2740937888,
+        "swapLimitGiB": 8
+      },
+      "sampledPeakFootprintBytes": 607309376,
+      "minFreeGiB": 11.759071350097656,
+      "maxSwapGiB": 6.0469921875
+    },
+    {
+      "modelPin": "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+      "fixtureNow": "2026-10-05T09:00:00-04:00",
+      "wrapperExit": 143,
+      "command": [
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+        "--selftest-toolloop-live",
+        "--quick",
+        "--model",
+        "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+        "--fixture-now",
+        "2026-10-05T09:00:00-04:00",
+        "--report",
+        "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/qwen35-current/run1/report.md",
+        "--selftest-timeout",
+        "1800"
+      ],
+      "binaryUnchanged": true,
+      "unscoredReason": "[Errno 2] No such file or directory: '/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/qwen35-current/run1/report.md.jsonl'",
+      "relativePath": "qwen35-current/run1"
+    }
+  ]
+}

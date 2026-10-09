@@ -1,0 +1,35 @@
+{
+  "ok": true,
+  "agent": {
+    "agentId": "claude2-bakeoff2",
+    "runner": "codex",
+    "registeredAt": "2026-10-08T20:36:23.171Z",
+    "updatedAt": "2026-10-09T03:09:09.850Z",
+    "status": "working",
+    "frozen": false,
+    "resources": [],
+    "task": "Qwen3.5 text quick2 admitted03:08Z via FIFO/build+model claims, same explicit pin/clock; full round pending. FirstFAILED3/10 clock divergence retained; no source/choices/install/voice changes."
+  },
+  "claims": [
+    {
+      "agentId": "claude2-bakeoff2",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "build",
+      "claimedAt": "2026-10-09T03:08:20.184Z",
+      "scope": "machine",
+      "ageMs": 49666,
+      "lastSeenAgeMs": 0,
+      "stale": false
+    },
+    {
+      "agentId": "claude2-bakeoff2",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "model-evaluation",
+      "claimedAt": "2026-10-09T03:08:20.308Z",
+      "scope": "machine",
+      "ageMs": 49542,
+      "lastSeenAgeMs": 0,
+      "stale": false
+    }
+  ]
+}

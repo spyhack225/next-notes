@@ -1,0 +1,29 @@
+{
+  "modelPin": "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+  "fixtureNow": "2026-10-05T09:00:00-04:00",
+  "wrapperExit": 1,
+  "command": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/Scripts/run-selftest.sh",
+    "--selftest-toolloop-live",
+    "--quick",
+    "--model",
+    "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+    "--fixture-now",
+    "2026-10-05T09:00:00-04:00",
+    "--report",
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/qwen35-clone/run3/report.md",
+    "--selftest-timeout",
+    "1800"
+  ],
+  "app": "/Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app",
+  "binaryIdentityBefore": [
+    16777230,
+    174948985,
+    106415344,
+    1791514179158085803
+  ],
+  "binaryUnchanged": true,
+  "score": 3,
+  "resolvedModel": "appLLM \"Qwen3.5-4B\" ctx=32768 role=installed:unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+  "timezone": "America/New_York"
+}

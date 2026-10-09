@@ -1,0 +1,44 @@
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+run-selftest: direct /Users/sergekadjo/Library/Caches/NextNotesBuild/bakeoff-app/NextNotes-503e0e40.app/Contents/MacOS/NextNotes --selftest-toolloop-live --quick --model apple --fixture-now 2026-10-05T09:00:00-04:00 --report /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/apple-clone/run2/report.md --selftest-timeout 1800
+2026-10-09 01:28:45.419 NextNotes[92161:4726076] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+TOOLLOOP_LIVE_CLOCK: 2026-10-05T09:00:00-04:00 timezone=America/New_York
+TOOLLOOP_LIVE_MODEL: appleFoundation "Apple Foundation Model" ctx=8192 role=apple
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=654
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=0 skills=0 now=131 volatileTail=0
+TOOLLOOP_LIVE_CASE C01 WRONG_TOOL 2.9s turns=1 tools=get_agenda(date=2026-10-09) reply="Nothing is on your calendar today."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2441
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2441
+TOOLLOOP_LIVE_CASE C04 WRONG_TOOL 4.2s turns=1 tools=get_agenda(date=2026-10-10) reply="This takes a few steps on this Mac.  I can’t see your emails right now, but your calendar shows nothing scheduled for tomorrow."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CASE M03 REFUSAL 2.0s turns=1 tools=- reply="I can’t access your email directly, but I can help you read your most recent email. Would you like me to do that?"
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=3149
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=3149
+TOOLLOOP_LIVE_CASE M04 REFUSAL 4.2s turns=1 tools=- reply="I can help you draft that email. Would you like me to start by searching for any recent emails from Ana?"
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2145
+TOOLLOOP_LIVE_CASE M05 PASS 7.1s turns=2 tools=search_email(limit=1,maxResults=3) reply="Here’s what’s in your latest emails: a question about dinner tomorrow, a request for a deck by Friday, and an updated pricing sheet."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=1708
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=1708
+TOOLLOOP_LIVE_CASE K01 PASS 5.3s turns=1 tools=meeting.decisions(observe=title, participants) reply="We decided to move the launch to October 14 and keep the price at $12 a month. You need to send the revised budget to Ana by Thursday, and Marcus should update "
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2154
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2154
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2154
+TOOLLOOP_LIVE_CASE R02 MISSED_TOOL 5.7s turns=1 tools=- reply="I haven't done that yet."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2610
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=2610
+TOOLLOOP_LIVE_CASE F03 MISSED_TOOL 3.9s turns=1 tools=filesystem.search(query=pricing) reply="I found the pricing document. I can send it to Marcus now."
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=1362
+TOOLLOOP_LIVE_CASE A02 REFUSAL 1.9s turns=1 tools=- reply="I can't process videos directly, but I can open YouTube for you.  Would you like me to open it now?"
+TOOLLOOP_LIVE_CONTEXT_CHARS persona=882 grounding=586 rules=1827 memory=0 capabilities=1024 skills=0 now=131 volatileTail=342
+TOOLLOOP_LIVE_CASE N04 PASS 1.7s turns=1 tools=- reply="I can help you with your calendar, emails, files, apps, and more. What would you like to look at first?"
+TOOLLOOP_LIVE_CLASSES pass=3 error=0 timeout=0 leak=0 refusal=3 wrong_tool=2 fabricated=0 missed_tool=2 ungrounded=0 filler=0
+TOOLLOOP_LIVE_SCORE 3/10 (quick)
+TOOLLOOP_LIVE_REPORT /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/bakeoff2/evidence/2026-10-09/apple-clone/run2/report.md
+TOOLLOOP_LIVE_ELAPSED 38.8
+TOOLLOOP_LIVE_FAILED: 3/10 (quick) on Apple's built-in intelligence — below the pass bar 9

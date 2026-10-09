@@ -1,0 +1,12 @@
+{"utc": "2026-10-09T03:31:22Z", "freeGiB": 9.709991455078125, "load": [2.74755859375, 3.17333984375, 4.02978515625], "swap": "vm.swapusage: total = 8192.00M  used = 6765.19M  free = 1426.81M  (encrypted)"}
+{"utc": "2026-10-09T03:35:44Z", "freeGiB": 9.255970001220703, "load": [4.50537109375, 4.2158203125, 4.33740234375], "swap": "vm.swapusage: total = 8192.00M  used = 6725.19M  free = 1466.81M  (encrypted)"}
+{"utc": "2026-10-09T03:40:49Z", "freeGiB": 8.642059326171875, "load": [3.6806640625, 3.90966796875, 4.15966796875], "swap": "vm.swapusage: total = 8192.00M  used = 6677.19M  free = 1514.81M  (encrypted)"}
+{"utc": "2026-10-09T03:46:50Z", "freeGiB": 9.46298599243164, "load": [2.763671875, 3.84375, 4.14404296875], "swap": "vm.swapusage: total = 7168.00M  used = 6276.12M  free = 891.88M  (encrypted)"}
+{"utc": "2026-10-09T03:55:57Z", "freeGiB": 11.112998962402344, "load": [3.8212890625, 3.44921875, 3.78076171875], "swap": "vm.swapusage: total = 7168.00M  used = 6228.12M  free = 939.88M  (encrypted)"}
+{"utc": "2026-10-09T04:55:06Z", "freeGiB": 9.745052337646484, "load": [3.65869140625, 3.9541015625, 4.193359375], "swap": "vm.swapusage: total = 7168.00M  used = 6288.12M  free = 879.88M  (encrypted)"}
+{"utc": "2026-10-09T05:22:43Z", "freeGiB": 11.254135131835938, "load": [3.09228515625, 3.36962890625, 3.5224609375], "swap": "vm.swapusage: total = 7168.00M  used = 6168.12M  free = 999.88M  (encrypted)"}
+{"utc": "2026-10-09T05:35:42Z", "freeGiB": 10.536144256591797, "load": [3.6728515625, 3.3056640625, 3.45849609375], "swap": "vm.swapusage: total = 7168.00M  used = 6168.12M  free = 999.88M  (encrypted)"}
+{"utc": "2026-10-09T05:40:59Z", "freeGiB": 10.282127380371094, "load": [4.68896484375, 3.8544921875, 3.61767578125], "swap": "vm.swapusage: total = 7168.00M  used = 6520.44M  free = 647.56M  (encrypted)"}
+{"utc": "2026-10-09T05:45:12Z", "freeGiB": 10.11489486694336, "load": [3.77880859375, 3.59130859375, 3.529296875], "swap": "vm.swapusage: total = 7168.00M  used = 6496.44M  free = 671.56M  (encrypted)"}
+{"utc": "2026-10-09T05:50:33Z", "freeGiB": 11.832664489746094, "load": [3.32470703125, 3.52197265625, 3.50244140625], "swap": "vm.swapusage: total = 7168.00M  used = 6472.44M  free = 695.56M  (encrypted)"}
+{"utc": "2026-10-09T05:55:50Z", "freeGiB": 12.40618896484375, "load": [2.72998046875, 3.4248046875, 3.478515625], "swap": "vm.swapusage: total = 7168.00M  used = 6448.44M  free = 719.56M  (encrypted)"}

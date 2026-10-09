@@ -1,0 +1,12 @@
+{
+  "Scripts/pinned-quick.py": "30adad3957cb434b1682adf03a04ae11d39349b6a8bdf6acb1caef3b08a0f7e1",
+  "Scripts/pinned-quick-selftest.py": "e0f689a8dc2a1b81976a15e6f321769ca3f876a3118a8d517eb490678826aadf",
+  "Scripts/run-selftest.sh": "0106a222d0a09872adf3f428e2ea76dabb94aba565c23f97510ffed4346e68c4",
+  "../heavy.sh": "e6e02efd4ca8355526f92fbf517910de6d7a017bbc8e80b9692e9c30c064c0ef",
+  "../gate.sh": "370ac8463e24342fb4aa5b4f5c3a6b0f3884b1bb7f73caea45f139c089bb9367",
+  "Package.swift": "d0d5806a3efd36fb250657b71a3ea681dbd57a603999241ba6273f92838eabaa",
+  "BRIEF.md": "26e7cad826e2e26dc203e824ee12aea1f5b768709535194de08452d5f5608e86",
+  "RESULT-previous2.md": "f195d33c29826826eaef29834d337758b960926dd0975f4ceca75beaba342b3c",
+  "PERFORMANCE-STANDARDS.md": "511ea88b0e9e690d39b12258754f9517c864bcf236703ab51da808bbe0887f94",
+  "worktreeHEAD": "3a6b70d4cb240b6bf812df324d0aeb2929e49fb2"
+}

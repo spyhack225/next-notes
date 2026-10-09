@@ -1,0 +1,9 @@
+{
+  "pin": "503e0e40",
+  "fixtureNow": "2026-10-05T09:00:00-04:00",
+  "rawFirst": "I don't have access to your calendar right now. Let me check for you.\n\n<tool_call>{\"name\":\"get_agenda\", \"arguments\": {\"date\": \"2026-10-05\"}, \"rationale\":\"Check the user's calendar for today's schedule as requested.\"}</tool_call>",
+  "actualTools": [
+    "get_agenda(date=2026-10-09)"
+  ],
+  "verdict": "WRONG_TOOL"
+}

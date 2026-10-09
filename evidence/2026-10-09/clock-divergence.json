@@ -1,0 +1,11 @@
+{
+  "fixtureNow": "2026-10-05T09:00:00-04:00",
+  "modelPin": "unsloth/Qwen3.5-4B-GGUF/Qwen3.5-4B-Q4_K_M.gguf",
+  "case": "C01",
+  "rawFirst": "I don't have access to your calendar right now. Let me check for you.\n\n<tool_call>{\"name\":\"get_agenda\", \"arguments\": {\"date\": \"2026-10-05\"}, \"rationale\":\"Check the user's calendar for today's schedule as requested.\"}</tool_call>",
+  "executedTools": [
+    "get_agenda(date=2026-10-08)"
+  ],
+  "verdict": "WRONG_TOOL",
+  "attribution": "Raw proposal differs from actual fixture call. Parser/fallback/grounding attribution remains unconfirmed; no adjusted grade."
+}
