@@ -1,14 +1,15 @@
 {
   "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift": {
-    "reason": "Legacy voice catalog enumeration/signature only; Sonnet owns its removal. No synthesis allowed.",
+    "reason": "Legacy voice catalog signatures plus existing AgentSpeechSynthesizer preview only; Sonnet owns removal/recovery UI. No Apple synthesis permitted.",
     "lines": [
       "private var availableVoices: [AVSpeechSynthesisVoice] {",
       "AVSpeechSynthesisVoice.speechVoices()",
-      "private func qualityLabel(_ voice: AVSpeechSynthesisVoice) -> String {"
+      "private func qualityLabel(_ voice: AVSpeechSynthesisVoice) -> String {",
+      "synthesizer.speak(\"Hi, I'm Next. I can check your calendar and help with your notes.\")"
     ]
   },
   "Tools/tts_benchmark.swift": {
-    "reason": "Standalone historical Apple benchmark, never linked into app. Only retained existing benchmark operations allowed.",
+    "reason": "Standalone historical Apple benchmark, never linked into app. Only retained existing benchmark operations allowed. Existing JSON output write is non-speech; exact original standalone Apple write is benchmark-only.",
     "lines": [
       "/// The Apple measurement uses AVSpeechSynthesizer.write(_:toBufferCallback:), so",
       "let apple = inventory.engines.first(where: { $0.name == \"AVSpeechSynthesizer\" })!",
@@ -20,7 +21,9 @@
       "let utterance = AVSpeechUtterance(string: options.text)",
       "utterance.voice = AVSpeechSynthesisVoice(language: \"en-US\")",
       "final class SpeechWriteProbe: NSObject, AVSpeechSynthesizerDelegate {",
-      "let synthesizer = AVSpeechSynthesizer()"
+      "let synthesizer = AVSpeechSynthesizer()",
+      "try data.write(to: URL(fileURLWithPath: output), options: .atomic)",
+      "probe.synthesizer.write(utterance) { [weak probe] buffer in"
     ]
   },
   "Scripts/make-voice-fixtures.sh": {
