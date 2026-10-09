@@ -50,6 +50,7 @@ enum CatchUpSelfTest {
         if CommandLine.arguments.contains("--real-voice") { return await realVoiceRun(root: root) }
 
         failures += await CatchUpHandoffSelfTest.run()
+        failures += await CatchUpAcceptanceSelfTest.run()
         failures += identityFailures(root: root)
         failures += templateFailures()
         failures += await routineFailures(root: root)

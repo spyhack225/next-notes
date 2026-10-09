@@ -25,26 +25,29 @@ extension CatchUpOfferActing {
 struct LiveCatchUpOfferActing: CatchUpOfferActing {
     private let session: AgentSession?
     private let open: @MainActor () -> Void
-    private let submit: @MainActor (String) -> Void
+    private let submit: @MainActor (String, CatchUpAcceptance?) -> Void
 
     init(session: AgentSession? = nil,
          open: @escaping @MainActor () -> Void = { NavigationState.shared.showConversation() },
-         submit: @escaping @MainActor (String) -> Void = {
-             text in Task { await RealtimeAgent.shared.handleLive(text, source: .text) }
-         }) {
+         submit: (@MainActor (String) -> Void)? = nil,
+         submitAccepted: (@MainActor (String, CatchUpAcceptance?) -> Void)? = nil) {
         self.session = session
         self.open = open
-        self.submit = submit
+        self.submit = submitAccepted ?? { text, context in
+            if let submit { submit(text) }
+            else { Task { await RealtimeAgent.shared.handleLive(text, source: .text, catchUpAcceptance: context) } }
+        }
     }
 
     func say(_ text: String) {
         open()
-        submit(text)
+        submit(text, nil)
     }
 
     func say(_ text: String, for entry: CatchUpEntry) {
         (session ?? .shared).recordBackgroundTask(entry.text, taskID: entry.id)
-        say(text)
+        open()
+        submit(text, CatchUpAcceptance(entry: entry))
     }
 }
 

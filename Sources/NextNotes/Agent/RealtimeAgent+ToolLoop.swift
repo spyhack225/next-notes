@@ -342,8 +342,8 @@ extension RealtimeAgent {
     /// Confirmation-aware entry for the Agent sidebar. Same wait as voice
     /// `handle` — a missing ACP CLI parks on [Run once] / [Cancel].
     func handleLive(_ utterance: String, source: AgentUtteranceSource,
-                    turnID: UUID? = nil) async -> AgentTurn {
-        await handle(utterance, source: source, turnID: turnID)
+                    turnID: UUID? = nil, catchUpAcceptance: CatchUpAcceptance? = nil) async -> AgentTurn {
+        await handle(utterance, source: source, turnID: turnID, catchUpAcceptance: catchUpAcceptance)
     }
 
     /// Voice `handle` parks here when the CLI is missing. Nil-shaped
@@ -351,7 +351,8 @@ extension RealtimeAgent {
     func waitForACPConfirmation(
         _ choice: AgentHarnessChoice,
         utterance: String,
-        source: AgentUtteranceSource
+        source: AgentUtteranceSource,
+        catchUpAcceptance: CatchUpAcceptance? = nil
     ) async -> ACPHandleWait {
         let planned = ACPConfirmation.voiceEntryAction(choice)
         guard planned == .awaitConfirmation else { return .continueHandle }
@@ -363,7 +364,7 @@ extension RealtimeAgent {
         let outcome = await ACPConfirmationGate.shared.request(choice, utterance: utterance)
         switch ACPConfirmation.entryAction(choice, outcome: outcome) {
         case .runLocalOnce:
-            return .finished(await runWithLocalToolsOnce(utterance, source: source))
+            return .finished(await runWithLocalToolsOnce(utterance, source: source, catchUpAcceptance: catchUpAcceptance))
         case .cancelled, .awaitConfirmation, .runLocal, .startACP:
             return .cancelled
         }
@@ -383,7 +384,7 @@ extension RealtimeAgent {
         }
     }
 
-    func runWithLocalToolsOnce(_ text: String, source: AgentUtteranceSource) async -> AgentTurn {
+    func runWithLocalToolsOnce(_ text: String, source: AgentUtteranceSource, catchUpAcceptance: CatchUpAcceptance? = nil) async -> AgentTurn {
         let local = AgentHarnessChoice(
             id: .local,
             source: .explicit,
@@ -392,7 +393,7 @@ extension RealtimeAgent {
             note: ""
         )
         let intent = AgentTurnIntent.resolve(text, choice: local)
-        AgentSession.shared.recordUser(text, source: source)
+        AgentSession.shared.recordUser(text, source: source, catchUpAcceptance: catchUpAcceptance)
         switch Self.localOnceRoute(for: intent, text: text) {
         case .perform(let routed):
             let reply = await perform(routed)
@@ -605,7 +606,8 @@ extension RealtimeAgent {
         let historyBudget = AgentHistoryBudget.characters(contextTokens: window)
         let history = AgentSession.shared.chatHistoryForCurrentTurn(
             maxCharacters: historyBudget, scrubToolClaims: true,
-            perMessageCharacters: AgentHistoryBudget.perMessageCap(budget: historyBudget))
+            perMessageCharacters: AgentHistoryBudget.perMessageCap(budget: historyBudget),
+            catchUpAcceptance: work?.catchUpAcceptance)
         Log.agent.info("history budget · window=\(window, privacy: .public) chars=\(historyBudget, privacy: .public)")
         let coldLocalModel = localModelProviderForTesting == nil && provider.id == .appLLM
             ? !(await NotesModelRuntime.shared.isLoaded) : false
@@ -1468,7 +1470,8 @@ extension RealtimeAgent {
         let maxCalls = maxCallsForTesting ?? callCap
         if SelfTest.isRunning,
            (SelfTest.requested == "--selftest-c04-result-context"
-            || SelfTest.requested == "--selftest-c04-final-result-context") {
+            || SelfTest.requested == "--selftest-c04-final-result-context"
+            || SelfTest.requested == "--selftest-catch-up") {
             beforeMemoryGroundingForTesting?()
         }
         let memoryGrounding = NextMemory.shared.grounding(for: prompt)
@@ -1478,7 +1481,8 @@ extension RealtimeAgent {
         let plannerHistoryBudget = AgentHistoryBudget.characters(contextTokens: window)
         let conversation = AgentSession.shared.contextForCurrentTurn(
             maxCharacters: plannerHistoryBudget, scrubToolClaims: true,
-            perMessageCharacters: AgentHistoryBudget.perMessageCap(budget: plannerHistoryBudget))
+            perMessageCharacters: AgentHistoryBudget.perMessageCap(budget: plannerHistoryBudget),
+            catchUpAcceptance: work?.catchUpAcceptance)
         // Beside P0-05's per-round `answer budget` line, and for the same reason: when a turn
         // answers from too little history, the number to read first is how much it was given.
         Log.agent.info("history budget · window=\(window, privacy: .public) chars=\(plannerHistoryBudget, privacy: .public) shown=\(conversation.count, privacy: .public)")

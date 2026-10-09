@@ -248,18 +248,18 @@ final class RealtimeAgent {
     init(typedWorker: VoiceConversationWork) {
         isVoiceWorker = false; isTypedWorker = true; voiceWork = typedWorker
     }
-    func finishTypedControl(_ reply: String, userWords: String) -> AgentTurn {
+    func finishTypedControl(_ reply: String, userWords: String, catchUpAcceptance: CatchUpAcceptance? = nil) -> AgentTurn {
         // Same addressed typed history/memory/output producer, without cancelling
         // any Manager Task or borrowing the voice capture's current session.
         currentTurnSource = .text; generation += 1; respondingMessage = nil
-        AgentSession.shared.recordUser(userWords, source: .text)
+        AgentSession.shared.recordUser(userWords, source: .text, catchUpAcceptance: catchUpAcceptance)
         if Settings.shared.agentMemoryEnabled { rememberExplicit(userWords) }
         return conclude(generation, reply, route: "typed-work-control", speak: false)
     }
     func runTypedWorkerTurn(_ work: VoiceConversationWork, recordInput: Bool) async -> AgentTurn {
         voiceWork = work; typedTaskOutcome = nil; typedInputAlreadyRecorded = !recordInput
         typedReplySuppressed = false
-        return await handle(work.userWords ?? work.original, source: .text)
+        return await handle(work.userWords ?? work.original, source: .text, catchUpAcceptance: work.catchUpAcceptance)
     }
     func publishTypedResult(primaryCommitted: Bool, diagnostic: String?) {
         let show = typedPresentation; typedPresentation = nil
@@ -312,7 +312,7 @@ final class RealtimeAgent {
     /// Receives one event per planner round and per rejected call. Nil in production.
     var plannerTraceForTesting: (@MainActor (PlannerTraceEvent) -> Void)?
     /// Synchronous test hook at the existing local grounding boundary. Nil normally and
-    /// invoked only by the dedicated C04 result-context diagnostic; no refresh is skipped.
+    /// invoked only by focused result-context/catch-up diagnostics; no refresh is skipped.
     var beforeMemoryGroundingForTesting: (@MainActor () -> Void)?
     /// Replaces the pending action a typed turn would otherwise have to earn. Nil in
     /// production; a self-test that drives `handle` reaches the same block without one.
@@ -460,7 +460,8 @@ final class RealtimeAgent {
     }
 
     func handle(_ utterance: String, source: AgentUtteranceSource,
-                turnID: UUID? = nil, turn: TurnID? = nil) async -> AgentTurn {
+                turnID: UUID? = nil, turn: TurnID? = nil,
+                catchUpAcceptance: CatchUpAcceptance? = nil) async -> AgentTurn {
         if source == .voice {
             if SelfTest.isRunning, VoiceConversationCoordinator.shared.streamForTesting == nil,
                !VoiceRealModelSelfTests.isRunning {
@@ -491,7 +492,7 @@ final class RealtimeAgent {
             if case .toolLoop = AgentTurnIntent.resolve(text, choice: choice,
                 hasConversationContext: AgentSession.shared.hasPriorAssistantTurn) {
                 let bridge = SelfTest.isRunning ? typedTaskBridgeForTesting : TaskBridge.shared
-                if let bridge { return await bridge.runTypedObjective(text, agent: self) }
+                if let bridge { return await bridge.runTypedObjective(text, agent: self, catchUpAcceptance: catchUpAcceptance) }
                 if SelfTest.isRunning { return AgentTurn(reply: "The typed test has no isolated task owner.", delegated: false) }
             }
         }
@@ -504,7 +505,7 @@ final class RealtimeAgent {
         let replyTrace = LatencyTrace.start(.agentTranscriptToFirstToken)
 
         let choice = AgentHarnessRouter.shared.choose(for: text)
-        switch await waitForACPConfirmation(choice, utterance: text, source: source) {
+        switch await waitForACPConfirmation(choice, utterance: text, source: source, catchUpAcceptance: catchUpAcceptance) {
         case .continueHandle:
             break
         case .cancelled:
@@ -512,7 +513,7 @@ final class RealtimeAgent {
                 replyTrace.end(note: "superseded")
                 return AgentTurn(reply: lastReply, delegated: false)
             }
-            if !isTypedWorker || !typedInputAlreadyRecorded { AgentSession.shared.recordUser(text, source: source) }
+            if !isTypedWorker || !typedInputAlreadyRecorded { AgentSession.shared.recordUser(text, source: source, catchUpAcceptance: catchUpAcceptance) }
             replyTrace.end(note: "acp-cancel")
             return conclude(mine, "Cancelled.", route: "acp-cancel")
         case .finished(let turn):
@@ -547,7 +548,7 @@ final class RealtimeAgent {
             return AgentTurn(reply: lastReply, delegated: false)
         }
         AgentAuditLog.shared.record(kind: .request, title: String(text.prefix(300)), detail: source.rawValue)
-        if !isTypedWorker || !typedInputAlreadyRecorded { AgentSession.shared.recordUser(text, source: source) }
+        if !isTypedWorker || !typedInputAlreadyRecorded { AgentSession.shared.recordUser(text, source: source, catchUpAcceptance: catchUpAcceptance) }
         if source == .text, (!isTypedWorker || !typedInputAlreadyRecorded), isCurrent(mine), !Task.isCancelled, Settings.shared.agentMemoryEnabled {
             rememberExplicit(text)
         }
@@ -1172,6 +1173,8 @@ final class AgentSession {
         /// Identity of a background result already brought into this conversation.
         /// Optional keeps old saved rows readable; this conveys no action authority.
         var contextTaskID: String? = nil
+        /// Bound to this accepting turn, so compaction cannot fold away its referents.
+        var catchUpAcceptance: CatchUpAcceptance? = nil
         /// Successful tool results made available to this answer, not evidence for every claim.
         var toolResultIDs: [String]? = nil
         /// Existing conversation row carries only the answer claims and source descriptors.
@@ -1426,12 +1429,16 @@ final class AgentSession {
     /// and `perMessageCap(budget: 1_400)` is 560, so defaulting to the budget's own share would
     /// silently halve voice history. The three typed sites pass the cap explicitly.
     func contextForCurrentTurn(maxCharacters: Int? = nil, scrubToolClaims: Bool = false,
-                               perMessageCharacters: Int = 1_800) -> String {
+                               perMessageCharacters: Int = 1_800,
+                               catchUpAcceptance: CatchUpAcceptance? = nil) -> String {
         let tail = messages[tailStartIndex...]
         let earlier = tail.last?.role == "user" ? tail.dropLast() : tail
         var remaining = min(Self.contextCharacters, max(0, maxCharacters ?? Self.contextCharacters))
         let summary = compactionSummary(limit: min(AgentSessionBoundary.summaryLimit, remaining / 3))
         remaining -= summary.isEmpty ? 0 : summary.count + 2
+        let acceptance = (catchUpAcceptance ?? tail.last?.catchUpAcceptance)?.promptReference ?? ""
+        let reference = String(acceptance.prefix(max(0, min(perMessageCharacters, remaining - 2))))
+        remaining -= reference.isEmpty ? 0 : reference.count + 2
         var selected: [String] = []
         for message in earlier.reversed() {
             var label: String
@@ -1469,7 +1476,7 @@ final class AgentSession {
             // The separator counts too, so the joined context stays inside the budget.
             remaining -= line.count + 2
         }
-        return ([summary] + selected.reversed()).filter { !$0.isEmpty }.joined(separator: "\n\n")
+        return ([summary] + selected.reversed() + [reference]).filter { !$0.isEmpty }.joined(separator: "\n\n")
     }
 
     /// Keep the speaker roles intact for chat models. The previous string
@@ -1483,13 +1490,17 @@ final class AgentSession {
     func chatHistoryForCurrentTurn(maxCharacters: Int, excludingLastUser: Bool = true,
                                   includeDeliveryNotes: Bool = true,
                                   scrubToolClaims: Bool = false,
-                                  perMessageCharacters: Int = 1_800) -> [LLMChatMessage] {
+                                  perMessageCharacters: Int = 1_800,
+                                  catchUpAcceptance: CatchUpAcceptance? = nil) -> [LLMChatMessage] {
         let tail = messages[tailStartIndex...]
         let earlier = excludingLastUser && tail.last?.role == "user" ? tail.dropLast() : tail
         var remaining = max(0, maxCharacters)
         // Folded turns lead as one message whose header says they are not new requests.
         let summary = compactionSummary(limit: min(AgentSessionBoundary.summaryLimit, remaining / 3))
         remaining -= summary.count
+        let acceptance = (catchUpAcceptance ?? tail.last?.catchUpAcceptance)?.promptReference ?? ""
+        let reference = String(acceptance.prefix(max(0, min(perMessageCharacters, remaining))))
+        remaining -= reference.count
         var selected: [LLMChatMessage] = []
         for message in earlier.reversed() {
             guard message.role == "user" || message.role == "assistant" else { continue }
@@ -1515,7 +1526,7 @@ final class AgentSession {
             ))
             remaining -= content.count
         }
-        let history = Array(selected.reversed())
+        let history = Array(selected.reversed()) + (reference.isEmpty ? [] : [LLMChatMessage(role: .assistant, content: reference)])
         return summary.isEmpty ? history : [LLMChatMessage(role: .user, content: summary)] + history
     }
 
@@ -1535,13 +1546,14 @@ final class AgentSession {
     }
 
     @discardableResult
-    func recordUser(_ text: String, source: AgentUtteranceSource? = nil, deferReview: Bool = false) -> UUID {
+    func recordUser(_ text: String, source: AgentUtteranceSource? = nil, deferReview: Bool = false, catchUpAcceptance: CatchUpAcceptance? = nil) -> UUID {
         if lastSuppressedVoice?.text != Self.normalized(text) {
             lastSuppressedVoice = nil
         }
         // Silence long enough ends the session before this row opens the next one.
         endSessionIfIdle()
-        let message = Message(role: "user", text: String(text.prefix(Self.maxStoredCharacters)), source: source?.rawValue)
+        let message = Message(role: "user", text: String(text.prefix(Self.maxStoredCharacters)),
+                              catchUpAcceptance: catchUpAcceptance, source: source?.rawValue)
         append(message)
         if !deferReview { admitUserReview(message.id) }
         return message.id

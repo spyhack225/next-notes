@@ -36,7 +36,7 @@ final class TaskBridge {
         manager.stopTypedReplyOutput(sessionID: AgentSession.shared.sessionID)
     }
 
-    func runTypedObjective(_ text: String, agent: RealtimeAgent) async -> AgentTurn {
+    func runTypedObjective(_ text: String, agent: RealtimeAgent, catchUpAcceptance: CatchUpAcceptance? = nil) async -> AgentTurn {
         guard !SelfTest.isRunning || permitsHarness else {
             return AgentTurn(reply: "The typed test has no isolated task owner.", delegated: false)
         }
@@ -46,7 +46,7 @@ final class TaskBridge {
         if indexed.isEmpty, VoiceTurnPolicy.isExplicitWorkCancellation(text) {
             let reply = retained.last.map { "Stopping " + TaskStatusRenderer.title($0.work.original) + " now." }
                 ?? "There isn't a task running."
-            return agent.finishTypedControl(reply, userWords: text)
+            return agent.finishTypedControl(reply, userWords: text, catchUpAcceptance: catchUpAcceptance)
         }
         if !indexed.isEmpty {
             let token = UUID()
@@ -55,17 +55,17 @@ final class TaskBridge {
                 let first = indexed[indexed.count - 1]
                 manager.cancel(first.id.uuidString)
                 for live in indexed { live.work.resolveTypedInput(token) }
-                return agent.finishTypedControl("Stopping " + TaskStatusRenderer.title(first.work.original) + " now.", userWords: text)
+                return agent.finishTypedControl("Stopping " + TaskStatusRenderer.title(first.work.original) + " now.", userWords: text, catchUpAcceptance: catchUpAcceptance)
             }
             if VoiceTurnPolicy.isStatusQuestion(text) {
                 let reply = TaskStatusRenderer.spoken(indexed.compactMap { self.taskRecord(TaskID($0.id)) })
                 for live in indexed { live.work.resolveTypedInput(token) }
-                return agent.finishTypedControl(reply, userWords: text)
+                return agent.finishTypedControl(reply, userWords: text, catchUpAcceptance: catchUpAcceptance)
             }
             let taskLines = indexed.enumerated().map { "\($0.offset + 1). \($0.element.work.original)" }.joined(separator: "\n")
             let messages = AgentSession.shared.chatHistoryForCurrentTurn(maxCharacters: 6_000,
                 scrubToolClaims: true, perMessageCharacters: 2_000) + [LLMChatMessage(role: .user,
-                content: "Active tasks:\n" + taskLines + "\n\nLatest user speech:\n" + text)]
+                content: "Active tasks:\n" + taskLines + (catchUpAcceptance.map { "\n\n" + $0.promptReference } ?? "") + "\n\nLatest user speech:\n" + text)]
             let chunks = await LocalVoiceFrontend.shared.stream(system: LocalVoiceSplitResponse.routeRules,
                 messages: messages, maxTokens: 200)
             var snapshot = ""
@@ -76,7 +76,7 @@ final class TaskBridge {
                 }
                 // Classification failure keeps writes held until a later actual
                 // turn resolves them. It does not relabel this input a cancellation.
-                return agent.finishTypedControl("I couldn't understand that follow-up. The task is waiting.", userWords: text)
+                return agent.finishTypedControl("I couldn't understand that follow-up. The task is waiting.", userWords: text, catchUpAcceptance: catchUpAcceptance)
             }
             // A newer typed turn can replace this classification while its
             // existing frontend stream is suspended. Only that newest token may
@@ -92,27 +92,27 @@ final class TaskBridge {
                 let saved = manager.reviseTypedObjective(id: selected.id, correction: correction,
                     bridge: self, sessionID: session)
                 if saved { for live in indexed { live.work.resolveTypedInput(token) } }
-                return agent.finishTypedControl(saved ? "Got it. I'll use that correction." : "I couldn't save that correction. The task is waiting.", userWords: text)
+                return agent.finishTypedControl(saved ? "Got it. I'll use that correction." : "I couldn't save that correction. The task is waiting.", userWords: text, catchUpAcceptance: catchUpAcceptance)
             case .status(let number):
                 let selected = number.flatMap { indexed.indices.contains($0 - 1) ? [indexed[$0 - 1]] : nil } ?? indexed
                 let reply = TaskStatusRenderer.spoken(selected.compactMap { self.taskRecord(TaskID($0.id)) })
                 for live in indexed { live.work.resolveTypedInput(token) }
-                return agent.finishTypedControl(reply, userWords: text)
+                return agent.finishTypedControl(reply, userWords: text, catchUpAcceptance: catchUpAcceptance)
             case .cancel:
                 // A model-only cancellation is insufficient for typed control.
                 for live in indexed { live.work.resolveTypedInput(token) }
-                return agent.finishTypedControl("Please say explicitly if you want me to stop that task.", userWords: text)
+                return agent.finishTypedControl("Please say explicitly if you want me to stop that task.", userWords: text, catchUpAcceptance: catchUpAcceptance)
             case .answer(let answer):
                 for live in indexed { live.work.resolveTypedInput(token) }
-                return agent.finishTypedControl(answer, userWords: text)
+                return agent.finishTypedControl(answer, userWords: text, catchUpAcceptance: catchUpAcceptance)
             case .newWork, .decision:
                 for live in indexed { live.work.resolveTypedInput(token) }
                 break
             default:
-                return agent.finishTypedControl("I couldn't understand that follow-up. The task is waiting.", userWords: text)
+                return agent.finishTypedControl("I couldn't understand that follow-up. The task is waiting.", userWords: text, catchUpAcceptance: catchUpAcceptance)
             }
         }
-        let work = VoiceConversationWork(text, userWords: text)
+        let work = VoiceConversationWork(text, userWords: text, catchUpAcceptance: catchUpAcceptance)
         let worker = agent.makeTypedWorker(work)
         guard let operation = manager.startTypedObjective(work: work, worker: worker,
             bridge: self, sessionID: AgentSession.shared.sessionID) else {

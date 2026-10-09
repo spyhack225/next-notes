@@ -8,11 +8,13 @@ final class VoiceConversationWork {
     let id: UUID
     let original: String
     let userWords: String?
+    let catchUpAcceptance: CatchUpAcceptance?
     private(set) var revision = 0
     private(set) var followUps: [String] = []
 
-    init(_ original: String, id: UUID = UUID(), userWords: String? = nil) {
+    init(_ original: String, id: UUID = UUID(), userWords: String? = nil, catchUpAcceptance: CatchUpAcceptance? = nil) {
         self.id = id; self.original = original; self.userWords = userWords
+        self.catchUpAcceptance = catchUpAcceptance
     }
 
     // Pending typed classification belongs to this same work item. The user
