@@ -2,6 +2,10 @@ from pathlib import Path
 import subprocess,tempfile,shutil,sys,json
 scanner=Path(sys.argv[1]).resolve()
 cases={'Sources/NextNotes/Renamed.swift':'let engine = NSSpeechSynthesizer()','Sources/NextNotes/Another.swift':'import class AVFoundation.AVSpeechUtterance','Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift':'let engine = AVSpeechSynthesizer()','Tools/tts_benchmark.swift':'let surprise = NSSpeechSynthesizer()','Scripts/renamed.sh':'/usr/bin/say hello','Makefile':'voice:\n\tsay hello','Tools/voice.py':'subprocess.run(["/usr/bin/say", "hello"])','Sources/NextNotes/Renamed.m':'#import <AVFoundation/AVSpeechSynthesizer.h>','Scripts/without-extension':'#!/bin/sh\nsay hello','Scripts/speech-shebang':'#!/usr/bin/say','Tools/renamed-tool':'#!/bin/sh\nsay hello','renamed-build.mk':'voice:\n\tsay hello','bench/new-route.py':'subprocess.run(["say", "hello"])','shared/NewRoute.swift':'import protocol AVFoundation.AVSpeechSynthesizerDelegate','Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift#operation':'synthesizer.speak("Unexpected Apple playback")','Tools/tts_benchmark.swift#operation':'probe.synthesizer.write(unexpectedUtterance) { _ in }','docs/renamed.txt':'import class AVFoundation.AVSpeechUtterance'}
+cases.update({
+    'Sources/NextNotes/EnvVoice.swift': 'let task = Process(); task.executableURL = URL(fileURLWithPath: "/usr/bin/env"); task.arguments = ["say", "Hello"]',
+    'Scripts/stdin-voice.sh': "printf 'Hello' | say",
+})
 misses=[]
 for path,body in cases.items():
     with tempfile.TemporaryDirectory(prefix='NextNotes-noapple-census-') as tmp:
