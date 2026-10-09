@@ -14,6 +14,16 @@ enum VoiceDeliverySelfTest {
             if !condition { failures.append(message) }
         }
 
+        // Invalid legacy diagnostic input must settle before a microphone grant,
+        // WAV read or voice preparation. The nonexistent URL is never opened.
+        let liveApple = await AcousticLiveProbe.run(voice: "apple")
+        let hybridApple = await AcousticHybridProbe.run(voice: "apple",
+            nearURL: URL(fileURLWithPath: "/no-apple-policy-invalid-input.wav"))
+        check(!liveApple.0 && liveApple.1 == "ECHO_LIVE_FAILED: INPUT_INVALID Apple speech is not supported",
+              "legacy acoustic voice reached hardware or changed voice instead of rejecting input")
+        check(!hybridApple.0 && hybridApple.1 == "ECHO_HYBRID_FAILED: INPUT_INVALID Apple speech is not supported",
+              "legacy hybrid voice reached hardware/WAV input instead of rejecting input")
+
         let capture = AgentCaptureController.shared
         let session = RealtimeAudioSession.shared
         let synth = AgentSpeechSynthesizer.shared
