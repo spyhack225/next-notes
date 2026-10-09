@@ -288,9 +288,6 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
             backing: .buffered,
             defer: false
         )
-        SelfTest.diagnostic("SETTINGS_PANEL_LIFETIME owner=render released_on_close_before=\(panel.isReleasedWhenClosed)")
-        // Swift owns this offscreen panel; close must not release it a second time.
-        panel.isReleasedWhenClosed = false
         defer { panel.close() }
 
         for tab in allCases {
@@ -467,8 +464,6 @@ enum SettingsTab: String, CaseIterable, Identifiable, Hashable {
             backing: .buffered,
             defer: false
         )
-        SelfTest.diagnostic("SETTINGS_PANEL_LIFETIME owner=ink released_on_close_before=\(panel.isReleasedWhenClosed)")
-        panel.isReleasedWhenClosed = false
         defer { panel.close() }
 
         let hosting = NSHostingView(rootView: view)
