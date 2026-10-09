@@ -94,6 +94,9 @@ final class RealtimeAudioSession {
     /// Factual streamed-reply lifecycle, distinct from a gap between clauses.
     private var voiceShadowStreamOpen = false
     var retainedOutputID: OutputID? { voiceShadowOutput?.id }
+    /// Diagnostic shadow only. Pocket/Kokoro lack qualified resume receipts, so
+    /// awaitingResume can persist while they physically play. This snapshot is
+    /// not a live resumed-speaking/approval projection for those routes.
     var voiceShadowOutputSnapshot: VoiceSessionState.Output? {
         let actual = AgentSpeechSynthesizer.shared.voiceLifecycleSnapshot
         guard let output = voiceShadowOutput, actual.generation == output.generation,
