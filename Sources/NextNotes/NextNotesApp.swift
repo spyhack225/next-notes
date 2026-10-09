@@ -2095,6 +2095,16 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
             }
             return true
         }
+        if arguments.contains("--selftest-tts"), arguments.contains("--voice-policy-review") {
+            Task { @MainActor in
+                let failures = await VoicePolicyReviewSelfTest.run()
+                for failure in failures { writeSelfTest("VOICE_POLICY_REVIEW_WRONG: " + failure) }
+                writeSelfTest(failures.isEmpty ? "VOICE_POLICY_REVIEW_OK" : "VOICE_POLICY_REVIEW_FAILED: \(failures.count) assertions")
+                SelfTest.failed = !failures.isEmpty
+                SelfTest.requestTermination()
+            }
+            return true
+        }
         if arguments.contains("--selftest-tts") {
             SelfTest.failed = !AgentSpeechPolicy.runSelfTest()
             SelfTest.requestTermination()
