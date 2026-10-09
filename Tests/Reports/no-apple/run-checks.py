@@ -69,6 +69,6 @@ try:
         elif instruction.startswith('recheck '):
             native_checks(instruction.removeprefix('recheck ').split(','))
     last={item['check']:item for item in results}
-    raise SystemExit(0 if all(item['exit']==item.get('expected_exit',0) for item in last.values()) else 1)
+    raise SystemExit(0 if all(item['exit']==item.get('expected_exit',0) and (item.get('expected_exit',0)!=0 or not re.search(r'_(FAILED|ABSENT)',item['marker'])) for item in last.values()) else 1)
 finally:
     shutil.rmtree(work)
