@@ -1,0 +1,10 @@
+FAIL: unready selected Pocket does not invoke any voice
+FAIL: unready answer retains no playback token/queue
+FAIL: unready answer has truthful unheard receipt
+FAIL: unready Kokoro never starts loading on reply path
+FAIL: failed selected voice stays written on a new reply
+FAIL: allowed voice failure cancels remaining speech
+FAIL: allowed voice failure exposes text-only state
+FAIL: partial and untouched receipts are truthful
+FAIL: no error fallback reaches Apple backing
+VOICE_PRODUCER_PROBE_FAILED: 9 assertions

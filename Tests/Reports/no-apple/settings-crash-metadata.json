@@ -1,0 +1,174 @@
+[
+  {
+    "report": "NextNotes-2026-10-08-214954.ips",
+    "pid": 41059,
+    "parentPid": 38774,
+    "captureTime": "2026-10-08 21:49:20.0608 -0400",
+    "exception": {
+      "codes": "0x0000000000000001, 0x000035d5c849e018",
+      "rawCodes": [
+        1,
+        59192304590872
+      ],
+      "type": "EXC_BAD_ACCESS",
+      "signal": "SIGSEGV",
+      "subtype": "KERN_INVALID_ADDRESS at 0x000035d5c849e018"
+    },
+    "termination": {
+      "flags": 0,
+      "code": 11,
+      "namespace": "SIGNAL",
+      "indicator": "Segmentation fault: 11",
+      "byProc": "exc handler",
+      "byPid": 41059
+    },
+    "faultingFrames": [
+      {
+        "imageOffset": 31708,
+        "symbol": "objc_release",
+        "symbolLocation": 16,
+        "imageIndex": 3
+      },
+      {
+        "imageOffset": 58644,
+        "symbol": "AutoreleasePoolPage::releaseUntil(objc_object**)",
+        "symbolLocation": 204,
+        "imageIndex": 3
+      },
+      {
+        "imageOffset": 43136,
+        "symbol": "objc_autoreleasePoolPop",
+        "symbolLocation": 244,
+        "imageIndex": 3
+      },
+      {
+        "imageOffset": 11508,
+        "symbol": "swift::runJobInEstablishedExecutorContext(swift::Job*, swift::SerialExecutorRef, swift::TaskExecutorRef)",
+        "symbolLocation": 492,
+        "imageIndex": 4
+      },
+      {
+        "imageOffset": 18900,
+        "symbol": "swift_job_runImpl(swift::Job*, swift::SerialExecutorRef)",
+        "symbolLocation": 156,
+        "imageIndex": 4
+      },
+      {
+        "imageOffset": 235760,
+        "symbol": "_dispatch_main_queue_drain.cold.6",
+        "symbolLocation": 612,
+        "imageIndex": 5
+      },
+      {
+        "imageOffset": 68364,
+        "symbol": "_dispatch_main_queue_drain",
+        "symbolLocation": 176,
+        "imageIndex": 5
+      },
+      {
+        "imageOffset": 68172,
+        "symbol": "_dispatch_main_queue_callback_4CF",
+        "symbolLocation": 44,
+        "imageIndex": 5
+      },
+      {
+        "imageOffset": 780712,
+        "symbol": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+        "symbolLocation": 16,
+        "imageIndex": 6
+      },
+      {
+        "imageOffset": 525880,
+        "symbol": "__CFRunLoopRun",
+        "symbolLocation": 1980,
+        "imageIndex": 6
+      }
+    ]
+  },
+  {
+    "report": "NextNotes-2026-10-08-215101.ips",
+    "pid": 41211,
+    "parentPid": 38774,
+    "captureTime": "2026-10-08 21:51:01.1915 -0400",
+    "exception": {
+      "codes": "0x0000000000000001, 0x00000b54be0659f0",
+      "rawCodes": [
+        1,
+        12458593245680
+      ],
+      "type": "EXC_BAD_ACCESS",
+      "signal": "SIGSEGV",
+      "subtype": "KERN_INVALID_ADDRESS at 0x00000b54be0659f0"
+    },
+    "termination": {
+      "flags": 0,
+      "code": 11,
+      "namespace": "SIGNAL",
+      "indicator": "Segmentation fault: 11",
+      "byProc": "exc handler",
+      "byPid": 41211
+    },
+    "faultingFrames": [
+      {
+        "imageOffset": 31708,
+        "symbol": "objc_release",
+        "symbolLocation": 16,
+        "imageIndex": 3
+      },
+      {
+        "imageOffset": 58644,
+        "symbol": "AutoreleasePoolPage::releaseUntil(objc_object**)",
+        "symbolLocation": 204,
+        "imageIndex": 3
+      },
+      {
+        "imageOffset": 43136,
+        "symbol": "objc_autoreleasePoolPop",
+        "symbolLocation": 244,
+        "imageIndex": 3
+      },
+      {
+        "imageOffset": 11508,
+        "symbol": "swift::runJobInEstablishedExecutorContext(swift::Job*, swift::SerialExecutorRef, swift::TaskExecutorRef)",
+        "symbolLocation": 492,
+        "imageIndex": 4
+      },
+      {
+        "imageOffset": 18900,
+        "symbol": "swift_job_runImpl(swift::Job*, swift::SerialExecutorRef)",
+        "symbolLocation": 156,
+        "imageIndex": 4
+      },
+      {
+        "imageOffset": 235760,
+        "symbol": "_dispatch_main_queue_drain.cold.6",
+        "symbolLocation": 612,
+        "imageIndex": 5
+      },
+      {
+        "imageOffset": 68364,
+        "symbol": "_dispatch_main_queue_drain",
+        "symbolLocation": 176,
+        "imageIndex": 5
+      },
+      {
+        "imageOffset": 68172,
+        "symbol": "_dispatch_main_queue_callback_4CF",
+        "symbolLocation": 44,
+        "imageIndex": 5
+      },
+      {
+        "imageOffset": 780712,
+        "symbol": "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+        "symbolLocation": 16,
+        "imageIndex": 6
+      },
+      {
+        "imageOffset": 525880,
+        "symbol": "__CFRunLoopRun",
+        "symbolLocation": 1980,
+        "imageIndex": 6
+      }
+    ]
+  }
+]

@@ -1,0 +1,38 @@
+diff --git a/Sources/NextNotes/Agent/Duplex/OutputScheduler.swift b/Sources/NextNotes/Agent/Duplex/OutputScheduler.swift
+index 3f5d9d82..2800fa49 100644
+--- a/Sources/NextNotes/Agent/Duplex/OutputScheduler.swift
++++ b/Sources/NextNotes/Agent/Duplex/OutputScheduler.swift
+@@ -133,6 +133,11 @@ final class OutputScheduler {
+     var pendingCount: Int { queue.count }
+     var activeOutputID: OutputID? { active?.id }
+ 
++    /// One audio-start owner for pre-rendered committed-turn acknowledgements too.
++    func acknowledgeCommitted(_ turn: TurnID, text: String, interaction: Bool) {
++        VoiceAcknowledgement.shared.commit(turn, text: text, interaction: interaction)
++    }
++
+     /// Starts the existing streaming buffer synchronously; no model or audio wait.
+     func beginAnswer(turn: TurnID?) -> OutputHandle {
+         // Decide delivery priority before the SAME buffer's clear emits stop
+diff --git a/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift b/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift
+index 385dd8d1..1a267b99 100644
+--- a/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift
++++ b/Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift
+@@ -96,6 +96,7 @@ final class AgentSpeechSynthesizer {
+         case interrupted(String, wasRendered: Bool)
+     }
+     static let shared = AgentSpeechSynthesizer()
++    static var appleSynthesisCallsForTesting: Int { AVSpeechBacking.synthesisCallsForTesting }
+ 
+     private var backing: any AgentSpeechBacking
+     private let systemBacking = AVSpeechBacking()
+@@ -1085,7 +1086,9 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
+     var outputGain: Float { player.volume }
+     func setOutputGain(_ gain: Float) { player.volume = max(0, min(1, gain)) }
+ 
++    private(set) static var synthesisCallsForTesting = 0
+     func speak(_ text: String, volume: Float, token: UInt64) {
++        if SelfTest.isRunning { Self.synthesisCallsForTesting += 1 }
+         // Do not clear the AVSpeech queue here — clause streaming feeds one
+         // utterance at a time after `didFinish`. A replacing reply calls `stop()`
+         // first from `AgentSpeechSynthesizer.speak`.

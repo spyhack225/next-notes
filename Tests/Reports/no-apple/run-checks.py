@@ -9,6 +9,14 @@ control=work/'control'
 os.mkfifo(control)
 print('SLOT_CONTROL '+str(control),flush=True)
 attempts={}
+def expected_result(item):
+    expected=item.get('expected_exit',0)
+    if item['exit']!=expected:return False
+    if item['check'].endswith('-compile') or item['check'] in ['webrtc-build','app-build']:
+        return True # Compilers provide an exit and build log, no self-test marker.
+    verdict='FAILED' if expected else 'OK'
+    return re.match(r'^[A-Z][A-Z0-9_]*_'+verdict+r'(?::|$)',item['marker']) is not None
+
 def command():
     print('WAITING_FOR_SLOT_COMMAND '+str(control),flush=True)
     with control.open() as channel:return channel.readline().strip()
@@ -32,7 +40,7 @@ def run(name,args,timeout=None,expected=0):
     markers=[line for line in content.splitlines() if re.match(r'^[A-Z][A-Z0-9_]*_(?:OK|FAILED|ABSENT)(?::|$)',line)]
     results.append({'check':name,'attempt':attempts[name],'log':logfile.name,'exit':proc.returncode,'expected_exit':expected,'marker':markers[-1] if markers else 'NO_FINAL_MARKER'})
     print(json.dumps(results[-1]),flush=True);save()
-    return proc.returncode==expected
+    return expected_result(results[-1])
 
 def save(): (report/'checks.json').write_text(json.dumps(results,indent=2)+'\n')
 try:
@@ -71,6 +79,6 @@ try:
         elif instruction.startswith('recheck '):
             native_checks(instruction.removeprefix('recheck ').split(','))
     last={item['check']:item for item in results}
-    raise SystemExit(0 if all(item['exit']==item.get('expected_exit',0) and (item.get('expected_exit',0)!=0 or not re.search(r'_(FAILED|ABSENT)',item['marker'])) for item in last.values()) else 1)
+    raise SystemExit(0 if all(expected_result(item) for item in last.values()) else 1)
 finally:
     shutil.rmtree(work)

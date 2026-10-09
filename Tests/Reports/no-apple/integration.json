@@ -1,0 +1,95 @@
+{
+  "actual_inherited_base": "55d402ee3778e7b2204e969adec9c5108c2b192a",
+  "brief_main_base": "c6d850c",
+  "source_head": "3dd06c6f8e952574cf713ab4de5c65797c8aed4b",
+  "canonical_dirty_conflicts": [
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift",
+    "Sources/NextNotes/NextNotesApp.swift",
+    "Sources/NextNotes/UI/Agent/AgentView.swift",
+    "Sources/NextNotes/UI/Island/IslandView.swift"
+  ],
+  "peer_branches": [
+    {
+      "branch": "claude2/voice-ack",
+      "commit": "3d1a5070bfe22a3331622f2f0bb34ff7e39b244c",
+      "overlap": [
+        "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ]
+    },
+    {
+      "branch": "claude2/voice-mini",
+      "commit": "e8c2f0e208191e536a5b0fd658f2c9ed27aca82f",
+      "overlap": [
+        "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+        "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift"
+      ]
+    }
+  ],
+  "own_source_files": [
+    "Sources/NextNotes/Agent/AcousticHybridProbe.swift",
+    "Sources/NextNotes/Agent/AcousticLiveProbe.swift",
+    "Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift",
+    "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift",
+    "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+    "Sources/NextNotes/Agent/Duplex/PCMReceiptOwnerSelfTest.swift",
+    "Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift",
+    "Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift",
+    "Sources/NextNotes/Agent/Duplex/VoicePlaybackResumeReceiptSelfTest.swift",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+    "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift",
+    "Sources/NextNotes/Agent/Schedules/CatchUpTemplate.swift",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechPolicy.swift",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+    "Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift",
+    "Sources/NextNotes/Agent/Speech/AgentVoicePolicySelfTest.swift",
+    "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift",
+    "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift",
+    "Sources/NextNotes/Agent/Speech/PCMReceiptSpeechBacking.swift",
+    "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift",
+    "Sources/NextNotes/Agent/Speech/PreparedPCMSpeechBacking.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift",
+    "Sources/NextNotes/Agent/VoiceDeliverySelfTest.swift",
+    "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift",
+    "Sources/NextNotes/NextNotesApp.swift",
+    "Sources/NextNotes/Support/Settings.swift",
+    "Sources/NextNotes/Support/SettingsVoicePolicySelfTest.swift",
+    "Sources/NextNotes/UI/Agent/AgentView.swift",
+    "Sources/NextNotes/UI/Island/IslandView.swift"
+  ],
+  "source_sha256": {
+    "Sources/NextNotes/Agent/AcousticHybridProbe.swift": "e172737f41a7160b4250b58de72d7c803dff95e8eb829bd5a123257e9f64e7f5",
+    "Sources/NextNotes/Agent/AcousticLiveProbe.swift": "d612b1bfa6273f708d6ec89c20d58a24310560d0ad0d5c4241d35a9745579585",
+    "Sources/NextNotes/Agent/Duplex/ApplePlaybackTimelineSelfTest.swift": "721beedd0000ecf39c45a8b1a452e11f1bb5cacb00ac47d5feb7fd6b6c292f85",
+    "Sources/NextNotes/Agent/Duplex/AppleResumeOwnerSelfTest.swift": "acc9b36fe50db522bdced4afce92bfecd766243ff07b24583c954756d77ba959",
+    "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift": "2a1ef6cf15715814cfc4613755c2ce4a49902d320a273ca9589f51f9622dd00b",
+    "Sources/NextNotes/Agent/Duplex/PCMReceiptOwnerSelfTest.swift": "f5c79eb75b5a859858490bf790a07a00439e350695988ee9f0af77b4dd0818d1",
+    "Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift": "b7f07306a319f9d8bb99ab6becc04ac48128570668fde8b8b552145f52a29591",
+    "Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift": "6166ffb75b53beeff2aecc749c990429639201d13a02c269baf10af624d9773b",
+    "Sources/NextNotes/Agent/Duplex/VoicePlaybackResumeReceiptSelfTest.swift": "b014862ac724d6c2957238a116eb29a72b82833198eda12174d023fe9fa610c2",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift": "6f4dcd738b600383f82a12e0a6c5a9c1a087aea3403d07d8184519f5700c81ac",
+    "Sources/NextNotes/Agent/Schedules/CatchUpSelfTest.swift": "83d8a87070902e5aaeb909cccf729a1dde84790c6bccf6fa8722b67e46c74b5f",
+    "Sources/NextNotes/Agent/Schedules/CatchUpTemplate.swift": "ccc3f286f491e777e6380ca74ded85d265c1b8e23fe7bdc7f875f1ddfe179773",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechPolicy.swift": "6f5a22c243376dd1ee3b9a2a0ab0496da1b25f10ac9c9e1c0016f9c893f301e5",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "017a0884e1d0f93a5d2baa3fa6dd81a11f871fdb2b614d799ef1c1b5c5fad489",
+    "Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift": "dae3ea8e36b0085c4d6cbe6be5d6b87dbac4a1e036e81491412f206b308388d4",
+    "Sources/NextNotes/Agent/Speech/AgentVoicePolicySelfTest.swift": "f9dc556df71390ded8b047075721292e50412e75cd5ce4b1da3ec4b5a3079ed8",
+    "Sources/NextNotes/Agent/Speech/KokoroAgentVoice.swift": "45e6acc3061e998e20152bc1582677c32a193fd74ea3b98f193e90bc13010c44",
+    "Sources/NextNotes/Agent/Speech/LongFormRenderer.swift": "4b24817ebe6787e687ab037226f2f4e1dd62ade48c8e0dcc5c49cc0ffb3b68d1",
+    "Sources/NextNotes/Agent/Speech/PCMReceiptSpeechBacking.swift": "e9866d327a013bd5590f4bbc4268ec3ca501d29bab0a138174f599f57bcc5e63",
+    "Sources/NextNotes/Agent/Speech/PocketAgentVoice.swift": "9ec2d05a8f832ab1b3f3011125b32f7f7a8486aebe3e98f2836e15b83bef5542",
+    "Sources/NextNotes/Agent/Speech/PreparedPCMSpeechBacking.swift": "b3df6773ac51ac82434eb71666466249c834a5f2899ee6a387a0c743218888e0",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskManager.swift": "f7cc373c2c97ea3f42d3e5cf45b9332918fe6e983738254d47369275e304596e",
+    "Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift": "667e374066cc2fb6e0536b0e0d75f5d02c21651a54da92c861e77889c0d993f0",
+    "Sources/NextNotes/Agent/VoiceDeliverySelfTest.swift": "a25ccfe804a9a05d268c7c2558e05c2dbd07e5515bcdea5c542e39328c4e51c0",
+    "Sources/NextNotes/Agent/VoicePlaybackDelivery.swift": "5e98d9084f5d4778233ecda6813c3fd396f9ede2dd3acfc5d1f011912cd28024",
+    "Sources/NextNotes/NextNotesApp.swift": "2b2036c980aaf3d19df27b3d3d35ce2eae4448eb78cd450469e646514ea66729",
+    "Sources/NextNotes/Support/Settings.swift": "b25359c409f94ce9ac730153fa17262cd8bc1fd37134527ceae355260db6ded1",
+    "Sources/NextNotes/Support/SettingsVoicePolicySelfTest.swift": "ed3f7ac49d1e1a677fb061999d026b94e907a39944a919370b6c95edfb4eb94e",
+    "Sources/NextNotes/UI/Agent/AgentView.swift": "54b27fd38187f23b24cd761fec257a421844523eec13be8ba510657b57a9abe0",
+    "Sources/NextNotes/UI/Island/IslandView.swift": "16359b32264dad294ce795907cafc8023de1646034decdd0c05fd4526d58a4cb"
+  }
+}
