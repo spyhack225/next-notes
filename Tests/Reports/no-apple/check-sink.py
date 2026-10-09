@@ -9,10 +9,10 @@ patterns=[re.compile(r'\b(?:AVSpeech\w*|NSSpeechSynthesizer)\b'),
 files=set()
 for directory in ['Sources','Tools','Scripts','site/scripts']:
     if (root/directory).exists():files.update(p for p in (root/directory).rglob('*') if p.is_file())
-files.update(p for p in root.glob('Makefile*') if p.is_file())
+files.update(p for pattern in ['Makefile*','*.mk','GNUmakefile'] for p in root.glob(pattern) if p.is_file())
 # Executable support/fixture scripts, excluding retained reports and dependency trees.
 for directory in ['Resources','Tests/Fixtures']:
-    if (root/directory).exists():files.update(p for p in (root/directory).rglob('*') if p.is_file() and p.suffix in {'.sh','.py','.js'})
+    if (root/directory).exists():files.update(p for p in (root/directory).rglob('*') if p.is_file() and (p.suffix in {'.sh','.py','.js','.zsh','.bash','.rb','.pl','.ps1'} or p.stat().st_mode & 0o111))
 hits=[];exceptions=0
 for path in sorted(files):
     try:source=path.read_text()
@@ -21,7 +21,7 @@ for path in sorted(files):
     entry=allow.get(relative,{})
     permitted=list(entry.get('lines',[])) if entry.get('reason') else []
     for number,line in enumerate(source.splitlines(),1):
-        script = (path.suffix in {'.sh','.py','.js'} or path.name.startswith('Makefile')
+        script = (source.lstrip().startswith('#!') or path.suffix in {'.sh','.py','.js','.zsh','.bash','.rb','.pl','.ps1','.mk'} or path.name.startswith('Makefile') or path.name == 'GNUmakefile'
                   or relative.startswith(('Scripts/','scripts/','site/scripts/')))
         # Shell/Python comments are not executable commands; C/ObjC #import
         # and executable shebangs must still be scanned. Speech symbols are
