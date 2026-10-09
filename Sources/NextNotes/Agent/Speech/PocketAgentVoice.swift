@@ -110,6 +110,15 @@ final class PocketAgentVoice {
         return terminationFixtureRoot != nil ? "alba" : Settings.shared.agentPocketVoice
     }
 
+    // Isolated actual-owner fixtures substitute only expensive native entries.
+    var assetsForTesting: (@MainActor () async throws -> Void)?
+    var initializeForTesting: (@MainActor () async throws -> Void)?
+    var warmForTesting: (@MainActor () async throws -> Void)?
+    var schedulerForTesting: ComputeScheduler?
+    var pressureForTesting: (() -> ModelResidencyPolicy.PressureSnapshot)?
+    var recordingForTesting: (() -> Bool)?
+    func prepareAutomatically() async { await prepare() }
+
     func prepare() async {
         guard !terminationRequested, !Task.isCancelled else { return }
         if isReady { return }
@@ -129,11 +138,13 @@ final class PocketAgentVoice {
                 do {
                     terminationFixtureTrace?.loadEntered(pocket: true)
                     defer { terminationFixtureTrace?.loadReturned() }
-                    try await manager.initialize()
+                    if SelfTest.isRunning, let initializeForTesting { try await initializeForTesting() }
+                    else { try await manager.initialize() }
                 }
                 try checkTerminationAdmission()
                 if Self.isPreparationVoiceFixture { await preparationLoadedForTesting?() }
-                try await warmFirstPrediction(voice: voice)
+                if SelfTest.isRunning, let warmForTesting { try await warmForTesting() }
+                else { try await warmFirstPrediction(voice: voice) }
                 try checkTerminationAdmission()
                 isReady = true
                 terminationFixtureTrace?.readyPublished()
