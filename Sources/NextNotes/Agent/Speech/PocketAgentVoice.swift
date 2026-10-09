@@ -3,7 +3,7 @@ import Darwin
 import FluidAudio
 import Observation
 
-/// The model is fetched only after the user asks for it in Models settings.
+/// The default voice prepares at normal launch; Settings joins the same owned task.
 @MainActor
 @Observable
 final class PocketAgentVoice {
@@ -183,7 +183,7 @@ final class PocketAgentVoice {
     private func prepareForSynthesis() async throws {
         try checkTerminationAdmission()
         // The one-time native warmup can be draining a cancelled CoreML call.
-        // If it exceeds this caller's budget, fall back for this reply while
+        // If it exceeds this caller's budget, leave this reply written while
         // the prepare task keeps exclusive ownership until cancel() returns.
         let prepared: Void? = await withBoundedWait(.seconds(10)) { await self.prepare() }
         try checkTerminationAdmission()

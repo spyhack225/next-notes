@@ -586,6 +586,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         if runRequestedSelfTest() { return }
 
+        // The default Pocket voice prepares/downloads in the background once.
+        // All diagnostic/startup isolation returns above precede this work.
+        AgentSpeechSynthesizer.shared.prepareAtLaunch()
+
         // P0-03: a stored role can outlive the file it names. If the file the everyday
         // assistant is pointed at cannot answer on this Mac any more, repair it once here
         // and say so — never silently, and never more than once per (role, file).

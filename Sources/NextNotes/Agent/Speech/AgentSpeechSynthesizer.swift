@@ -105,6 +105,7 @@ final class AgentSpeechSynthesizer {
     static let shared = AgentSpeechSynthesizer()
 
     private var selectedVoiceFailed = false
+    private var launchPreparationStarted = false
     /// Settings and reply presentation observe the same existing voice owner.
     var availability: AgentVoiceAvailability {
         switch Self.selectedEngine {
@@ -117,6 +118,22 @@ final class AgentSpeechSynthesizer {
             return .resolve(ready: pocketIsReady,
                             preparing: PocketAgentVoice.shared.isPreparing,
                             failed: selectedVoiceFailed || PocketAgentVoice.shared.errorMessage != nil)
+        }
+    }
+
+    /// Normal startup only. Pocket's existing prepareTask owns initialization,
+    /// download, warmup and termination; Settings joins that same task.
+    func prepareAtLaunch() {
+        guard !SelfTest.isRunning, !launchPreparationStarted else { return }
+        launchPreparationStarted = true
+        Task { @MainActor in await prepareSelectedVoice() }
+    }
+
+    func prepareSelectedVoice() async {
+        selectedVoiceFailed = false
+        switch Self.selectedEngine {
+        case "kokoro": await KokoroAgentVoice.shared.prepare()
+        default: await PocketAgentVoice.shared.prepare()
         }
     }
 
