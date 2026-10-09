@@ -2,6 +2,8 @@ import Foundation
 
 /// Migrated token/epoch/receipt invariants through the actual synth, capture,
 /// audio and shadow owners. The PCM dependency is simulated; no audibility claim.
+/// Positive receipts cover this capable fake only. Pocket/Kokoro have no qualified
+/// post-resume receipts; the distinct timeline flag exercises native prepared PCM.
 @MainActor
 enum PCMReceiptOwnerSelfTest {
     static func run(marker: String) async -> String {
@@ -79,6 +81,10 @@ enum PCMReceiptOwnerSelfTest {
                   && receipt.packet.buffer.ordinal == receipt.checkpointBuffer.ordinal + 1
                   && receipt.packet.buffer.sampleRate == receipt.checkpointBuffer.sampleRate,
                   "contiguous common frame/rate domain")
+            let malformed = PCMResumePlaybackReceipt(packet: receipt.packet, earlier: receipt.later,
+                later: receipt.earlier, checkpoint: receipt.checkpoint, checkpointBuffer: receipt.checkpointBuffer)
+            pcm.onResumePlaybackAcknowledged?(malformed) // bypass fake rejection, actual synth receiver
+            check(synth.voiceLifecycleSnapshot.resumePending, "actual receiving boundary refuses reversed cursors")
             pcm.deliverResume(receipt)
             check(receipts.last == receipt && receipts.filter { $0 == receipt }.count == 1, "exact proof delivered once")
             check(!synth.voiceLifecycleSnapshot.resumePending && shadow.state.output?.status == .playing
