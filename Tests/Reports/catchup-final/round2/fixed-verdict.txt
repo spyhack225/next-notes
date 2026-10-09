@@ -1,0 +1,4 @@
+Same immutable fixture SHA-256: 0c189826e1bfd34031f66b9bcf1810383597e13c8e68df4645ecac51b374e2f5
+Native Agent-panes exit 0, no failed assertions.
+CATCH_UP_LATER_LIVE_OK
+AGENT_PANES_OK: 3 panes, unique titles, Reminders and Goals say what they are, layout on the shared scaffold

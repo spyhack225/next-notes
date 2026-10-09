@@ -628,7 +628,8 @@ final class IslandState {
 
     /// Play, Pause or Resume on the ready card, through the same player the Library card uses
     /// (this never touches an audio object itself). While the catch-up is playing or paused the
-    /// card stays, showing the control that applies; when playback ends it goes away. If the
+    /// notice is retained, showing the control when no live card needs the island; when
+    /// playback ends it goes away. If the
     /// player refuses (it says why in its own sentence) the card stays for the usual notice
     /// time with that sentence, and Play is still there for another try.
     func toggleCatchUp(taskID: String) {
@@ -709,7 +710,8 @@ final class IslandState {
     }
 
     /// Called only from VoiceSession's ordered publishIsland command.
-    /// Notices keep their existing precedence; .none releases this projection.
+    /// Catch-up notices yield to live cards; other notices keep their existing
+    /// precedence. .none releases this projection.
     func applyVoiceProjection(_ projection: IslandProjection, sessionID: UUID, transcript: String, level: Float) {
         if projection == .none {
             guard voiceProjectionSessionID == sessionID else { return }
@@ -730,7 +732,8 @@ final class IslandState {
 
     // MARK: - Recomputing
 
-    /// Derives the live half of the state, and lets a notice win over it.
+    /// Derives the live half of the state. A Catch-up is a convenience notice:
+    /// live activity and unanswered questions win even if playback retains it.
     ///
     /// Exposed for `--selftest-island`, which drives it against pushed notices to prove the
     /// priority order without a microphone.
@@ -740,7 +743,13 @@ final class IslandState {
     }
 
     func refresh() {
-        let next = notice?.kind ?? liveKind()
+        let next: Kind
+        if let notice, case .catchUpReady = notice.kind {
+            let live = liveKind()
+            next = live == .hidden ? notice.kind : live
+        } else {
+            next = notice?.kind ?? liveKind()
+        }
         let nextID = next.identity
         if cardIdentity != nextID {
             cardIdentity = nextID

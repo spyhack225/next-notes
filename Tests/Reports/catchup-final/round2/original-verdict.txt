@@ -1,0 +1,9 @@
+Original producer: 233b5dd8 (unchanged IslandState.swift; see original-producer-invariance.json)
+New regression fixture SHA-256: 0c189826e1bfd34031f66b9bcf1810383597e13c8e68df4645ecac51b374e2f5
+Native process exit 1. Four later-live presentation assertions failed; other existing assertions reported no failure.
+AGENT_PANES_WRONG: catch-up: retained Catch-up covered later listening: catchUpReady(taskID: "newest", title: "Your morning catch-up")
+AGENT_PANES_WRONG: catch-up: retained Catch-up covered later speaking: catchUpReady(taskID: "newest", title: "Your morning catch-up")
+AGENT_PANES_WRONG: catch-up: retained Catch-up covered later thinking: catchUpReady(taskID: "newest", title: "Your morning catch-up")
+AGENT_PANES_WRONG: catch-up: retained Catch-up covered a later approval: catchUpReady(taskID: "newest", title: "Your morning catch-up")
+CATCH_UP_LATER_LIVE_FAILED
+AGENT_PANES_FAILED: 4 problem(s)
