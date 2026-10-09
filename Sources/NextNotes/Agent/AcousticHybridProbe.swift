@@ -262,6 +262,9 @@ enum AcousticHybridProbe {
 
     static func run(voice requestedVoice: String = "selected", nearURL: URL)
         async -> (Bool, String) {
+        guard requestedVoice != "apple" else {
+            return (false, "ECHO_HYBRID_FAILED: INPUT_INVALID Apple speech is not supported")
+        }
         guard await Permissions.requestMicrophone(),
               let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
                   sampleRate: 16_000, channels: 1, interleaved: false) else {
@@ -319,17 +322,7 @@ enum AcousticHybridProbe {
             }
             backing = sourceBacking
         case "apple":
-            let apple = AVSpeechBacking()
-            apple.onUtteranceStarted = { _ in
-                receipt.began = true
-                receipt.startedAt = Date()
-                state.set(receipt.startPhase)
-            }
-            apple.onUtteranceFinished = { _ in
-                receipt.finished = true
-                receipt.finishedAt = Date()
-            }
-            backing = apple
+            return (false, "ECHO_HYBRID_FAILED: INPUT_INVALID Apple speech is not supported")
         case "pocket":
             await PocketAgentVoice.shared.prepare()
             guard PocketAgentVoice.shared.isReady else {

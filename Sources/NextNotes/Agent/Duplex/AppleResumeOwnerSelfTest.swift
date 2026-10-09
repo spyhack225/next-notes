@@ -32,7 +32,7 @@ enum AppleResumeOwnerSelfTest {
         }
     }
     private struct Handled {
-        let packet: ApplePlaybackNativeObservation
+        let packet: PCMPlaybackNativeObservation
         let phase: UInt64
         let current: Bool
     }
@@ -65,13 +65,13 @@ enum AppleResumeOwnerSelfTest {
         let oldProof = speech.appleResumeProofObserverForTesting
         let oldTurn = capture.turnHandlerForTesting
         let oldResume = audio.voiceResumeObserverForTesting
-        let packetBarrier = OnceBarrier<ApplePlaybackNativeObservation>()
-        let rawBarrier = OnceBarrier<RawApplePlayedNotice>()
-        var scheduled: [ApplePlaybackBufferObservation] = []
+        let packetBarrier = OnceBarrier<PCMPlaybackNativeObservation>()
+        let rawBarrier = OnceBarrier<RawPCMPlayedNotice>()
+        var scheduled: [PCMPlaybackBufferObservation] = []
         var handled: [Handled] = []
         var resumes: [(token: UInt64, phase: UInt64, host: UInt64)] = []
-        var proofs: [AppleResumePlaybackReceipt] = []
-        var events: [AppleResumePlaybackReceipt] = []
+        var proofs: [PCMResumePlaybackReceipt] = []
+        var events: [PCMResumePlaybackReceipt] = []
         var onsets: [UInt64] = []
         var livePlayback: ((AgentSpeechSynthesizer.PlaybackEvent) -> Void)?
         var overflow = false
@@ -83,7 +83,7 @@ enum AppleResumeOwnerSelfTest {
             if !okay { failures.append(name) }
         }
         func fail(_ name: String) { failures.append("INPUT: " + name) }
-        func receiptValid(_ receipt: AppleResumePlaybackReceipt) -> Bool {
+        func receiptValid(_ receipt: PCMResumePlaybackReceipt) -> Bool {
             guard let request = resumes.first(where: {
                 $0.token == receipt.packet.buffer.token && $0.phase == receipt.packet.originPhase
             }) else { return false }

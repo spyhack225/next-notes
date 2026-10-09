@@ -1,55 +1,53 @@
-import AVFoundation
 import Foundation
 import Observation
-import Synchronization
 
-/// Diagnostic-only actual Apple player observations; never playback/UI authority.
-struct ApplePlaybackBufferObservation: Sendable, Equatable {
+/// Playback receipt metadata. A diagnostic fake does not prove native playback.
+struct PCMPlaybackBufferObservation: Sendable, Equatable {
     let token: UInt64
     let ordinal: Int
     let lowerFrame: Int64
     let upperFrame: Int64
     let sampleRate: Double
 }
-struct ApplePlaybackNativeObservation: Sendable, Equatable {
-    let buffer: ApplePlaybackBufferObservation
+struct PCMPlaybackNativeObservation: Sendable, Equatable {
+    let buffer: PCMPlaybackBufferObservation
     let originPhase: UInt64
     let callbackKind: Int
     let originHostTime: UInt64
     let originWasMainThread: Bool
 }
-struct ApplePlaybackCursorObservation: Sendable, Equatable {
+struct PCMPlaybackCursorObservation: Sendable, Equatable {
     let frame: Int64
     let sampleRate: Double
     let nodeHostTime: UInt64
     let observedHostTime: UInt64
 }
-enum ApplePlaybackTimelineObservation: Sendable, Equatable {
-    case scheduled(ApplePlaybackBufferObservation)
+enum PCMPlaybackTimelineObservation: Sendable, Equatable {
+    case scheduled(PCMPlaybackBufferObservation)
     case paused(token: UInt64, phase: UInt64)
     case resumed(token: UInt64, phase: UInt64, requestedHostTime: UInt64,
-                 cursor: ApplePlaybackCursorObservation?, checkpoint: Int64?)
-    case handled(ApplePlaybackNativeObservation, currentPhase: UInt64,
-                 cursor: ApplePlaybackCursorObservation?, checkpointBefore: Int64?,
+                 cursor: PCMPlaybackCursorObservation?, checkpoint: Int64?)
+    case handled(PCMPlaybackNativeObservation, currentPhase: UInt64,
+                 cursor: PCMPlaybackCursorObservation?, checkpointBefore: Int64?,
                  checkpointAfter: Int64?, currentOwner: Bool, candidate: Bool)
     case stopped(token: UInt64?, phaseBefore: UInt64)
 }
 
-struct AppleResumePlaybackReceipt: Sendable, Equatable {
-    let packet: ApplePlaybackNativeObservation
-    let earlier: ApplePlaybackCursorObservation
-    let later: ApplePlaybackCursorObservation
+struct PCMResumePlaybackReceipt: Sendable, Equatable {
+    let packet: PCMPlaybackNativeObservation
+    let earlier: PCMPlaybackCursorObservation
+    let later: PCMPlaybackCursorObservation
     let checkpoint: Int64
-    let checkpointBuffer: ApplePlaybackBufferObservation
+    let checkpointBuffer: PCMPlaybackBufferObservation
 }
 
-struct RawApplePlayedNotice: Sendable, Equatable {
-    let buffer: ApplePlaybackBufferObservation
+struct RawPCMPlayedNotice: Sendable, Equatable {
+    let buffer: PCMPlaybackBufferObservation
     let callbackKind: Int
     let nativeEntryHostTime: UInt64
 }
 
-/// Playback backend. Production talks to `AVSpeechSynthesizer`; the self-test
+/// Playback backend. Production uses the selected Pocket or Kokoro voice; the self-test
 /// swaps in a recorder so interrupt can be asserted without a speaker.
 @MainActor
 protocol AgentSpeechBacking: AnyObject {
@@ -71,7 +69,7 @@ extension AgentSpeechBacking {
 @MainActor
 protocol AgentReceiptSpeechBacking: AgentReplySpeechBacking {
     var currentResumePhase: UInt64? { get }
-    var onResumePlaybackAcknowledged: ((AppleResumePlaybackReceipt) -> Void)? { get set }
+    var onResumePlaybackAcknowledged: ((PCMResumePlaybackReceipt) -> Void)? { get set }
 }
 
 /// Reply-scoped native synthesis: clauses may be prepared before earlier playback ends.
@@ -86,11 +84,11 @@ protocol AgentReplySpeechBacking: AgentSpeechBacking {
     func finishReply()
 }
 
-/// `AVSpeechSynthesizer` baseline. Speaks `AgentSpeechPolicy.spokenClauses`
+/// Speaks `AgentSpeechPolicy.spokenClauses` with a ready allowed voice
 /// one utterance at a time, never waits for the queue to drain, and is always
 /// interruptible — `stop()` cancels the current clause and clears the rest.
 ///
-/// Dictation never calls this. The optional Pocket and Kokoro backings only
+/// Dictation never calls this. The Pocket and Kokoro backings only
 /// play audio; neither backing attaches to the input node.
 @MainActor
 @Observable
@@ -100,7 +98,7 @@ final class AgentSpeechSynthesizer {
         case enqueued(String)
         case startAcknowledged(String)
         case resumeRequested(token: UInt64, phase: UInt64)
-        case resumeAcknowledged(AppleResumePlaybackReceipt)
+        case resumeAcknowledged(PCMResumePlaybackReceipt)
         case completed(String)
         case interrupted(String, wasRendered: Bool)
     }
@@ -177,7 +175,7 @@ final class AgentSpeechSynthesizer {
         return PocketAgentVoice.shared.isReady
     }
     /// Called on the backing's first output acknowledgement. Pocket reports
-    /// the first completed player buffer; Apple reports its delegate start;
+    /// the first completed player buffer;
     /// Kokoro reports a successful `play()`. These are different strengths of
     /// evidence and none proves the sample reached a person's ears.
     var onFirstAudio: (() -> Void)?
@@ -235,8 +233,8 @@ final class AgentSpeechSynthesizer {
                 self.fallbackCurrentClause(text: text, token: token)
                 return
             }
-            // A source backing is used as an experimental probe. Falling back
-            // to Apple here would turn a failed source run into a false pass.
+            // A source backing is used as an experimental probe. Switching voices
+            // here would turn a failed source run into a false pass.
             guard token == self.currentPlaybackToken else { return }
             self.persistentPlaybackFailure =
                 "Pocket source playback failed for token \(token)."
@@ -552,7 +550,7 @@ final class AgentSpeechSynthesizer {
         replyFinished = false
     }
 
-    private func didResumeAudio(_ receipt: AppleResumePlaybackReceipt) {
+    private func didResumeAudio(_ receipt: PCMResumePlaybackReceipt) {
         guard let receiptBacking = backing as? any AgentReceiptSpeechBacking,
               currentClause != nil, !didStop, !isPausedForListening,
               voiceResumePending, receipt.packet.buffer.token == currentPlaybackToken,
@@ -1019,446 +1017,6 @@ final class AgentSpeechSynthesizer {
 }
 
 // MARK: - Backends
-
-@MainActor
-final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDelegate {
-    private let synthesizer = AVSpeechSynthesizer()
-    private let playbackEngine = AVAudioEngine()
-    private let player = AVAudioPlayerNode()
-    private var pendingBuffers = 0
-    private var synthesisFinished = false
-    private var didBegin = false
-    private var delivery: PCMDelivery?
-    private var speaking = false
-    private var pausedForListening = false
-    private var activeToken: UInt64?
-    /// One atomic stamp crosses the real callback thread; no PCM queue is added.
-    private final class TimelinePhase: @unchecked Sendable {
-        let value = Atomic<UInt64>(0)
-    }
-    private let timelinePhase = TimelinePhase()
-    private var timelineEnd: Int64 = 0
-    private var timelineOrdinal = 0
-    private var timelineRate: Double?
-    private var timelineResumeHost: UInt64?
-    private var timelineCheckpoint: Int64?
-    private var resumeEarlierCursor: ApplePlaybackCursorObservation?
-    private var resumeLaterCursor: ApplePlaybackCursorObservation?
-    private var resumeStrongCut: Int64?
-    private var resumeCheckpointBuffer: ApplePlaybackBufferObservation?
-    private var resumeReceiptDelivered = false
-    var onResumePlaybackAcknowledged: ((AppleResumePlaybackReceipt) -> Void)?
-    var resumeProofObserverForTesting: (@MainActor (AppleResumePlaybackReceipt) -> Void)?
-    var rawCompletionDeferralForTesting:
-        (@Sendable (RawApplePlayedNotice, @escaping @Sendable () -> Void) -> Void)?
-    private var timelineEnabled: Bool {
-        onResumePlaybackAcknowledged != nil || (SelfTest.isRunning && timelineObserverForTesting != nil)
-    }
-    var currentResumePhase: UInt64? {
-        let phase = timelinePhase.value.load(ordering: .acquiring)
-        return speaking && !pausedForListening && phase != 0 && phase % 2 == 0
-            && timelineResumeHost != nil ? phase : nil
-    }
-    private func clearResumeProof() {
-        resumeEarlierCursor = nil; resumeLaterCursor = nil; resumeStrongCut = nil
-        resumeCheckpointBuffer = nil; resumeReceiptDelivered = false
-    }
-    var timelineObserverForTesting: (@MainActor (ApplePlaybackTimelineObservation) -> Void)?
-    var nativeCompletionInterceptorForTesting:
-        (@Sendable (ApplePlaybackNativeObservation, @escaping @Sendable () -> Void) -> Void)?
-    /// Wired by `AgentSpeechSynthesizer` to pump the next clause (or finish).
-    var onUtteranceFinished: ((UInt64) -> Void)?
-    /// Wired by `AgentSpeechSynthesizer` for truthful first-audio timing.
-    var onUtteranceStarted: ((UInt64) -> Void)?
-    private var tokens: [ObjectIdentifier: UInt64] = [:]
-
-    override init() {
-        super.init()
-        synthesizer.delegate = self
-        playbackEngine.attach(player)
-        playbackEngine.connect(player, to: playbackEngine.mainMixerNode,
-                               format: AVAudioFormat(standardFormatWithSampleRate: 24_000, channels: 1)!)
-        VoicePlaybackReference.install(on: playbackEngine)
-    }
-
-    var isSpeaking: Bool { speaking }
-    var outputGain: Float { player.volume }
-    func setOutputGain(_ gain: Float) { player.volume = max(0, min(1, gain)) }
-
-    func speak(_ text: String, volume: Float, token: UInt64) {
-        // Do not clear the AVSpeech queue here — clause streaming feeds one
-        // utterance at a time after `didFinish`. A replacing reply calls `stop()`
-        // first from `AgentSpeechSynthesizer.speak`.
-        speaking = true
-        pausedForListening = false
-        activeToken = token
-        clearResumeProof()
-        if timelineEnabled {
-            timelinePhase.value.store(2, ordering: .releasing)
-            timelineEnd = 0
-            timelineOrdinal = 0
-            timelineRate = nil
-            timelineResumeHost = nil
-            timelineCheckpoint = nil
-        }
-        pendingBuffers = 0
-        synthesisFinished = false
-        didBegin = false
-        let delivery = PCMDelivery()
-        self.delivery = delivery
-        let utterance = AVSpeechUtterance(string: text)
-        // Output gain lives at the mixer. The render tap observes the resulting
-        // PCM with the same ducking applied to the physical speaker path.
-        utterance.volume = 1
-        playbackEngine.mainMixerNode.outputVolume = max(0, min(1, volume))
-        if !Settings.shared.agentVoiceIdentifier.isEmpty {
-            utterance.voice = AVSpeechSynthesisVoice(identifier: Settings.shared.agentVoiceIdentifier)
-        }
-        tokens[ObjectIdentifier(utterance)] = token
-        synthesizer.write(utterance, toBufferCallback: Self.makeRenderCallback(
-            for: self, delivery: delivery, token: token))
-    }
-
-    /// AVSpeechSynthesizer invokes its PCM callback on a private render queue.
-    /// Form it outside MainActor isolation, just like the microphone tap, or
-    /// Swift's actor assertion can terminate the live app on the first buffer.
-    nonisolated private static func makeRenderCallback(
-        for backing: AVSpeechBacking, delivery: PCMDelivery, token: UInt64
-    ) -> @Sendable (AVAudioBuffer) -> Void {
-        { [weak backing] buffer in
-            guard let pcm = buffer as? AVAudioPCMBuffer, pcm.frameLength > 0,
-                  let owned = AudioConversion.copy(pcm) else {
-                delivery.enqueue(nil, for: backing, token: token)
-                return
-            }
-            delivery.enqueue(owned, for: backing, token: token)
-        }
-    }
-
-    /// One scheduled drain per synthesizer generation. Core Audio callback
-    /// order is preserved across the MainActor hop: an EOF cannot close a
-    /// clause while earlier PCM is still waiting in another Task.
-    private final class PCMDelivery: @unchecked Sendable {
-        private struct Item: @unchecked Sendable { let buffer: AVAudioPCMBuffer? }
-        private let lock = NSLock()
-        private var pending: [Item] = []
-        private var draining = false
-
-        func enqueue(_ buffer: AVAudioPCMBuffer?, for backing: AVSpeechBacking?, token: UInt64) {
-            lock.lock()
-            pending.append(Item(buffer: buffer))
-            let schedule = !draining
-            draining = true
-            lock.unlock()
-            if schedule {
-                Task { @MainActor [weak backing] in
-                    while let next = self.take() {
-                        if let buffer = next.buffer { backing?.play(buffer, token: token) }
-                        else { backing?.synthesisEnded(token: token) }
-                    }
-                }
-            }
-        }
-
-        private func take() -> Item? {
-            lock.lock()
-            defer { lock.unlock() }
-            guard !pending.isEmpty else { draining = false; return nil }
-            return pending.removeFirst()
-        }
-    }
-
-    private func play(_ buffer: AVAudioPCMBuffer, token: UInt64) {
-        guard activeToken == token else { return }
-        do {
-            if !playbackEngine.isRunning {
-                playbackEngine.connect(player, to: playbackEngine.mainMixerNode,
-                                       format: buffer.format)
-                try playbackEngine.start()
-            }
-            pendingBuffers += 1
-            if timelineEnabled {
-                let lower = timelineEnd
-                let addition = lower.addingReportingOverflow(Int64(buffer.frameLength))
-                guard !addition.overflow, buffer.frameLength > 0,
-                      buffer.format.sampleRate.isFinite, buffer.format.sampleRate > 0,
-                      timelineRate == nil || timelineRate == buffer.format.sampleRate else {
-                    throw NSError(domain: "ApplePlaybackTimelineDiagnostic", code: 1)
-                }
-                timelineRate = buffer.format.sampleRate
-                timelineEnd = addition.partialValue
-                timelineOrdinal += 1
-                let observation = ApplePlaybackBufferObservation(token: token,
-                    ordinal: timelineOrdinal, lowerFrame: lower, upperFrame: timelineEnd,
-                    sampleRate: buffer.format.sampleRate)
-                timelineObserverForTesting?(.scheduled(observation))
-                player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack,
-                    completionHandler: Self.makeTimelineCompletion(for: self,
-                        buffer: observation, phase: timelinePhase,
-                        interceptor: nativeCompletionInterceptorForTesting,
-                        rawDeferral: SelfTest.isRunning ? rawCompletionDeferralForTesting : nil))
-            } else {
-                player.scheduleBuffer(buffer, completionCallbackType: .dataPlayedBack) {
-                    [weak self] _ in
-                    Task { @MainActor in self?.bufferPlayed(token: token) }
-                }
-            }
-            if !pausedForListening && !player.isPlaying { player.play() }
-        } catch {
-            Log.agent.error("Apple TTS PCM playback failed: \(error.localizedDescription, privacy: .public)")
-            stop()
-            onUtteranceFinished?(token)
-        }
-    }
-
-    /// Captures immutable provenance BEFORE either the hook or MainActor hop.
-    nonisolated private static func makeTimelineCompletion(
-        for backing: AVSpeechBacking, buffer: ApplePlaybackBufferObservation,
-        phase: TimelinePhase,
-        interceptor: (@Sendable (ApplePlaybackNativeObservation,
-            @escaping @Sendable () -> Void) -> Void)?,
-        rawDeferral: (@Sendable (RawApplePlayedNotice,
-            @escaping @Sendable () -> Void) -> Void)?
-    ) -> @Sendable (AVAudioPlayerNodeCompletionCallbackType) -> Void {
-        { [weak backing] kind in
-            let raw = RawApplePlayedNotice(buffer: buffer,
-                callbackKind: Int(kind.rawValue), nativeEntryHostTime: mach_absolute_time())
-            let observe: @Sendable () -> Void = { [weak backing] in
-                let packet = ApplePlaybackNativeObservation(buffer: buffer,
-                    originPhase: phase.value.load(ordering: .acquiring),
-                    callbackKind: Int(kind.rawValue), originHostTime: mach_absolute_time(),
-                    originWasMainThread: Thread.isMainThread)
-                let forward: @Sendable () -> Void = { [weak backing] in
-                    Task { @MainActor in backing?.receiveTimelineCompletion(packet) }
-                }
-                if let interceptor { interceptor(packet, forward) }
-                else { forward() }
-            }
-            if let rawDeferral { rawDeferral(raw, observe) }
-            else { observe() }
-        }
-    }
-
-    private func timelineCursor() -> ApplePlaybackCursorObservation? {
-        guard player.isPlaying, let node = player.lastRenderTime,
-              node.isHostTimeValid, let position = player.playerTime(forNodeTime: node),
-              position.isSampleTimeValid, position.sampleTime >= 0, position.sampleTime <= timelineEnd,
-              let rate = timelineRate, rate == position.sampleRate,
-              rate.isFinite, rate > 0 else { return nil }
-        return .init(frame: position.sampleTime, sampleRate: rate,
-            nodeHostTime: node.hostTime, observedHostTime: mach_absolute_time())
-    }
-
-    private func diagnosticCheckpoint(cursor: ApplePlaybackCursorObservation?,
-        completedEnd: Int64?) -> Int64? {
-        guard let host = timelineResumeHost, let cursor,
-              cursor.nodeHostTime >= host else { return nil }
-        // This is a POST-resume cursor, never a purported pre-pause cut.
-        // First callback checkpoint excludes that entire completed buffer too.
-        return max(cursor.frame, completedEnd ?? cursor.frame)
-    }
-
-    private func qualifiedResumeReceipt(_ packet: ApplePlaybackNativeObservation,
-        cursor: ApplePlaybackCursorObservation?) -> AppleResumePlaybackReceipt? {
-        let phase = timelinePhase.value.load(ordering: .acquiring)
-        guard !resumeReceiptDelivered, let requestedHost = timelineResumeHost,
-              activeToken == packet.buffer.token, speaking, !pausedForListening,
-              phase != 0, phase % 2 == 0, packet.originPhase == phase,
-              packet.callbackKind == Int(AVAudioPlayerNodeCompletionCallbackType.dataPlayedBack.rawValue),
-              packet.originHostTime >= requestedHost,
-              packet.buffer.upperFrame > packet.buffer.lowerFrame,
-              packet.buffer.sampleRate == timelineRate else { return nil }
-        if let cut = resumeStrongCut, let earlier = resumeEarlierCursor,
-           let later = resumeLaterCursor, let checkpointBuffer = resumeCheckpointBuffer {
-            guard packet.buffer.upperFrame > cut,
-                  packet.originHostTime >= later.observedHostTime else { return nil }
-            resumeReceiptDelivered = true
-            return .init(packet: packet, earlier: earlier, later: later, checkpoint: cut, checkpointBuffer: checkpointBuffer)
-        }
-        guard let cursor, cursor.sampleRate == packet.buffer.sampleRate,
-              cursor.frame >= 0, cursor.frame <= timelineEnd,
-              cursor.observedHostTime >= requestedHost,
-              cursor.nodeHostTime >= requestedHost else { return nil }
-        guard let earlier = resumeEarlierCursor else {
-            resumeEarlierCursor = cursor
-            return nil
-        }
-        // Future-dated node timestamps are NOT equated with wall-clock completion.
-        // Require actual successive node/player observations to advance together.
-        guard cursor.frame > earlier.frame,
-              cursor.nodeHostTime > earlier.nodeHostTime,
-              cursor.observedHostTime > earlier.observedHostTime,
-              cursor.sampleRate == earlier.sampleRate else { return nil }
-        resumeLaterCursor = cursor
-        resumeStrongCut = max(cursor.frame, packet.buffer.upperFrame)
-        resumeCheckpointBuffer = packet.buffer
-        // The checkpoint-building packet itself never establishes fresh speaking.
-        return nil
-    }
-
-    private func receiveTimelineCompletion(_ packet: ApplePlaybackNativeObservation) {
-        let phase = timelinePhase.value.load(ordering: .acquiring)
-        let current = activeToken == packet.buffer.token && speaking && !pausedForListening
-            && phase != 0 && phase % 2 == 0 && packet.originPhase == phase
-            && packet.callbackKind == Int(AVAudioPlayerNodeCompletionCallbackType.dataPlayedBack.rawValue)
-            && (timelineResumeHost.map { packet.originHostTime >= $0 } ?? true)
-        // Existing initial onset keeps its fast path: player query only for a
-        // pending resume or an explicitly installed SelfTest observer.
-        let cursor = timelineObserverForTesting != nil || (timelineResumeHost != nil && !resumeReceiptDelivered)
-            ? timelineCursor() : nil
-        let before = timelineCheckpoint
-        if current, timelineResumeHost != nil, before == nil {
-            timelineCheckpoint = diagnosticCheckpoint(cursor: cursor,
-                completedEnd: packet.buffer.upperFrame)
-        }
-        // Observation candidate only; does not restore any status or publish UI.
-        let candidate: Bool
-        if let before {
-            candidate = current && timelineResumeHost != nil
-                && packet.buffer.upperFrame > before
-                && packet.buffer.upperFrame > packet.buffer.lowerFrame
-        } else { candidate = false }
-        timelineObserverForTesting?(.handled(packet, currentPhase: phase,
-            cursor: cursor, checkpointBefore: before, checkpointAfter: timelineCheckpoint,
-            currentOwner: current, candidate: candidate))
-        if let receipt = qualifiedResumeReceipt(packet, cursor: cursor) {
-            if SelfTest.isRunning { resumeProofObserverForTesting?(receipt) }
-            onResumePlaybackAcknowledged?(receipt)
-        }
-        // Never suppress the existing drain bookkeeping for an unusable packet.
-        bufferPlayed(token: packet.buffer.token)
-    }
-
-    private func synthesisEnded(token: UInt64) {
-        guard activeToken == token else { return }
-        synthesisFinished = true
-        finishIfDrained(token: token)
-    }
-
-    private func bufferPlayed(token: UInt64) {
-        guard activeToken == token, pendingBuffers > 0 else { return }
-        if !didBegin {
-            didBegin = true
-            onUtteranceStarted?(token)
-        }
-        pendingBuffers -= 1
-        finishIfDrained(token: token)
-    }
-
-    private func finishIfDrained(token: UInt64) {
-        guard activeToken == token, synthesisFinished, pendingBuffers == 0 else { return }
-        speaking = false
-        pausedForListening = false
-        clearResumeProof()
-        if timelineEnabled {
-            let phase = timelinePhase.value.load(ordering: .acquiring)
-            timelinePhase.value.store(0, ordering: .releasing)
-            timelineObserverForTesting?(.stopped(token: activeToken, phaseBefore: phase))
-        }
-        activeToken = nil
-        delivery = nil
-        player.stop()
-        playbackEngine.stop()
-        VoicePlaybackReference.stopped()
-        onUtteranceFinished?(token)
-    }
-
-    func stop() {
-        speaking = false
-        pausedForListening = false
-        clearResumeProof()
-        if timelineEnabled {
-            let phase = timelinePhase.value.load(ordering: .acquiring)
-            timelinePhase.value.store(0, ordering: .releasing)
-            timelineObserverForTesting?(.stopped(token: activeToken, phaseBefore: phase))
-        }
-        activeToken = nil
-        synthesizer.stopSpeaking(at: .immediate)
-        player.stop()
-        playbackEngine.stop()
-        VoicePlaybackReference.stopped()
-        pendingBuffers = 0
-    }
-
-    func pauseForListening() {
-        guard speaking, !pausedForListening else { return }
-        pausedForListening = true
-        clearResumeProof()
-        if timelineEnabled, let token = activeToken {
-            let phase = timelinePhase.value.wrappingAdd(1, ordering: .acquiringAndReleasing).newValue
-            timelineResumeHost = nil
-            timelineCheckpoint = nil
-            timelineObserverForTesting?(.paused(token: token, phase: phase))
-        }
-        if player.isPlaying { player.pause() }
-    }
-
-    func resumeAfterListening() {
-        guard speaking, pausedForListening else { return }
-        pausedForListening = false
-        clearResumeProof()
-        if timelineEnabled {
-            _ = timelinePhase.value.wrappingAdd(1, ordering: .acquiringAndReleasing)
-            timelineResumeHost = mach_absolute_time()
-            timelineCheckpoint = nil
-        }
-        if pendingBuffers > 0 && !player.isPlaying { player.play() }
-        if timelineEnabled, let token = activeToken {
-            let cursor = timelineCursor()
-            if let cursor, let host = timelineResumeHost,
-               cursor.sampleRate == timelineRate, cursor.frame >= 0, cursor.frame <= timelineEnd,
-               cursor.observedHostTime >= host, cursor.nodeHostTime >= host {
-                resumeEarlierCursor = cursor
-            }
-            timelineCheckpoint = diagnosticCheckpoint(cursor: cursor, completedEnd: nil)
-            timelineObserverForTesting?(.resumed(token: token,
-                phase: timelinePhase.value.load(ordering: .acquiring),
-                requestedHostTime: timelineResumeHost ?? 0, cursor: cursor,
-                checkpoint: timelineCheckpoint))
-        }
-    }
-
-    nonisolated func speechSynthesizer(
-        _ synthesizer: AVSpeechSynthesizer,
-        didFinish utterance: AVSpeechUtterance
-    ) {
-        let utteranceID = ObjectIdentifier(utterance)
-        Task { @MainActor in
-            guard let token = self.tokens[utteranceID] else { return }
-            self.tokens[utteranceID] = nil
-            guard self.activeToken == token else { return }
-            // `write` may report synthesizer completion before queued PCM has
-            // reached the player; only its zero-frame sentinel and playback
-            // callbacks close the clause.
-        }
-    }
-
-    nonisolated func speechSynthesizer(
-        _ synthesizer: AVSpeechSynthesizer,
-        didStart utterance: AVSpeechUtterance
-    ) {
-        let utteranceID = ObjectIdentifier(utterance)
-        Task { @MainActor in
-            // The synthesis delegate marks generation, not speaker playback.
-            _ = self.tokens[utteranceID]
-        }
-    }
-
-    nonisolated func speechSynthesizer(
-        _ synthesizer: AVSpeechSynthesizer,
-        didCancel utterance: AVSpeechUtterance
-    ) {
-        let utteranceID = ObjectIdentifier(utterance)
-        Task { @MainActor in
-            guard let token = self.tokens[utteranceID] else { return }
-            self.tokens[utteranceID] = nil
-            guard self.activeToken == token else { return }
-            self.speaking = false
-            self.activeToken = nil
-            // Barge-in / stop already cleared pending clauses and session state.
-        }
-    }
-}
 
 @MainActor
 final class RecordingSpeechBacking: AgentSpeechBacking {

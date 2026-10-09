@@ -20,7 +20,7 @@ enum AgentSpeechPolicy {
     static let shortLimit = 280
     static let spokenCap = 400
 
-    /// The string `AVSpeechSynthesizer` may speak, or empty when the reply stays visual.
+    /// The string the selected voice may speak, or empty when the reply stays visual.
     static func spokenForm(_ reply: String) -> String {
         let trimmed = reply.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "" }

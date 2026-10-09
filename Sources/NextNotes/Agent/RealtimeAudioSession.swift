@@ -1161,7 +1161,7 @@ extension RealtimeAudioSession {
     /// First-audio timing must stay open after enqueue, and an interrupted
     /// utterance's late delegate event must not close the next reply's span.
     /// The recorder supplies deterministic backing while explicit tokens model
-    /// the AVSpeech delegate identity that production carries.
+    /// the playback callback identity that production carries.
     private static func firstAudioCallbackFailures() -> [String] {
         var failures: [String] = []
         let recorder = RecordingSpeechBacking()

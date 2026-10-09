@@ -1,0 +1,17 @@
+forbidden app API references: 15
+Sources/NextNotes/Agent/AcousticLiveProbe.swift:22
+Sources/NextNotes/Agent/AcousticHybridProbe.swift:322
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:52
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:89
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1024
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1025
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1115
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1122
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1126
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1147
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1216
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1422
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1437
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift:1448
+Sources/NextNotes/Agent/Speech/AgentSpeechPolicy.swift:23
+VOICE_SINK_SOURCE_FAILED

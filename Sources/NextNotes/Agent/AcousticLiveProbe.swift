@@ -7,6 +7,9 @@ import Foundation
 @MainActor
 enum AcousticLiveProbe {
     static func run(voice requestedVoice: String = "selected") async -> (Bool, String) {
+        guard requestedVoice != "apple" else {
+            return (false, "ECHO_LIVE_FAILED: INPUT_INVALID Apple speech is not supported")
+        }
         guard await Permissions.requestMicrophone(),
               let format = AVAudioFormat(commonFormat: .pcmFormatFloat32,
                                          sampleRate: 16_000, channels: 1,
@@ -19,10 +22,7 @@ enum AcousticLiveProbe {
         let receipt = Receipt()
         switch voice {
         case "apple":
-            let apple = AVSpeechBacking()
-            apple.onUtteranceStarted = { _ in receipt.began = true }
-            apple.onUtteranceFinished = { _ in receipt.finished = true }
-            backing = apple
+            return (false, "ECHO_LIVE_FAILED: INPUT_INVALID Apple speech is not supported")
         case "pocket":
             await PocketAgentVoice.shared.prepare()
             guard PocketAgentVoice.shared.isReady else {

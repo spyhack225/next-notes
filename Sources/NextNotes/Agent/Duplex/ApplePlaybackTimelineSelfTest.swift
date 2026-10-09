@@ -8,10 +8,10 @@ enum ApplePlaybackTimelineSelfTest {
         private let lock = NSLock()
         private var holding = false
         private var closed = false
-        private var callbacks: [(ApplePlaybackNativeObservation, @Sendable () -> Void)] = []
-        private var seen: [ApplePlaybackNativeObservation] = []
+        private var callbacks: [(PCMPlaybackNativeObservation, @Sendable () -> Void)] = []
+        private var seen: [PCMPlaybackNativeObservation] = []
         private var overflow = false
-        func intercept(_ packet: ApplePlaybackNativeObservation,
+        func intercept(_ packet: PCMPlaybackNativeObservation,
                        forward: @escaping @Sendable () -> Void) {
             lock.lock()
             if seen.count < 4096 { seen.append(packet) } else { overflow = true }
@@ -22,11 +22,11 @@ enum ApplePlaybackTimelineSelfTest {
             if !retain { forward() }
         }
         func arm() { lock.lock(); holding = true; lock.unlock() }
-        func held() -> [ApplePlaybackNativeObservation] {
+        func held() -> [PCMPlaybackNativeObservation] {
             lock.lock(); defer { lock.unlock() }
             return callbacks.map { $0.0 }
         }
-        func observed() -> [ApplePlaybackNativeObservation] {
+        func observed() -> [PCMPlaybackNativeObservation] {
             lock.lock(); defer { lock.unlock() }; return seen
         }
         func didOverflow() -> Bool {
@@ -43,9 +43,9 @@ enum ApplePlaybackTimelineSelfTest {
         }
     }
     private struct Handled {
-        let packet: ApplePlaybackNativeObservation
+        let packet: PCMPlaybackNativeObservation
         let phase: UInt64
-        let cursor: ApplePlaybackCursorObservation?
+        let cursor: PCMPlaybackCursorObservation?
         let before: Int64?
         let after: Int64?
         let current: Bool
@@ -74,9 +74,9 @@ enum ApplePlaybackTimelineSelfTest {
         let oldObserver = speech.appleTimelineObserverForTesting
         let oldInterceptor = speech.appleNativeCompletionInterceptorForTesting
         let barrier = CallbackBarrier()
-        var scheduled: [ApplePlaybackBufferObservation] = []
+        var scheduled: [PCMPlaybackBufferObservation] = []
         var handled: [Handled] = []
-        var resumes: [(UInt64, UInt64, UInt64, ApplePlaybackCursorObservation?, Int64?)] = []
+        var resumes: [(UInt64, UInt64, UInt64, PCMPlaybackCursorObservation?, Int64?)] = []
         var stops: [(UInt64?, UInt64)] = []
         var nativeOnsetTokens: [UInt64] = []
         var overflow = false
