@@ -20,7 +20,14 @@ source_suffixes={'.swift','.m','.mm','.h','.c','.cc','.cpp','.cs'}
 script_suffixes={'.sh','.py','.js','.zsh','.bash','.rb','.pl','.ps1','.mk'}
 for path in root.rglob('*'):
     relative=path.relative_to(root).as_posix()
-    if relative.startswith(('Tests/Reports/','Vendor/','docs/','.git/')) or not path.is_file():continue
+    if relative.startswith('.git/') or not path.is_file():continue
+    # Specialized speech imports are forbidden in ANY readable file, even
+    # retained evidence/dependencies, unless the exact line has a reason.
+    try: imported_source=path.read_text()
+    except UnicodeError: imported_source=''
+    if re.search(r'^\s*(?:@preconcurrency\s+)?(?:import\b|@import\b|#\s*(?:import|include)\b)[^\n]*(?:AVSpeech\w*|NSSpeechSynthesizer)',imported_source,re.MULTILINE):
+        files.add(path)
+    if relative.startswith(('Tests/Reports/','Vendor/','docs/')):continue
     if path.suffix in source_suffixes | script_suffixes or path.name.startswith('Makefile') or path.name=='GNUmakefile':
         files.add(path)
     elif path.stat().st_mode & 0o111:
