@@ -430,16 +430,16 @@ enum LongFormSynthesisFactory {
             guard AgentSpeechSynthesizer.shared.availability == .ready else {
                 throw LongFormRenderError.voiceUnavailable
             }
-            let selected = Settings.shared.agentVoiceEngine
+            let requestOwner = AgentSpeechSynthesizer.shared.selectedVoiceRequest
             do {
-                switch selected {
+                switch requestOwner.engine {
                 case "pocket": return try await pocket(request)
                 case "kokoro" where KokoroAgentVoice.isSupportedOS: return try await kokoro(request)
                 default: throw LongFormRenderError.voiceUnavailable
                 }
             } catch is CancellationError { throw CancellationError() }
             catch {
-                if !Task.isCancelled { AgentSpeechSynthesizer.shared.noteSelectedVoiceFailure(engine: selected) }
+                if !Task.isCancelled { AgentSpeechSynthesizer.shared.noteSelectedVoiceFailure(request: requestOwner) }
                 throw error
             }
         }
@@ -448,7 +448,7 @@ enum LongFormSynthesisFactory {
     private static func pocket(_ request: LongFormRenderer.SynthesisRequest) async throws -> LongFormRenderer.Audio {
         // Read the same failure latch as replies. File work does not start or
         // retry preparation; the existing launch/Settings owner prepares the voice.
-        guard Settings.shared.agentVoiceEngine == "pocket",
+        guard AgentSpeechSynthesizer.selectedEngine == "pocket",
               AgentSpeechSynthesizer.shared.availability == .ready else {
             throw LongFormRenderError.voiceUnavailable
         }
@@ -465,7 +465,7 @@ enum LongFormSynthesisFactory {
     }
 
     private static func kokoro(_ request: LongFormRenderer.SynthesisRequest) async throws -> LongFormRenderer.Audio {
-        guard Settings.shared.agentVoiceEngine == "kokoro",
+        guard AgentSpeechSynthesizer.selectedEngine == "kokoro",
               AgentSpeechSynthesizer.shared.availability == .ready else {
             throw LongFormRenderError.voiceUnavailable
         }

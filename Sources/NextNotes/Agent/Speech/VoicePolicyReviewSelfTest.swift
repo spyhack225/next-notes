@@ -7,6 +7,7 @@ enum VoicePolicyReviewSelfTest {
         guard SelfTest.isRunning else { return ["harness required"] }
         var failures: [String] = []
         failures += await UnsupportedResumePresentationSelfTest.run()
+        failures += await VoiceFailureEpochSelfTest.run()
         let synth = AgentSpeechSynthesizer.shared
         defer { synth.stop(); synth.restoreSystemBacking(); synth.clearVoiceReadinessForTesting() }
         for engine in ["pocket", "kokoro"] {

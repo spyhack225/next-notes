@@ -157,13 +157,26 @@ final class AgentSpeechSynthesizer {
 
     /// A file-synthesis failure belongs to the same selected availability policy.
     /// A changed selection and a cancelled render cannot poison another voice.
-    func noteSelectedVoiceFailure(engine: String) {
-        guard Self.selectedEngine == engine else { return }
+    struct VoiceRequest: Equatable, Sendable {
+        let engine: String
+        let selectionEpoch: UInt64
+        let preparationEpoch: UInt64
+    }
+    private var preparationEpoch: UInt64 = 0
+    private var replyVoiceRequest: VoiceRequest?
+    var selectedVoiceRequest: VoiceRequest {
+        .init(engine: Self.selectedEngine, selectionEpoch: Settings.shared.agentVoiceSelectionEpoch,
+              preparationEpoch: preparationEpoch)
+    }
+    func noteSelectedVoiceFailure(request: VoiceRequest) {
+        guard selectedVoiceRequest == request else { return }
         selectedVoiceFailed = true
     }
 
     func prepareSelectedVoice() async {
+        preparationEpoch &+= 1
         selectedVoiceFailed = false
+        if SelfTest.isRunning && (Self.selectedEngine == "pocket" ? pocketReadinessForTesting == true : kokoroReadinessForTesting == true) { return }
         switch Self.selectedEngine {
         case "kokoro": await KokoroAgentVoice.shared.prepare()
         default: await PocketAgentVoice.shared.prepare()
@@ -213,7 +226,9 @@ final class AgentSpeechSynthesizer {
     /// Forces the output backend for one run without writing the user's preference
     /// (`Settings.agentVoiceEngine`). Honoured only under the self-test harness, because
     /// changing `Settings` from a self-test writes the owner's defaults.
-    var engineOverrideForTesting: String?
+    var engineOverrideForTesting: String? {
+        didSet { if SelfTest.isRunning && oldValue != engineOverrideForTesting { preparationEpoch &+= 1 } }
+    }
     // Nil for ordinary playback; the existing scripted suspend flag drives
     // preparation availability without loading or changing the chosen voice.
     private var pocketReadinessForTesting: Bool?
@@ -342,6 +357,7 @@ final class AgentSpeechSynthesizer {
     /// Clear prior playback so a streamed reply can enqueue clauses one by one.
     /// Called by `StreamingSpeechBuffer.begin` — does not set `didStop`.
     func prepareForStream() {
+        replyVoiceRequest = selectedVoiceRequest
         setOutputGain(1)
         voiceResumePending = false
         voiceResumeBinding = nil
@@ -388,7 +404,7 @@ final class AgentSpeechSynthesizer {
 
     /// What `prepareForStream` picks. A self-test may name the engine instead of the
     /// person; nothing else may.
-    private static var selectedEngine: String {
+    static var selectedEngine: String {
         if SelfTest.isRunning, let override = AgentSpeechSynthesizer.shared.engineOverrideForTesting {
             return override
         }
@@ -730,6 +746,7 @@ final class AgentSpeechSynthesizer {
 
     private func fallbackCurrentClause(text: String, token: UInt64) {
         guard token == currentPlaybackToken, !didStop,
+              replyVoiceRequest == selectedVoiceRequest,
               let currentClause, !currentClause.isEmpty,
               currentClause == text || (replyOpen && text.isEmpty) else { return }
         selectedVoiceFailed = true

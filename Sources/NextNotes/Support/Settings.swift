@@ -854,10 +854,13 @@ final class Settings {
     }
 
     /// Requested local voice. Readiness is owned by AgentSpeechSynthesizer.
+    /// In-memory selection identity, never a new persisted choice or store.
+    private(set) var agentVoiceSelectionEpoch: UInt64 = 0
     var agentVoiceEngine: String {
         didSet {
             let normalized = Self.normalizedAgentVoiceEngine(agentVoiceEngine)
             if agentVoiceEngine != normalized { agentVoiceEngine = normalized }
+            if normalized != Self.normalizedAgentVoiceEngine(oldValue) { agentVoiceSelectionEpoch &+= 1 }
             defaults.set(normalized, forKey: Keys.agentVoiceEngine)
         }
     }
