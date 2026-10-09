@@ -1,0 +1,55 @@
+{
+  "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift": {
+    "reason": "Legacy voice catalog signatures plus existing AgentSpeechSynthesizer preview only; Sonnet owns removal/recovery UI. No Apple synthesis permitted.",
+    "lines": [
+      "private var availableVoices: [AVSpeechSynthesisVoice] {",
+      "AVSpeechSynthesisVoice.speechVoices()",
+      "private func qualityLabel(_ voice: AVSpeechSynthesisVoice) -> String {",
+      "synthesizer.speak(\"Hi, I'm Next. I can check your calendar and help with your notes.\")"
+    ]
+  },
+  "Tools/tts_benchmark.swift": {
+    "reason": "Standalone historical Apple benchmark, never linked into app. Only retained existing benchmark operations allowed. Existing JSON output write is non-speech; exact original standalone Apple write is benchmark-only.",
+    "lines": [
+      "/// The Apple measurement uses AVSpeechSynthesizer.write(_:toBufferCallback:), so",
+      "let apple = inventory.engines.first(where: { $0.name == \"AVSpeechSynthesizer\" })!",
+      "throw ProbeError.message(\"AVSpeechSynthesizer is unavailable on this Mac\")",
+      "benchmarkedEngines: [\"AVSpeechSynthesizer\"],",
+      "\"AVSpeechSynthesizer.write callback measures first generated PCM buffer, not speaker-audible output.\",",
+      "name: \"AVSpeechSynthesizer\",",
+      "available: AVSpeechSynthesisVoice(language: \"en-US\") != nil,",
+      "let utterance = AVSpeechUtterance(string: options.text)",
+      "utterance.voice = AVSpeechSynthesisVoice(language: \"en-US\")",
+      "final class SpeechWriteProbe: NSObject, AVSpeechSynthesizerDelegate {",
+      "let synthesizer = AVSpeechSynthesizer()",
+      "try data.write(to: URL(fileURLWithPath: output), options: .atomic)",
+      "probe.synthesizer.write(utterance) { [weak probe] buffer in"
+    ]
+  },
+  "Scripts/make-voice-fixtures.sh": {
+    "reason": "Offline ASR gold fixture authoring, never app playback; existing single authoring command only.",
+    "lines": [
+      "say -o \"$DIR/$1.aiff\" \"$2\""
+    ]
+  },
+  "Tests/Fixtures/chatdb/cases.sh": {
+    "reason": "Existing standalone offline gold fixture authoring only, not app speech; these exact commands are counted, not a file exemption.",
+    "lines": []
+  },
+  "Tests/Fixtures/chatdb/make-chatdb-fixture.sh": {
+    "reason": "Existing standalone offline gold fixture authoring only, not app speech; these exact commands are counted, not a file exemption.",
+    "lines": []
+  },
+  "Tests/Fixtures/meetings/generate.sh": {
+    "reason": "Existing standalone offline gold fixture authoring only, not app speech; these exact commands are counted, not a file exemption.",
+    "lines": [
+      "say -v \"$1\" \"$2\" -o \"$TMP/turn.aiff\""
+    ]
+  },
+  "Tests/Fixtures/wake/generate.sh": {
+    "reason": "Existing standalone offline gold fixture authoring only, not app speech; these exact commands are counted, not a file exemption.",
+    "lines": [
+      "say -v \"$1\" -r \"$2\" \"$3\" -o \"$TMP/clip.aiff\""
+    ]
+  }
+}
