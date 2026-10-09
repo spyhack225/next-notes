@@ -42,6 +42,7 @@ enum PCMReceiptOwnerSelfTest {
         audio.appendSpokenReply(handle, clause); audio.finalizeSpokenReply(handle)
         let token = synth.currentPlaybackToken, generation = synth.outputGeneration
         let output = shadow.state.output?.id
+        check(capture.sessionID == captureID, "output retains exact capture session")
         check(pcm.submissions.map(\.text) == [clause], "one exact clause submitted")
         check(pcm.events == [.enqueued(token)], "enqueue distinct from played/completed")
         check(shadow.state.output?.status == .queued && shadow.state.output?.heard == false, "enqueue is unheard")
