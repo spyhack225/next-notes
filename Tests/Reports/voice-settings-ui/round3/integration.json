@@ -1,0 +1,17 @@
+{
+  "base": "514fcfc7",
+  "producer_commit": "98f9205a",
+  "changed_sources": [
+    "Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift",
+    "Sources/NextNotes/UI/Components/VoiceTextOnlyNote.swift",
+    "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift",
+    "Sources/NextNotes/UI/Settings/VoiceSettingsPreview.swift",
+    "Sources/NextNotes/UI/Settings/VoiceSettingsSection.swift",
+    "Sources/NextNotes/UI/Settings/VoiceSettingsSelfTest.swift",
+    "Sources/NextNotes/UI/UIStringsLint.swift"
+  ],
+  "will_conflict_with_uncommitted_work": [
+    "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift"
+  ],
+  "source_regression_fixture_sha256": "da8a6bd1d30793e0230f550cd5505e2ccc2358ba1309633b454b8d5b57a136b7"
+}

@@ -1,0 +1,9 @@
+{
+  "macOS": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g\n",
+  "build_configuration": "debug",
+  "heavy_wrapper": "../heavy.sh",
+  "relay_id": "claude2-voice-settings-ui",
+  "wrapper_exit": 1,
+  "gate_overrides": false,
+  "preview_count": 11
+}

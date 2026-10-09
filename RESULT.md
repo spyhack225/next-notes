@@ -1,3 +1,48 @@
+# voice-settings-ui round 3
+
+Own branch `claude2/voice-settings-ui`; producer/UI commit **`98f9205a`**. The final documentation commit retains the native results, screenshots and integration limits. No install, push or merge into main. Round-two results and cumulative conflict guidance are retained below.
+
+## Cause and changes
+
+The Voice UI itself produced repeated unsupported-version/size copy, a footer regardless of state, a selected unsupported tile and an authored 40% preview. The shared availability message also told people to download while startup already owns automatic preparation. These producers now provide per-state plain copy, a ready-only footer, a checkmark for supported selection, one unsupported warning without a selected outline or Heart row, and indeterminate unknown progress. The backend exposes four Pocket choices and one Kokoro voice; tiles state that bounded difference. Small explanatory text uses callout size.
+
+Failure shows an orange warning and Retry beside it, using native prominent style plus explicit accent tint. The live notch line uses a compact wrapping component and a blue Voice settings button; pane links are blue and destination copy appears once. State changes claim the notch note once and ready clears its existing claim. The native test invokes this same seam. Preparation's orb is still; the page header is already still. Previews explicitly pin SwiftUI light plus AppKit aqua and include the real Models form, scrolled to Speaking back, at 560pt.
+
+Selection still saves immediately, captures the request epoch and enters only `prepareSelectedVoice()` for selection/Retry. Preview still requires live availability.ready. There is no Apple voice tile/catalog/preview and no direct preparation, automatic voice switch or old-answer replay. No turn-path wait, model pass/store or audio-owner change was added.
+
+## Original/fixed checks and single guarded slot
+
+Identical source fixture: original `514fcfc7` exits 1 / **`VOICE_SETTINGS_REVIEW_FAILED: 20`**; fixed exits 0 / **`VOICE_SETTINGS_REVIEW_OK`**. Original/current hashes are retained. Nine round-two wiring contracts still pass **`VOICE_SETTINGS_WIRING_OK`**. Original native UI was not rebuilt.
+
+One normal heavy.sh FIFO slot builds successfully: `Build complete! (265.24 sec)`. All 844 Sources files match the built pins. Compiler duration is not product latency. Full inputs, binary/source hashes, logs, original/fixed fixture and PNGs are in [round-three evidence](Tests/Reports/voice-settings-ui/round3/README.md).
+
+| Check | Process exit | Exact final root marker |
+| --- | --- | --- |
+| `webrtc-build` | 0 | `NO_FINAL_MARKER` |
+| `build` | 0 | `NO_FINAL_MARKER` |
+| `voice-settings` | 0 | `VOICE_SETTINGS_OK` |
+| `ui-strings` | 0 | `UI_STRINGS_OK` |
+| `settings` | -11 | `SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host` |
+| `preview` | 0 | `VOICE_SETTINGS_PREVIEW_OK /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/Tests/Reports/voice-settings-ui/round3/shots` |
+
+Wrapper exits 1 for the **Settings failed process**: its assertions print the exact OK marker above and it then crashes with -11, as inherited from round two and peer reports. It is not a pass and its crash cause is unassigned. Voice Settings, UI strings and previews exit 0. The Voice Settings fixture retains actual selection/Retry recovery/epoch coverage and adds per-state text/once-per-state clearing plus production lint negatives for macOS version/MB/GB. Hardware/model boundaries remain substituted.
+
+## Inspected PNGs and limits
+
+All 11 PNGs were inspected. Light backgrounds, supported-selection checks, unsupported Kokoro without selected styling/Heart, ready-only footer, honest preparation, blue settings links and complete compact notch wording are confirmed in the offscreen images. The real 560pt Models page shows its header and whole Voice section with native margins/form style. No Apple voice or file size is displayed in that section. See [visual inspection](Tests/Reports/voice-settings-ui/round3/visual-review.json).
+
+Native inactive offscreen panels still draw prominent buttons gray, including Retry. Its source now explicitly uses the accent-tinted primary style; **active-window color/prominence is unverified** because opening the GUI is prohibited. Live notch/pane mounted behavior, click-through, VoiceOver, Reduce Motion/Transparency toggles, physical speech, real download/offline recovery and performance/full-duplex remain unverified. No default, aggregate quality, phase or broader acceptance is promoted.
+
+## Files, conflicts and cleanup
+
+Seven round-three sources: `Agent/Speech/AgentVoiceAvailability.swift`; `UI/Components/VoiceTextOnlyNote.swift`; `UI/Settings/ModelsSettingsTab.swift`; `UI/Settings/VoiceSettingsSection.swift`; `UI/Settings/VoiceSettingsPreview.swift`; `UI/Settings/VoiceSettingsSelfTest.swift`; `UI/UIStringsLint.swift`. Evidence is under `Tests/Reports/voice-settings-ui/round3/`; PERFORMANCE-STANDARDS gets an append-only reference.
+
+`ModelsSettingsTab.swift` **will conflict with uncommitted work**, per MAIN-DIRTY-SOURCES.txt. Preserve canonical OutputScheduler/preview/onAppear edits when applying the diagnostic-only availability override. Round-two cumulative conflicts below still apply. The availability-message file is owned by the no-apple voice branch; this round changes copy only, so preserve any later producer repairs while reconciling it.
+
+Own scratch and the private test TMPDIR are deleted (`cleanup.json`); own relay scratch is also deleted. Foreign files, processes, claims, shared scratch, owner data and supplied briefs/transcripts are preserved. Final scope/verdicts are relayed to claude-positioning and the project; sending is not reading proof.
+
+---
+
 # voice-settings-ui round 2
 
 Own branch: `claude2/voice-settings-ui`. Rebased the three UI commits from `d52ebaca` onto `8097108a561f3039cfdda395c81741df86fbe59e`, with no conflicts. No install, push or merge into main.

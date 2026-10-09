@@ -1,0 +1,117 @@
+{
+  "appearance": "SwiftUI light and NSAppearance aqua; visually confirmed light backgrounds in all 11 PNGs",
+  "images": [
+    {
+      "file": "settings-models-voice-560.png",
+      "sha256": "104f5fe688d761f4c400eae2372b0910828da28aecd1fdbb3e27290d12397d47",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-failed.png",
+      "sha256": "ecdb1e024c02c093b3ef2a458dd564ef5043f1181d82d0f7bda521c14bd93da7",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-kokoro-failed.png",
+      "sha256": "a0f467bf51ca4d72f29f8bd06f252054946a8d08d87543ec2e1e6726a58cc5e1",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-kokoro-needs-download.png",
+      "sha256": "6de833309c85f9b2253ad634f87888e3b725f1bd7257341b9cdce3ab7d5cae6e",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-kokoro-preparing.png",
+      "sha256": "84cd6bf40c03771aea1c298df53f8ec8efd51212ff516575cdeec6b4da1f1dc6",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-kokoro-ready.png",
+      "sha256": "f8fcb2b1d6618f3a4a06b05043e20b525cee86c08b69d207edd3d811dde580e2",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-kokoro-unavailable.png",
+      "sha256": "d6e6e4d18ed25b48834b1f7e800673df92204c9e757c1d0b57a929a82e37ec7d",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-needs-download.png",
+      "sha256": "1b910ba90a0592bb45651cc90c1cc045a6f703b40b163449aade8164b047fd7e",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-preparing.png",
+      "sha256": "976cb1867d66870db7a7c53cd476a2d0fc5c1c58d630e4737e1ce68ce8e36f93",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-ready.png",
+      "sha256": "eb74bc7f75967a5d4b831ba733e954e9aef473ee7d1716c2eb0eeccd0494936b",
+      "pixels": [
+        1120,
+        2240
+      ],
+      "inspected": true
+    },
+    {
+      "file": "voice-text-only-lines.png",
+      "sha256": "7acbdf7869d9e149ed5a99b8cc139904f932e1b7bbea4845f47798ab2e495804",
+      "pixels": [
+        782,
+        448
+      ],
+      "inspected": true
+    }
+  ],
+  "findings": [
+    "Selected supported tiles show a checkmark and blue outline. Unsupported Kokoro has neither, no Heart row and one plain warning without version numbers.",
+    "Only ready states show the short footer; no Voice section displays file sizes.",
+    "The shared real notch-line component displays its whole short sentence and blue Voice settings button in the black card. Pane state lines wrap and link to settings without duplicated destination copy.",
+    "Pocket and Kokoro preparation use unknown-progress indicators; no authored 40% screenshot remains. Voice state illustration and page header orbs are still by source.",
+    "Real ModelsSettingsTab is visible inside SettingsPane at 560pt, scrolled to final sections with the entire Voice section.",
+    "Retry is beside the orange failure title and disabled sample. Native inactive offscreen panels render the accent-tinted borderedProminent button gray; active-window prominence/color is unverified."
+  ],
+  "unverified": [
+    "Mounted interactive/live notch and pane behavior; no GUI may be opened this round.",
+    "Active-window native Retry color/prominence, VoiceOver, Reduce Motion/Transparency toggles and animated indicator.",
+    "Physical playback, audible voice differences, actual model download/offline recovery and performance/full-duplex acceptance."
+  ]
+}
