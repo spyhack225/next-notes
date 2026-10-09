@@ -571,6 +571,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        // Each state of the voice section, and the text-only line, rendered offscreen.
+        // Shares `--settings-sheet`'s reasons: it is for the eye, not a yes/no test.
+        if CommandLine.arguments.contains("--voice-settings-preview") {
+            runVoiceSettingsPreview()
+            return
+        }
+
         if CommandLine.arguments.contains("--meeting-console-preview") {
             runMeetingConsolePreview()
             return
@@ -4948,6 +4955,19 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                 writeSelfTest("SETTINGS_SHEET_FAILED")
                 SelfTest.failed = true
             }
+            SelfTest.requestTermination()
+        }
+    }
+
+    /// `--voice-settings-preview [dir]` — the voice section in every state it can be in.
+    private func runVoiceSettingsPreview() {
+        Task { @MainActor in
+            let directory = SelfTest.value(after: "--voice-settings-preview")
+                ?? FileManager.default.temporaryDirectory
+                    .appendingPathComponent("nextnotes-voice-settings-preview", isDirectory: true).path
+            let ok = VoiceSettingsPreview.write(to: directory)
+            writeSelfTest(ok ? "VOICE_SETTINGS_PREVIEW_OK \(directory)" : "VOICE_SETTINGS_PREVIEW_FAILED")
+            SelfTest.failed = !ok
             SelfTest.requestTermination()
         }
     }

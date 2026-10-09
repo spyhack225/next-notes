@@ -81,7 +81,7 @@ enum SettingsSheet {
     /// here and `--avatar-sheet`'s blank form is the reason: a native grouped `Form` draws
     /// nothing into an `ImageRenderer` pass, while a hosted view in an offscreen window
     /// lays out and `cacheDisplay` draws it. Never ordered on screen.
-    private static func render(_ view: some View, width: CGFloat) -> Data? {
+    static func render(_ view: some View, width: CGFloat) -> Data? {
         let height = DS.Size.settingsWindowMinHeight * 2
         let panel = NSPanel(
             contentRect: NSRect(x: 0, y: 0, width: width, height: height),
