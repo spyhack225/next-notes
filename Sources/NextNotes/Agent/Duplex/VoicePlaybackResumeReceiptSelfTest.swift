@@ -1,3 +1,5 @@
+// Simulated receipt-capable route. Positive resume cases do not establish
+// Pocket/Kokoro support; their current capability is explicitly false.
 import Foundation
 
 /// Proposed original/fixed simulated PCM regression. Uses explicit deterministic played events; no simulated playback claim.

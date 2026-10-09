@@ -1,3 +1,5 @@
+// Simulated receipt-capable route. Positive resume cases do not establish
+// Pocket/Kokoro support; their current capability is explicitly false.
 import Foundation
 
 /// Off-source proposed common original/fixed fixture; commands remain shadow-only.

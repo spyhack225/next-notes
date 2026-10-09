@@ -105,8 +105,10 @@ final class AgentSpeechSynthesizer {
     }
     static let shared = AgentSpeechSynthesizer()
 
-    // RED scaffold: the original route exposed no receipt capability contract.
-    var supportsQualifiedResumeReceipt: Bool? { nil }
+    /// Capability of the currently selected output route, not a playback claim.
+    /// Pocket/Kokoro resume their players but provide no qualified post-resume
+    /// receipt. Their pending shadow status must never be adopted as live UI truth.
+    var supportsQualifiedResumeReceipt: Bool { backing is any AgentReceiptSpeechBacking }
     var speechSynthesisCallsForTesting: Int { 0 }
     func setVoiceReadinessForTesting(engine: String, ready: Bool) {
         guard SelfTest.isRunning else { return }
@@ -176,8 +178,10 @@ final class AgentSpeechSynthesizer {
     /// Set by `stop()`. The interrupt self-test fails unless this path ran.
     private(set) var didStop = false
     private(set) var isPausedForListening = false
-    /// Current output needs fresh playback proof after its accepted pause.
-    /// Historical clauseRendered remains intact; no physical playback gate.
+    /// Current output has no fresh playback proof after its accepted pause.
+    /// On Pocket/Kokoro this remains unsupported (capability is false), not a
+    /// promise that a receipt will arrive. Physical resume stays immediate.
+    /// Historical clauseRendered remains intact; shadow projection only.
     private var voiceResumePending = false
     struct ResumeBinding: Sendable, Equatable { let token: UInt64; let phase: UInt64 }
     private(set) var voiceResumeBinding: ResumeBinding?
@@ -226,12 +230,15 @@ final class AgentSpeechSynthesizer {
         let rendered: Bool
         let paused: Bool
         let resumePending: Bool
+        /// False means positive resume proof is unavailable, rather than delayed.
+        let supportsQualifiedResumeReceipt: Bool
         let resumeBinding: ResumeBinding?
     }
     var voiceLifecycleSnapshot: VoiceLifecycleSnapshot {
         .init(generation: outputGeneration, hasClause: currentClause != nil,
               rendered: currentClauseRendered, paused: isPausedForListening,
-              resumePending: voiceResumePending, resumeBinding: voiceResumeBinding)
+              resumePending: voiceResumePending, supportsQualifiedResumeReceipt: supportsQualifiedResumeReceipt,
+              resumeBinding: voiceResumeBinding)
     }
     /// Observes only after clearing/advancing a clause; never controls playback.
     var onVoiceLifecycleSettled: (() -> Void)?
