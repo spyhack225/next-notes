@@ -16,7 +16,14 @@ enum VoicePolicyReviewSelfTest {
             if synth.supportsQualifiedResumeReceipt != false { failures.append("R1: \(engine) lacks an honest unsupported resume capability contract") }
         }
         synth.engineOverrideForTesting = "pocket"
-        synth.setVoiceFailureForTesting(true)
+        let failedPlayback = PCMReceiptSpeechBacking()
+        synth.useTestingBacking(failedPlayback)
+        let failedClause = "The selected voice failed during playback."
+        synth.speak(failedClause)
+        failedPlayback.onFailure?(failedClause, 1, synth.currentPlaybackToken)
+        if synth.availability != .failed || synth.outputAvailability != .failed || failedPlayback.isSpeaking {
+            failures.append("R2: actual backing failure did not settle selected availability")
+        }
         var audioCalls = 0
         LongFormSynthesisFactory.audioForTesting = {
             audioCalls += 1
@@ -40,6 +47,9 @@ enum VoicePolicyReviewSelfTest {
         do { _ = try await LongFormSynthesisFactory.live()(.init(text: "Do not retry the failed file voice.", speaker: nil)) } catch { }
         if audioCalls != failedFileCalls { failures.append("R2: subsequent Catch-up retried failed file synthesis") }
         synth.setVoiceFailureForTesting(false)
+        LongFormSynthesisFactory.audioForTesting = { throw CancellationError() }
+        do { _ = try await LongFormSynthesisFactory.live()(.init(text: "Cancelled rendering is not a voice failure.", speaker: nil)) } catch { }
+        if synth.availability != .ready { failures.append("R2: cancellation latched a voice failure") }
         let failedOwner = PocketAgentVoice()
         var failedLoads = 0
         failedOwner.initializeForTesting = { failedLoads += 1; throw ReviewFixtureError.unavailable }
