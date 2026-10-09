@@ -52,6 +52,7 @@ enum CatchUpSelfTest {
         failures += await CatchUpHandoffSelfTest.run()
         failures += await CatchUpAcceptanceSelfTest.run()
         failures += await WakeWordAudioMonitor.catchUpPlaybackRegressionFailures()
+        failures += await CatchUpPermissionSelfTest.run()
         failures += identityFailures(root: root)
         failures += templateFailures()
         failures += await routineFailures(root: root)

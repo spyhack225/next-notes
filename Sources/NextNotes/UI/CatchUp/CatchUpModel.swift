@@ -42,13 +42,14 @@ struct CatchUpEntry: Identifiable, Equatable {
 
 /// The question a catch-up ends on, and the button it becomes.
 struct CatchUpOffer: Equatable {
+    static let permissionExplanation = "I'll ask before making changes unless you've already allowed that action."
     /// The sentence as written: "Want me to send the reminders?"
     var question: String
     /// The primary button: "Send the reminders", or "Yes, do that" when the question does not
     /// start in a shape we can turn into a verb phrase.
     var actionLabel: String
     /// What saying yes sends the Agent as an ordinary turn. Anything that writes or sends
-    /// still stops at the normal approval card, so one press is never an approval to send.
+    /// uses normal permissions, including standing grants; this press is a request, not a new grant.
     var yesText: String
 }
 

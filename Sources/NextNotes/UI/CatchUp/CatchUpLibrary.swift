@@ -7,7 +7,7 @@ import Observation
 /// The backend gives a catch-up no structured next step: its closing question is the last
 /// sentence of the words, so the only honest way to act on it is the way the person would —
 /// say yes in the conversation. That is an ordinary turn, and anything it would write or send
-/// stops at the normal approval card. This seam is that one hand-off, so a check can watch it
+/// uses normal permissions, including standing grants. This seam is that one hand-off, so a check can watch it
 /// without a model and the day a catch-up carries a prepared action it is the one place to
 /// change.
 @MainActor
@@ -263,7 +263,7 @@ final class CatchUpLibrary {
     }
 
     /// Saying yes starts an ordinary turn in the conversation. Whatever it would write or send
-    /// stops at the normal approval card, which is the one confirmation this keeps.
+    /// uses normal permissions: an existing covering grant can run it without a new card.
     func acceptOffer(_ entry: CatchUpEntry) {
         guard let offer = openOffer(for: entry) else { return }
         closeOffer(entry)
