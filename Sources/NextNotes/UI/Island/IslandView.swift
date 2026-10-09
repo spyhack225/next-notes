@@ -485,6 +485,11 @@ struct IslandView: View {
                     .font(DS.Font.callout)
                     .foregroundStyle(secondaryInk)
                     .lineLimit(3)
+                if let line = AgentSpeechSynthesizer.shared.outputAvailability?.message {
+                    Text(line)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(secondaryInk)
+                }
                 // P2-6: the disclaimer is persistent on every surface that speaks.
                 Text("Next Notes is AI and can make mistakes.")
                     .font(DS.Font.caption)

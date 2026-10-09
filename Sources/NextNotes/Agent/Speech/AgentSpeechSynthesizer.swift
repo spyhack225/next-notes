@@ -115,10 +115,11 @@ final class AgentSpeechSynthesizer {
                             preparing: KokoroAgentVoice.shared.isPreparing,
                             failed: selectedVoiceFailed || !KokoroAgentVoice.isSupportedOS
                                 || KokoroAgentVoice.shared.errorMessage != nil)
-        default:
+        case "pocket":
             return .resolve(ready: pocketIsReady,
                             preparing: PocketAgentVoice.shared.isPreparing,
                             failed: selectedVoiceFailed || PocketAgentVoice.shared.errorMessage != nil)
+        default: return .failed
         }
     }
 

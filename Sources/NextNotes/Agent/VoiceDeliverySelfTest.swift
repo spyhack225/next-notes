@@ -90,6 +90,7 @@ enum VoiceDeliverySelfTest {
 
         failures += streamingCases()
         failures += await replySubmissionCases()
+        failures += await textOnlyCases()
         failures += await OutputTokenSelfTest.run()
 
         if failures.isEmpty {
@@ -99,6 +100,59 @@ enum VoiceDeliverySelfTest {
         for failure in failures { print("VOICE_DELIVERY_FAILED: \(failure)") }
         print("VOICE_DELIVERY_FAILED")
         return false
+    }
+
+    /// Actual message binding, echo admission and interrupted ledger consumers.
+    /// Neither absence nor producer failure can make written content spoken.
+    @MainActor
+    private static func textOnlyCases() async -> [String] {
+        var failures: [String] = []
+        func check(_ value: Bool, _ label: String) {
+            if !value { failures.append("text-only delivery: " + label) }
+        }
+        let capture = AgentCaptureController.shared
+        let audio = RealtimeAudioSession.shared
+        let synth = AgentSpeechSynthesizer.shared
+        defer { synth.stop(); synth.clearVoiceReadinessForTesting(); synth.restoreSystemBacking() }
+        await capture.beginSession(captureAudio: false)
+        synth.useUnavailableVoiceForTesting()
+        let written = "Written information stays here. Every detail stays available."
+        audio.speak(OutputScheduler.tokenForTesting(), written)
+        let absent = AgentSession.shared.recordAssistant(written, source: .voice)
+        if let output = audio.retainedOutputID {
+            VoicePlaybackDelivery.shared.bind(messageID: absent, output: output, turn: RealtimeAgent.shared.currentGeneration)
+        } else { failures.append("text-only delivery: missing retained output") }
+        let absentMessage = AgentSession.shared.messages.first { $0.id == absent }
+        check(absentMessage?.text == written && absentMessage?.speechDelivery?.completedText == ""
+              && absentMessage?.speechDelivery?.status == "interrupted"
+              && absentMessage?.speechDelivery?.availabilityMessage != nil,
+              "unavailable output lost text/visible line or claimed spoken completion")
+        check(!synth.isSpeaking && !audio.isSpeaking && audio.voiceShadowOutputSnapshot == nil,
+              "unavailable output left speaking presentation")
+        check(audio.userSpeechExcludingPlayback(written) == written,
+              "unplayed written text entered echo suppression")
+
+        let pcm = PCMReceiptSpeechBacking()
+        synth.useTestingBacking(pcm)
+        let full = "The completed fact. The partial fact. The untouched fact."
+        audio.speak(OutputScheduler.tokenForTesting(), full)
+        let first = synth.currentPlaybackToken
+        pcm.deliverPlayed(pcm.packet(token: first)); pcm.complete(first)
+        let partial = synth.currentPlaybackToken
+        pcm.deliverPlayed(pcm.packet(token: partial)); pcm.fail(partial)
+        let failed = AgentSession.shared.recordAssistant(full, source: .voice)
+        if let output = audio.retainedOutputID {
+            VoicePlaybackDelivery.shared.bind(messageID: failed, output: output, turn: RealtimeAgent.shared.currentGeneration)
+        } else { failures.append("text-only delivery: failed output identity missing") }
+        let failedMessage = AgentSession.shared.messages.first { $0.id == failed }
+        check(failedMessage?.text == full && failedMessage?.speechDelivery?.completedText == "The completed fact."
+              && failedMessage?.speechDelivery?.status == "interrupted"
+              && failedMessage?.speechDelivery?.availabilityMessage == AgentVoiceAvailability.failed.message,
+              "failure lost exact completed/unheard facts or final written binding")
+        check(!pcm.isSpeaking && !synth.isSpeaking && !audio.isSpeaking,
+              "producer failure retained playback")
+        await capture.endSession(source: .done)
+        return failures
     }
 
     /// Original and fixed share the actual reply/text/synth/ledger consumers.
