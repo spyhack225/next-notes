@@ -26,7 +26,7 @@ struct VoiceTextOnlyNote: View {
     var body: some View {
         content
             .onChange(of: voice.availability, initial: true) { _, now in
-                if now == .ready { VoiceTextOnlyNoteLedger.reset() }
+                VoiceTextOnlyNoteLedger.observe(now)
             }
     }
 
@@ -37,14 +37,13 @@ struct VoiceTextOnlyNote: View {
             case .pane(let messageID):
                 if isNewestTextOnlyAnswer(messageID) { paneLine(line) }
             case .island(let ink):
-                Text(line)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(ink)
-                    .lineLimit(2)
+                VoiceTextOnlyIslandLine(availability: voice.availability, ink: ink)
                     .opacity(islandShows ? 1 : 0)
                     .frame(maxHeight: islandShows ? nil : 0)
                     .accessibilityHidden(!islandShows)
-                    .onAppear { islandShows = VoiceTextOnlyNoteLedger.claimIsland(line) }
+                    .onChange(of: line, initial: true) { _, now in
+                        islandShows = VoiceTextOnlyNoteLedger.claimIsland(now)
+                    }
             }
         }
     }
@@ -64,19 +63,61 @@ struct VoiceTextOnlyPaneLine: View {
     @Environment(\.openSettings) private var openSettings
 
     var body: some View {
-        HStack(spacing: DS.Space.xs) {
-            Image(systemName: "text.bubble")
-                .accessibilityHidden(true)
-            Text(text)
+        VStack(alignment: .leading, spacing: DS.Space.xxs) {
+            Label(sentence, systemImage: "text.bubble")
+                .fixedSize(horizontal: false, vertical: true)
+            Button(buttonTitle) {
+                NavigationState.shared.selectedSettingsTab = .models
+                openSettings()
+            }
+            .buttonStyle(.link)
+            .foregroundStyle(DS.Color.accent)
+            .accessibilityHint("Opens the voice settings")
+        }
+        .font(DS.Font.callout)
+        .foregroundStyle(DS.Color.textSecondary)
+    }
+
+    // Render the destination as a real button, once, rather than duplicate its name.
+    private var sentence: String {
+        let destination = text.hasSuffix("Retry in Voice settings.")
+            ? " Retry in Voice settings." : " Voice settings."
+        return text.hasSuffix(destination) ? String(text.dropLast(destination.count)) : text
+    }
+
+    private var buttonTitle: String {
+        text.hasSuffix("Retry in Voice settings.") ? "Retry in Voice settings" : "Voice settings"
+    }
+}
+
+/// The real notch line and its offscreen preview share the same compact, wrapping layout.
+struct VoiceTextOnlyIslandLine: View {
+    let availability: AgentVoiceAvailability
+    let ink: Color
+    @Environment(\.openSettings) private var openSettings
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: DS.Space.xxs) {
+            Text(sentence)
+                .fixedSize(horizontal: false, vertical: true)
             Button("Voice settings") {
                 NavigationState.shared.selectedSettingsTab = .models
                 openSettings()
             }
             .buttonStyle(.link)
-            .accessibilityHint("Opens the voice settings")
+            .foregroundStyle(DS.Color.accent)
         }
         .font(DS.Font.caption)
-        .foregroundStyle(DS.Color.textSecondary)
+        .foregroundStyle(ink)
+    }
+
+    private var sentence: String {
+        switch availability {
+        case .ready: ""
+        case .preparing: "Voice is getting ready. Answer is here."
+        case .failed: "Voice couldn't start. Answer is here."
+        case .needsDownload: "Your voice isn't on this Mac yet. Answer is here."
+        }
     }
 }
 
@@ -91,6 +132,10 @@ enum VoiceTextOnlyNoteLedger {
         if lastIslandLine == line { return false }
         lastIslandLine = line
         return true
+    }
+
+    static func observe(_ availability: AgentVoiceAvailability) {
+        if availability == .ready { reset() }
     }
 
     /// Called when the voice is ready, so the next trouble is told again.

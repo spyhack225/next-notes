@@ -33,6 +33,9 @@ struct ModelsSettingsTab: View {
     /// second press cannot start a second multi-gigabyte load.
     @State private var checkingModelID: String?
 
+    /// Offscreen diagnostic only; production always observes the speech owner.
+    var voicePreviewAvailability: AgentVoiceAvailability? = nil
+
     var body: some View {
         Form {
             yourMac
@@ -774,7 +777,7 @@ struct ModelsSettingsTab: View {
 
     private var speechSynthesis: some View {
         VoiceSettingsSection(
-            availability: AgentSpeechSynthesizer.shared.availability,
+            availability: voicePreviewAvailability ?? AgentSpeechSynthesizer.shared.availability,
             isPreviewing: isPreviewing,
             togglePreview: { if isPreviewing { stopPreview() } else { startPreview() } },
             stopPreview: stopPreview,

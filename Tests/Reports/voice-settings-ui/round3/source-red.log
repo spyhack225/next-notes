@@ -1,0 +1,27 @@
+Sources/NextNotes/UI/Settings/VoiceSettingsSection.swift cc9d1f927eac8216e15e09c19a82350bb2a4e7081c5c0b6fbc6ba87a9113337b
+Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift dae3ea8e36b0085c4d6cbe6be5d6b87dbac4a1e036e81491412f206b308388d4
+Sources/NextNotes/UI/Components/VoiceTextOnlyNote.swift bc385503900ab65630a3493a09d7a8234fefcda8dc3055894f649c193ee600f4
+Sources/NextNotes/UI/Settings/VoiceSettingsPreview.swift 8b3ea5317d7f97b82be56b68b282a163bc2203da79a6e6ac4af66c99365484a1
+Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift 106ef7705d62c5a6b9092e257f12540501c3ceda22b8d631d380facedd190df0
+Sources/NextNotes/UI/UIStringsLint.swift 746b14aa1a62cf44dc0c5366379e29ba44277aedf1ef058e790d1cf961000a98
+FAIL no version/size literals in Voice section
+FAIL plain Kokoro warning
+FAIL unsupported selection has no selected outline
+FAIL unsupported choice has no named voice row
+FAIL selection has checkmark
+FAIL ready-only footer
+FAIL failure points beside to Retry
+FAIL failure has warning icon
+FAIL primary Retry uses accent
+FAIL preparing orb is still
+FAIL unknown progress is indeterminate
+FAIL no invented preview progress
+FAIL preparing text names temporary text
+FAIL failure text names retry
+FAIL missing voice text agrees with auto-download
+FAIL notch shares wrapping interactive line with preview
+FAIL settings links carry accent
+FAIL preview pins light
+FAIL 560 Models preview uses real page
+FAIL Voice literal size/version lint exists
+VOICE_SETTINGS_REVIEW_FAILED: 20

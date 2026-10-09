@@ -51,7 +51,7 @@ struct VoiceSettingsSection<Details: View>: View {
 
             if selected == .pocket {
                 pocketVoices
-            } else {
+            } else if isAvailableOnThisMac(selected) {
                 LabeledContent("Voice", value: KokoroAgentVoice.voiceName)
             }
 
@@ -61,7 +61,7 @@ struct VoiceSettingsSection<Details: View>: View {
         } header: {
             Text("Speaking back")
         } footer: {
-            SettingsNote(text: footerText)
+            if let footerText { SettingsNote(text: footerText) }
         }
     }
 
@@ -82,16 +82,22 @@ struct VoiceSettingsSection<Details: View>: View {
     }
 
     private func engineChoice(_ engine: Engine) -> some View {
-        let isSelected = selected == engine
+        let isSelected = selected == engine && isAvailableOnThisMac(engine)
         let status = engineStatus(engine)
         return Button {
             select(engine)
         } label: {
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                Label(engine.name, systemImage: engine.icon)
+                HStack {
+                    Label(engine.name, systemImage: engine.icon)
+                    Spacer()
+                    Image(systemName: isSelected ? "checkmark.circle.fill" : engine.icon)
+                        .opacity(isSelected ? 1 : 0)
+                        .accessibilityHidden(true)
+                }
                     .font(DS.Font.callout)
                 Text(status)
-                    .font(DS.Font.caption)
+                    .font(DS.Font.callout)
                     .foregroundStyle(DS.Color.textSecondary)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -113,18 +119,18 @@ struct VoiceSettingsSection<Details: View>: View {
     /// The chosen voice reports the speech owner's own answer, so a voice that failed while
     /// speaking never still reads "ready" here. The other voice reports what is on disk.
     private func engineStatus(_ engine: Engine) -> String {
-        guard isAvailableOnThisMac(engine) else { return "Needs macOS 26.6 or later" }
-        let base = engine == .pocket ? "4 voices" : KokoroAgentVoice.voiceName
+        guard isAvailableOnThisMac(engine) else { return "Needs a newer macOS" }
+        let base = engine == .pocket ? "4 voices to choose from" : "One voice: \(KokoroAgentVoice.voiceName)"
         if engine == selected {
             switch availability {
             case .ready: return "\(base) · ready"
-            case .preparing: return "Getting ready…"
-            case .needsDownload: return "\(base) · tap to download"
-            case .failed: return "Couldn't start · retry below"
+            case .preparing: return base
+            case .needsDownload: return "\(base) · not on this Mac yet"
+            case .failed: return "Couldn't start · tap Retry"
             }
         }
         if isPreparing(engine) { return "Getting ready…" }
-        return isReady(engine) ? "\(base) · ready" : "\(base) · tap to download"
+        return isReady(engine) ? "\(base) · ready" : "\(base) · not on this Mac yet"
     }
 
     /// Choosing a voice saves the choice at once, so what this screen shows is always the voice
@@ -165,23 +171,26 @@ struct VoiceSettingsSection<Details: View>: View {
                 .foregroundStyle(DS.Color.success)
         case .preparing(let progress):
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                // `shaping` — something being fetched and assembled. The one animating orb
-                // on this section; it freezes by itself under Reduce Motion.
+                // The page owns motion; this state illustration stays still.
                 LabeledOrb(
                     state: .shaping,
                     title: "Getting your voice ready…",
-                    detail: "The first time takes a few minutes. You can keep using Next Notes."
+                    detail: "The first time takes a few minutes. You can keep using Next Notes.",
+                    isAnimated: false
                 )
                 if let progress {
                     ProgressView(value: progress)
                         .accessibilityLabel("Voice download")
                         .accessibilityValue("\(Int(progress * 100)) percent")
+                } else {
+                    ProgressView()
+                        .accessibilityLabel("Getting your voice ready")
                 }
             }
         case .needsDownload:
             actionRow(
                 title: "Your voice isn't on this Mac yet",
-                detail: "\(downloadSize) Until then, answers show as text.",
+                detail: "Answers show as text until your voice is ready.",
                 button: "Download voice"
             )
         case .failed:
@@ -189,27 +198,30 @@ struct VoiceSettingsSection<Details: View>: View {
                 actionRow(
                     title: "Your voice couldn't start",
                     detail: "Answers show as text for now.",
-                    button: "Retry"
+                    button: "Retry",
+                    warning: true
                 )
             } else {
-                VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                    Label("Kokoro isn't available here", systemImage: "exclamationmark.triangle.fill")
-                        .font(DS.Font.callout)
-                        .foregroundStyle(DS.Color.warning)
-                    Text(Self.kokoroUnavailableLine + " Choose Pocket to hear replies.")
-                        .font(DS.Font.caption)
-                        .foregroundStyle(DS.Color.textSecondary)
-                }
+                Label(Self.kokoroUnavailableLine, systemImage: "exclamationmark.triangle.fill")
+                    .font(DS.Font.callout)
+                    .foregroundStyle(DS.Color.warning)
+                    .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
-    private func actionRow(title: String, detail: String, button: String) -> some View {
+    private func actionRow(title: String, detail: String, button: String, warning: Bool = false) -> some View {
         HStack(alignment: .center, spacing: DS.Space.s) {
             VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                Text(title).font(DS.Font.callout)
+                if warning {
+                    Label(title, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(DS.Color.warning)
+                        .font(DS.Font.callout)
+                } else {
+                    Text(title).font(DS.Font.callout)
+                }
                 Text(detail)
-                    .font(DS.Font.caption)
+                    .font(DS.Font.callout)
                     .foregroundStyle(DS.Color.textSecondary)
             }
             Spacer(minLength: DS.Space.s)
@@ -217,13 +229,10 @@ struct VoiceSettingsSection<Details: View>: View {
                 retry()
             }
             .buttonStyle(.borderedProminent)
+            .tint(DS.Color.accent)
             .accessibilityHint("Gets your voice ready so replies can be spoken")
         }
         .accessibilityElement(children: .contain)
-    }
-
-    private var downloadSize: String {
-        selected == .pocket ? "About 550 MB." : "A small download."
     }
 
     // MARK: Pocket's four voices and the sample
@@ -261,7 +270,7 @@ struct VoiceSettingsSection<Details: View>: View {
             .disabled(!isPreviewing && !canHearSample)
             .accessibilityHint(canHearSample || isPreviewing ? "" : sampleBlockedReason)
             Text(canHearSample ? currentVoiceName : sampleBlockedReason)
-                .font(DS.Font.caption)
+                .font(DS.Font.callout)
                 .foregroundStyle(DS.Color.textSecondary)
         }
     }
@@ -282,16 +291,13 @@ struct VoiceSettingsSection<Details: View>: View {
         }
     }
 
-    private var footerText: String {
-        if !kokoroSupported {
-            return "Pocket works on this Mac. " + Self.kokoroUnavailableLine
-        }
-        return "Pick a voice, then hear a sample. Pocket downloads once, about 550 MB. "
-            + "Until a voice is ready, answers show as text."
+    private var footerText: String? {
+        availability == .ready && isAvailableOnThisMac(selected)
+            ? "Pick a voice, then hear a sample." : nil
     }
 
     /// Computed, not stored: a generic type cannot hold a static stored property.
     static var kokoroUnavailableLine: String {
-        "Kokoro doesn't work on macOS 26.4 or 26.5. It needs macOS 26.6 or later."
+        "Kokoro needs a newer version of macOS. Choose Pocket to hear replies."
     }
 }

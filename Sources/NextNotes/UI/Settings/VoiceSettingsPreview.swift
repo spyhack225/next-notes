@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 
 /// `--voice-settings-preview [dir]` — the "Speaking back" section in each state it can show,
@@ -12,7 +13,6 @@ enum VoiceSettingsPreview {
                                  engine: VoiceSettingsSection<EmptyView>.Engine, kokoro: Bool)] = [
         ("ready", .ready, .pocket, true),
         ("preparing", .preparing(progress: nil), .pocket, true),
-        ("preparing-progress", .preparing(progress: 0.4), .pocket, true),
         ("needs-download", .needsDownload, .pocket, true),
         ("failed", .failed, .pocket, true),
         ("kokoro-ready", .ready, .kokoro, true),
@@ -45,15 +45,24 @@ enum VoiceSettingsPreview {
         let lines = VStack(alignment: .leading, spacing: DS.Space.m) {
             VoiceTextOnlyPaneLine(text: AgentVoiceAvailability.needsDownload.message ?? "")
             VoiceTextOnlyPaneLine(text: AgentVoiceAvailability.failed.message ?? "")
-            Text(AgentVoiceAvailability.preparing(progress: nil).message ?? "")
-                .font(DS.Font.caption)
-                .foregroundStyle(DS.Color.islandInk)
+            VoiceTextOnlyPaneLine(text: AgentVoiceAvailability.preparing(progress: nil).message ?? "")
+            VoiceTextOnlyIslandLine(availability: .preparing(progress: nil), ink: DS.Color.islandInk)
                 .padding(DS.Space.m)
                 .background(DS.Color.island, in: RoundedRectangle(cornerRadius: DS.Radius.card))
         }
         .padding(DS.Space.page)
         .background(DS.Color.window)
         if !save(lines, width: DS.Size.settingsWidth, named: "voice-text-only-lines.png",
+                 in: root, into: &written) { return false }
+
+        // The real Models form, scrolled to its final sections so Speaking back is visible
+        // within the same page header, margins and native form style at the real 560pt width.
+        let models = SettingsPane(tab: .models) {
+            ModelsSettingsTab(voicePreviewAvailability: .preparing(progress: nil))
+                .defaultScrollAnchor(.bottom)
+        }
+        .background(DS.Color.window)
+        if !save(models, width: DS.Size.settingsWidth, named: "settings-models-voice-560.png",
                  in: root, into: &written) { return false }
 
         print("VOICE_SETTINGS_PREVIEW_OK \(written.count) image(s): \(root.path)")
@@ -63,7 +72,12 @@ enum VoiceSettingsPreview {
 
     private static func save(_ view: some View, width: CGFloat, named name: String,
                              in root: URL, into written: inout [String]) -> Bool {
-        guard let png = SettingsSheet.render(view, width: width) else {
+        // Both SwiftUI semantic colours and native controls resolve against the product's
+        // fixed light appearance, independent of the developer's desktop appearance.
+        let previousAppearance = NSApp.appearance
+        NSApp.appearance = NSAppearance(named: .aqua)
+        defer { NSApp.appearance = previousAppearance }
+        guard let png = SettingsSheet.render(view.environment(\.colorScheme, .light), width: width) else {
             print("VOICE_SETTINGS_PREVIEW_FAILED: \(name) did not render"); return false
         }
         do { try png.write(to: root.appendingPathComponent(name)) }

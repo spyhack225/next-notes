@@ -34,7 +34,7 @@ enum UIStringsLint {
         // Structural claims fail the same verdict: an unwired feature and a
         // banned word are both a red suite. The lines above already proved the
         // reference case fires on an unregistered section.
-        let structural = structureProblems(in: directory)
+        let structural = structureProblems(in: directory) + voiceSectionProblems(in: directory)
         for problem in structural {
             print("UI_STRINGS_WRONG: \(problem)")
         }
@@ -74,6 +74,21 @@ enum UIStringsLint {
             problems.append("AgentSettingsTab.swift is unreadable")
         }
         return problems
+    }
+
+    /// Voice copy often comes from computed strings rather than direct Text literals.
+    /// Check every literal in this section; comments and other Models sections are excluded.
+    static func voiceSectionProblems(in directory: URL) -> [String] {
+        let file = directory.appendingPathComponent("Settings/VoiceSettingsSection.swift")
+        guard let source = try? String(contentsOf: file, encoding: .utf8) else {
+            return ["VoiceSettingsSection.swift is unreadable"]
+        }
+        return allLiterals(in: source).compactMap { literal in
+            let text = literal.text
+            let forbidden = text.contains("macOS 26")
+                || text.range(of: "\\b(?:MB|GB)\\b", options: .regularExpression) != nil
+            return forbidden ? "VoiceSettingsSection.swift:\(literal.line): \(text)" : nil
+        }
     }
 
     /// Every offending literal, as `<path>:<line>: <literal>`. Pure file I/O.

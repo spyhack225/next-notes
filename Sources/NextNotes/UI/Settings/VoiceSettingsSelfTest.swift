@@ -18,6 +18,41 @@ enum VoiceSettingsSelfTest {
         func check(_ condition: Bool, _ message: String) {
             if !condition { failures.append(message) }
         }
+        // The live UI invokes this same availability/claim seam, once per state, not answer.
+        VoiceTextOnlyNoteLedger.reset()
+        let preparingLine = AgentVoiceAvailability.preparing(progress: nil).message ?? ""
+        let failedLine = AgentVoiceAvailability.failed.message ?? ""
+        check(preparingLine == "Your voice is getting ready, so answers are in text for now.",
+              "preparing text-only copy changed")
+        check(failedLine == "Voice couldn't start, so your answer is in text. Retry in Voice settings.",
+              "failure text-only copy changed")
+        check(AgentVoiceAvailability.needsDownload.message
+              == "Your voice isn't on this Mac yet, so answers are in text. Voice settings.",
+              "missing voice copy contradicts automatic preparation")
+        check(AgentVoiceAvailability.ready.message == nil, "ready still shows text-only notice")
+        check(VoiceTextOnlyNoteLedger.claimIsland(preparingLine), "first state note hidden")
+        check(!VoiceTextOnlyNoteLedger.claimIsland(preparingLine), "same state repeated per answer")
+        check(VoiceTextOnlyNoteLedger.claimIsland(failedLine), "changed state note hidden")
+        VoiceTextOnlyNoteLedger.observe(.ready)
+        check(VoiceTextOnlyNoteLedger.lastIslandLine == nil, "ready didn't clear notice claim")
+        check(VoiceTextOnlyNoteLedger.claimIsland(failedLine), "later failure note hidden")
+        VoiceTextOnlyNoteLedger.reset()
+        // Exercise the production literal lint against the actual section and injected banned
+        // literals. This is isolated source I/O, with no model/store/permission dependency.
+        let ui = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent()
+        check(UIStringsLint.voiceSectionProblems(in: ui).isEmpty, "Voice section contains size/version jargon")
+        let fixture = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        do {
+            let folder = fixture.appendingPathComponent("Settings")
+            try FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+            defer { try? FileManager.default.removeItem(at: fixture) }
+            for banned in ["macOS 26.6", "550 MB", "1 GB"] {
+                try "Text(\"\(banned)\")".write(to: folder.appendingPathComponent("VoiceSettingsSection.swift"),
+                                               atomically: true, encoding: .utf8)
+                check(UIStringsLint.voiceSectionProblems(in: fixture).count == 1,
+                      "Voice copy lint missed \(banned)")
+            }
+        } catch { failures.append("Voice literal lint fixture failed") }
         defer {
             PocketAgentVoice.shared.initializeForTesting = nil
             PocketAgentVoice.shared.warmForTesting = nil
