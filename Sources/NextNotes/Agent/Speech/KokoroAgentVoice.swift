@@ -109,8 +109,8 @@ final class KokoroAgentVoice {
 
     func wav(for text: String) async throws -> Data {
         guard Self.isSupportedOS else { throw KokoroVoiceError.unsupportedOS }
-        if !isReady { await prepare() }
-        guard isReady else { throw KokoroVoiceError.unavailable(errorMessage) }
+        await prepareTask?.value // join existing preparation, never initiate/retry
+        guard errorMessage == nil, isReady else { throw KokoroVoiceError.unavailable(errorMessage) }
         return try await manager.synthesize(text: text, voice: Self.voiceID)
     }
 

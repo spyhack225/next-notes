@@ -14,7 +14,7 @@ import Foundation
 /// load-bearing, and each one is structural rather than a convention:
 ///
 /// - **File sink only.** This file contains no `AVAudioEngine`, no `AVAudioPlayerNode`,
-///   no `AVAudioPlayer`, no reference to `AgentSpeechSynthesizer` or `AgentPCMRenderer`,
+///   no `AVAudioPlayer`, no ownership of `AgentSpeechSynthesizer` or `AgentPCMRenderer`,
 ///   and never touches `AVAudioSession`. Its only audio input is the injected
 ///   `Synthesis` closure; its only output is the file it is handed a directory for.
 ///   `CatchUpSelfTest` asserts the live graph is idle across a render.
@@ -427,25 +427,32 @@ enum LongFormSynthesisFactory {
     /// when it is unavailable, including the unsupported Kokoro OS versions.
     static func live() -> LongFormRenderer.Synthesis {
         { request in
-            let selected = Settings.shared.agentVoiceEngine
-            switch selected {
-            case "pocket":
-                return try await pocket(request)
-            case "kokoro" where KokoroAgentVoice.isSupportedOS:
-                return try await kokoro(request)
-            default:
+            guard AgentSpeechSynthesizer.shared.availability == .ready else {
                 throw LongFormRenderError.voiceUnavailable
+            }
+            let selected = Settings.shared.agentVoiceEngine
+            do {
+                switch selected {
+                case "pocket": return try await pocket(request)
+                case "kokoro" where KokoroAgentVoice.isSupportedOS: return try await kokoro(request)
+                default: throw LongFormRenderError.voiceUnavailable
+                }
+            } catch is CancellationError { throw CancellationError() }
+            catch {
+                if !Task.isCancelled { AgentSpeechSynthesizer.shared.noteSelectedVoiceFailure(engine: selected) }
+                throw error
             }
         }
     }
 
-    static func pocket(_ request: LongFormRenderer.SynthesisRequest) async throws -> LongFormRenderer.Audio {
-        // A file render has no one waiting on its first sound, so it waits out the model's load
-        // and warm-up (a cold start takes 10–30 s) instead of the live reply's ten-second bound,
-        // which would drop the whole render on the first catch-up after a launch. It joins the
-        // load already in flight; it never starts a second one.
+    private static func pocket(_ request: LongFormRenderer.SynthesisRequest) async throws -> LongFormRenderer.Audio {
+        // Read the same failure latch as replies. File work does not start or
+        // retry preparation; the existing launch/Settings owner prepares the voice.
+        guard Settings.shared.agentVoiceEngine == "pocket",
+              AgentSpeechSynthesizer.shared.availability == .ready else {
+            throw LongFormRenderError.voiceUnavailable
+        }
         if SelfTest.isRunning, let audioForTesting { return try await audioForTesting() }
-        await PocketAgentVoice.shared.prepare()
         let voice = pocketVoice(for: request.speaker)
         var samples: [Float] = []
         let frames = try await PocketAgentVoice.shared.frames(for: request.text, voice: voice)
@@ -457,7 +464,11 @@ enum LongFormSynthesisFactory {
         return LongFormRenderer.Audio(samples: samples, sampleRate: sampleRate)
     }
 
-    static func kokoro(_ request: LongFormRenderer.SynthesisRequest) async throws -> LongFormRenderer.Audio {
+    private static func kokoro(_ request: LongFormRenderer.SynthesisRequest) async throws -> LongFormRenderer.Audio {
+        guard Settings.shared.agentVoiceEngine == "kokoro",
+              AgentSpeechSynthesizer.shared.availability == .ready else {
+            throw LongFormRenderError.voiceUnavailable
+        }
         if SelfTest.isRunning, let audioForTesting { return try await audioForTesting() }
         let data = try await KokoroAgentVoice.shared.wav(for: request.text)
         return try decodeWAV(data)

@@ -288,10 +288,10 @@ final class PocketAgentVoice {
         // The one-time native warmup can be draining a cancelled CoreML call.
         // If it exceeds this caller's budget, leave this reply written while
         // the prepare task keeps exclusive ownership until cancel() returns.
-        let prepared: Void? = await withBoundedWait(.seconds(10)) { await self.prepare() }
+        let prepared: Void? = await withBoundedWait(.seconds(10)) { if let task = self.prepareTask { await task.value } }
         try checkTerminationAdmission()
         guard prepared != nil else { throw PocketPlaybackError.modelUnavailable("Pocket TTS is still preparing.") }
-        guard isReady else { throw PocketPlaybackError.modelUnavailable(errorMessage) }
+        guard errorMessage == nil, isReady else { throw PocketPlaybackError.modelUnavailable(errorMessage) }
     }
 
     func frames(for text: String, voice: String)
