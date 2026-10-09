@@ -7,7 +7,7 @@ work=Path(tempfile.mkdtemp(prefix='NextNotes-no-apple-review-'))
 control=work/'control';os.mkfifo(control)
 print('SLOT_CONTROL '+str(control),flush=True)
 results=[]
-def run(name,args):
+def run(name,args,expected=None):
     log=report/(name+'.log')
     with log.open('w') as out:
         try: p=subprocess.run(args,cwd=root,stdout=out,stderr=subprocess.STDOUT,timeout=900)
@@ -16,11 +16,13 @@ def run(name,args):
     text=log.read_text(errors='replace')
     outfile=work/(name+'.log')
     if outfile.exists():
-        text=outfile.read_text(errors='replace');(report/(name+'-selftest.log')).write_text(text)
+        native_text=outfile.read_text(errors='replace');(report/(name+'-selftest.log')).write_text(native_text)
+        text=native_text+'\n'+text # retain the CLI root marker as well as diagnostics
     markers=[x for x in text.splitlines() if re.match(r'^[A-Z][A-Z0-9_]*_(?:OK|FAILED|ABSENT)(?::|$)',x)]
-    item=dict(name=name,exit=p.returncode,marker=markers[-1] if markers else 'NO_FINAL_MARKER')
+    roots=[x for x in markers if expected is None or x.startswith(expected+'_')]
+    item=dict(name=name,exit=p.returncode,marker=roots[-1] if roots else 'NO_FINAL_MARKER',expected=expected)
     results.append(item);save();print(json.dumps(item),flush=True)
-    return p.returncode==0
+    return p.returncode==0 and (expected is None or bool(roots) and roots[-1].startswith(expected+'_OK'))
 
 def save(): (report/'checks.json').write_text(json.dumps(results,indent=2)+'\n')
 def command():
@@ -29,7 +31,8 @@ def command():
 def build(name):
     return run(name,['swift','build','-c','debug','-j','2','--scratch-path',str(scratch)])
 def check(name,flag,args=[]):
-    return run(name,[str(scratch/'debug/NextNotes'),'--selftest-'+flag,*args,'--selftest-out',str(work/(name+'.log'))])
+    expected='VOICE_POLICY_REVIEW' if '--voice-policy-review' in args else {'tts-stream':'TTS_TOKEN_STREAM'}.get(flag,flag.upper().replace('-','_'))
+    return run(name,[str(scratch/'debug/NextNotes'),'--selftest-'+flag,*args,'--selftest-out',str(work/(name+'.log'))],expected)
 try:
     run('webrtc-build',['make','webrtc-audio'])
     if not build('red-build'):
@@ -54,5 +57,5 @@ try:
             if not build('green-build-retry'):continue
             pin('green-retry-pin')
             for flag in cmd[8:].split(','):check(flag+'-retry',flag,['--voice-policy-review'] if flag=='tts' else [])
-    raise SystemExit(1 if any(x['exit']!=0 for x in results if x['name']!='producer-red') else 0)
+    raise SystemExit(1 if any(x['exit']!=0 or x.get('expected') and not x['marker'].startswith(x['expected']+'_OK') for x in results if x['name']!='producer-red') else 0)
 finally: shutil.rmtree(work)
