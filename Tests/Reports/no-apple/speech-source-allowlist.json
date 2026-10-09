@@ -51,5 +51,29 @@
     "lines": [
       "say -v \"$1\" -r \"$2\" \"$3\" -o \"$TMP/clip.aiff\""
     ]
+  },
+  "Sources/NextNotes/Formatting/CleanupGuard.swift": {
+    "reason": "Existing language word list, not an executable command or speech synthesis. This exact line only; new occurrences are rejected.",
+    "lines": [
+      "[\"say\", \"says\", \"saying\", \"said\"],"
+    ]
+  },
+  "Sources/NextNotes/Memory/MemoryGuard.swift": {
+    "reason": "Existing language word list, not an executable command or speech synthesis. This exact line only; new occurrences are rejected.",
+    "lines": [
+      "\"tell\", \"say\", \"speak\", \"write\", \"keep\", \"only\", \"must\", \"should\", \"note\", \"save\","
+    ]
+  },
+  "Sources/NextNotesDictionary/DictionaryEntry.swift": {
+    "reason": "Existing language word list, not an executable command or speech synthesis. This exact line only; new occurrences are rejected.",
+    "lines": [
+      "\"part\", \"people\", \"point\", \"put\", \"read\", \"right\", \"run\", \"said\", \"same\", \"say\","
+    ]
+  },
+  "windows/src/NextNotes.Dictionary/DictionaryEntry.cs": {
+    "reason": "Existing language word list, not an executable command or speech synthesis. This exact line only; new occurrences are rejected.",
+    "lines": [
+      "\"part\", \"people\", \"point\", \"put\", \"read\", \"right\", \"run\", \"said\", \"same\", \"say\","
+    ]
   }
 }
