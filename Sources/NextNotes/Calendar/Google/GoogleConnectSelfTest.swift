@@ -43,6 +43,7 @@ enum GoogleConnectSelfTest {
         await calendarConsumerCases(expect)
         await GoogleGrantReadSelfTest.run(expect)
         await GoogleLaunchCancellationSelfTest.run(expect)
+        await GoogleGrantReplacementSelfTest.run(expect)
 
         await GoogleAccessTokens.shared.invalidate()
         await GoogleAccessTokens.shared.useClient(nil)
@@ -485,6 +486,34 @@ enum GoogleConnectSelfTest {
             } catch { expect(false, "\(mode) token response: sign-in failed") }
         }
         grantMode.value = ""
+
+        // Hold the old refresh, then hold a real successful reconnect immediately after
+        // grant replacement. The old invalid_grant must not delete the new Keychain row.
+        let oldRefresh = GoogleReviewFixture.Gate()
+        let saved = GoogleReviewFixture.Gate()
+        let shared = GoogleAccessTokens.shared
+        await shared.useRequestForTesting { request in
+            await oldRefresh.pause()
+            return GoogleReviewFixture.response(request, status: 400, body: #"{"error":"invalid_grant"}"#)
+        }
+        GoogleTokenStore.save(refreshToken: "old-reconnect", grantedScopes: [GoogleScopes.documents])
+        let old = Task { try await shared.token(clientID: client.clientID, clientSecret: client.clientSecret) }
+        await oldRefresh.wait()
+        let reconnect = Task {
+            try await GoogleOAuthClient.signIn(clientID: client.clientID, clientSecret: client.clientSecret,
+                endpoints: endpoints, openBrowser: browser(code: "reconnect-code"),
+                afterGrantSaveForTesting: { await saved.pause() })
+        }
+        await saved.wait()
+        await oldRefresh.release()
+        _ = try? await old.value
+        expect(GoogleTokenStore.refreshToken == "refresh-1" && GoogleTokenStore.grantedScopes == Set(GoogleScopes.connect),
+            "R3 outstanding old invalid_grant cannot delete a real successful reconnect")
+        await saved.release()
+        let connected = try? await reconnect.value
+        expect(connected?.grantedScopes == Set(GoogleScopes.connect) && GoogleTokenStore.hasRefreshToken,
+            "R3 real sign-in returns a grant that is still stored after the old refresh settles")
+        await shared.useRequestForTesting(nil)
 
         // A forged redirect (another process feeding its own code) is refused.
         do {

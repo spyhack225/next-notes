@@ -48,6 +48,7 @@ actor GoogleAccessTokens {
         let clientID: String
         let secret: String
         let refresh: String
+        let grantIdentity: Data?
     }
     private var cached: (identity: Identity, token: String, expiry: Date)?
     private var inFlight: (id: UUID, identity: Identity, task: Task<String, any Error>)?
@@ -56,9 +57,10 @@ actor GoogleAccessTokens {
 
     func token(clientID: String, clientSecret: String) async throws -> String {
         try Task.checkCancellation()
-        let refresh = refreshTokenForTesting?() ?? (refreshTokenForTesting == nil ? try GoogleTokenStore.savedGrant()?.refreshToken : nil)
+        let grant = refreshTokenForTesting == nil ? try GoogleTokenStore.savedGrant() : nil
+        let refresh = refreshTokenForTesting?() ?? grant?.refreshToken
         guard let refresh else { throw GoogleCalendarError.notSignedIn }
-        let identity = Identity(clientID: clientID, secret: clientSecret, refresh: refresh)
+        let identity = Identity(clientID: clientID, secret: clientSecret, refresh: refresh, grantIdentity: grant?.identity)
         if let cached, cached.identity == identity, cached.expiry > Date().addingTimeInterval(60) { return cached.token }
         if let inFlight, inFlight.identity == identity {
             let token = try await inFlight.task.value
@@ -74,15 +76,20 @@ actor GoogleAccessTokens {
                 let response = try await GoogleOAuthClient.refresh(
                     clientID: clientID, clientSecret: clientSecret, refreshToken: refresh,
                     endpoint: endpoint, requestForTesting: requestOverrideForTesting ?? requestForTesting)
-                guard generation == started, !Task.isCancelled else { throw CancellationError() }
+                guard generation == started, !Task.isCancelled, try isCurrent(identity) else { throw CancellationError() }
                 cached = (identity, response.accessToken, Date().addingTimeInterval(TimeInterval(response.expiresIn)))
                 refreshCount += 1
                 return response.accessToken
             } catch GoogleCalendarError.tokenRequestFailed(let status, _, let code)
                 where status == 400 && code == "invalid_grant" {
                 guard generation == started else { throw CancellationError() }
-                if let clearTokenForTesting { clearTokenForTesting() }
-                else { GoogleTokenStore.clear() }
+                if let clearTokenForTesting {
+                    guard refreshTokenForTesting?() == identity.refresh else { throw CancellationError() }
+                    clearTokenForTesting()
+                } else {
+                    guard let grantIdentity = identity.grantIdentity,
+                          try GoogleTokenStore.clear(ifMatching: grantIdentity) else { throw CancellationError() }
+                }
                 invalidate()
                 throw GoogleCalendarError.accessRevoked
             }
@@ -94,6 +101,19 @@ actor GoogleAccessTokens {
         // carry that waiter into executable backing after cancellation.
         try Task.checkCancellation()
         return token
+    }
+    private func isCurrent(_ identity: Identity) throws -> Bool {
+        if let refreshTokenForTesting { return refreshTokenForTesting() == identity.refresh }
+        return try GoogleTokenStore.savedGrant()?.identity == identity.grantIdentity
+    }
+    /// No suspension between the existing record replacement and cache/refresh invalidation.
+    func replaceGrant(refreshToken: String, scopes: Set<String>) throws {
+        guard GoogleTokenStore.save(refreshToken: refreshToken, grantedScopes: scopes) else { throw GoogleCalendarError.tokenStoreFailed }
+        invalidate()
+    }
+    func disconnectGrant() {
+        GoogleTokenStore.clear(forgetSelection: true)
+        invalidate()
     }
     func invalidate() {
         generation += 1

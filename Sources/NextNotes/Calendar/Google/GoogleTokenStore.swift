@@ -44,6 +44,7 @@ enum GoogleTokenStore {
     private struct Grant: Codable {
         let refreshToken: String
         let scopes: [String]
+        let generation: UUID?
     }
 
     static var appSignInSelected: Bool {
@@ -66,7 +67,7 @@ enum GoogleTokenStore {
     @discardableResult
     static func save(refreshToken: String, grantedScopes: Set<String> = [GoogleScopes.legacyCalendar]) -> Bool {
         lock.lock(); defer { lock.unlock() }
-        guard let data = try? JSONEncoder().encode(Grant(refreshToken: refreshToken, scopes: grantedScopes.sorted())) else { return false }
+        guard let data = try? JSONEncoder().encode(Grant(refreshToken: refreshToken, scopes: grantedScopes.sorted(), generation: UUID())) else { return false }
         let update = [kSecValueData as String: data]
         var status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
         if status == errSecItemNotFound {
@@ -92,6 +93,15 @@ enum GoogleTokenStore {
         if !forgetSelection, !appSignInSelected, hasRefreshToken { appSignInSelected = true }
         SecItemDelete(baseQuery as CFDictionary)
         if forgetSelection { appSignInSelected = false }
+    }
+    /// Compare and delete while holding the same admission as save/read. A stale refresh
+    /// cannot revoke a replacement, including one with the same refresh-token text.
+    static func clear(ifMatching identity: Data) throws -> Bool {
+        lock.lock(); defer { lock.unlock() }
+        guard let grant = try savedGrant(), grant.identity == identity else { return false }
+        let status = SecItemDelete(baseQuery as CFDictionary)
+        guard status == errSecSuccess || status == errSecItemNotFound else { throw GoogleCalendarError.tokenStoreFailed }
+        return true
     }
     private static func read() -> ReadState {
         var query = baseQuery

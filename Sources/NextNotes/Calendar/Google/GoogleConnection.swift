@@ -130,12 +130,11 @@ final class GoogleConnection {
             },
             disconnect: {
                 if let token = GoogleTokenStore.refreshToken { await GoogleOAuthClient.revoke(refreshToken: token) }
-                GoogleTokenStore.clear(forgetSelection: true)
+                await GoogleAccessTokens.shared.disconnectGrant()
                 // Back to resolving from facts: this Mac, unless a `gws` sign-in still works.
                 await MainActor.run {
                     if Settings.shared.googleSource == .googleSignIn { Settings.shared.googleSource = nil }
                 }
-                await GoogleAccessTokens.shared.invalidate()
                 await refreshEverythingThatReadsGoogle()
             },
             workspace: { await GoogleWorkspaceCLI.shared.authState() }

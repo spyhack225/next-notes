@@ -80,7 +80,7 @@ actor GoogleCalendarProvider: CalendarProvider {
 
     func signOut() async {
         if let clearTokenForTesting { clearTokenForTesting() }
-        else { GoogleTokenStore.clear(forgetSelection: true) }
+        else { await tokens.disconnectGrant(); return }
         await tokens.invalidate()
     }
 

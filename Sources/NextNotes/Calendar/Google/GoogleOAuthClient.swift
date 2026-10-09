@@ -45,9 +45,11 @@ enum GoogleOAuthClient {
     static func signIn(
         clientID: String, clientSecret: String,
         scopes: [String] = GoogleScopes.connect, endpoints: Endpoints = .google,
-        openBrowser: @Sendable (URL) -> Void = { NSWorkspace.shared.open($0) }
+        openBrowser: @Sendable (URL) -> Void = { NSWorkspace.shared.open($0) },
+        afterGrantSaveForTesting: (@Sendable () async -> Void)? = nil
     ) async throws -> SignInResult {
         precondition(endpoints == .google || GoogleAccessTokens.testHooksAdmitted)
+        precondition(afterGrantSaveForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
         guard !clientID.trimmingCharacters(in: .whitespaces).isEmpty else {
             throw GoogleCalendarError.noClientID
         }
@@ -99,10 +101,8 @@ enum GoogleOAuthClient {
         // Missing scope means the requested set was granted; an explicit empty field
         // means nothing was granted. Preserve that distinction in the token record.
         let granted = Set((token.scope ?? scopes.joined(separator: " ")).split(separator: " ").map(String.init))
-        guard GoogleTokenStore.save(refreshToken: refreshToken, grantedScopes: granted) else {
-            throw GoogleCalendarError.tokenStoreFailed
-        }
-        await GoogleAccessTokens.shared.invalidate()
+        try await GoogleAccessTokens.shared.replaceGrant(refreshToken: refreshToken, scopes: granted)
+        await afterGrantSaveForTesting?()
         return SignInResult(refreshToken: refreshToken, grantedScopes: granted)
     }
 
