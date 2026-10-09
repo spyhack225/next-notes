@@ -206,29 +206,109 @@ enum CatchUpPresentationSelfTest {
         expect(card.demandsAttention, "the ready card does not open itself")
         expect(card.identity != IslandState.Kind.catchUpReady(taskID: "b", title: "x").identity,
                "two catch-ups share one card identity")
-        if let source = SourceScan.file("Sources/NextNotes/UI/Island/IslandState.swift") {
-            let uses = SourceScan.codeLines(of: source).filter { $0.text.contains("CatchUpPlayer") }
-            expect(uses.count == 1, "the island reaches the player in \(uses.count) places, expected only Play")
-        } else {
-            failures.append("catch-up: could not read IslandState to check nothing auto-plays")
+        // Nothing in the island or the catch-up views reaches an audio object: they press the
+        // one player's toggle, and only a press does.
+        for file in ["Island/IslandState", "Island/IslandView", "CatchUp/CatchUpViews"] {
+            if let source = SourceScan.file("Sources/NextNotes/UI/\(file).swift") {
+                let code = SourceScan.codeLines(of: source).map(\.text).joined(separator: "\n")
+                expect(!code.contains("AVAudioPlayer") && !code.contains(".play("),
+                       "\(file) starts audio directly instead of asking the player")
+            } else {
+                failures.append("catch-up: could not read \(file) to check nothing auto-plays")
+            }
         }
+        if let source = SourceScan.file("Sources/NextNotes/UI/Island/IslandState.swift") {
+            let toggles = SourceScan.codeLines(of: source).filter { $0.text.contains("CatchUpPlayer.shared.toggle(") }
+            expect(toggles.count == 1, "the island presses Play in \(toggles.count) places, expected one")
+        }
+        expect(CatchUpPresentation.playControl(isCurrent: false, isPlaying: false).verb == "Play", "idle control")
+        expect(CatchUpPresentation.playControl(isCurrent: true, isPlaying: true).verb == "Pause", "playing control")
+        expect(CatchUpPresentation.playControl(isCurrent: true, isPlaying: false).verb == "Resume", "held control")
 
-        // Nothing in the catch-up screens starts audio except a press: the player is reached
-        // from a Play button, and the library never imports it into the list's reload.
+        // The clock: a card whose audio never arrived stops saying it is getting it ready, and
+        // the screen is woken at exactly that moment (the list itself does not change then, so
+        // nothing observable would redraw it).
+        let waiting = CatchUpEntry(id: "w", title: "t", madeAt: Date().addingTimeInterval(-120),
+                                   text: sample, audioURL: nil, duration: nil, headlines: [], offer: nil)
+        let nowDate = Date()
+        expect(CatchUpPresentation.status(of: waiting, now: nowDate) == .preparing,
+               "a catch-up made two minutes ago with no audio is not preparing")
+        let wakes = CatchUpPresentation.wakeDates(for: [waiting], now: nowDate)
+        expect(wakes.count == 2 && wakes.first == nowDate, "wake dates were \(wakes.count)")
+        if let last = wakes.last {
+            expect(last > nowDate, "the wake date is not in the future")
+            expect(CatchUpPresentation.status(of: waiting, now: last) == .readyToRead,
+                   "at the wake date the card still says the audio is being made")
+        }
+        let withAudioEntry = CatchUpEntry(id: "a", title: "t", madeAt: nowDate, text: sample,
+                                          audioURL: URL(fileURLWithPath: "/tmp/x.m4a"), duration: 3,
+                                          headlines: [], offer: nil)
+        expect(CatchUpPresentation.status(of: withAudioEntry, now: nowDate) == .readyToListen, "audio card status")
+        expect(CatchUpPresentation.wakeDates(for: [withAudioEntry], now: nowDate) == [nowDate],
+               "a catch-up that has its audio asked for a wake-up")
+        let longAgo = CatchUpEntry(id: "o", title: "t", madeAt: nowDate.addingTimeInterval(-3_600), text: sample,
+                                   audioURL: nil, duration: nil, headlines: [], offer: nil)
+        expect(CatchUpPresentation.wakeDates(for: [longAgo], now: nowDate) == [nowDate],
+               "a catch-up past its window asked for a wake-up")
+
+        // A question that is not an offer is not a "Yes" button.
+        expect(CatchUpPresentation.unparsedOfferLabel == CatchUpText.offer(from: "Hi.\n\nAnything else on your mind?")?.actionLabel,
+               "the unparsed-offer label no longer matches the parser")
+        expect(CatchUpText.offer(from: "Hi.\n\nAnything else on your mind?").map(CatchUpPresentation.hasVerbPhrase) == false,
+               "a non-offer was treated as a verb phrase")
+        expect(offer.map(CatchUpPresentation.hasVerbPhrase) == true, "a real offer lost its button")
+
+        // The ready notice never covers something live or unanswered.
+        final class Gate { var value: (IslandProposal, Int)? }
+        let gate = Gate()
+        let island = IslandState(pendingApproval: { gate.value })
+        island.announceCatchUpReady(newest)
+        expect(island.kind == .catchUpReady(taskID: newest.id, title: newest.title),
+               "the ready notice did not show on an idle island: \(island.kind)")
+        island.dismissNotice()
+        gate.value = (IslandProposal(id: "p", title: "Send", detail: "Email Sam.", meetingID: nil), 1)
+        island.refresh()
+        let covered = island.kind
+        island.announceCatchUpReady(newest)
+        expect(island.kind == covered, "the ready notice covered a pending approval: \(island.kind)")
+        gate.value = nil
+        island.refresh()
+        let question = MeetingEvent(
+            id: "q", providerID: .fake, title: "Weekly", start: Date().addingTimeInterval(60),
+            end: Date().addingTimeInterval(1_860), attendees: [], isOrganizerOrSelfAccepted: true,
+            conferenceURL: nil, calendarName: "Test", isAllDay: false)
+        island.announceArmed(question)
+        island.announceCatchUpReady(newest)
+        expect(island.kind == .meetingArmed(question), "the ready notice replaced \"Record this meeting?\": \(island.kind)")
+        island.clearArmed(question)
+
+        // Reduce Motion, no scaling, the clock and the orb state, from the views' own source.
         if let source = SourceScan.file("Sources/NextNotes/UI/CatchUp/CatchUpViews.swift") {
-            let starts = SourceScan.codeLines(of: source).filter { $0.text.contains("player.toggle(") || $0.text.contains(".play(") }
-            expect(starts.count == 1, "the catch-up views start audio in \(starts.count) places, expected the one Play button")
             let code = SourceScan.codeLines(of: source).map(\.text).joined(separator: "\n")
             expect(code.contains("accessibilityReduceMotion"), "the catch-up views ignore Reduce Motion")
             expect(!code.contains("scaleEffect"), "an orb or card is scaled")
+            expect(code.contains("TimelineView"), "the cards never re-read the clock")
+            expect(code.contains(".shaping") && !code.contains(".composing"),
+                   "the audio-being-made orb is not shaping")
         } else {
             failures.append("catch-up: could not read CatchUpViews to check nothing auto-plays")
         }
         if let source = SourceScan.file("Sources/NextNotes/UI/CatchUp/CatchUpSettingsSection.swift") {
             let code = SourceScan.codeLines(of: source).map(\.text).joined(separator: "\n")
+            if let start = code.range(of: "private func create("), let end = code.range(of: "private var timePicker") {
+                expect(!code[start.lowerBound..<end.lowerBound].contains("agentSchedulesEnabled"),
+                       "creating a catch-up flips the master Reminders switch without asking")
+            } else {
+                failures.append("catch-up: could not find the create function in the Settings section")
+            }
+            expect(!code.contains("on your Mac"), "the Settings section promises it is made on this Mac")
+            expect(!code.contains("Nothing was changed"), "the Settings failure sentence is the old one")
             expect(code.contains("Catch me up when I\\u{2019}m back"),
                    "the Settings switch is not worded as the person says it")
             expect(code.contains("DatePicker"), "the Settings section has no time picker")
+            expect(code.contains("CatchUpOffer.permissionExplanation")
+                   && !code.contains("anything I would send waits for your yes."),
+                   "the Settings footer does not disclose standing permissions")
         } else {
             failures.append("catch-up: could not read the Settings section")
         }
@@ -267,6 +347,7 @@ enum CatchUpPresentationSelfTest {
         }
         let library = CatchUpLibrary(
             tasks: { [
+                task("stuck", 25, withAudio: false, text: words),
                 task("ready", 40, withAudio: true, text: words),
                 task("preparing", 2, withAudio: false, text: words),
                 task("older", 60 * 30, withAudio: false, text: "Welcome back.\n\nNothing needs you today."),
@@ -291,6 +372,23 @@ enum CatchUpPresentationSelfTest {
             do { try png.write(to: root.appendingPathComponent("catch-up-cards-\(name).png")) }
             catch { failures.append("catch-up: preview write: \(error.localizedDescription)") }
         }
+        // A closing question that is not an offer: plain text, "Reply" and "No thanks".
+        let plainLibrary = CatchUpLibrary(
+            tasks: { [task("plain", 3, withAudio: false, text: "Good morning.\n\nThe design review moved to 10.\n\nAnything else on your mind?")] },
+            catchUpScheduleIDs: { [routine] in [routine] },
+            fileExists: { _ in true }, measure: { _ in 96 }, defaults: defaults, offers: Recorder())
+        plainLibrary.refresh()
+        if let only = plainLibrary.entries.first {
+            let plain = CatchUpCard(entry: only, library: plainLibrary)
+                .padding(DS.Space.page)
+                .frame(width: 340, alignment: .topLeading)
+                .background(DS.Color.window)
+            if let png = render(plain, width: 340) {
+                do { try png.write(to: root.appendingPathComponent("catch-up-card-plain-question.png")) }
+                catch { failures.append("catch-up: preview write: \(error.localizedDescription)") }
+            } else { failures.append("catch-up: the plain-question preview did not render") }
+        }
+
         // The Settings section on its own, at the width the pane meets in the main window.
         let form = Form { CatchUpSettingsSection() }
             .formStyle(.grouped)

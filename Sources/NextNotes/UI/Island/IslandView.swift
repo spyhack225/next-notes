@@ -430,8 +430,8 @@ struct IslandView: View {
                 .font(DS.Font.callout)
                 .foregroundStyle(secondaryInk)
 
-        case .catchUpReady:
-            Text("Your catch-up is ready.")
+        case .catchUpReady(let id, _):
+            CatchUpIslandLine(taskID: id)
                 .font(DS.Font.callout)
                 .foregroundStyle(secondaryInk)
 
@@ -545,13 +545,10 @@ struct IslandView: View {
                 .controlSize(.small)
 
         case .catchUpReady(let id, _):
-            HStack(spacing: DS.Space.s) {
-                Button("Later") { state.dismissNotice() }
-                Button("Play") { state.playCatchUp(taskID: id) }
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityLabel("Play your catch-up")
-            }
-            .controlSize(.small)
+            CatchUpIslandButtons(
+                taskID: id,
+                close: { state.dismissNotice() },
+                toggle: { state.toggleCatchUp(taskID: id) })
 
         case .agentListening:
             HStack(spacing: DS.Space.s) {

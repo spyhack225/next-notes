@@ -528,6 +528,11 @@ final class IslandState {
     /// A catch-up's audio just finished. One plain line and a Play button; it never plays
     /// itself, and it goes away on its own like every other notice.
     func announceCatchUpReady(_ entry: CatchUpEntry) {
+        // Dropped, not queued, when anything is already on the island: a live card (dictation
+        // readout, recording strip, a pending approval) or an unanswered notice ("Record this
+        // meeting?", a proposal) must never be covered by news that can wait. The catch-up is
+        // still in the Library and its words were already delivered, so nothing is lost.
+        guard notice == nil, case .hidden = liveKind() else { return }
         push(.catchUpReady(taskID: entry.id, title: entry.title), for: DS.Motion.islandNotice)
     }
 
@@ -621,12 +626,40 @@ final class IslandState {
         MeetingScheduler.shared.skip(event)
     }
 
-    /// Play on the ready card: starts the audio and takes the card down. The audio is the
-    /// same file and the same player the Library row uses.
-    func playCatchUp(taskID: String) {
-        clearNotice()
-        if let entry = CatchUpLibrary.shared.entries.first(where: { $0.id == taskID }) {
-            CatchUpPlayer.shared.play(entry)
+    /// Play, Pause or Resume on the ready card, through the same player the Library card uses
+    /// (this never touches an audio object itself). While the catch-up is playing or paused the
+    /// card stays, showing the control that applies; when playback ends it goes away. If the
+    /// player refuses (it says why in its own sentence) the card stays for the usual notice
+    /// time with that sentence, and Play is still there for another try.
+    func toggleCatchUp(taskID: String) {
+        guard let entry = CatchUpLibrary.shared.entries.first(where: { $0.id == taskID }) else {
+            clearNotice()
+            return
+        }
+        CatchUpPlayer.shared.toggle(entry)
+        let kind = Kind.catchUpReady(taskID: taskID, title: entry.title)
+        if CatchUpPlayer.shared.playingID == taskID {
+            push(kind, for: .infinity)
+            followCatchUpPlayback(taskID: taskID)
+        } else {
+            push(kind, for: DS.Motion.islandNotice)
+        }
+    }
+
+    /// Takes the card down when this catch-up stops being the one the player holds.
+    private func followCatchUpPlayback(taskID: String) {
+        withObservationTracking {
+            _ = CatchUpPlayer.shared.playingID
+        } onChange: { [weak self] in
+            Task { @MainActor in
+                guard let self, case .catchUpReady(let shown, _) = self.notice?.kind,
+                      shown == taskID else { return }
+                if CatchUpPlayer.shared.playingID == taskID {
+                    self.followCatchUpPlayback(taskID: taskID)
+                } else {
+                    self.clearNotice()
+                }
+            }
         }
     }
 
