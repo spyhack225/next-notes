@@ -40,6 +40,10 @@ actor GoogleCalendarProvider: CalendarProvider {
             refreshTokenForTesting: refreshTokenForTesting, clearTokenForTesting: clearTokenForTesting) : .shared
     }
 
+    func accessTokensForTesting() -> GoogleAccessTokens {
+        precondition(GoogleAccessTokens.testHooksAdmitted)
+        return tokens
+    }
 
     /// Applied before every refresh by `CalendarService`.
     func configure(clientID: String, clientSecret: String, calendarIDs: [String]) {
@@ -206,10 +210,10 @@ actor GoogleCalendarProvider: CalendarProvider {
     /// Genuine revocation is caught before this, at the refresh endpoint's `invalid_grant`.
     private func get<Value: Decodable>(_ url: URL) async throws -> Value {
         do {
-            return try await fetch(url, discardingCachedToken: false)
+            return try await fetch(url)
         } catch GoogleCalendarError.accessTokenRejected {
             do {
-                return try await fetch(url, discardingCachedToken: true)
+                return try await fetch(url)
             } catch GoogleCalendarError.accessTokenRejected {
                 // A rejected access token is not proof that the stored grant was revoked.
                 throw GoogleCalendarError.accessTokenRejected
@@ -218,14 +222,11 @@ actor GoogleCalendarProvider: CalendarProvider {
     }
 
     private func fetch<Value: Decodable>(
-        _ url: URL,
-        discardingCachedToken: Bool
+        _ url: URL
     ) async throws -> Value {
-        if discardingCachedToken {
-            await tokens.invalidate()
-        }
         var request = URLRequest(url: url)
-        request.setValue("Bearer \(try await validAccessToken())", forHTTPHeaderField: "Authorization")
+        let accessToken = try await validAccessToken()
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
 
         let data: Data
         let response: URLResponse
@@ -236,7 +237,10 @@ actor GoogleCalendarProvider: CalendarProvider {
         }
         let status = (response as? HTTPURLResponse)?.statusCode ?? 0
         guard (200..<300).contains(status) else {
-            if status == 401 { throw GoogleCalendarError.accessTokenRejected }
+            if status == 401 {
+                await tokens.invalidate(rejectedToken: accessToken)
+                throw GoogleCalendarError.accessTokenRejected
+            }
             let failure = try? JSONDecoder().decode(GoogleErrorResponse.self, from: data)
             throw GoogleCalendarError.requestFailed(
                 status: status,

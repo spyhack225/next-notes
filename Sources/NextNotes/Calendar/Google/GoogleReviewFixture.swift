@@ -17,6 +17,12 @@ enum GoogleReviewFixture {
         }
         func release() { released = true; held?.resume(); held = nil }
     }
+    final class Counts: @unchecked Sendable {
+        private let lock = NSLock()
+        private var values: [String: Int] = [:]
+        func hit(_ key: String) -> Int { lock.withLock { values[key, default: 0] += 1; return values[key]! } }
+        func count(_ key: String) -> Int { lock.withLock { values[key, default: 0] } }
+    }
     static func executable(_ label: String) throws -> (root: URL, executable: URL, marker: URL) {
         precondition(GoogleAccessTokens.testHooksAdmitted)
         let root = FileManager.default.temporaryDirectory.appendingPathComponent("NextNotesGoogleReview-\(label)-\(UUID())")

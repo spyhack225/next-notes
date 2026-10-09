@@ -23,6 +23,11 @@ actor GoogleAccessTokens {
         isRunning && requested == "--selftest-google-connect"
     }
 
+    private var rejectedTokenObserverForTesting: (@Sendable () -> Void)?
+    func observeRejectedTokenForTesting(_ observer: (@Sendable () -> Void)?) {
+        precondition(Self.testHooksAdmitted)
+        rejectedTokenObserverForTesting = observer
+    }
     private var requestOverrideForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
     func useRequestForTesting(_ request: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?) {
         precondition(Self.testHooksAdmitted)
@@ -114,6 +119,12 @@ actor GoogleAccessTokens {
     func disconnectGrant() {
         GoogleTokenStore.clear(forgetSelection: true)
         invalidate()
+    }
+    func invalidate(rejectedToken: String) {
+        defer { rejectedTokenObserverForTesting?() }
+        // A late 401 for A has no authority over a refresh already replacing A.
+        guard cached?.token == rejectedToken else { return }
+        cached = nil
     }
     func invalidate() {
         generation += 1
