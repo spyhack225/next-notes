@@ -1,0 +1,1179 @@
+{
+  "scope": "retained authored listen2 diagnostic metadata only; missing unload rows are unavailable, not zero owner evictions; no normal-use rate can be inferred",
+  "runs": {
+    "baseline-pocket": {
+      "source": "Tests/Reports/pl12-listen2/baseline-pocket.log",
+      "sha256": "8a0ed06be82d9640b4c8402fcb109f2931aee387299ebbea6b43db1866a38a68",
+      "turns": [
+        {
+          "run": 1,
+          "endpoint_to_route_done_s": 1.307,
+          "route_total_s": 2.291,
+          "route_to_first_answer_s": 1.706,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.0
+        },
+        {
+          "run": 2,
+          "endpoint_to_route_done_s": 1.705,
+          "route_total_s": 2.682,
+          "route_to_first_answer_s": 2.126,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.042
+        },
+        {
+          "run": 3,
+          "endpoint_to_route_done_s": 1.284,
+          "route_total_s": 2.257,
+          "route_to_first_answer_s": 1.565,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.0
+        },
+        {
+          "run": 4,
+          "endpoint_to_route_done_s": 0.841,
+          "route_total_s": 1.819,
+          "route_to_first_answer_s": 1.632,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.045
+        },
+        {
+          "run": 5,
+          "endpoint_to_route_done_s": 0.998,
+          "route_total_s": 1.973,
+          "route_to_first_answer_s": 1.604,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.0
+        }
+      ],
+      "endpoint_to_route_done_median_s": 1.284,
+      "answer_rows": 5,
+      "warm_true": 0,
+      "warm_false": 0,
+      "warm_unknown": 5,
+      "final_counts_unavailable": 0,
+      "unload_reasons_observed_in_retained_stdout": [],
+      "committed_generations": []
+    },
+    "route-after": {
+      "source": "Tests/Reports/pl12-listen2/route-after.stdout.log",
+      "sha256": "1eda994e324201475e6547cce79979164a8059583027e657d0cc6e524e414a95",
+      "turns": [
+        {
+          "run": 1,
+          "endpoint_to_route_done_s": 0.973,
+          "route_total_s": 1.949,
+          "route_to_first_answer_s": 1.455,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.0
+        },
+        {
+          "run": 2,
+          "endpoint_to_route_done_s": 1.211,
+          "route_total_s": 2.18,
+          "route_to_first_answer_s": 1.463,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.0
+        },
+        {
+          "run": 3,
+          "endpoint_to_route_done_s": 1.113,
+          "route_total_s": 2.087,
+          "route_to_first_answer_s": 1.491,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.0
+        },
+        {
+          "run": 4,
+          "endpoint_to_route_done_s": 1.49,
+          "route_total_s": 2.449,
+          "route_to_first_answer_s": 1.592,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.0
+        },
+        {
+          "run": 5,
+          "endpoint_to_route_done_s": 1.125,
+          "route_total_s": 2.1,
+          "route_to_first_answer_s": 1.629,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.018
+        }
+      ],
+      "endpoint_to_route_done_median_s": 1.125,
+      "answer_rows": 5,
+      "warm_true": 0,
+      "warm_false": 0,
+      "warm_unknown": 5,
+      "final_counts_unavailable": 0,
+      "unload_reasons_observed_in_retained_stdout": [],
+      "committed_generations": [
+        {
+          "generation": "4",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.152",
+              "elapsed_s": 0.152,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 2.419,
+              "duration_s": 2.418
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 2.419,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 2.419,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 2.42,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 4.072,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 4.711,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "17",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.995",
+              "elapsed_s": 0.995,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 1.95,
+              "duration_s": 1.949
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 1.951,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 1.951,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 1.951,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 3.404,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 3.826,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "30",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.991",
+              "elapsed_s": 0.991,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 2.181,
+              "duration_s": 2.18
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 2.181,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 2.181,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 2.182,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 3.643,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 3.914,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "43",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.996",
+              "elapsed_s": 0.996,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 2.087,
+              "duration_s": 2.087
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 2.087,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 2.088,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 2.088,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 3.577,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 3.785,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "56",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.986",
+              "elapsed_s": 0.986,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 2.45,
+              "duration_s": 2.449
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 2.45,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 2.45,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 2.45,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 4.041,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 4.305,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "69",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.002",
+              "elapsed_s": 1.002,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 2.101,
+              "duration_s": 2.1
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 2.101,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 2.101,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 2.101,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 3.729,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 4.009,
+              "duration_s": null
+            }
+          ]
+        }
+      ]
+    },
+    "mini-before": {
+      "source": "Tests/Reports/pl12-listen2/mini-before.stdout.log",
+      "sha256": "361b138b772ff000a208598d9c638fee6a52ee5373f494a5d2e13aaebb8e6c0b",
+      "turns": [
+        {
+          "run": 1,
+          "endpoint_to_route_done_s": 4.139,
+          "route_total_s": 5.911,
+          "route_to_first_answer_s": 13.679,
+          "endpoint_source": "vad",
+          "main_stall_s": 1.184
+        },
+        {
+          "run": 2,
+          "endpoint_to_route_done_s": 5.766,
+          "route_total_s": 5.471,
+          "route_to_first_answer_s": 15.902,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.582
+        },
+        {
+          "run": 3,
+          "endpoint_to_route_done_s": 4.175,
+          "route_total_s": 5.13,
+          "route_to_first_answer_s": 11.078,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.031
+        },
+        {
+          "run": 4,
+          "endpoint_to_route_done_s": 3.122,
+          "route_total_s": 5.479,
+          "route_to_first_answer_s": 14.084,
+          "endpoint_source": "vad",
+          "main_stall_s": 0.137
+        },
+        {
+          "run": 5,
+          "endpoint_to_route_done_s": 4.493,
+          "route_total_s": 5.512,
+          "route_to_first_answer_s": 11.912,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.038
+        }
+      ],
+      "endpoint_to_route_done_median_s": 4.175,
+      "answer_rows": 5,
+      "warm_true": 5,
+      "warm_false": 0,
+      "warm_unknown": 0,
+      "final_counts_unavailable": 0,
+      "unload_reasons_observed_in_retained_stdout": [],
+      "committed_generations": [
+        {
+          "generation": "6",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.031",
+              "elapsed_s": 1.031,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 2.661,
+              "duration_s": 2.66
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 2.661,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 2.661,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 2.662,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 18.024,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 18.761,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "17",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.003,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.833",
+              "elapsed_s": 1.833,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 5.914,
+              "duration_s": 5.911
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 5.915,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 5.915,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 5.918,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 19.588,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 23.488,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "34",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.002,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.022",
+              "elapsed_s": 1.022,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 5.132,
+              "duration_s": 5.13
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 5.132,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 5.132,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 5.133,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 16.208,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 16.946,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "47",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.002,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=2.398",
+              "elapsed_s": 2.398,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 5.481,
+              "duration_s": 5.479
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 5.481,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 5.481,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 5.482,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 19.559,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 22.726,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "60",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.002,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.117",
+              "elapsed_s": 1.118,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 5.515,
+              "duration_s": 5.512
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 5.515,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 5.515,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 5.516,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 17.426,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 18.143,
+              "duration_s": null
+            }
+          ]
+        }
+      ]
+    },
+    "mini-after-final": {
+      "source": "Tests/Reports/pl12-listen2/mini-after-final.stdout.log",
+      "sha256": "25ecd301ea5366f24fdea725c0009580b946be828b4705f501e109b53ba4322a",
+      "turns": [
+        {
+          "run": 1,
+          "endpoint_to_route_done_s": 3.499,
+          "route_total_s": 4.418,
+          "route_to_first_answer_s": 19.097,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.065
+        },
+        {
+          "run": 2,
+          "endpoint_to_route_done_s": 5.069,
+          "route_total_s": 5.318,
+          "route_to_first_answer_s": 0.128,
+          "endpoint_source": "vad",
+          "main_stall_s": 0.296
+        },
+        {
+          "run": 3,
+          "endpoint_to_route_done_s": 4.343,
+          "route_total_s": 5.232,
+          "route_to_first_answer_s": 0.146,
+          "endpoint_source": "vad",
+          "main_stall_s": 0.16
+        },
+        {
+          "run": 4,
+          "endpoint_to_route_done_s": 3.041,
+          "route_total_s": 3.844,
+          "route_to_first_answer_s": 1.649,
+          "endpoint_source": "vad",
+          "main_stall_s": 0.166
+        },
+        {
+          "run": 5,
+          "endpoint_to_route_done_s": 5.355,
+          "route_total_s": 5.284,
+          "route_to_first_answer_s": 0.387,
+          "endpoint_source": "localEOU",
+          "main_stall_s": 0.074
+        }
+      ],
+      "endpoint_to_route_done_median_s": 4.343,
+      "answer_rows": 5,
+      "warm_true": 4,
+      "warm_false": 1,
+      "warm_unknown": 0,
+      "final_counts_unavailable": 1,
+      "unload_reasons_observed_in_retained_stdout": [],
+      "committed_generations": [
+        {
+          "generation": "17",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.0,
+              "duration_s": 0.0
+            },
+            {
+              "event": "prefill_handoff",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "prefill_skip_not_prepared",
+              "elapsed_s": 0.001,
+              "duration_s": null
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.001,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.004,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.976",
+              "elapsed_s": 0.976,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 4.422,
+              "duration_s": 4.418
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 4.423,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 4.423,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 4.423,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 23.514,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 25.991,
+              "duration_s": 0.007
+            }
+          ]
+        },
+        {
+          "generation": "24",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.517,
+              "duration_s": 0.517
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.517,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.534,
+              "duration_s": null
+            },
+            {
+              "event": "prefill_handoff",
+              "elapsed_s": 0.535,
+              "duration_s": null
+            },
+            {
+              "event": "prefill_native_admitted",
+              "elapsed_s": 0.536,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.852",
+              "elapsed_s": 0.852,
+              "duration_s": null
+            },
+            {
+              "event": "prefill_done prompt=1146 reused=933 decoded=213 native_s=1.520132",
+              "elapsed_s": 2.068,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 5.852,
+              "duration_s": 5.317
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 5.852,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 5.853,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 5.853,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 5.977,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 9.542,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "33",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.774,
+              "duration_s": 0.774
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.774,
+              "duration_s": 0.0
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.782,
+              "duration_s": null
+            },
+            {
+              "event": "prefill_handoff",
+              "elapsed_s": 0.783,
+              "duration_s": null
+            },
+            {
+              "event": "prefill_native_admitted",
+              "elapsed_s": 0.785,
+              "duration_s": null
+            },
+            {
+              "event": "prefill_done prompt=1216 reused=1206 decoded=10 native_s=0.128872458",
+              "elapsed_s": 0.993,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.808",
+              "elapsed_s": 1.808,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 6.014,
+              "duration_s": 5.231
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 6.015,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 6.016,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 6.016,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 6.157,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 10.137,
+              "duration_s": null
+            }
+          ]
+        },
+        {
+          "generation": "40",
+          "events": [
+            {
+              "event": "speculation_started",
+              "elapsed_s": 0.0,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_barrier_done",
+              "elapsed_s": 0.45,
+              "duration_s": 0.45
+            },
+            {
+              "event": "prefill_handoff",
+              "elapsed_s": 0.45,
+              "duration_s": null
+            },
+            {
+              "event": "native_warmup_done",
+              "elapsed_s": 0.45,
+              "duration_s": 0.0
+            },
+            {
+              "event": "prefill_native_admitted",
+              "elapsed_s": 0.45,
+              "duration_s": null
+            },
+            {
+              "event": "route_session_fresh",
+              "elapsed_s": 0.453,
+              "duration_s": null
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.346",
+              "elapsed_s": 1.346,
+              "duration_s": null
+            },
+            {
+              "event": "typed_route_collect_done",
+              "elapsed_s": 4.297,
+              "duration_s": 3.844
+            },
+            {
+              "event": "partial_route_ready",
+              "elapsed_s": 4.298,
+              "duration_s": null
+            },
+            {
+              "event": "native_task_end",
+              "elapsed_s": 4.298,
+              "duration_s": null
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "elapsed_s": 4.299,
+              "duration_s": null
+            },
+            {
+              "event": "prefill_cancelled",
+              "elapsed_s": 5.271,
+              "duration_s": null
+            },
+            {
+              "event": "first_answer_text",
+              "elapsed_s": 5.938,
+              "duration_s": null
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "elapsed_s": 9.123,
+              "duration_s": null
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -41,6 +41,19 @@ actor FrontendResponder {
         return true
     }
     func voiceLatencyAnswerProvider() -> (any LLMProvider)? { latencyAnswerProvider }
+    nonisolated func admittedVoiceLatencyAnswerProvider() -> (any LLMProvider)? { nil }
+
+    // RED scaffold: external native admission only; the split validator and
+    // coordinator remain real. Installed only by the isolated contract flag.
+    private var residentAnswerForTesting: (@Sendable () async throws -> AsyncThrowingStream<String, Error>)?
+    func setResidentAnswerForTesting(
+        _ answer: (@Sendable () async throws -> AsyncThrowingStream<String, Error>)?
+    ) -> Bool {
+        guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-latency",
+              CommandLine.arguments.contains("--voice-latency-resident-contract") else { return false }
+        residentAnswerForTesting = answer
+        return true
+    }
 
     // Script only the external SDK route; validation, split answer, slot and
     // committed coordinator consumers still run through their actual seams.

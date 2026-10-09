@@ -1,0 +1,6 @@
+VOICE_DIAGNOSTIC_APPLE_CALLS=1 ready=false
+VOICE_DIAGNOSTIC_APPLE_CALLS=1 ready=true
+VOICE_PIPELINE_SPAN=model.queue 0.000s app_llm class=realtimeAgent
+VOICE_PIPELINE_SPAN=model.load 0.000s app_llm failed
+VOICE_PIPELINE_SPAN=model.queue 0.000s app_llm class=realtimeAgent
+VOICE_PIPELINE_SPAN=model.load 23.492s app_llm

@@ -869,7 +869,8 @@ actor NotesModelRuntime {
         system: String,
         messages: [LLMChatMessage],
         maxTokens: Int,
-        grammar: GBNFGrammar? = nil
+        grammar: GBNFGrammar? = nil,
+        residentOnly: Bool = false
     ) -> AsyncThrowingStream<String, Error> {
         streamPrompt(
             system: system,

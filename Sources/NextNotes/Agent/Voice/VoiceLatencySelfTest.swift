@@ -71,6 +71,11 @@ enum VoiceLatencySelfTest {
     }
 
     static func run() async -> Result {
+        if CommandLine.arguments.contains("--voice-latency-resident-contract") {
+            let wrong = await VoiceResidentAnswerSelfTest.run()
+            for problem in wrong { SelfTest.diagnostic("VOICE_RESIDENT_ANSWER_WRONG: \(problem)") }
+            return (wrong.isEmpty, wrong.isEmpty ? "VOICE_RESIDENT_ANSWER_OK" : "VOICE_RESIDENT_ANSWER_FAILED")
+        }
         if CommandLine.arguments.contains("--voice-latency-output-proof") {
             // ASCII metadata only. 4,096 payload bytes cross stdout's buffered boundary;
             // the App writes the ordinary final marker through its production seam.
