@@ -1,0 +1,1 @@
+SETTINGS_PERMISSION_COPY_FAILED: footer unconditionally promises a fresh yes despite standing grants

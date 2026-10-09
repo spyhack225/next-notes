@@ -1,0 +1,10 @@
+2026-10-09T04:55:53Z
+Darwin SergeMcAir-2.local 27.2.0 Darwin Kernel Version 27.2.0: Sun Sep 13 19:47:17 PDT 2026; root:xnu-13432.40.162~92/RELEASE_ARM64_T8122 arm64
+Now drawing from 'AC Power'
+ -InternalBattery-0 (id=40566883)	100%; charged; 0:00 remaining present: true
+ProductName:		macOS
+ProductVersion:		27.2
+BuildVersion:		26B5091g
+Note: No thermal warning level has been recorded
+Note: No performance warning level has been recorded
+Note: No CPU power status has been recorded

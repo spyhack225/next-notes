@@ -1,0 +1,9 @@
+catch-up: CATCH_UP_OK
+agent-panes: AGENT_PANES_OK: 3 panes, unique titles, Reminders and Goals say what they are, layout on the shared scaffold
+ui-strings: UI_STRINGS_OK
+island: ISLAND_OK: 2 display(s), notched, placement notch, state machine behaves
+commandkey: COMMANDKEY_OK
+voice-conversation: VOICE_CONVERSATION_OK
+duplex: DUPLEX_OK
+settings: SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host
+store-isolation: STORE_ISOLATION_OK: 21 files and 0 defaults unchanged

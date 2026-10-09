@@ -1,0 +1,28 @@
+diff --git a/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift b/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
+index 769b98bb..870695c2 100644
+--- a/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
++++ b/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
+@@ -224,7 +224,7 @@ struct CatchUpCard: View {
+     }
+ 
+     /// The Agent's closing question as one action and a way out. Yes starts an ordinary turn,
+-    /// where anything that writes or sends still waits for its own approval card.
++    /// where normal permissions apply, including actions the person already allowed.
+     private func offerRow(_ offer: CatchUpOffer) -> some View {
+         VStack(alignment: .leading, spacing: DS.Space.s) {
+             Divider()
+@@ -235,10 +235,13 @@ struct CatchUpCard: View {
+             HStack(spacing: DS.Space.s) {
+                 Button(offer.actionLabel) { library.acceptOffer(entry) }
+                     .buttonStyle(.borderedProminent)
+-                    .accessibilityHint("Asks for this in the conversation. Anything it would send waits for your yes.")
++                    .accessibilityHint("Asks for this in the conversation. " + CatchUpOffer.permissionExplanation)
+                 Button("Not now") { library.closeOffer(entry) }
+             }
+             .controlSize(.small)
++            Text(CatchUpOffer.permissionExplanation)
++                .font(DS.Font.caption)
++                .foregroundStyle(DS.Color.textSecondary)
+         }
+     }
+ 

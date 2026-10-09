@@ -1,0 +1,6 @@
+Sources/NextNotes/Agent/RealtimeAgent+ToolLoop.swift
+Sources/NextNotes/Agent/RealtimeAgent.swift
+Sources/NextNotes/Agent/Tasks/AgentTaskStore.swift
+Sources/NextNotes/Agent/Tasks/TaskBridge.swift
+Sources/NextNotes/UI/Island/IslandState.swift
+Sources/NextNotes/UI/Island/IslandView.swift

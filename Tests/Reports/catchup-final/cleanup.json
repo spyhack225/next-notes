@@ -1,0 +1,91 @@
+{
+  "ownership": "Nine PID roots bound to sequential log birth-time intervals in the exclusive FIFO61 native slot; named fixture prefixes from app source, all PIDs exited.",
+  "roots": [
+    {
+      "flag": "catch-up",
+      "pid": 84092,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84092",
+      "birth": 1791522029.9381056
+    },
+    {
+      "flag": "island",
+      "pid": 84113,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84113",
+      "birth": 1791522034.0354564
+    },
+    {
+      "flag": "voice-conversation",
+      "pid": 84138,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84138",
+      "birth": 1791522041.8336008
+    },
+    {
+      "flag": "store-isolation",
+      "pid": 84154,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84154",
+      "birth": 1791522046.083507
+    },
+    {
+      "flag": "ui-strings",
+      "pid": 84108,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84108",
+      "birth": 1791522032.023204
+    },
+    {
+      "flag": "commandkey",
+      "pid": 84129,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84129",
+      "birth": 1791522037.5105045
+    },
+    {
+      "flag": "duplex",
+      "pid": 84142,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84142",
+      "birth": 1791522042.4392245
+    },
+    {
+      "flag": "settings",
+      "pid": 84145,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84145",
+      "birth": 1791522042.6780849
+    },
+    {
+      "flag": "agent-panes",
+      "pid": 84103,
+      "path": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84103",
+      "birth": 1791522031.310297
+    }
+  ],
+  "temporaryFolders": [
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84092",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84103",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84108",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84113",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84129",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84138",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84142",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84145",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-84154",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-fc-84113",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-fc-84138",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-fc-84145",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-fc-84154",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-84092",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-84113",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-84138",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-84145",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-folders-84154",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-identity-84113",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-memory-84092",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-memory-84138",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-memory-84154",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-persona-84092",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-persona-84113",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-persona-84138",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-persona-84154",
+    "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/catchup-final.861722"
+  ],
+  "scratch": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/catchup-final",
+  "allOwnedProcessesExited": true,
+  "removed": true
+}

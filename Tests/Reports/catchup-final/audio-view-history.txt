@@ -1,0 +1,308 @@
+commit 054c7040050950f46279d67f84534bdc5ddc3ab8
+Author: Serge william KADJO <spyhack225@users.noreply.github.com>
+Date:   Fri Oct 9 00:25:51 2026 -0400
+
+    Describe and verify catch-up standing permission behavior
+
+diff --git a/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift b/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
+index 769b98bb..870695c2 100644
+--- a/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
++++ b/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
+@@ -224,7 +224,7 @@ struct CatchUpCard: View {
+     }
+ 
+     /// The Agent's closing question as one action and a way out. Yes starts an ordinary turn,
+-    /// where anything that writes or sends still waits for its own approval card.
++    /// where normal permissions apply, including actions the person already allowed.
+     private func offerRow(_ offer: CatchUpOffer) -> some View {
+         VStack(alignment: .leading, spacing: DS.Space.s) {
+             Divider()
+@@ -235,10 +235,13 @@ struct CatchUpCard: View {
+             HStack(spacing: DS.Space.s) {
+                 Button(offer.actionLabel) { library.acceptOffer(entry) }
+                     .buttonStyle(.borderedProminent)
+-                    .accessibilityHint("Asks for this in the conversation. Anything it would send waits for your yes.")
++                    .accessibilityHint("Asks for this in the conversation. " + CatchUpOffer.permissionExplanation)
+                 Button("Not now") { library.closeOffer(entry) }
+             }
+             .controlSize(.small)
++            Text(CatchUpOffer.permissionExplanation)
++                .font(DS.Font.caption)
++                .foregroundStyle(DS.Color.textSecondary)
+         }
+     }
+ 
+
+commit 2d9f2970731e48efa585785d196fdd59a6e15406
+Author: Serge william KADJO <spyhack225@users.noreply.github.com>
+Date:   Thu Oct 8 17:04:54 2026 -0400
+
+    Show each catch-up as a card in Reminders, with Play and the closing offer as buttons
+    
+    Reads the finished catch-up runs from the task list already kept; no new store.
+    The closing question goes through one small seam (CatchUpOfferActing) as an
+    ordinary turn, so anything it would send still waits for the normal approval.
+    
+    Co-Authored-By: Claude Sonnet 5.5 <noreply@anthropic.com>
+
+diff --git a/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift b/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
+new file mode 100644
+index 00000000..769b98bb
+--- /dev/null
++++ b/Sources/NextNotes/UI/CatchUp/CatchUpViews.swift
+@@ -0,0 +1,255 @@
++import SwiftUI
++
++extension DS.Font {
++    /// The name of a prepared thing — a catch-up — set the way the landing page sets a
++    /// headline: serif, at a text style so Dynamic Type still applies. Not for controls or
++    /// running text; one heading per card.
++    static let briefingTitle = SwiftUI.Font.system(.title3, design: .serif)
++}
++
++/// "Your catch-ups": the short updates the Agent prepared, newest first, at the top of the
++/// Reminders pane — the place the person's set-up lives, so the thing and its switch sit
++/// together.
++///
++/// Each card says when it was made in the person's words, how long it is, plays on a press and
++/// never before, and shows the two to four things it is about. The newest one also carries its
++/// closing question as a real button, because that is the next step the Agent suggests.
++struct CatchUpPaneSection: View {
++    @State private var library = CatchUpLibrary.shared
++    @State private var store = ScheduleStore.shared
++    @State private var showEarlier = false
++    @Environment(\.accessibilityReduceMotion) private var reduceMotion
++
++    private let visibleCount = 3
++
++    var body: some View {
++        AgentPaneSection(title: "Your catch-ups", count: library.entries.isEmpty ? nil : library.entries.count) {
++            if library.entries.isEmpty {
++                emptyCard
++            } else {
++                let entries = showEarlier ? library.entries : Array(library.entries.prefix(visibleCount))
++                AgentCardGrid(minimum: DS.Size.agentCardMinWidth) {
++                    ForEach(entries) { entry in
++                        CatchUpCard(entry: entry, animatesOrb: entry.id == preparingID)
++                    }
++                }
++                if library.entries.count > visibleCount {
++                    Button(showEarlier ? "Show fewer" : "Show earlier ones") {
++                        if reduceMotion { showEarlier.toggle() }
++                        else { withAnimation(DS.Motion.standard) { showEarlier.toggle() } }
++                    }
++                    .buttonStyle(.link)
++                    .font(DS.Font.caption)
++                }
++            }
++        }
++        .onAppear { library.refresh() }
++    }
++
++    /// The one card whose audio is being made right now. Only that card's orb turns: the orb
++    /// names work that is running, and a screen gets one.
++    private var preparingID: String? {
++        library.entries.first { $0.isPreparingAudio(now: Date()) }?.id
++    }
++
++    /// Nothing made yet. If one is switched on, say when the first will come; if not, say
++    /// what it is and where to turn it on. Still orb: nothing is running here, and the
++    /// Reminders pane already carries its own.
++    private var emptyCard: some View {
++        GlassCard(cornerRadius: DS.Radius.glass, padding: DS.Space.card) {
++            VStack(alignment: .leading, spacing: DS.Space.s) {
++                LabeledOrb(
++                    state: .breathing,
++                    title: "No catch-ups yet",
++                    detail: emptyMessage,
++                    size: DS.Size.orbSmall,
++                    isAnimated: false)
++                if nextOne == nil {
++                    Button("Set up catch-ups") {
++                        NavigationState.shared.selectedSettingsTab = .agent
++                        NavigationState.shared.show(.settings)
++                    }
++                    .buttonStyle(.link)
++                    .font(DS.Font.caption)
++                }
++            }
++            .frame(maxWidth: .infinity, alignment: .leading)
++        }
++    }
++
++    private var nextOne: Date? {
++        store.schedules.filter { $0.isCatchUp && $0.enabled }.compactMap(\.nextRunAt).min()
++    }
++
++    private var emptyMessage: String {
++        if let nextOne {
++            return "Your first one will be ready "
++                + CatchUpText.whenPhrase(nextOne, now: Date()).lowercasedFirst + "."
++        }
++        return "A catch-up is a short update on your day — what needs you, what happened and "
++            + "what\u{2019}s coming — ready to read or listen to."
++    }
++}
++
++private extension String {
++    /// "This morning, 6:00 AM" reads after "ready" as "this morning, 6:00 AM"; a weekday or a
++    /// month keeps its capital because it is a proper word.
++    var lowercasedFirst: String {
++        guard hasPrefix("This ") || hasPrefix("Yesterday") else { return self }
++        return prefix(1).lowercased() + dropFirst()
++    }
++}
++
++/// One catch-up.
++struct CatchUpCard: View {
++    let entry: CatchUpEntry
++    /// True for the one card on the screen whose audio is being made; every other card's orb
++    /// is still.
++    var animatesOrb = false
++    /// The shared list in the app; a check or a preview hands in its own.
++    var library: CatchUpLibrary = .shared
++
++    @State private var player = CatchUpPlayer.shared
++    @State private var reading = false
++    @Environment(\.accessibilityReduceMotion) private var reduceMotion
++
++    var body: some View {
++        GlassCard(cornerRadius: DS.Radius.glass, padding: DS.Space.card) {
++            VStack(alignment: .leading, spacing: DS.Space.m) {
++                statusLine
++                header
++                if player.isCurrent(entry) { progress }
++                if !entry.headlines.isEmpty { headlines }
++                if let offer = library.openOffer(for: entry) { offerRow(offer) }
++                if let problem = player.problem, player.playingID == nil, entry.audioURL != nil {
++                    Text(problem)
++                        .font(DS.Font.caption)
++                        .foregroundStyle(DS.Color.warning)
++                }
++                readButton
++                if reading {
++                    Text(entry.text)
++                        .font(DS.Font.callout)
++                        .textSelection(.enabled)
++                        .fixedSize(horizontal: false, vertical: true)
++                }
++            }
++            .frame(maxWidth: .infinity, alignment: .leading)
++        }
++        .accessibilityElement(children: .contain)
++        .accessibilityLabel("\(entry.title), \(CatchUpText.whenPhrase(entry.madeAt, now: Date()))")
++    }
++
++    // MARK: - Pieces
++
++    /// Which long thing this is, in the app's one vocabulary: the model writing while the
++    /// audio is being made, the idle orb once there is something to press Play on or read.
++    /// The idle orb is still — it names nothing that is running.
++    private var statusLine: some View {
++        let preparing = entry.isPreparingAudio(now: Date())
++        return LabeledOrb(
++            state: preparing ? .composing : .breathing,
++            title: preparing ? "Getting the audio ready" : (entry.audioURL != nil ? "Ready to listen" : "Ready to read"),
++            style: .eyebrow,
++            size: DS.Size.orbBadge,
++            isAnimated: preparing && animatesOrb)
++    }
++
++    private var header: some View {
++        HStack(alignment: .center, spacing: DS.Space.m) {
++            if entry.audioURL != nil { playButton }
++            VStack(alignment: .leading, spacing: DS.Space.xxs) {
++                Text(entry.title)
++                    .font(DS.Font.briefingTitle)
++                    .tracking(DS.Font.wordTracking)
++                    .fixedSize(horizontal: false, vertical: true)
++                    .accessibilityAddTraits(.isHeader)
++                Text(subtitle)
++                    .font(DS.Font.caption)
++                    .foregroundStyle(DS.Color.textSecondary)
++            }
++            Spacer(minLength: 0)
++        }
++    }
++
++    private var playButton: some View {
++        Button {
++            player.toggle(entry)
++        } label: {
++            Image(systemName: playing ? "pause.fill" : "play.fill")
++                .frame(width: DS.Size.iconLarge, height: DS.Size.iconLarge)
++        }
++        .buttonStyle(.borderedProminent)
++        .buttonBorderShape(.circle)
++        .controlSize(.large)
++        .accessibilityLabel(playing ? "Pause \(entry.title)" : "Play \(entry.title)")
++        .help(playing ? "Pause" : "Play")
++    }
++
++    private var playing: Bool { player.isCurrent(entry) && player.isPlaying }
++
++    private var subtitle: String {
++        var parts = [CatchUpText.whenPhrase(entry.madeAt, now: Date())]
++        if let duration = entry.duration, entry.audioURL != nil {
++            parts.append(CatchUpText.lengthPhrase(duration))
++        }
++        return parts.joined(separator: " \u{00B7} ")
++    }
++
++    private var progress: some View {
++        HStack(spacing: DS.Space.s) {
++            ProgressView(value: player.progress)
++                .progressViewStyle(.linear)
++            Text("\(CatchUpText.clock(player.elapsed)) / \(CatchUpText.clock(player.duration))")
++                .font(DS.Font.timestamp)
++                .monospacedDigit()
++                .foregroundStyle(DS.Color.textSecondary)
++        }
++        .accessibilityElement(children: .ignore)
++        .accessibilityLabel("Played \(CatchUpText.clock(player.elapsed)) of \(CatchUpText.clock(player.duration))")
++    }
++
++    private var headlines: some View {
++        VStack(alignment: .leading, spacing: DS.Space.xs) {
++            ForEach(Array(entry.headlines.enumerated()), id: \.offset) { _, line in
++                HStack(alignment: .firstTextBaseline, spacing: DS.Space.s) {
++                    Text("\u{2022}").foregroundStyle(DS.Color.textTertiary)
++                        .accessibilityHidden(true)
++                    Text(line)
++                        .font(DS.Font.callout)
++                        .fixedSize(horizontal: false, vertical: true)
++                }
++            }
++        }
++    }
++
++    /// The Agent's closing question as one action and a way out. Yes starts an ordinary turn,
++    /// where anything that writes or sends still waits for its own approval card.
++    private func offerRow(_ offer: CatchUpOffer) -> some View {
++        VStack(alignment: .leading, spacing: DS.Space.s) {
++            Divider()
++            Text(offer.question)
++                .font(DS.Font.callout)
++                .foregroundStyle(DS.Color.textSecondary)
++                .fixedSize(horizontal: false, vertical: true)
++            HStack(spacing: DS.Space.s) {
++                Button(offer.actionLabel) { library.acceptOffer(entry) }
++                    .buttonStyle(.borderedProminent)
++                    .accessibilityHint("Asks for this in the conversation. Anything it would send waits for your yes.")
++                Button("Not now") { library.closeOffer(entry) }
++            }
++            .controlSize(.small)
++        }
++    }
++
++    private var readButton: some View {
++        Button {
++            if reduceMotion { reading.toggle() }
++            else { withAnimation(DS.Motion.standard) { reading.toggle() } }
++        } label: {
++            Text(reading ? "Hide the words" : "Read it")
++        }
++        .buttonStyle(.link)
++        .font(DS.Font.caption)
++    }
++}

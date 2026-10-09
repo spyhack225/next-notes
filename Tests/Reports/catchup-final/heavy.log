@@ -1,0 +1,46 @@
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+gate: waiting (swap 6288M, load 3, free 9G, memory 60%)
+build EXIT=0
+Running catch-up
+catch-up EXIT=0
+Running agent-panes
+agent-panes EXIT=0
+Running ui-strings
+ui-strings EXIT=0
+Running island
+island EXIT=0
+Running commandkey
+commandkey EXIT=0
+Running voice-conversation
+voice-conversation EXIT=0
+Running duplex
+duplex EXIT=0
+Running settings
+Tests/Reports/catchup-final/verify-slot.sh: line 22: 84145 Segmentation fault: 11  "$scratch/debug/NextNotes" "--selftest-$flag" --selftest-out "$runtemp/$flag.log" > "$reports/$flag.log" 2>&1
+settings EXIT=139
+Settings inherited SIGSEGV retained separately
+Running store-isolation
+store-isolation EXIT=0
