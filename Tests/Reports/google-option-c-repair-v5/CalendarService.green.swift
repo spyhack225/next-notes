@@ -1,0 +1,388 @@
+import AppKit
+import EventKit
+import Foundation
+import Observation
+
+/// Every enabled calendar, merged into one list of what is coming up.
+///
+/// The scheduler and the UI both read `upcoming`, and neither knows or cares which account
+/// an entry came from — that is the point of having a `CalendarProvider` protocol at all.
+/// Refreshes are polled rather than pushed because only EventKit has a change
+/// notification; Google would need a webhook and a public URL to deliver one.
+@MainActor
+@Observable
+final class CalendarService {
+    static let shared = CalendarService()
+
+    /// Everything starting inside the look-ahead window that hasn't ended yet, soonest
+    /// first, with duplicates across accounts already collapsed.
+    private(set) var upcoming: [MeetingEvent] = []
+    private(set) var providerStates: [CalendarProviderID: CalendarAuthorizationState] = [:]
+    private(set) var lastRefresh: Date?
+    private(set) var lastError: String?
+    private(set) var isRefreshing = false
+    /// The Google calendars available to tick in Settings.
+    private var googleCalendarList: [GoogleCalendarListEntry] = []
+    @ObservationIgnored private var googleCalendarGrant: GoogleTokenStore.StoredGrant?
+    var googleCalendars: [GoogleCalendarListEntry] {
+        // A producer transition can precede its MainActor notification. Never expose
+        // the old snapshot during that hop, even when no replacement read finishes.
+        let list = googleCalendarList // Track the backing even while the grant is absent.
+        guard let grant = googleCalendarGrant, (try? GoogleTokenStore.savedGrant()) == grant else { return [] }
+        return list
+    }
+
+    /// How far ahead to look. A day is enough for "what's next" and small enough that a
+    /// busy account is a couple of hundred events rather than a couple of thousand.
+    static let lookAhead: TimeInterval = 24 * 60 * 60
+    /// How far back, so a meeting that started while the Mac was asleep is still armable.
+    static let lookBehind: TimeInterval = 60 * 60
+    /// Google has no change notification and EventKit's fires only for local edits, so the
+    /// list is re-read on a timer. Five minutes is well inside the default lead time.
+    static let pollInterval: TimeInterval = 5 * 60
+
+    private let eventKit = EventKitCalendarProvider()
+    private let google: GoogleCalendarProvider
+    private let fake: FakeCalendarProvider?
+    private let providersForTesting: [any CalendarProvider]?
+
+    // Latest read wins within one grant; grant transitions are owned by the record,
+    // not by entry to connect/disconnect or by a later controller callback.
+    @ObservationIgnored private var googleCalendarsEpoch: UInt64 = 0
+
+    @ObservationIgnored private var googleGrantObserver: (any NSObjectProtocol)?
+
+    private var poll: Task<Void, Never>?
+    /// The last refresh queued, if any. Each new one waits for it, so the reads stay
+    /// serialised — the timer, the wake notification, the Meetings section and Settings all
+    /// ask for one — while every caller still gets a pass that ran after it asked.
+    private var inFlight: Task<Void, Never>?
+    private var observers: [any NSObjectProtocol] = []
+
+    private init() {
+        google = GoogleCalendarProvider()
+        fake = FakeCalendarProvider.isEnabled ? FakeCalendarProvider() : nil
+        providersForTesting = nil
+        observeGoogleGrant()
+    }
+
+    /// Runs the real refresh consumer over fixture-owned providers without reading
+    /// configured accounts or publishing the fixture into the shared Agent context.
+    init(providersForTesting: [any CalendarProvider]) {
+        google = GoogleCalendarProvider()
+        precondition(GoogleCalendarErrorSelfTest.isRequested)
+        fake = nil
+        self.providersForTesting = providersForTesting
+        observeGoogleGrant()
+    }
+
+    init(googleForTesting: GoogleCalendarProvider) {
+        precondition(GoogleAccessTokens.testHooksAdmitted)
+        google = googleForTesting
+        fake = nil
+        providersForTesting = [googleForTesting]
+        observeGoogleGrant()
+    }
+
+    isolated deinit {
+        if let googleGrantObserver { NotificationCenter.default.removeObserver(googleGrantObserver) }
+    }
+
+    private func observeGoogleGrant() {
+        googleGrantObserver = NotificationCenter.default.addObserver(
+            forName: GoogleTokenStore.grantDidChange, object: nil, queue: nil
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                // Read the current record, never a queued transition's old identity.
+                // A late notification must not erase an already published B snapshot.
+                if self.googleCalendarGrant != (try? GoogleTokenStore.savedGrant()) {
+                    self.clearGoogleCalendars()
+                }
+            }
+        }
+    }
+
+    private func clearGoogleCalendars() {
+        googleCalendarGrant = nil
+        googleCalendarList = []
+    }
+
+    var googleCalendarCacheForTesting: [GoogleCalendarListEntry] {
+        precondition(GoogleAccessTokens.testHooksAdmitted)
+        return googleCalendarList
+    }
+
+    // MARK: - Lifecycle
+
+    func start() {
+        guard poll == nil else { return }
+
+        poll = Task { @MainActor [weak self] in
+            while !Task.isCancelled {
+                await self?.refresh()
+                try? await Task.sleep(for: .seconds(Self.pollInterval))
+            }
+        }
+
+        // Waking is the one moment the cached list is guaranteed stale: the Mac may have
+        // been shut for a day, and the next meeting may already have started.
+        observers.append(NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didWakeNotification,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in await CalendarService.shared.refresh() }
+        })
+
+        observers.append(NotificationCenter.default.addObserver(
+            forName: .EKEventStoreChanged,
+            object: nil,
+            queue: .main
+        ) { _ in
+            Task { @MainActor in await CalendarService.shared.refresh() }
+        })
+    }
+
+    func stop() {
+        poll?.cancel()
+        poll = nil
+        for observer in observers {
+            NSWorkspace.shared.notificationCenter.removeObserver(observer)
+            NotificationCenter.default.removeObserver(observer)
+        }
+        observers = []
+    }
+
+    // MARK: - Reading
+
+    /// The soonest timed meeting that has not ended yet, for the menu bar.
+    ///
+    /// Delegates to `nextEvent(in:)` rather than `upcoming.first { … }` here. That
+    /// predicate is compiled as an isolated closure, and `Sequence.first(where:)`
+    /// calls it without hopping onto the main actor. The menu-bar body runs on the
+    /// main *thread* but not always as a MainActor task; the executor check then
+    /// faults (`SerialExecutor._isSameExecutor`, EXC_BAD_ACCESS).
+    var next: MeetingEvent? {
+        Self.nextEvent(in: upcoming)
+    }
+
+    func event(withOverrideKey key: String) -> MeetingEvent? {
+        // A `for` rather than `first(where:)`: same isolated-closure trap as `next`.
+        for event in upcoming where event.overrideKey == key {
+            return event
+        }
+        return nil
+    }
+
+    /// Pure so the menu bar and `--selftest-calendar` share one definition, and so
+    /// the walk is not isolated to the main actor.
+    nonisolated static func nextEvent(in events: [MeetingEvent], now: Date = Date()) -> MeetingEvent? {
+        for event in events {
+            if event.isCurrent(at: now) { return event }
+        }
+        return nil
+    }
+
+    /// Reads every enabled calendar, behind whatever read is already running.
+    ///
+    /// Chained forward rather than joined to the running pass: a caller that ticks a
+    /// calendar and then asks for a refresh has to be answered by a read that happened
+    /// *after* its change. Awaiting the in-flight pass would hand back a list built from
+    /// the configuration as it was before — the newly ticked calendar simply missing, with
+    /// nothing scheduled to go and fetch it until the five-minute poll came round.
+    func refresh() async {
+        let previous = inFlight
+        let task = Task { @MainActor [weak self] in
+            await previous?.value
+            await self?.performRefresh()
+        }
+        inFlight = task
+        await task.value
+        if inFlight == task { inFlight = nil }
+    }
+
+    private func performRefresh() async {
+        isRefreshing = true
+        defer { isRefreshing = false }
+
+        if providersForTesting == nil {
+            let settings = Settings.shared
+            await google.configure(
+                clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
+                clientSecret: GoogleAppClient.current?.clientSecret ?? settings.googleClientSecret,
+                calendarIDs: settings.googleCalendarIDs
+            )
+        }
+
+        let from = Date().addingTimeInterval(-Self.lookBehind)
+        let to = Date().addingTimeInterval(Self.lookAhead)
+
+        var collected: [MeetingEvent] = []
+        var states: [CalendarProviderID: CalendarAuthorizationState] = [:]
+        var failures: [String] = []
+
+        for provider in activeProviders() {
+            let state = await provider.authorizationState()
+            states[provider.id] = state
+            guard state.isAuthorized else { continue }
+            do {
+                collected.append(contentsOf: try await provider.events(from: from, to: to))
+            } catch {
+                states[provider.id] = .failed(error.localizedDescription)
+                failures.append("\(provider.id.displayName): \(error.localizedDescription)")
+            }
+        }
+
+        // Providers that are switched off still get a state, so Settings can say "Off"
+        // rather than showing nothing at all.
+        for id in CalendarProviderID.calendars where states[id] == nil {
+            states[id] = disabledState(for: id)
+        }
+
+        providerStates = states
+        upcoming = Self.deduplicated(collected)
+        lastRefresh = Date()
+        lastError = failures.isEmpty ? nil : failures.joined(separator: "\n")
+
+        Log.calendar.info("""
+            calendar refresh: \(self.upcoming.count, privacy: .public) upcoming event(s) \
+            from \(states.values.filter(\.isAuthorized).count, privacy: .public) provider(s)
+            """)
+        // P4-01: the block every prompt carries, refreshed where the events change. A prompt
+        // built between a calendar pass and this line would name yesterday's next meeting.
+        if providersForTesting == nil { AgentNowPublisher.refresh() }
+    }
+
+    // MARK: - Authorization
+
+    @discardableResult
+    func authorizeEventKit() async -> CalendarAuthorizationState {
+        let state = await eventKit.authorize()
+        providerStates[.eventKit] = state
+        await refresh()
+        return state
+    }
+
+    @discardableResult
+    func connectGoogle() async -> CalendarAuthorizationState {
+        let settings = Settings.shared
+        if providersForTesting == nil { await google.configure(
+            clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
+            clientSecret: GoogleAppClient.current?.clientSecret ?? settings.googleClientSecret,
+            calendarIDs: settings.googleCalendarIDs
+        ) }
+        let state = await google.authorize()
+        providerStates[.google] = state
+        if state.isAuthorized {
+            await refreshGoogleCalendars()
+            await refresh()
+        } else if case .disabled = state {
+            // A successful replacement without Calendar also withdraws the old cached
+            // entries. The existing refresh skips this disabled provider before reads.
+            clearGoogleCalendars()
+            await refresh()
+        }
+        return state
+    }
+
+    func disconnectGoogle() async {
+        clearGoogleCalendars()
+        await google.signOut()
+        // The state is recomputed rather than assigned: with the provider still switched
+        // on, signing out means "not connected", not "off".
+        await refresh()
+    }
+
+    func refreshGoogleCalendars(enabledForTesting: Bool? = nil) async {
+        precondition(enabledForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
+        googleCalendarsEpoch &+= 1
+        let epoch = googleCalendarsEpoch
+        let grant = try? GoogleTokenStore.savedGrant()
+        guard enabledForTesting ?? (providersForTesting != nil || Settings.shared.calendarGoogleEnabled) else {
+            clearGoogleCalendars()
+            return
+        }
+        let authorized = await google.authorizationState().isAuthorized
+        guard epoch == googleCalendarsEpoch, grant == (try? GoogleTokenStore.savedGrant()) else { return }
+        guard authorized, let grant else {
+            clearGoogleCalendars()
+            return
+        }
+        do {
+            let calendars = try await google.calendars()
+            guard epoch == googleCalendarsEpoch else { return }
+            // Use the token/launch seam's same record lock for comparison AND
+            // publication. Identity includes the unique save generation and scopes.
+            try GoogleTokenStore.withMatchingGrant(grant.identity) {
+                googleCalendarGrant = grant
+                googleCalendarList = calendars
+            }
+        } catch {
+            guard epoch == googleCalendarsEpoch, grant == (try? GoogleTokenStore.savedGrant()) else { return }
+            clearGoogleCalendars()
+            Log.calendar.error("couldn't list Google calendars: \(error.localizedDescription, privacy: .public)")
+        }
+    }
+
+    // MARK: - Internals
+
+    private func activeProviders() -> [any CalendarProvider] {
+        if let providersForTesting { return providersForTesting }
+        // The fake provider replaces the real ones rather than joining them: a test run
+        // must never arm a recording of a meeting that is actually happening.
+        if let fake { return [fake] }
+
+        let settings = Settings.shared
+        var providers: [any CalendarProvider] = []
+        if settings.calendarEventKitEnabled { providers.append(eventKit) }
+        if settings.calendarGoogleEnabled { providers.append(google) }
+        return providers
+    }
+
+    private func disabledState(for id: CalendarProviderID) -> CalendarAuthorizationState {
+        // In fake mode the real providers are not off, they are stood down — saying
+        // "switched off" would send someone to a setting that is still on.
+        if fake != nil, id != .fake {
+            return .disabled("Replaced by the test calendar while --fake-calendar is set.")
+        }
+        switch id {
+        case .eventKit: return .disabled("Apple Calendar is switched off.")
+        case .google: return .disabled("Google Calendar is switched off.")
+        case .fake: return .disabled("Only active with --fake-calendar.")
+        // Never reached: `detectedCall` is not in `CalendarProviderID.calendars`, which is
+        // what the only caller iterates. Spelled out rather than defaulted so that adding a
+        // real provider still fails to compile until it has an answer here.
+        case .detectedCall: return .disabled("Not a calendar.")
+        }
+    }
+
+    /// Collapses the same meeting seen through two accounts.
+    ///
+    /// A Google invitation that is also subscribed to in Apple Calendar arrives twice, with
+    /// different ids and usually only one of them carrying the conference link. Matching on
+    /// title plus start minute is crude, but the alternative — matching on iCalUID — fails
+    /// exactly where it matters, because EventKit and Google normalise it differently.
+    /// The copy with a conference URL wins; ties go to the one with more attendees.
+    static func deduplicated(_ events: [MeetingEvent]) -> [MeetingEvent] {
+        var best: [String: MeetingEvent] = [:]
+        for event in events {
+            let key = event.identityKey
+            guard let existing = best[key] else {
+                best[key] = event
+                continue
+            }
+            if isBetter(event, than: existing) { best[key] = event }
+        }
+        return best.values.sorted { left, right in
+            left.start == right.start ? left.title < right.title : left.start < right.start
+        }
+    }
+
+    private static func isBetter(_ candidate: MeetingEvent, than existing: MeetingEvent) -> Bool {
+        if (candidate.conferenceURL != nil) != (existing.conferenceURL != nil) {
+            return candidate.conferenceURL != nil
+        }
+        return candidate.attendees.count > existing.attendees.count
+    }
+}

@@ -1,0 +1,12 @@
+{
+  "removedScratch": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/google-c",
+  "preRemovalAllocatedBytes": 2133331968,
+  "preRemovalApparentBytes": 2082217136,
+  "uniqueEntries": 14532,
+  "note": "st_blocks*512 over unique owned inodes; not a global/APFS reclaimed-byte claim",
+  "binaryHolderProbe": "lsof exit1/no holders after completed wrapper exit0",
+  "removedSnapshots": [
+    ".google-replay-snapshot"
+  ],
+  "remainingMatchingTemporaryPaths": []
+}

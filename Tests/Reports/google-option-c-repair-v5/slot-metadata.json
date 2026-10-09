@@ -1,0 +1,9 @@
+{
+  "startedUTC": "2026-10-09T04:36:39.354051+00:00",
+  "macOS": "27.2",
+  "architecture": "arm64",
+  "head": "6e490cec1f05547e22fb32d10d923515d2323fae",
+  "originalProducers": "6e490cec CalendarService + GoogleTokenStore; read-only old cache accessor scaffold",
+  "wrapper": "../heavy.sh FIFO, normal gates, RELAY_ID=claude2-google-c",
+  "scope": "native isolated functional fixtures; no model/GUI/install/private OAuth input"
+}

@@ -548,3 +548,17 @@ normal FIFO slot. No new await/store/retry or product audio gate is added. The
 inherited nested isolation browser18 remains open; debug fixture evidence supplies
 no real Google, UI, full-duplex or latency acceptance. Read the
 [held-response report](Tests/Reports/google-option-c-repair-v4/README.md).
+
+
+Round-4 Google grant publication evidence: the prior entry epoch passes its seven
+held fixtures yet fails nine actual native assertions when the installer is delayed
+or fails after grant save, when Settings admits A during service sign-in, or when
+the shared refresh actor deletes an invalid grant. Exact existing record identity
+and scopes now bind admission, locked publication and cached-list visibility;
+save/delete notifications clear the same cache without a replacement result. No
+connect/disconnect epoch bump, store, retry, timer or user-path await is added.
+Original393pass/9fail becomes fixed/restored402pass/0fail with unchanged fixtures,
+seven root flags and three mutation/restoration checks in one normal FIFO59 slot.
+Inherited nested browser18 remains failed. Debug functional proof supplies no real
+Google, UI, cross-process Keychain, latency, full-duplex or installed-app acceptance.
+Read the [grant publication report](Tests/Reports/google-option-c-repair-v5/README.md).

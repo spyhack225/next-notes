@@ -1,0 +1,1 @@
+5cb1baeec7db1a6ac95fa96cae49ac4880aa61709b242a643e8c82da60b2fd53  /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/google-c/debug/NextNotes

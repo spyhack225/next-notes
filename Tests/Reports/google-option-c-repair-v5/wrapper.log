@@ -1,0 +1,58 @@
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+google-connect exit=1
+GOOGLE_CONNECT_FAILED
+google-connect exit=0
+GOOGLE_CONNECT_OK
+gws exit=0
+GWS_FIXTURES_OK: 10 cases
+GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.3dfQbD/gws, signed in
+calendar exit=0
+CALENDAR_OK: isolated Google error consumers behave
+mac-accounts exit=0
+MAC_ACCOUNTS_OK
+capability-manifest exit=0
+CAPABILITY_MANIFEST_OK
+ui-strings exit=0
+UI_STRINGS_OK
+store-isolation exit=0
+STORE_ISOLATION_OK: 21 files and 0 defaults unchanged
+TOOLLOOP_PRODUCTION_FAILED
+REPLAY_CAPTURED
+REPLAY_REVOCATION
+google-connect exit=1
+GOOGLE_CONNECT_FAILED
+REPLAY_UNPINNED
+google-connect exit=1
+GOOGLE_CONNECT_FAILED
+REPLAY_MAILBOX
+mac-accounts exit=1
+MAC_ACCOUNTS_FAILED
+REPLAY_GREEN
+google-connect exit=0
+GOOGLE_CONNECT_OK
+gws exit=0
+GWS_FIXTURES_OK: 10 cases
+GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.VfARd3/gws, signed in
+calendar exit=0
+CALENDAR_OK: isolated Google error consumers behave
+mac-accounts exit=0
+MAC_ACCOUNTS_OK
+capability-manifest exit=0
+CAPABILITY_MANIFEST_OK
+ui-strings exit=0
+UI_STRINGS_OK
+store-isolation exit=0
+STORE_ISOLATION_OK: 21 files and 0 defaults unchanged
+TOOLLOOP_PRODUCTION_FAILED
+GOOGLE_OPTION_C_MUTATIONS_RESTORED_OK
+REPLAY_GREEN
+GOOGLE_GRANT_PUBLICATION_BATCH_OK
+REPLAY_GREEN

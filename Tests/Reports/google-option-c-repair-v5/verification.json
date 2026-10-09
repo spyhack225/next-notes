@@ -1,0 +1,247 @@
+{
+  "grant-transition-red": {
+    "google-connect": {
+      "okAssertions": 393,
+      "failures": [
+        "FAIL R6 transition installer-delayed clears cached A without a list result or Calendar callback",
+        "FAIL R6 transition installer-delayed drops A completion under the changed grant identity and scopes",
+        "FAIL R6 transition installer-failed clears cached A without a list result or Calendar callback",
+        "FAIL R6 transition installer-failed drops A completion under the changed grant identity and scopes",
+        "FAIL R6 transition installer-calendar clears cached A without a list result or Calendar callback",
+        "FAIL R6 transition installer-calendar drops A completion under the changed grant identity and scopes",
+        "FAIL R6 transition signin-withdrawal drops A completion under the changed grant identity and scopes",
+        "FAIL R6 transition invalid-grant clears cached A without a list result or Calendar callback",
+        "FAIL R6 transition invalid-grant drops A completion under the changed grant identity and scopes"
+      ],
+      "markers": [
+        "GOOGLE_CONNECT_FAILED",
+        "GOOGLE_CONNECT_FAILED"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "exits": [
+      "google-connect exit=1"
+    ]
+  },
+  "green": {
+    "google-connect": {
+      "okAssertions": 402,
+      "failures": [],
+      "markers": [
+        "GOOGLE_CONNECT_OK",
+        "GOOGLE_CONNECT_OK"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "gws": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "GWS_FIXTURES_OK: 10 cases",
+        "GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.3dfQbD/gws, signed in",
+        "GWS_FIXTURES_OK: 10 cases",
+        "GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.3dfQbD/gws, signed in"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "calendar": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "CALENDAR_OK: isolated Google error consumers behave",
+        "CALENDAR_OK: isolated Google error consumers behave"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "mac-accounts": {
+      "okAssertions": 157,
+      "failures": [],
+      "markers": [
+        "MAC_ACCOUNTS_OK",
+        "MAC_ACCOUNTS_OK"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "capability-manifest": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "CAPABILITY_MANIFEST_OK"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "ui-strings": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "UI_STRINGS_OK"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "store-isolation": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+        "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+        "TOOLLOOP_PRODUCTION_FAILED"
+      ],
+      "nestedBrowserFailures": 18
+    },
+    "exits": [
+      "google-connect exit=0",
+      "gws exit=0",
+      "calendar exit=0",
+      "mac-accounts exit=0",
+      "capability-manifest exit=0",
+      "ui-strings exit=0",
+      "store-isolation exit=0"
+    ]
+  },
+  "restored": {
+    "google-connect": {
+      "okAssertions": 402,
+      "failures": [],
+      "markers": [
+        "GOOGLE_CONNECT_OK",
+        "GOOGLE_CONNECT_OK"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "gws": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "GWS_FIXTURES_OK: 10 cases",
+        "GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.VfARd3/gws, signed in",
+        "GWS_FIXTURES_OK: 10 cases",
+        "GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.VfARd3/gws, signed in"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "calendar": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "CALENDAR_OK: isolated Google error consumers behave",
+        "CALENDAR_OK: isolated Google error consumers behave"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "mac-accounts": {
+      "okAssertions": 157,
+      "failures": [],
+      "markers": [
+        "MAC_ACCOUNTS_OK",
+        "MAC_ACCOUNTS_OK"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "capability-manifest": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "CAPABILITY_MANIFEST_OK"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "ui-strings": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "UI_STRINGS_OK"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "store-isolation": {
+      "okAssertions": 0,
+      "failures": [],
+      "markers": [
+        "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+        "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+        "TOOLLOOP_PRODUCTION_FAILED"
+      ],
+      "nestedBrowserFailures": 18
+    },
+    "exits": [
+      "google-connect exit=0",
+      "gws exit=0",
+      "calendar exit=0",
+      "mac-accounts exit=0",
+      "capability-manifest exit=0",
+      "ui-strings exit=0",
+      "store-isolation exit=0"
+    ]
+  },
+  "revocation": {
+    "google-connect": {
+      "okAssertions": 395,
+      "failures": [
+        "FAIL a rejected client must not read as a revoked grant",
+        "FAIL a Google outage keeps the sign-in (nothing was revoked)",
+        "FAIL \u2026while with a token the very same fixture does run",
+        "FAIL cancelled shared-refresh caller: wrong error",
+        "FAIL another caller uses the same completed refresh and enters backing once",
+        "FAIL a separate installed login cannot make the app ready",
+        "FAIL the actual unpinned alternate executable remains unstarted"
+      ],
+      "markers": [
+        "GOOGLE_CONNECT_FAILED",
+        "GOOGLE_CONNECT_FAILED"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "exits": [
+      "google-connect exit=1"
+    ]
+  },
+  "unpinned": {
+    "google-connect": {
+      "okAssertions": 401,
+      "failures": [
+        "FAIL an unpinned alternate executable cannot receive the app token"
+      ],
+      "markers": [
+        "GOOGLE_CONNECT_FAILED",
+        "GOOGLE_CONNECT_FAILED"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "exits": [
+      "google-connect exit=1"
+    ]
+  },
+  "mailbox": {
+    "mac-accounts": {
+      "okAssertions": 150,
+      "failures": [
+        "FAIL the inbox is the Google inbox only, newest first, with no deleted and no iCloud message: [\"mac-5\", \"mac-12345\", \"mac-2\", \"mac-3\", \"mac-4001\", \"mac-4002\"]",
+        "FAIL sender with its name, snippet and unread flag come through",
+        "FAIL unread only",
+        "FAIL mail from another account is never reachable by any query",
+        "FAIL no preview table: the search still answers, with no snippet",
+        "FAIL no unread flag: an ordinary search still answers",
+        "FAIL no Google account: refused"
+      ],
+      "markers": [
+        "MAC_ACCOUNTS_FAILED",
+        "MAC_ACCOUNTS_FAILED"
+      ],
+      "nestedBrowserFailures": 0
+    },
+    "exits": [
+      "mac-accounts exit=1"
+    ]
+  },
+  "sourcePins": {
+    "Sources/NextNotes/Calendar/CalendarService.swift": "9bf7c2c49eb9f62b078093473d9b47f8ae8a3e5feeffd3aa3687e3c974aed052",
+    "Sources/NextNotes/Calendar/Google/GoogleTokenStore.swift": "53f60937ead93853da8a0c8e39b5a09aa665f81a70bb6d9542dc06c31b31d941",
+    "Sources/NextNotes/Calendar/Google/GoogleCalendarWithdrawalSelfTest.swift": "8ba8f4e92c4ca5e2e112e2f82570fddc1f2bc0d9c3e36cef4fcc31e2a862409f"
+  },
+  "head": "6e490cec1f05547e22fb32d10d923515d2323fae",
+  "repairCommit": "1438254644598f7f91d9b06525988a24652eef13",
+  "wrapperExit": 0,
+  "fixtureHashesUnchanged": 11,
+  "mutationSourcesRestored": 9,
+  "producerSnapshotsRestored": 2
+}
