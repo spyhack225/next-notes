@@ -74,6 +74,10 @@ final class PocketAgentVoice {
     func beginTermination() {
         guard !terminationRequested else { return }
         terminationRequested = true
+        automaticPreparationDeferred = false
+        if let pressureObserver { NotificationCenter.default.removeObserver(pressureObserver) }
+        pressureObserver = nil
+        if prepareTask == nil { isPreparing = false }
         terminationPrepareTask = prepareTask
         terminationPrepareTask?.cancel()
         replyPlayback?.stop()
@@ -117,12 +121,76 @@ final class PocketAgentVoice {
     var schedulerForTesting: ComputeScheduler?
     var pressureForTesting: (() -> ModelResidencyPolicy.PressureSnapshot)?
     var recordingForTesting: (() -> Bool)?
-    func prepareAutomatically() async { await prepare() }
+    private var automaticPreparationDeferred = false
+    private var pressureObserver: NSObjectProtocol?
+    private var preparationScheduler: ComputeScheduler {
+        SelfTest.isRunning ? schedulerForTesting ?? .shared : .shared
+    }
+    private var preparationPressure: ModelResidencyPolicy.PressureSnapshot {
+        if SelfTest.isRunning, let pressureForTesting { return pressureForTesting() }
+        return ModelResidencyPolicy.pressureSnapshot
+    }
+    private var preparationRecording: Bool {
+        if SelfTest.isRunning { return recordingForTesting?() ?? false }
+        return LiveLongFormEnvironment().isRecording
+    }
+    private func deferAutomaticPreparation() {
+        automaticPreparationDeferred = true; isPreparing = true
+        guard !SelfTest.isRunning, preparationRecording else { return }
+        // One-shot observation of the existing meeting/dictation activity;
+        // ending it retries this same owned preparation, without a timer.
+        withObservationTracking { _ = LiveLongFormEnvironment().isRecording } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self, automaticPreparationDeferred, !terminationRequested else { return }
+                await prepareAutomatically()
+            }
+        }
+    }
+    func prepareAutomatically() async { await prepare(automatic: true) }
 
-    func prepare() async {
+    private func checkPreparationResources(automatic: Bool, lane: UUID?) async throws {
+        guard automatic else { try checkTerminationAdmission(); return }
+        if let lane { await preparationScheduler.checkpoint(lane) }
+        try checkTerminationAdmission()
+        guard preparationPressure.allowsOptionalWork, !preparationRecording else {
+            deferAutomaticPreparation()
+            throw CancellationError()
+        }
+    }
+
+    func prepare(automatic: Bool = false) async {
         guard !terminationRequested, !Task.isCancelled else { return }
         if isReady { return }
-        if let prepareTask { await prepareTask.value; return }
+        if let prepareTask {
+            await prepareTask.value
+            // A normal/idle event can join just before the old deferred task
+            // releases its lane. Its slot is cleared before completion, so the
+            // joining trigger can now admit this same owner without losing it.
+            if automaticPreparationDeferred && (!automatic ||
+                (preparationPressure.allowsOptionalWork && !preparationRecording)) {
+                await prepare(automatic: automatic)
+            }
+            return
+        }
+        if automatic {
+            ModelResidencyPolicy.installPressureObserver()
+            if pressureObserver == nil {
+                pressureObserver = NotificationCenter.default.addObserver(
+                    forName: ModelResidencyPolicy.admissionChanged, object: nil, queue: nil
+                ) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        guard let self, automaticPreparationDeferred, !terminationRequested else { return }
+                        await prepareAutomatically()
+                    }
+                }
+            }
+            guard errorMessage == nil else { return } // events never retry a failure
+            if !preparationPressure.allowsOptionalWork || preparationRecording {
+                deferAutomaticPreparation()
+                return
+            }
+        }
+        automaticPreparationDeferred = false
         let voice = selectedPreparationVoice
         isPreparing = true
         errorMessage = nil
@@ -132,17 +200,37 @@ final class PocketAgentVoice {
             let priorOffline = ModelHub.offlineMode
             if SelfTest.isRunning { ModelHub.offlineMode = true }
             defer { if SelfTest.isRunning { ModelHub.offlineMode = priorOffline } }
-            defer { terminationFixtureTrace?.taskEnded() }
+            defer {
+                terminationFixtureTrace?.taskEnded()
+                isPreparing = automaticPreparationDeferred && !terminationRequested
+                prepareTask = nil // clear the owned slot before its waiters resume
+            }
+            let lane: UUID?
+            if automatic { lane = await preparationScheduler.acquireCancellable(.background) }
+            else { lane = nil }
+            if automatic && lane == nil { return }
             do {
-                try checkTerminationAdmission()
+                try await checkPreparationResources(automatic: automatic, lane: lane)
+                // Same public downloader as the manager, inside this owned task.
+                // Recheck after the cold network wait before native allocation.
+                if automatic {
+                    if SelfTest.isRunning, let assetsForTesting { try await assetsForTesting() }
+                    else if !SelfTest.isRunning || initializeForTesting == nil {
+                        _ = try await PocketTtsResourceDownloader.ensureModels(
+                            language: manager.language, directory: terminationFixtureRoot,
+                            precision: .int8, placement: .gpu)
+                    }
+                    try await checkPreparationResources(automatic: automatic, lane: lane)
+                }
                 do {
                     terminationFixtureTrace?.loadEntered(pocket: true)
                     defer { terminationFixtureTrace?.loadReturned() }
                     if SelfTest.isRunning, let initializeForTesting { try await initializeForTesting() }
                     else { try await manager.initialize() }
                 }
-                try checkTerminationAdmission()
+                try await checkPreparationResources(automatic: automatic, lane: lane)
                 if Self.isPreparationVoiceFixture { await preparationLoadedForTesting?() }
+                try await checkPreparationResources(automatic: automatic, lane: lane)
                 if SelfTest.isRunning, let warmForTesting { try await warmForTesting() }
                 else { try await warmFirstPrediction(voice: voice) }
                 try checkTerminationAdmission()
@@ -158,12 +246,11 @@ final class PocketAgentVoice {
                     Log.agent.error("Pocket TTS load failed: \(error.localizedDescription, privacy: .public)")
                 }
             }
-            isPreparing = false
+            if let lane { await preparationScheduler.release(lane) }
         }
         prepareTask = pending
         terminationFixtureTrace?.assigned()
         await pending.value
-        prepareTask = nil
     }
 
     /// Loading CoreML models does not run their first prediction. The first

@@ -25,31 +25,86 @@ final class KokoroAgentVoice {
     private(set) var isPreparing = false
     private(set) var errorMessage: String?
 
-    func prepare() async {
-        guard Self.isSupportedOS else {
-            errorMessage = Self.unavailableMessage
-            return
+    private var prepareTask: Task<Void, Never>?
+    private var automaticPreparationDeferred = false
+    private var pressureObserver: NSObjectProtocol?
+    private var preparationRecording: Bool { !SelfTest.isRunning && LiveLongFormEnvironment().isRecording }
+    private func deferAutomaticPreparation() {
+        automaticPreparationDeferred = true; isPreparing = true
+        guard preparationRecording else { return }
+        withObservationTracking { _ = LiveLongFormEnvironment().isRecording } onChange: { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self, automaticPreparationDeferred else { return }
+                await prepare(automatic: true)
+            }
         }
+    }
+
+    func prepare(automatic: Bool = false) async {
+        guard Self.isSupportedOS else { errorMessage = Self.unavailableMessage; return }
         if isReady { return }
-        if isPreparing {
-            while isPreparing && !Task.isCancelled {
-                try? await Task.sleep(for: .milliseconds(100))
+        if let prepareTask {
+            await prepareTask.value
+            if automaticPreparationDeferred && (!automatic ||
+                (ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork && !preparationRecording)) {
+                await prepare(automatic: automatic)
             }
             return
         }
-        isPreparing = true
-        errorMessage = nil
-        let priorOffline = ModelHub.offlineMode
-        if SelfTest.isRunning { ModelHub.offlineMode = true }
-        defer { if SelfTest.isRunning { ModelHub.offlineMode = priorOffline } }
-        defer { isPreparing = false }
-        do {
-            try await manager.initialize()
-            isReady = true
-        } catch {
-            errorMessage = error.localizedDescription
-            Log.agent.error("Kokoro TTS load failed: \(error.localizedDescription, privacy: .public)")
+        if automatic {
+            ModelResidencyPolicy.installPressureObserver()
+            if pressureObserver == nil {
+                pressureObserver = NotificationCenter.default.addObserver(
+                    forName: ModelResidencyPolicy.admissionChanged, object: nil, queue: nil
+                ) { [weak self] _ in
+                    Task { @MainActor [weak self] in
+                        guard let self, automaticPreparationDeferred else { return }
+                        await prepare(automatic: true)
+                    }
+                }
+            }
+            guard errorMessage == nil else { return }
+            if !ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork || preparationRecording {
+                deferAutomaticPreparation(); return
+            }
         }
+        automaticPreparationDeferred = false
+        isPreparing = true; errorMessage = nil
+        let pending = Task { @MainActor in
+            defer { isPreparing = automaticPreparationDeferred; prepareTask = nil }
+            let lane: UUID?
+            if automatic { lane = await ComputeScheduler.shared.acquireCancellable(.background) }
+            else { lane = nil }
+            if automatic && lane == nil { return }
+            let priorOffline = ModelHub.offlineMode
+            if SelfTest.isRunning { ModelHub.offlineMode = true }
+            defer { if SelfTest.isRunning { ModelHub.offlineMode = priorOffline } }
+            do {
+                if let lane { await ComputeScheduler.shared.checkpoint(lane) }
+                try Task.checkCancellation()
+                if automatic && (!ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork || preparationRecording) {
+                    deferAutomaticPreparation()
+                } else {
+                    if automatic {
+                        _ = try await KokoroAneResourceDownloader.ensureModels()
+                        _ = try await KokoroAneResourceDownloader.ensureG2PAssets(directory: nil)
+                        if let lane { await ComputeScheduler.shared.checkpoint(lane) }
+                        try Task.checkCancellation()
+                    }
+                    if automatic && (!ModelResidencyPolicy.pressureSnapshot.allowsOptionalWork || preparationRecording) {
+                        deferAutomaticPreparation()
+                    } else {
+                        try await manager.initialize()
+                        try Task.checkCancellation()
+                        isReady = true
+                    }
+                }
+            } catch is CancellationError { }
+            catch { errorMessage = error.localizedDescription }
+            if let lane { await ComputeScheduler.shared.release(lane) }
+        }
+        prepareTask = pending
+        await pending.value
     }
 
     func wav(for text: String) async throws -> Data {
