@@ -12,3 +12,5 @@ conversation exit=0
 duplex exit=0
 prefix exit=0
 isolation exit=0
+repeat-apple exit=1
+repeat-mini exit=1

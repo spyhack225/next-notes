@@ -1146,6 +1146,760 @@
       ],
       "sampled_peak_rss_bytes": 1051131904,
       "sampled_peak_footprint_bytes": 557402032
+    },
+    "repeat-apple": {
+      "exit": 1,
+      "markers": [
+        "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+      ],
+      "qualified_count": 1,
+      "turns": [
+        {
+          "run": 1,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "main stall absent or over unchanged 100ms limit",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "1",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "2.592",
+            "endpoint_to_request": "0.039",
+            "request_to_lane": "-",
+            "route": "4.428",
+            "route_to_first_token": "2.047",
+            "transcript_to_first_token": "3.964",
+            "first_token_to_clause": "0.000",
+            "clause_to_first_pcm": "0.247",
+            "first_pcm_to_audible": "0.023",
+            "speech_end_to_first_audio": "6.826",
+            "L1": "0.677",
+            "L2": "3.964",
+            "L3": "4.234",
+            "speculation": "hit",
+            "headstart": "2.555",
+            "route_staging": "fresh",
+            "answer_staging": "staged",
+            "partial_route_ready_vs_endpoint": "1.917",
+            "route_collect_s": "4.428",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.296",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.002",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "DF39FB58-1AFF-4C60-BE20-C0ACD4A62AAA",
+              "pass": "frontend-answer",
+              "provider": "appleFM",
+              "modelID": "Apple Foundation Model",
+              "warm": null,
+              "loadMs": null,
+              "ttftMs": 2045,
+              "promptTokens": 405,
+              "cachedTokens": null,
+              "completionTokens": 38,
+              "countsEstimated": true,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 1: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 1: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 1: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 1.917
+        },
+        {
+          "run": 2,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "main stall absent or over unchanged 100ms limit",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "2",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "2.590",
+            "endpoint_to_request": "0.063",
+            "request_to_lane": "-",
+            "route": "4.566",
+            "route_to_first_token": "2.161",
+            "transcript_to_first_token": "4.217",
+            "first_token_to_clause": "0.000",
+            "clause_to_first_pcm": "0.191",
+            "first_pcm_to_audible": "0.028",
+            "speech_end_to_first_audio": "7.027",
+            "L1": "0.678",
+            "L2": "4.217",
+            "L3": "4.437",
+            "speculation": "hit",
+            "headstart": "2.577",
+            "route_staging": "fresh",
+            "answer_staging": "staged",
+            "partial_route_ready_vs_endpoint": "2.057",
+            "route_collect_s": "4.565",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.114",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.001",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "381757FC-0A03-4324-9C2B-3A0CB493DAAF",
+              "pass": "frontend-answer",
+              "provider": "appleFM",
+              "modelID": "Apple Foundation Model",
+              "warm": null,
+              "loadMs": null,
+              "ttftMs": 2159,
+              "promptTokens": 405,
+              "cachedTokens": null,
+              "completionTokens": 39,
+              "countsEstimated": true,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 2: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 2: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 2: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 2: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 2.056
+        },
+        {
+          "run": 3,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "main stall absent or over unchanged 100ms limit",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "3",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "2.513",
+            "endpoint_to_request": "0.047",
+            "request_to_lane": "-",
+            "route": "4.669",
+            "route_to_first_token": "2.361",
+            "transcript_to_first_token": "4.596",
+            "first_token_to_clause": "0.000",
+            "clause_to_first_pcm": "0.176",
+            "first_pcm_to_audible": "0.016",
+            "speech_end_to_first_audio": "7.301",
+            "L1": "0.677",
+            "L2": "4.596",
+            "L3": "4.788",
+            "speculation": "hit",
+            "headstart": "2.486",
+            "route_staging": "fresh",
+            "answer_staging": "staged",
+            "partial_route_ready_vs_endpoint": "2.235",
+            "route_collect_s": "4.669",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.156",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.001",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "E57048E7-80F6-4CCE-82A1-4E3B83BABB4B",
+              "pass": "frontend-answer",
+              "provider": "appleFM",
+              "modelID": "Apple Foundation Model",
+              "warm": null,
+              "loadMs": null,
+              "ttftMs": 2359,
+              "promptTokens": 405,
+              "cachedTokens": null,
+              "completionTokens": 39,
+              "countsEstimated": true,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 3: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 3: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 3: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 3: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 2.235
+        },
+        {
+          "run": 4,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "main stall absent or over unchanged 100ms limit",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "4",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "2.552",
+            "endpoint_to_request": "0.043",
+            "request_to_lane": "-",
+            "route": "4.447",
+            "route_to_first_token": "1.996",
+            "transcript_to_first_token": "3.987",
+            "first_token_to_clause": "0.000",
+            "clause_to_first_pcm": "0.148",
+            "first_pcm_to_audible": "0.022",
+            "speech_end_to_first_audio": "6.709",
+            "L1": "0.679",
+            "L2": "3.987",
+            "L3": "4.157",
+            "speculation": "hit",
+            "headstart": "2.504",
+            "route_staging": "fresh",
+            "answer_staging": "staged",
+            "partial_route_ready_vs_endpoint": "1.991",
+            "route_collect_s": "4.447",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.230",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.001",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "DD3484B1-CFED-48F1-AC77-456D3EA1C53E",
+              "pass": "frontend-answer",
+              "provider": "appleFM",
+              "modelID": "Apple Foundation Model",
+              "warm": null,
+              "loadMs": null,
+              "ttftMs": 1994,
+              "promptTokens": 405,
+              "cachedTokens": null,
+              "completionTokens": 39,
+              "countsEstimated": true,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 4: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 4: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 4: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 4: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 1.991
+        },
+        {
+          "run": 5,
+          "qualified": true,
+          "reasons": [],
+          "fields": {
+            "VOICE_LATENCY_RUN": "5",
+            "speech_end_to_eou": "1.012",
+            "eou_hop": "0.000",
+            "eou_to_endpoint": "0.001",
+            "speech_end_to_endpoint": "1.013",
+            "endpoint_to_request": "0.057",
+            "request_to_lane": "-",
+            "route": "3.866",
+            "route_to_first_token": "1.905",
+            "transcript_to_first_token": "4.795",
+            "first_token_to_clause": "0.000",
+            "clause_to_first_pcm": "0.174",
+            "first_pcm_to_audible": "0.021",
+            "speech_end_to_first_audio": "6.003",
+            "L1": "0.676",
+            "L2": "4.795",
+            "L3": "4.990",
+            "speculation": "hit",
+            "headstart": "1.039",
+            "route_staging": "fresh",
+            "answer_staging": "staged",
+            "partial_route_ready_vs_endpoint": "2.890",
+            "route_collect_s": "3.866",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.028",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.001",
+            "endpoint_source": "localEOU",
+            "marks": "14"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "AD4A7DD6-9F26-4A60-BAB3-9F7BBCB5E967",
+              "pass": "frontend-answer",
+              "provider": "appleFM",
+              "modelID": "Apple Foundation Model",
+              "warm": null,
+              "loadMs": null,
+              "ttftMs": 1903,
+              "promptTokens": 405,
+              "cachedTokens": null,
+              "completionTokens": 39,
+              "countsEstimated": true,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [],
+          "endpoint_to_route_done_s": 2.89
+        }
+      ],
+      "all_measured": {
+        "L1": {
+          "n": 5,
+          "median": 0.677,
+          "p95_nearest_rank": 0.679,
+          "min": 0.676,
+          "max": 0.679
+        },
+        "L2": {
+          "n": 5,
+          "median": 4.217,
+          "p95_nearest_rank": 4.795,
+          "min": 3.964,
+          "max": 4.795
+        },
+        "L3": {
+          "n": 5,
+          "median": 4.437,
+          "p95_nearest_rank": 4.99,
+          "min": 4.157,
+          "max": 4.99
+        }
+      },
+      "qualified_only": {
+        "L1": {
+          "n": 1,
+          "median": 0.676,
+          "p95_nearest_rank": 0.676,
+          "min": 0.676,
+          "max": 0.676
+        },
+        "L2": {
+          "n": 1,
+          "median": 4.795,
+          "p95_nearest_rank": 4.795,
+          "min": 4.795,
+          "max": 4.795
+        },
+        "L3": {
+          "n": 1,
+          "median": 4.99,
+          "p95_nearest_rank": 4.99,
+          "min": 4.99,
+          "max": 4.99
+        }
+      },
+      "apple_synthesis": [
+        "VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0"
+      ],
+      "unloads": [],
+      "sampled_peak_rss_bytes": 1020166144,
+      "sampled_peak_footprint_bytes": 546441112
+    },
+    "repeat-mini": {
+      "exit": 1,
+      "markers": [
+        "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+      ],
+      "qualified_count": 0,
+      "turns": [
+        {
+          "run": 1,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "main stall absent or over unchanged 100ms limit",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "1",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "2.844",
+            "endpoint_to_request": "0.084",
+            "request_to_lane": "-",
+            "route": "3.415",
+            "route_to_first_token": "0.090",
+            "transcript_to_first_token": "3.360",
+            "first_token_to_clause": "0.338",
+            "clause_to_first_pcm": "0.186",
+            "first_pcm_to_audible": "0.026",
+            "speech_end_to_first_audio": "6.755",
+            "L1": "0.675",
+            "L2": "3.360",
+            "L3": "3.910",
+            "speculation": "hit",
+            "headstart": "0.441",
+            "route_staging": "fresh",
+            "answer_staging": "native",
+            "partial_route_ready_vs_endpoint": "3.270",
+            "route_collect_s": "3.415",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.291",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.005",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "E095D6DC-B95D-4ADD-82B2-B2DB2DB7CA6C",
+              "pass": "frontend-answer",
+              "provider": "llama",
+              "modelID": "MiniCPM5-2B-Q4_K_M",
+              "warm": true,
+              "loadMs": null,
+              "ttftMs": 87,
+              "promptTokens": 1231,
+              "cachedTokens": 1230,
+              "completionTokens": 42,
+              "countsEstimated": false,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 1: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 1: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 1: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 3.27
+        },
+        {
+          "run": 2,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "main stall absent or over unchanged 100ms limit",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "2",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "2.528",
+            "endpoint_to_request": "0.071",
+            "request_to_lane": "-",
+            "route": "4.530",
+            "route_to_first_token": "0.088",
+            "transcript_to_first_token": "4.000",
+            "first_token_to_clause": "0.238",
+            "clause_to_first_pcm": "0.237",
+            "first_pcm_to_audible": "0.023",
+            "speech_end_to_first_audio": "7.026",
+            "L1": "0.680",
+            "L2": "4.000",
+            "L3": "4.498",
+            "speculation": "hit",
+            "headstart": "0.704",
+            "route_staging": "fresh",
+            "answer_staging": "native",
+            "partial_route_ready_vs_endpoint": "3.912",
+            "route_collect_s": "4.530",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.376",
+            "stall_site": "asr.local",
+            "eou_prepare": "0.001",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "7250521B-EEC2-4118-9B49-A8CA3774EED1",
+              "pass": "frontend-answer",
+              "provider": "llama",
+              "modelID": "MiniCPM5-2B-Q4_K_M",
+              "warm": true,
+              "loadMs": null,
+              "ttftMs": 86,
+              "promptTokens": 1296,
+              "cachedTokens": 1295,
+              "completionTokens": 43,
+              "countsEstimated": false,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 2: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 2: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 2: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 2: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 3.912
+        },
+        {
+          "run": 3,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "main stall absent or over unchanged 100ms limit",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "3",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "0.910",
+            "endpoint_to_request": "0.508",
+            "request_to_lane": "-",
+            "route": "6.022",
+            "route_to_first_token": "0.426",
+            "transcript_to_first_token": "7.723",
+            "first_token_to_clause": "0.289",
+            "clause_to_first_pcm": "0.243",
+            "first_pcm_to_audible": "0.022",
+            "speech_end_to_first_audio": "9.187",
+            "L1": "4.523",
+            "L2": "7.723",
+            "L3": "8.277",
+            "speculation": "miss",
+            "reason": "no-slot",
+            "route_staging": "fresh",
+            "answer_staging": "not_requested",
+            "route_collect_s": "6.022",
+            "resident_answer": "none",
+            "main_stall_max": "0.338",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.001",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "743E6218-2C06-49AC-ACFF-698F23C91D9C",
+              "pass": "frontend-answer",
+              "provider": "llama",
+              "modelID": "MiniCPM5-2B-Q4_K_M",
+              "warm": true,
+              "loadMs": null,
+              "ttftMs": 3338,
+              "promptTokens": 1361,
+              "cachedTokens": 1042,
+              "completionTokens": 43,
+              "countsEstimated": false,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 3: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 3: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 3: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 3: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 7.297
+        },
+        {
+          "run": 4,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "main stall absent or over unchanged 100ms limit",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "4",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "2.546",
+            "endpoint_to_request": "0.080",
+            "request_to_lane": "-",
+            "route": "4.530",
+            "route_to_first_token": "0.088",
+            "transcript_to_first_token": "2.244",
+            "first_token_to_clause": "0.195",
+            "clause_to_first_pcm": "0.169",
+            "first_pcm_to_audible": "0.018",
+            "speech_end_to_first_audio": "5.172",
+            "L1": "0.677",
+            "L2": "2.244",
+            "L3": "2.626",
+            "speculation": "hit",
+            "headstart": "2.560",
+            "route_staging": "fresh",
+            "answer_staging": "native",
+            "partial_route_ready_vs_endpoint": "2.156",
+            "route_collect_s": "4.530",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.183",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.001",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "6B374A8C-567A-4A5E-87B1-32D6EE50ADE4",
+              "pass": "frontend-answer",
+              "provider": "llama",
+              "modelID": "MiniCPM5-2B-Q4_K_M",
+              "warm": true,
+              "loadMs": null,
+              "ttftMs": 86,
+              "promptTokens": 1425,
+              "cachedTokens": 1424,
+              "completionTokens": 43,
+              "countsEstimated": false,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 4: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 4: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 4: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 4: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 2.156
+        },
+        {
+          "run": 5,
+          "qualified": false,
+          "reasons": [
+            "endpoint not localEOU",
+            "existing per-turn acceptance failed"
+          ],
+          "fields": {
+            "VOICE_LATENCY_RUN": "5",
+            "speech_end_to_eou": "-",
+            "eou_hop": "-",
+            "eou_to_endpoint": "-",
+            "speech_end_to_endpoint": "2.599",
+            "endpoint_to_request": "0.041",
+            "request_to_lane": "-",
+            "route": "3.608",
+            "route_to_first_token": "0.036",
+            "transcript_to_first_token": "2.216",
+            "first_token_to_clause": "0.197",
+            "clause_to_first_pcm": "0.196",
+            "first_pcm_to_audible": "0.024",
+            "speech_end_to_first_audio": "5.233",
+            "L1": "0.682",
+            "L2": "2.216",
+            "L3": "2.634",
+            "speculation": "hit",
+            "headstart": "1.645",
+            "route_staging": "fresh",
+            "answer_staging": "native",
+            "partial_route_ready_vs_endpoint": "2.180",
+            "route_collect_s": "3.608",
+            "route_validate_s": "0.000",
+            "resident_answer": "none",
+            "main_stall_max": "0.048",
+            "stall_site": "unlabelled",
+            "eou_prepare": "0.001",
+            "endpoint_source": "vad",
+            "marks": "11"
+          },
+          "joined_answer_passes": [
+            {
+              "turnID": "CC0B292C-E388-4DA6-9059-220CCF6DBF51",
+              "pass": "frontend-answer",
+              "provider": "llama",
+              "modelID": "MiniCPM5-2B-Q4_K_M",
+              "warm": true,
+              "loadMs": null,
+              "ttftMs": 35,
+              "promptTokens": 1492,
+              "cachedTokens": 1491,
+              "completionTokens": 43,
+              "countsEstimated": false,
+              "finishReason": "stop",
+              "errorClass": null
+            }
+          ],
+          "existing_problems": [
+            "VOICE_LATENCY_WRONG: run 5: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 5: voice.eou_hop is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 5: voice.eou_to_endpoint is absent \u2014 the stage did not happen, or its mark was never stamped",
+            "VOICE_LATENCY_WRONG: run 5: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays"
+          ],
+          "endpoint_to_route_done_s": 2.18
+        }
+      ],
+      "all_measured": {
+        "L1": {
+          "n": 5,
+          "median": 0.68,
+          "p95_nearest_rank": 4.523,
+          "min": 0.675,
+          "max": 4.523
+        },
+        "L2": {
+          "n": 5,
+          "median": 3.36,
+          "p95_nearest_rank": 7.723,
+          "min": 2.216,
+          "max": 7.723
+        },
+        "L3": {
+          "n": 5,
+          "median": 3.91,
+          "p95_nearest_rank": 8.277,
+          "min": 2.626,
+          "max": 8.277
+        }
+      },
+      "qualified_only": {
+        "L1": {
+          "n": 0
+        },
+        "L2": {
+          "n": 0
+        },
+        "L3": {
+          "n": 0
+        }
+      },
+      "apple_synthesis": [
+        "VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0"
+      ],
+      "unloads": [
+        {
+          "name": "model.unload",
+          "note": "model=Gemma 4 E4B reason=switched resident",
+          "durationSeconds": 0
+        }
+      ],
+      "sampled_peak_rss_bytes": 2501967872,
+      "sampled_peak_footprint_bytes": 702090744
     }
   }
 }
