@@ -248,8 +248,12 @@ final class CalendarService {
         await refresh()
     }
 
-    func refreshGoogleCalendars() async {
-        guard providersForTesting != nil || Settings.shared.calendarGoogleEnabled else { return }
+    func refreshGoogleCalendars(enabledForTesting: Bool? = nil) async {
+        precondition(enabledForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
+        guard enabledForTesting ?? (providersForTesting != nil || Settings.shared.calendarGoogleEnabled) else {
+            googleCalendars = []
+            return
+        }
         guard await google.authorizationState().isAuthorized else {
             googleCalendars = []
             return

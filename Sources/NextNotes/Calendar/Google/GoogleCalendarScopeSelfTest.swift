@@ -23,9 +23,9 @@ enum GoogleCalendarScopeSelfTest {
             }, ensureTool: {}, afterConnect: { returnedScopes in
                 await GoogleConnection.Dependencies.applyCalendarGrant(returnedScopes, setEnabled: { enabled in
                     if enabled { _ = counts.hit("enabled") }
-                }, refreshCalendars: {
-                    _ = counts.hit("listed")
-                    await service.refreshGoogleCalendars()
+                }, refreshCalendars: { enabled in
+                    if enabled { _ = counts.hit("listed") }
+                    await service.refreshGoogleCalendars(enabledForTesting: enabled)
                 })
             }, disconnect: {}, workspace: { .signedIn(method: "fixture") }))
             await connection.connect()

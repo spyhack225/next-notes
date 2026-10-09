@@ -122,7 +122,7 @@ final class GoogleConnection {
             afterConnect: { scopes in
                 await applyCalendarGrant(scopes, setEnabled: { enabled in
                     await MainActor.run { Settings.shared.calendarGoogleEnabled = enabled }
-                }, refreshCalendars: { await CalendarService.shared.refreshGoogleCalendars() })
+                }, refreshCalendars: { _ in await CalendarService.shared.refreshGoogleCalendars() })
                 // Google's sign-in is the only way mail and calendar work on a Mac that has no
                 // Google account of its own; otherwise the choice stays where the person put it.
                 if await MacAccounts.shared.setup().accountFound == false {
@@ -146,10 +146,10 @@ final class GoogleConnection {
         /// The existing connect consumer applies the returned grant before listing.
         static func applyCalendarGrant(_ scopes: Set<String>,
             setEnabled: @Sendable (Bool) async -> Void,
-            refreshCalendars: @Sendable () async -> Void) async {
+            refreshCalendars: @Sendable (Bool) async -> Void) async {
             let granted = GoogleScopes.coversCalendar(scopes)
             await setEnabled(granted)
-            if granted { await refreshCalendars() }
+            await refreshCalendars(granted)
         }
 
         @MainActor
