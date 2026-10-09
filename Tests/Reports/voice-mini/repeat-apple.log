@@ -1,0 +1,1002 @@
+VOICE_LATENCY_TTS_READY=pocket
+VOICE_LATENCY_FIXTURE=/Users/sergekadjo/Library/Caches/NextNotesBuild/integration/listen-acceptance/fixtures/haiku16k.wav
+VOICE_LATENCY_TTS=pocket island=on speculation=as-configured runs=5
+VOICE_LATENCY_PID=46298
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_APPLE_FIRST_RESULT=voice+0.988s text=Hello
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_started elapsed_s=0.000 at_nanos=126418244249750
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126418244268000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_cancel_requested elapsed_s=1.110 at_nanos=126419354497208
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=cancellation_to_speculation_end elapsed_s=1.110 at_nanos=126419354554250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=5 event=speculation_started elapsed_s=0.000 at_nanos=126419381128625
+VOICE_FRONTEND_TIMING gen=2 revision=5 event=speculation_cancel_requested elapsed_s=0.012 at_nanos=126419392965125
+VOICE_FRONTEND_TIMING gen=2 revision=5 event=speculation_barrier_failed elapsed_s=0.012 at_nanos=126419392991041 duration_s=0.012
+VOICE_FRONTEND_TIMING gen=2 revision=5 event=cancellation_to_speculation_end elapsed_s=0.012 at_nanos=126419393006958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=6 event=speculation_started elapsed_s=0.000 at_nanos=126419396958875
+VOICE_FRONTEND_TIMING gen=3 revision=6 event=speculation_cancel_requested elapsed_s=0.726 at_nanos=126420123379041
+VOICE_FRONTEND_TIMING gen=3 revision=6 event=speculation_barrier_failed elapsed_s=0.727 at_nanos=126420123406875 duration_s=0.726
+VOICE_FRONTEND_TIMING gen=3 revision=6 event=cancellation_to_speculation_end elapsed_s=0.727 at_nanos=126420123426333 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=speculation_started elapsed_s=0.000 at_nanos=126420182255458
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_warmup_done elapsed_s=2.882 at_nanos=126421126387625 duration_s=2.882
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_task_end elapsed_s=2.882 at_nanos=126421126431416 duration_s=1.772
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=speculation_barrier_done elapsed_s=0.944 at_nanos=126421126564833 duration_s=0.944
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=native_warmup_done elapsed_s=0.944 at_nanos=126421126613083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.945 at_nanos=126421127519583
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=route_session_staged elapsed_s=0.945 at_nanos=126421127557583
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=typed_route_collect_started elapsed_s=0.946 at_nanos=126421127892250
+VOICE_EOU_PREPARE=3.9791070222854614s
+VOICE_PIPELINE_SPAN=voice.eou_prepare 3.979s session
+VOICE_EOU_STARTUP_BUFFERED=50 chunks / 63295 frames
+VOICE_EOU_FIRST_PROCESS=3.1948089599609375e-05s lag=3.90174400806427s
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=speculation_cancel_requested elapsed_s=0.970 at_nanos=126421151773291
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=cancellation_to_speculation_end elapsed_s=0.970 at_nanos=126421151860166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=12 event=native_task_end elapsed_s=0.975 at_nanos=126421157117208 duration_s=0.005
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=speculation_started elapsed_s=0.000 at_nanos=126421173107916
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126421173185916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=native_warmup_done elapsed_s=0.000 at_nanos=126421173224208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126421173856625
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=route_session_fresh elapsed_s=0.001 at_nanos=126421174288333
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126421174373208
+VOICE_MODEL_PARTIAL=voice+4.184s text=hello apple=true
+VOICE_MODEL_PARTIAL=voice+4.215s text=hello there apple=true
+VOICE_MODEL_PARTIAL=voice+4.386s text=hello there please apple=true
+VOICE_MODEL_PARTIAL=voice+4.485s text=hello there please tell apple=true
+VOICE_MODEL_PARTIAL=voice+4.561s text=hello there please tell me apple=true
+VOICE_MODEL_PARTIAL=voice+4.673s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL=voice+4.698s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL=voice+4.728s text=hello there please tell me briefly apple=true
+VOICE_FILE_MAX_PACING_LAG=0.122649292 seconds
+VOICE_MODEL_PARTIAL=voice+4.776s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL=voice+4.908s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL=voice+4.936s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL=voice+4.986s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL=voice+5.052s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_EOU=sinceVoiceEnd 2.443s appleRevisionAge 1.457s text=hello there please tell me briefly what a haiku is
+VOICE_ENDPOINT_TRIGGER=eou
+VOICE_MODEL_EOU_TO_ENDPOINT=0.01333308219909668s
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=speculation_hit headstart_date_s=1.486 elapsed_s=1.486 at_nanos=126422658752833
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=typed_route_collect_done elapsed_s=2.929 at_nanos=126424102450583 duration_s=2.928
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=typed_route_validated elapsed_s=2.930 at_nanos=126424103107208
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=partial_route_ready elapsed_s=2.930 at_nanos=126424103123708
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=native_task_end elapsed_s=2.930 at_nanos=126424103328791
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=partial_route_committed_answer elapsed_s=2.931 at_nanos=126424103891291
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=answer_entry provider=appleFoundation elapsed_s=2.931 at_nanos=126424103943416
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=first_answer_text elapsed_s=4.669 at_nanos=126425842318458
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 3.187s model provider=appleFoundation model=Apple Foundation Model
+VOICE_FRONTEND_TIMING gen=5 revision=13 event=prepared_route_consumer_end elapsed_s=4.926 at_nanos=126426098655583
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.277s first-audio
+VOICE_LATENCY_RUN=0 bookkeeping closed=1 open=none openTurn=none discarded=0 () endpoint=localEOU committed=1 heard=yes reply=yes firstAudioAcknowledged=true
+VOICE_LATENCY_ORPHANS run=0 tts_first_pcm,tts_first_pcm
+VOICE_LATENCY_TURN run=0 n=1 reason=first_audio turn=0FF0FF00 marks=asr_first_partial,endpoint,eou_callback,eou_confirmed,eou_raw,first_audible,first_clause_enqueued,frontend_first_token,frontend_request,last_voice,route_done,route_started,tts_first_pcm,voice_onset
+VOICE_LATENCY_RUN=0 kind=warmup speech_end_to_eou=2.431 eou_hop=0.000 eou_to_endpoint=0.013 speech_end_to_endpoint=2.444 endpoint_to_request=0.021 request_to_lane=- route=2.928 route_to_first_token=1.742 transcript_to_first_token=3.208 first_token_to_clause=0.000 clause_to_first_pcm=0.251 first_pcm_to_audible=0.025 speech_end_to_first_audio=5.929 L1=1.016 L2=3.208 L3=3.485 speculation=hit headstart=1.486 route_staging=fresh answer_staging=fresh partial_route_ready_vs_endpoint=1.466 route_collect_s=2.928 route_validate_s=0.001 resident_answer=none main_stall_max=0.193 stall_site=unlabelled eou_prepare=3.979 endpoint_source=localEOU marks=14
+VOICE_LATENCY_STORES run=0 spans=304 turnRows=22
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_EOU_PREPARE=0.001940011978149414s
+VOICE_PIPELINE_SPAN=voice.eou_prepare 0.002s session
+VOICE_EOU_STARTUP_BUFFERED=1 chunks / 1280 frames
+VOICE_EOU_FIRST_PROCESS=1.2040138244628906e-05s lag=0.0005370378494262695s
+VOICE_MODEL_PARTIAL=voice+0.662s text=hello apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=speculation_started elapsed_s=0.000 at_nanos=126435406722708
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126435406771083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=native_warmup_done elapsed_s=0.000 at_nanos=126435406805166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126435407200458
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=route_session_staged elapsed_s=0.001 at_nanos=126435407222083
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126435407296375
+VOICE_MODEL_PARTIAL=voice+0.740s text=hello there apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=speculation_cancel_requested elapsed_s=0.073 at_nanos=126435480096125
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=cancellation_to_speculation_end elapsed_s=0.074 at_nanos=126435480154666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=16 event=native_task_end elapsed_s=0.074 at_nanos=126435480517416 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=speculation_started elapsed_s=0.000 at_nanos=126435484364958
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126435484397583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=native_warmup_done elapsed_s=0.000 at_nanos=126435484424708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=126435484779000
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=route_session_fresh elapsed_s=0.001 at_nanos=126435485069333
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126435485115000
+VOICE_MODEL_PARTIAL=voice+1.140s text=hello there please apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=speculation_cancel_requested elapsed_s=0.397 at_nanos=126435881165208
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=cancellation_to_speculation_end elapsed_s=0.397 at_nanos=126435881217541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=17 event=native_task_end elapsed_s=0.397 at_nanos=126435881537458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=speculation_started elapsed_s=0.000 at_nanos=126435887610500
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=speculation_barrier_done elapsed_s=0.001 at_nanos=126435887808583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=native_warmup_done elapsed_s=0.001 at_nanos=126435887916833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.002 at_nanos=126435889252583
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=route_session_fresh elapsed_s=0.003 at_nanos=126435889916958
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=typed_route_collect_started elapsed_s=0.003 at_nanos=126435890001333
+VOICE_APPLE_FIRST_RESULT=voice+1.240s text=Hello
+VOICE_MODEL_PARTIAL=voice+1.378s text=hello there please tell apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=speculation_cancel_requested elapsed_s=0.231 at_nanos=126436118697083
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=cancellation_to_speculation_end elapsed_s=0.232 at_nanos=126436118761083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=18 event=native_task_end elapsed_s=0.232 at_nanos=126436119050583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=speculation_started elapsed_s=0.000 at_nanos=126436124158833
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126436124234625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=native_warmup_done elapsed_s=0.000 at_nanos=126436124292958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126436124667208
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=route_session_fresh elapsed_s=0.001 at_nanos=126436125001541
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126436125060666
+VOICE_MODEL_PARTIAL=voice+1.550s text=hello there please tell me apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=speculation_cancel_requested elapsed_s=0.167 at_nanos=126436290960083
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=cancellation_to_speculation_end elapsed_s=0.167 at_nanos=126436291024916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=19 event=native_task_end elapsed_s=0.167 at_nanos=126436291344250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=speculation_started elapsed_s=0.000 at_nanos=126436295978208
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126436296031166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=native_warmup_done elapsed_s=0.000 at_nanos=126436296077541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126436296532500
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=route_session_fresh elapsed_s=0.001 at_nanos=126436296881291
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126436296939666
+VOICE_MODEL_PARTIAL=voice+1.862s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=speculation_cancel_requested elapsed_s=0.308 at_nanos=126436603545291
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=cancellation_to_speculation_end elapsed_s=0.308 at_nanos=126436603697791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=20 event=native_task_end elapsed_s=0.308 at_nanos=126436603991541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=speculation_started elapsed_s=0.000 at_nanos=126436608388958
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126436608430333 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=native_warmup_done elapsed_s=0.000 at_nanos=126436608464625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126436608906458
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=route_session_fresh elapsed_s=0.001 at_nanos=126436609257916
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126436609311166
+VOICE_MODEL_PARTIAL=voice+1.940s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=speculation_cancel_requested elapsed_s=0.073 at_nanos=126436681769250
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=cancellation_to_speculation_end elapsed_s=0.074 at_nanos=126436681834458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=21 event=native_task_end elapsed_s=0.074 at_nanos=126436682193333 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=speculation_started elapsed_s=0.000 at_nanos=126436688184208
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126436688240541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=native_warmup_done elapsed_s=0.000 at_nanos=126436688273875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126436688794708
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=route_session_fresh elapsed_s=0.001 at_nanos=126436689129166
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126436689207000
+VOICE_MODEL_PARTIAL=voice+2.024s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=speculation_cancel_requested elapsed_s=0.079 at_nanos=126436767405875
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=cancellation_to_speculation_end elapsed_s=0.079 at_nanos=126436767476083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=12 revision=22 event=native_task_end elapsed_s=0.080 at_nanos=126436767884500 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=speculation_started elapsed_s=0.000 at_nanos=126436773489875
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126436773537291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=native_warmup_done elapsed_s=0.000 at_nanos=126436773574958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126436774055166
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=route_session_fresh elapsed_s=0.001 at_nanos=126436774438875
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126436774503958
+VOICE_MODEL_PARTIAL=voice+2.179s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=speculation_cancel_requested elapsed_s=0.149 at_nanos=126436922933583
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=cancellation_to_speculation_end elapsed_s=0.150 at_nanos=126436923013291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=13 revision=23 event=native_task_end elapsed_s=0.150 at_nanos=126436923418833 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=speculation_started elapsed_s=0.000 at_nanos=126436928640708
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126436928700416 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=native_warmup_done elapsed_s=0.000 at_nanos=126436928757625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126436929287833
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=route_session_fresh elapsed_s=0.001 at_nanos=126436929760750
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126436929861083
+VOICE_MODEL_PARTIAL=voice+2.583s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=speculation_cancel_requested elapsed_s=0.405 at_nanos=126437333259583
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=cancellation_to_speculation_end elapsed_s=0.405 at_nanos=126437333343041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=14 revision=24 event=native_task_end elapsed_s=0.405 at_nanos=126437333759666 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=speculation_started elapsed_s=0.000 at_nanos=126437341751291
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126437341803750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=native_warmup_done elapsed_s=0.000 at_nanos=126437341846291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126437342545041
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=route_session_fresh elapsed_s=0.002 at_nanos=126437343183833
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126437343278708
+VOICE_MODEL_PARTIAL=voice+2.668s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=speculation_cancel_requested elapsed_s=0.081 at_nanos=126437423041041
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=cancellation_to_speculation_end elapsed_s=0.082 at_nanos=126437423183083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=15 revision=25 event=native_task_end elapsed_s=0.082 at_nanos=126437423686041 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=speculation_started elapsed_s=0.000 at_nanos=126437432663041
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126437432741666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=native_warmup_done elapsed_s=0.000 at_nanos=126437432792375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126437433468833
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=route_session_fresh elapsed_s=0.002 at_nanos=126437434091125
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126437434190666
+VOICE_MODEL_PARTIAL=voice+2.834s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=speculation_cancel_requested elapsed_s=0.157 at_nanos=126437589744875
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=cancellation_to_speculation_end elapsed_s=0.157 at_nanos=126437589829750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=16 revision=26 event=native_task_end elapsed_s=0.158 at_nanos=126437590394708 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=speculation_started elapsed_s=0.000 at_nanos=126437599397958
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126437599471916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=native_warmup_done elapsed_s=0.000 at_nanos=126437599526833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126437600256208
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=route_session_fresh elapsed_s=0.002 at_nanos=126437600925291
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126437601065625
+VOICE_MODEL_PARTIAL=voice+2.999s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=speculation_cancel_requested elapsed_s=0.163 at_nanos=126437762499375
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=cancellation_to_speculation_end elapsed_s=0.163 at_nanos=126437762666916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=17 revision=27 event=native_task_end elapsed_s=0.164 at_nanos=126437763306166 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=speculation_started elapsed_s=0.000 at_nanos=126437774707916
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126437774796500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=native_warmup_done elapsed_s=0.000 at_nanos=126437774883208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126437775925916
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=route_session_fresh elapsed_s=0.002 at_nanos=126437776954916
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=typed_route_collect_started elapsed_s=0.003 at_nanos=126437777083375
+VOICE_FILE_MAX_PACING_LAG=0.520961291 seconds
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=speculation_hit headstart_date_s=2.555 elapsed_s=2.555 at_nanos=126440329133708
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=typed_route_collect_done elapsed_s=4.431 at_nanos=126442205233958 duration_s=4.428
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=typed_route_validated elapsed_s=4.431 at_nanos=126442205551291
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=partial_route_ready elapsed_s=4.431 at_nanos=126442205564708
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=native_task_end elapsed_s=4.431 at_nanos=126442205643250
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=partial_route_committed_answer elapsed_s=4.431 at_nanos=126442205714041
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=answer_entry provider=appleFoundation elapsed_s=4.431 at_nanos=126442205730166
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=first_answer_text elapsed_s=6.476 at_nanos=126444250592000
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 3.925s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.270s first-audio
+VOICE_FRONTEND_TIMING gen=18 revision=28 event=prepared_route_consumer_end elapsed_s=7.069 at_nanos=126444843874750
+VOICE_LATENCY_RUN=1 bookkeeping closed=1 open=none openTurn=none discarded=0 () endpoint=vad committed=1 heard=yes reply=yes firstAudioAcknowledged=true
+VOICE_LATENCY_ORPHANS run=1 tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm
+VOICE_LATENCY_TURN run=1 n=1 reason=first_audio turn=DF39FB58 marks=asr_first_partial,endpoint,first_audible,first_clause_enqueued,frontend_first_token,frontend_request,last_voice,route_done,route_started,tts_first_pcm,voice_onset
+VOICE_LATENCY_RUN=1 speech_end_to_eou=- eou_hop=- eou_to_endpoint=- speech_end_to_endpoint=2.592 endpoint_to_request=0.039 request_to_lane=- route=4.428 route_to_first_token=2.047 transcript_to_first_token=3.964 first_token_to_clause=0.000 clause_to_first_pcm=0.247 first_pcm_to_audible=0.023 speech_end_to_first_audio=6.826 L1=0.677 L2=3.964 L3=4.234 speculation=hit headstart=2.555 route_staging=fresh answer_staging=staged partial_route_ready_vs_endpoint=1.917 route_collect_s=4.428 route_validate_s=0.000 resident_answer=none main_stall_max=0.296 stall_site=unlabelled eou_prepare=0.002 endpoint_source=vad marks=11
+VOICE_LATENCY_STORES run=1 spans=320 turnRows=23
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=1 pass=frontend-answer provider=appleFM model="Apple Foundation Model" model_ttft_ms=2045 decode_tok_s=64.081 completion_tokens=38 counts_estimated=true warm=unavailable
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_EOU_PREPARE=0.0008200407028198242s
+VOICE_PIPELINE_SPAN=voice.eou_prepare 0.001s session
+VOICE_EOU_STARTUP_BUFFERED=1 chunks / 1280 frames
+VOICE_EOU_FIRST_PROCESS=1.2993812561035156e-05s lag=0.0005899667739868164s
+VOICE_MODEL_PARTIAL=voice+0.662s text=hello apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=speculation_started elapsed_s=0.000 at_nanos=126453074003125
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126453074034500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=native_warmup_done elapsed_s=0.000 at_nanos=126453074060625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=126453074429958
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=route_session_staged elapsed_s=0.001 at_nanos=126453074448166
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126453074509750
+VOICE_MODEL_PARTIAL=voice+0.742s text=hello there apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=speculation_cancel_requested elapsed_s=0.075 at_nanos=126453148720166
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=cancellation_to_speculation_end elapsed_s=0.075 at_nanos=126453148778750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=19 revision=31 event=native_task_end elapsed_s=0.075 at_nanos=126453149063791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=speculation_started elapsed_s=0.000 at_nanos=126453154245375
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126453154289750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=native_warmup_done elapsed_s=0.000 at_nanos=126453154320208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126453154738500
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=route_session_fresh elapsed_s=0.001 at_nanos=126453155075041
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126453155148083
+VOICE_MODEL_PARTIAL=voice+1.139s text=hello there please apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=speculation_cancel_requested elapsed_s=0.393 at_nanos=126453546723583
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=cancellation_to_speculation_end elapsed_s=0.393 at_nanos=126453546783750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=20 revision=32 event=native_task_end elapsed_s=0.393 at_nanos=126453547066916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=speculation_started elapsed_s=0.000 at_nanos=126453552115625
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126453552146125 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=native_warmup_done elapsed_s=0.000 at_nanos=126453552172458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126453552568833
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=route_session_fresh elapsed_s=0.001 at_nanos=126453553030166
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126453553170750
+VOICE_MODEL_PARTIAL=voice+1.377s text=hello there please tell apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=speculation_cancel_requested elapsed_s=0.232 at_nanos=126453784280375
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=cancellation_to_speculation_end elapsed_s=0.232 at_nanos=126453784338458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=21 revision=33 event=native_task_end elapsed_s=0.233 at_nanos=126453784638083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=speculation_started elapsed_s=0.000 at_nanos=126453789898250
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126453789933208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=native_warmup_done elapsed_s=0.000 at_nanos=126453789970583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126453790376166
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=route_session_fresh elapsed_s=0.001 at_nanos=126453790682125
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126453790735625
+VOICE_APPLE_FIRST_RESULT=voice+1.515s text=Hello
+VOICE_MODEL_PARTIAL=voice+1.539s text=hello there please tell me apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=speculation_cancel_requested elapsed_s=0.156 at_nanos=126453945945000
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=cancellation_to_speculation_end elapsed_s=0.156 at_nanos=126453946017625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=22 revision=34 event=native_task_end elapsed_s=0.157 at_nanos=126453946379833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=speculation_started elapsed_s=0.000 at_nanos=126453951335166
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126453951364291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=native_warmup_done elapsed_s=0.000 at_nanos=126453951390791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=126453951766250
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=route_session_fresh elapsed_s=0.001 at_nanos=126453952120458
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126453952227041
+VOICE_MODEL_PARTIAL=voice+1.863s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=speculation_cancel_requested elapsed_s=0.320 at_nanos=126454271396916
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=cancellation_to_speculation_end elapsed_s=0.320 at_nanos=126454271562833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=23 revision=35 event=native_task_end elapsed_s=0.321 at_nanos=126454271998750 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=speculation_started elapsed_s=0.000 at_nanos=126454277545458
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126454277591541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=native_warmup_done elapsed_s=0.000 at_nanos=126454277634041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126454278078625
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=route_session_fresh elapsed_s=0.001 at_nanos=126454278421041
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126454278496541
+VOICE_MODEL_PARTIAL=voice+1.942s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=speculation_cancel_requested elapsed_s=0.075 at_nanos=126454352922833
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=cancellation_to_speculation_end elapsed_s=0.076 at_nanos=126454353109375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=24 revision=36 event=native_task_end elapsed_s=0.076 at_nanos=126454353585958 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=speculation_started elapsed_s=0.000 at_nanos=126454359869958
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126454359916875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=native_warmup_done elapsed_s=0.000 at_nanos=126454360008458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126454360504583
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=route_session_fresh elapsed_s=0.001 at_nanos=126454360884625
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126454360948916
+VOICE_MODEL_PARTIAL=voice+2.022s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=speculation_cancel_requested elapsed_s=0.073 at_nanos=126454432627250
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=cancellation_to_speculation_end elapsed_s=0.073 at_nanos=126454432705666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=25 revision=37 event=native_task_end elapsed_s=0.073 at_nanos=126454433079541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=speculation_started elapsed_s=0.000 at_nanos=126454440042458
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126454440086166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=native_warmup_done elapsed_s=0.000 at_nanos=126454440121583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126454440579666
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=route_session_fresh elapsed_s=0.001 at_nanos=126454440954916
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126454441013000
+VOICE_MODEL_PARTIAL=voice+2.179s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=speculation_cancel_requested elapsed_s=0.150 at_nanos=126454590031125
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=cancellation_to_speculation_end elapsed_s=0.150 at_nanos=126454590105958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=26 revision=38 event=native_task_end elapsed_s=0.151 at_nanos=126454590478125 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=speculation_started elapsed_s=0.000 at_nanos=126454597070875
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126454597106291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=native_warmup_done elapsed_s=0.000 at_nanos=126454597133916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126454597578291
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=route_session_fresh elapsed_s=0.001 at_nanos=126454597937208
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126454597993500
+VOICE_MODEL_PARTIAL=voice+2.589s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=speculation_cancel_requested elapsed_s=0.407 at_nanos=126455003609375
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=cancellation_to_speculation_end elapsed_s=0.407 at_nanos=126455003671583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=27 revision=39 event=native_task_end elapsed_s=0.407 at_nanos=126455004083291 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=speculation_started elapsed_s=0.000 at_nanos=126455012034958
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126455012102000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=native_warmup_done elapsed_s=0.000 at_nanos=126455012171541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126455012898708
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=route_session_fresh elapsed_s=0.002 at_nanos=126455013466833
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126455013560875
+VOICE_MODEL_PARTIAL=voice+2.661s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=speculation_cancel_requested elapsed_s=0.067 at_nanos=126455079022291
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=cancellation_to_speculation_end elapsed_s=0.067 at_nanos=126455079133375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=28 revision=40 event=native_task_end elapsed_s=0.068 at_nanos=126455079816375 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=speculation_started elapsed_s=0.000 at_nanos=126455090010791
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126455090080541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=native_warmup_done elapsed_s=0.000 at_nanos=126455090139000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126455090909916
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=route_session_fresh elapsed_s=0.002 at_nanos=126455091542458
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126455091638125
+VOICE_MODEL_PARTIAL=voice+2.825s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=speculation_cancel_requested elapsed_s=0.156 at_nanos=126455245893958
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=cancellation_to_speculation_end elapsed_s=0.156 at_nanos=126455246032000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=29 revision=41 event=native_task_end elapsed_s=0.157 at_nanos=126455246782375 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=speculation_started elapsed_s=0.000 at_nanos=126455257794000
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126455257853208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=native_warmup_done elapsed_s=0.000 at_nanos=126455257912125 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126455258669083
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=route_session_fresh elapsed_s=0.002 at_nanos=126455259360541
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126455259500291
+VOICE_MODEL_PARTIAL=voice+2.997s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=speculation_cancel_requested elapsed_s=0.168 at_nanos=126455425741958
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=cancellation_to_speculation_end elapsed_s=0.168 at_nanos=126455426002041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=30 revision=42 event=native_task_end elapsed_s=0.169 at_nanos=126455426648541 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=speculation_started elapsed_s=0.000 at_nanos=126455440209125
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126455440295333 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=native_warmup_done elapsed_s=0.000 at_nanos=126455440420708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.002 at_nanos=126455441584416
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=route_session_fresh elapsed_s=0.002 at_nanos=126455442559458
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=typed_route_collect_started elapsed_s=0.003 at_nanos=126455442723375
+VOICE_FILE_MAX_PACING_LAG=0.107268541 seconds
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=speculation_hit headstart_date_s=2.577 elapsed_s=2.577 at_nanos=126458016733583
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=typed_route_collect_done elapsed_s=4.568 at_nanos=126460008186958 duration_s=4.566
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=typed_route_validated elapsed_s=4.568 at_nanos=126460008368500
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=partial_route_ready elapsed_s=4.568 at_nanos=126460008383625
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=native_task_end elapsed_s=4.568 at_nanos=126460008436375
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=partial_route_committed_answer elapsed_s=4.568 at_nanos=126460008508375
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=answer_entry provider=appleFoundation elapsed_s=4.568 at_nanos=126460008525583
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=first_answer_text elapsed_s=6.728 at_nanos=126462167607291
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 4.154s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.220s first-audio
+VOICE_FRONTEND_TIMING gen=31 revision=43 event=prepared_route_consumer_end elapsed_s=7.209 at_nanos=126462648669458
+VOICE_LATENCY_RUN=2 bookkeeping closed=1 open=none openTurn=none discarded=0 () endpoint=vad committed=1 heard=yes reply=yes firstAudioAcknowledged=true
+VOICE_LATENCY_ORPHANS run=2 tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm
+VOICE_LATENCY_TURN run=2 n=1 reason=first_audio turn=381757FC marks=asr_first_partial,endpoint,first_audible,first_clause_enqueued,frontend_first_token,frontend_request,last_voice,route_done,route_started,tts_first_pcm,voice_onset
+VOICE_LATENCY_RUN=2 speech_end_to_eou=- eou_hop=- eou_to_endpoint=- speech_end_to_endpoint=2.590 endpoint_to_request=0.063 request_to_lane=- route=4.566 route_to_first_token=2.161 transcript_to_first_token=4.217 first_token_to_clause=0.000 clause_to_first_pcm=0.191 first_pcm_to_audible=0.028 speech_end_to_first_audio=7.027 L1=0.678 L2=4.217 L3=4.437 speculation=hit headstart=2.577 route_staging=fresh answer_staging=staged partial_route_ready_vs_endpoint=2.057 route_collect_s=4.565 route_validate_s=0.000 resident_answer=none main_stall_max=0.114 stall_site=unlabelled eou_prepare=0.001 endpoint_source=vad marks=11
+VOICE_LATENCY_STORES run=2 spans=336 turnRows=24
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=2 pass=frontend-answer provider=appleFM model="Apple Foundation Model" model_ttft_ms=2159 decode_tok_s=81.081 completion_tokens=39 counts_estimated=true warm=unavailable
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_EOU_PREPARE=0.0007469654083251953s
+VOICE_PIPELINE_SPAN=voice.eou_prepare 0.001s session
+VOICE_EOU_STARTUP_BUFFERED=1 chunks / 1280 frames
+VOICE_EOU_FIRST_PROCESS=1.0013580322265625e-05s lag=0.0004929304122924805s
+VOICE_MODEL_PARTIAL=voice+0.661s text=hello apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=speculation_started elapsed_s=0.000 at_nanos=126471463239666
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126471463275541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=native_warmup_done elapsed_s=0.000 at_nanos=126471463325916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126471463704541
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=route_session_staged elapsed_s=0.001 at_nanos=126471463723708
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126471463785000
+VOICE_MODEL_PARTIAL=voice+0.742s text=hello there apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=speculation_cancel_requested elapsed_s=0.075 at_nanos=126471538617666
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=cancellation_to_speculation_end elapsed_s=0.075 at_nanos=126471538676541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=32 revision=46 event=native_task_end elapsed_s=0.076 at_nanos=126471538943958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=speculation_started elapsed_s=0.000 at_nanos=126471544622375
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126471544655583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=native_warmup_done elapsed_s=0.000 at_nanos=126471544683833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126471545094791
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=route_session_fresh elapsed_s=0.001 at_nanos=126471545429000
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126471545517416
+VOICE_MODEL_PARTIAL=voice+1.139s text=hello there please apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=speculation_cancel_requested elapsed_s=0.391 at_nanos=126471935744208
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=cancellation_to_speculation_end elapsed_s=0.391 at_nanos=126471935834166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=33 revision=47 event=native_task_end elapsed_s=0.392 at_nanos=126471936194208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=speculation_started elapsed_s=0.000 at_nanos=126471942396166
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126471942433333 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=native_warmup_done elapsed_s=0.000 at_nanos=126471942512958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126471942949416
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=route_session_fresh elapsed_s=0.001 at_nanos=126471943255000
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126471943313208
+VOICE_MODEL_PARTIAL=voice+1.373s text=hello there please tell apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=speculation_cancel_requested elapsed_s=0.228 at_nanos=126472170282083
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=cancellation_to_speculation_end elapsed_s=0.228 at_nanos=126472170412291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=34 revision=48 event=native_task_end elapsed_s=0.228 at_nanos=126472170763291 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=speculation_started elapsed_s=0.000 at_nanos=126472176725250
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126472176759541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=native_warmup_done elapsed_s=0.000 at_nanos=126472176785708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126472177188333
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=route_session_fresh elapsed_s=0.001 at_nanos=126472177496083
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126472177548916
+VOICE_APPLE_FIRST_RESULT=voice+1.451s text=Hello
+VOICE_MODEL_PARTIAL=voice+1.543s text=hello there please tell me apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=speculation_cancel_requested elapsed_s=0.164 at_nanos=126472340698875
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=cancellation_to_speculation_end elapsed_s=0.164 at_nanos=126472340754541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=35 revision=49 event=native_task_end elapsed_s=0.164 at_nanos=126472341061375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=speculation_started elapsed_s=0.000 at_nanos=126472347469958
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126472347519666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=native_warmup_done elapsed_s=0.000 at_nanos=126472347554083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126472347970166
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=route_session_fresh elapsed_s=0.001 at_nanos=126472348290833
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126472348341458
+VOICE_MODEL_PARTIAL=voice+1.865s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=speculation_cancel_requested elapsed_s=0.316 at_nanos=126472663278125
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=cancellation_to_speculation_end elapsed_s=0.316 at_nanos=126472663345875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=36 revision=50 event=native_task_end elapsed_s=0.316 at_nanos=126472663697208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=speculation_started elapsed_s=0.000 at_nanos=126472670277916
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126472670331458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=native_warmup_done elapsed_s=0.000 at_nanos=126472670393083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126472670985916
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=route_session_fresh elapsed_s=0.001 at_nanos=126472671500541
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126472671580458
+VOICE_MODEL_PARTIAL=voice+1.940s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=speculation_cancel_requested elapsed_s=0.071 at_nanos=126472741126541
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=cancellation_to_speculation_end elapsed_s=0.071 at_nanos=126472741306500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=37 revision=51 event=native_task_end elapsed_s=0.071 at_nanos=126472741693791 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=speculation_started elapsed_s=0.000 at_nanos=126472749003875
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126472749049708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=native_warmup_done elapsed_s=0.000 at_nanos=126472749085208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126472749586916
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=route_session_fresh elapsed_s=0.001 at_nanos=126472749993750
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126472750062458
+VOICE_MODEL_PARTIAL=voice+2.022s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=speculation_cancel_requested elapsed_s=0.074 at_nanos=126472822892333
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=cancellation_to_speculation_end elapsed_s=0.074 at_nanos=126472822983541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=38 revision=52 event=native_task_end elapsed_s=0.074 at_nanos=126472823376708 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=speculation_started elapsed_s=0.000 at_nanos=126472831347416
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126472831395833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=native_warmup_done elapsed_s=0.000 at_nanos=126472831430916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126472831920916
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=route_session_fresh elapsed_s=0.001 at_nanos=126472832320625
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126472832380458
+VOICE_MODEL_PARTIAL=voice+2.183s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=speculation_cancel_requested elapsed_s=0.153 at_nanos=126472984337833
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=cancellation_to_speculation_end elapsed_s=0.153 at_nanos=126472984408958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=39 revision=53 event=native_task_end elapsed_s=0.154 at_nanos=126472984786875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=speculation_started elapsed_s=0.000 at_nanos=126472993416000
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126472993467250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=native_warmup_done elapsed_s=0.000 at_nanos=126472993504791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126472994047750
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=route_session_fresh elapsed_s=0.001 at_nanos=126472994487083
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126472994558250
+VOICE_MODEL_PARTIAL=voice+2.586s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=speculation_cancel_requested elapsed_s=0.400 at_nanos=126473393221083
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=cancellation_to_speculation_end elapsed_s=0.400 at_nanos=126473393289833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=40 revision=54 event=native_task_end elapsed_s=0.400 at_nanos=126473393771125 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=speculation_started elapsed_s=0.000 at_nanos=126473404340000
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126473404404750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=native_warmup_done elapsed_s=0.000 at_nanos=126473404450666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126473405258500
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=route_session_fresh elapsed_s=0.002 at_nanos=126473405804166
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126473405879333
+VOICE_MODEL_PARTIAL=voice+2.667s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=speculation_cancel_requested elapsed_s=0.073 at_nanos=126473476851458
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=cancellation_to_speculation_end elapsed_s=0.073 at_nanos=126473477022333 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=41 revision=55 event=native_task_end elapsed_s=0.073 at_nanos=126473477483750 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=speculation_started elapsed_s=0.000 at_nanos=126473488834625
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126473488949625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=native_warmup_done elapsed_s=0.000 at_nanos=126473489016708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126473490034125
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=route_session_fresh elapsed_s=0.002 at_nanos=126473490650333
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126473490743833
+VOICE_MODEL_PARTIAL=voice+2.829s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=speculation_cancel_requested elapsed_s=0.151 at_nanos=126473639544666
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=cancellation_to_speculation_end elapsed_s=0.151 at_nanos=126473639645166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=42 revision=56 event=native_task_end elapsed_s=0.151 at_nanos=126473640214500 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=speculation_started elapsed_s=0.000 at_nanos=126473653037291
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126473653103083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=native_warmup_done elapsed_s=0.000 at_nanos=126473653260791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.002 at_nanos=126473654503583
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=route_session_fresh elapsed_s=0.002 at_nanos=126473655350583
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=typed_route_collect_started elapsed_s=0.003 at_nanos=126473655467708
+VOICE_MODEL_PARTIAL=voice+2.994s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=speculation_cancel_requested elapsed_s=0.157 at_nanos=126473810150875
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=cancellation_to_speculation_end elapsed_s=0.157 at_nanos=126473810253916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=43 revision=57 event=native_task_end elapsed_s=0.158 at_nanos=126473811095083 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=speculation_started elapsed_s=0.000 at_nanos=126473827553208
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126473827623208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=native_warmup_done elapsed_s=0.000 at_nanos=126473827720291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126473828623708
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=route_session_fresh elapsed_s=0.002 at_nanos=126473829340833
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126473829444083
+VOICE_FILE_MAX_PACING_LAG=0.190697958 seconds
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=speculation_hit headstart_date_s=2.486 elapsed_s=2.486 at_nanos=126476313126583
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=typed_route_collect_done elapsed_s=4.671 at_nanos=126478498212333 duration_s=4.669
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=typed_route_validated elapsed_s=4.671 at_nanos=126478498375208
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=partial_route_ready elapsed_s=4.671 at_nanos=126478498389833
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=native_task_end elapsed_s=4.671 at_nanos=126478498446750
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=partial_route_committed_answer elapsed_s=4.671 at_nanos=126478498550708
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=answer_entry provider=appleFoundation elapsed_s=4.671 at_nanos=126478498566791
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=first_answer_text elapsed_s=7.030 at_nanos=126480857757416
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 4.549s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.192s first-audio
+VOICE_FRONTEND_TIMING gen=44 revision=58 event=prepared_route_consumer_end elapsed_s=7.557 at_nanos=126481384529333
+VOICE_LATENCY_RUN=3 bookkeeping closed=1 open=none openTurn=none discarded=0 () endpoint=vad committed=1 heard=yes reply=yes firstAudioAcknowledged=true
+VOICE_LATENCY_ORPHANS run=3 tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm
+VOICE_LATENCY_TURN run=3 n=1 reason=first_audio turn=E57048E7 marks=asr_first_partial,endpoint,first_audible,first_clause_enqueued,frontend_first_token,frontend_request,last_voice,route_done,route_started,tts_first_pcm,voice_onset
+VOICE_LATENCY_RUN=3 speech_end_to_eou=- eou_hop=- eou_to_endpoint=- speech_end_to_endpoint=2.513 endpoint_to_request=0.047 request_to_lane=- route=4.669 route_to_first_token=2.361 transcript_to_first_token=4.596 first_token_to_clause=0.000 clause_to_first_pcm=0.176 first_pcm_to_audible=0.016 speech_end_to_first_audio=7.301 L1=0.677 L2=4.596 L3=4.788 speculation=hit headstart=2.486 route_staging=fresh answer_staging=staged partial_route_ready_vs_endpoint=2.235 route_collect_s=4.669 route_validate_s=0.000 resident_answer=none main_stall_max=0.156 stall_site=unlabelled eou_prepare=0.001 endpoint_source=vad marks=11
+VOICE_LATENCY_STORES run=3 spans=352 turnRows=25
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=3 pass=frontend-answer provider=appleFM model="Apple Foundation Model" model_ttft_ms=2359 decode_tok_s=74.004 completion_tokens=39 counts_estimated=true warm=unavailable
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_EOU_PREPARE=0.0008989572525024414s
+VOICE_PIPELINE_SPAN=voice.eou_prepare 0.001s session
+VOICE_EOU_STARTUP_BUFFERED=1 chunks / 1280 frames
+VOICE_EOU_FIRST_PROCESS=1.0013580322265625e-05s lag=0.0006060600280761719s
+VOICE_MODEL_PARTIAL=voice+0.661s text=hello apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=speculation_started elapsed_s=0.000 at_nanos=126490360007875
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126490360071375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=native_warmup_done elapsed_s=0.000 at_nanos=126490360100041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126490360503375
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=route_session_staged elapsed_s=0.001 at_nanos=126490360522875
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126490360592333
+VOICE_MODEL_PARTIAL=voice+0.734s text=hello there apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=speculation_cancel_requested elapsed_s=0.066 at_nanos=126490425945291
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=cancellation_to_speculation_end elapsed_s=0.066 at_nanos=126490426000125 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=45 revision=61 event=native_task_end elapsed_s=0.066 at_nanos=126490426276041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=speculation_started elapsed_s=0.000 at_nanos=126490432820750
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126490432853250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=native_warmup_done elapsed_s=0.000 at_nanos=126490432877958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=126490433247833
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=route_session_fresh elapsed_s=0.001 at_nanos=126490433541500
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126490433591541
+VOICE_MODEL_PARTIAL=voice+1.137s text=hello there please apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=speculation_cancel_requested elapsed_s=0.396 at_nanos=126490829098166
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=cancellation_to_speculation_end elapsed_s=0.396 at_nanos=126490829206208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=46 revision=62 event=native_task_end elapsed_s=0.397 at_nanos=126490829547291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=speculation_started elapsed_s=0.000 at_nanos=126490836553666
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126490836598791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=native_warmup_done elapsed_s=0.000 at_nanos=126490836629958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126490837229666
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=route_session_fresh elapsed_s=0.001 at_nanos=126490837690041
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126490837788875
+VOICE_MODEL_PARTIAL=voice+1.379s text=hello there please tell apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=speculation_cancel_requested elapsed_s=0.236 at_nanos=126491072274125
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=cancellation_to_speculation_end elapsed_s=0.236 at_nanos=126491072344000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=47 revision=63 event=native_task_end elapsed_s=0.236 at_nanos=126491072635375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=speculation_started elapsed_s=0.000 at_nanos=126491079542416
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126491079584083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=native_warmup_done elapsed_s=0.000 at_nanos=126491079624250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126491080069125
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=route_session_fresh elapsed_s=0.001 at_nanos=126491080387416
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126491080446458
+VOICE_MODEL_PARTIAL=voice+1.546s text=hello there please tell me apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me
+VOICE_APPLE_FIRST_RESULT=voice+1.559s text=Hello
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=speculation_cancel_requested elapsed_s=0.160 at_nanos=126491239605791
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=cancellation_to_speculation_end elapsed_s=0.160 at_nanos=126491239662291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=48 revision=64 event=native_task_end elapsed_s=0.160 at_nanos=126491239927625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=speculation_started elapsed_s=0.000 at_nanos=126491247110125
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126491247144875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=native_warmup_done elapsed_s=0.000 at_nanos=126491247171500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126491247659500
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=route_session_fresh elapsed_s=0.001 at_nanos=126491248014375
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126491248071208
+VOICE_MODEL_PARTIAL=voice+1.866s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=speculation_cancel_requested elapsed_s=0.325 at_nanos=126491571761916
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=cancellation_to_speculation_end elapsed_s=0.325 at_nanos=126491571822708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=49 revision=65 event=native_task_end elapsed_s=0.325 at_nanos=126491572133541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=speculation_started elapsed_s=0.000 at_nanos=126491579454291
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126491579505125 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=native_warmup_done elapsed_s=0.000 at_nanos=126491579543625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126491580018000
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=route_session_fresh elapsed_s=0.001 at_nanos=126491580365083
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126491580438791
+VOICE_MODEL_PARTIAL=voice+1.943s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=speculation_cancel_requested elapsed_s=0.056 at_nanos=126491635511416
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=cancellation_to_speculation_end elapsed_s=0.056 at_nanos=126491635594750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=50 revision=66 event=native_task_end elapsed_s=0.057 at_nanos=126491635903666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=speculation_started elapsed_s=0.000 at_nanos=126491643958708
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126491643999916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=native_warmup_done elapsed_s=0.000 at_nanos=126491644028833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126491644442125
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=route_session_fresh elapsed_s=0.001 at_nanos=126491644767416
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126491644828750
+VOICE_MODEL_PARTIAL=voice+2.019s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=speculation_cancel_requested elapsed_s=0.069 at_nanos=126491713312625
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=cancellation_to_speculation_end elapsed_s=0.070 at_nanos=126491713444875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=51 revision=67 event=native_task_end elapsed_s=0.070 at_nanos=126491713824875 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=speculation_started elapsed_s=0.000 at_nanos=126491724267291
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126491724343041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=native_warmup_done elapsed_s=0.000 at_nanos=126491724382625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126491724850291
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=route_session_fresh elapsed_s=0.001 at_nanos=126491725329458
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126491725415875
+VOICE_MODEL_PARTIAL=voice+2.182s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=speculation_cancel_requested elapsed_s=0.153 at_nanos=126491877339333
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=cancellation_to_speculation_end elapsed_s=0.153 at_nanos=126491877463208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=52 revision=68 event=native_task_end elapsed_s=0.154 at_nanos=126491877885000 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=speculation_started elapsed_s=0.000 at_nanos=126491887660416
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126491887719875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=native_warmup_done elapsed_s=0.000 at_nanos=126491887774458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126491888419333
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=route_session_fresh elapsed_s=0.001 at_nanos=126491888856958
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126491888925250
+VOICE_MODEL_PARTIAL=voice+2.583s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=speculation_cancel_requested elapsed_s=0.394 at_nanos=126492281899000
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=cancellation_to_speculation_end elapsed_s=0.394 at_nanos=126492282011208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=53 revision=69 event=native_task_end elapsed_s=0.395 at_nanos=126492282555291 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=speculation_started elapsed_s=0.000 at_nanos=126492297081500
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126492297175458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=native_warmup_done elapsed_s=0.000 at_nanos=126492297283791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126492297841000
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=route_session_fresh elapsed_s=0.001 at_nanos=126492298291541
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126492298374750
+VOICE_MODEL_PARTIAL=voice+2.665s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=speculation_cancel_requested elapsed_s=0.070 at_nanos=126492367329458
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=cancellation_to_speculation_end elapsed_s=0.070 at_nanos=126492367432791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=54 revision=70 event=native_task_end elapsed_s=0.071 at_nanos=126492368008625 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=speculation_started elapsed_s=0.000 at_nanos=126492381586833
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126492381638583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=native_warmup_done elapsed_s=0.000 at_nanos=126492381681041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126492382323750
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=route_session_fresh elapsed_s=0.001 at_nanos=126492382879708
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126492383045250
+VOICE_MODEL_PARTIAL=voice+2.823s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=speculation_cancel_requested elapsed_s=0.145 at_nanos=126492526955291
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=cancellation_to_speculation_end elapsed_s=0.146 at_nanos=126492527046791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=55 revision=71 event=native_task_end elapsed_s=0.146 at_nanos=126492527654125 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=speculation_started elapsed_s=0.000 at_nanos=126492541677958
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126492541734625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=native_warmup_done elapsed_s=0.000 at_nanos=126492541782291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126492542618333
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=route_session_fresh elapsed_s=0.002 at_nanos=126492543472416
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126492543572916
+VOICE_MODEL_PARTIAL=voice+3.013s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=speculation_cancel_requested elapsed_s=0.184 at_nanos=126492725310000
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=cancellation_to_speculation_end elapsed_s=0.184 at_nanos=126492725446250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=56 revision=72 event=native_task_end elapsed_s=0.185 at_nanos=126492726123500 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=speculation_started elapsed_s=0.000 at_nanos=126492742863208
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126492742962833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=native_warmup_done elapsed_s=0.000 at_nanos=126492743107083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126492744035666
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=route_session_fresh elapsed_s=0.002 at_nanos=126492744972750
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=typed_route_collect_started elapsed_s=0.002 at_nanos=126492745076041
+VOICE_FILE_MAX_PACING_LAG=0.617490625 seconds
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=speculation_hit headstart_date_s=2.504 elapsed_s=2.504 at_nanos=126495246356791
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=typed_route_collect_done elapsed_s=4.450 at_nanos=126497192313625 duration_s=4.447
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=typed_route_validated elapsed_s=4.450 at_nanos=126497192427625
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=partial_route_ready elapsed_s=4.450 at_nanos=126497192438583
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=native_task_end elapsed_s=4.450 at_nanos=126497192597375
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=partial_route_committed_answer elapsed_s=4.450 at_nanos=126497192715208
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=answer_entry provider=appleFoundation elapsed_s=4.450 at_nanos=126497192736416
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=first_answer_text elapsed_s=6.444 at_nanos=126499186871125
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 3.944s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.170s first-audio
+VOICE_FRONTEND_TIMING gen=57 revision=73 event=prepared_route_consumer_end elapsed_s=6.900 at_nanos=126499642956875
+VOICE_LATENCY_RUN=4 bookkeeping closed=1 open=none openTurn=none discarded=0 () endpoint=vad committed=1 heard=yes reply=yes firstAudioAcknowledged=true
+VOICE_LATENCY_ORPHANS run=4 tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm
+VOICE_LATENCY_TURN run=4 n=1 reason=first_audio turn=DD3484B1 marks=asr_first_partial,endpoint,first_audible,first_clause_enqueued,frontend_first_token,frontend_request,last_voice,route_done,route_started,tts_first_pcm,voice_onset
+VOICE_LATENCY_RUN=4 speech_end_to_eou=- eou_hop=- eou_to_endpoint=- speech_end_to_endpoint=2.552 endpoint_to_request=0.043 request_to_lane=- route=4.447 route_to_first_token=1.996 transcript_to_first_token=3.987 first_token_to_clause=0.000 clause_to_first_pcm=0.148 first_pcm_to_audible=0.022 speech_end_to_first_audio=6.709 L1=0.679 L2=3.987 L3=4.157 speculation=hit headstart=2.504 route_staging=fresh answer_staging=staged partial_route_ready_vs_endpoint=1.991 route_collect_s=4.447 route_validate_s=0.000 resident_answer=none main_stall_max=0.230 stall_site=unlabelled eou_prepare=0.001 endpoint_source=vad marks=11
+VOICE_LATENCY_STORES run=4 spans=368 turnRows=26
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=4 pass=frontend-answer provider=appleFM model="Apple Foundation Model" model_ttft_ms=1994 decode_tok_s=85.526 completion_tokens=39 counts_estimated=true warm=unavailable
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+VOICE_FILE_FEED_CADENCE=80ms
+VOICE_EOU_PREPARE=0.000847935676574707s
+VOICE_PIPELINE_SPAN=voice.eou_prepare 0.001s session
+VOICE_EOU_STARTUP_BUFFERED=1 chunks / 1280 frames
+VOICE_EOU_FIRST_PROCESS=1.1920928955078125e-05s lag=0.0007369518280029297s
+VOICE_MODEL_PARTIAL=voice+0.658s text=hello apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=speculation_started elapsed_s=0.000 at_nanos=126508288743583
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126508288788500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=native_warmup_done elapsed_s=0.000 at_nanos=126508288825125 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126508289211166
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=route_session_staged elapsed_s=0.001 at_nanos=126508289236583
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126508289299916
+VOICE_MODEL_PARTIAL=voice+0.746s text=hello there apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=speculation_cancel_requested elapsed_s=0.080 at_nanos=126508368540666
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=cancellation_to_speculation_end elapsed_s=0.080 at_nanos=126508368603041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=58 revision=76 event=native_task_end elapsed_s=0.080 at_nanos=126508368892708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=speculation_started elapsed_s=0.000 at_nanos=126508376510208
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126508376554041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=native_warmup_done elapsed_s=0.000 at_nanos=126508376591500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126508376988541
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=route_session_fresh elapsed_s=0.001 at_nanos=126508377309125
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126508377359208
+VOICE_MODEL_PARTIAL=voice+1.135s text=hello there please apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=speculation_cancel_requested elapsed_s=0.382 at_nanos=126508758897750
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=cancellation_to_speculation_end elapsed_s=0.383 at_nanos=126508758963291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=59 revision=77 event=native_task_end elapsed_s=0.383 at_nanos=126508759255708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=speculation_started elapsed_s=0.000 at_nanos=126508766901291
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126508766933958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=native_warmup_done elapsed_s=0.000 at_nanos=126508766959208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126508767361500
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=route_session_fresh elapsed_s=0.001 at_nanos=126508767667666
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126508767721750
+VOICE_MODEL_PARTIAL=voice+1.379s text=hello there please tell apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=speculation_cancel_requested elapsed_s=0.235 at_nanos=126509002230166
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=cancellation_to_speculation_end elapsed_s=0.235 at_nanos=126509002290208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=60 revision=78 event=native_task_end elapsed_s=0.236 at_nanos=126509002589250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=speculation_started elapsed_s=0.000 at_nanos=126509010338666
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126509010375916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=native_warmup_done elapsed_s=0.000 at_nanos=126509010408708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126509010814958
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=route_session_fresh elapsed_s=0.001 at_nanos=126509011131166
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126509011187833
+VOICE_MODEL_PARTIAL=voice+1.541s text=hello there please tell me apple=false
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=speculation_cancel_requested elapsed_s=0.154 at_nanos=126509164136333
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=cancellation_to_speculation_end elapsed_s=0.154 at_nanos=126509164200458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=61 revision=79 event=native_task_end elapsed_s=0.154 at_nanos=126509164487791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=speculation_started elapsed_s=0.000 at_nanos=126509172364666
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126509172399166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=native_warmup_done elapsed_s=0.000 at_nanos=126509172422291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=126509172793791
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=route_session_fresh elapsed_s=0.001 at_nanos=126509173081750
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126509173137166
+VOICE_APPLE_FIRST_RESULT=voice+1.570s text=Hello
+VOICE_MODEL_PARTIAL=voice+1.856s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=speculation_cancel_requested elapsed_s=0.307 at_nanos=126509479805583
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=cancellation_to_speculation_end elapsed_s=0.308 at_nanos=126509479871000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=62 revision=80 event=native_task_end elapsed_s=0.308 at_nanos=126509480196833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=speculation_started elapsed_s=0.000 at_nanos=126509488861625
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126509488899500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=native_warmup_done elapsed_s=0.000 at_nanos=126509488927666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126509489333166
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=route_session_fresh elapsed_s=0.001 at_nanos=126509489649458
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126509489700083
+VOICE_MODEL_PARTIAL=voice+1.939s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=speculation_cancel_requested elapsed_s=0.075 at_nanos=126509564153083
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=cancellation_to_speculation_end elapsed_s=0.075 at_nanos=126509564215166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=63 revision=81 event=native_task_end elapsed_s=0.076 at_nanos=126509564552500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=speculation_started elapsed_s=0.000 at_nanos=126509573773166
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126509573802000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=native_warmup_done elapsed_s=0.000 at_nanos=126509573829625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126509574244166
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=route_session_fresh elapsed_s=0.001 at_nanos=126509574574666
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126509574629458
+VOICE_MODEL_PARTIAL=voice+2.019s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=speculation_cancel_requested elapsed_s=0.069 at_nanos=126509642596500
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=cancellation_to_speculation_end elapsed_s=0.069 at_nanos=126509642658833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=64 revision=82 event=native_task_end elapsed_s=0.069 at_nanos=126509642938250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=speculation_started elapsed_s=0.000 at_nanos=126509650609166
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126509650645041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=native_warmup_done elapsed_s=0.000 at_nanos=126509650671625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126509651069333
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=route_session_fresh elapsed_s=0.001 at_nanos=126509651383041
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126509651438041
+VOICE_MODEL_PARTIAL=voice+2.179s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=speculation_cancel_requested elapsed_s=0.153 at_nanos=126509803209916
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=cancellation_to_speculation_end elapsed_s=0.153 at_nanos=126509803456958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=65 revision=83 event=native_task_end elapsed_s=0.153 at_nanos=126509804015333 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=speculation_started elapsed_s=0.000 at_nanos=126509812035625
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126509812072583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=native_warmup_done elapsed_s=0.000 at_nanos=126509812102625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126509812586875
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=route_session_fresh elapsed_s=0.001 at_nanos=126509812938625
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126509812995625
+VOICE_MODEL_PARTIAL=voice+2.580s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=speculation_cancel_requested elapsed_s=0.392 at_nanos=126510203659291
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=cancellation_to_speculation_end elapsed_s=0.392 at_nanos=126510203825375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=66 revision=84 event=native_task_end elapsed_s=0.392 at_nanos=126510204242041 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=speculation_started elapsed_s=0.000 at_nanos=126510212450375
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126510212519791 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=native_warmup_done elapsed_s=0.000 at_nanos=126510212574458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126510213102625
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=route_session_fresh elapsed_s=0.001 at_nanos=126510213434166
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126510213485875
+VOICE_MODEL_PARTIAL=voice+2.656s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=speculation_cancel_requested elapsed_s=0.067 at_nanos=126510279830291
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=cancellation_to_speculation_end elapsed_s=0.068 at_nanos=126510279889458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=67 revision=85 event=native_task_end elapsed_s=0.068 at_nanos=126510280257708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=speculation_started elapsed_s=0.000 at_nanos=126510288338791
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126510288383166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=native_warmup_done elapsed_s=0.000 at_nanos=126510288415625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126510288843250
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=route_session_fresh elapsed_s=0.001 at_nanos=126510289154333
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126510289205041
+VOICE_MODEL_PARTIAL=voice+2.824s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=speculation_cancel_requested elapsed_s=0.160 at_nanos=126510448690250
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=cancellation_to_speculation_end elapsed_s=0.160 at_nanos=126510448753166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=68 revision=86 event=native_task_end elapsed_s=0.161 at_nanos=126510449046500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=speculation_started elapsed_s=0.000 at_nanos=126510457530583
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126510457568041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=native_warmup_done elapsed_s=0.000 at_nanos=126510457608208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126510458031625
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=route_session_fresh elapsed_s=0.001 at_nanos=126510458350708
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126510458408458
+VOICE_MODEL_PARTIAL=voice+2.983s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=speculation_cancel_requested elapsed_s=0.150 at_nanos=126510607943958
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=cancellation_to_speculation_end elapsed_s=0.151 at_nanos=126510608012916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=69 revision=87 event=native_task_end elapsed_s=0.151 at_nanos=126510608359250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=speculation_started elapsed_s=0.000 at_nanos=126510617368958
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=speculation_barrier_done elapsed_s=0.000 at_nanos=126510617421208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=native_warmup_done elapsed_s=0.000 at_nanos=126510617457750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=126510617910333
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=route_session_fresh elapsed_s=0.001 at_nanos=126510618285708
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=typed_route_collect_started elapsed_s=0.001 at_nanos=126510618344416
+VOICE_MODEL_EOU=sinceVoiceEnd 1.012s appleRevisionAge 1.072s text=hello there please tell me briefly what a haiku is
+VOICE_ENDPOINT_TRIGGER=eou
+VOICE_MODEL_EOU_TO_ENDPOINT=0.001260995864868164s
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=speculation_hit headstart_date_s=1.039 elapsed_s=1.039 at_nanos=126511656647875
+VOICE_FILE_MAX_PACING_LAG=0.071937041 seconds
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=typed_route_collect_done elapsed_s=3.867 at_nanos=126514484435875 duration_s=3.866
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=typed_route_validated elapsed_s=3.867 at_nanos=126514484564416
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=partial_route_ready elapsed_s=3.867 at_nanos=126514484576791
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=native_task_end elapsed_s=3.867 at_nanos=126514484673541
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=partial_route_committed_answer elapsed_s=3.868 at_nanos=126514484883416
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=answer_entry provider=appleFoundation elapsed_s=3.868 at_nanos=126514484914916
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=first_answer_text elapsed_s=5.771 at_nanos=126516388260791
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 4.738s model provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.195s first-audio
+VOICE_FRONTEND_TIMING gen=70 revision=88 event=prepared_route_consumer_end elapsed_s=6.122 at_nanos=126516739110083
+VOICE_LATENCY_RUN=5 bookkeeping closed=1 open=none openTurn=none discarded=0 () endpoint=localEOU committed=1 heard=yes reply=yes firstAudioAcknowledged=true
+VOICE_LATENCY_ORPHANS run=5 tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm,tts_first_pcm
+VOICE_LATENCY_TURN run=5 n=1 reason=first_audio turn=AD4A7DD6 marks=asr_first_partial,endpoint,eou_callback,eou_confirmed,eou_raw,first_audible,first_clause_enqueued,frontend_first_token,frontend_request,last_voice,route_done,route_started,tts_first_pcm,voice_onset
+VOICE_LATENCY_RUN=5 speech_end_to_eou=1.012 eou_hop=0.000 eou_to_endpoint=0.001 speech_end_to_endpoint=1.013 endpoint_to_request=0.057 request_to_lane=- route=3.866 route_to_first_token=1.905 transcript_to_first_token=4.795 first_token_to_clause=0.000 clause_to_first_pcm=0.174 first_pcm_to_audible=0.021 speech_end_to_first_audio=6.003 L1=0.676 L2=4.795 L3=4.990 speculation=hit headstart=1.039 route_staging=fresh answer_staging=staged partial_route_ready_vs_endpoint=2.890 route_collect_s=3.866 route_validate_s=0.000 resident_answer=none main_stall_max=0.028 stall_site=unlabelled eou_prepare=0.001 endpoint_source=localEOU marks=14
+VOICE_LATENCY_STORES run=5 spans=387 turnRows=27
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-route provider=appleFM model="Apple Foundation Model" model_ttft_ms=unavailable decode_tok_s=unavailable completion_tokens=unavailable counts_estimated=unavailable warm=unavailable
+VOICE_LATENCY_MODEL run=5 pass=frontend-answer provider=appleFM model="Apple Foundation Model" model_ttft_ms=1903 decode_tok_s=111.111 completion_tokens=39 counts_estimated=true warm=unavailable
+VOICE_LATENCY_MEDIAN speech_end_to_eou=1.012 p90=1.012 n=1
+VOICE_LATENCY_MEDIAN eou_hop=0.000 p90=0.000 n=1
+VOICE_LATENCY_MEDIAN eou_to_endpoint=0.001 p90=0.001 n=1
+VOICE_LATENCY_MEDIAN speech_end_to_endpoint=2.552 p90=2.592 n=5
+VOICE_LATENCY_MEDIAN endpoint_to_request=0.047 p90=0.063 n=5
+VOICE_LATENCY_MEDIAN request_to_lane=- p90=- n=0
+VOICE_LATENCY_MEDIAN route=4.447 p90=4.669 n=5
+VOICE_LATENCY_MEDIAN route_to_first_token=2.047 p90=2.361 n=5
+VOICE_LATENCY_MEDIAN transcript_to_first_token=4.217 p90=4.795 n=5
+VOICE_LATENCY_MEDIAN first_token_to_clause=0.000 p90=0.000 n=5
+VOICE_LATENCY_MEDIAN clause_to_first_pcm=0.176 p90=0.247 n=5
+VOICE_LATENCY_MEDIAN first_pcm_to_audible=0.022 p90=0.028 n=5
+VOICE_LATENCY_MEDIAN speech_end_to_first_audio=6.826 p90=7.301 n=5
+VOICE_LATENCY_LISTEN L1 median=0.677 p95=0.679 min=0.676 max=0.679 n=5 units=s
+VOICE_LATENCY_LISTEN L2 median=4.217 p95=4.795 min=3.964 max=4.795 n=5 units=s
+VOICE_LATENCY_LISTEN L3 median=4.437 p95=4.990 min=4.157 max=4.990 n=5 units=s
+VOICE_LATENCY_MEDIAN main_stall_max=0.156 p90=0.296 n=5
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0
+VOICE_LATENCY_WRONG: run 1: voice.speech_end_to_eou is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 1: voice.eou_hop is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 1: voice.eou_to_endpoint is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 1: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays
+VOICE_LATENCY_WRONG: run 2: voice.speech_end_to_eou is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 2: voice.eou_hop is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 2: voice.eou_to_endpoint is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 2: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays
+VOICE_LATENCY_WRONG: run 3: voice.speech_end_to_eou is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 3: voice.eou_hop is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 3: voice.eou_to_endpoint is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 3: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays
+VOICE_LATENCY_WRONG: run 4: voice.speech_end_to_eou is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 4: voice.eou_hop is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 4: voice.eou_to_endpoint is absent — the stage did not happen, or its mark was never stamped
+VOICE_LATENCY_WRONG: run 4: the endpoint came from vad, not the local EOU model, so the EOU stages in this run are not the ones a warm turn pays
+VOICE_LATENCY_WRONG: main-actor stall 0.296s > 0.100s in turn 1 (site unlabelled)
+VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent — the stage did not happen, or its mark was never stamped

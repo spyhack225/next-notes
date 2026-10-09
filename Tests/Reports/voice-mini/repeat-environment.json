@@ -1,0 +1,64 @@
+{
+  "repeat-apple": {
+    "source_equal_to_first": true,
+    "before": {
+      "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+      "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+      "swap": "vm.swapusage: total = 9216.00M  used = 7520.19M  free = 1695.81M  (encrypted)",
+      "load": "22:16  up 1 day, 11:29, 1 user, load averages: 3.66 3.97 3.81",
+      "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 192871708  10184928    95% 2500836 101849280    2%   /System/Volumes/Data",
+      "memory": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 56%",
+      "foreign_heavy_count": 0,
+      "foreign_heavy_processes": [],
+      "definition": "actual swift-frontend/swift-build executables, NextNotes with --selftest, llama* executable names; excludes queued shell command mentions; start/end census only"
+    },
+    "after": {
+      "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+      "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+      "swap": "vm.swapusage: total = 9216.00M  used = 7520.19M  free = 1695.81M  (encrypted)",
+      "load": "22:18  up 1 day, 11:31, 1 user, load averages: 6.57 5.17 4.32",
+      "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 192847824  10208812    95% 2500866 102088120    2%   /System/Volumes/Data",
+      "memory": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 57%",
+      "foreign_heavy_count": 0,
+      "foreign_heavy_processes": [],
+      "definition": "actual swift-frontend/swift-build executables, NextNotes with --selftest, llama* executable names; excludes queued shell command mentions; start/end census only"
+    },
+    "sampled_peak_rss_bytes": 1020166144,
+    "sampled_peak_footprint_bytes": 546441112,
+    "private_root_removed": true,
+    "qualified_count": 1
+  },
+  "repeat-mini": {
+    "source_equal_to_first": true,
+    "before": {
+      "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+      "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+      "swap": "vm.swapusage: total = 9216.00M  used = 7520.19M  free = 1695.81M  (encrypted)",
+      "load": "22:18  up 1 day, 11:31, 1 user, load averages: 6.57 5.17 4.32",
+      "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 192847564  10209072    95% 2500864 102090720    2%   /System/Volumes/Data",
+      "memory": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 56%",
+      "foreign_heavy_count": 0,
+      "foreign_heavy_processes": [],
+      "definition": "actual swift-frontend/swift-build executables, NextNotes with --selftest, llama* executable names; excludes queued shell command mentions; start/end census only"
+    },
+    "after": {
+      "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+      "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+      "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+      "swap": "vm.swapusage: total = 9216.00M  used = 7512.19M  free = 1703.81M  (encrypted)",
+      "load": "22:21  up 1 day, 11:33, 1 user, load averages: 3.97 4.47 4.15",
+      "disk": "Filesystem   1024-blocks      Used Available Capacity iused    ifree %iused  Mounted on\n/dev/disk3s5   239331776 193385464   9671172    96% 2500996 96711720    3%   /System/Volumes/Data",
+      "memory": "The system has 17179869184 (1048576 pages with a page size of 16384).\nSystem-wide memory free percentage: 55%",
+      "foreign_heavy_count": 0,
+      "foreign_heavy_processes": [],
+      "definition": "actual swift-frontend/swift-build executables, NextNotes with --selftest, llama* executable names; excludes queued shell command mentions; start/end census only"
+    },
+    "sampled_peak_rss_bytes": 2501967872,
+    "sampled_peak_footprint_bytes": 702090744,
+    "private_root_removed": true,
+    "qualified_count": 0
+  }
+}

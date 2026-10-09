@@ -1,0 +1,115 @@
+{
+  "red": {
+    "exit": -5,
+    "actual_markers_in_order": [],
+    "last_printed_marker": null
+  },
+  "red-scripted": {
+    "exit": 1,
+    "actual_markers_in_order": [
+      "VOICE_RESIDENT_ANSWER_FAILED"
+    ],
+    "last_printed_marker": "VOICE_RESIDENT_ANSWER_FAILED"
+  },
+  "green": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "VOICE_RESIDENT_ANSWER_OK"
+    ],
+    "last_printed_marker": "VOICE_RESIDENT_ANSWER_OK"
+  },
+  "partials": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "VOICE_PREPARATION_OK"
+    ],
+    "last_printed_marker": "VOICE_PREPARATION_OK"
+  },
+  "apple": {
+    "exit": 1,
+    "actual_markers_in_order": [
+      "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+    ],
+    "last_printed_marker": "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+  },
+  "mini": {
+    "exit": 1,
+    "actual_markers_in_order": [
+      "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+    ],
+    "last_printed_marker": "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+  },
+  "cold-fallback": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "VOICE_LATENCY_OK"
+    ],
+    "last_printed_marker": "VOICE_LATENCY_OK"
+  },
+  "pipeline": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "VOICE_PIPELINE_OK"
+    ],
+    "last_printed_marker": "VOICE_PIPELINE_OK"
+  },
+  "routing": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "VOICE_TURN_ROUTING_OK"
+    ],
+    "last_printed_marker": "VOICE_TURN_ROUTING_OK"
+  },
+  "concurrent": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "CONCURRENT_VOICE_OK",
+      "CONCURRENT_VOICE_OK"
+    ],
+    "last_printed_marker": "CONCURRENT_VOICE_OK"
+  },
+  "conversation": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "VOICE_CONVERSATION_OK",
+      "VOICE_CONVERSATION_OK"
+    ],
+    "last_printed_marker": "VOICE_CONVERSATION_OK"
+  },
+  "duplex": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "DUPLEX_OK"
+    ],
+    "last_printed_marker": "DUPLEX_OK"
+  },
+  "prefix": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "LLM_PREFIX_CACHE_OK: reused 646/666 tokens, prefill 1.74s \u2192 0.20s; stable prompt front 90% (was 73% before P1-28)"
+    ],
+    "last_printed_marker": "LLM_PREFIX_CACHE_OK: reused 646/666 tokens, prefill 1.74s \u2192 0.20s; stable prompt front 90% (was 73% before P1-28)"
+  },
+  "isolation": {
+    "exit": 0,
+    "actual_markers_in_order": [
+      "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+      "TOOLLOOP_PRODUCTION_FAILED"
+    ],
+    "last_printed_marker": "TOOLLOOP_PRODUCTION_FAILED"
+  },
+  "repeat-apple": {
+    "exit": 1,
+    "actual_markers_in_order": [
+      "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+    ],
+    "last_printed_marker": "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+  },
+  "repeat-mini": {
+    "exit": 1,
+    "actual_markers_in_order": [
+      "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+    ],
+    "last_printed_marker": "VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent \u2014 the stage did not happen, or its mark was never stamped"
+  }
+}
