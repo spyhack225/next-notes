@@ -2372,6 +2372,15 @@ final class AgentTaskManager {
         AgentArtifactLedger.consumeRecords(taskID: taskID, records: captured)
     }
 
+    /// A missing Catch-up recording is presentation on the existing task. Its
+    /// written result, terminal status, delivery facts and artifact links survive.
+    @discardableResult
+    func noteCatchUpAudioUnavailable(taskID: String, availability: AgentVoiceAvailability) -> Bool {
+        guard let task = task(id: taskID), task.scheduleID != nil,
+              task.status != .cancelled, let message = availability.message else { return false }
+        return update(taskID) { $0.progress = message }.primaryCommitted
+    }
+
     /// Background work used to finish only in the task list. A failure the conversation
     /// never hears is the same shape as a turn that never replied.
     private func announce(_ text: String, queueSpeech: Bool = true) {

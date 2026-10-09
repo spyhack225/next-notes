@@ -303,6 +303,10 @@ enum CatchUpTemplate {
     static func resultTransform(
         renderer: LongFormRenderer,
         attach: @escaping @MainActor (String) -> Void = { _ in },
+        audioStatus: @escaping @MainActor (String, AgentVoiceAvailability) -> Void = { taskID, availability in
+            guard !SelfTest.isRunning else { return }
+            AgentTaskManager.shared.noteCatchUpAudioUnavailable(taskID: taskID, availability: availability)
+        },
         spawn: @escaping Spawn = detached
     ) -> ScheduledAnswerTransform {
         { schedule, answer, taskID, now in
@@ -318,7 +322,7 @@ enum CatchUpTemplate {
             spawn {
                 await CatchUpTemplate.renderAudio(
                     script, title: heading, edition: edition, taskID: taskID,
-                    renderer: renderer, attach: attach)
+                    renderer: renderer, attach: attach, audioStatus: audioStatus)
             }
             return ScheduledAnswer(text: answer)
         }
@@ -326,11 +330,12 @@ enum CatchUpTemplate {
 
     /// Never throws and never speaks to the person: the text is already delivered, and a
     /// voice that is not set up, a busy Mac or a full disk is not something to announce at
-    /// six in the morning. The reason goes to the log.
+    /// six in the morning. The reason is visible with the existing written task.
     @MainActor
     static func renderAudio(
         _ script: LongFormScript, title: String, edition: String, taskID: String,
-        renderer: LongFormRenderer, attach: @MainActor (String) -> Void
+        renderer: LongFormRenderer, attach: @MainActor (String) -> Void,
+        audioStatus: @MainActor (String, AgentVoiceAvailability) -> Void = { _, _ in }
     ) async {
         do {
             let rendered = try await renderer.render(script, title: title, edition: edition)
@@ -344,6 +349,8 @@ enum CatchUpTemplate {
             // Quitting, or the run's caller stopping. The renderer removed its staging file.
         } catch {
             let mapped = LongFormRenderer.classify(error)
+            let availability = AgentSpeechSynthesizer.shared.availability
+            audioStatus(taskID, availability == .ready ? .failed : availability)
             Log.agent.info("catch-up audio not made: \(mapped.localizedDescription, privacy: .public)")
         }
     }

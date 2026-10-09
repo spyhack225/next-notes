@@ -472,7 +472,7 @@ enum CatchUpSelfTest {
         check("a failed render touched the previous edition", (try? Data(contentsOf: previous)) == Data("OLD".utf8)
               && directoryContents(failingDirectory) == [previous.lastPathComponent])
 
-        // The audio failing never touches the text or the task.
+        // Audio failure preserves written content and exposes its absence.
         let failureCases: [(name: String, spy: SynthesisSpy, environment: FakeYieldEnvironment)] = [
             ("no voice", SynthesisSpy(samplesPerClause: 1, sampleRate: 24_000, failure: LongFormRenderError.voiceUnavailable), FakeYieldEnvironment()),
             ("busy mac", SynthesisSpy(samplesPerClause: 1_000, sampleRate: 24_000), FakeYieldEnvironment(recording: true)),
@@ -483,11 +483,16 @@ enum CatchUpSelfTest {
             let (broken, brokenDirectory) = make("broken-\(name)", spy: item.spy, environment: item.environment, yieldTimeout: 0.2)
             var work: [@MainActor () async -> Void] = []
             var linked: [String] = []
+            var voiceNotices: [(String, AgentVoiceAvailability)] = []
             let id = "catch-up-\(UUID().uuidString)"
             let result = await CatchUpTemplate.resultTransform(
-                renderer: broken, attach: { linked.append($0) }, spawn: { work.append($0) })(catchUp(), answer, id, mondayMorning)
+                renderer: broken, attach: { linked.append($0) },
+                audioStatus: { voiceNotices.append(($0, $1)) },
+                spawn: { work.append($0) })(catchUp(), answer, id, mondayMorning)
             check("\(name): the text was withheld or changed", result.text == answer && result.artifacts.isEmpty)
             await work.first?()
+            check("\(name): audio absence was not visible", voiceNotices.count == 1
+                  && voiceNotices.first?.0 == id && voiceNotices.first?.1.message != nil)
             check("\(name): a file or link appeared", linked.isEmpty && AgentArtifactLedger.peek(taskID: id).isEmpty
                   && directoryContents(brokenDirectory).isEmpty)
         }

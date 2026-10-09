@@ -422,10 +422,8 @@ enum LongFormSynthesisFactory {
 
     /// The production synthesis closure.
     ///
-    /// Engine choice, in order: what the user set in Settings, then — when the setting
-    /// is Apple's voice, which cannot render offline — whichever of Pocket or Kokoro is
-    /// already loaded in this process. If neither is, this throws `.voiceUnavailable`
-    /// rather than asking FluidAudio's manager to fetch a model nobody chose at 06:00.
+    /// Render only the requested allowed voice. Never switch a person's choice
+    /// when it is unavailable, including the unsupported Kokoro OS versions.
     static func live() -> LongFormRenderer.Synthesis {
         { request in
             let selected = Settings.shared.agentVoiceEngine
@@ -435,10 +433,6 @@ enum LongFormSynthesisFactory {
             case "kokoro" where KokoroAgentVoice.isSupportedOS:
                 return try await kokoro(request)
             default:
-                if PocketAgentVoice.shared.isReady { return try await pocket(request) }
-                if KokoroAgentVoice.isSupportedOS, KokoroAgentVoice.shared.isReady {
-                    return try await kokoro(request)
-                }
                 throw LongFormRenderError.voiceUnavailable
             }
         }
