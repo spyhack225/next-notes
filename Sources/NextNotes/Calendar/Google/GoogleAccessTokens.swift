@@ -23,6 +23,12 @@ actor GoogleAccessTokens {
         isRunning && requested == "--selftest-google-connect"
     }
 
+    private var requestOverrideForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
+    func useRequestForTesting(_ request: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?) {
+        precondition(Self.testHooksAdmitted)
+        requestOverrideForTesting = request
+        invalidate()
+    }
     private let requestForTesting: (@Sendable (URLRequest) async throws -> (Data, URLResponse))?
     private let refreshTokenForTesting: (@Sendable () -> String?)?
     private let clearTokenForTesting: (@Sendable () -> Void)?
@@ -67,7 +73,7 @@ actor GoogleAccessTokens {
             do {
                 let response = try await GoogleOAuthClient.refresh(
                     clientID: clientID, clientSecret: clientSecret, refreshToken: refresh,
-                    endpoint: endpoint, requestForTesting: requestForTesting)
+                    endpoint: endpoint, requestForTesting: requestOverrideForTesting ?? requestForTesting)
                 guard generation == started, !Task.isCancelled else { throw CancellationError() }
                 cached = (identity, response.accessToken, Date().addingTimeInterval(TimeInterval(response.expiresIn)))
                 refreshCount += 1

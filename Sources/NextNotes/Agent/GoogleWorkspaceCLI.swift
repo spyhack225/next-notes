@@ -195,20 +195,27 @@ actor GoogleWorkspaceCLI {
     private let testingExecutableIsManaged: Bool
     nonisolated var hasIsolatedTestingExecutable: Bool { testingExecutable != nil }
 
-    init() { testingExecutable = nil; usesAppAccount = true; testingExecutableIsManaged = false }
+    struct TestHooks: Sendable {
+        var afterToken: (@Sendable () async -> Void)?
+        var beforeLaunch: (@Sendable () async -> Void)?
+        var beforeAuthProbe: (@Sendable () async -> Void)?
+    }
+    private let testHooks: TestHooks
+    init() { testHooks = TestHooks(); testingExecutable = nil; usesAppAccount = true; testingExecutableIsManaged = false }
 
-    private init(testingExecutable: URL, usesAppAccount: Bool = false, isManaged: Bool = false) {
+    private init(testingExecutable: URL, usesAppAccount: Bool = false, isManaged: Bool = false, hooks: TestHooks = TestHooks()) {
+        self.testHooks = hooks
         self.testingExecutable = testingExecutable
         self.usesAppAccount = usesAppAccount
         self.testingExecutableIsManaged = isManaged
     }
-    static func appAccountFixture(executable: URL, isManaged: Bool = true) -> GoogleWorkspaceCLI? {
+    static func appAccountFixture(executable: URL, isManaged: Bool = true, hooks: TestHooks = TestHooks()) -> GoogleWorkspaceCLI? {
         let safe = executable.resolvingSymlinksInPath().standardizedFileURL
         let temporary = FileManager.default.temporaryDirectory.resolvingSymlinksInPath()
         guard GoogleAccessTokens.testHooksAdmitted, safe == executable.standardizedFileURL,
               safe.path.hasPrefix(temporary.path + "/"),
               FileManager.default.isExecutableFile(atPath: safe.path) else { return nil }
-        return GoogleWorkspaceCLI(testingExecutable: safe, usesAppAccount: true, isManaged: isManaged)
+        return GoogleWorkspaceCLI(testingExecutable: safe, usesAppAccount: true, isManaged: isManaged, hooks: hooks)
     }
     func appSignInInEffect() -> Bool {
         usesAppAccount && GoogleTokenStore.appRouteInEffect
@@ -314,6 +321,7 @@ actor GoogleWorkspaceCLI {
     /// not anyone is signed in, and the four fields below are what separate "no client",
     /// "client but no account" and "ready".
     func authState() async -> WorkspaceAuthState {
+        await testHooks.beforeAuthProbe?()
         let grantState = usesAppAccount ? GoogleTokenStore.readState : .absent
         if grantState == .unavailable {
             return .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
@@ -500,6 +508,9 @@ actor GoogleWorkspaceCLI {
             executable = found
         }
 
+        await testHooks.afterToken?()
+        // Token delivery crossed an actor hop. The caller owns executable admission.
+        try Task.checkCancellation()
         // Arguments, never the values inside them: a proposal's body is an email the user
         // is about to send, and a log is not where it belongs.
         Log.agent.info("gws \(arguments.first ?? "", privacy: .public) \(arguments.dropFirst().first ?? "", privacy: .public)")
@@ -507,7 +518,7 @@ actor GoogleWorkspaceCLI {
         let output = try await Self.spawn(
             executable: executable,
             arguments: arguments,
-            timeout: timeout, environmentAdditions: additions
+            timeout: timeout, environmentAdditions: additions, beforeLaunchForTesting: testHooks.beforeLaunch
         )
         switch output.exitCode {
         case 0:
@@ -567,8 +578,11 @@ actor GoogleWorkspaceCLI {
         executable: URL,
         arguments: [String],
         timeout: TimeInterval,
-        environmentAdditions: [String: String] = [:]
+        environmentAdditions: [String: String] = [:],
+        beforeLaunchForTesting: (@Sendable () async -> Void)? = nil
     ) async throws -> WorkspaceCLIOutput {
+        precondition(beforeLaunchForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
+        try Task.checkCancellation()
         let box = ProcessBox(process: Process())
         box.process.executableURL = executable
         box.process.arguments = arguments
@@ -581,7 +595,8 @@ actor GoogleWorkspaceCLI {
         box.process.standardInput = FileHandle.nullDevice
 
         return try await withTaskCancellationHandler {
-            try await withCheckedThrowingContinuation { continuation in
+            await beforeLaunchForTesting?()
+            return try await withCheckedThrowingContinuation { continuation in
                 let buffers = OutputBuffers()
                 let group = DispatchGroup()
                 DispatchQueue.global(qos: .userInitiated).async(group: group) {
@@ -606,7 +621,7 @@ actor GoogleWorkspaceCLI {
                 }
 
                 do {
-                    try box.process.run()
+                    try box.launch()
                 } catch {
                     // The two readers above are blocked on pipes whose write ends nobody
                     // now holds open, and `readDataToEndOfFile` on those never returns.
@@ -616,7 +631,7 @@ actor GoogleWorkspaceCLI {
                     try? errPipe.fileHandleForWriting.close()
                     box.resume(
                         continuation,
-                        with: .failure(WorkspaceCLIError.launchFailed(error.localizedDescription))
+                        with: .failure(error is CancellationError ? CancellationError() : WorkspaceCLIError.launchFailed(error.localizedDescription))
                     )
                     return
                 }
@@ -654,6 +669,7 @@ private final class ProcessBox: @unchecked Sendable {
     private let lock = NSLock()
     private var isResumed = false
     private var timedOutFlag = false
+    private var cancelled = false
 
     init(process: Process) {
         self.process = process
@@ -678,7 +694,16 @@ private final class ProcessBox: @unchecked Sendable {
         continuation.resume(with: result)
     }
 
+    /// The same lock admits launch and remembers a cancellation received before run().
+    func launch() throws {
+        lock.lock(); defer { lock.unlock() }
+        try Task.checkCancellation()
+        guard !cancelled else { throw CancellationError() }
+        try process.run()
+    }
     func cancel() {
+        lock.lock(); defer { lock.unlock() }
+        cancelled = true
         if process.isRunning { process.terminate() }
     }
 }
