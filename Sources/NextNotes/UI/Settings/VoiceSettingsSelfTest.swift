@@ -24,10 +24,10 @@ enum VoiceSettingsSelfTest {
         let failedLine = AgentVoiceAvailability.failed.message ?? ""
         check(preparingLine == "Your voice is getting ready, so answers are in text for now.",
               "preparing text-only copy changed")
-        check(failedLine == "Voice couldn't start, so your answer is in text. Retry in Voice settings.",
+        check(failedLine == "Voice couldn't start, so your answer is in text. Try again in voice settings.",
               "failure text-only copy changed")
         check(AgentVoiceAvailability.needsDownload.message
-              == "Your voice isn't on this Mac yet, so answers are in text. Voice settings.",
+              == "Your voice isn't on this Mac yet, so answers are in text. Open voice settings.",
               "missing voice copy contradicts automatic preparation")
         check(AgentVoiceAvailability.ready.message == nil, "ready still shows text-only notice")
         check(VoiceTextOnlyNoteLedger.claimIsland(preparingLine), "first state note hidden")

@@ -125,12 +125,12 @@ struct VoiceSettingsSection<Details: View>: View {
             switch availability {
             case .ready: return "\(base) · ready"
             case .preparing: return base
-            case .needsDownload: return "\(base) · not on this Mac yet"
+            case .needsDownload: return base
             case .failed: return "Couldn't start · tap Retry"
             }
         }
         if isPreparing(engine) { return "Getting ready…" }
-        return isReady(engine) ? "\(base) · ready" : "\(base) · not on this Mac yet"
+        return isReady(engine) ? "\(base) · ready" : base
     }
 
     /// Choosing a voice saves the choice at once, so what this screen shows is always the voice
@@ -171,20 +171,20 @@ struct VoiceSettingsSection<Details: View>: View {
                 .foregroundStyle(DS.Color.success)
         case .preparing(let progress):
             VStack(alignment: .leading, spacing: DS.Space.xs) {
-                // The page owns motion; this state illustration stays still.
-                LabeledOrb(
-                    state: .shaping,
-                    title: "Getting your voice ready…",
-                    detail: "The first time takes a few minutes. You can keep using Next Notes.",
-                    isAnimated: false
-                )
+                HStack(spacing: DS.Space.s) {
+                    ProgressView()
+                        .controlSize(.small)
+                        .accessibilityLabel("Getting your voice ready")
+                    Text("Getting your voice ready…")
+                        .font(DS.Font.callout)
+                }
+                Text("The first time takes a few minutes. You can keep using Next Notes.")
+                    .font(DS.Font.callout)
+                    .foregroundStyle(DS.Color.textSecondary)
                 if let progress {
                     ProgressView(value: progress)
                         .accessibilityLabel("Voice download")
                         .accessibilityValue("\(Int(progress * 100)) percent")
-                } else {
-                    ProgressView()
-                        .accessibilityLabel("Getting your voice ready")
                 }
             }
         case .needsDownload:

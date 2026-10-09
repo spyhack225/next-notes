@@ -7,7 +7,7 @@ import SwiftUI
 /// follows the live state: the moment the voice is ready it disappears, and it is shown once
 /// rather than under every answer.
 ///
-/// - `pane`: under the newest answer that went out as text only, with a way to Voice settings.
+/// - `pane`: under the newest answer that went out as text only, with a way to Open voice settings.
 /// - `island`: inside the notch reply card, once per state, in the card's own ink.
 ///
 /// Nothing here animates, so it adds nothing to the one orb a screen is allowed.
@@ -57,7 +57,7 @@ struct VoiceTextOnlyNote: View {
     }
 }
 
-/// The pane's version of the line: the sentence and a plain way to Voice settings.
+/// The pane's version of the line: the sentence and a plain way to Open voice settings.
 struct VoiceTextOnlyPaneLine: View {
     let text: String
     @Environment(\.openSettings) private var openSettings
@@ -80,13 +80,13 @@ struct VoiceTextOnlyPaneLine: View {
 
     // Render the destination as a real button, once, rather than duplicate its name.
     private var sentence: String {
-        let destination = text.hasSuffix("Retry in Voice settings.")
-            ? " Retry in Voice settings." : " Voice settings."
+        let destination = text.hasSuffix("Try again in voice settings.")
+            ? " Try again in voice settings." : " Open voice settings."
         return text.hasSuffix(destination) ? String(text.dropLast(destination.count)) : text
     }
 
     private var buttonTitle: String {
-        text.hasSuffix("Retry in Voice settings.") ? "Retry in Voice settings" : "Voice settings"
+        text.hasSuffix("Try again in voice settings.") ? "Try again in voice settings" : "Open voice settings"
     }
 }
 
@@ -100,7 +100,7 @@ struct VoiceTextOnlyIslandLine: View {
         VStack(alignment: .leading, spacing: DS.Space.xxs) {
             Text(sentence)
                 .fixedSize(horizontal: false, vertical: true)
-            Button("Voice settings") {
+            Button("Open voice settings") {
                 NavigationState.shared.selectedSettingsTab = .models
                 openSettings()
             }

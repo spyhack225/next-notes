@@ -11,8 +11,8 @@ enum AgentVoiceAvailability: Equatable, Sendable {
         switch self {
         case .ready: nil
         case .preparing: "Your voice is getting ready, so answers are in text for now."
-        case .needsDownload: "Your voice isn't on this Mac yet, so answers are in text. Voice settings."
-        case .failed: "Voice couldn't start, so your answer is in text. Retry in Voice settings."
+        case .needsDownload: "Your voice isn't on this Mac yet, so answers are in text. Open voice settings."
+        case .failed: "Voice couldn't start, so your answer is in text. Try again in voice settings."
         }
     }
 
