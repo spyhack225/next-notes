@@ -521,3 +521,19 @@ Source7 current acceptance, 2026-10-08: the minimal four-file live-ingest produc
 Resumed meeting acceptance, 2026-10-08: initial headroom checks refuse before launch; owned cleanup retires456,404,992 allocated bytes, with425,250,816-byte immediate root available-space gain. After the owner closes Chrome windows, native7 starts at62%/swap4.180GiB and proves single main compiler thread, but cleanly joins at3GB guard (peak3,165,213,472B). Independently reviewed compiler-only native8 raises charge cap to5GB with stronger start60/ongoing45/maxswap6/disk8 bounds; it also joins at the cap (peak5,011,527,872B). Both preserve owner8/source1176/protected cache; neither produces a candidate/native verdict/install. No further cap increase follows. Existing installeded67302f reopens asPID29701 after graceful idle UI quit; physical UI readback fails with a capture error. Repaired rollback and useful fifth/sixth comparisons, source/failure evidence, owner data/models remain. Read [the resumed check](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/source7/RESUMED-CHECK-20261008.md); retain exact refused and unrun scopes and share via agent-relay.
 
 Attributed meeting context, 2026-10-08: text-only duplicate detection erases matching words from another stored speaker/source. Exact actual Extractor apply/merge50 checks fail27 before and0 after; retained actual ContextStore/parser/apply/atomic save/fresh-reader15fixtures185checks pass with declared scripted boundaries. Root applies the three-file producer/same fixture/existingTopicMergehook, current1177pins. Duplicate attribution now requires text/source/storedspeaker; actual inferred-model-summary echoes and40-row bound remain. No new store/queue/pass/action authority or automatic person identity. Native current App/bus/complete factual notes/speed proof and installation remain pending; installeded67302f unchanged. Read [attribution evidence](Tests/Reports/meeting-reliability/2026-10-07-quality-loop/attributed-context-dedup/README.md); keep private payloads out of reports/relay and retain actual original/fixed scopes.
+
+Calendar evaluation clock, 9 October 2026: the canonical uncommitted ToolStepRunner
+change omits the pre-existing fixture-clock argument, selecting grounding's live Date()
+default. Owned native replay preserves the actual Qwen C01/Mini C04 completions and
+unchanged cases/grader: omitted-binding original WRONG_TOOL0/2 (dates9/10), repaired
+existing default-clock seam PASS2/2 (dates5/6). Unchanged worktree HEAD's explicit runner
+binding already passes those two cases; only its default grounder/account-floor probes
+fail4. Final source retains that binding and uses SelfTest.fixtureClock in the three
+default clock expressions. Midnight/DST/UTC and now-block/grader/production/manifest
+pass in one FIFO slot. One Mini debug quick control is9/10, C01/C04 PASS and A02 UNGROUNDED;
+prior installed7/10x3 is preserved, not regraded or promoted. Full/owner/model-repeat,
+optimized release/ASR/voice performance and historical installed source parity remain
+unproved. Extra isolation21files0defaults stays a snapshot witness; its nested A02
+fixtures are refused by the standalone-only guard, so their functional checks do not
+pass. No owner app/store/default change or new clock/store/await is added. Native pins,
+real markers, scope and cleanup are in [clock evidence](Tests/Reports/clockfix/2026-10-09/README.md).
