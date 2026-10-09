@@ -1,0 +1,18 @@
+{
+  "scope": "temporary removal ONLY of the newly added preference fixture call; all render assertions unchanged",
+  "head": "92d08ec15b781525022beef0a15e06df44598edd",
+  "original_sha256": "2b2036c980aaf3d19df27b3d3d35ce2eae4448eb78cd450469e646514ea66729",
+  "probe_sha256": "66797a8183cafb4e84f405c02584be4c3cca8e4873ed76fdfc700ce95e0d1b3d",
+  "restoration_required": true,
+  "second_probe": "original voice preference setter and initializer restored; unused pure helpers retained solely for compilation; new fixture call still absent",
+  "settings_probe_sha256": "486691656584b91f0ee1c65a70018a2af4284cfd96b583e86b4b7c629df1759d",
+  "restored": true,
+  "restored_app_sha256": "2b2036c980aaf3d19df27b3d3d35ce2eae4448eb78cd450469e646514ea66729",
+  "results": {
+    "fixture_call_omitted_attempt": 4,
+    "original_preference_contract_attempt": 5,
+    "both_exit": -11,
+    "both_marker_prefix": "SETTINGS_OK",
+    "cause": "not attributed; panels already release_on_close=false; crash persists independently of new preference fixture and voice setter/initializer"
+  }
+}

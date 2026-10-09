@@ -1,0 +1,314 @@
+[
+  {
+    "check": "producer-original-compile",
+    "attempt": 1,
+    "log": "producer-original-compile.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "producer-red",
+    "attempt": 1,
+    "log": "producer-red.log",
+    "exit": 1,
+    "expected_exit": 1,
+    "marker": "VOICE_PRODUCER_PROBE_FAILED: 9 assertions"
+  },
+  {
+    "check": "failed-readiness-original-compile",
+    "attempt": 1,
+    "log": "failed-readiness-original-compile.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "failed-readiness-red",
+    "attempt": 1,
+    "log": "failed-readiness-red.log",
+    "exit": 1,
+    "expected_exit": 1,
+    "marker": "VOICE_PRODUCER_PROBE_FAILED: 1 assertions"
+  },
+  {
+    "check": "producer-fixed-compile",
+    "attempt": 1,
+    "log": "producer-fixed-compile.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "producer-green",
+    "attempt": 1,
+    "log": "producer-green.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "VOICE_PRODUCER_PROBE_OK"
+  },
+  {
+    "check": "webrtc-build",
+    "attempt": 1,
+    "log": "webrtc-build.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "app-build",
+    "attempt": 1,
+    "log": "app-build.log",
+    "exit": 1,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "app-build",
+    "attempt": 2,
+    "log": "app-build-attempt-2.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": " 31 |             return marker + \"_FAILED: capture fixture absent\""
+  },
+  {
+    "check": "tts",
+    "attempt": 1,
+    "log": "tts.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "TTS_OK"
+  },
+  {
+    "check": "tts-stream",
+    "attempt": 1,
+    "log": "tts-stream.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "TTS_TOKEN_STREAM_OK"
+  },
+  {
+    "check": "voice-conversation",
+    "attempt": 1,
+    "log": "voice-conversation.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "VOICE_CONVERSATION_OK"
+  },
+  {
+    "check": "voice-delivery",
+    "attempt": 1,
+    "log": "voice-delivery.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "VOICE_DELIVERY_OK"
+  },
+  {
+    "check": "voice-scheduling",
+    "attempt": 1,
+    "log": "voice-scheduling.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "VOICE_SCHEDULING_OK"
+  },
+  {
+    "check": "duplex",
+    "attempt": 1,
+    "log": "duplex.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "DUPLEX_OK"
+  },
+  {
+    "check": "concurrent-voice",
+    "attempt": 1,
+    "log": "concurrent-voice.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "CONCURRENT_VOICE_OK"
+  },
+  {
+    "check": "voice-turn-routing",
+    "attempt": 1,
+    "log": "voice-turn-routing.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "VOICE_TURN_ROUTING_OK"
+  },
+  {
+    "check": "catch-up",
+    "attempt": 1,
+    "log": "catch-up.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "CATCH_UP_OK"
+  },
+  {
+    "check": "settings",
+    "attempt": 1,
+    "log": "settings.log",
+    "exit": -11,
+    "expected_exit": 0,
+    "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host"
+  },
+  {
+    "check": "ui-strings",
+    "attempt": 1,
+    "log": "ui-strings.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "UI_STRINGS_OK"
+  },
+  {
+    "check": "store-isolation",
+    "attempt": 1,
+    "log": "store-isolation.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged"
+  },
+  {
+    "check": "voice-playback-projection",
+    "attempt": 1,
+    "log": "voice-playback-projection.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "VOICE_PLAYBACK_PROJECTION_OK: 33 checks"
+  },
+  {
+    "check": "voice-playback-resume-receipt",
+    "attempt": 1,
+    "log": "voice-playback-resume-receipt.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "VOICE_PLAYBACK_RESUME_RECEIPT_OK: 48 checks"
+  },
+  {
+    "check": "apple-resume-owner",
+    "attempt": 1,
+    "log": "apple-resume-owner.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "APPLE_RESUME_OWNER_OK: 52 simulated PCM checks; native playback unverified"
+  },
+  {
+    "check": "apple-playback-timeline",
+    "attempt": 1,
+    "log": "apple-playback-timeline.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "APPLE_PLAYBACK_TIMELINE_OK: 52 simulated PCM checks; native playback unverified"
+  },
+  {
+    "check": "settings",
+    "attempt": 2,
+    "log": "settings-attempt-2.log",
+    "exit": -11,
+    "expected_exit": 0,
+    "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host"
+  },
+  {
+    "check": "task-authority",
+    "attempt": 1,
+    "log": "task-authority.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "TASK_AUTHORITY_OK: 63 cases"
+  },
+  {
+    "check": "app-build",
+    "attempt": 3,
+    "log": "app-build-attempt-3.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "settings",
+    "attempt": 3,
+    "log": "settings-attempt-3.log",
+    "exit": -11,
+    "expected_exit": 0,
+    "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host"
+  },
+  {
+    "check": "apple-resume-owner",
+    "attempt": 2,
+    "log": "apple-resume-owner-attempt-2.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "APPLE_RESUME_OWNER_OK: 53 simulated PCM checks; native playback unverified"
+  },
+  {
+    "check": "apple-playback-timeline",
+    "attempt": 2,
+    "log": "apple-playback-timeline-attempt-2.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "APPLE_PLAYBACK_TIMELINE_OK: 53 simulated PCM checks; native playback unverified"
+  },
+  {
+    "check": "app-build",
+    "attempt": 4,
+    "log": "app-build-attempt-4.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "settings",
+    "attempt": 4,
+    "log": "settings-attempt-4.log",
+    "exit": -11,
+    "expected_exit": 0,
+    "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host"
+  },
+  {
+    "check": "app-build",
+    "attempt": 5,
+    "log": "app-build-attempt-5.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "settings",
+    "attempt": 5,
+    "log": "settings-attempt-5.log",
+    "exit": -11,
+    "expected_exit": 0,
+    "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host"
+  },
+  {
+    "check": "app-build",
+    "attempt": 6,
+    "log": "app-build-attempt-6.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "tts",
+    "attempt": 2,
+    "log": "tts-attempt-2.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "TTS_OK"
+  },
+  {
+    "check": "settings",
+    "attempt": 6,
+    "log": "settings-attempt-6.log",
+    "exit": -11,
+    "expected_exit": 0,
+    "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host"
+  },
+  {
+    "check": "store-isolation",
+    "attempt": 2,
+    "log": "store-isolation-attempt-2.log",
+    "exit": 0,
+    "expected_exit": 0,
+    "marker": "STORE_ISOLATION_OK: 21 files and 0 defaults unchanged"
+  }
+]

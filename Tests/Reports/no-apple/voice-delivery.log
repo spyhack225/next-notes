@@ -1,0 +1,399 @@
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0160549879074097 canonicalWindow=false inputPending=false queuedInput=false
+APPROVAL_PLANNER_INPUT mode=phrase-preemption call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=phrase-preemption call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+OUTPUT_PHRASE_REAL_APPROVAL_LATE sameOutput=true sameNativeGeneration=true samePlaybackToken=true approvalOutputMatches=true approvalGenerationMatches=true sameGate=true heardStart=false heardFully=false spokenCount=1 expectedClauseCount=2 firstWholePrompt=false firstAuthoredClause=true activeClause=true queuedClauses=1 isSpeaking=true resultPending=true resultDelivering=false resultDelivered=false phraseCancelled=true nativeCancelled=true phraseOwnerAbsent=true fires=0
+OUTPUT_PHRASE_REAL_APPROVAL_FINAL fullPromptWords=true exactClauses=true spokenCount=2 expectedClauseCount=2 heardStart=true heardFully=true sameGate=true activeClause=false queuedClauses=0 fires=0
+OUTPUT_PHRASE_REAL_APPROVAL checks=9 calls=1 nativeJoined=true phraseJoined=true workerJoined=true fires=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=acknowledge replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=acknowledge checks=12 entered=1 ended=1 callback=1 primaryStatus=completed delivery=delivered attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=userBarge replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=userBarge checks=11 entered=1 ended=1 callback=1 primaryStatus=completed delivery=deliveredInContext attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=provisional replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=provisional checks=12 entered=1 ended=1 callback=1 primaryStatus=completed delivery=pending attempts=1 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=retry replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=retry checks=15 entered=1 ended=1 callback=1 primaryStatus=completed delivery=delivered attempts=1 phyTASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+sicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=closePending replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=closePending checks=12 entered=1 ended=1 callback=1 primaryStatus=completed delivery=pending attempts=1 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=closeHeard replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=after completed=0 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=closeHeard checks=12 entered=1 ended=1 callback=1 primaryStatus=completed delivery=delivered attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=rejectedDelivery replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=rejectedDelivery checks=6 entered=1 ended=1 callback=1 primaryStatus=completed delivery=unknown attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=restart replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=restart checks=12 entered=1 ended=1 callback=1 primaryStatus=completed delivery=pending attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=statusConsume replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=statusConsume checks=8 entered=1 ended=1 callback=1 primaryStatus=completed delivery=consumedByStatus attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeakiTASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+ng=false
+OUTPUT_SCHEDULER_INTAKE mode=statusRefusal replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=1 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=2 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=statusRefusal checks=7 entered=1 ended=1 callback=1 primaryStatus=completed delivery=delivered attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=answerUnheard replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+VOICE_SESSION_DIVERGENCE: field=output event=committed reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#30, kind: NextNotes.OutputKind.delivery([task#6F957EFB]), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false, resumeToken: nil, resumePhase: nil))
+VOICE_SESSION_DIVERGENCE: field=output event=decisionMade reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#30, kind: NextNotes.OutputKind.delivery([task#6F957EFB]), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false, resumeToken: nil, resumePhase: nil))
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=answerUnheard checks=17 entered=1 ended=1 callback=1 primaryStatus=completed delivery=delivered attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=answerHeard replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+VOICE_SESSION_DIVERGENCE: field=output event=committed reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#34, kind: NextNotes.OutputKind.delivery([task#F5B643B3]), status: NextNotes.VoiceSessionState.Output.Status.playing, heard: true, resumeToken: nil, resumePhase: nil))
+VOICE_SESSION_DIVERGENCE: field=output event=decisionMade reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#34, kind: NextNotes.OutputKind.delivery([task#F5B643B3]), status: NextNotes.VoiceSessionState.Output.Status.playing, heard: true, resumeToken: nil, resumePhase: nil))
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=answerHeard checks=16 entered=1 ended=1 callback=1 primaryStatus=completed delivery=deliveredInContext attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUTASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+T_SCHEDULER_INTAKE mode=answerRefused replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+VOICE_SESSION_DIVERGENCE: field=output event=committed reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#37, kind: NextNotes.OutputKind.delivery([task#6198DA8C]), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false, resumeToken: nil, resumePhase: nil))
+VOICE_SESSION_DIVERGENCE: field=output event=decisionMade reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#37, kind: NextNotes.OutputKind.delivery([task#6198DA8C]), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false, resumeToken: nil, resumePhase: nil))
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=answerRefused checks=18 entered=1 ended=1 callback=1 primaryStatus=completed delivery=delivered attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=answerUncommitted replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+VOICE_SESSION_DIVERGENCE: field=output event=outputQueued reducer=Optional(NextNotes.VoiceSessionState.Output(id: output#41, kind: NextNotes.OutputKind.delivery([task#305F3241]), status: NextNotes.VoiceSessionState.Output.Status.playing, heard: true, resumeToken: nil, resumePhase: nil)) legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#42, kind: NextNotes.OutputKind.delivery([]), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false, resumeToken: nil, resumePhase: nil))
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+VOICE_SESSION_DIVERGENCE: field=output event=inputWithdrawn reducer=Optional(NextNotes.VoiceSessionState.Output(id: output#41, kind: NextNotes.OutputKind.delivery([task#305F3241]), status: NextNotes.VoiceSessionState.Output.Status.playing, heard: true, resumeToken: nil, resumePhase: nil)) legacy=nil
+OUTPUT_SCHEDULER_TRACE mode=answerUncommitted checks=16 entered=1 ended=1 callback=1 primaryStatus=completed delivery=pending attempts=1 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_INTAKE mode=answerHeardRefused replyMatches=true enteredOne=true endedZero=true primaryRunning=true originMatches=true wordsMatch=true audioQuiet=true synthQuiet=true deliveryAbsent=true hasClause=false backingSpeaking=false
+VOICE_SESSION_DIVERGENCE: field=output event=committed reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#44, kind: NextNotes.OutputKind.delivery([task#8A2B9927]), status: NextNotes.VoiceSessionState.Output.Status.playing, heard: true, resumeToken: nil, resumePhase: nil))
+VOICE_SESSION_DIVERGENCE: field=output event=decisionMade reducer=nil legacy=Optional(NextNotes.VoiceSessionState.Output(id: output#44, kind: NextNotes.OutputKind.delivery([task#8A2B9927]), status: NextNotes.VoiceSessionState.Output.Status.playing, heard: true, resumeToken: nil, resumePhase: nil))
+OUTPTASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+UT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_DRAIN phase=after completed=0 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_TRACE mode=answerHeardRefused checks=18 entered=1 ended=1 callback=1 primaryStatus=completed delivery=deliveredInContext attempts=0 physicalAudio=false
+OUTPUT_SCHEDULER_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_DRAIN phase=after completed=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=before hasClause=true queued=2 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=after ended=3 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_PARENT_TRACE mode=chronology checks=6 pending=0 physicalAudio=false
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=before hasClause=true queued=7 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=after ended=8 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=before hasClause=true queued=1 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=after ended=2 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_PARENT_TRACE mode=countBound checks=7 pending=0 physicalAudio=false
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=before hasClause=true queued=1 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=after ended=2 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=before hasClause=true queued=0 synthSpeaking=true backingSpeaking=true
+OUTPUT_SCHEDULER_PARENT_DRAIN phase=after ended=1 hasClause=false queued=0 synthSpeaking=false backingSpeaking=false
+OUTPUT_SCHEDULER_PARENT_TRACE mode=characterBound checks=7 pending=0 physicalAudio=false
+OUTPUT_SCHEDULER_PARENT_EXPIRY mode=expiredCarry phase=beforeSessionOpen hasFinishedAt=true ageSeconds=43201.0 expiryThresholdExceeded=true clockAfterFinished=true retainedState=pending
+OUTPUT_SCHEDULER_PARENT_EXPIRY mode=expiredCarry phase=afterSessionOpen hasFinishedAt=true ageSeconds=43201.0 expiryThresholdExceeded=true clockAfterFinished=true retainedState=silent
+OUTPUT_SCHEDULER_PARENT_TRACE mode=expiredCarry checks=5 pending=0 physicalAudio=false
+OUTPUT_SCHEDULER_PARENT_EXPIRY mode=expiryRefusal phase=beforeSessionOpen hasFinishedAt=true ageSeconds=43201.0 expiryThresholdExceeded=true clockAfterFinished=true retainedState=pending
+OUTPUT_SCHEDULER_PARENT_EXPIRY mode=expiryRefusal phase=afterSessionOpen hasFinishedAt=true ageSeconds=43201.0 expiryThresholdExceeded=true clockAfterFinished=true retainedState=pending
+OUTPUT_SCHEDULER_PARENT_EXPIRY mode=expiryRefusal phase=beforeAdmissionRetry hasFinishedAt=true ageSeconds=43200.09137201309 expiryThresholdExceeded=true clockAfterFinished=true retainedState=pending
+OUTPUT_SCHEDULER_PARENT_EXPIRY mode=expiryRefusal phase=afterAdmissionRetry hasFinishedAt=true ageSeconds=43200.09137201309 expiryThresholdExceeded=true clockAfterFinished=true retainedState=silent
+OUTPUT_SCHEDULER_PARENT_TRACE mode=expiryRefusal checks=5 pending=0 physicalAudio=false
+VOICE_OUTCOME_INTAKE mode=completed onIt=true jobs=1 providerCalls=0 parked=false
+VOICE_OUTCOME_SHAPE mode=completed readerWindow=8192 selectedRead=true oldGrammarMatch=false correctedGrammarMatch=true correctedParsedRead=true
+VOICE_OUTCOME_BOUNDARY mode=completed tracedRounds=2 tracedReads=1 matchedGrammar=2 rejectedCalls=0 backingEntries=1 resultExpected=true resultQuestion=false resultHasCallMarkup=false matchedReadText=true
+VOICE_OUTCOME_CASE mode=completed checks=7 calls=2 backing=1 status=completed
+VOICE_OUTCOME_INTAKE mode=model-failed onIt=true jobs=1 providerCalls=0 parked=faTASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+lse
+VOICE_OUTCOME_SHAPE mode=model-failed readerWindow=8192 selectedRead=true oldGrammarMatch=false correctedGrammarMatch=true correctedParsedRead=true
+VOICE_OUTCOME_BOUNDARY mode=model-failed tracedRounds=0 tracedReads=0 matchedGrammar=0 rejectedCalls=0 backingEntries=0 resultExpected=false resultQuestion=false resultHasCallMarkup=false matchedReadText=false
+VOICE_OUTCOME_CASE mode=model-failed checks=7 calls=1 backing=0 status=failed
+VOICE_OUTCOME_INTAKE mode=tool-failed onIt=true jobs=1 providerCalls=0 parked=false
+VOICE_OUTCOME_SHAPE mode=tool-failed readerWindow=8192 selectedRead=true oldGrammarMatch=false correctedGrammarMatch=true correctedParsedRead=true
+VOICE_OUTCOME_BOUNDARY mode=tool-failed tracedRounds=1 tracedReads=1 matchedGrammar=1 rejectedCalls=0 backingEntries=1 resultExpected=false resultQuestion=false resultHasCallMarkup=false matchedReadText=false
+VOICE_OUTCOME_CASE mode=tool-failed checks=7 calls=1 backing=0 status=failed
+VOICE_OUTCOME_INTAKE mode=question onIt=true jobs=1 providerCalls=0 parked=false
+VOICE_OUTCOME_SHAPE mode=question readerWindow=8192 selectedRead=true oldGrammarMatch=false correctedGrammarMatch=true correctedParsedRead=true
+VOICE_OUTCOME_BOUNDARY mode=question tracedRounds=1 tracedReads=0 matchedGrammar=1 rejectedCalls=0 backingEntries=0 resultExpected=false resultQuestion=true resultHasCallMarkup=false matchedReadText=false
+VOICE_STATUS_COPY scope=outputQuestion mode=question legacy=false named=true sameCalls=true companion=true rowsMatch=true rowsUnchanged=true
+VOICE_QUESTION_RESUME_ROWS mode=question retained=2 expected=2 live=1 exactIDs=true
+VOICE_OUTCOME_CASE mode=question checks=22 calls=1 backing=1 status=completed
+VOICE_OUTCOME_INTAKE mode=question-save-refused onIt=true jobs=1 providerCalls=0 parked=false
+VOICE_OUTCOME_SHAPE mode=question-save-refused readerWindow=8192 selectedRead=true oldGrammarMatch=false correctedGrammarMatch=true correctedParsedRead=true
+VOICE_OUTCOME_BOUNDARY mode=question-save-refused tracedRounds=1 tracedReads=0 matchedGrammar=1 rejectedCalls=0 backingEntries=0 resultExpected=false resultQuestion=false resultHasCallMarkup=false matchedReadText=false
+VOICE_OUTCOME_CASE mode=question-save-refused checks=7 calls=1 backing=0 status=running
+VOICE_OUTCOME_INTAKE mode=answer-save-refused onIt=true jobs=1 providerCalls=0 parked=false
+VOICE_OUTCOME_SHAPE mode=answer-save-refused readerWindow=8192 selectedRead=true oldGrammarMatch=false correctedGrammarMatch=true correctedParsedRead=true
+VOICE_OUTCOME_BOUNDARY mode=answer-save-refused tracedRounds=1 tracedReads=0 matchedGrammar=1 rejectedCalls=0 backingEntries=0 resultExpected=false resultQuestion=true resultHasCallMarkup=false matchedReadText=false
+VOICE_STATUS_COPY scope=outputQuestion mode=answer-save-refused legacy=false named=true sameCalls=true companion=false rowsMatch=true rowsUnchanged=true
+VOICE_QUESTION_RESUME_ROWS mode=answer-save-refused retained=1 expected=1 live=1 exactIDs=true
+VOICE_OUTCOME_CASE mode=answer-save-refused checks=21 calls=1 backing=1 status=completed
+VOICE_OUTCOME_INTAKE mode=question-cancel onIt=true jobs=1 providerCalls=0 parked=false
+VOICE_OUTCOME_SHAPE mode=question-cancel readerWindow=8192 selectedRead=true oldGrammarMatch=false correctedGrammarMatch=true correctedParsedRead=true
+VOICE_OUTCOME_BOUNDARY mode=question-cancel tracedRounds=1 tracedReads=0 matchedGrammar=1 rejectedCalls=0 backingEntries=0 resultExpected=false resultQuestion=true resultHasCallMarkup=false matchedReadText=false
+VOICE_STATUS_COPY scope=outputQuestion mode=question-cancel legacy=false named=true sameCalls=true companion=false rowsMatch=true rowsUnchanged=true
+VOICE_OUTCOME_CASE mode=question-cancel checks=14 calls=1 backing=0 status=cancelled
+APPROVAL_PLANNER_INPUT mode=yes call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=yes call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=yes gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false follAPPROVAL_WINDOW_METADATA quietSeconds=2.0111230611801147 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.010882019996643 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0112169981002808 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0116469860076904 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0113120079040527 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0113760232925415 canonicalWindow=true inputPending=false queuedInput=false
+owUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+APPROVAL_PLANNER_INPUT mode=yes call=2 first=false containsAmendment=false containsOwnResult=true containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=yes call=2 currentAmendment=false currentAuthoredObjective=true ownResultSection=true
+SPOKEN_APPROVAL_CASE mode=yes checks=7 fired=1 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=unheard call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=unheard call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=unheard gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=unheard checks=8 fired=0 onset=false contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=unavailableVoice call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=unavailableVoice call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=unavailableVoice gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=unavailableVoice checks=8 fired=0 onset=false contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=failedVoice call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=failedVoice call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=failedVoice gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=failedVoice checks=8 fired=0 onset=false contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=no call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=no call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=no gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=no checks=7 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=hold call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=hold call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=hold gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=hold checks=8 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=card call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=card call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=card gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+APPROVAL_PLANNER_INPUT mode=card call=2 first=false containsAmendment=false containsOwnResult=true containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=card call=2 currentAmendment=false currentAuthoredObjective=true ownResultSection=true
+SPOKEN_APPROVAL_CASE mode=card checks=7 fired=1 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=edited call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+AVOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.011367917060852 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0113139152526855 canonicalWindow=true inputPending=false queuedInput=false
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0110119581222534 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0119279623031616 canonicalWindow=true inputPending=false queuedInput=false
+APPROVAL_WINDOW_METADATA quietSeconds=0.3500000238418579 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0116560459136963 canonicalWindow=true inputPending=false queuedInput=false
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+PPROVAL_PLANNER_SCOPE mode=edited call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=edited gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=edited checks=7 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=refused call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=refused call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=refused gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=refused checks=8 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=amend call=1 first=true containsAmendment=false containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=amend call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=amend gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+APPROVAL_PLANNER_INPUT mode=amend call=2 first=false containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=amend call=2 currentAmendment=true currentAuthoredObjective=true ownResultSection=false
+SPOKEN_APPROVAL_CASE mode=amend checks=7 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=close call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=close call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=close gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+APPROVAL_SESSION_METADATA stage=closed pendingMatches=true firesZero=true heardStart=false retainedTask=true activeOutput=false
+APPROVAL_SESSION_METADATA stage=reopened pendingMatches=true recipientMatches=true currentProposal=true flushed=true retainedTask=true
+SPOKEN_APPROVAL_CASE mode=close checks=8 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=mismatch call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=mismatch call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=mismatch gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+APPROVAL_PLANNER_INPUT mode=mismatch call=2 first=false containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=mismatch call=2 currentAmendment=true currentAuthoredObjective=true ownResultSection=false
+SPOKEN_APPROVAL_CASE mode=mismatch checks=9 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=staleCaller call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=staleCaller call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=staleCaller gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_STALE_CALLER observed=1 matched=0 generationChanged=true physical=false
+APPROVAL_PLANNER_INPUT mode=stalePresented call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=stalePresented call=1 cVOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0115760564804077 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0119130611419678 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0116289854049683 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0113329887390137 canonicalWindow=true inputPending=false queuedInput=false
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0111570358276367 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0114989280700684 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+urrentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=stalePresented gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+APPROVAL_PLANNER_INPUT mode=staleHeard call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=staleHeard call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=staleHeard gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=staleHeard checks=9 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=model-yes call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=model-yes call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=model-yes gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+APPROVAL_PLANNER_INPUT mode=model-yes call=2 first=false containsAmendment=true containsOwnResult=true containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=model-yes call=2 currentAmendment=false currentAuthoredObjective=true ownResultSection=true
+SPOKEN_APPROVAL_CASE mode=model-yes checks=9 fired=1 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=model-negative call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=model-negative call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=model-negative gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=model-negative checks=11 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=model-refused call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=model-refused call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=model-refused gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=model-refused checks=11 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=model-stale call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=model-stale call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=model-stale gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+SPOKEN_APPROVAL_CASE mode=model-stale checks=11 fired=0 onset=true contextRejected=false physical=false
+APPROVAL_PLANNER_INPUT mode=model-change call=1 first=true containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=model-change call=1 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+APPROVAL_KEY_PROVENANCE mode=model-change gateEscape=true gateTab=false workOriginalAuthored=true workPromptAmendment=false followUps=0 workRevision=0 taskMatched=true ready=true fires=0 cancelled=false
+APPROVAL_PLANNER_INPUT mode=model-change call=2 first=false containsAmendment=true containsOwnResult=false containsAuthoredObjective=true
+APPROVAL_PLANNER_SCOPE mode=model-change call=2 currentAmendment=false currentAuthoredObjective=true ownResultSection=false
+SPOKEVOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0121599435806274 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.012444019317627 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.027953028678894 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.013406991958618 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0127480030059814 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0132789611816406 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.012809991836548 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.0000170469284058 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.000018000602722 canonicalWindow=true inputPending=false queuedInput=false
+VOICE_APPROVAL_ROW_METADATA toolMissing=false toolMatches=true taskMatches=true reviewMatches=true
+APPROVAL_WINDOW_METADATA quietSeconds=2.000016927719116 canonicalWindow=true inputPending=false queuedInput=false
+N_APPROVAL_CASE mode=model-change checks=11 fired=0 onset=true contextRejected=false physical=false
+SPOKEN_APPROVAL_MODEL_CHECKS count=53 problems=0 legacyModeChecks=118
+SPOKEN_SEND_CASE mode=full checks=7 fireCount=1 sameBody=true physical=false account=false
+SPOKEN_SEND_CASE mode=partial checks=8 fireCount=0 sameBody=false physical=false account=false
+SPOKEN_SEND_CASE mode=long checks=8 fireCount=0 sameBody=false physical=false account=false
+SPOKEN_SEND_CASE mode=unsafe checks=8 fireCount=0 sameBody=false physical=false account=false
+SPOKEN_SEND_CASE mode=edited checks=8 fireCount=0 sameBody=false physical=false account=false
+SPOKEN_SEND_CASE mode=card checks=7 fireCount=1 sameBody=true physical=false account=false
+SPOKEN_SEND_CASE mode=no checks=7 fireCount=0 sameBody=false physical=false account=false
+SPOKEN_DECLARED_RISK mode=destructive-executor sameGate=true fires=0 realPlanner=false browserBinding=false installedPrivileged=false voiceAuthority=false
+SPOKEN_DECLARED_RISK mode=purchase-policy-only sameGate=true fires=0 realPlanner=false browserBinding=false installedPrivileged=false voiceAuthority=false
+SPOKEN_DECLARED_RISK mode=privileged-declared-only sameGate=true fires=0 realPlanner=false browserBinding=false installedPrivileged=false voiceAuthority=false
+SPOKEN_MANAGED_RISK mode=destructive-executor checks=10 fires=0 realPlanner=false browserBinding=false installedPrivileged=false physical=false
+SPOKEN_MANAGED_RISK mode=purchase-policy-only checks=10 fires=0 realPlanner=false browserBinding=false installedPrivileged=false physical=false
+SPOKEN_MANAGED_RISK mode=privileged-declared-only checks=10 fires=0 realPlanner=false browserBinding=false installedPrivileged=false physical=false
+OUTPUT_PHRASE_CLAUSE_METADATA mode=result firstAuthored=true spokenCount=1 expectedClauseCount=1 queuedClauses=0 activeClause=true fullAnswerAlreadySpoken=true
+OUTPUT_PHRASE_FINAL_AUDIO mode=result drained=true actualClauseCount=1 callerEntered=true fullAuthoredWordsEqual=true
+OUTPUT_PHRASE_CASE mode=result checks=7 calls=1 tokens120=true elapsed=0.005292125 seconds physicalAudio=false
+OUTPUT_PHRASE_CLAUSE_METADATA mode=batch firstAuthored=true spokenCount=1 expectedClauseCount=2 queuedClauses=1 activeClause=true fullAnswerAlreadySpoken=false
+OUTPUT_PHRASE_FINAL_AUDIO mode=batch drained=true actualClauseCount=2 callerEntered=true fullAuthoredWordsEqual=true
+OUTPUT_PHRASE_CASE mode=batch checks=8 calls=1 tokens120=true elapsed=0.00545325 seconds physicalAudio=false
+OUTPUT_PHRASE_CLAUSE_METADATA mode=carry firstAuthored=true spokenCount=1 expectedClauseCount=1 queuedClauses=0 activeClause=true fullAnswerAlreadySpoken=true
+OUTPUT_PHRASE_FINAL_AUDIO mode=carry drained=true actualClauseCount=1 callerEntered=true fullAuthoredWordsEqual=true
+OUTPUT_PHRASE_CASE mode=carry checks=8 calls=1 tokens120=true elapsed=0.005167125 seconds physicalAudio=false
+OUTPUT_PHRASE_CLAUSE_METADATA mode=failure firstAuthored=true spokenCount=1 expectedClauseCount=1 queuedClauses=0 activeClause=true fullAnswerAlreadySpoken=true
+OUTPUT_PHRASE_FINAL_AUDIO mode=failure drained=true actualClauseCount=1 callerEntered=true fullAuthoredWordsEqual=true
+OUTPUT_PHRASE_CASE mode=failure checks=8 calls=1 tokens120=true elapsed=0.005350875 seconds physicalAudio=false
+OUTPUT_PHRASE_FINAL_AUDIO mode=unavailable drained=true actualClauseCount=1 callerEntered=false fullAuthoredWordsEqual=false
+OUTPUT_PHRASE_CASE mode=unavailable checks=6 calls=0 tokens120=true elapsed=0.003930667 seconds physicalAudio=false
+OUTPUT_PHRASE_FINAL_AUDIO mode=unsafe drained=true actualClauseCount=1 callerEntered=true fullAuthoredWordsEqual=false
+OUTPUT_PHRASE_CASE mode=unsafe checks=6 calls=1 tokens120=true elapsed=0.004865 seconds physicalAudio=false
+OUTPUT_PHRASE_FINAL_AUDIO mode=error drained=true actualClauseCount=1 callerEntered=true fullAuthoredWordsEqual=false
+OUTPUT_PHRASE_CASE mode=error checks=6 calls=1 tokens120=true elapsed=0.004819333 seconds physicalAudio=false
+OUTPUT_PHRASE_FINAL_AUDIO mode=timeout drained=true actualClauseCount=1 callerEntered=true fullAuthoredWordsEqual=false
+OUTPUVOICE_DELIVERY_OK
+T_PHRASE_CASE mode=timeout checks=7 calls=1 tokens120=true elapsed=1.513223209 seconds physicalAudio=false
+OUTPUT_PHRASE_FINAL_AUDIO mode=question drained=true actualClauseCount=1 callerEntered=false fullAuthoredWordsEqual=false
+OUTPUT_PHRASE_CASE mode=question checks=5 calls=0 tokens120=true elapsed=0.00621725 seconds physicalAudio=false
+OUTPUT_APPLE_ROUTE_OWNERSHIP checks=7 externalCalls=2 nativeKernelEvidence=false
+OUTPUT_PHRASE_RACE checks=7 generatorCalls=2 requestCaptures=2 phraseCaptures=1 nativeKernelEvidence=false
+VOICE_CANCELLED_DRAIN checks=6 failures=0 nativeKernelEvidence=false
+OUTPUT_SCHEDULER_RESULT checks=750 problems=0
+VOICE_SESSION_DIVERGENCE: field=output event=inputWithdrawn reducer=Optional(NextNotes.VoiceSessionState.Output(id: output#170, kind: NextNotes.OutputKind.delivery([]), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false, resumeToken: nil, resumePhase: nil)) legacy=nil
+OUTPUT_TOKEN_ASSERT label=C01_tracker_real_answer passed=true
+OUTPUT_TOKEN_ASSERT label=C02_real_sessionless_replacement passed=true
+OUTPUT_TOKEN_ASSERT label=C03_actual_frontend_row passed=true
+OUTPUT_TOKEN_ASSERT label=C04_old_callback_refused_current_callback_completed passed=true
+OUTPUT_TOKEN_ASSERT label=F01_answer_not_bound_to_notice passed=true
+OUTPUT_TOKEN_ASSERT label=F02_context_not_attributed_to_notice passed=true
+OUTPUT_TOKEN_ASSERT label=C05_actual_late_tracker_owner passed=true
+OUTPUT_TOKEN_ASSERT label=C06_actual_late_model_drain passed=true
+OUTPUT_TOKEN_ASSERT label=F03_old_tracker_append_refused passed=true
+OUTPUT_TOKEN_ASSERT label=C07_late_append_does_not_mint passed=true
+OUTPUT_TOKEN_ASSERT label=C08_two_streams_partial_not_queued passed=true
+OUTPUT_TOKEN_ASSERT label=F04_old_handle_finish_refused passed=true
+OUTPUT_TOKEN_ASSERT label=C09_successor_same_generation_drained passed=true
+OUTPUT_TOKEN_ASSERT label=F05_successor_buffer_preserved passed=true
+VOICE_SESSION_DIVERGENCE: field=output event=inputWithdrawn reducer=Optional(NextNotes.VoiceSessionState.Output(id: output#176, kind: NextNotes.OutputKind.delivery([]), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false, resumeToken: nil, resumePhase: nil)) legacy=nil
+OUTPUT_TOKEN_ASSERT label=C10_actual_cancel_overlap passed=true
+OUTPUT_TOKEN_ASSERT label=F06_old_tracker_cancel_refused passed=true
+OUTPUT_TOKEN_ASSERT label=C11_real_superseded_frontend_owner passed=true
+OUTPUT_TOKEN_ASSERT label=F07_stale_fixed_reply_refused_before_mutation passed=true
+OUTPUT_TOKEN_ASSERT label=C12_actual_old_minted_capability passed=true
+OUTPUT_TOKEN_ASSERT label=F08_old_begin_capability_refused passed=true
+VOICE_SESSION_DIVERGENCE: field=output event=inputWithdrawn reducer=Optional(NextNotes.VoiceSessionState.Output(id: output#181, kind: NextNotes.OutputKind.delivery([]), status: NextNotes.VoiceSessionState.Output.Status.queued, heard: false, resumeToken: nil, resumePhase: nil)) legacy=nil
+OUTPUT_TOKEN_ASSERT label=C13_session_closed_before_schedule passed=true
+OUTPUT_TOKEN_ASSERT label=C14_sessionless_normal_consumer passed=true
+OUTPUT_TOKEN_ASSERT label=C15_all_owned_recording_callbacks_drained passed=true
+OUTPUT_TOKEN_TRACE checks=23 failures=0 recordingOnly=true nativeAudibility=false
+VOICE_DELIVERY_OK
