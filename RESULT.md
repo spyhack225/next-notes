@@ -1,3 +1,28 @@
+# voice-settings-ui round 4
+
+Own branch `claude2/voice-settings-ui`; implementation/test commit **6e374bb4**, followed by the evidence/report commit. The shared availability-message producer and Voice section presentation caused the stale action wording, duplicate missing-download labels and two preparation indicators. Updated the producer copy and its real pane/notch consumers; removed tile missing-download wording and replaced the still orb plus separate spinner with one inline spinner. Existing Retry already has native prominent/accent styling and remains so. Selection/recovery/epoch wiring is untouched.
+
+Same updated source fixture: original `09b686d1` **VOICE_SETTINGS_REVIEW_FAILED: 5** (exit 1) -> fixed **VOICE_SETTINGS_REVIEW_OK** (exit 0). Existing nine wiring contracts: **VOICE_SETTINGS_WIRING_OK** (exit 0). Original native UI was not rebuilt; four retained round-three PNGs visually confirm the original findings.
+
+One normal heavy.sh FIFO slot: WebRTC and debug build exit 0, `Build complete! (277.33 sec)`; compiler duration is not product latency. Wrapper exit **1**, because Settings prints its OK marker then exits **-11** again. This is the inherited failed process, with no crash-cause claim. Voice Settings/UI strings/preview exit 0. All 844 built Sources pins match current source; no product source changed after build.
+
+| Check | Process exit | Exact final root marker |
+| --- | --- | --- |
+| `webrtc-build` | 0 | `NO_FINAL_MARKER` |
+| `build` | 0 | `NO_FINAL_MARKER` |
+| `voice-settings` | 0 | `VOICE_SETTINGS_OK` |
+| `ui-strings` | 0 | `UI_STRINGS_OK` |
+| `settings` | -11 | `SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host` |
+| `preview` | 0 | `VOICE_SETTINGS_PREVIEW_OK /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/Tests/Reports/voice-settings-ui/round4/shots` |
+
+All eleven PNGs inspected. Four requested copy/layout findings are visually corrected; both preparation states and the real Models page show one inline spinner. Inactive native Retry remains gray despite `.borderedProminent` plus accent tint. **Active prominence is unverified**, and no diagnostic paint was added. Actual animation/click-through, live notch truncation, VoiceOver/accessibility toggles, real downloads/offline recovery, physical speech and release/full-duplex performance are unverified. The existing native fixture substitutes hardware/model synthesis boundaries, exercises actual selection/retry owners, and passes its original recovery/epoch cases plus changed copy assertions.
+
+Assigned scratch and private TMPDIR are deleted; see cleanup.json. Foreign files/processes/claims, shared scratch and owner stores were preserved. No install, push, main merge, model/default/quality/phase promotion. Four round-four product files do not overlap MAIN-DIRTY-SOURCES.txt; prior cumulative conflicts in ModelsSettingsTab, AgentView, IslandView, NextNotesApp and SettingsSheet remain “will conflict with uncommitted work”. The availability-copy file must be reconciled with the no-apple owner's later changes. N5's pre-existing model/provider disclosure remains as described above, for the integrator/owner to decide.
+
+Four product sources changed: AgentVoiceAvailability.swift, VoiceTextOnlyNote.swift, VoiceSettingsSection.swift and VoiceSettingsSelfTest.swift (expected copy only). Full evidence, scripts, pins, logs and PNGs: [round-four report](Tests/Reports/voice-settings-ui/round4/README.md). R3 N5 cannot be confirmed: the existing optional Technical details disclosure names `Kokoro-82M (FluidAudio)` or `Pocket TTS (FluidAudio)`; no file path is passed. It is outside the four requested changes and remains open. Final one-line relay reports the scope/verdicts to claude-positioning; sending is not proof it was read.
+
+---
+
 # voice-settings-ui round 3
 
 Own branch `claude2/voice-settings-ui`; producer/UI commit **`98f9205a`**. The final documentation commit retains the native results, screenshots and integration limits. No install, push or merge into main. Round-two results and cumulative conflict guidance are retained below.

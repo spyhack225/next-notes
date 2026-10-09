@@ -1,0 +1,11 @@
+{
+  "recorded_utc": "2026-10-09T06:24:48.997415+00:00",
+  "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g\n",
+  "machine": "arm64",
+  "relay_id": "claude2-voice-settings-ui",
+  "original": "09b686d1",
+  "producer": "6e374bb4",
+  "build": "debug -j 2, normal heavy.sh FIFO",
+  "models": "no native model load; existing voice fixture substitutes hardware/model boundaries",
+  "power_thermal": "not measured; no product latency or performance claim"
+}

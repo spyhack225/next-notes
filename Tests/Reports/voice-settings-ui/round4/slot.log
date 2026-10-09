@@ -1,0 +1,22 @@
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 1, waiting for foreign work:
+3237 elapsed=02:12 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -filelist /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scra
+heavy: queue position 1, waiting for foreign work:
+3237 elapsed=03:13 /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swift-frontend -frontend -c -filelist /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scra
+{"name": "webrtc-build", "exit": 0, "marker": "NO_FINAL_MARKER"}
+{"name": "build", "exit": 0, "marker": "NO_FINAL_MARKER"}
+{"name": "voice-settings", "exit": 0, "marker": "VOICE_SETTINGS_OK"}
+{"name": "ui-strings", "exit": 0, "marker": "UI_STRINGS_OK"}
+{"name": "settings", "exit": -11, "marker": "SETTINGS_OK: 12 pane(s), Formatting listed, headings contain U+0020, each form built, profile captured, auto-send policy, every pane fits the narrowest host"}
+{"name": "preview", "exit": 0, "marker": "VOICE_SETTINGS_PREVIEW_OK /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/Tests/Reports/voice-settings-ui/round4/shots"}
+VOICE_SETTINGS_BATCH_FINISHED

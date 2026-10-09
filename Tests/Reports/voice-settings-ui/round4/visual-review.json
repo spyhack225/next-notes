@@ -1,0 +1,63 @@
+{
+  "inspected": [
+    {
+      "file": "voice-preparing.png",
+      "sha256": "ec196728f9a6e13063c66679a6257f71620e42c014cff5ed51f017cdc5a49e6d",
+      "observation": "One small spinner left of title; no dotted orb or separate spinner row. Subtitle wraps plainly."
+    },
+    {
+      "file": "voice-kokoro-preparing.png",
+      "sha256": "c8c8a3943576632d0085b9186fb66e2e167bc3f0dc5346776156a123ce9b82a9",
+      "observation": "Same single inline spinner layout with Heart row."
+    },
+    {
+      "file": "voice-needs-download.png",
+      "sha256": "8b42738da158b669e0cb2ae14a52ee3cf2a4591611c6b5aa9c0a06a4645d5365",
+      "observation": "Missing-download statement once in status row; both tiles describe choices only."
+    },
+    {
+      "file": "voice-kokoro-needs-download.png",
+      "sha256": "7e5506c8204c61ea61face63295e450f9ffc0edd23b73f792fb15cff3aa44a31",
+      "observation": "Same single missing-download status; Pocket carries only four-choice description."
+    },
+    {
+      "file": "voice-kokoro-failed.png",
+      "sha256": "25ce92189659606e45fb1e5e7f2214c32e50805fd386cafbbaaf5ffcfc9b9c18",
+      "observation": "Selected Kokoro says Couldn\u2019t start \u00b7 tap Retry; unselected Pocket describes choices only."
+    },
+    {
+      "file": "voice-failed.png",
+      "sha256": "7c69d3ee7cf2f87dbdb4f14818fdfb0c7b61d732a0053c933ad90ce8286f21fd",
+      "observation": "Selected Pocket says Couldn\u2019t start \u00b7 tap Retry; plain text-only status with orange warning."
+    },
+    {
+      "file": "voice-text-only-lines.png",
+      "sha256": "32c4c0b175b5a00ea88f402b1a3754a3a63eb2192cfc3cef0e7b7fadd840c447",
+      "observation": "Blue Open voice settings / Try again in voice settings links; compact notch sentence and link fit."
+    },
+    {
+      "file": "settings-models-voice-560.png",
+      "sha256": "abf6ea4fd6bed01411b928929cb1d79926d0f7f83b7e8cbb343fba7123264d7b",
+      "observation": "Actual Models page shows whole Voice section, one inline spinner and still header triangle."
+    },
+    {
+      "file": "voice-ready.png",
+      "sha256": "0a45d92c827af79836845a440f4177180a00409989aed5a7c23c11e7d230d669",
+      "observation": "Selected Pocket check and ready status; enabled sample and ready-only footer."
+    },
+    {
+      "file": "voice-kokoro-ready.png",
+      "sha256": "13b6ec1955d7d643d0740ffaac34ee52f635a426bc56664c1474462d86e70b3b",
+      "observation": "Selected Kokoro check and ready status; Heart sample and ready-only footer."
+    },
+    {
+      "file": "voice-kokoro-unavailable.png",
+      "sha256": "2e9d29bd0087e3e6faff4a1d9e7733a34eec5df64ad20ec93da9a5daa670a77a",
+      "observation": "Unsupported Kokoro dimmed, no selection outline/Heart, one plain warning and blocked sample."
+    }
+  ],
+  "limits": [
+    "Inactive offscreen native Retry remains grey despite borderedProminent/accent source. Active-window prominence unverified; no painted replacement.",
+    "Motion, VoiceOver, live notch truncation/click-through, real downloads/offline recovery, physical speech and full-duplex performance unverified."
+  ]
+}

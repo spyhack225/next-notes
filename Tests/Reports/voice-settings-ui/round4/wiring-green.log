@@ -1,0 +1,15 @@
+Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift ccaecb23e3c869a4dad7c5b02de27058a17577fba5594139dbc608037cd26907
+Sources/NextNotes/UI/Settings/VoiceSettingsSection.swift 8d669b3595eae8d64b24625023013fdbf39240f4f9a1acd3740f5165c74f2fdc
+Sources/NextNotes/Support/Settings.swift 5393543b001ca9fb104176596cb48f5bde3dee7ff41af660bdd0ac1c25e365c8
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift ec7495b50d948ea54729873d490b57bac6e6622b61c691ef4ab85cc37a4157a1
+Sources/NextNotes/Agent/Speech/AgentVoiceAvailability.swift d6e01690c03814bb0e7f1d7822ba4bd548ca37fd139447a7c4849974caea20c0
+PASS: failed state offers plain Retry
+PASS: selection uses preference owner and its epoch
+PASS: selection and retry capture the current request
+PASS: deferred action refuses a stale selection or recovery
+PASS: explicit action clears latch through existing preparation owner
+PASS: opening Settings does not directly prepare voice models
+PASS: sample follows live availability rather than cached readiness
+PASS: no Apple tile or preview catalog
+PASS: selected failure outranks cached readiness
+VOICE_SETTINGS_WIRING_OK
