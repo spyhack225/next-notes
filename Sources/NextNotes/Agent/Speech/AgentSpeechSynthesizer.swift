@@ -98,6 +98,24 @@ final class AgentSpeechSynthesizer {
     static let shared = AgentSpeechSynthesizer()
     static var appleSynthesisCallsForTesting: Int { AVSpeechBacking.synthesisCallsForTesting }
 
+    private var acknowledgement: (first: () -> Void, finished: () -> Void)?
+    /// No synthesis or backend fallback: only already-rendered selected-voice PCM.
+    func playAcknowledgement(_ clip: VoiceAcknowledgementClips.Clip, token: OutputToken,
+                             first: @escaping () -> Void, finished: @escaping () -> Void) {
+        guard token.output.raw > 0, !isSpeaking, !replyOpen, currentClause == nil else { finished(); return }
+        playbackTokenCounter &+= 1
+        currentPlaybackToken = playbackTokenCounter
+        acknowledgement = (first, finished)
+        systemBacking.playPrepared(clip.buffers, volume: utteranceVolume, token: currentPlaybackToken)
+    }
+    func cancelAcknowledgement() {
+        guard let callbacks = acknowledgement else { return }
+        acknowledgement = nil
+        currentPlaybackToken = 0
+        systemBacking.stop()
+        callbacks.finished()
+    }
+
     private var backing: any AgentSpeechBacking
     private let systemBacking = AVSpeechBacking()
     /// Exact existing Apple backing only; nil/default, SelfTest-only diagnostic.
@@ -266,7 +284,7 @@ final class AgentSpeechSynthesizer {
         }
     }
 
-    var isSpeaking: Bool { backing.isSpeaking || !pendingClauses.isEmpty }
+    var isSpeaking: Bool { acknowledgement != nil || backing.isSpeaking || !pendingClauses.isEmpty }
 
     /// Enqueue speakable clauses and return immediately. An empty form is a no-op.
     /// Replaces any in-flight reply so a newer answer never stacks under an old one.
@@ -292,6 +310,7 @@ final class AgentSpeechSynthesizer {
     /// Clear prior playback so a streamed reply can enqueue clauses one by one.
     /// Called by `StreamingSpeechBuffer.begin` — does not set `didStop`.
     func prepareForStream() {
+        cancelAcknowledgement()
         setOutputGain(1)
         voiceResumePending = false
         voiceResumeBinding = nil
@@ -406,6 +425,7 @@ final class AgentSpeechSynthesizer {
     /// pending clause so mid-reply cut-off does not keep speaking the rest.
     /// Target <100 ms.
     func stop() {
+        cancelAcknowledgement()
         setOutputGain(1)
         voiceResumePending = false
         voiceResumeBinding = nil
@@ -555,6 +575,10 @@ final class AgentSpeechSynthesizer {
     }
 
     private func didBeginAudio(token: UInt64) {
+        if let callbacks = acknowledgement, token == currentPlaybackToken {
+            callbacks.first()
+            return
+        }
         guard token == currentPlaybackToken, currentClause != nil else { return }
         if let currentClause, !currentClauseRendered {
             currentClauseRendered = true
@@ -570,6 +594,11 @@ final class AgentSpeechSynthesizer {
     }
 
     private func didFinishAudio(token: UInt64) {
+        if let callbacks = acknowledgement, token == currentPlaybackToken {
+            acknowledgement = nil; currentPlaybackToken = 0
+            callbacks.finished()
+            return
+        }
         guard token == currentPlaybackToken, currentClause != nil else { return }
         if let currentClause { onPlaybackEvent?(.completed(currentClause)) }
         if replyOpen, replyTokens.first == token { replyTokens.removeFirst() }
@@ -577,6 +606,9 @@ final class AgentSpeechSynthesizer {
         currentClauseRendered = false
         advanceQueue()
         onVoiceLifecycleSettled?()
+        // Output is not Observable. Retry optional idle clips only after the
+        // existing completion path has released the same speech owner.
+        VoiceAcknowledgement.shared.prewarm()
     }
 
     /// Self-test seam for a fake backing. The token is explicit so the probe
@@ -1087,6 +1119,21 @@ final class AVSpeechBacking: NSObject, AgentSpeechBacking, AVSpeechSynthesizerDe
     func setOutputGain(_ gain: Float) { player.volume = max(0, min(1, gain)) }
 
     private(set) static var synthesisCallsForTesting = 0
+    func playPrepared(_ buffers: [AVAudioPCMBuffer], volume: Float, token: UInt64) {
+        guard !buffers.isEmpty else { onUtteranceFinished?(token); return }
+        speaking = true; pausedForListening = false; activeToken = token
+        clearResumeProof()
+        if timelineEnabled {
+            timelinePhase.value.store(2, ordering: .releasing)
+            timelineEnd = 0; timelineOrdinal = 0; timelineRate = nil
+            timelineResumeHost = nil; timelineCheckpoint = nil
+        }
+        pendingBuffers = 0; synthesisFinished = false; didBegin = false
+        playbackEngine.mainMixerNode.outputVolume = max(0, min(1, volume))
+        for buffer in buffers { play(buffer, token: token) }
+        synthesisEnded(token: token)
+    }
+
     func speak(_ text: String, volume: Float, token: UInt64) {
         if SelfTest.isRunning { Self.synthesisCallsForTesting += 1 }
         // Do not clear the AVSpeech queue here — clause streaming feeds one

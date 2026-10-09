@@ -52,6 +52,9 @@ enum VoiceLatencySelfTest {
         case "L2":
             from = turn.marks[.endpoint]?.nanos
             to = turn.marks[.frontendFirstToken]?.nanos
+        case "ACK":
+            from = turn.marks[.endpoint]?.nanos
+            to = turn.marks[.acknowledgementAudible]?.nanos
         case "L3":
             from = turn.marks[.endpoint]?.nanos
             to = turn.marks[.firstAudible]?.nanos
@@ -72,7 +75,9 @@ enum VoiceLatencySelfTest {
 
     static func run() async -> Result {
         if CommandLine.arguments.contains("--voice-latency-ack-policy") {
-            let problems = await VoiceAcknowledgementSelfTest.run()
+            var problems = await VoiceAcknowledgementSelfTest.run()
+            problems += await VoiceAcknowledgementClipSelfTest.run()
+            problems += VoiceDiagnosticSpeech.contractProblems()
             for problem in problems { SelfTest.diagnostic("VOICE_ACK_WRONG: \(problem)") }
             return (problems.isEmpty, problems.isEmpty ? "VOICE_ACK_OK" : "VOICE_ACK_FAILED")
         }
@@ -140,6 +145,7 @@ enum VoiceLatencySelfTest {
         // Selection alone does not prepare Pocket. An unready Pocket choice
         // selects the Apple backing in prepareForStream, producing first-audio
         // without either required PCM mark. Prepare outside all measured turns.
+        let appleSynthesisBefore = AgentSpeechSynthesizer.appleSynthesisCallsForTesting
         await PocketAgentVoice.shared.prepare()
         guard PocketAgentVoice.shared.isReady else {
             return absent("Pocket TTS could not prepare: "
@@ -188,6 +194,27 @@ enum VoiceLatencySelfTest {
         let priorEngine = speech.engineOverrideForTesting
         speech.engineOverrideForTesting = "pocket"
         defer { speech.engineOverrideForTesting = priorEngine }
+
+        guard let speechProof = await VoiceDiagnosticSpeech.preparePocket() else {
+            return absent("Pocket diagnostic transport did not become ready")
+        }
+        defer { _ = speechProof.finish() }
+
+        let acknowledgementEnabled = !CommandLine.arguments.contains("--voice-no-ack")
+        let ackDirectory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("NextNotes-ack-\(ProcessInfo.processInfo.processIdentifier)-\(UUID().uuidString)", isDirectory: true)
+        let clipCache = VoiceAcknowledgementClips.shared
+        guard clipCache.useHarnessDirectory(ackDirectory) else { return absent("acknowledgement cache isolation refused") }
+        defer {
+            VoiceAcknowledgement.shared.cancel()
+            _ = clipCache.useHarnessDirectory(nil)
+            try? FileManager.default.removeItem(at: ackDirectory)
+        }
+        if acknowledgementEnabled, !(await clipCache.prepareForLatency()) {
+            return absent("selected Pocket acknowledgement clips did not become ready")
+        }
+        SelfTest.diagnostic("VOICE_ACK_CACHE ready=\(clipCache.readyCount) isolated=true enabled=\(acknowledgementEnabled) "
+            + "engine=\(VoiceAcknowledgementClips.Selection.current.engine) voice=\(VoiceAcknowledgementClips.Selection.current.voice)")
 
         let capture = AgentCaptureController.shared
         await capture.endSession(source: .done)
@@ -238,7 +265,7 @@ enum VoiceLatencySelfTest {
                 + "\(Self.format(median(values))) p90=\(Self.format(p90(values))) "
                 + "n=\(values.count)")
         }
-        for column in ["L1", "L2", "L3"] {
+        for column in ["L1", "L2", "L3"] + (acknowledgementEnabled ? ["ACK"] : []) {
             let values = counted.compactMap { listenSeconds(column, turn: $0) }
             SelfTest.diagnostic("VOICE_LATENCY_LISTEN \(column) median=\(format(median(values)))"
                 + " p95=\(format(p95(values))) min=\(format(values.min()))"
@@ -246,6 +273,15 @@ enum VoiceLatencySelfTest {
             let expected = column == "L1" && speculation == "disabled" ? 0 : runs
             if values.count != expected { wrong.append("\(column): expected \(expected) measurements, got \(values.count)") }
         }
+        if acknowledgementEnabled {
+            let ack = counted.compactMap { listenSeconds("ACK", turn: $0) }
+            let met = ack.count == runs && median(ack).map { $0 < 0.200 } == true
+            SelfTest.diagnostic("VOICE_ACK_GATE=\(met ? "PASS" : "FAIL") target_median_s=0.200 n=\(ack.count)")
+            if !met { wrong.append("acknowledgement median must be <200ms across all counted turns") }
+        }
+        let appleSynthesisAfter = AgentSpeechSynthesizer.appleSynthesisCallsForTesting
+        SelfTest.diagnostic("VOICE_ACK_APPLE_SYNTHESIS_CALLS=\(appleSynthesisAfter - appleSynthesisBefore)")
+        if appleSynthesisAfter != appleSynthesisBefore { wrong.append("voice diagnostic reached Apple speech synthesis") }
         let stalls = counted.map(\.mainStallSeconds)
         SelfTest.diagnostic("VOICE_LATENCY_MEDIAN main_stall_max="
             + "\(Self.format(median(stalls))) p90=\(Self.format(p90(stalls))) "
@@ -273,6 +309,7 @@ enum VoiceLatencySelfTest {
                 wrong += report.problems
             }
         }
+        wrong += speechProof.finish()
         return finish(wrong)
     }
 
@@ -480,7 +517,7 @@ enum VoiceLatencySelfTest {
         for (name, span) in columns {
             parts.append("\(name)=\(Self.format(turn.seconds(span)))")
         }
-        for column in ["L1", "L2", "L3"] {
+        for column in ["L1", "L2", "L3"] + (CommandLine.arguments.contains("--voice-no-ack") ? [] : ["ACK"]) {
             parts.append("\(column)=\(Self.format(listenSeconds(column, turn: turn)))")
         }
         parts.append("speculation=\(turn.notes["speculation"] ?? "absent")")

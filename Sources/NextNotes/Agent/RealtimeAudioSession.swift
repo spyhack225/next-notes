@@ -197,6 +197,14 @@ final class RealtimeAudioSession {
 
     // MARK: - Output
 
+    /// Courtesy PCM shares the scheduler capability and existing speech transport.
+    /// It announces no shadow response, delivery, transcript echo or barge floor.
+    func playAcknowledgement(_ token: OutputToken, turn: TurnID) {
+        guard isActive, !isSpeaking, !AgentSpeechSynthesizer.shared.isSpeaking else { return }
+        _ = VoiceAcknowledgement.shared.play(token, turn: turn)
+    }
+
+
     /// Start a streamed spoken reply. Clears any prior utterance.
     /// Call `appendSpokenReply` as text grows, then `finalizeSpokenReply`.
     @discardableResult
@@ -649,7 +657,8 @@ final class RealtimeAudioSession {
     /// the work item and its result ledger survive the playback interruption.
     func noteUserSpeech() {
         listeningHold = nil
-        let wasSpeaking = isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking
+        let wasSpeaking = (isSpeaking || AgentSpeechSynthesizer.shared.isSpeaking)
+            && !VoiceAcknowledgement.shared.isPlaying
         let started = ContinuousClock.now
         stopOutput()
         if wasSpeaking {
@@ -667,6 +676,7 @@ final class RealtimeAudioSession {
     }
 
     private func stopOutput() {
+        VoiceAcknowledgement.shared.cancel()
         listeningDuck = nil
         listeningHold = nil
         voiceShadowStreamOpen = false

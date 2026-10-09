@@ -26,6 +26,7 @@ enum VoiceMark: String, CaseIterable, Sendable {
     case frontendFirstToken = "frontend_first_token"
     case firstClauseEnqueued = "first_clause_enqueued"
     case ttsFirstPCM = "tts_first_pcm"
+    case acknowledgementAudible = "acknowledgement_audible"
     case firstAudible = "first_audible"
     case bargeOnset = "barge_onset"
     case bargePause = "barge_pause"
@@ -471,6 +472,10 @@ final class VoiceLatencyTimeline: @unchecked Sendable {
         for stage in VoiceStageSpan.all where stage.inTurnSummary {
             guard let seconds = turn.seconds(stage.span) else { continue }
             stages[stage.span.rawValue.replacingOccurrences(of: "voice.", with: "")] = seconds
+        }
+        if let endpoint = turn.marks[.endpoint]?.nanos,
+           let ack = turn.marks[.acknowledgementAudible]?.nanos, ack >= endpoint {
+            stages["endpoint_to_acknowledgement"] = Double(ack - endpoint) / 1_000_000_000
         }
         stages["main_actor_stall"] = turn.mainStallSeconds
         return UsageRecord(

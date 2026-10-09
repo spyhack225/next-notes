@@ -1599,6 +1599,7 @@ final class AgentCaptureController {
     func beginEOUTermination() -> Task<Void, Never>? {
         guard !eouTerminationRequested else { return nil }
         eouTerminationRequested = true
+        let acknowledgementPrewarm = VoiceAcknowledgementClips.shared.beginTermination()
         // Refuse callbacks/new admission synchronously before any shutdown await.
         captureSessionID = nil
         let activity = voiceActivityInput
@@ -1615,6 +1616,7 @@ final class AgentCaptureController {
         return Task { @MainActor in
             await self.endSession(source: .done)
             await decoder?.value
+            await acknowledgementPrewarm?.value
             await activityDrain?.value
             await detector?.close()
         }
@@ -1885,6 +1887,12 @@ final class AgentCaptureController {
         defer { if voiceShadowHasFloor != shadowFloorBefore { VoiceSession.shared.producerDidSettle() } }
         inputLevel = level
         guard isSessionActive else { return }
+        // Courtesy audio yields immediately to cleaned near input; no120ms floor
+        // or lexical classification gate is added to the existing answer barge rules.
+        if level >= Limits.speechLevel,
+           !VoiceAcknowledgement.shared.isPlaying || nearCandidate {
+            VoiceAcknowledgement.shared.cancel()
+        }
         if level >= Limits.speechLevel {
             // A loud sample is not a user speech-start event, including while
             // the model is thinking. Keep capture live and wait for a novel
@@ -2652,6 +2660,10 @@ final class AgentCaptureController {
         appleFastResults: Bool = true) async -> [String] {
         let capture = AgentCaptureController.shared
         await capture.endSession(source: .done)
+        guard let speechProof = await VoiceDiagnosticSpeech.preparePocket() else {
+            return ["Pocket diagnostic transport did not become ready"]
+        }
+        defer { _ = speechProof.finish() }
         do {
             try await capture.beginFileSession(wav: wav,
                 appleFastResults: appleFastResults)
@@ -2725,6 +2737,7 @@ final class AgentCaptureController {
         }
         await capture.endSession(source: .done)
         speech.onPlaybackEvent = priorPlaybackEvent
+        failures += speechProof.finish()
         return failures
     }
 

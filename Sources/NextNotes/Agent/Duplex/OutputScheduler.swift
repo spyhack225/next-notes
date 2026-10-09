@@ -138,8 +138,17 @@ final class OutputScheduler {
         VoiceAcknowledgement.shared.commit(turn, text: text, interaction: interaction)
     }
 
+    func playAcknowledgement(turn: TurnID) {
+        guard AgentCaptureController.shared.isSessionActive,
+              VoiceSession.shared.state.lastCommittedTurn == turn,
+              VoiceSession.shared.currentTurn() == turn else { return }
+        let token = OutputToken(VoiceIDMint.shared.nextOutput())
+        RealtimeAudioSession.shared.playAcknowledgement(token, turn: turn)
+    }
+
     /// Starts the existing streaming buffer synchronously; no model or audio wait.
     func beginAnswer(turn: TurnID?) -> OutputHandle {
+        VoiceAcknowledgement.shared.cancel()
         // Decide delivery priority before the SAME buffer's clear emits stop
         // callbacks. Phrasing restores unheard entries through its existing seam.
         cancelPhrasing()
@@ -179,6 +188,7 @@ final class OutputScheduler {
     func speakFixed(_ text: String, turn: TurnID?, agent: RealtimeAgent, owner: Int) -> OutputID? {
         guard agent.isCurrent(owner),
               !AgentSpeechPolicy.spokenClauses(text).isEmpty else { return nil }
+        VoiceAcknowledgement.shared.cancel()
         let token = OutputToken(VoiceIDMint.shared.nextOutput())
         RealtimeAudioSession.shared.speak(token, text, kind: turn.map(OutputKind.fixed))
         return token.output
@@ -188,6 +198,7 @@ final class OutputScheduler {
     @discardableResult
     func speakSessionless(_ text: String) -> OutputHandle? {
         guard !AgentSpeechPolicy.spokenClauses(text).isEmpty else { return nil }
+        VoiceAcknowledgement.shared.cancel()
         let token = OutputToken(VoiceIDMint.shared.nextOutput())
         RealtimeAudioSession.shared.speak(token, text, kind: .delivery([]))
         return OutputHandle(output: token.output, token: token)
@@ -596,6 +607,7 @@ final class OutputScheduler {
         restoreUnheardPhrase(entries)
     }
     private func speakEntries(_ entries: [Entry], spoken: String) {
+        VoiceAcknowledgement.shared.cancel()
         var outgoing = entries
         for index in outgoing.indices where outgoing[index].item == nil && outgoing[index].approvalID == nil { outgoing[index].legacyClauses = AgentSpeechPolicy.spokenClauses(spoken) }
         let token = OutputToken(VoiceIDMint.shared.nextOutput())
