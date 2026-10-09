@@ -29,7 +29,7 @@ def run(name,args,timeout=None,expected=0):
         except subprocess.TimeoutExpired:
             results.append({'check':name,'exit':'timeout','marker':'UNFINISHED'});save();return False
     content=logfile.read_text(errors='replace')
-    markers=[line for line in content.splitlines() if re.search(r'(?:_OK|_FAILED|_ABSENT)(?::|$)',line)]
+    markers=[line for line in content.splitlines() if re.match(r'^[A-Z][A-Z0-9_]*_(?:OK|FAILED|ABSENT)(?::|$)',line)]
     results.append({'check':name,'attempt':attempts[name],'log':logfile.name,'exit':proc.returncode,'expected_exit':expected,'marker':markers[-1] if markers else 'NO_FINAL_MARKER'})
     print(json.dumps(results[-1]),flush=True);save()
     return proc.returncode==expected
@@ -55,7 +55,7 @@ try:
                 full=outfile.read_text(errors='replace')
                 nativefile=report/(flag+'-selftest'+('-attempt-'+str(attempts[flag]) if attempts[flag]>1 else '')+'.log')
                 nativefile.write_text(full)
-                markers=[line for line in full.splitlines() if re.search(r'(?:_OK|_FAILED|_ABSENT)(?::|$)',line)]
+                markers=[line for line in full.splitlines() if re.match(r'^[A-Z][A-Z0-9_]*_(?:OK|FAILED|ABSENT)(?::|$)',line)]
                 if markers:results[-1]['marker']=markers[-1];save();print(results[-1]['marker'],flush=True)
     native_checks(flags)
     print('NO_APPLE_CHECK_BATCH_FINISHED',flush=True)
