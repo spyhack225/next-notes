@@ -1,5 +1,6 @@
 import AVFoundation
 import Foundation
+import Observation
 import Synchronization
 
 /// Diagnostic-only actual Apple player observations; never playback/UI authority.
@@ -85,6 +86,7 @@ protocol AgentReplySpeechBacking: AgentSpeechBacking {
 /// Dictation never calls this. The optional Pocket and Kokoro backings only
 /// play audio; neither backing attaches to the input node.
 @MainActor
+@Observable
 final class AgentSpeechSynthesizer {
     enum PlaybackEvent: Equatable {
         case began(UInt64)
@@ -96,6 +98,22 @@ final class AgentSpeechSynthesizer {
         case interrupted(String, wasRendered: Bool)
     }
     static let shared = AgentSpeechSynthesizer()
+
+    private var selectedVoiceFailed = false
+    /// Settings and reply presentation observe the same existing voice owner.
+    var availability: AgentVoiceAvailability {
+        switch Self.selectedEngine {
+        case "kokoro":
+            return .resolve(ready: KokoroAgentVoice.shared.isReady,
+                            preparing: KokoroAgentVoice.shared.isPreparing,
+                            failed: selectedVoiceFailed || !KokoroAgentVoice.isSupportedOS
+                                || KokoroAgentVoice.shared.errorMessage != nil)
+        default:
+            return .resolve(ready: pocketIsReady,
+                            preparing: PocketAgentVoice.shared.isPreparing,
+                            failed: selectedVoiceFailed || PocketAgentVoice.shared.errorMessage != nil)
+        }
+    }
 
     private var backing: any AgentSpeechBacking
     private let systemBacking = AVSpeechBacking()
