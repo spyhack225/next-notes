@@ -305,6 +305,8 @@ enum VoiceSessionReducer {
                     output.status = .awaitingResume
                     output.resumeToken = token; output.resumePhase = phase
                     next.output = output
+                // Receipt-capable producers only. Pocket/Kokoro do not emit this
+                // event; their physical resume request alone supplies no proof.
                 case .resumed(let token, let phase):
                     guard output.status == .awaitingResume,
                           output.resumeToken == token, output.resumePhase == phase else { break }
