@@ -114,6 +114,14 @@ import Foundation
         }
         // Only presentation adopts the existing reducer command. Audio, effect,
         // timer and response commands remain diagnostics; their owners are unchanged.
+        if !IslandOwnership.isEnabled && !islandProjectionForTesting,
+           let island = publishedIsland, let sessionID = island.voiceProjectionSessionID {
+            IslandWriteScope.$isVoiceSession.withValue(true) {
+                island.applyVoiceProjection(.none, sessionID: sessionID, transcript: "", level: 0)
+                island.applyTaskIndicator(nil)
+            }
+            publishedIsland = nil
+        }
         if IslandOwnership.isEnabled || islandProjectionForTesting { for command in commands {
             if case .publishIsland(let projection) = command, let sessionID = state.sessionID {
                 let capture = AgentCaptureController.shared

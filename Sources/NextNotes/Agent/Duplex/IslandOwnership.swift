@@ -9,8 +9,9 @@ struct IslandTaskIndicator: Equatable, Sendable {
     let count: Int
 }
 @MainActor enum IslandOwnership {
-    // Source candidate only. Normal publication is not mounted or accepted.
-    static let isEnabled = true
+    // A route without post-resume proof keeps the reducer diagnostic only.
+    // It cannot claim presentation ownership or suppress legacy Island writes.
+    static var isEnabled: Bool { AgentSpeechSynthesizer.shared.supportsQualifiedResumeReceipt }
     private(set) static var rejected: [String: Int] = [:]
     private(set) static var workerAttempts: [String: Int] = [:]
     static var workerAttemptTotal: Int { workerAttempts.values.reduce(0, +) }
@@ -18,7 +19,7 @@ struct IslandTaskIndicator: Equatable, Sendable {
         guard VoiceSession.shared.state.phase == .open, let id = VoiceSession.shared.state.sessionID else { return false }
         return AgentCaptureController.shared.isSessionActive && AgentCaptureController.shared.sessionID == id
     }
-    static var sessionOwnsIsland: Bool { isEnabled && actualSessionOpen }
+    static var sessionOwnsIsland: Bool { actualSessionOpen && isEnabled }
     static func mayWrite(_ site: String) -> Bool {
         let open = actualSessionOpen
         if open && VoiceWorkerScope.isWorker && !IslandWriteScope.isVoiceSession {
