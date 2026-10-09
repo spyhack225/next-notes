@@ -1,0 +1,116 @@
+{
+  "requestUTC": "2026-10-08T21:10:53Z",
+  "deadlineUTC": "2026-10-09T00:10:53Z",
+  "finishedUTC": "2026-10-09T00:11:05.215832+00:00",
+  "marker": "NO_GO_TIMEOUT_3H",
+  "requestMessageId": "168abe66-6dd3-4e40-a5c0-e5a1a5e9bceb",
+  "requestCursor": 838,
+  "startMessageId": "bf868a98-49d8-4cab-a145-0d9b07904204",
+  "startCursor": 837,
+  "polls": [
+    {
+      "path": "evidence/resumed/inbox-20261008T213053Z.json",
+      "ok": true,
+      "cursor": 861
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T214053Z.json",
+      "ok": true,
+      "cursor": 863
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T215053Z.json",
+      "ok": true,
+      "cursor": 863
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T220053Z.json",
+      "ok": true,
+      "cursor": 863
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T221053Z.json",
+      "ok": true,
+      "cursor": 874
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T222053Z.json",
+      "ok": true,
+      "cursor": 885
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T223053Z.json",
+      "ok": true,
+      "cursor": 894
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T224053Z.json",
+      "ok": true,
+      "cursor": 894
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T225053Z.json",
+      "ok": true,
+      "cursor": 894
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T230053Z.json",
+      "ok": true,
+      "cursor": 905
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T231053Z.json",
+      "ok": true,
+      "cursor": 906
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T232053Z.json",
+      "ok": true,
+      "cursor": 906
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T233053Z.json",
+      "ok": true,
+      "cursor": 910
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T234053Z.json",
+      "ok": true,
+      "cursor": 916
+    },
+    {
+      "path": "evidence/resumed/inbox-20261008T235053Z.json",
+      "ok": true,
+      "cursor": 923
+    },
+    {
+      "path": "evidence/resumed/inbox-20261009T000053Z.json",
+      "ok": true,
+      "cursor": 931
+    },
+    {
+      "path": "evidence/resumed/inbox-20261009T001053Z.json",
+      "ok": true,
+      "cursor": 953
+    },
+    {
+      "path": "evidence/resumed/inbox-212053.json",
+      "ok": true,
+      "cursor": 849
+    }
+  ],
+  "freshMeetingMessages": [],
+  "freeGiB": 12.753623962402344,
+  "load": [
+    3.66015625,
+    4.49072265625,
+    5.326171875
+  ],
+  "swap": "vm.swapusage: total = 8192.00M  used = 6793.06M  free = 1398.94M  (encrypted)",
+  "binarySHA256": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+  "version": "0.2.24",
+  "build": "1",
+  "heavyJobs": 0,
+  "modelLoads": 0,
+  "modelClaims": 0
+}

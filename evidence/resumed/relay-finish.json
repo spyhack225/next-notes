@@ -1,0 +1,161 @@
+{
+  "ok": true,
+  "agents": [
+    {
+      "agentId": "claude-positioning",
+      "runner": "claude",
+      "registeredAt": "2026-10-04T22:03:40.852Z",
+      "updatedAt": "2026-10-09T00:10:10.290Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 55206
+    },
+    {
+      "agentId": "claude2-catchup-ui2",
+      "runner": "shell",
+      "registeredAt": "2026-10-08T20:35:59.938Z",
+      "updatedAt": "2026-10-08T23:48:08.087Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 1377409
+    },
+    {
+      "agentId": "claude2-thinking-review",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:09.691Z",
+      "updatedAt": "2026-10-08T23:46:01.580Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": "EOF correction complete: source0be933e6 report6d2c66aa; RED658/201->GREEN658/0; four flags once/one FIFO slot, prefix once; own scratch removed; no install/push/merge. Native UTF8 and inherited nested tool-loop18 open.",
+      "lastSeenAgeMs": 1503916
+    },
+    {
+      "agentId": "claude2-bakeoff2",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:23.171Z",
+      "updatedAt": "2026-10-09T00:10:53.124Z",
+      "status": "waiting",
+      "frozen": false,
+      "resources": [],
+      "task": "Resumed21:10:53Z; explicit meeting go pending until00:10:53Z; inbox10min; zero heavy jobs/claims, Qwen3.5/Apple quickx3 first.",
+      "lastSeenAgeMs": 12372
+    },
+    {
+      "agentId": "claude2-listen2",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:25.010Z",
+      "updatedAt": "2026-10-08T23:56:33.729Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": "Experiment reported in RESULT.md; source32c41d5a/report73f4dde8. Route bounded GREEN; native prefill not accepted,200ms FAIL and failed related timing checks retained. Own scratch/known native temp roots removed; no install/push/merge.",
+      "lastSeenAgeMs": 871767
+    },
+    {
+      "agentId": "claude2-google-c",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:28.409Z",
+      "updatedAt": "2026-10-09T00:10:49.087Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 16409
+    },
+    {
+      "agentId": "claude2-review-leak",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T22:18:42.251Z",
+      "updatedAt": "2026-10-08T23:49:07.624Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 1317872
+    },
+    {
+      "agentId": "claude2-catchup-audio",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T22:27:09.709Z",
+      "updatedAt": "2026-10-09T00:00:20.577Z",
+      "status": "done",
+      "frozen": false,
+      "resources": [],
+      "task": "Brief complete; RESULT.md commits9f1261ff/20e66ae2/4dff9348; own scratch removed",
+      "lastSeenAgeMs": 644919
+    },
+    {
+      "agentId": "claude-dict-fix",
+      "runner": "shell",
+      "registeredAt": "2026-10-08T23:57:00.351Z",
+      "updatedAt": "2026-10-09T00:10:29.537Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 35959
+    },
+    {
+      "agentId": "claude2-voice-ack",
+      "runner": "codex",
+      "registeredAt": "2026-10-09T00:00:06.608Z",
+      "updatedAt": "2026-10-09T00:10:24.522Z",
+      "status": "waiting",
+      "frozen": false,
+      "resources": [],
+      "task": "Voice-ack RED scaffold queued ticket32/shared voice scratch; drafting green away from queued source; no model/native run yet; Pocket/Kokoro only, cached PCM through existing scheduler/echo transport.",
+      "lastSeenAgeMs": 40974
+    },
+    {
+      "agentId": "claude2-voice-mini",
+      "runner": "codex",
+      "registeredAt": "2026-10-09T00:00:10.471Z",
+      "updatedAt": "2026-10-09T00:09:54.397Z",
+      "status": "waiting",
+      "frozen": false,
+      "resources": [],
+      "task": "RED scripted resident-only answer admission queued FIFO/shared voice; source scaffold frozen awaiting build. Will retain validated Apple route. Investigating TTS-only harness restriction.",
+      "lastSeenAgeMs": 71099
+    },
+    {
+      "agentId": "claude2-voice-audit",
+      "runner": "codex",
+      "registeredAt": "2026-10-09T00:00:31.869Z",
+      "updatedAt": "2026-10-09T00:04:52.728Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 372768
+    },
+    {
+      "agentId": "claude2-review-audio",
+      "runner": "codex",
+      "registeredAt": "2026-10-09T00:01:51.837Z",
+      "updatedAt": "2026-10-09T00:07:09.206Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 236290
+    }
+  ],
+  "claims": [
+    {
+      "agentId": "claude2-google-c",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "build",
+      "claimedAt": "2026-10-09T00:10:32.477Z",
+      "scope": "machine",
+      "ageMs": 33019,
+      "lastSeenAgeMs": 16409,
+      "stale": false
+    }
+  ],
+  "cursor": 953
+}

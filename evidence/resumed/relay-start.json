@@ -1,0 +1,152 @@
+{
+  "ok": true,
+  "agents": [
+    {
+      "agentId": "claude-positioning",
+      "runner": "claude",
+      "registeredAt": "2026-10-04T22:03:40.852Z",
+      "updatedAt": "2026-10-08T21:10:22.446Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 39005
+    },
+    {
+      "agentId": "meeting-performance-20261007",
+      "runner": "codex",
+      "registeredAt": "2026-10-07T17:37:29.867Z",
+      "updatedAt": "2026-10-08T20:48:19.718Z",
+      "status": "waiting",
+      "frozen": false,
+      "resources": [],
+      "task": "Attribution producer c6d850c passes50/185; cleanup55d402ee. Native9 joined, no candidate/install. Freshswap6.699/disk7.193 refuses; await saved-work restart and coordinated app/ASR validation.",
+      "sessionId": "01a11703-7660-7592-95ce-f40de35b067e",
+      "lastSeenAgeMs": 1361733
+    },
+    {
+      "agentId": "dictation-performance-20261007",
+      "runner": "codex",
+      "registeredAt": "2026-10-07T17:58:33.677Z",
+      "updatedAt": "2026-10-08T20:50:49.622Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": "Verified structure component64; full Router160/Controller40 pending agreed resource window/source gap. Evidence64870eb4 integrated; no heavy/source writer/owner install. Two-second/native-quality target open.",
+      "sessionId": "01a1164d-0453-77a2-bc10-ccf949eb7e03",
+      "lastSeenAgeMs": 1211829
+    },
+    {
+      "agentId": "claude-dictation-lead",
+      "runner": "claude",
+      "registeredAt": "2026-10-08T20:28:58.694Z",
+      "updatedAt": "2026-10-08T20:55:35.149Z",
+      "status": "working",
+      "frozen": false,
+      "resources": [],
+      "task": "Owner-directed dictation speed push: coordinating Claude subagents (MiniCPM resident timeout, launch cold-start, bench pipeline, ASR floor). Source-only worktree, no heavy work without claim.",
+      "lastSeenAgeMs": 926302
+    },
+    {
+      "agentId": "claude-dict-a",
+      "runner": "claude",
+      "registeredAt": "2026-10-08T20:31:47.236Z",
+      "updatedAt": "2026-10-08T20:53:45.834Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 1035617
+    },
+    {
+      "agentId": "claude2-catchup-ui2",
+      "runner": "claude",
+      "registeredAt": "2026-10-08T20:35:59.938Z",
+      "updatedAt": "2026-10-08T21:10:52.245Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 9206
+    },
+    {
+      "agentId": "claude2-tooling",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:06.532Z",
+      "updatedAt": "2026-10-08T20:46:23.134Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": "Complete: heavy wrapper/gate/docs, isolated63 OK, RESULT.md; no app heavy jobs",
+      "lastSeenAgeMs": 1478317
+    },
+    {
+      "agentId": "claude2-thinking-review",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:09.691Z",
+      "updatedAt": "2026-10-08T21:10:48.991Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 12460
+    },
+    {
+      "agentId": "claude2-bakeoff2",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:23.171Z",
+      "updatedAt": "2026-10-08T21:10:53.072Z",
+      "status": "blocked",
+      "frozen": false,
+      "resources": [],
+      "task": "Measurement admission refused:disk8.44GiB<10/load155.49>40; report7799ba8 and local RESULT.md; zero heavy jobs, no claims.",
+      "lastSeenAgeMs": 8379
+    },
+    {
+      "agentId": "claude2-listen2",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:25.010Z",
+      "updatedAt": "2026-10-08T21:10:49.900Z",
+      "status": "blocked",
+      "frozen": false,
+      "resources": [],
+      "task": "PL-12 step1 evidence fb1e6210; baseline/RED/prototype held by shared load/disk/memory gate; RESULT.md records exact blocker",
+      "lastSeenAgeMs": 11551
+    },
+    {
+      "agentId": "claude2-google-c",
+      "runner": "codex",
+      "registeredAt": "2026-10-08T20:36:28.409Z",
+      "updatedAt": "2026-10-08T20:57:18.790Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 822661
+    },
+    {
+      "agentId": "claude2-roadmap",
+      "runner": "claude",
+      "registeredAt": "2026-10-08T20:43:57.981Z",
+      "updatedAt": "2026-10-08T20:43:57.981Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 1623470
+    },
+    {
+      "agentId": "claude-dict-b",
+      "runner": "claude",
+      "registeredAt": "2026-10-08T20:43:59.434Z",
+      "updatedAt": "2026-10-08T20:43:59.434Z",
+      "status": "idle",
+      "frozen": false,
+      "resources": [],
+      "task": null,
+      "lastSeenAgeMs": 1622017
+    }
+  ],
+  "claims": [],
+  "cursor": 838
+}
