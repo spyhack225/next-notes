@@ -411,6 +411,7 @@ final class LiveLongFormEnvironment: LongFormRenderingEnvironment {
 @MainActor
 enum LongFormSynthesisFactory {
     static let sampleRate: Double = 24_000
+    static var audioForTesting: (@MainActor () async throws -> LongFormRenderer.Audio)?
 
     /// Voice for a host. Pocket has four voices, so the two hosts get two; `speaker` is
     /// nil for narration, which reads in the primary voice.
@@ -443,6 +444,7 @@ enum LongFormSynthesisFactory {
         // and warm-up (a cold start takes 10–30 s) instead of the live reply's ten-second bound,
         // which would drop the whole render on the first catch-up after a launch. It joins the
         // load already in flight; it never starts a second one.
+        if SelfTest.isRunning, let audioForTesting { return try await audioForTesting() }
         await PocketAgentVoice.shared.prepare()
         let voice = pocketVoice(for: request.speaker)
         var samples: [Float] = []
@@ -456,6 +458,7 @@ enum LongFormSynthesisFactory {
     }
 
     static func kokoro(_ request: LongFormRenderer.SynthesisRequest) async throws -> LongFormRenderer.Audio {
+        if SelfTest.isRunning, let audioForTesting { return try await audioForTesting() }
         let data = try await KokoroAgentVoice.shared.wav(for: request.text)
         return try decodeWAV(data)
     }
