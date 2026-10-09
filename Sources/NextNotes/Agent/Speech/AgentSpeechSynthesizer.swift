@@ -484,7 +484,9 @@ final class AgentSpeechSynthesizer {
 
     /// Self-test only. Restored by interrupt / stream self-tests so a later
     /// turn reselects the requested allowed voice.
-    func useTestingBacking(_ backing: any AgentSpeechBacking) {
+    /// Legacy fallback argument is accepted for parallel diagnostic callers but
+    /// deliberately ignored: a failed selected voice always settles as text.
+    func useTestingBacking(_ backing: any AgentSpeechBacking, fallback: (any AgentSpeechBacking)? = nil) {
         self.backing.stop()
         testingBacking = true
         self.backing = backing

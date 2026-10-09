@@ -4,11 +4,14 @@ enum SettingsVoicePolicySelfTest {
     @MainActor
     static func run() -> [String] {
         guard SelfTest.isRunning else { return ["voice settings: harness required"] }
+        let settings = Settings.shared
+        guard settings.usesHarnessPreferencesForTesting else {
+            return ["voice settings: actual preference writer is not isolated"]
+        }
         let name = "ai.pivotstudio.nextnotes.voice-policy-test." + UUID().uuidString
         guard let defaults = UserDefaults(suiteName: name) else { return ["voice settings: isolated defaults unavailable"] }
         defer { defaults.removePersistentDomain(forName: name) }
         var failures: [String] = []
-        let settings = Settings.shared
         let prior = settings.agentVoiceEngine
         defer { settings.agentVoiceEngine = prior }
         for (stored, expected) in [(nil, "pocket"), ("apple", "pocket"), ("invalid", "pocket"),
