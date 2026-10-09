@@ -298,6 +298,7 @@ final class VoiceConversationCoordinator {
     /// Acoustic activity may be a backchannel. Pause new effects until input
     /// resolves without cancelling the conversational answer or its playback.
     func inputActivityStarted() {
+        VoiceAcknowledgement.shared.cancel()
         inputEpoch &+= 1
         inputPending = true
         let shadow = VoiceSession.shared
@@ -309,6 +310,7 @@ final class VoiceConversationCoordinator {
     }
 
     func speechStarted() {
+        VoiceAcknowledgement.shared.cancel()
         inputEpoch &+= 1
         inputPending = true
         responseTask?.cancel()
@@ -360,6 +362,7 @@ final class VoiceConversationCoordinator {
     }
 
     func discardInput() {
+        VoiceAcknowledgement.shared.cancel()
         cancelResponsePreparation()
         inputEpoch &+= 1
         inputPending = false
@@ -398,10 +401,14 @@ final class VoiceConversationCoordinator {
 
     private(set) var notAddressed = NotAddressedPolicy()
     private(set) var lastRouteForTesting: String?
-    func noteSessionOpened(origin: VoiceSessionOrigin, at: Date) { notAddressed.open(origin: origin, at: at); lastRouteForTesting = nil }
+    func noteSessionOpened(origin: VoiceSessionOrigin, at: Date) {
+        notAddressed.open(origin: origin, at: at); lastRouteForTesting = nil
+        VoiceAcknowledgement.shared.prewarm()
+    }
     func notAddressedCloseDue(now: Date) -> Bool { notAddressed.closeDue(now: now) }
 
     func closeSession() {
+        VoiceAcknowledgement.shared.cancel()
         notAddressed = .init()
         heldApproval = nil
         cancelResponsePreparation()

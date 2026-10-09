@@ -1,0 +1,22 @@
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.007s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.148s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.148s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.149s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.147s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.138s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.138s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.137s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.142s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.142s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.200s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.201s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.201s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.103s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.079s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.003s model provider=appleFoundation model=Apple Foundation Model
+VOICE_ACK_CHECKS=39 failures=0
+VOICE_ACK_CACHE_CHECKS=34 failures=1
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=false
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=true
+VOICE_ACK_WRONG: natural output completion restarts actual idle clip producer
+VOICE_ACK_FAILED

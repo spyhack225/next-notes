@@ -1,0 +1,4 @@
+VOICE_LATENCY_TTS_READY=pocket
+VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0
+VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready
