@@ -6,6 +6,7 @@ import Foundation
 struct VoiceSpeechDelivery: Codable, Equatable {
     var completedText: String = ""
     var status: String = "pending"
+    var availabilityMessage: String? = nil
 }
 
 @MainActor
@@ -48,7 +49,8 @@ final class VoicePlaybackDelivery {
 
     private var snapshot: VoiceSpeechDelivery {
         VoiceSpeechDelivery(completedText: completed.joined(separator: " "),
-                            status: interrupted ? "interrupted" : queued > 0 || !enqueuedAny ? "pending" : "completed")
+                            status: interrupted ? "interrupted" : queued > 0 || !enqueuedAny ? "pending" : "completed",
+                            availabilityMessage: AgentSpeechSynthesizer.shared.outputAvailability?.message)
     }
 
     func noteBegan(output: OutputID, generation: UInt64) {

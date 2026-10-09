@@ -534,6 +534,13 @@ struct AgentView: View {
                     .padding(isUser ? DS.Space.m : 0)
                     .background(isUser ? DS.Color.accent.opacity(DS.Opacity.chipFill) : .clear,
                                 in: RoundedRectangle(cornerRadius: DS.Radius.card))
+                if !isUser, let line = message.speechDelivery?.availabilityMessage {
+                    Text(line)
+                        .font(DS.Font.caption)
+                        .foregroundStyle(DS.Color.textSecondary)
+                    Button("Voice settings") { NavigationState.shared.openSettings(.models) }
+                        .buttonStyle(.plain)
+                }
             }
             .frame(maxWidth: DS.Size.agentBubbleMaxWidth, alignment: isUser ? .trailing : .leading)
             if !isUser { Spacer(minLength: DS.Space.xl) }

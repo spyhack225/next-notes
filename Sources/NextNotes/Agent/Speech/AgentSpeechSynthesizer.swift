@@ -67,6 +67,13 @@ extension AgentSpeechBacking {
     func setOutputGain(_ gain: Float) { }
 }
 
+/// A backing that can supply fresh same-token playback proof after resume.
+@MainActor
+protocol AgentReceiptSpeechBacking: AgentReplySpeechBacking {
+    var currentResumePhase: UInt64? { get }
+    var onResumePlaybackAcknowledged: ((AppleResumePlaybackReceipt) -> Void)? { get set }
+}
+
 /// Reply-scoped native synthesis: clauses may be prepared before earlier playback ends.
 /// The existing synthesizer still owns tokens, order and delivery acknowledgements.
 @MainActor
@@ -104,7 +111,7 @@ final class AgentSpeechSynthesizer {
     var availability: AgentVoiceAvailability {
         switch Self.selectedEngine {
         case "kokoro":
-            return .resolve(ready: KokoroAgentVoice.shared.isReady,
+            return .resolve(ready: kokoroIsReady,
                             preparing: KokoroAgentVoice.shared.isPreparing,
                             failed: selectedVoiceFailed || !KokoroAgentVoice.isSupportedOS
                                 || KokoroAgentVoice.shared.errorMessage != nil)
@@ -116,26 +123,11 @@ final class AgentSpeechSynthesizer {
     }
 
     private var backing: any AgentSpeechBacking
-    private let systemBacking = AVSpeechBacking()
-    /// Exact existing Apple backing only; nil/default, SelfTest-only diagnostic.
-    var appleTimelineObserverForTesting: (@MainActor (ApplePlaybackTimelineObservation) -> Void)? {
-        get { systemBacking.timelineObserverForTesting }
-        set { if SelfTest.isRunning { systemBacking.timelineObserverForTesting = newValue } }
-    }
-    var appleNativeCompletionInterceptorForTesting:
-        (@Sendable (ApplePlaybackNativeObservation, @escaping @Sendable () -> Void) -> Void)? {
-        get { systemBacking.nativeCompletionInterceptorForTesting }
-        set { if SelfTest.isRunning { systemBacking.nativeCompletionInterceptorForTesting = newValue } }
-    }
-    var appleRawCompletionDeferralForTesting:
-        (@Sendable (RawApplePlayedNotice, @escaping @Sendable () -> Void) -> Void)? {
-        get { systemBacking.rawCompletionDeferralForTesting }
-        set { if SelfTest.isRunning { systemBacking.rawCompletionDeferralForTesting = newValue } }
-    }
-    var appleResumeProofObserverForTesting: (@MainActor (AppleResumePlaybackReceipt) -> Void)? {
-        get { systemBacking.resumeProofObserverForTesting }
-        set { if SelfTest.isRunning { systemBacking.resumeProofObserverForTesting = newValue } }
-    }
+    private let unavailableBacking = UnavailableSpeechBacking()
+    private(set) var outputAvailability: AgentVoiceAvailability?
+    /// A reply's route is fixed at its beginning, even if preparation finishes later.
+    private var replyCanSpeak = false
+    var canSpeak: Bool { testingBacking || persistentPlaybackBacking != nil || availability == .ready }
     private let pocketBacking = PocketSpeechBacking()
     private let pocketSourceBacking = PocketSourceSpeechBacking()
     private let kokoroBacking = KokoroSpeechBacking()
@@ -145,11 +137,6 @@ final class AgentSpeechSynthesizer {
     private var persistentPlaybackBacking: (any AgentSpeechBacking)?
     private var persistentPlaybackUsesPocketSource = false
     private(set) var persistentPlaybackFailure: String?
-    /// A failed optional voice falls back only for the current reply. The
-    /// saved user preference is kept for the next request.
-    private var usingSystemFallbackForReply = false
-    private var deferredFallbackClause = false
-    private var fallbackBackingForTesting: (any AgentSpeechBacking)?
     /// Remaining clauses after the one currently speaking (or just enqueued).
     private var pendingClauses: [String] = []
     // Native utterance identity aligned with currentClause + pendingClauses.
@@ -180,6 +167,11 @@ final class AgentSpeechSynthesizer {
     // Nil for ordinary playback; the existing scripted suspend flag drives
     // preparation availability without loading or changing the chosen voice.
     private var pocketReadinessForTesting: Bool?
+    private var kokoroReadinessForTesting: Bool?
+    private var kokoroIsReady: Bool {
+        if SelfTest.isRunning, let kokoroReadinessForTesting { return kokoroReadinessForTesting }
+        return KokoroAgentVoice.shared.isReady
+    }
     private var pocketIsReady: Bool {
         if SelfTest.isRunning, let pocketReadinessForTesting { return pocketReadinessForTesting }
         return PocketAgentVoice.shared.isReady
@@ -221,16 +213,7 @@ final class AgentSpeechSynthesizer {
     var pendingClauseCount: Int { pendingClauses.count }
 
     init(backing: (any AgentSpeechBacking)? = nil) {
-        self.backing = backing ?? systemBacking
-        systemBacking.onResumePlaybackAcknowledged = { [weak self] receipt in
-            self?.didResumeAudio(receipt)
-        }
-        systemBacking.onUtteranceFinished = { [weak self] token in
-            self?.didFinishAudio(token: token)
-        }
-        systemBacking.onUtteranceStarted = { [weak self] token in
-            self?.didBeginAudio(token: token)
-        }
+        self.backing = backing ?? unavailableBacking
         pocketBacking.onUtteranceFinished = { [weak self] token in
             self?.didFinishAudio(token: token)
         }
@@ -272,15 +255,7 @@ final class AgentSpeechSynthesizer {
         kokoroBacking.onFailure = { [weak self] text, volume, token in
             self?.fallbackCurrentClause(text: text, token: token)
         }
-        // Scripted speech tests install their backing after construction. Real audio
-        // probes explicitly prepare their engine; startup must not load models here.
-        if !SelfTest.isRunning, Settings.shared.agentVoiceEngine == "pocket" {
-            Task { await PocketAgentVoice.shared.prepare() }
-        } else if !SelfTest.isRunning, Settings.shared.agentVoiceEngine == "kokoro" {
-            if KokoroAgentVoice.isSupportedOS {
-                Task { await KokoroAgentVoice.shared.prepare() }
-            }
-        }
+
     }
 
     var isSpeaking: Bool { backing.isSpeaking || !pendingClauses.isEmpty }
@@ -293,6 +268,11 @@ final class AgentSpeechSynthesizer {
         let clauses = AgentSpeechPolicy.spokenClauses(reply)
         guard !clauses.isEmpty else { return }
         prepareForStream()
+        if !replyCanSpeak {
+            for clause in clauses { enqueueClause(clause) }
+            finishStream()
+            return
+        }
         if backing is any AgentReplySpeechBacking {
             for clause in clauses { enqueueClause(clause) }
             finishStream()
@@ -312,9 +292,10 @@ final class AgentSpeechSynthesizer {
         setOutputGain(1)
         voiceResumePending = false
         voiceResumeBinding = nil
-        usingSystemFallbackForReply = false
-        deferredFallbackClause = false
         isPausedForListening = false
+        selectedVoiceFailed = false
+        outputAvailability = nil
+        replyCanSpeak = true
         let closingReply = replyOpen
         interruptCurrentClause()
         replyTokens.removeAll()
@@ -338,10 +319,12 @@ final class AgentSpeechSynthesizer {
                 switch Self.selectedEngine {
                 case "pocket" where pocketIsReady:
                     backing = pocketBacking
-                case "kokoro" where KokoroAgentVoice.isSupportedOS:
+                case "kokoro" where KokoroAgentVoice.isSupportedOS && kokoroIsReady:
                     backing = kokoroBacking
                 default:
-                    backing = systemBacking
+                    backing = unavailableBacking
+                    replyCanSpeak = false
+                    outputAvailability = availability
                 }
                 Log.agent.info(
                     "voice playback route selected=settings \(String(describing: type(of: self.backing)))"
@@ -382,6 +365,13 @@ final class AgentSpeechSynthesizer {
     func enqueueClause(_ clause: String) {
         let trimmed = clause.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty, !didStop else { return }
+        if !replyCanSpeak {
+            // Preserve written text in its existing consumer and retain an unheard
+            // speech fact. Preparation must never play this stale answer later.
+            onPlaybackEvent?(.enqueued(trimmed))
+            onPlaybackEvent?(.interrupted(trimmed, wasRendered: false))
+            return
+        }
         if let reply = backing as? any AgentReplySpeechBacking {
             let beginning = !replyOpen
             if beginning { replyOpen = true; replyFinished = false }
@@ -412,6 +402,14 @@ final class AgentSpeechSynthesizer {
 
     /// Text EOF is separate from playback drain, including a paused reply.
     func finishStream() {
+        if !replyCanSpeak {
+            let hadPendingAudio = onFirstAudio != nil
+            onFirstAudio = nil
+            if hadPendingAudio { onFirstAudioCancelled?() }
+            RealtimeAudioSession.shared.noteOutputFinished()
+            onVoiceLifecycleSettled?()
+            return
+        }
         guard !didStop, replyOpen, !replyFinished,
               let reply = backing as? any AgentReplySpeechBacking else { return }
         replyFinished = true
@@ -427,7 +425,6 @@ final class AgentSpeechSynthesizer {
         voiceResumePending = false
         voiceResumeBinding = nil
         isPausedForListening = false
-        deferredFallbackClause = false
         interruptCurrentClause()
         replyTokens.removeAll()
         replyOpen = false
@@ -458,15 +455,10 @@ final class AgentSpeechSynthesizer {
         guard isPausedForListening, !didStop else { return }
         isPausedForListening = false
         backing.resumeAfterListening()
-        if (backing as AnyObject) === systemBacking,
-           let phase = systemBacking.currentResumePhase {
+        if let receiptBacking = backing as? any AgentReceiptSpeechBacking,
+           let phase = receiptBacking.currentResumePhase {
             voiceResumeBinding = .init(token: currentPlaybackToken, phase: phase)
             onPlaybackEvent?(.resumeRequested(token: currentPlaybackToken, phase: phase))
-        }
-        if deferredFallbackClause, let currentClause {
-            deferredFallbackClause = false
-            startClause(currentClause)
-            return
         }
         // A late completion can arrive while the player is paused. In that
         // case advanceQueue held the next clause; start it only now.
@@ -474,12 +466,14 @@ final class AgentSpeechSynthesizer {
     }
 
     /// Self-test only. Restored by interrupt / stream self-tests so a later
-    /// turn still uses the system voice.
+    /// turn reselects the requested allowed voice.
     func useTestingBacking(_ backing: any AgentSpeechBacking, fallback: (any AgentSpeechBacking)? = nil) {
         self.backing.stop()
-        fallbackBackingForTesting = fallback
         testingBacking = true
         self.backing = backing
+        if let receipt = backing as? any AgentReceiptSpeechBacking {
+            receipt.onResumePlaybackAcknowledged = { [weak self] value in self?.didResumeAudio(value) }
+        }
         if let reply = backing as? any AgentReplySpeechBacking {
             reply.onUtteranceStarted = { [weak self] token in self?.didBeginAudio(token: token) }
             reply.onUtteranceFinished = { [weak self] token in self?.didFinishAudio(token: token) }
@@ -540,11 +534,11 @@ final class AgentSpeechSynthesizer {
         voiceResumePending = false
         voiceResumeBinding = nil
         if testingBacking { backing.stop() }
-        usingSystemFallbackForReply = false
-        deferredFallbackClause = false
-        fallbackBackingForTesting = nil
         testingBacking = false
-        self.backing = persistentPlaybackBacking ?? systemBacking
+        self.backing = persistentPlaybackBacking ?? unavailableBacking
+        replyCanSpeak = false
+        outputAvailability = nil
+        selectedVoiceFailed = false
         setOutputGain(1)
         utteranceVolume = 1.0
         pendingClauses.removeAll()
@@ -559,13 +553,13 @@ final class AgentSpeechSynthesizer {
     }
 
     private func didResumeAudio(_ receipt: AppleResumePlaybackReceipt) {
-        guard (backing as AnyObject) === systemBacking,
+        guard let receiptBacking = backing as? any AgentReceiptSpeechBacking,
               currentClause != nil, !didStop, !isPausedForListening,
               voiceResumePending, receipt.packet.buffer.token == currentPlaybackToken,
               let binding = voiceResumeBinding,
               binding.token == receipt.packet.buffer.token,
               binding.phase == receipt.packet.originPhase,
-              systemBacking.currentResumePhase == binding.phase else { return }
+              receiptBacking.currentResumePhase == binding.phase else { return }
         voiceResumePending = false
         onPlaybackEvent?(.resumeAcknowledged(receipt))
         onVoiceLifecycleSettled?()
@@ -646,31 +640,16 @@ final class AgentSpeechSynthesizer {
     }
 
     private func fallbackCurrentClause(text: String, token: UInt64) {
-        guard token == currentPlaybackToken, !usingSystemFallbackForReply,
+        guard token == currentPlaybackToken, !didStop,
               let currentClause, !currentClause.isEmpty,
               currentClause == text || (replyOpen && text.isEmpty) else { return }
-        usingSystemFallbackForReply = true
-        let partialReply = replyOpen && currentClauseRendered
-        replyTokens.removeAll()
-        replyOpen = false
-        replyFinished = false
-        backing = fallbackBackingForTesting ?? systemBacking
-        backing.setOutputGain(listeningOutputGain)
-        if partialReply {
-            // Completed clauses are gone. A partially rendered head is interrupted,
-            // never repeated; only untouched pending clauses use the old fallback.
-            onPlaybackEvent?(.interrupted(currentClause, wasRendered: true))
-            self.currentClause = nil
-            currentClauseRendered = false
-            if !isPausedForListening { advanceQueue() }
-            return
-        }
-        currentClauseRendered = false
-        if isPausedForListening {
-            deferredFallbackClause = true
-            return
-        }
-        startClause(currentClause)
+        selectedVoiceFailed = true
+        outputAvailability = .failed
+        replyCanSpeak = false
+        // Stop the existing producer. Completed clauses stay acknowledged; the
+        // partial head and every remaining clause settle interrupted/unheard.
+        stop()
+        RealtimeAudioSession.shared.noteOutputFinished()
     }
 
     private func interruptCurrentClause() {
@@ -767,74 +746,77 @@ final class AgentSpeechSynthesizer {
 
     private static func runPocketReadinessSelfTest() -> [String] {
         guard SelfTest.isRunning else { return ["voice readiness: diagnostic admission missing"] }
-        let synth = AgentSpeechSynthesizer.shared
+        let synth = shared
         let savedEngine = synth.engineOverrideForTesting
         let savedReadiness = synth.pocketReadinessForTesting
+        let savedKokoro = synth.kokoroReadinessForTesting
         let savedPreference = Settings.shared.agentVoiceEngine
-        var failures: [String] = []
+        var failures = AgentVoiceAvailability.runSelfTest()
+        var events: [PlaybackEvent] = []
         defer {
-            synth.stop()
-            synth.restoreSystemBacking()
+            synth.stop(); synth.restoreSystemBacking()
             synth.engineOverrideForTesting = savedEngine
             synth.pocketReadinessForTesting = savedReadiness
+            synth.kokoroReadinessForTesting = savedKokoro
         }
         synth.restoreSystemBacking()
+        synth.onPlaybackEvent = { events.append($0) }
         synth.engineOverrideForTesting = "pocket"
         synth.pocketReadinessForTesting = false
-        synth.prepareForStream()
-        if (synth.backing as AnyObject) !== synth.systemBacking {
-            failures.append("voice readiness: preparing Pocket did not immediately select Apple")
+        synth.speak("Written answer. Still written.")
+        if synth.backing !== synth.unavailableBacking || synth.isSpeaking
+            || synth.currentPlaybackToken != 0 || synth.pendingClauseCount != 0
+            || synth.outputAvailability == nil {
+            failures.append("voice readiness: unavailable Pocket entered playback")
         }
-        synth.stop()
-        if !synth.didStop || synth.currentClause != nil || synth.pendingClauseCount != 0 {
-            failures.append("voice readiness: cancellation retained cold playback")
+        if events.contains(where: { if case .startAcknowledged = $0 { return true }; if case .completed = $0 { return true }; return false })
+            || !events.contains(.interrupted("Written answer.", wasRendered: false)) {
+            failures.append("voice readiness: written answer claimed playback or lost unheard receipt")
         }
         synth.pocketReadinessForTesting = true
+        synth.enqueueClause("Do not replay an old answer.")
+        if synth.backing !== synth.unavailableBacking || synth.isSpeaking {
+            failures.append("voice readiness: preparation replayed the stale answer")
+        }
         synth.prepareForStream()
-        if (synth.backing as AnyObject) !== synth.pocketBacking {
-            failures.append("voice readiness: next ready reply did not select chosen Pocket")
-        }
+        if synth.backing !== synth.pocketBacking { failures.append("voice readiness: next ready reply did not select Pocket") }
         synth.stop()
-        synth.pocketReadinessForTesting = false
-        synth.prepareForStream()
-        if (synth.backing as AnyObject) !== synth.systemBacking || synth.didStop {
-            failures.append("voice readiness: replacement unavailable reply entered Pocket or stayed canceled")
-        }
-        synth.stop()
-        if Settings.shared.agentVoiceEngine != savedPreference {
-            failures.append("voice readiness: temporary playback changed saved preference")
-        }
+        synth.engineOverrideForTesting = "kokoro"
+        synth.kokoroReadinessForTesting = false
+        synth.speak("Kokoro is not ready.")
+        if synth.backing !== synth.unavailableBacking || synth.isSpeaking { failures.append("voice readiness: unready Kokoro spoke") }
+        synth.engineOverrideForTesting = "apple"
+        synth.speak("Legacy selection stays written.")
+        if synth.backing !== synth.unavailableBacking || synth.isSpeaking { failures.append("voice readiness: legacy selection spoke") }
+        if Settings.shared.agentVoiceEngine != savedPreference { failures.append("voice readiness: playback changed saved choice") }
         return failures
     }
 
     private static func runFallbackSelfTest() -> [String] {
-        let synth = AgentSpeechSynthesizer.shared
+        let synth = shared
         let failedBackend = RecordingSpeechBacking()
-        let safeBackend = RecordingSpeechBacking()
         let savedPreference = Settings.shared.agentVoiceEngine
         synth.useTestingBacking(failedBackend)
-        synth.fallbackBackingForTesting = safeBackend
+        var events: [PlaybackEvent] = []
+        synth.onPlaybackEvent = { events.append($0) }
         defer { synth.restoreSystemBacking() }
-        synth.speak("The first sentence.")
+        synth.speak("The first sentence. The untouched sentence.")
         let failedToken = synth.currentPlaybackToken
+        synth.notifyTestingFirstAudio(token: failedToken)
         synth.pauseForListening()
         synth.fallbackCurrentClause(text: "The first sentence.", token: failedToken)
+        let settled = events
         synth.fallbackCurrentClause(text: "The first sentence.", token: failedToken)
-        synth.fallbackCurrentClause(text: "The first sentence.", token: failedToken &- 1)
-        guard synth.isPausedForListening, safeBackend.spoken.isEmpty,
-              Settings.shared.agentVoiceEngine == savedPreference else {
-            return ["voice fallback: paused, duplicate, or stale failure spoke or changed preference"]
-        }
+        synth.notifyTestingAudioFinished(token: failedToken)
         synth.resumeAfterListening()
-        guard safeBackend.spoken == ["The first sentence."],
-              synth.currentPlaybackToken != failedToken else {
-            return ["voice fallback: resume did not speak exactly once with a new token"]
-        }
-        synth.stop()
-        synth.fallbackCurrentClause(text: "The first sentence.", token: failedToken)
-        guard safeBackend.spoken.count == 1,
+        guard synth.didStop, !synth.isSpeaking, synth.pendingClauseCount == 0,
+              failedBackend.spoken == ["The first sentence."], events == settled,
+              events.contains(.interrupted("The first sentence.", wasRendered: true)),
+              events.contains(.interrupted("The untouched sentence.", wasRendered: false)),
+              !events.contains(.completed("The first sentence.")),
+              synth.outputAvailability == .failed,
               Settings.shared.agentVoiceEngine == savedPreference else {
-            return ["voice fallback: stale callback replayed after stop or changed preference"]
+            return ["voice failure: did not settle exact partial/unheard reply without switching voice"]
         }
         return []
     }
@@ -1533,4 +1515,15 @@ final class RecordingSpeechBacking: AgentSpeechBacking {
         speaking = false
         paused = false
     }
+}
+
+/// Initial/unavailable state owns no audio engine and must never be asked to speak.
+@MainActor
+final class UnavailableSpeechBacking: AgentSpeechBacking {
+    private(set) var attemptedSpeechCount = 0
+    var isSpeaking: Bool { false }
+    func speak(_ text: String, volume: Float, token: UInt64) { attemptedSpeechCount += 1 }
+    func pauseForListening() {}
+    func resumeAfterListening() {}
+    func stop() {}
 }

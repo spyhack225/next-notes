@@ -427,6 +427,13 @@ final class OutputScheduler {
                 }
                 if let item = entry.item {
                     if current.byUser { _ = bridge.setDelivery([item.task], .deliveredInContext); continue }
+                    if AgentSpeechSynthesizer.shared.outputAvailability != nil {
+                        // A written answer is retained for explicit replay. No retry
+                        // attempt or spoken approval is earned by absent audio.
+                        guard bridge.setDelivery([item.task], .pending) else { continue }
+                        queue.insert(entry, at: 0)
+                        continue
+                    }
                     entry.item?.attempts += 1
                     let attempts = entry.item!.attempts
                     if attempts >= 8 { _ = bridge.setDelivery([item.task], .failed, attempts: attempts); continue }
@@ -447,6 +454,7 @@ final class OutputScheduler {
         }
         if userHasFloor { cancelPhrasing(); lastFloorAt = now }
         guard AgentCaptureController.shared.isSessionActive, !userHasFloor,
+              AgentSpeechSynthesizer.shared.canSpeak,
               !RealtimeAgent.shared.voiceInputActive, !RealtimeAgent.shared.isThinking,
               !RealtimeAudioSession.shared.isSpeaking, !AgentSpeechSynthesizer.shared.isSpeaking,
               active == nil, phraseTask == nil, !queue.isEmpty else { return false }

@@ -684,7 +684,7 @@ final class RealtimeAudioSession {
     }
 
     private func noteEnqueueIfNeeded() {
-        guard speechBuffer.didEnqueue else { return }
+        guard speechBuffer.didEnqueue, AgentSpeechSynthesizer.shared.isSpeaking else { return }
         if isActive {
             isSpeaking = true
             phase = .speaking
