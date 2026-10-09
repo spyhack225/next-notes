@@ -1,0 +1,131 @@
+2026-10-08 20:48:57.798 NextNotes[26099:3874891] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_DIAGNOSTIC_APPLE_CALLS=1 ready=false
+VOICE_DIAGNOSTIC_APPLE_CALLS=1 ready=true
+VOICE_RESIDENT_COLD_CASES=UNRUN scripted-only isolation
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_warmup_done elapsed_s=0.004 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=partial_route_ready elapsed_s=0.005
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_task_end elapsed_s=0.005
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_hit headstart_date_s=0.049 elapsed_s=0.049
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=partial_route_committed_answer elapsed_s=0.050
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=first_answer_text elapsed_s=0.050
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=prepared_route_consumer_end elapsed_s=0.050
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.003s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE cold routes=1 native=0 apple=1
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_hit headstart_date_s=0.041 elapsed_s=0.041
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=partial_route_committed_answer elapsed_s=0.041
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=first_answer_text elapsed_s=0.041
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=prepared_route_consumer_end elapsed_s=0.041
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE evicted routes=1 native=0 apple=1
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_hit headstart_date_s=0.042 elapsed_s=0.042
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=partial_route_committed_answer elapsed_s=0.042
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=first_answer_text elapsed_s=0.042
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=prepared_route_consumer_end elapsed_s=0.042
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE resident routes=1 native=0 apple=1
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=speculation_cancel_requested elapsed_s=0.040
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=committed_stream_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=cancellation_to_speculation_end elapsed_s=0.040 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=drain_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=answer_session_native elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=first_answer_text elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=native_task_end elapsed_s=0.000
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.003s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE revised routes=2 native=0 apple=1
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=speculation_hit headstart_date_s=0.040 elapsed_s=0.040
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=prepared_route_consumer_end elapsed_s=0.041
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s frontend-control provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE control routes=1 native=0 apple=0
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=speculation_hit headstart_date_s=0.041 elapsed_s=0.041
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=prepared_route_consumer_end elapsed_s=0.041
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s frontend-control provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE invalid routes=1 native=0 apple=0
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=speculation_hit headstart_date_s=0.041 elapsed_s=0.041
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=partial_route_committed_answer elapsed_s=0.041
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=first_answer_text elapsed_s=0.041
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=prepared_route_consumer_end elapsed_s=0.041
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE fault routes=1 native=0 apple=1
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=speculation_hit headstart_date_s=0.040 elapsed_s=0.040
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=partial_route_committed_answer elapsed_s=0.040
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=first_answer_text elapsed_s=0.040
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=prepared_route_consumer_end elapsed_s=0.040
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE cancel routes=1 native=0 apple=1
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=speculation_started elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=speculation_barrier_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=native_warmup_done elapsed_s=0.000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=partial_route_ready elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=native_task_end elapsed_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=speculation_hit headstart_date_s=0.041 elapsed_s=0.041
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=partial_route_committed_answer elapsed_s=0.042
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=first_answer_text elapsed_s=0.042
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=prepared_route_consumer_end elapsed_s=0.042
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE late-notLoaded routes=1 native=0 apple=1
+VOICE_RESIDENT_ANSWER_WRONG: diagnostic unready Pocket reached Apple fallback backing
+VOICE_RESIDENT_ANSWER_WRONG: diagnostic failed Pocket reached Apple fallback backing
+VOICE_RESIDENT_ANSWER_WRONG: cold: native/Apple calls 0/1, expected 1/1
+VOICE_RESIDENT_ANSWER_WRONG: cold: actual committed answer identity was not retained for the real tracker
+VOICE_RESIDENT_ANSWER_WRONG: evicted: native/Apple calls 0/1, expected 1/1
+VOICE_RESIDENT_ANSWER_WRONG: evicted: actual committed answer identity was not retained for the real tracker
+VOICE_RESIDENT_ANSWER_WRONG: resident: native/Apple calls 0/1, expected 1/0
+VOICE_RESIDENT_ANSWER_WRONG: resident: selected answer did not reach committed reply and speech exactly once
+VOICE_RESIDENT_ANSWER_WRONG: resident: actual committed answer identity was not retained for the real tracker
+VOICE_RESIDENT_ANSWER_WRONG: revised: native/Apple calls 0/1, expected 1/0
+VOICE_RESIDENT_ANSWER_WRONG: revised: selected answer did not reach committed reply and speech exactly once
+VOICE_RESIDENT_ANSWER_WRONG: revised: actual committed answer identity was not retained for the real tracker
+VOICE_RESIDENT_ANSWER_WRONG: fault: native/Apple calls 0/1, expected 1/0
+VOICE_RESIDENT_ANSWER_WRONG: fault: invalid route/native failure silently changed answer model
+VOICE_RESIDENT_ANSWER_WRONG: cancel: native/Apple calls 0/1, expected 1/0
+VOICE_RESIDENT_ANSWER_WRONG: cancel: invalid route/native failure silently changed answer model
+VOICE_RESIDENT_ANSWER_WRONG: late-notLoaded: native/Apple calls 0/1, expected 1/0
+VOICE_RESIDENT_ANSWER_WRONG: late-notLoaded: invalid route/native failure silently changed answer model
+VOICE_RESIDENT_ANSWER_FAILED
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=notAddressedToMe task=none
+VOICE_SPLIT_ROUTE intent=startExternalTask task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none
+VOICE_SPLIT_ROUTE intent=answerQuestion task=none

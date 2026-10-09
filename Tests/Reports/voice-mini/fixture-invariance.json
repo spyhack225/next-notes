@@ -1,0 +1,9 @@
+{
+  "resident_fixture_red_sha256": "e876332245c418aedd03a878baeb1469af9338545ee8b12af459c58fb8384151",
+  "resident_fixture_green_sha256": "e876332245c418aedd03a878baeb1469af9338545ee8b12af459c58fb8384151",
+  "resident_fixture_equal": true,
+  "speech_contract_body_red_sha256": "550ee5fdfbe2b0c144377f74335ebd860591872dda3ead81189b054a9c76a444",
+  "speech_contract_body_green_sha256": "550ee5fdfbe2b0c144377f74335ebd860591872dda3ead81189b054a9c76a444",
+  "speech_contract_body_equal": true,
+  "counter_prerequisite_sha256": "bf8d8984dbdec07f3b1e89035a95af793dfd5f4fb6b01d2650a0899de4972b9d"
+}

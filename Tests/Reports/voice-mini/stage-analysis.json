@@ -1,0 +1,1333 @@
+{
+  "scope": "Exact per-generation raw uptime timing; committed warmup included and flagged here, not qualified-turn aggregate. Entry\u2192admitted includes actor/reservation/scheduler/tokenizer; not pure scheduler wait. Foreign/memory census unavailable for first batch, never inferred zero.",
+  "arms": {
+    "apple": {
+      "source_sha256": "584bddae685686dfd2655d49392ca964ada3e73620a68598317719625c77a088",
+      "committed_generations_including_warmup": [
+        {
+          "generation": "18",
+          "collect_s": 4.037023041,
+          "validation_s": 0.000143584,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": null,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121315353899208,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121315353983666,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121315354056791,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121315355293291,
+              "elapsed_s": 0.002
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121315356236250,
+              "elapsed_s": 0.002
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121315356702000,
+              "elapsed_s": 0.003
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.062",
+              "nanos": 121316415896041,
+              "elapsed_s": 1.062
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121319393725041,
+              "elapsed_s": 4.04
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121319393868625,
+              "elapsed_s": 4.04
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121319393882375,
+              "elapsed_s": 4.04
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121319393939875,
+              "elapsed_s": 4.04
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121319394124250,
+              "elapsed_s": 4.04
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121319394220166,
+              "elapsed_s": 4.04
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121321955624041,
+              "elapsed_s": 6.602
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121322263197958,
+              "elapsed_s": 6.909
+            }
+          ]
+        },
+        {
+          "generation": "32",
+          "collect_s": 4.170235166,
+          "validation_s": 0.000215375,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": null,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121335953302625,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121335953420250,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121335953485333,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121335954699875,
+              "elapsed_s": 0.002
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121335957303750,
+              "elapsed_s": 0.004
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121335957548000,
+              "elapsed_s": 0.004
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.082",
+              "nanos": 121337034879708,
+              "elapsed_s": 1.082
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121340127783166,
+              "elapsed_s": 4.175
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121340127998541,
+              "elapsed_s": 4.175
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121340128032125,
+              "elapsed_s": 4.175
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121340128134750,
+              "elapsed_s": 4.175
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121340128300833,
+              "elapsed_s": 4.175
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121340128323125,
+              "elapsed_s": 4.175
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121342806825000,
+              "elapsed_s": 6.854
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121343200375083,
+              "elapsed_s": 7.247
+            }
+          ]
+        },
+        {
+          "generation": "45",
+          "collect_s": 4.604021333,
+          "validation_s": 0.000139292,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": null,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121355661412791,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121355661578375,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121355661652458,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121355664553583,
+              "elapsed_s": 0.003
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121355665747833,
+              "elapsed_s": 0.005
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121355665878583,
+              "elapsed_s": 0.005
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.031",
+              "nanos": 121356692693750,
+              "elapsed_s": 1.032
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121360269899916,
+              "elapsed_s": 4.609
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121360270039208,
+              "elapsed_s": 4.609
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121360270052083,
+              "elapsed_s": 4.609
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121360270102333,
+              "elapsed_s": 4.609
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121360270222458,
+              "elapsed_s": 4.609
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121360270297708,
+              "elapsed_s": 4.609
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121362557286291,
+              "elapsed_s": 6.896
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121362845728916,
+              "elapsed_s": 7.185
+            }
+          ]
+        },
+        {
+          "generation": "58",
+          "collect_s": 4.945433792,
+          "validation_s": 0.000193291,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": null,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121375094055541,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121375094144500,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121375094275625,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121375096832458,
+              "elapsed_s": 0.003
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121375098475750,
+              "elapsed_s": 0.005
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121375098645208,
+              "elapsed_s": 0.005
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.779",
+              "nanos": 121375873060000,
+              "elapsed_s": 0.779
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121380044079000,
+              "elapsed_s": 4.95
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121380044272291,
+              "elapsed_s": 4.95
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121380044292708,
+              "elapsed_s": 4.95
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121380044371666,
+              "elapsed_s": 4.95
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121380044657083,
+              "elapsed_s": 4.951
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121380044684333,
+              "elapsed_s": 4.951
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121382750355958,
+              "elapsed_s": 7.656
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121383125179083,
+              "elapsed_s": 8.031
+            }
+          ]
+        },
+        {
+          "generation": "65",
+          "collect_s": 5.089276792,
+          "validation_s": 0.000340875,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": null,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121395676485333,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121395676594625,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121395676668500,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121395677863333,
+              "elapsed_s": 0.002
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121395680878833,
+              "elapsed_s": 0.005
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121395681004166,
+              "elapsed_s": 0.005
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.621",
+              "nanos": 121396297762916,
+              "elapsed_s": 0.621
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121400770280958,
+              "elapsed_s": 5.094
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121400770621833,
+              "elapsed_s": 5.094
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121400770649583,
+              "elapsed_s": 5.094
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121400770762583,
+              "elapsed_s": 5.095
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121400771243916,
+              "elapsed_s": 5.095
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121400771460583,
+              "elapsed_s": 5.095
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121403111315583,
+              "elapsed_s": 7.435
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121403575812500,
+              "elapsed_s": 7.9
+            }
+          ]
+        }
+      ],
+      "environment": {
+        "before": {
+          "foreign_heavy_count": "unavailable/not captured",
+          "foreign_heavy_processes": "unavailable/not captured",
+          "load": "20:51  up 1 day, 10:03, 1 user, load averages: 3.90 5.62 5.71",
+          "swap": "vm.swapusage: total = 7168.00M  used = 6279.19M  free = 888.81M  (encrypted)",
+          "memory": "unavailable/not captured"
+        },
+        "after": {
+          "foreign_heavy_count": "unavailable/not captured",
+          "foreign_heavy_processes": "unavailable/not captured",
+          "load": "20:53  up 1 day, 10:05, 1 user, load averages: 7.94 6.14 5.87",
+          "swap": "vm.swapusage: total = 7168.00M  used = 6271.19M  free = 896.81M  (encrypted)",
+          "memory": "unavailable/not captured"
+        }
+      }
+    },
+    "mini": {
+      "source_sha256": "66d1c5cace2950f3b3daf106787f248c346ee7149d3642d49dd5b7b0f57beaa8",
+      "committed_generations_including_warmup": [
+        {
+          "generation": "15",
+          "collect_s": 6.016592125,
+          "validation_s": 0.001919791,
+          "native_entry_to_admitted_s": 0.008260542,
+          "native_admitted_to_text_s": 0.419100125,
+          "cold_entry_to_fallback_s": null,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121467487807750,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121467857964500,
+              "elapsed_s": 0.37
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121467858286250,
+              "elapsed_s": 0.371
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121467862666083,
+              "elapsed_s": 0.375
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121467864324375,
+              "elapsed_s": 0.377
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121467864499750,
+              "elapsed_s": 0.377
+            },
+            {
+              "event": "prefill_handoff",
+              "nanos": 121467864702875,
+              "elapsed_s": 0.377
+            },
+            {
+              "event": "prefill_native_admitted",
+              "nanos": 121467864885041,
+              "elapsed_s": 0.377
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.521",
+              "nanos": 121469008665166,
+              "elapsed_s": 1.521
+            },
+            {
+              "event": "prefill_done prompt=1231 reused=1061 decoded=170 native_s=1.5857636670000002",
+              "nanos": 121469474499541,
+              "elapsed_s": 1.987
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121473881091875,
+              "elapsed_s": 6.393
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121473883011666,
+              "elapsed_s": 6.395
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121473883044666,
+              "elapsed_s": 6.395
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121473883460291,
+              "elapsed_s": 6.396
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121473884090791,
+              "elapsed_s": 6.396
+            },
+            {
+              "event": "answer_entry provider=appLLM",
+              "nanos": 121473884313833,
+              "elapsed_s": 6.397
+            },
+            {
+              "event": "answer_native_admitted",
+              "nanos": 121473892574375,
+              "elapsed_s": 6.405
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121474311674500,
+              "elapsed_s": 6.824
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121477289267791,
+              "elapsed_s": 9.802
+            }
+          ]
+        },
+        {
+          "generation": "34",
+          "collect_s": 4.382347959,
+          "validation_s": 0.000759083,
+          "native_entry_to_admitted_s": 0.004688791,
+          "native_admitted_to_text_s": 0.112902,
+          "cold_entry_to_fallback_s": null,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121509217346541,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121509633643958,
+              "elapsed_s": 0.417
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121509633733083,
+              "elapsed_s": 0.417
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121509635489500,
+              "elapsed_s": 0.418
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121509636397125,
+              "elapsed_s": 0.419
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121509636553166,
+              "elapsed_s": 0.419
+            },
+            {
+              "event": "prefill_handoff",
+              "nanos": 121509636845750,
+              "elapsed_s": 0.42
+            },
+            {
+              "event": "prefill_native_admitted",
+              "nanos": 121509637018875,
+              "elapsed_s": 0.42
+            },
+            {
+              "event": "prefill_done prompt=1296 reused=1189 decoded=107 native_s=0.706605209",
+              "nanos": 121510350609291,
+              "elapsed_s": 1.134
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.710",
+              "nanos": 121510926880208,
+              "elapsed_s": 1.71
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121514018901125,
+              "elapsed_s": 4.802
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121514019660208,
+              "elapsed_s": 4.803
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121514019680416,
+              "elapsed_s": 4.803
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121514019748416,
+              "elapsed_s": 4.803
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121514020163541,
+              "elapsed_s": 4.803
+            },
+            {
+              "event": "answer_entry provider=appLLM",
+              "nanos": 121514020347000,
+              "elapsed_s": 4.803
+            },
+            {
+              "event": "answer_native_admitted",
+              "nanos": 121514025035791,
+              "elapsed_s": 4.808
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121514137937791,
+              "elapsed_s": 4.921
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121517138983166,
+              "elapsed_s": 7.922
+            }
+          ]
+        },
+        {
+          "generation": "47",
+          "collect_s": 4.129194708,
+          "validation_s": 0.000741542,
+          "native_entry_to_admitted_s": 0.007009334,
+          "native_admitted_to_text_s": 0.111524625,
+          "cold_entry_to_fallback_s": null,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121531198838916,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.143",
+              "nanos": 121532341419750,
+              "elapsed_s": 1.143
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121532582778916,
+              "elapsed_s": 1.384
+            },
+            {
+              "event": "prefill_handoff",
+              "nanos": 121532582918916,
+              "elapsed_s": 1.384
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121532582959500,
+              "elapsed_s": 1.384
+            },
+            {
+              "event": "prefill_native_admitted",
+              "nanos": 121532583030083,
+              "elapsed_s": 1.384
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121532583652750,
+              "elapsed_s": 1.385
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121532584805583,
+              "elapsed_s": 1.386
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121532584943250,
+              "elapsed_s": 1.386
+            },
+            {
+              "event": "prefill_done prompt=1361 reused=1232 decoded=129 native_s=1.8075985",
+              "nanos": 121534397971333,
+              "elapsed_s": 3.199
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121536714137958,
+              "elapsed_s": 5.515
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121536714879500,
+              "elapsed_s": 5.516
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121536714903291,
+              "elapsed_s": 5.516
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121536715000541,
+              "elapsed_s": 5.516
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121536715548083,
+              "elapsed_s": 5.517
+            },
+            {
+              "event": "answer_entry provider=appLLM",
+              "nanos": 121536715734041,
+              "elapsed_s": 5.517
+            },
+            {
+              "event": "answer_native_admitted",
+              "nanos": 121536722743375,
+              "elapsed_s": 5.524
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121536834268000,
+              "elapsed_s": 5.636
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121540049187333,
+              "elapsed_s": 8.85
+            }
+          ]
+        }
+      ],
+      "environment": {
+        "before": {
+          "foreign_heavy_count": "unavailable/not captured",
+          "foreign_heavy_processes": "unavailable/not captured",
+          "load": "20:53  up 1 day, 10:05, 1 user, load averages: 7.94 6.14 5.87",
+          "swap": "vm.swapusage: total = 7168.00M  used = 6271.19M  free = 896.81M  (encrypted)",
+          "memory": "unavailable/not captured"
+        },
+        "after": {
+          "foreign_heavy_count": "unavailable/not captured",
+          "foreign_heavy_processes": "unavailable/not captured",
+          "load": "20:56  up 1 day, 10:08, 1 user, load averages: 17.74 11.29 8.01",
+          "swap": "vm.swapusage: total = 8192.00M  used = 6962.25M  free = 1229.75M  (encrypted)",
+          "memory": "unavailable/not captured"
+        }
+      }
+    },
+    "cold-fallback": {
+      "source_sha256": "460b93ae67f8d5558d9ce2ed29c640cd1714f081a7e596a5aadd3d3e3b208f09",
+      "committed_generations_including_warmup": [
+        {
+          "generation": "18",
+          "collect_s": 4.155019666,
+          "validation_s": 0.000137709,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": 0.000360041,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121616669772125,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121616669822291,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121616669854000,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121616670336833,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121616670681666,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121616670753125,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "prefill_handoff",
+              "nanos": 121616670819416,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "prefill_skip_not_prepared",
+              "nanos": 121616670830000,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.052",
+              "nanos": 121617722006291,
+              "elapsed_s": 1.052
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121620825772791,
+              "elapsed_s": 4.156
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121620825910500,
+              "elapsed_s": 4.156
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121620825923500,
+              "elapsed_s": 4.156
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121620825975291,
+              "elapsed_s": 4.156
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121620826028208,
+              "elapsed_s": 4.156
+            },
+            {
+              "event": "answer_entry provider=appLLM",
+              "nanos": 121620826045625,
+              "elapsed_s": 4.156
+            },
+            {
+              "event": "answer_fallback_not_resident",
+              "nanos": 121620826405666,
+              "elapsed_s": 4.157
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121620826929875,
+              "elapsed_s": 4.157
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121622891726666,
+              "elapsed_s": 6.222
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121623206622291,
+              "elapsed_s": 6.537
+            }
+          ]
+        },
+        {
+          "generation": "31",
+          "collect_s": 3.747496833,
+          "validation_s": 0.000313667,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": 0.000986959,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121636703859750,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121636703893291,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121636703926125,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121636704350125,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121636704634875,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121636704679083,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "prefill_handoff",
+              "nanos": 121636704733750,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "prefill_skip_not_prepared",
+              "nanos": 121636704744583,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.004",
+              "nanos": 121637707838416,
+              "elapsed_s": 1.004
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121640452175916,
+              "elapsed_s": 3.748
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121640452489583,
+              "elapsed_s": 3.749
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121640452517083,
+              "elapsed_s": 3.749
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121640452795625,
+              "elapsed_s": 3.749
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121640453278750,
+              "elapsed_s": 3.749
+            },
+            {
+              "event": "answer_entry provider=appLLM",
+              "nanos": 121640453365666,
+              "elapsed_s": 3.75
+            },
+            {
+              "event": "answer_fallback_not_resident",
+              "nanos": 121640454352625,
+              "elapsed_s": 3.751
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121640455871041,
+              "elapsed_s": 3.752
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121642461672833,
+              "elapsed_s": 5.758
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121642811869541,
+              "elapsed_s": 6.108
+            }
+          ]
+        },
+        {
+          "generation": "44",
+          "collect_s": 2.107274709,
+          "validation_s": 0.000281333,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": 0.000355584,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121657460042791,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121657460078041,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "prefill_handoff",
+              "nanos": 121657460150208,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121657460163875,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121657460536875,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121657460825875,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121657460877041,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "prefill_skip_not_prepared",
+              "nanos": 121657460888375,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "speculation_hit headstart_date_s=0.996",
+              "nanos": 121658455951208,
+              "elapsed_s": 0.996
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121659568151750,
+              "elapsed_s": 2.108
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121659568433083,
+              "elapsed_s": 2.108
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121659568455791,
+              "elapsed_s": 2.108
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121659568540166,
+              "elapsed_s": 2.109
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121659568612958,
+              "elapsed_s": 2.109
+            },
+            {
+              "event": "answer_entry provider=appLLM",
+              "nanos": 121659568636666,
+              "elapsed_s": 2.109
+            },
+            {
+              "event": "answer_fallback_not_resident",
+              "nanos": 121659568992250,
+              "elapsed_s": 2.109
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121659569781750,
+              "elapsed_s": 2.11
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121662793735791,
+              "elapsed_s": 5.334
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121663046233583,
+              "elapsed_s": 5.586
+            }
+          ]
+        },
+        {
+          "generation": "57",
+          "collect_s": 4.004409875,
+          "validation_s": 0.000148875,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": 0.000263208,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121677116993208,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121677117032208,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121677117106875,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121677117498958,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121677117799333,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121677117849416,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "prefill_handoff",
+              "nanos": 121677117912000,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "prefill_skip_not_prepared",
+              "nanos": 121677117921041,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.010",
+              "nanos": 121678126677708,
+              "elapsed_s": 1.01
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121681122259291,
+              "elapsed_s": 4.005
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121681122408166,
+              "elapsed_s": 4.005
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121681122422583,
+              "elapsed_s": 4.005
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121681122501958,
+              "elapsed_s": 4.006
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121681122578833,
+              "elapsed_s": 4.006
+            },
+            {
+              "event": "answer_entry provider=appLLM",
+              "nanos": 121681122599708,
+              "elapsed_s": 4.006
+            },
+            {
+              "event": "answer_fallback_not_resident",
+              "nanos": 121681122862916,
+              "elapsed_s": 4.006
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121681123440208,
+              "elapsed_s": 4.007
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121683068189666,
+              "elapsed_s": 5.951
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121683310319625,
+              "elapsed_s": 6.193
+            }
+          ]
+        },
+        {
+          "generation": "70",
+          "collect_s": 1.911572208,
+          "validation_s": 0.000148708,
+          "native_entry_to_admitted_s": null,
+          "native_admitted_to_text_s": null,
+          "cold_entry_to_fallback_s": 0.000272917,
+          "events": [
+            {
+              "event": "speculation_started",
+              "nanos": 121695411042000,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "speculation_barrier_done",
+              "nanos": 121695411077041,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "prefill_handoff",
+              "nanos": 121695411161666,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "native_warmup_done",
+              "nanos": 121695411175458,
+              "elapsed_s": 0.0
+            },
+            {
+              "event": "route_plan_ready scheduler=none provider=appleFM",
+              "nanos": 121695411714000,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "route_session_fresh",
+              "nanos": 121695412075750,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "typed_route_collect_started",
+              "nanos": 121695412135000,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "prefill_skip_not_prepared",
+              "nanos": 121695412150916,
+              "elapsed_s": 0.001
+            },
+            {
+              "event": "speculation_hit headstart_date_s=1.004",
+              "nanos": 121696414547583,
+              "elapsed_s": 1.004
+            },
+            {
+              "event": "typed_route_collect_done",
+              "nanos": 121697323707208,
+              "elapsed_s": 1.913
+            },
+            {
+              "event": "typed_route_validated",
+              "nanos": 121697323855916,
+              "elapsed_s": 1.913
+            },
+            {
+              "event": "partial_route_ready",
+              "nanos": 121697323870708,
+              "elapsed_s": 1.913
+            },
+            {
+              "event": "native_task_end",
+              "nanos": 121697323934375,
+              "elapsed_s": 1.913
+            },
+            {
+              "event": "partial_route_committed_answer",
+              "nanos": 121697324012250,
+              "elapsed_s": 1.913
+            },
+            {
+              "event": "answer_entry provider=appLLM",
+              "nanos": 121697324037333,
+              "elapsed_s": 1.913
+            },
+            {
+              "event": "answer_fallback_not_resident",
+              "nanos": 121697324310250,
+              "elapsed_s": 1.913
+            },
+            {
+              "event": "answer_entry provider=appleFoundation",
+              "nanos": 121697324913583,
+              "elapsed_s": 1.914
+            },
+            {
+              "event": "first_answer_text",
+              "nanos": 121700543287500,
+              "elapsed_s": 5.132
+            },
+            {
+              "event": "prepared_route_consumer_end",
+              "nanos": 121700803875708,
+              "elapsed_s": 5.393
+            }
+          ]
+        }
+      ],
+      "environment": {
+        "before": {
+          "foreign_heavy_count": "unavailable/not captured",
+          "foreign_heavy_processes": "unavailable/not captured",
+          "load": "20:56  up 1 day, 10:08, 1 user, load averages: 17.74 11.29 8.01",
+          "swap": "vm.swapusage: total = 8192.00M  used = 6962.25M  free = 1229.75M  (encrypted)",
+          "memory": "unavailable/not captured"
+        },
+        "after": {
+          "foreign_heavy_count": "unavailable/not captured",
+          "foreign_heavy_processes": "unavailable/not captured",
+          "load": "20:58  up 1 day, 10:10, 1 user, load averages: 4.76 8.44 7.32",
+          "swap": "vm.swapusage: total = 8192.00M  used = 6946.25M  free = 1245.75M  (encrypted)",
+          "memory": "unavailable/not captured"
+        }
+      }
+    }
+  }
+}

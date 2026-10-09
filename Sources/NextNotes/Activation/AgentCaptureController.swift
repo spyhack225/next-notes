@@ -2650,6 +2650,10 @@ final class AgentCaptureController {
     /// acoustic double-talk or physical audibility test.
     static func runVoicePipelineSelfTest(wav: URL,
         appleFastResults: Bool = true) async -> [String] {
+        guard let speechProof = await VoiceDiagnosticSpeech.preparePocket() else {
+            return ["Pocket is unavailable; no alternate voice was used"]
+        }
+        defer { _ = speechProof.finish() }
         let capture = AgentCaptureController.shared
         await capture.endSession(source: .done)
         do {
@@ -2725,6 +2729,7 @@ final class AgentCaptureController {
         }
         await capture.endSession(source: .done)
         speech.onPlaybackEvent = priorPlaybackEvent
+        failures += speechProof.finish()
         return failures
     }
 

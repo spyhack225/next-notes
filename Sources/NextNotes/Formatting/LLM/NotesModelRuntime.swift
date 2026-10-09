@@ -870,7 +870,7 @@ actor NotesModelRuntime {
         messages: [LLMChatMessage],
         maxTokens: Int,
         grammar: GBNFGrammar? = nil,
-        residentOnly: Bool = false
+        residentOnly: Bool = false, onAdmitted: (@Sendable () -> Void)? = nil
     ) -> AsyncThrowingStream<String, Error> {
         streamPrompt(
             system: system,
@@ -878,7 +878,7 @@ actor NotesModelRuntime {
             maxTokens: maxTokens,
             workClass: .realtimeAgent,
             renderSpecial: true,
-            grammar: grammar
+            grammar: grammar, residentOnly: residentOnly, onAdmitted: onAdmitted
         )
     }
 
@@ -925,11 +925,17 @@ actor NotesModelRuntime {
         maxTokens: Int,
         workClass: WorkClass = .background,
         renderSpecial: Bool = false,
-        grammar: GBNFGrammar? = nil
+        grammar: GBNFGrammar? = nil,
+        residentOnly: Bool = false, onAdmitted: (@Sendable () -> Void)? = nil
     ) -> AsyncThrowingStream<String, Error> {
         AsyncThrowingStream { continuation in
             let task = Task {
                 do {
+                    // Diagnostic resident answers never enter an uncancellable load.
+                    // Recheck under the existing reservation after its actor waits.
+                    guard !residentOnly || (self.model != nil && self.vocabulary != nil && self.context != nil) else {
+                        throw LlamaError.notLoaded
+                    }
                     try await self.withLane(workClass) { jobID in
                         try await self.streamWhileScheduled(
                             jobID: jobID,
@@ -937,7 +943,7 @@ actor NotesModelRuntime {
                             messages: messages,
                             maxTokens: maxTokens,
                             renderSpecial: renderSpecial,
-                            grammar: grammar,
+                            grammar: grammar, residentOnly: residentOnly, onAdmitted: onAdmitted,
                             yield: { piece in continuation.yield(piece) }
                         )
                     }
@@ -1161,12 +1167,16 @@ actor NotesModelRuntime {
         maxTokens: Int,
         renderSpecial: Bool = false,
         grammar: GBNFGrammar? = nil,
+        residentOnly: Bool = false, onAdmitted: (@Sendable () -> Void)? = nil,
         yield: @escaping @Sendable (String) -> Void
     ) async throws {
         let firstTokenTrace = LatencyTrace.start(.modelFirstToken)
         let wasLoaded = model != nil && vocabulary != nil
         let loadBegan = ContinuousClock.now
-        try await loadIfNeeded(schedulerJobID: jobID)
+        guard !residentOnly || (model != nil && vocabulary != nil && context != nil) else {
+            throw LlamaError.notLoaded
+        }
+        if !residentOnly { try await loadIfNeeded(schedulerJobID: jobID) }
         Self.reportUsageLoad(warm: wasLoaded, began: loadBegan)
         defer {
             lastUse = Date()
@@ -1178,9 +1188,14 @@ actor NotesModelRuntime {
         // and a prompt rendered before that would use the wrong template on a cold start.
         let prompt = Self.render(forFamily: family, system: system, messages: messages)
         let promptTokens = try tokenizePrompt(prompt, vocabulary: vocabulary)
-        guard promptTokens.count + maxTokens + Self.contextHeadroom <= contextTokens else {
+        guard maxTokens >= 0, promptTokens.count <= contextTokens - Self.contextHeadroom,
+              maxTokens <= contextTokens - promptTokens.count - Self.contextHeadroom else {
             throw LlamaError.inputTooLong
         }
+        guard !residentOnly || contextSize >= promptTokens.count + maxTokens + Self.contextHeadroom else {
+            throw LlamaError.notLoaded
+        }
+        onAdmitted?()
 
         // Built before the prefill, so a grammar the native parser refuses costs nothing —
         // the same rule `completeWhileScheduled` follows, and the reason it matters more here:

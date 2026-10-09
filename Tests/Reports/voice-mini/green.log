@@ -1,0 +1,129 @@
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=false
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=true
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_started elapsed_s=0.000 at_nanos=121278069513875
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278069530708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_warmup_done elapsed_s=0.000 at_nanos=121278069635875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278069734250
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=typed_route_validated elapsed_s=0.000 at_nanos=121278069897625
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=partial_route_ready elapsed_s=0.000 at_nanos=121278069904916
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_task_end elapsed_s=0.001 at_nanos=121278070082166
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_hit headstart_date_s=0.043 elapsed_s=0.043 at_nanos=121278112229750
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=partial_route_committed_answer elapsed_s=0.043 at_nanos=121278112382833
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=answer_entry provider=appLLM elapsed_s=0.043 at_nanos=121278112410083
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=answer_fallback_not_resident elapsed_s=0.043 at_nanos=121278112691208
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=answer_entry provider=appleFoundation elapsed_s=0.045 at_nanos=121278114716500
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=first_answer_text elapsed_s=0.045 at_nanos=121278114760291
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=prepared_route_consumer_end elapsed_s=0.045 at_nanos=121278114802166
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.005s model provider=appleFoundation model=Apple Foundation Model
+VOICE_RESIDENT_ANSWER_CASE cold routes=1 native=1 apple=1
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_started elapsed_s=0.000 at_nanos=121278133658666
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278133702958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_warmup_done elapsed_s=0.000 at_nanos=121278133729166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278133762166
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=typed_route_validated elapsed_s=0.000 at_nanos=121278133791500
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=partial_route_ready elapsed_s=0.000 at_nanos=121278133798375
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=native_task_end elapsed_s=0.000 at_nanos=121278133835833
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=speculation_hit headstart_date_s=0.040 elapsed_s=0.040 at_nanos=121278173958958
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=partial_route_committed_answer elapsed_s=0.040 at_nanos=121278174023500
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=answer_entry provider=appLLM elapsed_s=0.040 at_nanos=121278174033208
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=answer_fallback_not_resident elapsed_s=0.041 at_nanos=121278174202416
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=answer_entry provider=appleFoundation elapsed_s=0.041 at_nanos=121278174530708
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=first_answer_text elapsed_s=0.041 at_nanos=121278174564458
+VOICE_FRONTEND_TIMING gen=2 revision=6 event=prepared_route_consumer_end elapsed_s=0.041 at_nanos=121278174596500
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_RESIDENT_ANSWER_CASE evicted routes=1 native=1 apple=1
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_started elapsed_s=0.000 at_nanos=121278190591791
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278190627625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=native_warmup_done elapsed_s=0.000 at_nanos=121278190650125 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278190679083
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=typed_route_validated elapsed_s=0.000 at_nanos=121278190702750
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=partial_route_ready elapsed_s=0.000 at_nanos=121278190709125
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=native_task_end elapsed_s=0.000 at_nanos=121278190743833
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=speculation_hit headstart_date_s=0.042 elapsed_s=0.042 at_nanos=121278232516416
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=partial_route_committed_answer elapsed_s=0.042 at_nanos=121278232585166
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=answer_entry provider=appLLM elapsed_s=0.042 at_nanos=121278232594750
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=first_answer_text elapsed_s=0.042 at_nanos=121278232627958
+VOICE_FRONTEND_TIMING gen=3 revision=10 event=prepared_route_consumer_end elapsed_s=0.042 at_nanos=121278232664958
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE resident routes=1 native=1 apple=0
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=speculation_started elapsed_s=0.000 at_nanos=121278248748500
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278248788375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=native_warmup_done elapsed_s=0.000 at_nanos=121278248816416 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278248847708
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=typed_route_validated elapsed_s=0.000 at_nanos=121278248872166
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=partial_route_ready elapsed_s=0.000 at_nanos=121278248878916
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=native_task_end elapsed_s=0.000 at_nanos=121278248913208
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=speculation_cancel_requested elapsed_s=0.040 at_nanos=121278288892666
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=committed_stream_started elapsed_s=0.000 at_nanos=121278288908083
+VOICE_FRONTEND_TIMING gen=4 revision=14 event=cancellation_to_speculation_end elapsed_s=0.040 at_nanos=121278288919458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=drain_barrier_done elapsed_s=0.000 at_nanos=121278288938833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=native_warmup_done elapsed_s=0.000 at_nanos=121278288959500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278288989458
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=typed_route_validated elapsed_s=0.000 at_nanos=121278289013333
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=answer_session_native elapsed_s=0.000 at_nanos=121278289060916
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=answer_entry provider=appLLM elapsed_s=0.000 at_nanos=121278289070416
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=first_answer_text elapsed_s=0.000 at_nanos=121278289112333
+VOICE_FRONTEND_TIMING gen=5 revision=15 event=native_task_end elapsed_s=0.000 at_nanos=121278289140458
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE revised routes=2 native=1 apple=0
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=speculation_started elapsed_s=0.000 at_nanos=121278305245708
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278305276583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=native_warmup_done elapsed_s=0.000 at_nanos=121278305299833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278305327250
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=typed_route_validated elapsed_s=0.000 at_nanos=121278305351333
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=partial_route_ready elapsed_s=0.000 at_nanos=121278305356583
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=native_task_end elapsed_s=0.000 at_nanos=121278305388750
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=speculation_hit headstart_date_s=0.038 elapsed_s=0.038 at_nanos=121278343682333
+VOICE_FRONTEND_TIMING gen=6 revision=18 event=prepared_route_consumer_end elapsed_s=0.039 at_nanos=121278343761541
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s frontend-control provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE control routes=1 native=0 apple=0
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=speculation_started elapsed_s=0.000 at_nanos=121278358218333
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278358253375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=native_warmup_done elapsed_s=0.000 at_nanos=121278358277000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278358305375
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=native_task_end elapsed_s=0.000 at_nanos=121278358579416
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=speculation_hit headstart_date_s=0.041 elapsed_s=0.041 at_nanos=121278398965875
+VOICE_FRONTEND_TIMING gen=7 revision=22 event=prepared_route_consumer_end elapsed_s=0.041 at_nanos=121278399010458
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s frontend-control provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE invalid routes=1 native=0 apple=0
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=speculation_started elapsed_s=0.000 at_nanos=121278415263708
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278415300750 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=native_warmup_done elapsed_s=0.000 at_nanos=121278415328041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278415357625
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=typed_route_validated elapsed_s=0.000 at_nanos=121278415382833
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=partial_route_ready elapsed_s=0.000 at_nanos=121278415389500
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=native_task_end elapsed_s=0.000 at_nanos=121278415426916
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=speculation_hit headstart_date_s=0.042 elapsed_s=0.042 at_nanos=121278456900416
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=partial_route_committed_answer elapsed_s=0.042 at_nanos=121278456969250
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=answer_entry provider=appLLM elapsed_s=0.042 at_nanos=121278456979041
+VOICE_FRONTEND_TIMING gen=8 revision=26 event=prepared_route_consumer_end elapsed_s=0.042 at_nanos=121278457136833
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s frontend-control provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE fault routes=1 native=1 apple=0
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=speculation_started elapsed_s=0.000 at_nanos=121278472887958
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278472923083 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=native_warmup_done elapsed_s=0.000 at_nanos=121278472951416 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278472983083
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=typed_route_validated elapsed_s=0.000 at_nanos=121278473010875
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=partial_route_ready elapsed_s=0.000 at_nanos=121278473017250
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=native_task_end elapsed_s=0.000 at_nanos=121278473054625
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=speculation_hit headstart_date_s=0.039 elapsed_s=0.039 at_nanos=121278511612250
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=partial_route_committed_answer elapsed_s=0.039 at_nanos=121278511715125
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=answer_entry provider=appLLM elapsed_s=0.039 at_nanos=121278511725500
+VOICE_FRONTEND_TIMING gen=9 revision=30 event=prepared_route_consumer_end elapsed_s=0.040 at_nanos=121278512900166
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s frontend-control provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE cancel routes=1 native=1 apple=0
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=speculation_started elapsed_s=0.000 at_nanos=121278526855041
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121278526886458 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=native_warmup_done elapsed_s=0.000 at_nanos=121278526920958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121278527023916
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=typed_route_validated elapsed_s=0.000 at_nanos=121278527127958
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=partial_route_ready elapsed_s=0.000 at_nanos=121278527160583
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=native_task_end elapsed_s=0.000 at_nanos=121278527206916
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=speculation_hit headstart_date_s=0.039 elapsed_s=0.039 at_nanos=121278565565083
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=partial_route_committed_answer elapsed_s=0.039 at_nanos=121278565634791
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=answer_entry provider=appLLM elapsed_s=0.039 at_nanos=121278565644583
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=first_answer_text elapsed_s=0.039 at_nanos=121278565674916
+VOICE_FRONTEND_TIMING gen=10 revision=34 event=prepared_route_consumer_end elapsed_s=0.039 at_nanos=121278565824000
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.001s model provider=appLLM model=Missing resident fixture
+VOICE_RESIDENT_ANSWER_CASE late-notLoaded routes=1 native=1 apple=0
+VOICE_RESIDENT_ANSWER_OK

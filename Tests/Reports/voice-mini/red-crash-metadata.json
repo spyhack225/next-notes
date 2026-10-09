@@ -1,0 +1,75 @@
+{
+  "pid": 16288,
+  "own_binary_path": "/Users/USER/Library/Caches/*/NextNotes",
+  "exception": {
+    "codes": "0x0000000000000001, 0x0000000109290de8",
+    "rawCodes": [
+      1,
+      4448652776
+    ],
+    "type": "EXC_BREAKPOINT",
+    "signal": "SIGTRAP"
+  },
+  "termination": {
+    "flags": 0,
+    "code": 5,
+    "namespace": "SIGNAL",
+    "indicator": "Trace/BPT trap: 5",
+    "byProc": "exc handler",
+    "byPid": 16288
+  },
+  "faulting_thread": 1,
+  "frames": [
+    {
+      "symbol": "Swift runtime failure: arithmetic overflow",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    },
+    {
+      "symbol": "NotesModelRuntime.streamWhileScheduled(jobID:system:messages:maxTokens:renderSpecial:grammar:yield:)",
+      "sourceFile": "NotesModelRuntime.swift",
+      "sourceLine": 1181
+    },
+    {
+      "symbol": "closure #1 in closure #1 in closure #1 in NotesModelRuntime.streamPrompt(system:messages:maxTokens:workClass:renderSpecial:grammar:)",
+      "sourceFile": "NotesModelRuntime.swift",
+      "sourceLine": 934
+    },
+    {
+      "symbol": "partial apply for closure #1 in closure #1 in closure #1 in NotesModelRuntime.streamPrompt(system:messages:maxTokens:workClass:renderSpecial:grammar:)",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    },
+    {
+      "symbol": "NotesModelRuntime.withLane<A>(_:_:)",
+      "sourceFile": "NotesModelRuntime.swift",
+      "sourceLine": 1337
+    },
+    {
+      "symbol": "closure #1 in closure #1 in NotesModelRuntime.streamPrompt(system:messages:maxTokens:workClass:renderSpecial:grammar:)",
+      "sourceFile": "NotesModelRuntime.swift",
+      "sourceLine": 933
+    },
+    {
+      "symbol": "partial apply for closure #1 in closure #1 in NotesModelRuntime.streamPrompt(system:messages:maxTokens:workClass:renderSpecial:grammar:)",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    },
+    {
+      "symbol": "thunk for @escaping @isolated(any) @callee_guaranteed @async () -> (@out A)",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    },
+    {
+      "symbol": "partial apply for thunk for @escaping @isolated(any) @callee_guaranteed @async () -> (@out A)",
+      "sourceFile": "/<compiler-generated>",
+      "sourceLine": null
+    },
+    {
+      "symbol": "completeTaskWithClosure(swift::AsyncContext*, swift::SwiftError*)",
+      "sourceFile": null,
+      "sourceLine": null
+    }
+  ],
+  "scope": "exact owned red PID16288 only; raw OS report and other app payloads not copied"
+}

@@ -80,9 +80,7 @@ edit(f,'''    func voiceLatencyAnswerProvider() -> (any LLMProvider)? { latencyA
             ? admittedLatencyAnswer.value : nil
     }
     private static var residentAnswerDiagnostic: Bool {
-        SelfTest.isRunning && SelfTest.requested == "--selftest-voice-latency"
-            && CommandLine.arguments.contains("--voice-latency-resident-only")
-            && LocalVoiceSplitResponse.isEnabled
+        Self.partialRouteDiagnostic && CommandLine.arguments.contains("--voice-latency-resident-only")
     }
 ''')
 edit(f,'''        if let commitRevision { sealSpeculation(through: commitRevision) }
@@ -193,7 +191,7 @@ edit(l, '''        // --- The table, the absent case, the store and the probe, b
             do {
                 _ = try await local.runtime.prepareInteractiveConversation(
                     system: plan.instructions, messages: messages,
-                    maxTokens: VoiceConversationCoordinator.responseTokenLimit)
+                    maxTokens: 256) // Same unchanged coordinator response budget.
             } catch { return absent("resident answer preparation failed before any measured turn") }
             let duration = began.duration(to: .now).components
             SelfTest.diagnostic("VOICE_RESIDENT_PREPARATION seconds=\\(Double(duration.seconds) + Double(duration.attoseconds) / 1e18) scope=before-all-spoken-turns")
@@ -301,3 +299,5 @@ edit(t, '''        for failure in failures {
         if applePlaybackCalls != 0 { failures.append("scripted voice routing reached Apple playback") }
         for failure in failures {
             print("VOICE_TURN_ROUTING_WRONG:''')
+
+edit(l, '        let floor = CommandLine.arguments.contains("--voice-latency-floor")', '        if CommandLine.arguments.contains("--voice-latency-resident-only"),\n           !CommandLine.arguments.contains("--voice-latency-partial-route") {\n            return absent("resident-only answering requires the split partial-route diagnostic")\n        }\n        let floor = CommandLine.arguments.contains("--voice-latency-floor")')

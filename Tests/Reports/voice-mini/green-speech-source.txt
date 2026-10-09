@@ -36,6 +36,7 @@ enum VoiceDiagnosticSpeech {
         return proof
     }
 
+    @MainActor
     final class Proof {
         private let appleCallsAtStart = AgentSpeechSynthesizer.appleSynthesisCallsForTesting
         fileprivate let silence = Silence()

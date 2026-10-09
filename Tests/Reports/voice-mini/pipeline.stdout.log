@@ -1,0 +1,204 @@
+2026-10-08 20:58:33.927 NextNotes[28688:3897826] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+[20:58:34.107] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[20:58:34.107] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[20:58:34.209] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[20:58:34.500] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[20:58:34.572] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[20:58:34.667] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[20:58:34.667] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 0.56s
+[20:58:34.681] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[20:58:34.681] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[20:58:34.681] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[20:58:34.686] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[20:58:34.693] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[20:58:34.694] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[20:58:34.694] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+VOICE_INPUT_FORMAT=canonical Float32/16000/mono; Apple 3/16000.0/1
+[20:58:35.217] [INFO] [FluidAudio.StreamingEOU] Initialized with chunk size: 160ms, EOU debounce: 320ms
+VOICE_FILE_FEED_CADENCE=80ms
+[20:58:35.219] [INFO] [FluidAudio.DownloadUtils] Host environment: macOS Version 27.2 (Build 26B5091g), arch=arm64, chip=Apple M3, cores=8/8, mem=16 GB, rosetta=false
+[20:58:35.219] [INFO] [FluidAudio.DownloadUtils] Found parakeet-eou-streaming/160ms locally, no download needed
+[20:58:35.219] [INFO] [FluidAudio.StreamingEOU] Loading CoreML models from /Users/sergekadjo/Library/Application Support/FluidAudio/Models/parakeet-eou-streaming/parakeet-eou-streaming/160ms...
+[20:58:35.258] [INFO] [FluidAudio.VadManager] VAD initialized with provided model
+[20:58:36.115] [INFO] [FluidAudio.StreamingEOU] Models loaded successfully.
+VOICE_APPLE_FIRST_RESULT=voice+1.019s text=Hello
+VOICE_PREPARE_PARTIAL=revision 1 text=Hello
+VOICE_PREPARE_PARTIAL=revision 2 text=Hello there
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_started elapsed_s=0.000 at_nanos=121715017202250
+Voice speculation started revision=2
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121715017221666 duration_s=0.000
+VOICE_EOU_PREPARE=1.1574270725250244s
+VOICE_PIPELINE_SPAN=voice.eou_prepare 1.157s session
+VOICE_EOU_STARTUP_BUFFERED=15 chunks / 19200 frames
+VOICE_EOU_FIRST_PROCESS=1.0967254638671875e-05s lag=1.1570889949798584s
+VOICE_MODEL_PARTIAL=voice+1.398s text=hello apple=true
+VOICE_MODEL_PARTIAL=voice+1.431s text=hello there apple=true
+VOICE_MODEL_PARTIAL=voice+1.579s text=hello there please apple=true
+VOICE_MODEL_PARTIAL=voice+1.664s text=hello there please tell apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell
+VOICE_PREPARE_PARTIAL=revision 3 text=hello there please tell
+Voice speculation canceled revision=2
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=speculation_cancel_requested elapsed_s=0.626 at_nanos=121715643065125
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=cancellation_to_speculation_end elapsed_s=0.626 at_nanos=121715643123833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_started elapsed_s=0.000 at_nanos=121715662666125
+Voice speculation started revision=3
+VOICE_MODEL_PARTIAL=voice+1.729s text=hello there please tell me apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me
+VOICE_PREPARE_PARTIAL=revision 4 text=hello there please tell me
+Voice speculation canceled revision=3
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_cancel_requested elapsed_s=0.044 at_nanos=121715706640333
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=speculation_barrier_failed elapsed_s=0.044 at_nanos=121715706667208 duration_s=0.044
+VOICE_FRONTEND_TIMING gen=2 revision=3 event=cancellation_to_speculation_end elapsed_s=0.044 at_nanos=121715706683958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_started elapsed_s=0.000 at_nanos=121715710133041
+Voice speculation started revision=4
+VOICE_MODEL_PARTIAL=voice+1.869s text=hello there please tell me brie apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brie
+VOICE_PREPARE_PARTIAL=revision 5 text=hello there please tell me brie
+Voice speculation canceled revision=4
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_cancel_requested elapsed_s=0.135 at_nanos=121715845452666
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=speculation_barrier_failed elapsed_s=0.135 at_nanos=121715845483375 duration_s=0.135
+VOICE_FRONTEND_TIMING gen=3 revision=4 event=cancellation_to_speculation_end elapsed_s=0.135 at_nanos=121715845503708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=speculation_started elapsed_s=0.000 at_nanos=121715848771250
+Voice speculation started revision=5
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_warmup_done elapsed_s=0.859 at_nanos=121715875997416 duration_s=0.859
+VOICE_FRONTEND_TIMING gen=1 revision=2 event=native_task_end elapsed_s=0.859 at_nanos=121715876015041 duration_s=0.233
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=speculation_barrier_done elapsed_s=0.027 at_nanos=121715876039250 duration_s=0.027
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=native_warmup_done elapsed_s=0.027 at_nanos=121715876059666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.028 at_nanos=121715876500083
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=route_session_staged elapsed_s=0.028 at_nanos=121715876529541
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=typed_route_collect_started elapsed_s=0.028 at_nanos=121715876619625
+VOICE_MODEL_PARTIAL=voice+1.953s text=hello there please tell me brief apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me brief
+VOICE_PREPARE_PARTIAL=revision 6 text=hello there please tell me brief
+Voice speculation canceled revision=5
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=speculation_cancel_requested elapsed_s=0.081 at_nanos=121715929325625
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=cancellation_to_speculation_end elapsed_s=0.081 at_nanos=121715929392833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=4 revision=5 event=native_task_end elapsed_s=0.082 at_nanos=121715930882291 duration_s=0.002
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=speculation_started elapsed_s=0.000 at_nanos=121715932667916
+Voice speculation started revision=6
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121715932693875 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=native_warmup_done elapsed_s=0.000 at_nanos=121715932715708 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121715933056958
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=route_session_fresh elapsed_s=0.001 at_nanos=121715933342875
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=typed_route_collect_started elapsed_s=0.001 at_nanos=121715933390333
+VOICE_MODEL_PARTIAL=voice+2.032s text=hello there please tell me briefly apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly
+VOICE_PREPARE_PARTIAL=revision 7 text=hello there please tell me briefly
+Voice speculation canceled revision=6
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=speculation_cancel_requested elapsed_s=0.076 at_nanos=121716008411791
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=cancellation_to_speculation_end elapsed_s=0.076 at_nanos=121716008472250 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=5 revision=6 event=native_task_end elapsed_s=0.076 at_nanos=121716008808583 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=speculation_started elapsed_s=0.000 at_nanos=121716012140125
+Voice speculation started revision=7
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121716012178500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=native_warmup_done elapsed_s=0.000 at_nanos=121716012208291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=121716012739916
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=route_session_fresh elapsed_s=0.001 at_nanos=121716013159875
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=typed_route_collect_started elapsed_s=0.001 at_nanos=121716013223708
+VOICE_MODEL_PARTIAL=voice+2.190s text=hello there please tell me briefly what apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what
+VOICE_PREPARE_PARTIAL=revision 8 text=hello there please tell me briefly what
+Voice speculation canceled revision=7
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=speculation_cancel_requested elapsed_s=0.154 at_nanos=121716166633291
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=cancellation_to_speculation_end elapsed_s=0.155 at_nanos=121716166677916 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=6 revision=7 event=native_task_end elapsed_s=0.155 at_nanos=121716166974625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=speculation_started elapsed_s=0.000 at_nanos=121716170024541
+Voice speculation started revision=8
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121716170059000 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=native_warmup_done elapsed_s=0.000 at_nanos=121716170087166 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121716170490083
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=route_session_fresh elapsed_s=0.001 at_nanos=121716170807750
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=typed_route_collect_started elapsed_s=0.001 at_nanos=121716170859000
+VOICE_MODEL_PARTIAL=voice+2.595s text=hello there please tell me briefly what a apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a
+VOICE_PREPARE_PARTIAL=revision 9 text=hello there please tell me briefly what a
+Voice speculation canceled revision=8
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=speculation_cancel_requested elapsed_s=0.401 at_nanos=121716571462875
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=cancellation_to_speculation_end elapsed_s=0.401 at_nanos=121716571516500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=7 revision=8 event=native_task_end elapsed_s=0.402 at_nanos=121716571874833 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=speculation_started elapsed_s=0.000 at_nanos=121716574932541
+Voice speculation started revision=9
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121716574961500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=native_warmup_done elapsed_s=0.000 at_nanos=121716574985541 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121716575338125
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=route_session_fresh elapsed_s=0.001 at_nanos=121716575616083
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=typed_route_collect_started elapsed_s=0.001 at_nanos=121716575658833
+VOICE_MODEL_PARTIAL=voice+2.674s text=hello there please tell me briefly what a haik apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haik
+VOICE_PREPARE_PARTIAL=revision 10 text=hello there please tell me briefly what a haik
+Voice speculation canceled revision=9
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=speculation_cancel_requested elapsed_s=0.076 at_nanos=121716651047833
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=cancellation_to_speculation_end elapsed_s=0.076 at_nanos=121716651110041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=8 revision=9 event=native_task_end elapsed_s=0.076 at_nanos=121716651377291 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=speculation_started elapsed_s=0.000 at_nanos=121716654462083
+Voice speculation started revision=10
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121716654499125 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=native_warmup_done elapsed_s=0.000 at_nanos=121716654526625 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121716654932750
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=route_session_fresh elapsed_s=0.001 at_nanos=121716655238375
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=typed_route_collect_started elapsed_s=0.001 at_nanos=121716655288125
+VOICE_MODEL_PARTIAL=voice+2.836s text=hello there please tell me briefly what a haiku apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku
+VOICE_PREPARE_PARTIAL=revision 11 text=hello there please tell me briefly what a haiku
+Voice speculation canceled revision=10
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=speculation_cancel_requested elapsed_s=0.159 at_nanos=121716813202166
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=cancellation_to_speculation_end elapsed_s=0.159 at_nanos=121716813382208 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=9 revision=10 event=native_task_end elapsed_s=0.159 at_nanos=121716813844708 duration_s=0.001
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=speculation_started elapsed_s=0.000 at_nanos=121716817084208
+Voice speculation started revision=11
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121716817118041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=native_warmup_done elapsed_s=0.000 at_nanos=121716817146041 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.000 at_nanos=121716817551125
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=route_session_fresh elapsed_s=0.001 at_nanos=121716817864875
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=typed_route_collect_started elapsed_s=0.001 at_nanos=121716817915000
+VOICE_MODEL_PARTIAL=voice+2.990s text=hello there please tell me briefly what a haiku is apple=true
+VOICE_MODEL_PARTIAL_FILTERED=hello there please tell me briefly what a haiku is
+VOICE_PREPARE_PARTIAL=revision 12 text=hello there please tell me briefly what a haiku is
+Voice speculation canceled revision=11
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=speculation_cancel_requested elapsed_s=0.150 at_nanos=121716966937041
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=cancellation_to_speculation_end elapsed_s=0.150 at_nanos=121716967012666 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=10 revision=11 event=native_task_end elapsed_s=0.150 at_nanos=121716967331958 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=speculation_started elapsed_s=0.000 at_nanos=121716970653208
+Voice speculation started revision=12
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=speculation_barrier_done elapsed_s=0.000 at_nanos=121716970689375 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=native_warmup_done elapsed_s=0.000 at_nanos=121716970721500 duration_s=0.000
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=route_plan_ready scheduler=none provider=appleFM elapsed_s=0.001 at_nanos=121716971184125
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=route_session_fresh elapsed_s=0.001 at_nanos=121716971593375
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=typed_route_collect_started elapsed_s=0.001 at_nanos=121716971681583
+[20:58:39.208] [INFO] [FluidAudio.StreamingEOU] EOU confirmed at chunk 48 (3920ms)
+VOICE_MODEL_EOU=sinceVoiceEnd 1.029s appleRevisionAge 0.020s text=hello there please tell me briefly what a haiku is
+VOICE_ENDPOINT_TRIGGER=eou
+VOICE_MODEL_EOU_TO_ENDPOINT=0.0007671117782592773s
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=speculation_hit headstart_date_s=1.007 elapsed_s=1.007 at_nanos=121717977856583
+Voice speculation hit revision=12 headstart=1.007s
+VOICE_FILE_MAX_PACING_LAG=0.018277917 seconds
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=typed_route_collect_done elapsed_s=2.582 at_nanos=121719552303375 duration_s=2.581
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=typed_route_validated elapsed_s=2.582 at_nanos=121719552826791
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=answer_session_fresh elapsed_s=2.583 at_nanos=121719553924500
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=answer_entry provider=appleFoundation elapsed_s=2.583 at_nanos=121719553982250
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=first_answer_text elapsed_s=5.400 at_nanos=121722370694916
+Pocket TTS clause submitted 1791507523.627 token=1 characters=64
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 4.397s model provider=appleFoundation model=Apple Foundation Model
+[20:58:43.656] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[20:58:43.656] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Hey there, I’m sorry to hear you’re looking for a little peace —', 1 chunk(s)
+[20:58:43.657] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: 'Hey there, I'm sorry to hear you're looking for a little peace —.'
+Pocket TTS first PCM 1791507523.856 token=1 synthesis=0.229s samples=1920
+Pocket TTS first played 1791507523.875 token=1 synthesis=0.229s render=0.019s firstSamples=240
+VOICE_PIPELINE_SPAN=agent.first_token_to_first_tts 0.250s first-audio
+Pocket TTS clause submitted 1791507524.090 token=2 characters=21
+Pocket TTS clause submitted 1791507524.377 token=3 characters=75
+Pocket TTS clause submitted 1791507524.377 token=4 characters=25
+VOICE_FRONTEND_TIMING gen=11 revision=12 event=native_task_end elapsed_s=6.153 at_nanos=121723124016583
+VOICE_PIPELINE_TRANSCRIPT=hello there please tell me briefly what a haiku is
+VOICE_PIPELINE_REPLY=Hey there, I’m sorry to hear you’re looking for a little peace — let’s keep it simple. A haiku is a short poem with three lines, usually about nature or feelings. Want to try one together?
+VOICE_PIPELINE_ASR_FEED=chunks 60, frames 76095, peak 0.7814636, results 17
+VOICE_PIPELINE_APPLE_MODE=fast true, firstResult 1.0190449953079224
+VOICE_PIPELINE_MODEL_PARTIALS=13, last hello there please tell me briefly what a haiku is
+VOICE_PIPELINE_EOU_QUEUE=firstProcess 1.0967254638671875e-05, resets 0, drops 0
+VOICE_PIPELINE_VOICE_TO_ENDPOINT=1.029710054397583
+VOICE_PIPELINE_ENDPOINT_TO_FIRST_AUDIO=4.6671799421310425
+VOICE_PIPELINE_INPUT_TO_FIRST_AUDIO=8.657981038093567
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0
+VOICE_PIPELINE_OK
+[20:58:44.514] [INFO] [FluidAudio.StreamingEOU] StreamingEouAsrManager resources cleaned up
+VOICE_SPLIT_ROUTE intent=answerQuestion task=0

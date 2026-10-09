@@ -1,0 +1,2196 @@
+{
+  "head": "82591312e30ee605dd7726d64f9e1ac5b4e66185",
+  "binary_sha256": "e6407807dd382be7727fc1581e34a3074ed4fa576b28781b922481a09265dd3b",
+  "uuid": "UUID: 725E4269-0575-3C76-A7E6-255325EA15E9 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice/debug/NextNotes",
+  "source_sha256": {
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "93309d5a74c6fa8907476904c2b2b49b136e8b2ea773caa3db1dea3df5cc220e",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "50b802d999c709215cfb99c6a2e07c87e2799fc3ac514a5d0a1dd9abfec019b4",
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "867c89e2fbeda54a9034b381d6c98afc090e0b3faa9983309b2a4850f13d78ea",
+    "Sources/NextNotes/Agent/Voice/VoiceResidentAnswerSelfTest.swift": "e876332245c418aedd03a878baeb1469af9338545ee8b12af459c58fb8384151",
+    "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift": "0f8e9993bd30b9b9cf82d84bdd666a30d8b8e2d800ac9c8d11b311a40c88cef2",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift": "dce8e8b31dc606b7bab2be55178e99eaf984ffa8e1d68838d6a6389033e6b801",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "3c14261613ccf2962ab880f691e833af720e347d7225ce5dba46bf831919c1bf",
+    "Sources/NextNotes/Agent/VoiceCapabilityConversationSelfTest.swift": "cd6c246e6412f4e9f4ffeaf153826038d650b904836078a5236753e40ac62d11",
+    "Sources/NextNotes/Activation/AgentCaptureController.swift": "d5115c45e8b885ac23673a5864182cbfe6b977fe205d491f46e3fb401b1c3bca"
+  },
+  "pid": 27427,
+  "exit": 1,
+  "scope": "debug/file-fed diagnostic; 1s sampled own app only, excludes Apple service; no release/mic/ears or continuous peaks",
+  "before": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 7168.00M  used = 6271.19M  free = 896.81M  (encrypted)",
+    "load": "20:53  up 1 day, 10:05, 1 user, load averages: 7.94 6.14 5.87",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 192648860  12504628    94% 2481420 125046280    2%   /System/Volumes/Data"
+  },
+  "after": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 8192.00M  used = 6962.25M  free = 1229.75M  (encrypted)",
+    "load": "20:56  up 1 day, 10:08, 1 user, load averages: 17.74 11.29 8.01",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 190552688  13551960    94% 2481463 135519600    2%   /System/Volumes/Data"
+  },
+  "samples": [
+    {
+      "t": 0.003,
+      "rss": 32768,
+      "footprint": 81992,
+      "wired": 0,
+      "cpu_user_ns": 598,
+      "cpu_system_ns": 36059
+    },
+    {
+      "t": 1.01,
+      "rss": 341622784,
+      "footprint": 32949712,
+      "wired": 0,
+      "cpu_user_ns": 3937498,
+      "cpu_system_ns": 5772603
+    },
+    {
+      "t": 2.02,
+      "rss": 763543552,
+      "footprint": 474007448,
+      "wired": 122798080,
+      "cpu_user_ns": 13783416,
+      "cpu_system_ns": 10740213
+    },
+    {
+      "t": 3.03,
+      "rss": 1065697280,
+      "footprint": 451905648,
+      "wired": 72630272,
+      "cpu_user_ns": 15872373,
+      "cpu_system_ns": 13245652
+    },
+    {
+      "t": 4.038,
+      "rss": 1158430720,
+      "footprint": 448547000,
+      "wired": 0,
+      "cpu_user_ns": 15876848,
+      "cpu_system_ns": 14355535
+    },
+    {
+      "t": 5.044,
+      "rss": 1243447296,
+      "footprint": 448596224,
+      "wired": 0,
+      "cpu_user_ns": 15876981,
+      "cpu_system_ns": 15196445
+    },
+    {
+      "t": 6.053,
+      "rss": 1332576256,
+      "footprint": 448547144,
+      "wired": 0,
+      "cpu_user_ns": 15877733,
+      "cpu_system_ns": 16044229
+    },
+    {
+      "t": 7.063,
+      "rss": 1439580160,
+      "footprint": 448186768,
+      "wired": 0,
+      "cpu_user_ns": 15881500,
+      "cpu_system_ns": 17184865
+    },
+    {
+      "t": 8.068,
+      "rss": 1533345792,
+      "footprint": 448203224,
+      "wired": 0,
+      "cpu_user_ns": 15884749,
+      "cpu_system_ns": 18152509
+    },
+    {
+      "t": 9.076,
+      "rss": 1622196224,
+      "footprint": 448252472,
+      "wired": 0,
+      "cpu_user_ns": 15884898,
+      "cpu_system_ns": 19338392
+    },
+    {
+      "t": 10.086,
+      "rss": 1674149888,
+      "footprint": 448301696,
+      "wired": 0,
+      "cpu_user_ns": 15885200,
+      "cpu_system_ns": 20539997
+    },
+    {
+      "t": 11.097,
+      "rss": 1765408768,
+      "footprint": 448367328,
+      "wired": 0,
+      "cpu_user_ns": 15885200,
+      "cpu_system_ns": 21674721
+    },
+    {
+      "t": 12.101,
+      "rss": 1883799552,
+      "footprint": 448416552,
+      "wired": 0,
+      "cpu_user_ns": 15885561,
+      "cpu_system_ns": 22767969
+    },
+    {
+      "t": 13.108,
+      "rss": 2015887360,
+      "footprint": 448482184,
+      "wired": 0,
+      "cpu_user_ns": 15885561,
+      "cpu_system_ns": 24013500
+    },
+    {
+      "t": 14.11,
+      "rss": 2148941824,
+      "footprint": 448547816,
+      "wired": 0,
+      "cpu_user_ns": 15885561,
+      "cpu_system_ns": 25236627
+    },
+    {
+      "t": 15.115,
+      "rss": 2277621760,
+      "footprint": 582306960,
+      "wired": 40615936,
+      "cpu_user_ns": 16774261,
+      "cpu_system_ns": 27050495
+    },
+    {
+      "t": 16.124,
+      "rss": 2277834752,
+      "footprint": 582519952,
+      "wired": 40615936,
+      "cpu_user_ns": 16870013,
+      "cpu_system_ns": 27062195
+    },
+    {
+      "t": 17.126,
+      "rss": 2277998592,
+      "footprint": 582667408,
+      "wired": 40615936,
+      "cpu_user_ns": 16989794,
+      "cpu_system_ns": 27078949
+    },
+    {
+      "t": 18.136,
+      "rss": 2292416512,
+      "footprint": 596511960,
+      "wired": 40943616,
+      "cpu_user_ns": 25256063,
+      "cpu_system_ns": 28196263
+    },
+    {
+      "t": 19.143,
+      "rss": 2240643072,
+      "footprint": 525176120,
+      "wired": 0,
+      "cpu_user_ns": 26598812,
+      "cpu_system_ns": 29507226
+    },
+    {
+      "t": 20.146,
+      "rss": 2044837888,
+      "footprint": 525487584,
+      "wired": 0,
+      "cpu_user_ns": 27631336,
+      "cpu_system_ns": 31277873
+    },
+    {
+      "t": 21.157,
+      "rss": 1537523712,
+      "footprint": 587255144,
+      "wired": 38354944,
+      "cpu_user_ns": 39061233,
+      "cpu_system_ns": 36218832
+    },
+    {
+      "t": 22.16,
+      "rss": 1564065792,
+      "footprint": 611650920,
+      "wired": 52215808,
+      "cpu_user_ns": 41216863,
+      "cpu_system_ns": 37796401
+    },
+    {
+      "t": 23.168,
+      "rss": 1518632960,
+      "footprint": 599674216,
+      "wired": 38486016,
+      "cpu_user_ns": 41370379,
+      "cpu_system_ns": 38777444
+    },
+    {
+      "t": 24.171,
+      "rss": 1513930752,
+      "footprint": 632491368,
+      "wired": 69255168,
+      "cpu_user_ns": 43657428,
+      "cpu_system_ns": 40652309
+    },
+    {
+      "t": 25.181,
+      "rss": 1514897408,
+      "footprint": 618319208,
+      "wired": 58540032,
+      "cpu_user_ns": 57796037,
+      "cpu_system_ns": 45688222
+    },
+    {
+      "t": 26.191,
+      "rss": 1484800000,
+      "footprint": 603606376,
+      "wired": 43319296,
+      "cpu_user_ns": 58671132,
+      "cpu_system_ns": 46038164
+    },
+    {
+      "t": 27.196,
+      "rss": 1479262208,
+      "footprint": 563711336,
+      "wired": 0,
+      "cpu_user_ns": 58990964,
+      "cpu_system_ns": 46304050
+    },
+    {
+      "t": 28.206,
+      "rss": 1475330048,
+      "footprint": 563711336,
+      "wired": 0,
+      "cpu_user_ns": 59344032,
+      "cpu_system_ns": 46499474
+    },
+    {
+      "t": 29.216,
+      "rss": 1467203584,
+      "footprint": 563711336,
+      "wired": 0,
+      "cpu_user_ns": 60106336,
+      "cpu_system_ns": 46696408
+    },
+    {
+      "t": 30.221,
+      "rss": 1481523200,
+      "footprint": 603377000,
+      "wired": 40615936,
+      "cpu_user_ns": 61185757,
+      "cpu_system_ns": 49195294
+    },
+    {
+      "t": 31.231,
+      "rss": 1474363392,
+      "footprint": 603377000,
+      "wired": 40615936,
+      "cpu_user_ns": 61566245,
+      "cpu_system_ns": 49353908
+    },
+    {
+      "t": 32.236,
+      "rss": 1454555136,
+      "footprint": 603442536,
+      "wired": 40615936,
+      "cpu_user_ns": 61922786,
+      "cpu_system_ns": 49503540
+    },
+    {
+      "t": 33.247,
+      "rss": 1451474944,
+      "footprint": 603508072,
+      "wired": 40615936,
+      "cpu_user_ns": 62313691,
+      "cpu_system_ns": 49706369
+    },
+    {
+      "t": 34.265,
+      "rss": 1375485952,
+      "footprint": 606358888,
+      "wired": 42074112,
+      "cpu_user_ns": 63983688,
+      "cpu_system_ns": 50586190
+    },
+    {
+      "t": 35.28,
+      "rss": 1391771648,
+      "footprint": 664440216,
+      "wired": 126517248,
+      "cpu_user_ns": 70101542,
+      "cpu_system_ns": 59237914
+    },
+    {
+      "t": 36.334,
+      "rss": 1484374016,
+      "footprint": 669027760,
+      "wired": 120684544,
+      "cpu_user_ns": 77199675,
+      "cpu_system_ns": 63090014
+    },
+    {
+      "t": 37.356,
+      "rss": 1486323712,
+      "footprint": 668028336,
+      "wired": 73629696,
+      "cpu_user_ns": 86327124,
+      "cpu_system_ns": 66642066
+    },
+    {
+      "t": 38.364,
+      "rss": 1488322560,
+      "footprint": 669191600,
+      "wired": 123748352,
+      "cpu_user_ns": 103770149,
+      "cpu_system_ns": 74421127
+    },
+    {
+      "t": 39.372,
+      "rss": 1478017024,
+      "footprint": 669240752,
+      "wired": 123748352,
+      "cpu_user_ns": 119722099,
+      "cpu_system_ns": 80050221
+    },
+    {
+      "t": 40.386,
+      "rss": 1478000640,
+      "footprint": 680250800,
+      "wired": 134725632,
+      "cpu_user_ns": 135018594,
+      "cpu_system_ns": 86742174
+    },
+    {
+      "t": 41.396,
+      "rss": 1477771264,
+      "footprint": 677367216,
+      "wired": 131891200,
+      "cpu_user_ns": 146445234,
+      "cpu_system_ns": 90990275
+    },
+    {
+      "t": 42.396,
+      "rss": 1477492736,
+      "footprint": 673746352,
+      "wired": 128434176,
+      "cpu_user_ns": 160886923,
+      "cpu_system_ns": 97035874
+    },
+    {
+      "t": 43.406,
+      "rss": 1477591040,
+      "footprint": 677596592,
+      "wired": 132268032,
+      "cpu_user_ns": 175203645,
+      "cpu_system_ns": 102102291
+    },
+    {
+      "t": 44.417,
+      "rss": 1474150400,
+      "footprint": 669371824,
+      "wired": 90374144,
+      "cpu_user_ns": 194719050,
+      "cpu_system_ns": 108380679
+    },
+    {
+      "t": 45.427,
+      "rss": 1450541056,
+      "footprint": 675958192,
+      "wired": 130531328,
+      "cpu_user_ns": 212123389,
+      "cpu_system_ns": 115641756
+    },
+    {
+      "t": 46.467,
+      "rss": 1450229760,
+      "footprint": 671731120,
+      "wired": 125599744,
+      "cpu_user_ns": 226784158,
+      "cpu_system_ns": 121245919
+    },
+    {
+      "t": 47.477,
+      "rss": 1449426944,
+      "footprint": 671632816,
+      "wired": 96813056,
+      "cpu_user_ns": 243396416,
+      "cpu_system_ns": 127129650
+    },
+    {
+      "t": 48.492,
+      "rss": 1449902080,
+      "footprint": 673762736,
+      "wired": 73072640,
+      "cpu_user_ns": 259604890,
+      "cpu_system_ns": 133019389
+    },
+    {
+      "t": 49.502,
+      "rss": 1450360832,
+      "footprint": 668519856,
+      "wired": 68550656,
+      "cpu_user_ns": 268442288,
+      "cpu_system_ns": 136347675
+    },
+    {
+      "t": 50.511,
+      "rss": 1429471232,
+      "footprint": 671288752,
+      "wired": 74891264,
+      "cpu_user_ns": 275903332,
+      "cpu_system_ns": 140290304
+    },
+    {
+      "t": 51.522,
+      "rss": 1353433088,
+      "footprint": 676679088,
+      "wired": 62291968,
+      "cpu_user_ns": 287842274,
+      "cpu_system_ns": 147571935
+    },
+    {
+      "t": 52.54,
+      "rss": 1353859072,
+      "footprint": 677547440,
+      "wired": 62865408,
+      "cpu_user_ns": 295625002,
+      "cpu_system_ns": 149662799
+    },
+    {
+      "t": 53.543,
+      "rss": 1295597568,
+      "footprint": 678137264,
+      "wired": 63422464,
+      "cpu_user_ns": 302126710,
+      "cpu_system_ns": 151009218
+    },
+    {
+      "t": 54.561,
+      "rss": 1216036864,
+      "footprint": 668863920,
+      "wired": 54214656,
+      "cpu_user_ns": 311476852,
+      "cpu_system_ns": 153233763
+    },
+    {
+      "t": 55.565,
+      "rss": 1217757184,
+      "footprint": 678268336,
+      "wired": 63471616,
+      "cpu_user_ns": 317725994,
+      "cpu_system_ns": 155331403
+    },
+    {
+      "t": 56.569,
+      "rss": 1216905216,
+      "footprint": 650546608,
+      "wired": 66027520,
+      "cpu_user_ns": 322809871,
+      "cpu_system_ns": 157035389
+    },
+    {
+      "t": 57.579,
+      "rss": 1216364544,
+      "footprint": 609226136,
+      "wired": 62783488,
+      "cpu_user_ns": 338072052,
+      "cpu_system_ns": 161675667
+    },
+    {
+      "t": 58.769,
+      "rss": 1201029120,
+      "footprint": 600919448,
+      "wired": 54312960,
+      "cpu_user_ns": 342687511,
+      "cpu_system_ns": 163114861
+    },
+    {
+      "t": 59.775,
+      "rss": 1199374336,
+      "footprint": 550882712,
+      "wired": 2834432,
+      "cpu_user_ns": 343643864,
+      "cpu_system_ns": 163433191
+    },
+    {
+      "t": 60.777,
+      "rss": 1181302784,
+      "footprint": 590876056,
+      "wired": 35897344,
+      "cpu_user_ns": 344940055,
+      "cpu_system_ns": 166927455
+    },
+    {
+      "t": 61.806,
+      "rss": 1272479744,
+      "footprint": 645385648,
+      "wired": 102760448,
+      "cpu_user_ns": 348819540,
+      "cpu_system_ns": 173624897
+    },
+    {
+      "t": 62.841,
+      "rss": 1326874624,
+      "footprint": 645287344,
+      "wired": 120569856,
+      "cpu_user_ns": 353525492,
+      "cpu_system_ns": 180128495
+    },
+    {
+      "t": 63.957,
+      "rss": 1408286720,
+      "footprint": 653217176,
+      "wired": 82870272,
+      "cpu_user_ns": 360472684,
+      "cpu_system_ns": 185891554
+    },
+    {
+      "t": 64.969,
+      "rss": 1437532160,
+      "footprint": 654101936,
+      "wired": 67026944,
+      "cpu_user_ns": 373329065,
+      "cpu_system_ns": 190726912
+    },
+    {
+      "t": 65.976,
+      "rss": 1442512896,
+      "footprint": 656805296,
+      "wired": 124239872,
+      "cpu_user_ns": 393639978,
+      "cpu_system_ns": 198825671
+    },
+    {
+      "t": 66.988,
+      "rss": 1442643968,
+      "footprint": 663063984,
+      "wired": 130531328,
+      "cpu_user_ns": 410895147,
+      "cpu_system_ns": 204208283
+    },
+    {
+      "t": 67.998,
+      "rss": 1442775040,
+      "footprint": 658132400,
+      "wired": 125599744,
+      "cpu_user_ns": 425665228,
+      "cpu_system_ns": 209651543
+    },
+    {
+      "t": 69.006,
+      "rss": 1442873344,
+      "footprint": 662490544,
+      "wired": 75415552,
+      "cpu_user_ns": 440978002,
+      "cpu_system_ns": 215276263
+    },
+    {
+      "t": 70.017,
+      "rss": 1442627584,
+      "footprint": 664554928,
+      "wired": 77512704,
+      "cpu_user_ns": 461216071,
+      "cpu_system_ns": 221980900
+    },
+    {
+      "t": 71.028,
+      "rss": 1443151872,
+      "footprint": 654560688,
+      "wired": 122142720,
+      "cpu_user_ns": 479522649,
+      "cpu_system_ns": 229318645
+    },
+    {
+      "t": 72.033,
+      "rss": 1438629888,
+      "footprint": 664571312,
+      "wired": 131891200,
+      "cpu_user_ns": 487720040,
+      "cpu_system_ns": 232888343
+    },
+    {
+      "t": 73.036,
+      "rss": 1438105600,
+      "footprint": 653839792,
+      "wired": 66781184,
+      "cpu_user_ns": 500279244,
+      "cpu_system_ns": 237404416
+    },
+    {
+      "t": 74.037,
+      "rss": 1411760128,
+      "footprint": 660360624,
+      "wired": 73318400,
+      "cpu_user_ns": 514810810,
+      "cpu_system_ns": 242633149
+    },
+    {
+      "t": 75.043,
+      "rss": 1385857024,
+      "footprint": 658263472,
+      "wired": 71221248,
+      "cpu_user_ns": 529648727,
+      "cpu_system_ns": 248249603
+    },
+    {
+      "t": 76.043,
+      "rss": 1385037824,
+      "footprint": 655510960,
+      "wired": 68550656,
+      "cpu_user_ns": 539266181,
+      "cpu_system_ns": 252114976
+    },
+    {
+      "t": 77.046,
+      "rss": 1294057472,
+      "footprint": 660852144,
+      "wired": 77545472,
+      "cpu_user_ns": 544296965,
+      "cpu_system_ns": 255660911
+    },
+    {
+      "t": 78.051,
+      "rss": 998490112,
+      "footprint": 663145904,
+      "wired": 58785792,
+      "cpu_user_ns": 562019425,
+      "cpu_system_ns": 262999719
+    },
+    {
+      "t": 79.056,
+      "rss": 931168256,
+      "footprint": 662277552,
+      "wired": 57475072,
+      "cpu_user_ns": 575424235,
+      "cpu_system_ns": 266942845
+    },
+    {
+      "t": 80.061,
+      "rss": 896335872,
+      "footprint": 662719920,
+      "wired": 57982976,
+      "cpu_user_ns": 586729004,
+      "cpu_system_ns": 272642720
+    },
+    {
+      "t": 81.066,
+      "rss": 768049152,
+      "footprint": 659770800,
+      "wired": 55066624,
+      "cpu_user_ns": 595394211,
+      "cpu_system_ns": 277558424
+    },
+    {
+      "t": 82.067,
+      "rss": 652263424,
+      "footprint": 649973168,
+      "wired": 54673408,
+      "cpu_user_ns": 596298250,
+      "cpu_system_ns": 280620254
+    },
+    {
+      "t": 83.07,
+      "rss": 619347968,
+      "footprint": 652152240,
+      "wired": 81002496,
+      "cpu_user_ns": 596670618,
+      "cpu_system_ns": 282384071
+    },
+    {
+      "t": 84.075,
+      "rss": 666550272,
+      "footprint": 653381040,
+      "wired": 115900416,
+      "cpu_user_ns": 597147835,
+      "cpu_system_ns": 284263449
+    },
+    {
+      "t": 85.076,
+      "rss": 666517504,
+      "footprint": 653381040,
+      "wired": 76120064,
+      "cpu_user_ns": 597478543,
+      "cpu_system_ns": 285530907
+    },
+    {
+      "t": 86.08,
+      "rss": 628604928,
+      "footprint": 653381040,
+      "wired": 59310080,
+      "cpu_user_ns": 597808673,
+      "cpu_system_ns": 286985419
+    },
+    {
+      "t": 87.083,
+      "rss": 702660608,
+      "footprint": 669355440,
+      "wired": 81379328,
+      "cpu_user_ns": 599873703,
+      "cpu_system_ns": 290502731
+    },
+    {
+      "t": 88.088,
+      "rss": 776454144,
+      "footprint": 664997296,
+      "wired": 131235840,
+      "cpu_user_ns": 619178624,
+      "cpu_system_ns": 297740496
+    },
+    {
+      "t": 89.48,
+      "rss": 780058624,
+      "footprint": 660622768,
+      "wired": 125108224,
+      "cpu_user_ns": 633863774,
+      "cpu_system_ns": 303110235
+    },
+    {
+      "t": 90.581,
+      "rss": 776437760,
+      "footprint": 652496304,
+      "wired": 63946752,
+      "cpu_user_ns": 635334244,
+      "cpu_system_ns": 304055438
+    },
+    {
+      "t": 91.582,
+      "rss": 764985344,
+      "footprint": 654462384,
+      "wired": 66453504,
+      "cpu_user_ns": 640962830,
+      "cpu_system_ns": 306426289
+    },
+    {
+      "t": 92.587,
+      "rss": 756875264,
+      "footprint": 664128944,
+      "wired": 79773696,
+      "cpu_user_ns": 648464362,
+      "cpu_system_ns": 311306163
+    },
+    {
+      "t": 93.596,
+      "rss": 653066240,
+      "footprint": 663293360,
+      "wired": 60850176,
+      "cpu_user_ns": 657499795,
+      "cpu_system_ns": 313704779
+    },
+    {
+      "t": 94.632,
+      "rss": 650838016,
+      "footprint": 665783728,
+      "wired": 63340544,
+      "cpu_user_ns": 663958081,
+      "cpu_system_ns": 314887020
+    },
+    {
+      "t": 95.638,
+      "rss": 650739712,
+      "footprint": 663473584,
+      "wired": 61014016,
+      "cpu_user_ns": 677818137,
+      "cpu_system_ns": 317555831
+    },
+    {
+      "t": 96.643,
+      "rss": 617660416,
+      "footprint": 663784880,
+      "wired": 61325312,
+      "cpu_user_ns": 685970976,
+      "cpu_system_ns": 319538726
+    },
+    {
+      "t": 97.647,
+      "rss": 611123200,
+      "footprint": 628329904,
+      "wired": 63946752,
+      "cpu_user_ns": 692342907,
+      "cpu_system_ns": 321553284
+    },
+    {
+      "t": 98.652,
+      "rss": 610877440,
+      "footprint": 623168944,
+      "wired": 58916864,
+      "cpu_user_ns": 703884151,
+      "cpu_system_ns": 324375998
+    },
+    {
+      "t": 99.657,
+      "rss": 603635712,
+      "footprint": 540888472,
+      "wired": 2834432,
+      "cpu_user_ns": 704592167,
+      "cpu_system_ns": 324597595
+    },
+    {
+      "t": 100.661,
+      "rss": 603963392,
+      "footprint": 581078424,
+      "wired": 41959424,
+      "cpu_user_ns": 705724020,
+      "cpu_system_ns": 326567809
+    },
+    {
+      "t": 101.663,
+      "rss": 772751360,
+      "footprint": 653757872,
+      "wired": 128958464,
+      "cpu_user_ns": 710224903,
+      "cpu_system_ns": 331512108
+    },
+    {
+      "t": 102.754,
+      "rss": 794214400,
+      "footprint": 654790064,
+      "wired": 127778816,
+      "cpu_user_ns": 720686172,
+      "cpu_system_ns": 335241283
+    },
+    {
+      "t": 103.817,
+      "rss": 794509312,
+      "footprint": 654773680,
+      "wired": 73023488,
+      "cpu_user_ns": 728884337,
+      "cpu_system_ns": 338125185
+    },
+    {
+      "t": 104.821,
+      "rss": 787611648,
+      "footprint": 667880880,
+      "wired": 133857280,
+      "cpu_user_ns": 743127805,
+      "cpu_system_ns": 344966207
+    },
+    {
+      "t": 105.826,
+      "rss": 765132800,
+      "footprint": 665111984,
+      "wired": 133857280,
+      "cpu_user_ns": 764278876,
+      "cpu_system_ns": 352415954
+    },
+    {
+      "t": 106.831,
+      "rss": 763396096,
+      "footprint": 654986672,
+      "wired": 81723392,
+      "cpu_user_ns": 787168852,
+      "cpu_system_ns": 359404562
+    },
+    {
+      "t": 107.834,
+      "rss": 767524864,
+      "footprint": 661769648,
+      "wired": 130531328,
+      "cpu_user_ns": 808060391,
+      "cpu_system_ns": 367039319
+    },
+    {
+      "t": 108.839,
+      "rss": 767492096,
+      "footprint": 657427888,
+      "wired": 125599744,
+      "cpu_user_ns": 825706525,
+      "cpu_system_ns": 372766021
+    },
+    {
+      "t": 109.844,
+      "rss": 767606784,
+      "footprint": 656952752,
+      "wired": 83820544,
+      "cpu_user_ns": 844548927,
+      "cpu_system_ns": 378847109
+    },
+    {
+      "t": 110.848,
+      "rss": 767836160,
+      "footprint": 656969136,
+      "wired": 70729728,
+      "cpu_user_ns": 863181963,
+      "cpu_system_ns": 384898064
+    },
+    {
+      "t": 111.852,
+      "rss": 767934464,
+      "footprint": 656969136,
+      "wired": 71221248,
+      "cpu_user_ns": 870344397,
+      "cpu_system_ns": 387330645
+    },
+    {
+      "t": 112.857,
+      "rss": 767246336,
+      "footprint": 604474800,
+      "wired": 18087936,
+      "cpu_user_ns": 871005150,
+      "cpu_system_ns": 387652389
+    },
+    {
+      "t": 113.861,
+      "rss": 765165568,
+      "footprint": 604442032,
+      "wired": 81920,
+      "cpu_user_ns": 871642938,
+      "cpu_system_ns": 387962251
+    },
+    {
+      "t": 114.866,
+      "rss": 771932160,
+      "footprint": 654118320,
+      "wired": 35651584,
+      "cpu_user_ns": 872775153,
+      "cpu_system_ns": 388999724
+    },
+    {
+      "t": 115.871,
+      "rss": 711589888,
+      "footprint": 660999600,
+      "wired": 58343424,
+      "cpu_user_ns": 878585315,
+      "cpu_system_ns": 392194274
+    },
+    {
+      "t": 116.876,
+      "rss": 664223744,
+      "footprint": 658230704,
+      "wired": 54132736,
+      "cpu_user_ns": 886444523,
+      "cpu_system_ns": 395149798
+    },
+    {
+      "t": 117.881,
+      "rss": 662061056,
+      "footprint": 661065136,
+      "wired": 56803328,
+      "cpu_user_ns": 895424687,
+      "cpu_system_ns": 398315089
+    },
+    {
+      "t": 118.886,
+      "rss": 562380800,
+      "footprint": 664128944,
+      "wired": 63488000,
+      "cpu_user_ns": 900867572,
+      "cpu_system_ns": 401630527
+    },
+    {
+      "t": 119.891,
+      "rss": 577372160,
+      "footprint": 664784304,
+      "wired": 63995904,
+      "cpu_user_ns": 905968587,
+      "cpu_system_ns": 403121188
+    },
+    {
+      "t": 120.894,
+      "rss": 575946752,
+      "footprint": 661540272,
+      "wired": 60063744,
+      "cpu_user_ns": 906427424,
+      "cpu_system_ns": 403344077
+    },
+    {
+      "t": 121.9,
+      "rss": 555728896,
+      "footprint": 645549488,
+      "wired": 44662784,
+      "cpu_user_ns": 907021099,
+      "cpu_system_ns": 403701646
+    },
+    {
+      "t": 122.904,
+      "rss": 542015488,
+      "footprint": 605359536,
+      "wired": 0,
+      "cpu_user_ns": 908016366,
+      "cpu_system_ns": 404007778
+    },
+    {
+      "t": 123.909,
+      "rss": 620118016,
+      "footprint": 656444848,
+      "wired": 86048768,
+      "cpu_user_ns": 911083312,
+      "cpu_system_ns": 409173016
+    },
+    {
+      "t": 124.916,
+      "rss": 605437952,
+      "footprint": 658034096,
+      "wired": 121290752,
+      "cpu_user_ns": 912872502,
+      "cpu_system_ns": 411835514
+    },
+    {
+      "t": 126.335,
+      "rss": 584056832,
+      "footprint": 641273240,
+      "wired": 89047040,
+      "cpu_user_ns": 917294833,
+      "cpu_system_ns": 416756661
+    },
+    {
+      "t": 127.337,
+      "rss": 680263680,
+      "footprint": 654118320,
+      "wired": 62144512,
+      "cpu_user_ns": 921306530,
+      "cpu_system_ns": 420386683
+    },
+    {
+      "t": 128.34,
+      "rss": 745553920,
+      "footprint": 662031792,
+      "wired": 122142720,
+      "cpu_user_ns": 939865697,
+      "cpu_system_ns": 429198134
+    },
+    {
+      "t": 129.342,
+      "rss": 744112128,
+      "footprint": 661294512,
+      "wired": 123748352,
+      "cpu_user_ns": 962124909,
+      "cpu_system_ns": 435878887
+    },
+    {
+      "t": 130.346,
+      "rss": 744226816,
+      "footprint": 660802992,
+      "wired": 94093312,
+      "cpu_user_ns": 982099214,
+      "cpu_system_ns": 442108459
+    },
+    {
+      "t": 131.347,
+      "rss": 744275968,
+      "footprint": 660540848,
+      "wired": 68632576,
+      "cpu_user_ns": 997411480,
+      "cpu_system_ns": 447739899
+    },
+    {
+      "t": 132.35,
+      "rss": 744751104,
+      "footprint": 667585968,
+      "wired": 130531328,
+      "cpu_user_ns": 1018362516,
+      "cpu_system_ns": 455380506
+    },
+    {
+      "t": 133.355,
+      "rss": 744800256,
+      "footprint": 667585968,
+      "wired": 130531328,
+      "cpu_user_ns": 1040285177,
+      "cpu_system_ns": 462158569
+    },
+    {
+      "t": 134.36,
+      "rss": 744734720,
+      "footprint": 669437360,
+      "wired": 132382720,
+      "cpu_user_ns": 1056344226,
+      "cpu_system_ns": 466983583
+    },
+    {
+      "t": 135.37,
+      "rss": 744816640,
+      "footprint": 663162288,
+      "wired": 73826304,
+      "cpu_user_ns": 1075981100,
+      "cpu_system_ns": 473396071
+    },
+    {
+      "t": 136.373,
+      "rss": 744947712,
+      "footprint": 660262320,
+      "wired": 68632576,
+      "cpu_user_ns": 1080299355,
+      "cpu_system_ns": 474997934
+    },
+    {
+      "t": 137.379,
+      "rss": 744914944,
+      "footprint": 610291120,
+      "wired": 18087936,
+      "cpu_user_ns": 1081257613,
+      "cpu_system_ns": 475516057
+    },
+    {
+      "t": 138.383,
+      "rss": 732872704,
+      "footprint": 610291120,
+      "wired": 81920,
+      "cpu_user_ns": 1082209084,
+      "cpu_system_ns": 475985893
+    },
+    {
+      "t": 139.386,
+      "rss": 664535040,
+      "footprint": 663227824,
+      "wired": 57573376,
+      "cpu_user_ns": 1085293846,
+      "cpu_system_ns": 477800079
+    },
+    {
+      "t": 140.387,
+      "rss": 591855616,
+      "footprint": 667471280,
+      "wired": 58228736,
+      "cpu_user_ns": 1092852214,
+      "cpu_system_ns": 481753219
+    },
+    {
+      "t": 141.392,
+      "rss": 573014016,
+      "footprint": 666308016,
+      "wired": 56934400,
+      "cpu_user_ns": 1101721786,
+      "cpu_system_ns": 485417551
+    },
+    {
+      "t": 142.871,
+      "rss": 551387136,
+      "footprint": 665062832,
+      "wired": 49479680,
+      "cpu_user_ns": 1103894950,
+      "cpu_system_ns": 487519980
+    },
+    {
+      "t": 143.909,
+      "rss": 493617152,
+      "footprint": 654970288,
+      "wired": 49053696,
+      "cpu_user_ns": 1105212448,
+      "cpu_system_ns": 491475113
+    },
+    {
+      "t": 144.916,
+      "rss": 508133376,
+      "footprint": 650022320,
+      "wired": 40615936,
+      "cpu_user_ns": 1108492791,
+      "cpu_system_ns": 492034648
+    },
+    {
+      "t": 145.924,
+      "rss": 533102592,
+      "footprint": 659836336,
+      "wired": 54132736,
+      "cpu_user_ns": 1126492296,
+      "cpu_system_ns": 496869811
+    },
+    {
+      "t": 146.926,
+      "rss": 529776640,
+      "footprint": 660426160,
+      "wired": 54673408,
+      "cpu_user_ns": 1135054632,
+      "cpu_system_ns": 499307627
+    },
+    {
+      "t": 147.929,
+      "rss": 526712832,
+      "footprint": 610209200,
+      "wired": 2834432,
+      "cpu_user_ns": 1135305367,
+      "cpu_system_ns": 499438582
+    },
+    {
+      "t": 148.934,
+      "rss": 526680064,
+      "footprint": 568642968,
+      "wired": 0,
+      "cpu_user_ns": 1135507969,
+      "cpu_system_ns": 499542712
+    },
+    {
+      "t": 149.936,
+      "rss": 517423104,
+      "footprint": 541199744,
+      "wired": 0,
+      "cpu_user_ns": 1136271383,
+      "cpu_system_ns": 499708308
+    },
+    {
+      "t": 150.937,
+      "rss": 511590400,
+      "footprint": 541003136,
+      "wired": 0,
+      "cpu_user_ns": 1137060605,
+      "cpu_system_ns": 499897150
+    },
+    {
+      "t": 151.941,
+      "rss": 514113536,
+      "footprint": 580750720,
+      "wired": 40615936,
+      "cpu_user_ns": 1137792444,
+      "cpu_system_ns": 502937056
+    },
+    {
+      "t": 152.942,
+      "rss": 513015808,
+      "footprint": 580750720,
+      "wired": 40615936,
+      "cpu_user_ns": 1138007644,
+      "cpu_system_ns": 503057564
+    },
+    {
+      "t": 153.944,
+      "rss": 512737280,
+      "footprint": 580750720,
+      "wired": 40615936,
+      "cpu_user_ns": 1138312950,
+      "cpu_system_ns": 503185769
+    },
+    {
+      "t": 154.95,
+      "rss": 512507904,
+      "footprint": 580767104,
+      "wired": 40615936,
+      "cpu_user_ns": 1138852631,
+      "cpu_system_ns": 503404919
+    },
+    {
+      "t": 155.955,
+      "rss": 515735552,
+      "footprint": 582618496,
+      "wired": 41992192,
+      "cpu_user_ns": 1139225675,
+      "cpu_system_ns": 503608822
+    },
+    {
+      "t": 156.959,
+      "rss": 780845056,
+      "footprint": 656035248,
+      "wired": 131055616,
+      "cpu_user_ns": 1144592251,
+      "cpu_system_ns": 508103391
+    },
+    {
+      "t": 157.964,
+      "rss": 786137088,
+      "footprint": 669388208,
+      "wired": 130547712,
+      "cpu_user_ns": 1154430634,
+      "cpu_system_ns": 511264340
+    },
+    {
+      "t": 158.969,
+      "rss": 786743296,
+      "footprint": 668634544,
+      "wired": 83673088,
+      "cpu_user_ns": 1169686447,
+      "cpu_system_ns": 515964014
+    },
+    {
+      "t": 159.971,
+      "rss": 787005440,
+      "footprint": 663866800,
+      "wired": 128434176,
+      "cpu_user_ns": 1189233514,
+      "cpu_system_ns": 523639941
+    },
+    {
+      "t": 160.976,
+      "rss": 787447808,
+      "footprint": 660032944,
+      "wired": 129171456,
+      "cpu_user_ns": 1210370631,
+      "cpu_system_ns": 530417074
+    },
+    {
+      "t": 161.978,
+      "rss": 787529728,
+      "footprint": 655789488,
+      "wired": 123748352,
+      "cpu_user_ns": 1234115130,
+      "cpu_system_ns": 536535017
+    },
+    {
+      "t": 162.983,
+      "rss": 787087360,
+      "footprint": 659246512,
+      "wired": 128434176,
+      "cpu_user_ns": 1253636403,
+      "cpu_system_ns": 543840455
+    },
+    {
+      "t": 163.988,
+      "rss": 784596992,
+      "footprint": 663342512,
+      "wired": 132579328,
+      "cpu_user_ns": 1276706244,
+      "cpu_system_ns": 550551091
+    },
+    {
+      "t": 164.995,
+      "rss": 784039936,
+      "footprint": 654953904,
+      "wired": 68878336,
+      "cpu_user_ns": 1294486238,
+      "cpu_system_ns": 555772628
+    },
+    {
+      "t": 165.996,
+      "rss": 783351808,
+      "footprint": 606031280,
+      "wired": 18087936,
+      "cpu_user_ns": 1295528503,
+      "cpu_system_ns": 556262551
+    },
+    {
+      "t": 167.001,
+      "rss": 780910592,
+      "footprint": 604130736,
+      "wired": 18087936,
+      "cpu_user_ns": 1296383808,
+      "cpu_system_ns": 556686696
+    },
+    {
+      "t": 168.001,
+      "rss": 780910592,
+      "footprint": 604130736,
+      "wired": 81920,
+      "cpu_user_ns": 1297307903,
+      "cpu_system_ns": 557144380
+    },
+    {
+      "t": 169.001,
+      "rss": 770277376,
+      "footprint": 604310960,
+      "wired": 81920,
+      "cpu_user_ns": 1298063164,
+      "cpu_system_ns": 557491935
+    }
+  ],
+  "peak_rss_sampled": 2292416512,
+  "peak_footprint_sampled": 680250800,
+  "usage_metadata": [
+    {
+      "turnID": "0C78CD40-FF74-43C3-AE45-3C5C18979799",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "905433D6-A0D7-4739-AE2A-5644EF41CEB5",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "18468462-FFF0-4BD8-A645-91402B6DAC23",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "2685EFEA-2E7C-46E3-AF10-805A1C94F946",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "F0A4C2C8-D9C8-40B4-A155-8BB53BC0E99B",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "7D0196AA-A579-4B6D-AA77-C632A3757A7B",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "B4E007B8-BAEB-43E3-8419-A525A3DFE6A4",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "D87BB09A-D3E7-494A-A22F-6DC1445591C3",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "B763E44C-6115-43CA-A929-FF8C3F1D4094",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "39650271-F818-4A76-BF69-DE5EAE53DCB5",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "112A76E7-0F11-44AA-B915-65038E9F655A",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "BA5584F9-7B8B-4179-AA7A-C28D12BD7CD0",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "25D3A62D-191D-49AD-A7DE-6AD440B72CB2",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "818CE6F7-31B5-4C7D-B969-4EA5D6E46FC2",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "2F8C6CA0-C7E8-4171-8A07-6807767AC9B9",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "incomplete",
+      "errorClass": "other"
+    },
+    {
+      "turnID": "42A51340-7EF9-43D3-BE94-A95AD3EE3BFB",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "incomplete",
+      "errorClass": "other"
+    },
+    {
+      "turnID": "42A51340-7EF9-43D3-BE94-A95AD3EE3BFB",
+      "pass": "frontend-answer",
+      "provider": "llama",
+      "modelID": "Fixture model",
+      "warm": true,
+      "loadMs": null,
+      "ttftMs": 37,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": 51,
+      "countsEstimated": false,
+      "finishReason": "incomplete",
+      "errorClass": "other"
+    },
+    {
+      "turnID": "42A51340-7EF9-43D3-BE94-A95AD3EE3BFB",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Fixture model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": true,
+      "finishReason": "incomplete",
+      "errorClass": "other"
+    },
+    {
+      "turnID": "C7D30EB6-6AC8-4D97-823A-371E1D055541",
+      "pass": "frontend-answer",
+      "provider": "llama",
+      "modelID": "Ignore other turn",
+      "warm": true,
+      "loadMs": null,
+      "ttftMs": 37,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": 51,
+      "countsEstimated": false,
+      "finishReason": "incomplete",
+      "errorClass": "other"
+    },
+    {
+      "turnID": "1C74464E-72DF-4612-8735-9AE2896E6C37",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "2D2AF989-A6B0-434C-88F7-DFFF36420F28",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "0C8A3BC8-8E39-4744-9FBA-B406F8B3491C",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "2B34DADA-146E-4E9B-80EF-FCAD6A2B9861",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "F5C06784-74BF-406E-9502-B9D3813AC1AF",
+      "pass": "turn",
+      "provider": "rules",
+      "modelID": "voice-turn",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 1003,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "A37232D7-A3B6-4BF6-B1BB-E57D7A5AFC65",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "A07BDEC2-FB51-4C9D-BEAE-4EDBEDA3EAAF",
+      "pass": "turn",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 12117,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "A07BDEC2-FB51-4C9D-BEAE-4EDBEDA3EAAF",
+      "pass": "frontend-answer",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": true,
+      "loadMs": null,
+      "ttftMs": 3865,
+      "promptTokens": 1155,
+      "cachedTokens": 379,
+      "completionTokens": 48,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "A07BDEC2-FB51-4C9D-BEAE-4EDBEDA3EAAF",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "AAD33530-45E4-4358-AB49-4436F06D867C",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "AAD33530-45E4-4358-AB49-4436F06D867C",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "AAD33530-45E4-4358-AB49-4436F06D867C",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "AAD33530-45E4-4358-AB49-4436F06D867C",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "AAD33530-45E4-4358-AB49-4436F06D867C",
+      "pass": "turn",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 5507,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "AAD33530-45E4-4358-AB49-4436F06D867C",
+      "pass": "frontend-answer",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": true,
+      "loadMs": null,
+      "ttftMs": 427,
+      "promptTokens": 1231,
+      "cachedTokens": 1230,
+      "completionTokens": 42,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "D2046ED2-99B8-4256-A96B-AC294F18644A",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "D2046ED2-99B8-4256-A96B-AC294F18644A",
+      "pass": "turn",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "A8A8F586-585B-41B3-970F-09951DF21FE5",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "A8A8F586-585B-41B3-970F-09951DF21FE5",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "A8A8F586-585B-41B3-970F-09951DF21FE5",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "A8A8F586-585B-41B3-970F-09951DF21FE5",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "A8A8F586-585B-41B3-970F-09951DF21FE5",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "A8A8F586-585B-41B3-970F-09951DF21FE5",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "A8A8F586-585B-41B3-970F-09951DF21FE5",
+      "pass": "turn",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 3356,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "A8A8F586-585B-41B3-970F-09951DF21FE5",
+      "pass": "frontend-answer",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": true,
+      "loadMs": null,
+      "ttftMs": 118,
+      "promptTokens": 1296,
+      "cachedTokens": 1295,
+      "completionTokens": 43,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "CE6363E2-396C-4441-947F-DF940FDBACA5",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "CE6363E2-396C-4441-947F-DF940FDBACA5",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "CE6363E2-396C-4441-947F-DF940FDBACA5",
+      "pass": "frontend-answer",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": true,
+      "loadMs": null,
+      "ttftMs": 118,
+      "promptTokens": 1361,
+      "cachedTokens": 1360,
+      "completionTokens": 43,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "CE6363E2-396C-4441-947F-DF940FDBACA5",
+      "pass": "turn",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 4535,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "54ACFAEE-3205-4431-A7FC-94A69252CF4A",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "54ACFAEE-3205-4431-A7FC-94A69252CF4A",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "54ACFAEE-3205-4431-A7FC-94A69252CF4A",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "54ACFAEE-3205-4431-A7FC-94A69252CF4A",
+      "pass": "turn",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 9684,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "54ACFAEE-3205-4431-A7FC-94A69252CF4A",
+      "pass": "frontend-answer",
+      "provider": "llama",
+      "modelID": "MiniCPM5-2B-Q4_K_M",
+      "warm": true,
+      "loadMs": null,
+      "ttftMs": 4825,
+      "promptTokens": 1427,
+      "cachedTokens": 421,
+      "completionTokens": 43,
+      "countsEstimated": false,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "54ACFAEE-3205-4431-A7FC-94A69252CF4A",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    }
+  ],
+  "unloads": [
+    {
+      "name": "model.unload",
+      "note": "model=Gemma 4 E4B reason=switched resident",
+      "durationSeconds": 0
+    }
+  ],
+  "private_root": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-27427",
+  "private_root_removed": true
+}

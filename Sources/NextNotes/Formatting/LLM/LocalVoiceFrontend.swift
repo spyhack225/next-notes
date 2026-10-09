@@ -41,9 +41,18 @@ actor FrontendResponder {
         return true
     }
     func voiceLatencyAnswerProvider() -> (any LLMProvider)? { latencyAnswerProvider }
-    nonisolated func admittedVoiceLatencyAnswerProvider() -> (any LLMProvider)? { nil }
+    // Existing stream ownership decides this value before yielding its first text.
+    // The coordinator reads it synchronously; no new admission await on the turn.
+    nonisolated private let admittedLatencyAnswer = LockedBox<(any LLMProvider)?>(nil)
+    nonisolated func admittedVoiceLatencyAnswerProvider() -> (any LLMProvider)? {
+        SelfTest.isRunning && SelfTest.requested == "--selftest-voice-latency"
+            ? admittedLatencyAnswer.value : nil
+    }
+    private static var residentAnswerDiagnostic: Bool {
+        Self.partialRouteDiagnostic && CommandLine.arguments.contains("--voice-latency-resident-only")
+    }
 
-    // RED scaffold: external native admission only; the split validator and
+    // Script external native admission only; the split validator and
     // coordinator remain real. Installed only by the isolated contract flag.
     private var residentAnswerForTesting: (@Sendable () async throws -> AsyncThrowingStream<String, Error>)?
     func setResidentAnswerForTesting(
@@ -531,6 +540,7 @@ actor FrontendResponder {
         commitRevision: UInt64? = nil
     ) async -> AsyncThrowingStream<String, Error> {
         if let commitRevision { sealSpeculation(through: commitRevision) }
+        admittedLatencyAnswer.value = nil
         let key = RequestKey(system: system, messages: messages, maxTokens: maxTokens)
         if let speculation, (speculation.routeOnly ? speculation.key == key : speculation.key.matchesCommitted(key)),
            speculation.correlation == ModelPassRecorder.correlation {
@@ -688,6 +698,7 @@ actor FrontendResponder {
         var message = String(format:
             "VOICE_FRONTEND_TIMING gen=%llu revision=%@ event=%@ elapsed_s=%.3f",
             timing.id, revision, event, timing.elapsed())
+        message += " at_nanos=\(VoiceLatencyTimeline.nowNanos())"
         if let durationFrom {
             message += String(format: " duration_s=%.3f",
                 GenerationTiming.seconds(durationFrom.duration(to: .now)))
@@ -930,6 +941,7 @@ actor FrontendResponder {
             throw FrontendError.unavailable("split_route_missing_latest_user")
         }
         let route: LocalVoiceRoute
+        Self.emitTiming(timing, "route_plan_ready scheduler=none provider=appleFM")
         if let partialRouteForTesting {
             if timing.id == nextGenerationTimingID { VoiceLatencyTimeline.shared.mark(.routeStarted) }
             route = try await partialRouteForTesting(messages)
@@ -957,8 +969,17 @@ actor FrontendResponder {
             // `collect()` drains the stream and materializes the non-partial
             // Generable value. Partial snapshots are intentionally never routed.
             let routeCollectStarted = ContinuousClock.now
+            Self.emitTiming(timing, "typed_route_collect_started")
+            if timing.id == nextGenerationTimingID {
+                VoiceLatencyTimeline.shared.note("route_collect_started_nanos", String(VoiceLatencyTimeline.nowNanos()))
+                VoiceLatencyTimeline.shared.note("route_provider", "appleFM")
+                VoiceLatencyTimeline.shared.note("route_scheduler", "none")
+            }
             let routeResponse = try await routeStream.collect()
             Self.emitTiming(timing, "typed_route_collect_done", durationFrom: routeCollectStarted)
+            if timing.id == nextGenerationTimingID {
+                VoiceLatencyTimeline.shared.note("route_collect_done_nanos", String(VoiceLatencyTimeline.nowNanos()))
+            }
             try Task.checkCancellation()
             if timing.id == nextGenerationTimingID {
                 VoiceLatencyTimeline.shared.mark(.routeDone)
@@ -993,6 +1014,10 @@ actor FrontendResponder {
             payload = value
         case .notAddressedToMe: payload = FrontendDecisionPayload(intent: "not_addressed")
         case .answerQuestion: payload = FrontendDecisionPayload(intent: "answer")
+        }
+        Self.emitTiming(timing, "typed_route_validated")
+        if timing.id == nextGenerationTimingID {
+            VoiceLatencyTimeline.shared.note("route_validated_nanos", String(VoiceLatencyTimeline.nowNanos()))
         }
         if routeOnly {
             // End this same native producer with one COMPLETE validated route in
@@ -1048,22 +1073,39 @@ actor FrontendResponder {
         continuation: AsyncThrowingStream<String, Error>.Continuation,
         timing: GenerationTiming
     ) async throws -> Bool {
-        let provider = latencyAnswerProvider ?? FoundationModelLLMProvider()
-        let recorder = ModelPassRecorder(
-            feature: .agentVoice, pass: "frontend-answer",
-            provider: provider,
-            ids: ModelPassRecorder.correlation ?? UsageCorrelation(),
-            requestedRole: nil)
+        let requested = latencyAnswerProvider ?? FoundationModelLLMProvider()
+        let started = LockedBox(false)
+        func attempt(_ provider: any LLMProvider, session: LanguageModelSession?) async throws -> Bool {
+            let recorder = ModelPassRecorder(
+                feature: .agentVoice, pass: "frontend-answer", provider: provider,
+                ids: ModelPassRecorder.correlation ?? UsageCorrelation(), requestedRole: nil)
+            if timing.id == nextGenerationTimingID { admittedLatencyAnswer.value = provider }
+            Self.emitTiming(timing, "answer_entry provider=\(provider.id.rawValue)")
+            do {
+                let produced = try await streamSplitAnswerBody(
+                    session: session, plan: plan, provider: provider, maxTokens: maxTokens,
+                    continuation: continuation, timing: timing, recorder: recorder,
+                    onText: { started.value = true })
+                recorder.finish(reason: "stop")
+                return produced
+            } catch {
+                recorder.fail(error)
+                recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
+                throw error
+            }
+        }
         do {
-            let produced = try await streamSplitAnswerBody(
-                session: session, plan: plan, provider: provider, maxTokens: maxTokens,
-                continuation: continuation, timing: timing, recorder: recorder)
-            recorder.finish(reason: "stop")
-            return produced
-        } catch {
-            recorder.fail(error)
-            recorder.finish(reason: error is CancellationError ? "cancelled" : "error")
-            throw error
+            return try await attempt(requested, session: session)
+        } catch LlamaError.notLoaded where Self.residentAnswerDiagnostic
+            && requested is LlamaLLMProvider && !started.value && !Task.isCancelled {
+            // A refusal before any native text is not an answer failure. The route
+            // stays validated; use Apple's independent answer session without loading.
+            Self.emitTiming(timing, "answer_fallback_not_resident")
+            if timing.id == nextGenerationTimingID {
+                VoiceLatencyTimeline.shared.note("resident_answer", "apple_not_resident")
+            }
+            let apple = LanguageModelSession(transcript: LocalVoicePrompt.transcript(for: plan))
+            return try await attempt(FoundationModelLLMProvider(), session: apple)
         }
     }
 
@@ -1073,7 +1115,7 @@ actor FrontendResponder {
         maxTokens: Int,
         continuation: AsyncThrowingStream<String, Error>.Continuation,
         timing: GenerationTiming,
-        recorder: ModelPassRecorder
+        recorder: ModelPassRecorder, onText: @Sendable () -> Void
     ) async throws -> Bool {
         var previous = ""
         var started = false
@@ -1089,6 +1131,7 @@ actor FrontendResponder {
             }
             if !current.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if !started {
+                    onText()
                     recorder.noteFirstToken()
                     if mayDeliver(timing) { continuation.yield(try FrontendDecisionPayload(intent: "answer").controlChunk()) }
                     started = true
@@ -1099,7 +1142,14 @@ actor FrontendResponder {
             }
             previous = current
         }
-        if partialRouteForTesting != nil, let generationForTesting {
+        if Self.residentAnswerDiagnostic, provider is LlamaLLMProvider, let residentAnswerForTesting {
+            var current = ""
+            let response = try await residentAnswerForTesting()
+            for try await delta in response {
+                current += delta
+                try consume(current)
+            }
+        } else if partialRouteForTesting != nil, let generationForTesting {
             let messages = plan.history.map { LLMChatMessage(role: $0.role, content: $0.content) }
                 + [LLMChatMessage(role: .user, content: plan.latestUser)]
             var current = ""
@@ -1113,8 +1163,10 @@ actor FrontendResponder {
             // The runtime's producer Task inherits this recorder at stream creation,
             // as in the existing tool loop. Consume text on this same actor afterwards.
             let response = await ModelPassRecorder.$current.withValue(recorder) {
-                await local.streamInteractiveConversation(
-                    system: plan.instructions, messages: messages, maxTokens: maxTokens)
+                await local.runtime.streamInteractiveConversation(
+                    system: plan.instructions, messages: messages, maxTokens: maxTokens,
+                    residentOnly: Self.residentAnswerDiagnostic,
+                    onAdmitted: { Self.emitTiming(timing, "answer_native_admitted") })
             }
             var current = ""
             for try await delta in response {

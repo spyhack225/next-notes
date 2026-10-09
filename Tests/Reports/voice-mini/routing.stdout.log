@@ -1,0 +1,104 @@
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+FRONTEND_SCHEMA_CASE mode=spawn checks=8 streams=1 entered=1 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=spawn-refused checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=status-one checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=status-all checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=status-invalid checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=cancel-one checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=cancel-newest checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=cancel-invalid checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=cancel-refused checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=approval-unoffered checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=extra-argument checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CASE mode=unknown-control checks=8 streams=1 entered=0 held=0 owned=true physical=false
+FRONTEND_SCHEMA_CHECKS count=98 problems=0
+FRONTEND_RECEIPT_CASE mode=faithful checks=9 streamCalls=1 workers=1 rows=1 physical=false
+FRONTEND_RECEIPT_CASE mode=filler checks=9 streamCalls=1 workers=1 rows=1 physical=false
+FRONTEND_RECEIPT_CASE mode=identifier checks=9 streamCalls=1 workers=1 rows=1 physical=false
+FRONTEND_RECEIPT_CASE mode=omitted checks=9 streamCalls=1 workers=1 rows=1 physical=false
+FRONTEND_RECEIPT_CASE mode=url checks=9 streamCalls=1 workers=1 rows=1 physical=false
+FRONTEND_RECEIPT_CASE mode=refused checks=9 streamCalls=1 workers=0 rows=0 physical=false
+FRONTEND_RECEIPT_CASE mode=resolved checks=9 streamCalls=1 workers=1 rows=1 physical=false
+FRONTEND_RECEIPT_CASE mode=number checks=10 streamCalls=1 workers=1 rows=1 physical=false
+FRONTEND_RECEIPT_CASE mode=negation checks=10 streamCalls=1 workers=1 rows=1 physical=false
+FRONTEND_RECEIPT_CHECKS count=84 problems=0
+FRONTEND_REVISION_CASE mode=resolved checks=10 streams=2 workers=1 localRevision=1 primaryRevision=1 physical=false
+FRONTEND_REVISION_CASE mode=numeric checks=10 streams=2 workers=1 localRevision=1 primaryRevision=1 physical=false
+FRONTEND_REVISION_CASE mode=negation checks=10 streams=2 workers=1 localRevision=1 primaryRevision=1 physical=false
+FRONTEND_REVISION_CASE mode=legacy checks=10 streams=2 workers=1 localRevision=1 primaryRevision=1 physical=false
+FRONTEND_REVISION_CASE mode=missing checks=10 streams=2 workers=1 localRevision=1 primaryRevision=1 physical=false
+FRONTEND_REVISION_CASE mode=refused checks=10 streams=2 workers=1 localRevision=1 primaryRevision=0 physical=false
+FRONTEND_REVISION_CASE mode=outOfRange checks=10 streams=2 workers=1 localRevision=0 primaryRevision=0 physical=false
+FRONTEND_REVISION_CASE mode=faithful checks=10 streams=2 workers=1 localRevision=1 primaryRevision=1 physical=false
+FRONTEND_REVISION_CHECKS count=81 problems=0
+VOICE_QUESTION_ROUTING_CASE phrase=okay primaryQuestion=true rows=1 sameJob=true workerRuns=2
+VOICE_QUESTION_ROUTING_CASE phrase=yes please primaryQuestion=true rows=1 sameJob=true workerRuns=2
+VOICE_QUESTION_ROUTING_CASE phrase=yeah sure primaryQuestion=true rows=1 sameJob=true workerRuns=2
+VOICE_QUESTION_ROUTING_CASE phrase=go for it primaryQuestion=true rows=1 sameJob=true workerRuns=2
+VOICE_QUESTION_ROUTING_CASE phrase=sure go ahead primaryQuestion=true rows=1 sameJob=true workerRuns=2
+VOICE_QUESTION_ROUTING_CASE phrase=yes do it primaryQuestion=true rows=1 sameJob=true workerRuns=2
+VOICE_TURN_ROUTING_CASE: garble-1 output=boys → Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: garble-2 output=Am → Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: garble-3 output=Take it. → Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: garble-4 output=Okay. → Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: garble-5 output=hey win → Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: garble-6 output=Hey we → Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: garble-7 output=can you also nothing get to my folder to my document folder in open next project → I'm on it.
+VOICE_TURN_ROUTING_CASE: garble-8 output=note the four days called next note → Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: corpus:Can you hear me? output=Yes — I can hear you.
+VOICE_TURN_ROUTING_CASE: corpus:How are you doing? output=Doing well, thanks.
+VOICE_TURN_ROUTING_CASE: corpus:What time is it? output=It's just after five.
+VOICE_TURN_ROUTING_CASE: corpus:Thanks, that's all output=Any time.
+VOICE_TURN_ROUTING_CASE: noise-1 output=Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: noise-2 output=Sorry — I didn't get that.
+VOICE_TURN_ROUTING_CASE: answer-prompt output=Yes — I can hear you.
+VOICE_TURN_ROUTING_CASE: frontend-unavailable output=I can't answer with the on-device voice model right now. Apple Intelligence is turned off in System Settings. You can still type your question.
+VOICE_TURN_ROUTING_CASE: browser-command output=I'm on it.
+VOICE_TURN_ROUTING_CASE: d8-1-request output=I'm on it.
+VOICE_TURN_ROUTING_CASE: d8-2-denial output=I'm on it.
+VOICE_TURN_ROUTING_CASE: d8-3-honest-limit output=I can't tell from this transcript which one you mean. Which of them?
+VOICE_TURN_ROUTING_CASE: d8-4-ack output=I'm on it.
+VOICE_TURN_ROUTING_CASE: d8-5-no-pending output=Understood.
+VOICE_TURN_ROUTING_CASE: question-route:what's on my calendar output=I'm on it.
+VOICE_TURN_ROUTING_CASE: question-route:any new emails? output=I'm on it.
+VOICE_TURN_ROUTING_CASE: question-route:remind me to call mom at 5 output=I'm on it.
+VOICE_TURN_ROUTING_CASE: question-route:what did we decide last meeting output=I'm on it.
+VOICE_TURN_ROUTING_CASE: question-positive:can you hear me? output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-positive:what's the capital of France output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-positive:tell me a joke output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-positive:how are you today output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-positive:what time is it? output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-positive:are you there? output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-positive:what can you do? output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-positive:tell me about my day output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-positive:thanks, that's all output=Here you go.
+VOICE_TURN_ROUTING_CASE: question-unready:what's on my calendar output=I can't look that up.
+VOICE_TURN_ROUTING_CASE: question-unready:any new emails? output=I can't see that from here.
+VOICE_TURN_ROUTING_CASE: question-unready:remind me to call mom at 5 output=I don't have that reminder saved.
+VOICE_TURN_ROUTING_CASE: question-unready:what did we decide last meeting output=I can't tell which meeting you mean.
+VOICE_TURN_ROUTING_CASE: worker-question:okay-ask output=I'm on it.
+VOICE_TURN_ROUTING_CASE: worker-question:okay-ack output=Got it. I'll continue that task.
+VOICE_TURN_ROUTING_CASE: worker-question:yes please-ask output=I'm on it.
+VOICE_TURN_ROUTING_CASE: worker-question:yes please-ack output=Got it. I'll continue that task.
+VOICE_TURN_ROUTING_CASE: worker-question:yeah sure-ask output=I'm on it.
+VOICE_TURN_ROUTING_CASE: worker-question:yeah sure-ack output=Got it. I'll continue that task.
+VOICE_TURN_ROUTING_CASE: worker-question:go for it-ask output=I'm on it.
+VOICE_TURN_ROUTING_CASE: worker-question:go for it-ack output=Got it. I'll continue that task.
+VOICE_TURN_ROUTING_CASE: worker-question:sure go ahead-ask output=I'm on it.
+VOICE_TURN_ROUTING_CASE: worker-question:sure go ahead-ack output=Got it. I'll continue that task.
+VOICE_TURN_ROUTING_CASE: worker-question:yes do it-ask output=I'm on it.
+VOICE_TURN_ROUTING_CASE: worker-question:yes do it-ack output=Got it. I'lVOICE_TURN_ROUTING_OK
+l continue that task.
+VOICE_TURN_ROUTING_CASE: ack-nothing-pending-1 output=Sorry — I didn't catch that. Could you say it again?
+VOICE_TURN_ROUTING_CASE: ack-nothing-pending-2 output=I'm here.
+VOICE_TURN_ROUTING_CASE: honest-denial output=I can't tell from this transcript which one you mean. Which of them?
+VOICE_TURN_ROUTING_CASE: renderer output=Codex stopped: ERROR: You've hit your usage limit, I'll do it myself → You've hit the usage limit, so I stopped there. Check your plan or try again later.
+VOICE_TURN_ROUTING_CASE: renderer output=The model is not downloaded. → The voice model isn't ready yet. Open Settings ▸ Models to get it.
+VOICE_TURN_ROUTING_CASE: renderer output=OpenRouter HTTP 429: Rate limited → You've hit the usage limit, so I stopped there. Check your plan or try again later.
+VOICE_TURN_ROUTING_CASE: renderer output=https://openrouter.ai/api/v1 failed → I couldn't do that: that link failed
+VOICE_TURN_ROUTING_CASE: failure-reply output=The local voice model failed while preparing that response. Please try again.
+VOICE_TURN_ROUTING_APPLE_CALLS=0
+VOICE_TURN_ROUTING_OK

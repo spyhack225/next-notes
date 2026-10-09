@@ -1,1 +1,14 @@
 red exit=-5
+red-scripted exit=1
+green exit=0
+partials exit=0
+apple exit=1
+mini exit=1
+cold-fallback exit=0
+pipeline exit=0
+routing exit=0
+concurrent exit=0
+conversation exit=0
+duplex exit=0
+prefix exit=0
+isolation exit=0

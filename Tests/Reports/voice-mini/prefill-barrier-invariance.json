@@ -1,0 +1,22 @@
+{
+  "    func speculate(": {
+    "equal": true,
+    "original_sha256": "1465f6c246a9fc225b62595d9072848319b069a0b6fe839beb149d866ca7c79b",
+    "current_sha256": "1465f6c246a9fc225b62595d9072848319b069a0b6fe839beb149d866ca7c79b"
+  },
+  "    func cancelSpeculation()": {
+    "equal": true,
+    "original_sha256": "a44ea88eac1ffa7e4739dced78da259806f3f2c947f0d8f752928804459b2cc2",
+    "current_sha256": "a44ea88eac1ffa7e4739dced78da259806f3f2c947f0d8f752928804459b2cc2"
+  },
+  "    private func serialBarrier()": {
+    "equal": true,
+    "original_sha256": "c9061dc6c0fd1f0fe5ec9704de0ed0bb86b9c594bb21e42e97384c55dc16e7de",
+    "current_sha256": "c9061dc6c0fd1f0fe5ec9704de0ed0bb86b9c594bb21e42e97384c55dc16e7de"
+  },
+  "    private static func waitForPriorInference(": {
+    "equal": true,
+    "original_sha256": "973e875ef64e2b6319e1397a1970ba5bf151a9fda0b24ebc655ea739ba530b79",
+    "current_sha256": "973e875ef64e2b6319e1397a1970ba5bf151a9fda0b24ebc655ea739ba530b79"
+  }
+}

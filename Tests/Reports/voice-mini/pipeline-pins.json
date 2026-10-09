@@ -1,0 +1,290 @@
+{
+  "head": "82591312e30ee605dd7726d64f9e1ac5b4e66185",
+  "binary_sha256": "e6407807dd382be7727fc1581e34a3074ed4fa576b28781b922481a09265dd3b",
+  "uuid": "UUID: 725E4269-0575-3C76-A7E6-255325EA15E9 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice/debug/NextNotes",
+  "source_sha256": {
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "93309d5a74c6fa8907476904c2b2b49b136e8b2ea773caa3db1dea3df5cc220e",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "50b802d999c709215cfb99c6a2e07c87e2799fc3ac514a5d0a1dd9abfec019b4",
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "867c89e2fbeda54a9034b381d6c98afc090e0b3faa9983309b2a4850f13d78ea",
+    "Sources/NextNotes/Agent/Voice/VoiceResidentAnswerSelfTest.swift": "e876332245c418aedd03a878baeb1469af9338545ee8b12af459c58fb8384151",
+    "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift": "0f8e9993bd30b9b9cf82d84bdd666a30d8b8e2d800ac9c8d11b311a40c88cef2",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift": "dce8e8b31dc606b7bab2be55178e99eaf984ffa8e1d68838d6a6389033e6b801",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "3c14261613ccf2962ab880f691e833af720e347d7225ce5dba46bf831919c1bf",
+    "Sources/NextNotes/Agent/VoiceCapabilityConversationSelfTest.swift": "cd6c246e6412f4e9f4ffeaf153826038d650b904836078a5236753e40ac62d11",
+    "Sources/NextNotes/Activation/AgentCaptureController.swift": "d5115c45e8b885ac23673a5864182cbfe6b977fe205d491f46e3fb401b1c3bca"
+  },
+  "pid": 28688,
+  "exit": 0,
+  "scope": "debug/file-fed diagnostic; 1s sampled own app only, excludes Apple service; no release/mic/ears or continuous peaks",
+  "before": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 8192.00M  used = 6946.25M  free = 1245.75M  (encrypted)",
+    "load": "20:58  up 1 day, 10:10, 1 user, load averages: 4.76 8.44 7.32",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 191129896  12974752    94% 2481583 129747520    2%   /System/Volumes/Data"
+  },
+  "after": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 8192.00M  used = 6946.25M  free = 1245.75M  (encrypted)",
+    "load": "20:58  up 1 day, 10:10, 1 user, load averages: 5.00 8.32 7.29",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 191128324  12976324    94% 2481602 129763240    2%   /System/Volumes/Data"
+  },
+  "samples": [
+    {
+      "t": 0.003,
+      "rss": 32768,
+      "footprint": 81992,
+      "wired": 0,
+      "cpu_user_ns": 736,
+      "cpu_system_ns": 7740
+    },
+    {
+      "t": 1.005,
+      "rss": 133742592,
+      "footprint": 37766248,
+      "wired": 0,
+      "cpu_user_ns": 7174191,
+      "cpu_system_ns": 6102946
+    },
+    {
+      "t": 2.009,
+      "rss": 700661760,
+      "footprint": 522536832,
+      "wired": 176488448,
+      "cpu_user_ns": 20494745,
+      "cpu_system_ns": 9943446
+    },
+    {
+      "t": 3.014,
+      "rss": 1026555904,
+      "footprint": 520161464,
+      "wired": 123879424,
+      "cpu_user_ns": 26147943,
+      "cpu_system_ns": 13350185
+    },
+    {
+      "t": 4.019,
+      "rss": 925794304,
+      "footprint": 558499976,
+      "wired": 77086720,
+      "cpu_user_ns": 40214930,
+      "cpu_system_ns": 16287407
+    },
+    {
+      "t": 5.022,
+      "rss": 926777344,
+      "footprint": 559351944,
+      "wired": 59293696,
+      "cpu_user_ns": 49005587,
+      "cpu_system_ns": 18021102
+    },
+    {
+      "t": 6.026,
+      "rss": 841416704,
+      "footprint": 559532168,
+      "wired": 59293696,
+      "cpu_user_ns": 54869597,
+      "cpu_system_ns": 19249397
+    },
+    {
+      "t": 7.031,
+      "rss": 842432512,
+      "footprint": 556877960,
+      "wired": 56557568,
+      "cpu_user_ns": 59416693,
+      "cpu_system_ns": 20257542
+    },
+    {
+      "t": 8.036,
+      "rss": 842596352,
+      "footprint": 508709000,
+      "wired": 2899968,
+      "cpu_user_ns": 60724472,
+      "cpu_system_ns": 20509171
+    },
+    {
+      "t": 9.039,
+      "rss": 843005952,
+      "footprint": 504334472,
+      "wired": 2899968,
+      "cpu_user_ns": 61301614,
+      "cpu_system_ns": 20720868
+    },
+    {
+      "t": 10.044,
+      "rss": 843005952,
+      "footprint": 504334472,
+      "wired": 65536,
+      "cpu_user_ns": 61693001,
+      "cpu_system_ns": 20902464
+    },
+    {
+      "t": 11.049,
+      "rss": 959086592,
+      "footprint": 571721864,
+      "wired": 136544256,
+      "cpu_user_ns": 65242287,
+      "cpu_system_ns": 23020048
+    }
+  ],
+  "peak_rss_sampled": 1026555904,
+  "peak_footprint_sampled": 571721864,
+  "usage_metadata": [
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "cancelled",
+      "errorClass": "cancelled"
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "turn",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 4418,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-answer",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": 2816,
+      "promptTokens": 405,
+      "cachedTokens": null,
+      "completionTokens": 47,
+      "countsEstimated": true,
+      "finishReason": "stop",
+      "errorClass": null
+    },
+    {
+      "turnID": "3B7F364B-D2E6-4509-854D-4C4A9117C662",
+      "pass": "frontend-route",
+      "provider": "appleFM",
+      "modelID": "Apple Foundation Model",
+      "warm": null,
+      "loadMs": null,
+      "ttftMs": null,
+      "promptTokens": null,
+      "cachedTokens": null,
+      "completionTokens": null,
+      "countsEstimated": null,
+      "finishReason": "stop",
+      "errorClass": null
+    }
+  ],
+  "unloads": [],
+  "private_root": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-28688",
+  "private_root_removed": true
+}

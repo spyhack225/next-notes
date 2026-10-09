@@ -1,13 +1,11 @@
 import Foundation
 
-/// Harness-only playback. A Pocket failure must fail the audio proof and stay
-/// silent rather than synthesize the diagnostic with an unrequested voice.
+/// SelfTest-only Pocket transport on the existing synthesizer. Native failures
+/// stay silent and fail evidence instead of choosing the Apple voice.
 @MainActor
 enum VoiceDiagnosticSpeech {
-    // RED scaffold exercises the real synthesizer's failure consumer with a
-    // recorder standing in for its Apple fallback; it renders no Apple audio.
     static func install(_ backing: (any AgentSpeechBacking)?, fallbackSpy: any AgentSpeechBacking) {
-        AgentSpeechSynthesizer.shared.useTestingBacking(backing ?? fallbackSpy, fallback: fallbackSpy)
+        AgentSpeechSynthesizer.shared.useTestingBacking(backing ?? Silence(), fallback: Silence())
     }
 
     static func contractProblems() -> [String] {
@@ -25,6 +23,45 @@ enum VoiceDiagnosticSpeech {
             SelfTest.diagnostic("VOICE_DIAGNOSTIC_APPLE_CALLS=\(apple.spoken.count) ready=\(ready)")
         }
         return wrong
+    }
+
+    static func preparePocket() async -> Proof? {
+        guard SelfTest.isRunning,
+              ["--selftest-voice-latency", "--selftest-voice-pipeline"].contains(SelfTest.requested ?? "") else { return nil }
+        await PocketAgentVoice.shared.prepare()
+        guard PocketAgentVoice.shared.isReady else { return nil }
+        let proof = Proof()
+        let synth = AgentSpeechSynthesizer.shared
+        synth.useTestingBacking(PocketSpeechBacking(), fallback: proof.silence)
+        return proof
+    }
+
+    @MainActor
+    final class Proof {
+        private let appleCallsAtStart = AgentSpeechSynthesizer.appleSynthesisCallsForTesting
+        fileprivate let silence = Silence()
+        private var finished = false
+        func finish() -> [String] {
+            guard !finished else { return [] }
+            finished = true
+            let synth = AgentSpeechSynthesizer.shared
+            synth.restoreSystemBacking()
+            let appleCalls = AgentSpeechSynthesizer.appleSynthesisCallsForTesting - appleCallsAtStart
+            SelfTest.diagnostic("VOICE_DIAGNOSTIC_APPLE_CALLS=\(appleCalls) silent_failure_clauses=\(silence.dropped)")
+            var wrong: [String] = []
+            if appleCalls != 0 { wrong.append("diagnostic reached Apple playback") }
+            if silence.dropped != 0 { wrong.append("Pocket failed; \(silence.dropped) clauses stayed silent") }
+            return wrong
+        }
+    }
+
+    fileprivate final class Silence: AgentSpeechBacking {
+        var isSpeaking: Bool { false }
+        private(set) var dropped = 0
+        func speak(_ text: String, volume: Float, token: UInt64) { dropped += 1 }
+        func pauseForListening() {}
+        func resumeAfterListening() {}
+        func stop() {}
     }
 
     private final class FailingReply: AgentReplySpeechBacking {

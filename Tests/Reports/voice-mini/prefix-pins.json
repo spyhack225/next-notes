@@ -1,0 +1,291 @@
+{
+  "head": "82591312e30ee605dd7726d64f9e1ac5b4e66185",
+  "binary_sha256": "e6407807dd382be7727fc1581e34a3074ed4fa576b28781b922481a09265dd3b",
+  "uuid": "UUID: 725E4269-0575-3C76-A7E6-255325EA15E9 (arm64) /Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice/debug/NextNotes",
+  "source_sha256": {
+    "Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift": "93309d5a74c6fa8907476904c2b2b49b136e8b2ea773caa3db1dea3df5cc220e",
+    "Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift": "50b802d999c709215cfb99c6a2e07c87e2799fc3ac514a5d0a1dd9abfec019b4",
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "867c89e2fbeda54a9034b381d6c98afc090e0b3faa9983309b2a4850f13d78ea",
+    "Sources/NextNotes/Agent/Voice/VoiceResidentAnswerSelfTest.swift": "e876332245c418aedd03a878baeb1469af9338545ee8b12af459c58fb8384151",
+    "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift": "0f8e9993bd30b9b9cf82d84bdd666a30d8b8e2d800ac9c8d11b311a40c88cef2",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift": "dce8e8b31dc606b7bab2be55178e99eaf984ffa8e1d68838d6a6389033e6b801",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "3c14261613ccf2962ab880f691e833af720e347d7225ce5dba46bf831919c1bf",
+    "Sources/NextNotes/Agent/VoiceCapabilityConversationSelfTest.swift": "cd6c246e6412f4e9f4ffeaf153826038d650b904836078a5236753e40ac62d11",
+    "Sources/NextNotes/Activation/AgentCaptureController.swift": "d5115c45e8b885ac23673a5864182cbfe6b977fe205d491f46e3fb401b1c3bca"
+  },
+  "pid": 28812,
+  "exit": 0,
+  "scope": "debug/file-fed diagnostic; 1s sampled own app only, excludes Apple service; no release/mic/ears or continuous peaks",
+  "before": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 8192.00M  used = 6946.25M  free = 1245.75M  (encrypted)",
+    "load": "20:58  up 1 day, 10:11, 1 user, load averages: 4.70 8.14 7.24",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 191128452  12976196    94% 2481626 129761960    2%   /System/Volumes/Data"
+  },
+  "after": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 8192.00M  used = 6922.25M  free = 1269.75M  (encrypted)",
+    "load": "20:59  up 1 day, 10:11, 1 user, load averages: 5.77 8.07 7.25",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 191123272  12981376    94% 2481649 129813760    2%   /System/Volumes/Data"
+  },
+  "samples": [
+    {
+      "t": 0.003,
+      "rss": 32768,
+      "footprint": 81992,
+      "wired": 0,
+      "cpu_user_ns": 583,
+      "cpu_system_ns": 6482
+    },
+    {
+      "t": 1.008,
+      "rss": 388202496,
+      "footprint": 94651736,
+      "wired": 0,
+      "cpu_user_ns": 4720023,
+      "cpu_system_ns": 2361931
+    },
+    {
+      "t": 2.012,
+      "rss": 466878464,
+      "footprint": 94717320,
+      "wired": 0,
+      "cpu_user_ns": 4723659,
+      "cpu_system_ns": 3157001
+    },
+    {
+      "t": 3.017,
+      "rss": 551813120,
+      "footprint": 94766544,
+      "wired": 0,
+      "cpu_user_ns": 4723659,
+      "cpu_system_ns": 4058875
+    },
+    {
+      "t": 4.022,
+      "rss": 628359168,
+      "footprint": 94799360,
+      "wired": 0,
+      "cpu_user_ns": 4728444,
+      "cpu_system_ns": 4883644
+    },
+    {
+      "t": 5.032,
+      "rss": 963870720,
+      "footprint": 374048568,
+      "wired": 0,
+      "cpu_user_ns": 20402306,
+      "cpu_system_ns": 7163405
+    },
+    {
+      "t": 6.035,
+      "rss": 964329472,
+      "footprint": 374490936,
+      "wired": 0,
+      "cpu_user_ns": 81686040,
+      "cpu_system_ns": 10705857
+    },
+    {
+      "t": 7.037,
+      "rss": 966377472,
+      "footprint": 376358736,
+      "wired": 0,
+      "cpu_user_ns": 181785453,
+      "cpu_system_ns": 13309946
+    },
+    {
+      "t": 8.042,
+      "rss": 966377472,
+      "footprint": 376358736,
+      "wired": 0,
+      "cpu_user_ns": 252089644,
+      "cpu_system_ns": 17088395
+    },
+    {
+      "t": 9.055,
+      "rss": 966475776,
+      "footprint": 376457040,
+      "wired": 0,
+      "cpu_user_ns": 326614193,
+      "cpu_system_ns": 20383622
+    },
+    {
+      "t": 10.058,
+      "rss": 966475776,
+      "footprint": 376457040,
+      "wired": 0,
+      "cpu_user_ns": 428765940,
+      "cpu_system_ns": 22157679
+    },
+    {
+      "t": 11.063,
+      "rss": 966426624,
+      "footprint": 376391504,
+      "wired": 0,
+      "cpu_user_ns": 490083574,
+      "cpu_system_ns": 26341585
+    },
+    {
+      "t": 12.067,
+      "rss": 966377472,
+      "footprint": 376342352,
+      "wired": 0,
+      "cpu_user_ns": 563245106,
+      "cpu_system_ns": 30004476
+    },
+    {
+      "t": 13.069,
+      "rss": 966656000,
+      "footprint": 376457040,
+      "wired": 0,
+      "cpu_user_ns": 662859578,
+      "cpu_system_ns": 32645375
+    },
+    {
+      "t": 14.074,
+      "rss": 966656000,
+      "footprint": 376457040,
+      "wired": 0,
+      "cpu_user_ns": 731167646,
+      "cpu_system_ns": 36476579
+    },
+    {
+      "t": 15.079,
+      "rss": 966656000,
+      "footprint": 376457040,
+      "wired": 0,
+      "cpu_user_ns": 810097639,
+      "cpu_system_ns": 39916790
+    },
+    {
+      "t": 16.084,
+      "rss": 966656000,
+      "footprint": 376457040,
+      "wired": 0,
+      "cpu_user_ns": 870429897,
+      "cpu_system_ns": 42295260
+    },
+    {
+      "t": 17.089,
+      "rss": 966819840,
+      "footprint": 376604496,
+      "wired": 0,
+      "cpu_user_ns": 960194525,
+      "cpu_system_ns": 45447820
+    },
+    {
+      "t": 18.09,
+      "rss": 966868992,
+      "footprint": 343426896,
+      "wired": 0,
+      "cpu_user_ns": 1027364007,
+      "cpu_system_ns": 49158578
+    },
+    {
+      "t": 19.098,
+      "rss": 966868992,
+      "footprint": 343426896,
+      "wired": 0,
+      "cpu_user_ns": 1096989439,
+      "cpu_system_ns": 52877562
+    },
+    {
+      "t": 20.102,
+      "rss": 966901760,
+      "footprint": 343459664,
+      "wired": 0,
+      "cpu_user_ns": 1184839763,
+      "cpu_system_ns": 56013863
+    },
+    {
+      "t": 21.107,
+      "rss": 966983680,
+      "footprint": 343459664,
+      "wired": 0,
+      "cpu_user_ns": 1249833780,
+      "cpu_system_ns": 59976703
+    },
+    {
+      "t": 22.111,
+      "rss": 967098368,
+      "footprint": 343574352,
+      "wired": 0,
+      "cpu_user_ns": 1332471184,
+      "cpu_system_ns": 63330782
+    },
+    {
+      "t": 23.116,
+      "rss": 966983680,
+      "footprint": 343459664,
+      "wired": 0,
+      "cpu_user_ns": 1415601593,
+      "cpu_system_ns": 66663141
+    },
+    {
+      "t": 24.121,
+      "rss": 967098368,
+      "footprint": 343574352,
+      "wired": 0,
+      "cpu_user_ns": 1486214762,
+      "cpu_system_ns": 70359897
+    },
+    {
+      "t": 25.126,
+      "rss": 967016448,
+      "footprint": 343492432,
+      "wired": 0,
+      "cpu_user_ns": 1588869070,
+      "cpu_system_ns": 72901778
+    },
+    {
+      "t": 26.132,
+      "rss": 967032832,
+      "footprint": 343508816,
+      "wired": 0,
+      "cpu_user_ns": 1656270052,
+      "cpu_system_ns": 76759729
+    },
+    {
+      "t": 27.138,
+      "rss": 967032832,
+      "footprint": 343508816,
+      "wired": 0,
+      "cpu_user_ns": 1730798355,
+      "cpu_system_ns": 80359847
+    },
+    {
+      "t": 28.138,
+      "rss": 967000064,
+      "footprint": 343476048,
+      "wired": 0,
+      "cpu_user_ns": 1815583750,
+      "cpu_system_ns": 83645229
+    },
+    {
+      "t": 29.144,
+      "rss": 967000064,
+      "footprint": 343476048,
+      "wired": 0,
+      "cpu_user_ns": 1885886808,
+      "cpu_system_ns": 87406746
+    },
+    {
+      "t": 30.149,
+      "rss": 240599040,
+      "footprint": 94258448,
+      "wired": 0,
+      "cpu_user_ns": 1981892406,
+      "cpu_system_ns": 90441981
+    }
+  ],
+  "peak_rss_sampled": 967098368,
+  "peak_footprint_sampled": 376604496,
+  "usage_metadata": [],
+  "unloads": [],
+  "private_root": "/var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/NextNotesSelfTest-28812",
+  "private_root_removed": true
+}

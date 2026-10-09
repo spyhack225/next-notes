@@ -379,8 +379,9 @@ final class VoiceConversationCoordinator {
     /// the effect hold left by an earlier failure. Unlike `resolveInput` the epoch
     /// need not still be current: a later turn's classification is what tells a
     /// write planned against the failed words that it may no longer commit.
-    private func resolveAnswerRoute(id: UUID, epoch: UInt64, userMessageID: UUID, userWords: String) {
+    private func resolveAnswerRoute(id: UUID, epoch: UInt64, userMessageID: UUID, userWords: String, tracker: AgentToolSpeechTracker) {
         guard responseID == id, !Task.isCancelled else { return }
+        if let actual = FrontendResponder.shared.admittedVoiceLatencyAnswerProvider() { tracker.noteModel(actual) }
         resolveClassified(epoch: epoch, userMessageID: userMessageID, userWords: userWords)
     }
 
@@ -834,7 +835,7 @@ final class VoiceConversationCoordinator {
                         await progress.update(snapshot)
                         let parsed = VoiceFrontendEnvelope.parse(snapshot)
                         if case .answer = parsed, !routeReleased {
-                            await self.resolveAnswerRoute(id: id, epoch: inputEpoch, userMessageID: userMessageID, userWords: text)
+                            await self.resolveAnswerRoute(id: id, epoch: inputEpoch, userMessageID: userMessageID, userWords: text, tracker: tracker)
                             routeReleased = true
                         }
                         // A complete control has no answer tail. Apply its existing

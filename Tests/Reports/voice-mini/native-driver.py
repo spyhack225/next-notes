@@ -8,7 +8,21 @@ class Usage(ctypes.Structure):
     _fields_=[('uuid',ctypes.c_uint8*16)]+[(n,ctypes.c_uint64) for n in ['user_time','system_time','pkg_idle_wkups','interrupt_wkups','pageins','wired_size','resident_size','phys_footprint','start','exit']]
 lib=ctypes.CDLL('/usr/lib/libproc.dylib');lib.proc_pid_rusage.argtypes=[ctypes.c_int,ctypes.c_int,ctypes.c_void_p]
 def command(*args):return subprocess.run(args,text=True,capture_output=True).stdout.strip()
-def state():return {k:command(*v) for k,v in {'os':['sw_vers'],'power':['pmset','-g','batt'],'thermal':['pmset','-g','therm'],'swap':['sysctl','vm.swapusage'],'load':['uptime'],'disk':['df','-k','.']}.items()}
+def foreign_census():
+    # Match executable names, not waiting wrappers whose arguments mention tools.
+    # Inspect args in memory only; retain no paths, prompts or command arguments.
+    rows=[]
+    for line in command('ps','-axo','pid=,ppid=,ucomm=,args=').splitlines():
+        fields=line.strip().split(None,3)
+        if len(fields)<3:continue
+        pid,ppid,name=fields[:3]; name=Path(name).name; args=fields[3] if len(fields)>3 else ''
+        kind='compiler' if name in ['swift-frontend','swift-build'] else 'selftest' if name=='NextNotes' and '--selftest' in args else 'llama' if name.startswith('llama') else None
+        if kind:rows.append({'pid':int(pid),'parent_pid':int(ppid),'name':name,'kind':kind})
+    return {'foreign_heavy_count':len(rows),'foreign_heavy_processes':rows,'definition':'actual swift-frontend/swift-build executables, NextNotes with --selftest, llama* executable names; excludes queued shell command mentions; start/end census only'}
+def state():
+    state={k:command(*v) for k,v in {'os':['sw_vers'],'power':['pmset','-g','batt'],'thermal':['pmset','-g','therm'],'swap':['sysctl','vm.swapusage'],'load':['uptime'],'disk':['df','-k','.'],'memory':['memory_pressure','-Q']}.items()}
+    state.update(foreign_census())
+    return state
 label,*args=sys.argv[1:]
 pins={'head':command('git','rev-parse','HEAD'),'binary_sha256':hashlib.sha256(app.read_bytes()).hexdigest(),'uuid':command('dwarfdump','--uuid',str(app)),'args':args,'source_sha256':{str(p):hashlib.sha256(p.read_bytes()).hexdigest() for p in [Path('Sources/NextNotes/Formatting/LLM/LocalVoiceFrontend.swift'),Path('Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift'),Path('Sources/NextNotes/Agent/VoiceConversationCoordinator.swift'),Path('Sources/NextNotes/Agent/Voice/VoiceResidentAnswerSelfTest.swift'),Path('Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift'),Path('Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift'),Path('Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift'),Path('Sources/NextNotes/Agent/VoiceCapabilityConversationSelfTest.swift'),Path('Sources/NextNotes/Activation/AgentCaptureController.swift')]}}
 before=state();samples=[];started=time.monotonic()

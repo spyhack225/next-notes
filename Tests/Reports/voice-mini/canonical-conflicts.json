@@ -1,0 +1,10 @@
+{
+  "scope": "Read-only own touched file status in canonical checkout; no writes/builds there",
+  "head": "55d402ee3778e7b2204e969adec9c5108c2b192a",
+  "status": " M Sources/NextNotes/Agent/VoiceCapabilityConversationSelfTest.swift\n M Sources/NextNotes/Formatting/LLM/NotesModelRuntime.swift\n",
+  "peer_overlaps": [
+    "coordinator route/admission versus voice-ack commit hook",
+    "latency/pipeline speech harness helper duplicated by voice-ack",
+    "exact synth counter prerequisite duplicated by voice-ack; skip duplicate hunks"
+  ]
+}

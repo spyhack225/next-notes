@@ -101,6 +101,10 @@ enum VoiceLatencySelfTest {
             SelfTest.diagnostic("VOICE_LATENCY_INSTRUMENTATION_ONLY: no audio or model latency measured")
             return finish(await instrumentationProblems())
         }
+        if CommandLine.arguments.contains("--voice-latency-resident-only"),
+           !CommandLine.arguments.contains("--voice-latency-partial-route") {
+            return absent("resident-only answering requires the split partial-route diagnostic")
+        }
         let floor = CommandLine.arguments.contains("--voice-latency-floor")
         let runs = max(1, Int(SelfTest.value(after: "--voice-latency-runs") ?? "") ?? (floor ? 10 : 5))
         if floor, SelfTest.value(after: "--voice-latency-fixture") == nil
@@ -145,6 +149,10 @@ enum VoiceLatencySelfTest {
             return absent("Pocket TTS could not prepare: "
                 + (PocketAgentVoice.shared.errorMessage ?? "no ready model"))
         }
+        guard let speechProof = await VoiceDiagnosticSpeech.preparePocket() else {
+            return absent("Pocket playback could not prepare; no alternate voice was used")
+        }
+        defer { _ = speechProof.finish() }
         SelfTest.diagnostic("VOICE_LATENCY_TTS_READY=pocket")
 
         let modelFlags = CommandLine.arguments.indices.filter {
@@ -170,6 +178,27 @@ enum VoiceLatencySelfTest {
             }
             SelfTest.diagnostic("VOICE_LATENCY_ANSWER_MODEL requested=\(String(reflecting: pin)) "
                 + "resolved=\(String(reflecting: model.roleChoice)) model=\(String(reflecting: model.provider.displayModelName)) scope=answer-stage route=apple")
+        }
+
+        if CommandLine.arguments.contains("--voice-latency-resident-prepare") {
+            guard CommandLine.arguments.contains("--voice-latency-resident-only"),
+                  let local = await FrontendResponder.shared.voiceLatencyAnswerProvider() as? LlamaLLMProvider else {
+                return absent("resident preparation requires the explicit isolated local answerer")
+            }
+            let request = VoiceConversationCoordinator.shared.stagingRequest()
+            guard let plan = LocalVoiceSplitResponse.answerPlan(system: request.system, messages: request.messages) else {
+                return absent("the resident answer preparation plan is missing")
+            }
+            let messages = plan.history.map { LLMChatMessage(role: $0.role, content: $0.content) }
+                + [LLMChatMessage(role: .user, content: plan.latestUser)]
+            let began = ContinuousClock.now
+            do {
+                _ = try await local.runtime.prepareInteractiveConversation(
+                    system: plan.instructions, messages: messages,
+                    maxTokens: 256) // Same unchanged coordinator response budget.
+            } catch { return absent("resident answer preparation failed before any measured turn") }
+            let duration = began.duration(to: .now).components
+            SelfTest.diagnostic("VOICE_RESIDENT_PREPARATION seconds=\(Double(duration.seconds) + Double(duration.attoseconds) / 1e18) scope=before-all-spoken-turns")
         }
 
         // --- The table, the absent case, the store and the probe, before any measurement
@@ -226,6 +255,10 @@ enum VoiceLatencySelfTest {
             ModelResidencyGuardian.shared.endFloorPressureObservation()
             pressureStarted = false
         }
+        if CommandLine.arguments.contains("--voice-latency-resident-only"),
+           let local = await FrontendResponder.shared.voiceLatencyAnswerProvider() as? LlamaLLMProvider {
+            SelfTest.diagnostic("VOICE_RESIDENT_STATE loaded=\(await local.runtime.isLoaded) scope=after-all-turns")
+        }
         let swapAfter = floor ? MeetingResourceHealth.swapBytes().used : nil
         let peak = floor ? ProcessSnapshot.current().peakResidentMemoryBytes : nil
 
@@ -273,6 +306,7 @@ enum VoiceLatencySelfTest {
                 wrong += report.problems
             }
         }
+        wrong += speechProof.finish()
         return finish(wrong)
     }
 
@@ -491,6 +525,14 @@ enum VoiceLatencySelfTest {
             let delta = (Double(ready) - Double(endpoint)) / 1_000_000_000
             parts.append("partial_route_ready_vs_endpoint=\(Self.format(delta))")
         }
+        if let collect = turn.notes["route_collect_started_nanos"].flatMap(UInt64.init),
+           let done = turn.notes["route_collect_done_nanos"].flatMap(UInt64.init), done >= collect {
+            parts.append("route_collect_s=\(Self.format(Double(done - collect) / 1e9))")
+            if let validated = turn.notes["route_validated_nanos"].flatMap(UInt64.init), validated >= done {
+                parts.append("route_validate_s=\(Self.format(Double(validated - done) / 1e9))")
+            }
+        }
+        parts.append("resident_answer=\(turn.notes["resident_answer"] ?? "none")")
         parts.append("main_stall_max=\(Self.format(turn.mainStallSeconds))")
         parts.append("stall_site=\(turn.stallSite ?? "unlabelled")")
         parts.append("eou_prepare=\(Self.format(eouPrepare))")
@@ -596,7 +638,18 @@ enum VoiceLatencySelfTest {
                 $0.errorClass == nil && $0.finishReason == "stop"
                     && $0.countsEstimated == false && ($0.completionTokens ?? 0) > 0
             }
-            if summary.provider != "llama" || summary.modelID != name
+            if CommandLine.arguments.contains("--voice-latency-resident-only"),
+               turn.notes["resident_answer"] == "apple_not_resident" {
+                // New diagnostic explicitly requests resident-only admission. Bind
+                // the actual fallback, retaining every failed native admission row.
+                let apple = FoundationModelLLMProvider()
+                let completed = answers.filter { $0.errorClass == nil && $0.finishReason == "stop" }
+                if summary.provider != "appleFM" || summary.modelID != apple.displayModelName
+                    || completed.count != 1 || completed[0].provider != "appleFM"
+                    || completed[0].countsEstimated != true || (completed[0].completionTokens ?? 0) <= 0 {
+                    wrong.append("run \(index): resident refusal did not reach exactly one joined Apple answer and actual consumer")
+                }
+            } else if summary.provider != "llama" || summary.modelID != name
                 || answers.isEmpty || !nativeAnswer
                 || answers.contains(where: { $0.provider != "llama" || $0.modelID != name }) {
                 wrong.append("run \(index): explicit answering file pin did not reach the committed consumer and joined native answer pass")

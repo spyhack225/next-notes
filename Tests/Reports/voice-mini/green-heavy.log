@@ -1,1 +1,42 @@
 heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+VOICE_RESIDENT_ANSWER_FAILED
+red-scripted exit=1
+VOICE_MINI_PRODUCER_PATCH_APPLIED
+VOICE_RESIDENT_ANSWER_OK
+green exit=0
+VOICE_PREPARATION_OK
+partials exit=0
+VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent — the stage did not happen, or its mark was never stamped
+apple exit=1
+VOICE_LATENCY_FAILED: run 1: voice.speech_end_to_eou is absent — the stage did not happen, or its mark was never stamped
+mini exit=1
+VOICE_LATENCY_OK
+cold-fallback exit=0
+VOICE_PIPELINE_OK
+pipeline exit=0
+VOICE_TURN_ROUTING_OK
+routing exit=0
+CONCURRENT_VOICE_OK
+CONCURRENT_VOICE_OK
+concurrent exit=0
+VOICE_CONVERSATION_OK
+VOICE_CONVERSATION_OK
+conversation exit=0
+DUPLEX_OK
+duplex exit=0
+LLM_PREFIX_CACHE_OK: reused 646/666 tokens, prefill 1.74s → 0.20s; stable prompt front 90% (was 73% before P1-28)
+prefix exit=0
+STORE_ISOLATION_OK: 21 files and 0 defaults unchanged
+TOOLLOOP_PRODUCTION_FAILED
+isolation exit=0

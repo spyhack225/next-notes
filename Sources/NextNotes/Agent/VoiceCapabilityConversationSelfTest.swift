@@ -746,6 +746,14 @@ enum VoiceCapabilityConversationSelfTest {
         let revisionContract = await FrontendRevisionSelfTest.run()
         failures += revisionContract.failures
         print("FRONTEND_REVISION_CHECKS count=\(revisionContract.checks) problems=\(revisionContract.failures.count)")
+        // Nested contracts restore their own backing. Install the corpus recorder
+        // after them so these real spoken turns never select an Apple voice.
+        let speech = AgentSpeechSynthesizer.shared
+        let appleCallsBefore = AgentSpeechSynthesizer.appleSynthesisCallsForTesting
+        speech.useTestingBacking(RecordingSpeechBacking())
+        defer {
+            speech.restoreSystemBacking()
+        }
         let coordinator = VoiceConversationCoordinator.shared
         var precedingTaskIDs = Set(coordinator.taskBridge.cachedTasks.map(\.id))
         func scopedVoiceRows() -> [AgentTask] {
@@ -1481,6 +1489,9 @@ enum VoiceCapabilityConversationSelfTest {
         for (label, output) in outputs {
             print("VOICE_TURN_ROUTING_CASE: " + label + " output=" + bounded(output))
         }
+        let applePlaybackCalls = AgentSpeechSynthesizer.appleSynthesisCallsForTesting - appleCallsBefore
+        print("VOICE_TURN_ROUTING_APPLE_CALLS=\(applePlaybackCalls)")
+        if applePlaybackCalls != 0 { failures.append("scripted voice routing reached Apple playback") }
         for failure in failures {
             print("VOICE_TURN_ROUTING_WRONG: \(bounded(failure))")
         }
