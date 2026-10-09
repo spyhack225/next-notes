@@ -537,3 +537,14 @@ normal-gate FIFO slot. Store-isolation's inherited nested browser production gat
 still fails 18 assertions. Debug synthetic functional evidence supplies no user
 latency, live meeting, full-duplex, real consent or installed-UI acceptance; those
 contracts remain open. No model, prompt, default, audio gate or new store is added.
+
+
+Round-3 Calendar list completion evidence: the actual reviewed service restores old
+entries after withdrawal/disconnect/new-grant refresh and lets an old error erase
+new entries (seven native failures). The existing service's in-memory epoch fences
+its authorization/success/error publications; fixed/restored each pass 369 unchanged
+assertions, both seven-flag batches and all three mutation/restoration checks in one
+normal FIFO slot. No new await/store/retry or product audio gate is added. The
+inherited nested isolation browser18 remains open; debug fixture evidence supplies
+no real Google, UI, full-duplex or latency acceptance. Read the
+[held-response report](Tests/Reports/google-option-c-repair-v4/README.md).

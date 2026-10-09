@@ -1,0 +1,6 @@
+GWS_FIXTURES_OK: 10 cases
+  binary: /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.maS1cV/gws
+  version: gws 0.22.5
+  auth: Signed in — Connected through isolated fixture.
+  client config: /Users/sergekadjo/.config/gws/client_secret.json
+GWS_OK: gws 0.22.5 at /var/folders/ht/g5rsvv5x27124qp6wn2sg27w0000gn/T/google-c-gws.maS1cV/gws, signed in

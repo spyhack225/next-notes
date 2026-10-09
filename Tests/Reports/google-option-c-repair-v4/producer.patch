@@ -1,0 +1,61 @@
+diff --git a/Sources/NextNotes/Calendar/CalendarService.swift b/Sources/NextNotes/Calendar/CalendarService.swift
+index 32601c87..daa3f4b6 100644
+--- a/Sources/NextNotes/Calendar/CalendarService.swift
++++ b/Sources/NextNotes/Calendar/CalendarService.swift
+@@ -38,6 +38,10 @@ final class CalendarService {
+     private let fake: FakeCalendarProvider?
+     private let providersForTesting: [any CalendarProvider]?
+ 
++    // List reads suspend independently of event refreshes. Every new list request or
++    // account transition invalidates older success/error completions before any await.
++    @ObservationIgnored private var googleCalendarsEpoch: UInt64 = 0
++
+     private var poll: Task<Void, Never>?
+     /// The last refresh queued, if any. Each new one waits for it, so the reads stay
+     /// serialised — the timer, the wake notification, the Meetings section and Settings all
+@@ -220,6 +224,7 @@ final class CalendarService {
+ 
+     @discardableResult
+     func connectGoogle() async -> CalendarAuthorizationState {
++        googleCalendarsEpoch &+= 1
+         let settings = Settings.shared
+         if providersForTesting == nil { await google.configure(
+             clientID: GoogleAppClient.current?.clientID ?? settings.googleClientID,
+@@ -241,8 +246,9 @@ final class CalendarService {
+     }
+ 
+     func disconnectGoogle() async {
+-        await google.signOut()
++        googleCalendarsEpoch &+= 1
+         googleCalendars = []
++        await google.signOut()
+         // The state is recomputed rather than assigned: with the provider still switched
+         // on, signing out means "not connected", not "off".
+         await refresh()
+@@ -250,17 +256,24 @@ final class CalendarService {
+ 
+     func refreshGoogleCalendars(enabledForTesting: Bool? = nil) async {
+         precondition(enabledForTesting == nil || GoogleAccessTokens.testHooksAdmitted)
++        googleCalendarsEpoch &+= 1
++        let epoch = googleCalendarsEpoch
+         guard enabledForTesting ?? (providersForTesting != nil || Settings.shared.calendarGoogleEnabled) else {
+             googleCalendars = []
+             return
+         }
+-        guard await google.authorizationState().isAuthorized else {
++        let authorized = await google.authorizationState().isAuthorized
++        guard epoch == googleCalendarsEpoch else { return }
++        guard authorized else {
+             googleCalendars = []
+             return
+         }
+         do {
+-            googleCalendars = try await google.calendars()
++            let calendars = try await google.calendars()
++            guard epoch == googleCalendarsEpoch else { return }
++            googleCalendars = calendars
+         } catch {
++            guard epoch == googleCalendarsEpoch else { return }
+             googleCalendars = []
+             Log.calendar.error("couldn't list Google calendars: \(error.localizedDescription, privacy: .public)")
+         }

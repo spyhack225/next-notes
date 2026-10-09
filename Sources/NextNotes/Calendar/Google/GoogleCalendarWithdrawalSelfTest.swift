@@ -74,6 +74,90 @@ enum GoogleCalendarWithdrawalSelfTest {
         expect(service.googleCalendars.isEmpty && !GoogleTokenStore.hasRefreshToken,
             "R6 connection controller disconnect clears populated Calendar list even when already off")
         expect(counts.count("request") == disconnectBefore, "R6 controller disconnect clearing enters zero Google backing")
+        await heldListCases(expect)
+    }
 
+    /// Hold a successful HTTP response after token/backing admission, then exercise
+    /// the actual controller/service consumers before allowing that response to finish.
+    private static func heldListCases(_ expect: GoogleConnectSelfTest.Expect) async {
+        for route in ["withdrawal", "disconnect", "reconnect", "replacement", "failed-replacement",
+                      "service-withdrawal", "service-disconnect"] {
+            let held = GoogleReviewFixture.Gate()
+            let counts = GoogleReviewFixture.Counts()
+            GoogleTokenStore.save(refreshToken: "held-list-grant", grantedScopes: [GoogleScopes.calendar])
+            let provider = GoogleCalendarProvider(requestForTesting: { request in
+                _ = counts.hit("request")
+                if request.url?.host == "oauth2.googleapis.com" {
+                    return GoogleReviewFixture.response(request,
+                        body: #"{"access_token":"held-list-token","expires_in":3600}"#)
+                }
+                if request.url?.path.hasSuffix("calendarList") == true {
+                    let first = counts.hit("list") == 1
+                    let body = first
+                        ? #"{"items":[{"id":"old-calendar","summary":"Old account"}]}"#
+                        : #"{"items":[{"id":"new-calendar","summary":"New account"}]}"#
+                    if first { await held.pause() }
+                    return GoogleReviewFixture.response(request,
+                        status: first && route == "failed-replacement" ? 503 : 200, body: body)
+                }
+                return GoogleReviewFixture.response(request, body: #"{"items":[]}"#)
+            }, refreshTokenForTesting: { GoogleTokenStore.refreshToken },
+                clearTokenForTesting: { GoogleTokenStore.clear(forgetSelection: true) },
+                grantedScopesForTesting: { GoogleTokenStore.grantedScopes }, signInForTesting: {
+                    GoogleTokenStore.save(refreshToken: "held-list-grant", grantedScopes: [GoogleScopes.documents])
+                })
+            await provider.configure(clientID: "fixture", clientSecret: "", calendarIDs: [])
+            let service = CalendarService(googleForTesting: provider)
+            let client = GoogleAppClient(clientID: "fixture", clientSecret: "", source: .app)
+            let replacementScopes: Set<String> = route == "withdrawal"
+                ? [GoogleScopes.documents] : [GoogleScopes.calendar]
+            let controller = GoogleConnection(dependencies: .init(client: { client }, signIn: { _ in
+                // Deliberately reuse token text; this is a new grant, even when both
+                // Calendar permissions and the enabled switch remain unchanged.
+                try await GoogleAccessTokens.shared.replaceGrant(refreshToken: "held-list-grant", scopes: replacementScopes)
+                return .init(refreshToken: "held-list-grant", grantedScopes: replacementScopes)
+            }, ensureTool: {}, afterConnect: { scopes in
+                await GoogleConnection.Dependencies.applyCalendarGrant(scopes, setEnabled: { _ in },
+                    refreshCalendars: { enabled in await service.refreshGoogleCalendars(enabledForTesting: enabled) })
+            }, disconnect: {
+                await GoogleAccessTokens.shared.disconnectGrant()
+                // Enabled disconnect exercises authorization clearing; the preceding
+                // sequential fixture separately pins the already-disabled route.
+                await service.refreshGoogleCalendars(enabledForTesting: true)
+            }, workspace: { GoogleTokenStore.hasRefreshToken ? .signedIn(method: "fixture") : .signedOut }))
+
+            let old = Task { await service.refreshGoogleCalendars(enabledForTesting: true) }
+            await held.wait()
+            expect(counts.count("list") == 1 && service.googleCalendars.isEmpty,
+                "R6 held \(route) reaches actual list backing before response completion")
+            let before = counts.count("request")
+            switch route {
+            case "withdrawal": await controller.connect()
+            case "disconnect", "reconnect": await controller.disconnect()
+            case "service-withdrawal": _ = await service.connectGoogle()
+            case "service-disconnect": await service.disconnectGoogle()
+            default: break
+            }
+            if route != "replacement" && route != "failed-replacement" {
+                expect(service.googleCalendars.isEmpty && counts.count("request") == before,
+                    "R6 held \(route) clears before releasing old response with zero additional backing")
+            }
+            let keepsNewList = ["reconnect", "replacement", "failed-replacement"].contains(route)
+            if keepsNewList {
+                await controller.connect()
+                expect(service.googleCalendars.map(\.id) == ["new-calendar"] && counts.count("list") == 2,
+                    "R6 held \(route) publishes new grant list while old response remains held")
+            }
+            await held.release()
+            await old.value
+            let actualIDs = service.googleCalendars.map(\.id)
+            let expectedIDs = keepsNewList ? ["new-calendar"] : []
+            SelfTest.diagnostic("GOOGLE_LIST_COMPLETION route=\(route) cache=\(actualIDs) expected=\(expectedIDs)")
+            expect(actualIDs == expectedIDs,
+                "R6 held \(route) drops old list completion after account transition")
+            expect(counts.count("list") == (keepsNewList ? 2 : 1),
+                "R6 held \(route) completion adds no retry or list request")
+            GoogleTokenStore.clear(forgetSelection: true)
+        }
     }
 }

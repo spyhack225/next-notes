@@ -65,6 +65,21 @@ R6 connection controller withdrawal clears populated Calendar list while switchi
 R6 connection controller disconnect clears populated Calendar list even when already off
 TARGETS
                     ;;
+                calendar-list-red)
+                    while IFS= read -r target; do
+                        if ! rg -q -F -x "  FAIL $target" "$evidence/$name.log"; then
+                            echo "$name MISSING_NAMED_BEHAVIORAL_ASSERTION: $target"; failed=1
+                        fi
+                    done <<'TARGETS'
+R6 held withdrawal drops old list completion after account transition
+R6 held disconnect drops old list completion after account transition
+R6 held reconnect drops old list completion after account transition
+R6 held replacement drops old list completion after account transition
+R6 held failed-replacement drops old list completion after account transition
+R6 held service-withdrawal drops old list completion after account transition
+R6 held service-disconnect drops old list completion after account transition
+TARGETS
+                    ;;
                 withdrawal-red) target='^  FAIL R6 withdrawn Calendar permission immediately clears actual cached calendars and upcoming events' ;;
                 revocation) target='^  FAIL a rejected client must not read as a revoked grant' ;;
                 unpinned) target='^  FAIL an unpinned alternate executable cannot receive the app token' ;;
@@ -72,7 +87,7 @@ TARGETS
                 draft-red) target='^  FAIL the cancelled shared-refresh caller never enters executable backing' ;;
                 original) target='^  FAIL the sign-in asks for the full Workspace set and nothing else' ;;
             esac
-            if [ "$mode" != review-red ] && [ "$mode" != remaining-red ] && ! rg -q "$target" "$evidence/$name.log"; then
+            if [ "$mode" != review-red ] && [ "$mode" != remaining-red ] && [ "$mode" != calendar-list-red ] && ! rg -q "$target" "$evidence/$name.log"; then
                 echo "$name MISSING_TARGETED_FAILING_ASSERTION"; failed=1
             fi
         fi ;;
@@ -93,7 +108,7 @@ green|restored)
     run ui-strings UI_STRINGS_OK --selftest-ui-strings
     run store-isolation STORE_ISOLATION_OK --selftest-store-isolation
     ;;
-revocation|unpinned|draft-red|review-red|withdrawal-red|remaining-red)
+revocation|unpinned|draft-red|review-red|withdrawal-red|remaining-red|calendar-list-red)
     run google-connect GOOGLE_CONNECT_FAILED --selftest-google-connect
     ;;
 mailbox)

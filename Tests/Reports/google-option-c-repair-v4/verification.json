@@ -1,0 +1,66 @@
+{
+  "completedUTC": "2026-10-09T03:44:51.429247+00:00",
+  "wrapperExit": 0,
+  "stages": {
+    "calendar-list-red": {
+      "passedAssertions": 362,
+      "failedAssertions": 7,
+      "exits": [
+        "google-connect exit=1"
+      ]
+    },
+    "green": {
+      "passedAssertions": 369,
+      "failedAssertions": 0,
+      "exits": [
+        "google-connect exit=0",
+        "gws exit=0",
+        "calendar exit=0",
+        "mac-accounts exit=0",
+        "capability-manifest exit=0",
+        "ui-strings exit=0",
+        "store-isolation exit=0"
+      ]
+    },
+    "restored": {
+      "passedAssertions": 369,
+      "failedAssertions": 0,
+      "exits": [
+        "google-connect exit=0",
+        "gws exit=0",
+        "calendar exit=0",
+        "mac-accounts exit=0",
+        "capability-manifest exit=0",
+        "ui-strings exit=0",
+        "store-isolation exit=0"
+      ]
+    },
+    "revocation": {
+      "passedAssertions": 362,
+      "failedAssertions": 7,
+      "exits": [
+        "google-connect exit=1"
+      ]
+    },
+    "unpinned": {
+      "passedAssertions": 368,
+      "failedAssertions": 1,
+      "exits": [
+        "google-connect exit=1"
+      ]
+    },
+    "mailbox": {
+      "passedAssertions": 150,
+      "failedAssertions": 7,
+      "exits": [
+        "mac-accounts exit=1"
+      ]
+    }
+  },
+  "fixedServiceSHA256": "66dc0fc97b7eb28657daa756739a8c96e5f2746d881e5ef843e384d2348516a3",
+  "inheritedIsolationWrongLines": {
+    "green": 18,
+    "restored": 18
+  },
+  "scope": "actual native producer/controller/service with isolated HTTP and sign-in/tool/workspace dependencies; no real Google, GUI or latency proof"
+}
