@@ -551,6 +551,34 @@ enum CatchUpSelfTest {
         await runnerWork.first?()
         let expected = runnerDirectory.appendingPathComponent("Your Monday catch-up 2026-10-05.m4a").absoluteString
         check("the file did not reach the finished task", manager.task(id: id)?.artifacts == [expected])
+        // Force the actual render failure before the SAME runner completion:
+        // the completion producer must preserve the admitted audio notice.
+        let (absentRenderer, _) = make("runner-absent", spy: SynthesisSpy(
+            samplesPerClause: 1, sampleRate: 24_000, failure: LongFormRenderError.voiceUnavailable))
+        var absentWork: [@MainActor () async -> Void] = []
+        var admittedNotice: String?
+        let absentTransform = CatchUpTemplate.resultTransform(renderer: absentRenderer,
+            audioStatus: { taskID, state in
+                if manager.noteCatchUpAudioUnavailable(taskID: taskID, availability: state) {
+                    admittedNotice = state.message
+                }
+            }, spawn: { absentWork.append($0) })
+        let absentEnvironment = RoutineAuthoritySelfTest.FakeRunEnvironment()
+        absentEnvironment.model = ScriptedMemoryReviewModel { _, _ in answer }
+        let absentRunner = ScheduledRunner(
+            store: ScheduleStore(directory: root.appendingPathComponent("runner-absent-store", isDirectory: true)),
+            environment: absentEnvironment, tools: RoutineAuthoritySelfTest.FakeToolRunner(), recorder: taskRecorder,
+            timeZone: { zone }, answerTransform: { schedule, text, task, now in
+                let processed = await absentTransform(schedule, text, task, now)
+                await absentWork.first?()
+                return processed
+            })
+        let absentOutcome = await absentRunner.run(catchUp(), now: mondayMorning)
+        let absentTask = absentOutcome.taskID.flatMap { manager.task(id: $0) }
+        check("audio absence did not survive actual task completion", admittedNotice != nil
+              && absentTask?.progress == admittedNotice && absentTask?.status == .completed
+              && absentTask?.result == answer && absentTask?.artifacts.isEmpty == true
+              && absentOutcome.text == answer && absentOutcome.status == .reported)
         check("the live graph was running across the run", AgentPCMRenderer.shared.isRunning == false)
         return failures
     }

@@ -614,7 +614,11 @@ final class AgentTaskManager {
         }
         let admitted = update(id, transitionThrough: status == .cancelled ? .cancelling : nil) { task in
             task.status = status
-            task.progress = status == .completed ? "Finished" : "Failed"
+            let audioNotice = [AgentVoiceAvailability.needsDownload, .preparing(progress: nil), .failed]
+                .contains { $0.message == task.progress }
+            if status != .completed || !audioNotice {
+                task.progress = status == .completed ? "Finished" : "Failed"
+            }
             task.result = result
             task.failure = failure
         }
