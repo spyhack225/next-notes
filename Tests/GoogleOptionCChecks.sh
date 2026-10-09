@@ -28,7 +28,30 @@ run() {
         printf '%s MISSING_EXPECTED_MARKER %s\n' "$name" "$expected"
         failed=1
     fi
-    case "$mode" in green|restored) if [ "$code" != 0 ]; then failed=1; fi;; esac
+    case "$mode" in
+    green|restored) if [ "$code" != 0 ]; then failed=1; fi;;
+    *)
+        if [ "$expected" = GOOGLE_CONNECT_FAILED ] || [ "$expected" = MAC_ACCOUNTS_FAILED ]; then
+            if [ "$code" != 1 ]; then echo "$name RED_REQUIRES_NATIVE_EXIT_1"; failed=1; fi
+            case "$mode" in
+                review-red)
+                    for finding in 1 2 3 4 5 6; do
+                        if ! rg -q "^  FAIL R$finding " "$evidence/$name.log"; then
+                            echo "$name MISSING_TARGETED_ASSERTION_R$finding"; failed=1
+                        fi
+                    done ;;
+                withdrawal-red) target='^  FAIL R6 withdrawn Calendar permission immediately clears actual cached calendars and upcoming events' ;;
+                revocation) target='^  FAIL a rejected client must not read as a revoked grant' ;;
+                unpinned) target='^  FAIL an unpinned alternate executable cannot receive the app token' ;;
+                mailbox) target='^  FAIL mail from another account is never reachable by any query' ;;
+                draft-red) target='^  FAIL the cancelled shared-refresh caller never enters executable backing' ;;
+                original) target='^  FAIL the sign-in asks for the full Workspace set and nothing else' ;;
+            esac
+            if [ "$mode" != review-red ] && ! rg -q "$target" "$evidence/$name.log"; then
+                echo "$name MISSING_TARGETED_FAILING_ASSERTION"; failed=1
+            fi
+        fi ;;
+    esac
     rg "^[A-Z_]+_(OK|FAILED)" "$evidence/$name.stdout.log" | tail -3
 }
 case "$mode" in
@@ -45,7 +68,7 @@ green|restored)
     run ui-strings UI_STRINGS_OK --selftest-ui-strings
     run store-isolation STORE_ISOLATION_OK --selftest-store-isolation
     ;;
-revocation|unpinned|draft-red)
+revocation|unpinned|draft-red|review-red|withdrawal-red)
     run google-connect GOOGLE_CONNECT_FAILED --selftest-google-connect
     ;;
 mailbox)

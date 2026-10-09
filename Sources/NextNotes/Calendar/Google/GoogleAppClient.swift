@@ -9,8 +9,9 @@ import Foundation
 ///
 /// Gmail's, Drive's and Contacts' scopes are *restricted* or *sensitive*: before this build is
 /// given to the public Google has to verify the app, and the restricted ones (Gmail and full
-/// Drive) also need its yearly security assessment (CASA). Until then the project is in Testing
-/// mode and the people added to it can sign in.
+/// Drive) may also need a yearly security assessment when restricted data is accessed from
+/// or through a third-party server, including when the app can do so. Until verification,
+/// the project is in Testing mode and the people added to it can sign in.
 ///
 /// Google lets a person untick boxes on the consent page, so what comes back is recorded and
 /// each capability checks its own scope (`GoogleCapability`); nothing assumes the whole set.

@@ -48,6 +48,7 @@ enum GoogleConnectSelfTest {
         await GoogleProbingScopeSelfTest.run(expect)
         await GoogleCalendarScopeSelfTest.run(expect)
         await GoogleCalendarWithdrawalSelfTest.run(expect)
+        await GoogleScopeBoundarySelfTest.run(expect)
 
         await GoogleAccessTokens.shared.invalidate()
         await GoogleAccessTokens.shared.useClient(nil)
@@ -108,7 +109,10 @@ enum GoogleConnectSelfTest {
             expect(info[GoogleAppClient.plistIDKey] != nil && info[GoogleAppClient.plistSecretKey] != nil,
                    "the built bundle carries the two client keys")
             let shipped = GoogleAppClient.resolve(defaults: scratch, info: { info[$0] })
-            expect(shipped == nil || shipped?.source == .app,
+            let rawID = info[GoogleAppClient.plistIDKey] as? String
+            let rawSecret = info[GoogleAppClient.plistSecretKey] as? String
+            expect((rawID == GoogleAppClient.placeholderID && rawSecret == "")
+                   || (shipped?.source == .app && rawSecret?.isEmpty == false),
                    "the built value is the placeholder or a registered client, never a stray string")
             let privateFile = FileManager.default.homeDirectoryForCurrentUser
                 .appendingPathComponent("Library/Application Support/NextNotesBuild/google-oauth-client.json").path

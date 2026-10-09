@@ -40,11 +40,7 @@
 			<array>
 				<string>nextnotes</string>
 			</array>
-			<key>NextNotesGoogleClientID</key>
-	<string>NEXT_NOTES_GOOGLE_CLIENT_ID_NOT_REGISTERED</string>
-	<key>NextNotesGoogleClientSecret</key>
-	<string></string>
-</dict>
+		</dict>
 	</array>
 	<key>LSMinimumSystemVersion</key>
 	<string>26.0</string>
