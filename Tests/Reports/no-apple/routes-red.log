@@ -1,5 +1,6 @@
 FAIL: no Apple backing owned by selector
 FAIL: no default Apple route
 FAIL: no reply error voice switch
-FAIL: Kokoro requires readiness
+FAIL: Pocket requires selected availability
+FAIL: Kokoro requires selected availability
 VOICE_ROUTES_SOURCE_FAILED
