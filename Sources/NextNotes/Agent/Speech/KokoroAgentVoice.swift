@@ -21,6 +21,7 @@ final class KokoroAgentVoice {
         "Kokoro needs macOS 26.6 or later on this Mac. Core ML can crash on 26.5."
 
     private let manager = KokoroAneManager()
+    private(set) var speechSynthesisCallsForTesting = 0
     private(set) var isReady = false
     private(set) var isPreparing = false
     private(set) var errorMessage: String?
@@ -108,6 +109,7 @@ final class KokoroAgentVoice {
     }
 
     func wav(for text: String) async throws -> Data {
+        if SelfTest.isRunning { speechSynthesisCallsForTesting += 1 }
         guard Self.isSupportedOS else { throw KokoroVoiceError.unsupportedOS }
         await prepareTask?.value // join existing preparation, never initiate/retry
         guard errorMessage == nil, isReady else { throw KokoroVoiceError.unavailable(errorMessage) }
