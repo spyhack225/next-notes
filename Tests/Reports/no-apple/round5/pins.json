@@ -1,0 +1,12 @@
+{
+  "Tests/Reports/no-apple/review-fixes/test-census.py": "b50fb5949e682f462a7544d486b5008f1eac3db77c396ec2c71859dc79fdac1c",
+  "Tests/Reports/no-apple/check-sink.py": "ce8476a613962d13a15e4f53d0da2ebe32e252c7162c9e70a04c00a363945ef2",
+  "Tests/Reports/no-apple/speech-source-allowlist.json": "ae306ca56c8399786731b68ae823b134b04a64bd569779de23c8cff0ee3532df",
+  "Sources/NextNotes/Agent/Speech/AgentVoicePolicySelfTest.swift": "7f9b60755bb2f0d188df345898fdab15a22b4f2b296197c7ac1a0977db23a66b",
+  "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "ec7495b50d948ea54729873d490b57bac6e6622b61c691ef4ab85cc37a4157a1",
+  "base": "8097108a",
+  "original-scanner-sha256": "00a2371682dd51caa6e1dfe80feb5612645729606b97828bc030c9b7476af2ac",
+  "fixed-commit": "e728d84eaf95f83873f1a8999d6096892c9ca0f5",
+  "Tests/Reports/no-apple/round5/wrapper-main.swift": "8a1533cdde5f06c6b60f8533a947f2e830db39cb426f399f9a2a33ee2ab42d7f",
+  "Tests/Reports/no-apple/round5/run-wrapper.py": "b9ad26527af57b7c6e05742018461bb037059db3ca375954f3c077e27e86509e"
+}

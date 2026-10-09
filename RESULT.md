@@ -117,3 +117,24 @@ Files changed: AgentSpeechSynthesizer.swift; VoiceFailureEpochSelfTest.swift; ch
 Not verified: physical Pocket/Kokoro output or quality; production positive resume receipts; live first-launch/download/offline Settings recovery; combined Settings/ACK/Mini build/interaction; release latency, native device duplex and reference-machine ASR+voice performance. Settings UI and peer counter/PCM integration remain integration-owned. The existing shared task-store prerequisite was not edited. No model/default/quality gate, phase or broader readiness is promoted.
 
 Own scratch removed after wrapper completion (2078752 KiB prior allocation); own batch temp removed by finally. Existing untracked brief/history/session files were preserved. Completion and exact remaining contracts were sent through agent-relay; sending does not confirm reading.
+
+
+## Round 5 — ordinary command census only
+
+Base `8097108a`; scanner/fixture commit `e728d84e` (Catch ordinary wrapped and redirected speech commands in source census). The accepted reply-settlement fix `f6265ca2` and all Swift production sources are untouched. Own worktree only; no install, push, main merge, GUI, app launch, model load or owner-store access.
+
+Confirmed cause: the scanner's command-boundary producer required no initial whitespace and whitespace after shell operators, recognized only exec, and omitted input redirection as a command terminator. Its existing expressions now share bounded wrapper/options/assignment recognition, accept leading whitespace and adjacent operators, and catch heredoc/input/here-string redirection. Closing prose quotes and leading regex word-boundary strings are not shell-command starts. No source root, import check, operation check, threshold or bounded exception was weakened; the allowlist is byte-identical to the base and has no new exception.
+
+The same expanded fixture has 63 cases (all prior29 plus34). On the exact 8097108a scanner, 27 escape detection; fixed misses0. Each mutation requires exit1 plus final VOICE_SINK_SOURCE_FAILED; scanner crashes do not count. The final repository census has forbidden0/exceptions30/files908. The census is a tripwire against ordinary forms, not a proof against obfuscation.
+
+| Check | Exit | Exact final marker |
+| --- | --- | --- |
+| Original8097108a, same63 mutations | 1 | `VOICE_CENSUS_MUTATIONS_FAILED` |
+| Fixed, same63 mutations | 0 | `VOICE_CENSUS_MUTATIONS_OK` |
+| Final repository census | 0 | `VOICE_SINK_SOURCE_OK` |
+| Isolated Swift6 wrapper compile | 0 | `NO_FINAL_MARKER` |
+| Unchanged production census wrapper | 0 | `VOICE_POLICY_CENSUS_WRAPPER_OK` |
+
+One normal heavy.sh slot exited0: wrapper compile0, actual unchanged wrapper0 with `VOICE_POLICY_CENSUS_WRAPPER_OK`, forbidden0/exceptions30/files908. FIFO waiting and memory49% admission hold are retained; no gate override. The isolated temporary executable/module cache are removed, and wt-scratch/no-apple was never created. Source/fixture/allowlist invariance and git whitespace checks pass. Wrapper verification and cleanup are recorded in the round5 checks/report. No full app build is needed for this Python-only change. The isolated wrapper compiles the unchanged production AgentVoicePolicySelfTest.swift with guard/diagnostic/entry-point stubs, then calls its actual Foundation Process/Pipe scanner boundary in one normal heavy.sh slot; this is not complete NextNotes launch/registration acceptance.
+
+Files changed this round: Tests/Reports/no-apple/check-sink.py; Tests/Reports/no-apple/review-fixes/test-census.py; RESULT.md; retained round5 evidence/probe/logs/pins. None is listed in MAIN-DIRTY-SOURCES.txt as “will conflict with uncommitted work”; prior branch integration conflicts remain as documented above. No PERFORMANCE-STANDARDS or peer source edit. No whole-file allowance, production voice change, native Pocket/Kokoro/UI/full-duplex/performance/Settings resolution, combined peer acceptance, model/default/gate or phase promotion is claimed. Retained checks/pins and the bounded wrapper substitution are in [round5 evidence](Tests/Reports/no-apple/round5/README.md).

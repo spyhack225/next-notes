@@ -1,0 +1,27 @@
+[
+  {
+    "check": "census-red",
+    "exit": 1,
+    "final": "VOICE_CENSUS_MUTATIONS_FAILED"
+  },
+  {
+    "check": "census-green",
+    "exit": 0,
+    "final": "VOICE_CENSUS_MUTATIONS_OK"
+  },
+  {
+    "check": "census-source-final",
+    "exit": 0,
+    "final": "VOICE_SINK_SOURCE_OK"
+  },
+  {
+    "check": "wrapper-compile",
+    "exit": 0,
+    "final": "NO_FINAL_MARKER"
+  },
+  {
+    "check": "selftest-census-wrapper",
+    "exit": 0,
+    "final": "VOICE_POLICY_CENSUS_WRAPPER_OK"
+  }
+]

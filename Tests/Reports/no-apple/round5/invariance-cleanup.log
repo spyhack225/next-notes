@@ -1,0 +1,3 @@
+ROUND5_PIN_INVARIANCE_OK: same fixture, unchanged production Sources/wrapper/allowlist
+ROUND5_CLEANUP_OK: temporary binary/module cache removed; no own scratch; shared scratch untouched
+HEAVY_SLOT_EXIT_0

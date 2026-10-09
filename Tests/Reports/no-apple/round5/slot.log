@@ -1,0 +1,28 @@
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 5, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 2, waiting
+gate: waiting (swap 6448M, load 2, free 12G, memory 49%)
+wrapper-compile exit 0 NO_FINAL_MARKER
+selftest-census-wrapper exit 0 VOICE_POLICY_CENSUS_WRAPPER_OK
