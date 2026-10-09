@@ -1,0 +1,41 @@
+--- a/Sources/NextNotes/Activation/WakeWord/WakeWordAudioMonitor.swift
++++ b/Sources/NextNotes/Activation/WakeWord/WakeWordAudioMonitor.swift
+@@ -869,6 +869,7 @@
+         player.stop()
+         let speech = CatchUpFileSpeechProbe(filePlaying: { player.isPlaying })
+         let synth = AgentSpeechSynthesizer(backing: speech)
++        synth.useTestingBacking(speech) // prepareForStream otherwise replaces a constructor-only backing.
+         synth.savedFilePlayerForTesting = player
+         for streamed in [false, true] {
+             player.stop()
+@@ -887,7 +888,11 @@
+         synth.resumeAfterListening()
+         if player.isPlaying || audio.isPlaying { failures.append("reply resume did not preempt saved file synchronously") }
+         synth.stop()
++        if speech.speakCalls != 3 || speech.resumeCalls != 1 {
++            failures.append("speech backing fixture did not enter all actual speak/enqueue/resume consumers")
++        }
+         if speech.overlaps != 0 { failures.append("file was still playing at actual speech backing entry") }
++        SelfTest.diagnostic("CATCH_UP_SPEECH_BACKING speak=\(speech.speakCalls) resume=\(speech.resumeCalls) overlaps=\(speech.overlaps)")
+         player.stop()
+         activity.value = .init()
+         player.play(entry)
+@@ -923,14 +928,18 @@
+ @MainActor private final class CatchUpFileSpeechProbe: AgentSpeechBacking {
+     private let filePlaying: () -> Bool
+     private(set) var overlaps = 0
++    private(set) var speakCalls = 0
++    private(set) var resumeCalls = 0
+     private(set) var isSpeaking = false
+     init(filePlaying: @escaping () -> Bool) { self.filePlaying = filePlaying }
+     func speak(_ text: String, volume: Float, token: UInt64) {
++        speakCalls += 1
+         if filePlaying() { overlaps += 1 }
+         isSpeaking = true
+     }
+     func pauseForListening() { isSpeaking = false }
+     func resumeAfterListening() {
++        resumeCalls += 1
+         if filePlaying() { overlaps += 1 }
+         isSpeaking = true
+     }

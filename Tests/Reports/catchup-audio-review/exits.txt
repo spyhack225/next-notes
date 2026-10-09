@@ -1,0 +1,8 @@
+RED EXIT=1
+catch-up EXIT=0
+agent-panes EXIT=0
+ui-strings EXIT=0
+voice-conversation EXIT=0
+duplex EXIT=0
+wake EXIT=0
+store-isolation EXIT=0

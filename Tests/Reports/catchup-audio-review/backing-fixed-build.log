@@ -1,0 +1,187 @@
+warning: 'catchup-audio': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/IMessage/Database/TYPEDSTREAM-NOTES.md
+Building for debugging...
+[Using on-disk description]
+[1 / 19] FluidAudio
+[2 / 6] NextNotes-product
+[5 / 11] NextNotes-product
+[6 / 11] NextNotes-product
+[7 / 11] NextNotes-product
+[9 / 19] NextNotes-product
+[10 / 19] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Agent/Duplex/VoicePlaybackProjectionSelfTest.swift:58:23: warning: value 'captureID' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 56 |         for lateWhilePaused in [false, true] {
+ 57 |             await capture.beginSession(captureAudio: false)
+ 58 |             guard let captureID = capture.sessionID else {
+    |                       `- warning: value 'captureID' was defined but never used; consider replacing with boolean test [#NoUsage]
+ 59 |                 failures.append("native: capture session did not open")
+ 60 |                 await capture.endSession(source: .done)
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Agent/Duplex/SpokenApprovalSelfTest.swift:117:29: warning: 'currentMode' mutated after capture by sendable closure
+ 62 |         var currentManager: AgentTaskManager?, owned: Task<Void, Never>?, probe: ApprovalProbe?
+ 63 |         var created = false, installedContext = false, contextRejected = false, contextReads = 0
+ 64 |         var installedRoute = false, currentMode = "", staleAdvanced = false
+    |                                     `- note: variable defined here
+ 65 |         var routeObservations = 0, matchedRoutes = 0
+ 66 |         var staleBefore: Int?, staleAfter: Int?
+    :
+ 86 |         do {
+ 87 |             try FileManager.default.createDirectory(at: root, withIntermediateDirectories: false); created = true
+ 88 |             guard ToolCallContextBuilder.setMeetingContextForTesting({ meeting, task in
+    |                                                                      `- note: variable captured by sendable closure
+ 89 |                 contextReads += 1
+ 90 |                 guard root.path == root.resolvingSymlinksInPath().standardizedFileURL.path,
+    :
+ 93 |                     contextRejected = true; return nil // Never fall back to owner context.
+ 94 |                 }
+ 95 |                 if currentMode == "staleCaller", !staleAdvanced,
+    |                    `- note: capturing use
+ 96 |                    let id = UUID(uuidString: task), let retained = c.captureVoiceWorkerForTesting(id: id) {
+ 97 |                     // Existing real review-context hop invalidates the original worker
+    :
+115 |             for mode in ["yes", "unheard", "no", "hold", "card", "edited", "refused", "amend", "close", "mismatch", "staleCaller", "stalePresented", "staleHeard", "model-yes", "model-negative", "model-refused", "model-stale", "model-change"] {
+116 |                 let start = checks, problemsBefore = failures.count
+117 |                 currentMode = mode; staleAdvanced = false; staleBefore = nil; staleAfter = nil
+    |                             `- warning: 'currentMode' mutated after capture by sendable closure
+118 |                 let routeBefore = routeObservations, matchedBefore = matchedRoutes
+119 |                 let directory = root.appendingPathComponent(mode, isDirectory: true)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[11 / 19] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:320:22: warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+318 |             else { suspended.resume(throwing: AgentError.backendUnavailable("Late cancellation-ignoring backing")) }
+319 |             check(await reached { ended }, "late error did not causally unwind through Manager")
+320 |             context?.record(TaskJournalEventDraft(taskID: task.id, kind: .toolStarted,
+    |                      `- warning: result of call to function returning 'Bool?' is unused [#NoUsage]
+321 |                 detail: "filesystem.read", attempt: context?.attempt ?? 0))
+322 |             check(try sql.load() == cancelled
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Agent/Tasks/Durable/TaskWorkerAttemptSelfTest.swift:409:25: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+407 |                 "owner variant fresh manager did not hold actual saved work")
+408 |             guard let context = fresh.journalContext(taskID: saved.id) else { throw OwnerFixtureError() }
+409 |             let valid = await context.isStillValid?() ?? true
+    |                         `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+410 |             check(context.isStillValid != nil && !valid,
+411 |                 "recognized local attempt downgraded to unbound or gained live validity (\(name))")
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Formatting/AppleModelWarmth.swift:40:13: warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 38 |     /// timeout closure without hopping to the main actor (D-07): the per-call ceiling
+ 39 |     /// is computed per chunked call, on whatever task asked for it.
+ 40 |     private nonisolated(unsafe) static let warmthLock = NSLock()
+    |             `- warning: 'nonisolated(unsafe)' is unnecessary for a constant with 'Sendable' type 'NSLock', consider removing it
+ 41 |     private nonisolated(unsafe) static var warmWindowStorage: Duration = .seconds(600)
+ 42 |     private nonisolated(unsafe) static var lastActivityStorage: Date?
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Meetings/MeetingContextReconciler.swift:294:30: warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+292 |             enabled: @escaping @Sendable () async -> Bool = {
+293 |                 let stored = await MainActor.run { Settings.shared.meetingLiveUnderstanding }
+294 |                 let choice = await ModelRoleStore.shared.resolution(for: .agent).effective
+    |                              `- warning: no 'async' operations occur within 'await' expression [#UnnecessaryEffectMarker]
+295 |                 return MeetingContextReconciler.isEnabled(stored: stored, choice: choice)
+296 |             },
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[12 / 19] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Agent/FrontendRevisionSelfTest.swift:155:30: warning: 'cleanupRequested' mutated after capture by sendable closure
+ 36 |         let oldBridge = conversation.taskBridgeOverrideForTesting, oldRemember = conversation.rememberExplicit
+ 37 |         let owner = SelfTestStoreGuard.take()
+ 38 |         var created = false, sessionOwned = false, mayRemoveRoot = false, cleanupRequested = false
+    |                                                                           `- note: variable defined here
+ 39 |         var owned: Task<Void, Never>?, release: CheckedContinuation<String, Never>?
+ 40 |         var manager: AgentTaskManager?
+    :
+ 89 |                 var enteredWait: CheckedContinuation<Void, Never>?
+ 90 |                 conversation.streamForTesting = { _, _ in await frontend.stream() }
+ 91 |                 conversation.workerForTesting = { work in
+    |                                                 `- note: variable captured by sendable closure
+ 92 |                     workers += 1
+ 93 |                     // A preflight/qualification throw must not leave a late-entering
+ 94 |                     // already-admitted callback suspended after teardown starts.
+ 95 |                     if cleanupRequested { return "" }
+    |                        `- note: capturing use
+ 96 |                     if let currentCapture = conversation.captureVoiceWorkerForTesting(id: work.id) {
+ 97 |                         captured = currentCapture
+    :
+153 |         } catch {
+154 |             failures.append("frontend revision: INVALID \(error)")
+155 |             cleanupRequested = true
+    |                              `- warning: 'cleanupRequested' mutated after capture by sendable closure
+156 |             // Capture every SAME actual slot before cancel can alter/release it.
+157 |             // These are retained fixture references, not new Tasks or owners.
+[14 / 19] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Agent/Duplex/IslandVoiceOwnershipSelfTest.swift:266:55: warning: expression of type 'AgentTurn' is unused [#NoUsage]
+264 |             current.cancel(typedWork.id.uuidString)
+265 |             guard typedTask.isCancelled else { throw Invalid.worker }
+266 |             await typed.releaseAll(); await typedTask.value; typedOperation = nil
+    |                                                       `- warning: expression of type 'AgentTurn' is unused [#NoUsage]
+267 |             check(current.typedWorkerSnapshot(id: typedWork.id) == nil && fires == 0,
+268 |                 "BC05 cancelled typed operation returned without foreground takeover")
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Agent/Duplex/IslandVoiceOwnershipSelfTest.swift:357:35: warning: expression of type 'AgentTurn?' is unused [#NoUsage]
+355 |             if let acpRelease { try? Data("{\"release\":true}".utf8).write(to: acpRelease, options: .atomic) }
+356 |             typedOperation?.cancel(); await typedProbe?.releaseAll()
+357 |             await typedOperation?.value; typedOperation = nil
+    |                                   `- warning: expression of type 'AgentTurn?' is unused [#NoUsage]
+358 |             await acpOperation?.value; acpOperation = nil
+359 |             foreground?.cancel(); front?.finish(); await probe?.releaseAll()
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/Agent/Duplex/IslandVoiceOwnershipSelfTest.swift:362:31: warning: expression of type 'AgentTurn?' is unused [#NoUsage]
+360 |             RealtimeAgent.shared.cancel(); synth.stop()
+361 |             if capture.isSessionActive { await capture.endSession(source: .done) }
+362 |             await foreground?.value; foreground = nil
+    |                               `- warning: expression of type 'AgentTurn?' is unused [#NoUsage]
+363 |             for task in workers { await task.value }; workers.removeAll(); joined = scheduledJoined
+364 |         }
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[16 / 19] NextNotes-product
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/NextNotesApp.swift:9047:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 9045 |                 check("the audit lost rows while a near miss was written",
+ 9046 |                       AgentAuditLog.shared.entries.count >= before)
+ 9047 |             } catch {
+      |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 9048 |                 failures.append("p1-29 near miss: \(error.localizedDescription)")
+ 9049 |             }
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/NextNotesApp.swift:9767:21: warning: initialization of immutable value 'before' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 9765 |                 // 3. Clear leaves a row, with counts and no words. "New conversation" and
+ 9766 |                 //    "Forget all conversations" were indistinguishable in every log.
+ 9767 |                 let before = AgentAuditLog.shared.entries.count
+      |                     `- warning: initialization of immutable value 'before' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+ 9768 |                 AgentSession.shared.recordUser("p1-29 text that must not be logged")
+ 9769 |                 AgentSession.shared.recordAssistant("p1-29 answer that must not be logged")
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/NextNotesApp.swift:9814:15: warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 9812 |                     AgentAuditLog.memoryRows == 400
+ 9813 |                 )
+ 9814 |             } catch {
+      |               `- warning: 'catch' block is unreachable because no errors are thrown in 'do' block
+ 9815 |                 failures.append("p1-29: \(error.localizedDescription)")
+ 9816 |             }
+
+/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/catchup-audio/Sources/NextNotes/UI/CatchUp/CatchUpHandoffSelfTest.swift:221:22: warning: 'activity' mutated after capture by sendable closure
+198 |         ]
+199 |         for (name, state) in busy {
+200 |             var activity = state
+    |                 `- note: variable defined here
+201 |             let audio = Audio()
+202 |             var opens = 0
+203 |             let player = CatchUpPlayer(activity: { activity }, makePlayer: { _ in opens += 1; return audio })
+    |                                                  | `- note: capturing use
+    |                                                  `- note: variable captured by sendable closure
+204 |             expect(opens == 0 && audio.starts == 0, "initialization auto-played")
+205 |             player.play(entry)
+    :
+219 |             player.toggle(entry)
+220 |             expect(!player.isPlaying && audio.starts == starts, "Resume started during \(name)")
+221 |             activity = .init()
+    |                      `- warning: 'activity' mutated after capture by sendable closure
+222 |             player.pollPlayback()
+223 |             expect(!player.isPlaying && audio.starts == starts, "idle tick auto-resumed")
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[17 / 19] NextNotes-product
+[18 / 19] NextNotes-product
+[19 / 19] NextNotes-product
+Build complete! (48.64 sec)

@@ -1,0 +1,104 @@
+CATCH_UP_HANDOFF_OBSERVED roles=assistant,user background_rows=1 turns=1
+CATCH_UP_APPROVAL_OBSERVED approved=false effects=0
+CATCH_UP_APPROVAL_BLOCKERS to:Optional(NextNotes.ToolCallFieldProblem.notConfirmed)
+CATCH_UP_APPROVAL_OBSERVED approved=true effects=1
+CATCH_UP_APPROVAL_OK
+CATCH_UP_HANDOFF_CHECKS 12
+CATCH_UP_HANDOFF_OK
+CATCH_UP_PLAYBACK_OBSERVED activity=listening/working file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=dictation file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=meeting file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=reply file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=call file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_CHECKS 45
+CATCH_UP_PLAYBACK_OK
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: planner crossing=false lost dana@fixture.invalid
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: planner crossing=false lost Launch confirmation
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: planner crossing=false lost noon tomorrow
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: planner crossing=false lost Want me to send the reminders?
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: chat crossing=false lost dana@fixture.invalid
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: chat crossing=false lost Launch confirmation
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: chat crossing=false lost noon tomorrow
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: chat crossing=false lost Want me to send the reminders?
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: accepting row did not retain bound Codable context
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: planner crossing=true lost dana@fixture.invalid
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: planner crossing=true lost Launch confirmation
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: planner crossing=true lost noon tomorrow
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: planner crossing=true lost Want me to send the reminders?
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: chat crossing=true lost dana@fixture.invalid
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: chat crossing=true lost Launch confirmation
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: chat crossing=true lost noon tomorrow
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: chat crossing=true lost Want me to send the reminders?
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: accepting row did not retain bound Codable context
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: route=handleLive did not bind context on its actual accepting row
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: asynchronous production planner route=typedWorker lost action details
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: route=typedWorker did not bind context on its actual accepting row
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: route=localOnce did not bind context on its actual accepting row
+CATCH_UP_ACCEPTANCE_FAILED
+CATCH_UP_WAKE_CHECK_FAILED: file playing opened wake conversation/ASR
+CATCH_UP_WAKE_CHECK_FAILED: file just-paused opened wake conversation/ASR
+CATCH_UP_WAKE_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_WAKE_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_WAKE_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_WAKE_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_WAKE_CHECK_FAILED: real speech producer did not preempt saved file
+CATCH_UP_WAKE_CHECK_FAILED: real speech producer did not preempt saved file
+CATCH_UP_WAKE_CHECK_FAILED: reply resume did not preempt saved file synchronously
+CATCH_UP_WAKE_CHECK_FAILED: playing file left wake detection admitted
+CATCH_UP_WAKE_CHECK_FAILED: one-second file tail was not suppressed
+CATCH_UP_WAKE_FAILED
+CATCH_UP_STANDING_GRANT effects=1 new_card=false
+CATCH_UP_PERMISSION_CHECK_FAILED: wording promises a fresh card despite covering standing grant
+CATCH_UP_PERMISSION_CHECK_FAILED: production planner wording promises a new card for every action
+CATCH_UP_PERMISSION_FAILED
+CATCH_UP_PROVENATASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+NCE_CHECK_FAILED: chat lost explicit background/untrusted provenance
+CATCH_UP_PROVENANCE_CHECK_FAILED: planner lost explicit background/untrusted provenance
+CATCH_UP_PROVENANCE_CHECK_FAILED: individual quoted-mail chat row was relabelled as an ordinary assistant answer
+CATCH_UP_PROVENANCE_CHECK_FAILED: original quoted background row lost provenance in string history
+CATCH_UP_PROVENANCE_CHECK_FAILED: actual planner assembly lost quote/provenance/current request separation
+CATCH_UP_PROVENANCE_CHECK_FAILED: actual planner assembly lost original quoted-row provenance
+CATCH_UP_PROVENANCE_FAILED
+CATCH_UP_RUN -> reported (3 calls, 167 words)
+CATCH_UP_CHECK_FAILED: acceptance: planner crossing=false lost dana@fixture.invalid
+CATCH_UP_CHECK_FAILED: acceptance: planner crossing=false lost Launch confirmation
+CATCH_UP_CHECK_FAILED: acceptance: planner crossing=false lost noon tomorrow
+CATCH_UP_CHECK_FAILED: acceptance: planner crossing=false lost Want me to send the reminders?
+CATCH_UP_CHECK_FAILED: acceptance: chat crossing=false lost dana@fixture.invalid
+CATCH_UP_CHECK_FAILED: acceptance: chat crossing=false lost Launch confirmation
+CATCH_UP_CHECK_FAILED: acceptance: chat crossing=false lost noon tomorrow
+CATCH_UP_CHECK_FAILED: acceptance: chat crossing=false lost Want me to send the reminders?
+CATCH_UP_CHECK_FAILED: acceptance: accepting row did not retain bound Codable context
+CATCH_UP_CHECK_FAILED: acceptance: planner crossing=true lost dana@fixture.invalid
+CATCH_UP_CHECK_FAILED: acceptance: planner crossing=true lost Launch confirmation
+CATCH_UP_CHECK_FAILED: acceptance: planner crossing=true lost noon tomorrow
+CATCH_UP_CHECK_FAILED: acceptance: planner crossing=true lost Want me to send the reminders?
+CATCH_UP_CHECK_FAILED: acceptance: chat crossing=true lost dana@fixture.invalid
+CATCH_UP_CHECK_FAILED: acceptance: chat crossing=true lost Launch confirmation
+CATCH_UP_CHECK_FAILED: acceptance: chat crossing=true lost noon tomorrow
+CATCH_UP_CHECK_FAILED: acceptance: chat crossing=true lost Want me to send the reminders?
+CATCH_UP_CHECK_FAILED: acceptance: accepting row did not retain bound Codable context
+CATCH_UP_CHECK_FAILED: acceptance: route=handleLive did not bind context on its actual accepting row
+CATCH_UP_CHECK_FAILED: acceptance: asynchronous production planner route=typedWorker lost action details
+CATCH_UP_CHECK_FAILED: acceptance: route=typedWorker did not bind context on its actual accepting row
+CATCH_UP_CHECK_FAILED: acceptance: route=localOnce did not bind context on its actual accepting row
+CATCH_UP_CHECK_FAILED: file playing opened wake conversation/ASR
+CATCH_UP_CHECK_FAILED: file just-paused opened wake conversation/ASR
+CATCH_UP_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_CHECK_FAILED: real speech producer did not preempt saved file
+CATCH_UP_CHECK_FAILED: real speech producer did not preempt saved file
+CATCH_UP_CHECK_FAILED: reply resume did not preempt saved file synchronously
+CATCH_UP_CHECK_FAILED: playing file left wake detection admitted
+CATCH_UP_CHECK_FAILED: one-second file tail was not suppressed
+CATCH_UP_CHECK_FAILED: wording promises a fresh card despite covering standing grant
+CATCH_UP_CHECK_FAILED: production planner wording promises a new card for every action
+CATCH_UP_CHECK_FAILED: chat lost explicit background/untrusted provenance
+CATCH_UP_CHECK_FAILED: planner lost explicit background/untrusted provenance
+CATCH_UP_CHECK_FAILED: individual quoted-mail chat row was relabelled as an ordinary assistant answer
+CATCH_UP_CHECK_FAILED: original quoted background row lost provenance in string history
+CATCH_UP_CHECK_FAILED: actual planner assembly lost quote/provenance/current request separation
+CATCH_UP_CHECK_FAILED: actual planner assembly lost original quoted-row provenance
+CATCH_UP_FAILED

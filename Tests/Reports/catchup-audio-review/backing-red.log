@@ -1,0 +1,51 @@
+CATCH_UP_SPEECH_BACKING speak=3 resume=1 overlaps=3
+TASK_PERSISTENCE_DIAGNOSTIC: Task history could not be saved. Your saved history was kept.
+CATCH_UP_HANDOFF_OBSERVED roles=assistant,user background_rows=1 turns=1
+CATCH_UP_APPROVAL_OBSERVED approved=false effects=0
+CATCH_UP_APPROVAL_BLOCKERS to:Optional(NextNotes.ToolCallFieldProblem.notConfirmed)
+CATCH_UP_APPROVAL_OBSERVED approved=true effects=1
+CATCH_UP_APPROVAL_OK
+CATCH_UP_HANDOFF_CHECKS 12
+CATCH_UP_HANDOFF_OK
+CATCH_UP_PLAYBACK_OBSERVED activity=listening/working file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=dictation file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=meeting file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=reply file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_OBSERVED activity=call file_opens=0 starts=0 playing=false
+CATCH_UP_PLAYBACK_CHECKS 45
+CATCH_UP_PLAYBACK_OK
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: oversized offer silently lost omission notice
+CATCH_UP_ACCEPTANCE_CHECK_FAILED: acceptance: oversized offer silently lost omission notice
+CATCH_UP_ACCEPTANCE_FAILED
+CATCH_UP_WAKE_CHECK_FAILED: file playing opened wake conversation/ASR
+CATCH_UP_WAKE_CHECK_FAILED: file just-paused opened wake conversation/ASR
+CATCH_UP_WAKE_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_WAKE_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_WAKE_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_WAKE_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_WAKE_CHECK_FAILED: real speech producer did not preempt saved file
+CATCH_UP_WAKE_CHECK_FAILED: real speech producer did not preempt saved file
+CATCH_UP_WAKE_CHECK_FAILED: reply resume did not preempt saved file synchronously
+CATCH_UP_WAKE_CHECK_FAILED: file was still playing at actual speech backing entry
+CATCH_UP_WAKE_CHECK_FAILED: playing file left wake detection admitted
+CATCH_UP_WAKE_CHECK_FAILED: one-second file tail was not suppressed
+CATCH_UP_WAKE_FAILED
+CATCH_UP_STANDING_GRANT effects=1 new_card=false
+CATCH_UP_PERMISSION_OK
+CATCH_UP_PROVENANCE_OK
+CATCH_UP_RUN -> reported (3 calls, 167 words)
+CATCH_UP_CHECK_FAILED: acceptance: oversized offer silently lost omission notice
+CATCH_UP_CHECK_FAILED: acceptance: oversized offer silently lost omission notice
+CATCH_UP_CHECK_FAILED: file playing opened wake conversation/ASR
+CATCH_UP_CHECK_FAILED: file just-paused opened wake conversation/ASR
+CATCH_UP_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_CHECK_FAILED: activity transition did not interrupt synchronously
+CATCH_UP_CHECK_FAILED: real speech producer did not preempt saved file
+CATCH_UP_CHECK_FAILED: real speech producer did not preempt saved file
+CATCH_UP_CHECK_FAILED: reply resume did not preempt saved file synchronously
+CATCH_UP_CHECK_FAILED: file was still playing at actual speech backing entry
+CATCH_UP_CHECK_FAILED: playing file left wake detection admitted
+CATCH_UP_CHECK_FAILED: one-second file tail was not suppressed
+CATCH_UP_FAILED

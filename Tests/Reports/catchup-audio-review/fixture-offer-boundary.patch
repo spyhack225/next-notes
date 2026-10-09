@@ -1,0 +1,28 @@
+--- a/Sources/NextNotes/UI/CatchUp/CatchUpAcceptanceSelfTest.swift
++++ b/Sources/NextNotes/UI/CatchUp/CatchUpAcceptanceSelfTest.swift
+@@ -42,6 +42,25 @@
+             let stored = (try? JSONEncoder().encode(session.messages.last)).flatMap { String(data: $0, encoding: .utf8) } ?? ""
+             if !stored.contains("catchUpAcceptance") { failures.append("acceptance: accepting row did not retain bound Codable context") }
+             if session.messages.last?.text != offered.offer!.yesText { failures.append("acceptance: changed literal accepting words") }
++        }
++        // Unsupported oversized offers must not consume the omission notice.
++        // Real handoff and both real small-reader prompt consumers, not a helper mirror.
++        let oversized = CatchUpText.entry(id: "oversized-offer", title: "Catch-up", madeAt: Date(),
++            text: facts + "\n\nWant me to send " + String(repeating: "the reminders to Dana ", count: 80) + "?",
++            audioURL: nil, duration: nil)!
++        let bounded = AgentSession(fileURL: nil)
++        LiveCatchUpOfferActing(session: bounded, open: {}, submitAccepted: { words, context in
++            bounded.recordUser(words, source: .text, catchUpAcceptance: context)
++        }).say(oversized.offer!.yesText, for: oversized)
++        let budget = AgentHistoryBudget.characters(contextTokens: 4_096)
++        let cap = AgentHistoryBudget.perMessageCap(budget: budget)
++        let boundedPrompts = [bounded.contextForCurrentTurn(maxCharacters: budget, scrubToolClaims: true, perMessageCharacters: cap),
++            bounded.chatHistoryForCurrentTurn(maxCharacters: budget, scrubToolClaims: true, perMessageCharacters: cap).map(\.content).joined()]
++        for prompt in boundedPrompts {
++            if !prompt.contains("Ask for any missing action details.") {
++                failures.append("acceptance: oversized offer silently lost omission notice")
++            }
++            if prompt.count > budget { failures.append("acceptance: oversized offer exceeded reader budget") }
+         }
+         // Real asynchronous typed entry, with the handoff value captured before Task
+         // scheduling. The shared typed entry and captured typed worker use real

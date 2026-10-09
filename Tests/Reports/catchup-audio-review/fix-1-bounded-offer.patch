@@ -1,0 +1,15 @@
+--- a/Sources/NextNotes/UI/CatchUp/CatchUpConversationContext.swift
++++ b/Sources/NextNotes/UI/CatchUp/CatchUpConversationContext.swift
+@@ -26,8 +26,10 @@
+                 || actionWords.contains(where: { lower.contains($0) }))
+         }
+         let notice = "[Bounded reference; some briefing text may be omitted. Ask for any missing action details.]"
+-        var parts = [question]
+-        var used = question.count + notice.count + 2
++        let closing = question.count + notice.count + 2 <= 800 ? question
++            : "[Closing offer omitted because it is too long. Ask which action was accepted.]"
++        var parts = [closing]
++        var used = closing.count + notice.count + 2
+         // Whole sentences only. Never silently keep half an address/date/action.
+         for sentence in relevant where used + sentence.count + 1 <= 800 {
+             parts.append(sentence); used += sentence.count + 1
