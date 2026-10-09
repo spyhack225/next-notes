@@ -1,4 +1,3 @@
-import AVFoundation
 import SwiftUI
 
 /// Every model that lives on disk, in one place.
@@ -778,185 +777,20 @@ struct ModelsSettingsTab: View {
         }
     }
 
-    private enum VoiceEngine: String, CaseIterable, Identifiable {
-        case apple, pocket, kokoro
-        var id: String { rawValue }
-        var name: String {
-            switch self {
-            case .apple: "macOS"
-            case .pocket: "Pocket"
-            case .kokoro: "Kokoro"
-            }
-        }
-        var icon: String {
-            switch self {
-            case .apple: "speaker.wave.2"
-            case .pocket: "waveform"
-            case .kokoro: "waveform.path"
-            }
-        }
-    }
-
     private var speechSynthesis: some View {
-        Section {
-            HStack(spacing: DS.Space.s) {
-                ForEach(VoiceEngine.allCases) { engine in
-                    engineChoice(engine)
-                }
-            }
-
-            if pocket.isPreparing || kokoro.isPreparing {
-                ProgressView(pocket.isPreparing ? "Preparing Pocket TTS…" : "Preparing Kokoro…")
-            }
-            if let error = pocket.errorMessage {
-                Text(error).font(DS.Font.caption).foregroundStyle(DS.Color.warning)
-            }
-            if let error = kokoro.errorMessage, KokoroAgentVoice.isSupportedOS {
-                Text(error).font(DS.Font.caption).foregroundStyle(DS.Color.warning)
-            }
-
-            switch settings.agentVoiceEngine {
-            case "pocket":
-                HStack(spacing: DS.Space.s) {
-                    Text("Voice")
-                    Spacer()
-                    ForEach(["alba", "azelma", "cosette", "javert"], id: \.self) { voice in
-                        Button {
-                            stopPreview()
-                            settings.agentPocketVoice = voice
-                        } label: {
-                            Label(voice.capitalized,
-                                  systemImage: settings.agentPocketVoice == voice
-                                      ? "checkmark.circle.fill" : "circle")
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                }
-            case "kokoro":
-                LabeledContent("Voice", value: "Heart")
-            default:
-                Picker("Voice", selection: $settings.agentVoiceIdentifier) {
-                    Text("System default").tag("")
-                    ForEach(availableVoices, id: \.identifier) { voice in
-                        Text("\(voice.name) · \(voice.language)\(qualityLabel(voice))")
-                            .tag(voice.identifier)
-                    }
-                }
-                .onChange(of: settings.agentVoiceIdentifier) { _, _ in stopPreview() }
-            }
-
-            HStack(spacing: DS.Space.s) {
-                Button {
-                    if isPreviewing { stopPreview() }
-                    else { startPreview() }
-                } label: {
-                    Label(isPreviewing ? "Stop preview" : "Preview voice",
-                          systemImage: isPreviewing ? "stop.fill" : "play.fill")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(!canPreviewVoice)
-                Text(activeVoiceDescription)
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
-            }
-
-            if settings.agentVoiceEngine != "apple" {
-                ModelTechnicalDetails(
-                    modelID: settings.agentVoiceEngine == "pocket"
-                        ? "Pocket TTS (FluidAudio)" : "Kokoro-82M (FluidAudio)",
-                    licenceName: "Publisher's own terms",
-                    licenceURL: nil,
-                    modelCardURL: URL(string: "https://github.com/FluidInference/FluidAudio")!
-                )
-            }
-        } header: {
-            Text("Speaking back")
-        } footer: {
-            SettingsNote(text: voiceExplanation)
-        }
-    }
-
-    private func engineChoice(_ engine: VoiceEngine) -> some View {
-        let selected = settings.agentVoiceEngine == engine.rawValue
-        let unavailable = engine == .kokoro && !KokoroAgentVoice.isSupportedOS
-        return Button {
-            select(engine)
-        } label: {
-            VStack(alignment: .leading, spacing: DS.Space.xxs) {
-                Label(engine.name, systemImage: engine.icon)
-                    .font(DS.Font.callout)
-                Text(engineStatus(engine))
-                    .font(DS.Font.caption)
-                    .foregroundStyle(DS.Color.textSecondary)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(DS.Space.s)
-            .background(DS.Color.groupedFill, in: RoundedRectangle(cornerRadius: DS.Radius.card))
-            .overlay {
-                RoundedRectangle(cornerRadius: DS.Radius.card)
-                    .strokeBorder(selected ? DS.Color.accent : DS.Color.separator,
-                                  lineWidth: DS.Size.voiceChoiceBorder)
-            }
-        }
-        .buttonStyle(.plain)
-        .disabled(unavailable || (engine == .pocket && pocket.isPreparing)
-                  || (engine == .kokoro && kokoro.isPreparing))
-        .help(unavailable ? KokoroAgentVoice.unavailableMessage : "Use \(engine.name) for Agent speech")
-    }
-
-    private func engineStatus(_ engine: VoiceEngine) -> String {
-        switch engine {
-        case .apple: "Built in"
-        case .pocket: pocket.isReady ? "4 voices · ready" : "4 voices · download"
-        case .kokoro:
-            KokoroAgentVoice.isSupportedOS
-                ? (kokoro.isReady ? "Heart · ready" : "Heart · download")
-                : "Needs macOS 26.6"
-        }
-    }
-
-    private func select(_ engine: VoiceEngine) {
-        stopPreview()
-        switch engine {
-        case .apple:
-            settings.agentVoiceEngine = engine.rawValue
-        case .pocket:
-            if pocket.isReady { settings.agentVoiceEngine = engine.rawValue }
-            else {
-                Task {
-                    await pocket.prepare()
-                    if pocket.isReady { settings.agentVoiceEngine = engine.rawValue }
-                }
-            }
-        case .kokoro:
-            guard KokoroAgentVoice.isSupportedOS else { return }
-            if kokoro.isReady { settings.agentVoiceEngine = engine.rawValue }
-            else {
-                Task {
-                    await kokoro.prepare()
-                    if kokoro.isReady { settings.agentVoiceEngine = engine.rawValue }
-                }
-            }
-        }
-    }
-
-    private var activeVoiceDescription: String {
-        switch settings.agentVoiceEngine {
-        case "pocket": settings.agentPocketVoice.capitalized
-        case "kokoro": "Kokoro · Heart"
-        default:
-            availableVoices.first(where: { $0.identifier == settings.agentVoiceIdentifier })?.name
-                ?? "macOS system default"
-        }
-    }
-
-    private var voiceExplanation: String {
-        if !KokoroAgentVoice.isSupportedOS {
-            return "Pocket TTS and macOS voices work now. Kokoro is disabled on macOS 26.4–26.5 "
-                + "because its Core ML runtime can crash; macOS 26.6 is required."
-        }
-        return "Choose one engine, then a voice, and preview it here. Pocket TTS downloads "
-            + "about 550 MB on first use; Kokoro downloads its Core ML model when selected."
+        VoiceSettingsSection(
+            availability: AgentSpeechSynthesizer.shared.availability,
+            isPreviewing: isPreviewing,
+            togglePreview: { if isPreviewing { stopPreview() } else { startPreview() } },
+            stopPreview: stopPreview,
+            details: ModelTechnicalDetails(
+                modelID: settings.agentVoiceEngine == "kokoro"
+                    ? "Kokoro-82M (FluidAudio)" : "Pocket TTS (FluidAudio)",
+                licenceName: "Publisher's own terms",
+                licenceURL: nil,
+                modelCardURL: URL(string: "https://github.com/FluidInference/FluidAudio")!
+            )
+        )
     }
 
     private func startPreview() {
@@ -973,12 +807,10 @@ struct ModelsSettingsTab: View {
         }
     }
 
+    /// The sample plays only through the voice the app really speaks with, and only when that
+    /// voice is ready. It never falls back to another one.
     private var canPreviewVoice: Bool {
-        switch settings.agentVoiceEngine {
-        case "pocket": pocket.isReady && !pocket.isPreparing
-        case "kokoro": kokoro.isReady && !kokoro.isPreparing
-        default: true
-        }
+        AgentSpeechSynthesizer.shared.availability == .ready
     }
 
     private func stopPreview() {
@@ -987,24 +819,6 @@ struct ModelsSettingsTab: View {
         if isPreviewing { AgentSpeechSynthesizer.shared.stop() }
         isPreviewing = false
     }
-
-    private var availableVoices: [AVSpeechSynthesisVoice] {
-        AVSpeechSynthesisVoice.speechVoices()
-            .filter { $0.language.hasPrefix("en-") }
-            .sorted { lhs, rhs in
-                if lhs.quality != rhs.quality { return lhs.quality.rawValue > rhs.quality.rawValue }
-                return lhs.name.localizedStandardCompare(rhs.name) == .orderedAscending
-            }
-    }
-
-    private func qualityLabel(_ voice: AVSpeechSynthesisVoice) -> String {
-        switch voice.quality {
-        case .premium: " · Premium"
-        case .enhanced: " · Enhanced"
-        default: ""
-        }
-    }
-
 }
 
 /// Before a download this Mac cannot run: one plain sentence, and a cancel-first choice.
