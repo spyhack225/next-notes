@@ -1,7 +1,7 @@
 from pathlib import Path
 import subprocess,tempfile,shutil,sys,json
 scanner=Path(sys.argv[1]).resolve()
-cases={'Sources/NextNotes/Renamed.swift':'let engine = NSSpeechSynthesizer()','Sources/NextNotes/Another.swift':'import class AVFoundation.AVSpeechUtterance','Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift':'let engine = AVSpeechSynthesizer()','Tools/tts_benchmark.swift':'let surprise = NSSpeechSynthesizer()','Scripts/renamed.sh':'/usr/bin/say hello','Makefile':'voice:\n\tsay hello','Tools/voice.py':'subprocess.run(["/usr/bin/say", "hello"])'}
+cases={'Sources/NextNotes/Renamed.swift':'let engine = NSSpeechSynthesizer()','Sources/NextNotes/Another.swift':'import class AVFoundation.AVSpeechUtterance','Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift':'let engine = AVSpeechSynthesizer()','Tools/tts_benchmark.swift':'let surprise = NSSpeechSynthesizer()','Scripts/renamed.sh':'/usr/bin/say hello','Makefile':'voice:\n\tsay hello','Tools/voice.py':'subprocess.run(["/usr/bin/say", "hello"])','Sources/NextNotes/Renamed.m':'#import <AVFoundation/AVSpeechSynthesizer.h>','Scripts/without-extension':'#!/bin/sh\nsay hello','Scripts/speech-shebang':'#!/usr/bin/say'}
 misses=[]
 for path,body in cases.items():
     with tempfile.TemporaryDirectory(prefix='NextNotes-noapple-census-') as tmp:

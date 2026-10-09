@@ -1,2 +1,2 @@
-{"undetected": ["Sources/NextNotes/Renamed.swift", "Sources/NextNotes/Another.swift", "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift", "Tools/tts_benchmark.swift", "Scripts/renamed.sh", "Makefile", "Tools/voice.py"], "cases": 7}
+{"undetected": ["Sources/NextNotes/Renamed.swift", "Sources/NextNotes/Another.swift", "Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift", "Tools/tts_benchmark.swift", "Scripts/renamed.sh", "Makefile", "Tools/voice.py", "Sources/NextNotes/Renamed.m", "Scripts/without-extension", "Scripts/speech-shebang"], "cases": 10}
 VOICE_CENSUS_MUTATIONS_FAILED

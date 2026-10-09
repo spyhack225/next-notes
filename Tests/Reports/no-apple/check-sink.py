@@ -21,8 +21,13 @@ for path in sorted(files):
     entry=allow.get(relative,{})
     permitted=list(entry.get('lines',[])) if entry.get('reason') else []
     for number,line in enumerate(source.splitlines(),1):
-        if line.lstrip().startswith('#'): continue
-        candidates=patterns if path.suffix in {'.sh','.py','.js'} or path.name.startswith('Makefile') else patterns[:2]
+        script = (path.suffix in {'.sh','.py','.js'} or path.name.startswith('Makefile')
+                  or relative.startswith(('Scripts/','scripts/','site/scripts/')))
+        # Shell/Python comments are not executable commands; C/ObjC #import
+        # and executable shebangs must still be scanned. Speech symbols are
+        # always checked, including specialized framework imports.
+        comment = script and line.lstrip().startswith('#') and not line.lstrip().startswith('#!')
+        candidates = patterns[:1] if comment else patterns if script else patterns[:2]
         if not any(p.search(line) for p in candidates):continue
         # Exact existing operations with bounded occurrence counts. Renaming a
         # file invalidates its allowance; adding even a duplicate line fails.
