@@ -1,0 +1,25 @@
+{
+  "ok": true,
+  "agent": {
+    "agentId": "claude2-bakeoff2",
+    "runner": "codex",
+    "registeredAt": "2026-10-08T20:36:23.171Z",
+    "updatedAt": "2026-10-09T00:12:07.630Z",
+    "status": "blocked",
+    "frozen": false,
+    "resources": [],
+    "task": "Finished12ad61ad: no explicit meeting go within3h;18polls; zero heavy/model/claims; RESULT.md and model report; no install/push/merge."
+  },
+  "claims": [
+    {
+      "agentId": "claude2-google-c",
+      "project": "/Users/sergekadjo/Documents/Claude/Projects/speechify",
+      "resource": "build",
+      "claimedAt": "2026-10-09T00:10:32.477Z",
+      "scope": "machine",
+      "ageMs": 95153,
+      "lastSeenAgeMs": 78543,
+      "stale": false
+    }
+  ]
+}
