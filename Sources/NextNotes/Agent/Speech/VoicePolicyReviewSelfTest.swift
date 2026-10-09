@@ -13,7 +13,7 @@ enum VoicePolicyReviewSelfTest {
             synth.engineOverrideForTesting = engine
             synth.pocketReadinessForTesting = true; synth.kokoroReadinessForTesting = true
             synth.prepareForStream() // actual selector, no clause/model entry
-            if synth.supportsQualifiedResumeReceipt { failures.append("R1: \(engine) claims unavailable qualified resume capability") }
+            if synth.supportsQualifiedResumeReceipt != false { failures.append("R1: \(engine) lacks an honest unsupported resume capability contract") }
         }
         synth.engineOverrideForTesting = "pocket"
         synth.setVoiceFailureForTesting(true)

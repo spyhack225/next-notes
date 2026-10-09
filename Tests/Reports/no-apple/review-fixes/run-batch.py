@@ -38,7 +38,7 @@ try:
         else:raise SystemExit(1)
     binary=scratch/'debug/NextNotes'
     def pin(name):
-        (report/(name+'.json')).write_text(json.dumps(dict(sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),diff=subprocess.check_output(['git','diff','--stat'],cwd=root,text=True)),indent=2)+'\n')
+        (report/(name+'.json')).write_text(json.dumps(dict(sha256=hashlib.sha256(binary.read_bytes()).hexdigest(),head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip(),diff=subprocess.check_output(['git','diff','--stat'],cwd=root,text=True),sources={str(p.relative_to(root)):hashlib.sha256(p.read_bytes()).hexdigest() for p in (root/'Sources').rglob('*') if p.is_file()}),indent=2)+'\n')
     pin('red-pin'); check('producer-red','tts',['--voice-policy-review'])
     if command()!='green':raise SystemExit(1)
     while not build('green-build'):

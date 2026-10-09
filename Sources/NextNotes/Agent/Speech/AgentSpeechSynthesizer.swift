@@ -105,8 +105,8 @@ final class AgentSpeechSynthesizer {
     }
     static let shared = AgentSpeechSynthesizer()
 
-    // RED scaffold: historically the migrated receipt fixtures implied this for every route.
-    var supportsQualifiedResumeReceipt: Bool { true }
+    // RED scaffold: the original route exposed no receipt capability contract.
+    var supportsQualifiedResumeReceipt: Bool? { nil }
     var speechSynthesisCallsForTesting: Int { 0 }
     func setVoiceFailureForTesting(_ failed: Bool) {
         guard SelfTest.isRunning else { return }
