@@ -1,0 +1,16 @@
+VOICE_LATENCY_TTS_READY=pocket
+VOICE_ACK_CACHE_TRACE selection engine=pocket voice=alba generation=2
+VOICE_ACK_CACHE_TRACE stage=clip-0-entry generation=2 cancelled=false
+VOICE_ACK_CACHE_TRACE stage=clip-0-prepare raw_samples=21120 rate=24000.0 generation=2 cancelled=false
+VOICE_ACK_CACHE_TRACE stage=clip-0-publish-file generation=2 cancelled=false selection_matches=true
+VOICE_ACK_CACHE_TRACE stage=clip-0-split prepared_samples=21120
+VOICE_ACK_CACHE_TRACE stage=clip-1-entry generation=2 cancelled=false
+VOICE_ACK_CACHE_TRACE stage=clip-1-prepare raw_samples=19200 rate=24000.0 generation=2 cancelled=false
+VOICE_ACK_CACHE_TRACE stage=clip-1-publish-file generation=2 cancelled=false selection_matches=true
+VOICE_ACK_CACHE_TRACE stage=clip-1-split prepared_samples=19194
+VOICE_ACK_CACHE_TRACE stage=publish-memory count=2 generation=2 cancelled=false selection_matches=true model_ready=true
+VOICE_ACK_CACHE_TRACE returned ready_count=2 current_key=7e3e7a409a07165edd010367ca212af413541a8bb8d0fbd33aa0a915a0da814f retained_key=7e3e7a409a07165edd010367ca212af413541a8bb8d0fbd33aa0a915a0da814f model_ready=true task_present=false
+VOICE_ACK_CACHE ready=2 isolated=true enabled=true engine=pocket voice=alba
+VOICE_ACK_CACHE_PATH_READY: two actual selected-voice clips; no turn timing measured
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0
+VOICE_ACK_CACHE_PATH_OK

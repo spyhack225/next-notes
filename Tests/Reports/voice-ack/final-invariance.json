@@ -1,0 +1,106 @@
+{
+  "source_matches": true,
+  "same_binary_all_final_flags": true,
+  "binary_sha256": "561e23082548c165c2f6be0e692e7c8ae514d0450bd34754fbd419b190d5067a",
+  "runs": [
+    {
+      "label": "green-policy-final",
+      "exit": 0,
+      "samples": 6,
+      "sampled_peak_footprint": 115819648,
+      "sampled_peak_rss": 159498240,
+      "start": "2026-10-09T05:40:42.002096+00:00",
+      "end": "2026-10-09T05:40:48.222328+00:00"
+    },
+    {
+      "label": "before-no-ack-final",
+      "exit": 0,
+      "samples": 118,
+      "sampled_peak_footprint": 606128024,
+      "sampled_peak_rss": 1004568576,
+      "start": "2026-10-09T05:40:48.335739+00:00",
+      "end": "2026-10-09T05:42:47.328446+00:00"
+    },
+    {
+      "label": "after-ack-final",
+      "exit": 0,
+      "samples": 121,
+      "sampled_peak_footprint": 618219656,
+      "sampled_peak_rss": 1077542912,
+      "start": "2026-10-09T05:42:47.442354+00:00",
+      "end": "2026-10-09T05:44:49.516294+00:00"
+    },
+    {
+      "label": "voice-pipeline-final",
+      "exit": 0,
+      "samples": 16,
+      "sampled_peak_footprint": 649431080,
+      "sampled_peak_rss": 1349615616,
+      "start": "2026-10-09T05:44:49.626458+00:00",
+      "end": "2026-10-09T05:45:05.926244+00:00"
+    },
+    {
+      "label": "voice-turn-routing-final",
+      "exit": 0,
+      "samples": 4,
+      "sampled_peak_footprint": 25723912,
+      "sampled_peak_rss": 114556928,
+      "start": "2026-10-09T05:45:06.049084+00:00",
+      "end": "2026-10-09T05:45:10.274456+00:00"
+    },
+    {
+      "label": "concurrent-voice-final",
+      "exit": 0,
+      "samples": 2,
+      "sampled_peak_footprint": 21316592,
+      "sampled_peak_rss": 105922560,
+      "start": "2026-10-09T05:45:10.376661+00:00",
+      "end": "2026-10-09T05:45:12.562403+00:00"
+    },
+    {
+      "label": "voice-conversation-final",
+      "exit": 0,
+      "samples": 1,
+      "sampled_peak_footprint": 81992,
+      "sampled_peak_rss": 32768,
+      "start": "2026-10-09T05:45:12.672104+00:00",
+      "end": "2026-10-09T05:45:13.862627+00:00"
+    },
+    {
+      "label": "duplex-final",
+      "exit": 0,
+      "samples": 1,
+      "sampled_peak_footprint": 81992,
+      "sampled_peak_rss": 32768,
+      "start": "2026-10-09T05:45:13.968843+00:00",
+      "end": "2026-10-09T05:45:15.153727+00:00"
+    },
+    {
+      "label": "voice-scheduling-final",
+      "exit": 0,
+      "samples": 3,
+      "sampled_peak_footprint": 15336408,
+      "sampled_peak_rss": 75284480,
+      "start": "2026-10-09T05:45:15.255928+00:00",
+      "end": "2026-10-09T05:45:18.467155+00:00"
+    },
+    {
+      "label": "tts-final",
+      "exit": 0,
+      "samples": 1,
+      "sampled_peak_footprint": 81992,
+      "sampled_peak_rss": 32768,
+      "start": "2026-10-09T05:45:18.572656+00:00",
+      "end": "2026-10-09T05:45:19.769078+00:00"
+    },
+    {
+      "label": "store-isolation-final",
+      "exit": 0,
+      "samples": 31,
+      "sampled_peak_footprint": 26952856,
+      "sampled_peak_rss": 118767616,
+      "start": "2026-10-09T05:45:19.872075+00:00",
+      "end": "2026-10-09T05:45:51.236153+00:00"
+    }
+  ]
+}
