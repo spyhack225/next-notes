@@ -132,6 +132,13 @@ final class VoiceAcknowledgementClips {
                 else { await KokoroAgentVoice.shared.prepare() }
             }
             guard !Task.isCancelled, selected == .current, selected.ready else { return }
+            let inspectCache = SelfTest.isRunning && SelfTest.requested == "--selftest-voice-latency"
+                && CommandLine.arguments.contains("--voice-latency-ack-cache-trace")
+            @MainActor func trace(_ value: String) {
+                if inspectCache { SelfTest.diagnostic("VOICE_ACK_CACHE_TRACE \(value)") }
+            }
+            var stage = "mkdir"
+            trace("selection engine=\(selected.engine) voice=\(selected.voice) generation=\(owned)")
             do {
                 try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
                 var prepared: [Clip] = []
@@ -139,8 +146,13 @@ final class VoiceAcknowledgementClips {
                 // without publishing or playing any candidate, including a refusal.
                 let traceOnly = SelfTest.isRunning && SelfTest.requested == "--selftest-voice-latency"
                     && CommandLine.arguments.contains("--voice-latency-ack-native-clips")
+                if traceOnly {
+                    SelfTest.diagnostic("VOICE_ACK_NATIVE_SELECTION engine=\(selected.engine) voice=\(selected.voice) key=\(selected.key)")
+                }
                 let phrases = traceOnly ? ["Mm.", "Okay.", "Got it.", "One sec."] : Self.texts
                 for (index, text) in phrases.enumerated() {
+                    stage = "clip-\(index)-entry"
+                    trace("stage=\(stage) generation=\(generation) cancelled=\(Task.isCancelled)")
                     try Task.checkCancellation()
                     guard VoiceAcknowledgement.shared.idleForPrewarm, selected == .current else { return }
                     let url = directory.appendingPathComponent("ack-\(selected.key)-\(index).wav")
@@ -151,15 +163,20 @@ final class VoiceAcknowledgementClips {
                         if let fixture = renderFixture, permitsFixture {
                             audio = try await fixture.render(text, selected)
                         } else if selected.engine == "pocket" {
+                            stage = "clip-\(index)-session"
                             let session = try await PocketAgentVoice.shared.makeReplySession(voice: selected.voice)
                             var samples: [Float] = []
                             var failure: Error?
                             do {
                                 try Task.checkCancellation()
+                                stage = "clip-\(index)-frames"
                                 session.enqueue(text); session.finish()
                                 for try await frame in session.frames {
                                     try Task.checkCancellation()
-                                    guard samples.count + frame.samples.count <= 24_000 * (traceOnly ? 4 : 2) else { throw ClipError.invalidPCM }
+                                    guard samples.count + frame.samples.count <= 24_000 * (traceOnly ? 4 : 2) else {
+                                        trace("frame_rejected stage=\(stage) existing_samples=\(samples.count) incoming_samples=\(frame.samples.count)")
+                                        throw ClipError.invalidPCM
+                                    }
                                     samples.append(contentsOf: frame.samples)
                                 }
                             } catch { failure = error }
@@ -178,24 +195,36 @@ final class VoiceAcknowledgementClips {
                             SelfTest.diagnostic("VOICE_ACK_NATIVE_CLIP index=\(index) raw_samples=\(audio.samples.count) body_samples=\(body) rate=\(audio.sampleRate) original_bound_ok=\(audio.samples.count <= 48_000 && body > 0) finite=\(audio.samples.allSatisfy(\.isFinite))")
                             continue
                         }
+                        stage = "clip-\(index)-prepare"
+                        trace("stage=\(stage) raw_samples=\(audio.samples.count) rate=\(audio.sampleRate) generation=\(generation) cancelled=\(Task.isCancelled)")
                         buffer = try Self.prepare(audio)
                         let staging = directory.appendingPathComponent("ack-\(UUID().uuidString).wav")
                         defer { try? FileManager.default.removeItem(at: staging) }
                         do {
+                            stage = "clip-\(index)-writer-open"
                             let writer = try AVAudioFile(forWriting: staging, settings: buffer.format.settings)
+                            stage = "clip-\(index)-writer-write"
                             try writer.write(from: buffer)
                         }
+                        stage = "clip-\(index)-publish-file"
+                        trace("stage=\(stage) generation=\(generation) cancelled=\(Task.isCancelled) selection_matches=\(selected == .current)")
                         try Task.checkCancellation()
                         guard generation == owned, selected == .current else { return }
                         if FileManager.default.fileExists(atPath: url.path) {
                             _ = try FileManager.default.replaceItemAt(url, withItemAt: staging)
                         } else { try FileManager.default.moveItem(at: staging, to: url) }
                     }
+                    stage = "clip-\(index)-split"
+                    trace("stage=\(stage) prepared_samples=\(buffer.frameLength)")
                     prepared.append(Clip(text: text, buffers: try Self.split(buffer)))
                 }
+                stage = "publish-memory"
+                trace("stage=\(stage) count=\(prepared.count) generation=\(generation) cancelled=\(Task.isCancelled) selection_matches=\(selected == .current) model_ready=\(selected.ready)")
                 guard !Task.isCancelled, generation == owned, selected == .current else { return }
                 clips = prepared; selection = selected
             } catch {
+                let failure = error as NSError
+                trace("failure stage=\(stage) type=\(String(reflecting: type(of: error))) domain=\(failure.domain) code=\(failure.code) generation=\(generation) cancelled=\(Task.isCancelled)")
                 // Optional courtesy audio has no fallback and no answer failure.
                 Log.agent.info("Acknowledgement clips unavailable")
             }
@@ -204,6 +233,9 @@ final class VoiceAcknowledgementClips {
     func prepareForLatency() async -> Bool {
         guard SelfTest.isRunning, SelfTest.requested == "--selftest-voice-latency", harnessDirectory != nil else { return false }
         startPrewarm(); await task?.value
+        if CommandLine.arguments.contains("--voice-latency-ack-cache-trace") {
+            SelfTest.diagnostic("VOICE_ACK_CACHE_TRACE returned ready_count=\(readyCount) current_key=\(Selection.current.key) retained_key=\(selection?.key ?? "nil") model_ready=\(Selection.current.ready) task_present=\(task != nil)")
+        }
         return readyCount == Self.texts.count
     }
     private static func read(_ url: URL) throws -> AVAudioPCMBuffer {

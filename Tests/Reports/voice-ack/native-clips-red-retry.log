@@ -1,0 +1,9 @@
+VOICE_LATENCY_TTS_READY=pocket
+VOICE_ACK_NATIVE_SELECTION engine=pocket voice=alba key=7e3e7a409a07165edd010367ca212af413541a8bb8d0fbd33aa0a915a0da814f
+VOICE_ACK_NATIVE_CLIP index=0 raw_samples=13440 body_samples=13440 rate=24000.0 original_bound_ok=true finite=true
+VOICE_ACK_NATIVE_CLIP index=1 raw_samples=24960 body_samples=24960 rate=24000.0 original_bound_ok=true finite=true
+VOICE_ACK_NATIVE_CLIP index=2 raw_samples=26880 body_samples=26880 rate=24000.0 original_bound_ok=true finite=true
+VOICE_ACK_NATIVE_CLIP index=3 raw_samples=24960 body_samples=24947 rate=24000.0 original_bound_ok=true finite=true
+VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0
+VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready

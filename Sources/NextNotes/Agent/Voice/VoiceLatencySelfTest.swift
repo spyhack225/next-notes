@@ -216,6 +216,10 @@ enum VoiceLatencySelfTest {
         SelfTest.diagnostic("VOICE_ACK_CACHE ready=\(clipCache.readyCount) isolated=true enabled=\(acknowledgementEnabled) "
             + "engine=\(VoiceAcknowledgementClips.Selection.current.engine) voice=\(VoiceAcknowledgementClips.Selection.current.voice)")
 
+        if CommandLine.arguments.contains("--voice-latency-ack-cache-only") {
+            SelfTest.diagnostic("VOICE_ACK_CACHE_PATH_READY: two actual selected-voice clips; no turn timing measured")
+            return (true, "VOICE_ACK_CACHE_PATH_OK")
+        }
         let capture = AgentCaptureController.shared
         await capture.endSession(source: .done)
         SelfTest.diagnostic("VOICE_LATENCY_FIXTURE=\(fixture.path)")

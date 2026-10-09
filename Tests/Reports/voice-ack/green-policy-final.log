@@ -1,0 +1,22 @@
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.045s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.149s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.149s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.148s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.139s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.135s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.137s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.131s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.137s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.134s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.195s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.194s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.204s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.105s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.076s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_ACK_CHECKS=39 failures=0
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.130s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_ACK_CACHE_CHECKS=38 failures=0
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=false
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 ready=true
+VOICE_ACK_OK
