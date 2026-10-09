@@ -1,0 +1,291 @@
+{
+  "scope": "one owned process; configuration in artifact pins; 1s sampled maxima, not continuous peaks; hosted services/children excluded",
+  "started_utc": "2026-10-09T05:45:19.872075+00:00",
+  "finished_utc": "2026-10-09T05:45:51.236153+00:00",
+  "pid": 94240,
+  "exit": 0,
+  "binary_sha256_before": "561e23082548c165c2f6be0e692e7c8ae514d0450bd34754fbd419b190d5067a",
+  "binary_sha256_after": "561e23082548c165c2f6be0e692e7c8ae514d0450bd34754fbd419b190d5067a",
+  "before": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "hardware": "Apple M3",
+    "memory_bytes": "17179869184",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 7168.00M  used = 6496.44M  free = 671.56M  (encrypted)",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 194594584  10606180    95% 2514171 106061800    2%   /System/Volumes/Data",
+    "load": "1:45  up 1 day, 14:57, 1 user, load averages: 3.80 3.60 3.53",
+    "concurrent_target_processes": [
+      "846 /usr/libexec/modelmanagerd",
+      "849 /usr/libexec/audiomxd",
+      "52144 /Applications/Next Notes.app/Contents/MacOS/NextNotes"
+    ]
+  },
+  "after": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "hardware": "Apple M3",
+    "memory_bytes": "17179869184",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 7168.00M  used = 6496.44M  free = 671.56M  (encrypted)",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 194595332  10605432    95% 2514185 106054320    2%   /System/Volumes/Data",
+    "load": "1:45  up 1 day, 14:58, 1 user, load averages: 3.26 3.50 3.50",
+    "concurrent_target_processes": [
+      "846 /usr/libexec/modelmanagerd",
+      "849 /usr/libexec/audiomxd",
+      "52144 /Applications/Next Notes.app/Contents/MacOS/NextNotes"
+    ]
+  },
+  "rows": [
+    {
+      "t": 0.11,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 32768,
+      "footprint": 81992,
+      "wired": 0
+    },
+    {
+      "t": 1.12,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 106954752,
+      "footprint": 21021848,
+      "wired": 0
+    },
+    {
+      "t": 2.125,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 106954752,
+      "footprint": 21021848,
+      "wired": 0
+    },
+    {
+      "t": 3.133,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 112672768,
+      "footprint": 23299224,
+      "wired": 0
+    },
+    {
+      "t": 4.143,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 113967104,
+      "footprint": 24020120,
+      "wired": 0
+    },
+    {
+      "t": 5.151,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 113967104,
+      "footprint": 24020120,
+      "wired": 0
+    },
+    {
+      "t": 6.156,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114016256,
+      "footprint": 24069272,
+      "wired": 0
+    },
+    {
+      "t": 7.158,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114016256,
+      "footprint": 24069272,
+      "wired": 0
+    },
+    {
+      "t": 8.168,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114049024,
+      "footprint": 24102040,
+      "wired": 0
+    },
+    {
+      "t": 9.177,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114049024,
+      "footprint": 24102040,
+      "wired": 0
+    },
+    {
+      "t": 10.182,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114049024,
+      "footprint": 24102040,
+      "wired": 0
+    },
+    {
+      "t": 11.183,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114049024,
+      "footprint": 24102040,
+      "wired": 0
+    },
+    {
+      "t": 12.192,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114065408,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 13.201,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114065408,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 14.206,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114065408,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 15.212,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114081792,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 16.214,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114081792,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 17.218,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114081792,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 18.223,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114049024,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 19.231,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114049024,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 20.238,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114049024,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 21.239,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114049024,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 22.247,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114065408,
+      "footprint": 24134808,
+      "wired": 0
+    },
+    {
+      "t": 23.255,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114065408,
+      "footprint": 24134808,
+      "wired": 0
+    },
+    {
+      "t": 24.264,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114065408,
+      "footprint": 24134808,
+      "wired": 0
+    },
+    {
+      "t": 25.273,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114065408,
+      "footprint": 24134808,
+      "wired": 0
+    },
+    {
+      "t": 26.28,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114065408,
+      "footprint": 24134808,
+      "wired": 0
+    },
+    {
+      "t": 27.28,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 114016256,
+      "footprint": 24118424,
+      "wired": 0
+    },
+    {
+      "t": 28.289,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 116244480,
+      "footprint": 25691288,
+      "wired": 0
+    },
+    {
+      "t": 29.299,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 118292480,
+      "footprint": 26674328,
+      "wired": 0
+    },
+    {
+      "t": 30.306,
+      "pid": 94240,
+      "start": 3334048409014,
+      "rss": 118767616,
+      "footprint": 26952856,
+      "wired": 0
+    }
+  ],
+  "peak_rss": 118767616,
+  "peak_footprint": 26952856
+}

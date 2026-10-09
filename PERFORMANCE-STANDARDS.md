@@ -525,3 +525,28 @@ Attributed meeting context, 2026-10-08: text-only duplicate detection erases mat
 PL12 listen2 diagnostic evidence, 2026-10-08: original stable partials already start validated Apple routing and buffered answer drafting. An opt-in route-only producer retains the complete validated route in that same speculative slot, answers only on exact context/correlation/canonical commit, and refuses revised inputs through the existing path. Unchanged scripted12cases RED16missing-feature failures -> GREEN; canonical-plan producer mismatch in the first candidate is retained and repaired without changing the fixture. Corrected real Pocket debug/file-fed n5base L1/L2/L3 median/p95 .678/.683, 2.849/3.831, 3.001/4.426seconds; route-only .676/.677, 2.674/3.082, 2.884/3.534. Both200ms gates FAIL. Routing still ends after endpoint median1.125seconds. Initial Pocket setup omission and missing task-store compile reader are separately pinned; no production await/default/owner-store migration. Eight related top-level flags exit0; privacy21files/0watcheddefaults is narrow, and nested tool-loop A02fails18 due unchanged requested-flag admission mismatch. Conditional native prefill entry RED and Mini before/after evidence are pending at this writing. These observations qualify neither release/physical microphone/ears nor broader quality/readiness. Read [listen2 evidence](Tests/Reports/pl12-listen2/README.md); retain actual failures and broadcast through agent-relay.
 
 8 October listen2 follow-up: diagnostic native resident admission RED5/GREEN, original prefill body and route fixture unchanged GREEN. Matched Mini final n5 timestamps L1 median/p95 .713/.933s, L2 5.197/22.596s, L3 7.323/23.143s; both200ms gates FAIL. VOICE_LATENCY_FAILED remains: first correctly joined pinned cold-answer row lacks final counts at the unchanged25s response deadline; three VAD endpoints and .296s main stall. Excluded warmup also lacks a real answer-token mark. No completed five-pass/native acceptance or cold-start fix claim. Final default pipeline fails coldEOU/VAD, prefix speed ratio fails; neither invokes the new diagnostic entry and their relevant bodies are unchanged, but cause/latency contracts remain open. Privacy21files/0defaults OK retains nested18 A02 failures. All failed candidates, exact source/fixture/binary pins, actual verdicts and resource scope are retained in [the listen2 report](Tests/Reports/pl12-listen2/README.md). No timeout, threshold, sampler, model/default, installed app or product audio-path gate changed.
+
+
+9 October voice-ack bounded feature: actual coordinator/scheduler controls RED39/10
+-> unchanged GREEN39/0. Actual speech-completion cache producer RED34/1 -> GREEN;
+actual cleaned-input capture producer (high cleaned level, nearCandidate=false)
+RED38/1 -> same-fixture GREEN38/0, preserving normal answer floor rules. Commits
+3d1a5070,4832a60f,e36ac834,b782ad3b retain source/consumer and original/fixed evidence.
+One invariant uninstalled release561e2308 and authored listen2 WAVec9f48e5 supply
+matched file-fed one-warmup+n5 arms: ACK median120/p95129/min116/max129ms from
+committed endpoint to first played10ms buffer, strict200ms PASS5; actual Apple
+synthesis calls0. Both timing roots and all8 related roots exit0; nested browser18
+TOOLLOOP_PRODUCTION_FAILED and duplex2 remain. L1 medians680/675ms and L2
+2.635/2.941s retain old200ms failures; endpointing adds about1s before commit.
+No causal answer-speed/equivalence claim from this ordered pair. First native
+preparation ABSENT remains unreproduced/unattributed; later raw lengths vary,
+faithful/final clips ready under unchanged2s bounds/texts/schema. Four-profile
+trace did not establish raw refusal, and proposed correction was rejected.
+Own sampled footprint before/after606128024/618219656B excludes hosted services,
+children and continuous peaks. Physical microphone/ears/Kokoro timing, normal
+startup/resource admission, first-refusal cause, combined no-Apple/Mini/Catch-up
+transport/counter/preparation/preemption and broader quality/default/readiness
+contracts remain open. Full pins, failed attempts, actual markers, manual merge
+contracts and released shared-scratch cleanup are in the
+[voice-ack report](Tests/Reports/voice-ack/README.md). No install/push/merge or
+owner-store migration; findings shared via agent-relay, sending not reading proof.

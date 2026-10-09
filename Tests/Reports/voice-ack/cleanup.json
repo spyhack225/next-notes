@@ -1,0 +1,9 @@
+{
+  "scratch": "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice",
+  "allocated_bytes_before": 3464863744,
+  "release_sha256": "561e23082548c165c2f6be0e692e7c8ae514d0450bd34754fbd419b190d5067a",
+  "ownership_release": "relay1156 positioning +1166 settings; prior Mini release1055",
+  "all_owned_final_child_processes_joined": true,
+  "scope": "only assigned shared voice scratch; no global reclamation claim; models/owner stores/foreign scratch/processes retained",
+  "scratch_removed": true
+}

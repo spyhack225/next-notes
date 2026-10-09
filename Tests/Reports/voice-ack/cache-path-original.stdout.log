@@ -1,0 +1,38 @@
+[01:30:21.372] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[01:30:21.373] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[01:30:23.796] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[01:30:24.463] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[01:30:25.297] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[01:30:25.407] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[01:30:25.409] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 4.03s
+[01:30:25.417] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[01:30:25.417] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[01:30:25.417] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[01:30:25.422] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[01:30:25.429] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[01:30:25.429] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[01:30:25.430] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+VOICE_LATENCY_TTS_READY=pocket
+VOICE_ACK_CACHE_TRACE selection engine=pocket voice=alba generation=2
+VOICE_ACK_CACHE_TRACE stage=clip-0-entry generation=2 cancelled=false
+[01:30:26.340] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[01:30:26.340] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Mm.', 1 chunk(s)
+[01:30:26.340] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Mm.'
+[01:30:26.525] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0 EOS at step 6
+VOICE_ACK_CACHE_TRACE stage=clip-0-prepare raw_samples=21120 rate=24000.0 generation=2 cancelled=false
+VOICE_ACK_CACHE_TRACE stage=clip-0-publish-file generation=2 cancelled=false selection_matches=true
+VOICE_ACK_CACHE_TRACE stage=clip-0-split prepared_samples=21120
+VOICE_ACK_CACHE_TRACE stage=clip-1-entry generation=2 cancelled=false
+[01:30:26.640] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[01:30:26.640] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Okay.', 1 chunk(s)
+[01:30:26.640] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Okay.'
+[01:30:26.790] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0 EOS at step 5
+VOICE_ACK_CACHE_TRACE stage=clip-1-prepare raw_samples=19200 rate=24000.0 generation=2 cancelled=false
+VOICE_ACK_CACHE_TRACE stage=clip-1-publish-file generation=2 cancelled=false selection_matches=true
+VOICE_ACK_CACHE_TRACE stage=clip-1-split prepared_samples=19194
+VOICE_ACK_CACHE_TRACE stage=publish-memory count=2 generation=2 cancelled=false selection_matches=true model_ready=true
+VOICE_ACK_CACHE_TRACE returned ready_count=2 current_key=7e3e7a409a07165edd010367ca212af413541a8bb8d0fbd33aa0a915a0da814f retained_key=7e3e7a409a07165edd010367ca212af413541a8bb8d0fbd33aa0a915a0da814f model_ready=true task_present=false
+VOICE_ACK_CACHE ready=2 isolated=true enabled=true engine=pocket voice=alba
+VOICE_ACK_CACHE_PATH_READY: two actual selected-voice clips; no turn timing measured
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0
+VOICE_ACK_CACHE_PATH_OK

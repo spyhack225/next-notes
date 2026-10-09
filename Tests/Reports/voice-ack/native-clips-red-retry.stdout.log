@@ -1,0 +1,39 @@
+[01:06:13.961] [INFO] [FluidAudio.PocketTtsResourceDownloader] PocketTTS english (int8) models found in cache
+[01:06:13.962] [INFO] [FluidAudio.PocketTtsModelStore] Loading PocketTTS CoreML models (language=english, precision=int8)...
+[01:06:16.216] [INFO] [FluidAudio.PocketTtsModelStore] Loaded cond_prefill.mlmodelc (computeUnits=2)
+[01:06:16.761] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flowlm_stepv2.mlmodelc (computeUnits=2)
+[01:06:17.571] [INFO] [FluidAudio.PocketTtsModelStore] Loaded flow_decoder_fused.mlmodelc (computeUnits=2)
+[01:06:17.677] [INFO] [FluidAudio.PocketTtsModelStore] Loaded mimi_decoder.mlmodelc (computeUnits=0)
+[01:06:17.678] [INFO] [FluidAudio.PocketTtsModelStore] All PocketTTS models loaded in 3.71s
+[01:06:17.684] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS constants from english
+[01:06:17.684] [INFO] [FluidAudio.PocketTtsModelStore] PocketTTS constants loaded
+[01:06:17.684] [NOTICE] [FluidAudio.PocketTtsManager] PocketTtsManager initialized
+[01:06:17.685] [INFO] [FluidAudio.PocketTtsConstantsLoader] Loaded PocketTTS voice 'alba' from safetensors (6 layers, seq=126)
+[01:06:17.692] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[01:06:17.692] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Ready.', 1 chunk(s)
+[01:06:17.693] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Ready.'
+VOICE_LATENCY_TTS_READY=pocket
+VOICE_ACK_NATIVE_SELECTION engine=pocket voice=alba key=7e3e7a409a07165edd010367ca212af413541a8bb8d0fbd33aa0a915a0da814f
+[01:06:18.620] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[01:06:18.620] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Mm.', 1 chunk(s)
+[01:06:18.620] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Mm.'
+[01:06:18.704] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0 EOS at step 2
+VOICE_ACK_NATIVE_CLIP index=0 raw_samples=13440 body_samples=13440 rate=24000.0 original_bound_ok=true finite=true
+[01:06:18.804] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[01:06:18.804] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Okay.', 1 chunk(s)
+[01:06:18.804] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Okay.'
+[01:06:18.990] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0 EOS at step 8
+VOICE_ACK_NATIVE_CLIP index=1 raw_samples=24960 body_samples=24960 rate=24000.0 original_bound_ok=true finite=true
+[01:06:19.092] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[01:06:19.092] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'Got it.', 1 chunk(s)
+[01:06:19.092] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        Got it.'
+[01:06:19.296] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0 EOS at step 9
+VOICE_ACK_NATIVE_CLIP index=2 raw_samples=26880 body_samples=26880 rate=24000.0 original_bound_ok=true finite=true
+[01:06:19.396] [INFO] [FluidAudio.PocketTtsSynthesizer] Session voice prefill at position 126
+[01:06:19.396] [INFO] [FluidAudio.PocketTtsSession] Session enqueued 'One sec.', 1 chunk(s)
+[01:06:19.396] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0: '        One sec.'
+[01:06:19.581] [INFO] [FluidAudio.PocketTtsSession] Session chunk 0 EOS at step 8
+VOICE_ACK_NATIVE_CLIP index=3 raw_samples=24960 body_samples=24947 rate=24000.0 original_bound_ok=true finite=true
+VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready
+VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0
+VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready

@@ -1,0 +1,63 @@
+{
+  "scope": "one owned optimized release process; 1s sampled maxima, not continuous peaks; hosted services/children excluded",
+  "pid": 56316,
+  "exit": 1,
+  "before": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "hardware": "Apple M3",
+    "memory_bytes": "17179869184",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 8192.00M  used = 6909.25M  free = 1282.75M  (encrypted)",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 192989736  11114656    95% 2506263 111146560    2%   /System/Volumes/Data",
+    "load": "23:07  up 1 day, 12:19, 1 user, load averages: 3.91 5.87 6.92",
+    "concurrent_target_processes": [
+      "846 /usr/libexec/modelmanagerd",
+      "849 /usr/libexec/audiomxd",
+      "52144 /Applications/Next Notes.app/Contents/MacOS/NextNotes"
+    ]
+  },
+  "after": {
+    "os": "ProductName:\t\tmacOS\nProductVersion:\t\t27.2\nBuildVersion:\t\t26B5091g",
+    "hardware": "Apple M3",
+    "memory_bytes": "17179869184",
+    "power": "Now drawing from 'AC Power'\n -InternalBattery-0 (id=40566883)\t100%; charged; 0:00 remaining present: true",
+    "thermal": "Note: No thermal warning level has been recorded\nNote: No performance warning level has been recorded\nNote: No CPU power status has been recorded",
+    "swap": "vm.swapusage: total = 8192.00M  used = 6909.25M  free = 1282.75M  (encrypted)",
+    "disk": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 192990364  11114028    95% 2506276 111140280    2%   /System/Volumes/Data",
+    "load": "23:07  up 1 day, 12:19, 1 user, load averages: 3.59 5.77 6.88",
+    "concurrent_target_processes": [
+      "846 /usr/libexec/modelmanagerd",
+      "849 /usr/libexec/audiomxd",
+      "52144 /Applications/Next Notes.app/Contents/MacOS/NextNotes"
+    ]
+  },
+  "rows": [
+    {
+      "t": 0.073,
+      "pid": 56316,
+      "start": 3106546282288,
+      "rss": 32768,
+      "footprint": 81992,
+      "wired": 0
+    },
+    {
+      "t": 1.075,
+      "pid": 56316,
+      "start": 3106546282288,
+      "rss": 633520128,
+      "footprint": 429786792,
+      "wired": 129433600
+    },
+    {
+      "t": 2.084,
+      "pid": 56316,
+      "start": 3106546282288,
+      "rss": 744800256,
+      "footprint": 485394208,
+      "wired": 139329536
+    }
+  ],
+  "peak_rss": 744800256,
+  "peak_footprint": 485394208
+}

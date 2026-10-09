@@ -1,0 +1,14 @@
+{
+  "Sources/NextNotes/Activation/AgentCaptureController.swift": "c3e3d68c6466148b836c0cccd68c351395752e0154a97ac2d5d5c2415c0dc615",
+  "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift": "409e7f66aba90b7575c6b9bda7a8218451e170cf25d4d122023725f17b45717a",
+  "Sources/NextNotes/Agent/RealtimeAudioSession.swift": "676e6a1ad32ea7618730e8c393b30c03a384ea24c01fa153b5c55b55b0de8bd3",
+  "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "cd122d4cd8265e823101efbb6782f937ee74c4e33fd3a0d8efc0293b08143fcd",
+  "Sources/NextNotes/Agent/Voice/VoiceAcknowledgement.swift": "b6c4e5b6a08adcebfb64aba032aa83620800ade233dea59fbafcb95bec80cf0f",
+  "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClipSelfTest.swift": "467d16b03fe57eb3ecb0d615fa2fab6d6b33e0f3de012c24b218982dec374343",
+  "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClips.swift": "08ec244d0ed8ee01eb47eddccda5b122a8e867c7e1b91623237c774927ddce1e",
+  "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementSelfTest.swift": "127b39cea63b5ba723e39428188082828b47f36c03c9fe47d7cc0a233e4a7fd7",
+  "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift": "7c864440058ec287942ddf355fc560c23f92981d5854a7cc60c3ec43b769b328",
+  "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift": "a1298a898d9cf2520aabc93284d754b392d5702402f04ef1a0ef954b3be74b6c",
+  "Sources/NextNotes/Agent/Voice/VoiceLatencyTimeline.swift": "a8e7e9baf16432eca30ddd73438833d3990860fc0db39c3a98cc633cbe80b3aa",
+  "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "6a2055cb8c4c95840880e52199d2c1afdda3f3d53ff7a9ac0b4d27100358ccad"
+}

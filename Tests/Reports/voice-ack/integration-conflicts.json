@@ -1,0 +1,26 @@
+{
+  "declared_dirty_conflicts": [],
+  "currently_dirty_conflicts": [],
+  "canonical_HEAD": "55d402ee3778e7b2204e969adec9c5108c2b192a",
+  "scope": [
+    "PERFORMANCE-STANDARDS.md",
+    "Sources/NextNotes/Activation/AgentCaptureController.swift",
+    "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift",
+    "Sources/NextNotes/Agent/RealtimeAudioSession.swift",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgement.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClipSelfTest.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementClips.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementSelfTest.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceDiagnosticSpeech.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencyTimeline.swift",
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift"
+  ],
+  "peer_branch_manual_merge_required": [
+    "Mini common speech helper/counter/harness",
+    "no-Apple neutral PCM owner/preparation/counter/refusal fencing",
+    "Catch-up file playback pause at admitted courtesy PCM entry"
+  ],
+  "scope_note": "read-only canonical inspection; peer branch overlap is distinct from current dirty files"
+}

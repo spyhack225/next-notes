@@ -1,0 +1,21 @@
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 4, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 3, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+heavy: queue position 2, waiting
+Traceback (most recent call last):
+  File "<stdin>", line 6, in <module>
+AssertionError: refuse changed diagnostic executable

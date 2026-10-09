@@ -1,0 +1,6 @@
+{
+  "dependency_source_sha256": "601e19387a17ec01184d6ee6cc0764225ee173c73864c0380397eacc530c50d3",
+  "source_excerpt": "/// Estimate maximum generation frames based on text length.\n    ///\n    /// At 80ms per frame, 12.5 frames \u2248 1 second of audio per word.\n    /// The +2 adds margin for pauses and trailing silence.\n    static func estimateMaxFrames(text: String) -> Int {\n        let wordCount = text.split(separator: \" \").count\n        let genLenSec = Double(wordCount) + 2.0\n        return Int(genLenSec * 12.5)\n    }",
+  "hypothesis_only": "native generated padding can exceed a raw two-second bound despite a short prepared body; actual four-profile PCM trace required",
+  "production_bound_before": "raw <=48000 samples, 24000Hz; prepared body also bounded by raw check"
+}

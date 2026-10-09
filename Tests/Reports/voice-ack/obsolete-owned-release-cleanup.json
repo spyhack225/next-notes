@@ -1,0 +1,11 @@
+{
+  "binary_sha256": "57fb1ef052132a00da5fe7d02d7ac29d15644ef40925f59405e5e50c82460afe",
+  "symbols_uuid": "B234E9DC-C8FE-3DDF-8AE5-CFF427479256",
+  "paths": {
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice/out/Products/Release/NextNotes": 99336192,
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt-scratch/voice/out/Products/Release/NextNotes.dSYM": 178794496
+  },
+  "before_df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 193401008  11800784    95% 2498846 118007840    2%   /System/Volumes/Data\n",
+  "scope": "verified own obsolete release executable/symbols only; shared debug/dependencies/foreign artifacts retained",
+  "after_df": "Filesystem   1024-blocks      Used Available Capacity iused     ifree %iused  Mounted on\n/dev/disk3s5   239331776 193129388  12072404    95% 2498837 120724040    2%   /System/Volumes/Data\n"
+}

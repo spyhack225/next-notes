@@ -1,0 +1,463 @@
+{
+  "before-no-ack": {
+    "rows": [
+      {
+        "run": 1,
+        "speech_end_to_eou": 1.003,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.004,
+        "clause_to_first_pcm": 0.145,
+        "first_pcm_to_audible": 0.019,
+        "L1": 0.673,
+        "L2": 5.161,
+        "L3": 5.325,
+        "main_stall_max": 0.017
+      },
+      {
+        "run": 2,
+        "speech_end_to_eou": 1.005,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.006,
+        "clause_to_first_pcm": 0.115,
+        "first_pcm_to_audible": 0.017,
+        "L1": 0.67,
+        "L2": 4.41,
+        "L3": 4.542,
+        "main_stall_max": 0.027
+      },
+      {
+        "run": 3,
+        "speech_end_to_eou": 1.013,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.014,
+        "clause_to_first_pcm": 0.138,
+        "first_pcm_to_audible": 0.018,
+        "L1": 0.677,
+        "L2": 3.73,
+        "L3": 3.886,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 4,
+        "speech_end_to_eou": 1.003,
+        "eou_to_endpoint": 0.0,
+        "speech_end_to_endpoint": 1.004,
+        "clause_to_first_pcm": 0.131,
+        "first_pcm_to_audible": 0.016,
+        "L1": 0.677,
+        "L2": 2.687,
+        "L3": 2.834,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 5,
+        "speech_end_to_eou": 1.002,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.003,
+        "clause_to_first_pcm": 0.139,
+        "first_pcm_to_audible": 0.026,
+        "L1": 0.68,
+        "L2": 2.686,
+        "L3": 2.851,
+        "main_stall_max": 0.0
+      }
+    ],
+    "distributions": {
+      "L1": {
+        "median": 0.677,
+        "p95": 0.68,
+        "min": 0.67,
+        "max": 0.68,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "L2": {
+        "median": 3.73,
+        "p95": 5.161,
+        "min": 2.686,
+        "max": 5.161,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "L3": {
+        "median": 3.886,
+        "p95": 5.325,
+        "min": 2.834,
+        "max": 5.325,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "speech_end_to_endpoint": {
+        "median": 1.004,
+        "p95": 1.014,
+        "min": 1.003,
+        "max": 1.014,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "speech_end_to_eou": {
+        "median": 1.003,
+        "p95": 1.013,
+        "min": 1.002,
+        "max": 1.013,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "eou_to_endpoint": {
+        "median": 0.001,
+        "p95": 0.001,
+        "min": 0.0,
+        "max": 0.001,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "main_stall_max": {
+        "median": 0.0,
+        "p95": 0.027,
+        "min": 0.0,
+        "max": 0.027,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      }
+    },
+    "final_marker": "VOICE_LATENCY_OK",
+    "ack_column_present": false,
+    "gate_lines": [
+      "VOICE_ACK_APPLE_SYNTHESIS_CALLS=0",
+      "VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0"
+    ]
+  },
+  "after-ack": {
+    "rows": [],
+    "distributions": {},
+    "final_marker": "VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready",
+    "ack_column_present": false,
+    "gate_lines": [
+      "VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0"
+    ]
+  },
+  "before-no-ack-final": {
+    "rows": [
+      {
+        "run": 1,
+        "speech_end_to_eou": 1.006,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.006,
+        "clause_to_first_pcm": 0.127,
+        "first_pcm_to_audible": 0.024,
+        "L1": 0.677,
+        "L2": 3.041,
+        "L3": 3.191,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 2,
+        "speech_end_to_eou": 1.007,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.007,
+        "clause_to_first_pcm": 0.102,
+        "first_pcm_to_audible": 0.022,
+        "L1": 0.679,
+        "L2": 3.017,
+        "L3": 3.14,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 3,
+        "speech_end_to_eou": 1.004,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.005,
+        "clause_to_first_pcm": 0.161,
+        "first_pcm_to_audible": 0.019,
+        "L1": 0.681,
+        "L2": 2.454,
+        "L3": 2.634,
+        "main_stall_max": 0.019
+      },
+      {
+        "run": 4,
+        "speech_end_to_eou": 1.003,
+        "eou_to_endpoint": 0.0,
+        "speech_end_to_endpoint": 1.004,
+        "clause_to_first_pcm": 0.129,
+        "first_pcm_to_audible": 0.028,
+        "L1": 0.68,
+        "L2": 2.635,
+        "L3": 2.792,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 5,
+        "speech_end_to_eou": 1.004,
+        "eou_to_endpoint": 0.0,
+        "speech_end_to_endpoint": 1.005,
+        "clause_to_first_pcm": 0.138,
+        "first_pcm_to_audible": 0.02,
+        "L1": 0.683,
+        "L2": 2.527,
+        "L3": 2.685,
+        "main_stall_max": 0.0
+      }
+    ],
+    "distributions": {
+      "L1": {
+        "median": 0.68,
+        "p95": 0.683,
+        "min": 0.677,
+        "max": 0.683,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "L2": {
+        "median": 2.635,
+        "p95": 3.041,
+        "min": 2.454,
+        "max": 3.041,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "L3": {
+        "median": 2.792,
+        "p95": 3.191,
+        "min": 2.634,
+        "max": 3.191,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "speech_end_to_endpoint": {
+        "median": 1.005,
+        "p95": 1.007,
+        "min": 1.004,
+        "max": 1.007,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "speech_end_to_eou": {
+        "median": 1.004,
+        "p95": 1.007,
+        "min": 1.003,
+        "max": 1.007,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "eou_to_endpoint": {
+        "median": 0.001,
+        "p95": 0.001,
+        "min": 0.0,
+        "max": 0.001,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "main_stall_max": {
+        "median": 0.0,
+        "p95": 0.019,
+        "min": 0.0,
+        "max": 0.019,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      }
+    },
+    "final_marker": "VOICE_LATENCY_OK",
+    "ack_column_present": false,
+    "gate_lines": [
+      "VOICE_ACK_APPLE_SYNTHESIS_CALLS=0",
+      "VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0"
+    ]
+  },
+  "after-ack-final": {
+    "rows": [
+      {
+        "run": 1,
+        "speech_end_to_eou": 1.015,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.016,
+        "clause_to_first_pcm": 0.132,
+        "first_pcm_to_audible": 0.023,
+        "L1": 0.675,
+        "L2": 2.95,
+        "L3": 3.105,
+        "ACK": 0.116,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 2,
+        "speech_end_to_eou": 1.006,
+        "eou_to_endpoint": 0.0,
+        "speech_end_to_endpoint": 1.007,
+        "clause_to_first_pcm": 0.101,
+        "first_pcm_to_audible": 0.023,
+        "L1": 0.673,
+        "L2": 2.941,
+        "L3": 3.065,
+        "ACK": 0.124,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 3,
+        "speech_end_to_eou": 1.007,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.008,
+        "clause_to_first_pcm": 0.127,
+        "first_pcm_to_audible": 0.023,
+        "L1": 0.674,
+        "L2": 3.008,
+        "L3": 3.159,
+        "ACK": 0.129,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 4,
+        "speech_end_to_eou": 1.008,
+        "eou_to_endpoint": 0.001,
+        "speech_end_to_endpoint": 1.009,
+        "clause_to_first_pcm": 0.122,
+        "first_pcm_to_audible": 0.024,
+        "L1": 0.677,
+        "L2": 2.669,
+        "L3": 2.815,
+        "ACK": 0.117,
+        "main_stall_max": 0.0
+      },
+      {
+        "run": 5,
+        "speech_end_to_eou": 1.005,
+        "eou_to_endpoint": 0.0,
+        "speech_end_to_endpoint": 1.006,
+        "clause_to_first_pcm": 0.148,
+        "first_pcm_to_audible": 0.03,
+        "L1": 0.677,
+        "L2": 2.793,
+        "L3": 2.971,
+        "ACK": 0.12,
+        "main_stall_max": 0.0
+      }
+    ],
+    "distributions": {
+      "ACK": {
+        "median": 0.12,
+        "p95": 0.129,
+        "min": 0.116,
+        "max": 0.129,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "L1": {
+        "median": 0.675,
+        "p95": 0.677,
+        "min": 0.673,
+        "max": 0.677,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "L2": {
+        "median": 2.941,
+        "p95": 3.008,
+        "min": 2.669,
+        "max": 3.008,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "L3": {
+        "median": 3.065,
+        "p95": 3.159,
+        "min": 2.815,
+        "max": 3.159,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "speech_end_to_endpoint": {
+        "median": 1.008,
+        "p95": 1.016,
+        "min": 1.006,
+        "max": 1.016,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "speech_end_to_eou": {
+        "median": 1.007,
+        "p95": 1.015,
+        "min": 1.005,
+        "max": 1.015,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "eou_to_endpoint": {
+        "median": 0.001,
+        "p95": 0.001,
+        "min": 0.0,
+        "max": 0.001,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      },
+      "main_stall_max": {
+        "median": 0.0,
+        "p95": 0.0,
+        "min": 0.0,
+        "max": 0.0,
+        "n": 5,
+        "units": "s",
+        "precision": "printed 0.001s"
+      }
+    },
+    "final_marker": "VOICE_LATENCY_OK",
+    "ack_column_present": true,
+    "gate_lines": [
+      "VOICE_ACK_GATE=PASS target_median_s=0.200 n=5",
+      "VOICE_ACK_APPLE_SYNTHESIS_CALLS=0",
+      "VOICE_DIAGNOSTIC_APPLE_CALLS=0 silent_failure_clauses=0"
+    ]
+  },
+  "original_scripted_fixture_sha256": "127b39cea63b5ba723e39428188082828b47f36c03c9fe47d7cc0a233e4a7fd7",
+  "original_scripted_fixture_unchanged": true,
+  "status": [
+    "output-idle-red exit=1 marker=VOICE_ACK_FAILED",
+    "green-policy exit=0 marker=VOICE_ACK_OK",
+    "before-no-ack exit=0 marker=VOICE_LATENCY_OK",
+    "after-ack exit=1 marker=VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready",
+    "voice-pipeline exit=0 marker=VOICE_PIPELINE_OK",
+    "voice-turn-routing exit=0 marker=VOICE_TURN_ROUTING_OK",
+    "concurrent-voice exit=0 marker=CONCURRENT_VOICE_OK",
+    "voice-conversation exit=0 marker=VOICE_CONVERSATION_OK",
+    "duplex exit=0 marker=DUPLEX_OK (stdout)",
+    "voice-scheduling exit=0 marker=VOICE_SCHEDULING_OK",
+    "tts exit=0 marker=TTS_OK (stdout)",
+    "store-isolation exit=0 marker=STORE_ISOLATION_OK: 21 files and 0 defaults unchanged",
+    "cleaned-resume-red exit=1 marker=VOICE_ACK_FAILED",
+    "native-clips-red exit=1 marker=VOICE_LATENCY_ABSENT: fixture haiku16k.wav is missing \u2014 run Scripts/make-voice-fixtures.sh",
+    "native-clips-red-retry exit=1 marker=VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready",
+    "cleaned-resume-green-trace exit=0 marker=VOICE_ACK_OK",
+    "cache-path-original exit=0 marker=VOICE_ACK_CACHE_PATH_OK",
+    "green-policy-final exit=0 marker=VOICE_ACK_OK",
+    "before-no-ack-final exit=0 marker=VOICE_LATENCY_OK",
+    "after-ack-final exit=0 marker=VOICE_LATENCY_OK",
+    "voice-pipeline-final exit=0 marker=VOICE_PIPELINE_OK",
+    "voice-turn-routing-final exit=0 marker=VOICE_TURN_ROUTING_OK",
+    "concurrent-voice-final exit=0 marker=CONCURRENT_VOICE_OK",
+    "voice-conversation-final exit=0 marker=VOICE_CONVERSATION_OK",
+    "duplex-final exit=0 marker=DUPLEX_OK",
+    "voice-scheduling-final exit=0 marker=VOICE_SCHEDULING_OK",
+    "tts-final exit=0 marker=TTS_OK",
+    "store-isolation-final exit=0 marker=STORE_ISOLATION_OK: 21 files and 0 defaults unchanged"
+  ]
+}

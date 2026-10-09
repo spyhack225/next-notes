@@ -1,0 +1,28 @@
+output-idle-red exit=1 marker=VOICE_ACK_FAILED
+green-policy exit=0 marker=VOICE_ACK_OK
+before-no-ack exit=0 marker=VOICE_LATENCY_OK
+after-ack exit=1 marker=VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready
+voice-pipeline exit=0 marker=VOICE_PIPELINE_OK
+voice-turn-routing exit=0 marker=VOICE_TURN_ROUTING_OK
+concurrent-voice exit=0 marker=CONCURRENT_VOICE_OK
+voice-conversation exit=0 marker=VOICE_CONVERSATION_OK
+duplex exit=0 marker=DUPLEX_OK (stdout)
+voice-scheduling exit=0 marker=VOICE_SCHEDULING_OK
+tts exit=0 marker=TTS_OK (stdout)
+store-isolation exit=0 marker=STORE_ISOLATION_OK: 21 files and 0 defaults unchanged
+cleaned-resume-red exit=1 marker=VOICE_ACK_FAILED
+native-clips-red exit=1 marker=VOICE_LATENCY_ABSENT: fixture haiku16k.wav is missing — run Scripts/make-voice-fixtures.sh
+native-clips-red-retry exit=1 marker=VOICE_LATENCY_ABSENT: selected Pocket acknowledgement clips did not become ready
+cleaned-resume-green-trace exit=0 marker=VOICE_ACK_OK
+cache-path-original exit=0 marker=VOICE_ACK_CACHE_PATH_OK
+green-policy-final exit=0 marker=VOICE_ACK_OK
+before-no-ack-final exit=0 marker=VOICE_LATENCY_OK
+after-ack-final exit=0 marker=VOICE_LATENCY_OK
+voice-pipeline-final exit=0 marker=VOICE_PIPELINE_OK
+voice-turn-routing-final exit=0 marker=VOICE_TURN_ROUTING_OK
+concurrent-voice-final exit=0 marker=CONCURRENT_VOICE_OK
+voice-conversation-final exit=0 marker=VOICE_CONVERSATION_OK
+duplex-final exit=0 marker=DUPLEX_OK
+voice-scheduling-final exit=0 marker=VOICE_SCHEDULING_OK
+tts-final exit=0 marker=TTS_OK
+store-isolation-final exit=0 marker=STORE_ISOLATION_OK: 21 files and 0 defaults unchanged

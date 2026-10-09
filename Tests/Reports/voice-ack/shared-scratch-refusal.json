@@ -1,0 +1,9 @@
+{
+  "refused_expected_sha256": "495dcab18920da691826b4a207eec1636bf50783d92e762d62d3be49cbedcfda",
+  "observed_sha256": "bfb1b2f77926ec8fe34d6c273e290a3ec85a4070cf3208ced12972149315c0d6",
+  "observed_embedded_source_roots": [
+    "/Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/Sources"
+  ],
+  "native_probe_started": false,
+  "mitigation": "rebuild and pin inside the same serialized heavy slot; coordinate shared cleanup"
+}
