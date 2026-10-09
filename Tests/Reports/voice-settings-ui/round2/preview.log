@@ -1,0 +1,14 @@
+2026-10-09 01:52:02.463 NextNotes[95497:4764897] WARNING: Application performed a reentrant operation in its NSTableView delegate. This warning will become an assert in the future.
+VOICE_SETTINGS_PREVIEW_OK /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/Tests/Reports/voice-settings-ui/round2/shots
+VOICE_SETTINGS_PREVIEW_OK 11 image(s): /Users/sergekadjo/Library/Caches/NextNotesBuild/wt/voice-settings-ui/Tests/Reports/voice-settings-ui/round2/shots
+  voice-ready.png
+  voice-preparing.png
+  voice-preparing-progress.png
+  voice-needs-download.png
+  voice-failed.png
+  voice-kokoro-ready.png
+  voice-kokoro-preparing.png
+  voice-kokoro-needs-download.png
+  voice-kokoro-failed.png
+  voice-kokoro-unavailable.png
+  voice-text-only-lines.png

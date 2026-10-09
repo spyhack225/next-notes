@@ -16,8 +16,6 @@ struct ModelsSettingsTab: View {
     @State private var installed = InstalledModelLibrary.shared
     @State private var roles = ModelRoleStore.shared
     @State private var loadNotice = ModelLoadNotice.shared
-    @State private var pocket = PocketAgentVoice.shared
-    @State private var kokoro = KokoroAgentVoice.shared
     @State private var functionCalls = FunctionCallStore.shared
     @State private var isPreviewing = false
     @State private var previewTask: Task<Void, Never>?
@@ -134,11 +132,8 @@ struct ModelsSettingsTab: View {
                 await library.refreshAccessKey()
                 await library.loadRecommended()
             }
-            if settings.agentVoiceEngine == "pocket" {
-                Task { await pocket.prepare() }
-            } else if settings.agentVoiceEngine == "kokoro", KokoroAgentVoice.isSupportedOS {
-                Task { await kokoro.prepare() }
-            }
+            // Normal startup owns automatic preparation. Opening this screen only
+            // observes it; Download, selection and Retry join the speech owner.
         }
         .onDisappear { if isPreviewing { stopPreview() } }
         .sheet(item: $library.pendingConfirmation) { pending in

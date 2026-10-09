@@ -1,0 +1,19 @@
+  Built-in Retina Display: 1710x1112 at 0,0 — safe-area top 37pt, notch 208pt wide
+    hugs the notch, collapsed 352x37, expanded 480x145, panel at 615,966
+  27G2G4: 1080x1920 at -1080,0 — safe-area top 0pt, notch none
+    floats below the menu bar, collapsed 144x30, expanded 480x138, panel at -780,1746
+ISLAND_VOICE_OWNERSHIP_CHECKS: 32
+  ISLAND_WRONG: island ownership: F01 actual sessionOpened publishes matching listening consumer
+  ISLAND_WRONG: island ownership: F02 canonical current-session multiple-task still indicator
+  ISLAND_WRONG: island ownership: F03 real parked frontend owns Thinking character
+  ISLAND_WRONG: island ownership: BF01 admitted ACP activity is refused at the real Island writer
+  ISLAND_WRONG: island ownership: BF02 actual typed tool publication cannot replace conversation
+  ISLAND_WRONG: island ownership: BF03 actual scheduled tool publication cannot replace conversation
+  ISLAND_WRONG: island ownership: F04 worker read title and global reading pose never replace conversation
+  ISLAND_WRONG: island ownership: F05 actual inherited worker Task attempts zero Island/Activation writes
+  ISLAND_WRONG: island ownership: F06 actual proposal outranks readout and canonical indicator names waiting approval
+  ISLAND_WRONG: island ownership: F07 actual current backend onset reaches speaking Island consumer
+  ISLAND_WRONG: island ownership: F10 retained cancelled worker stays visible without stealing speaking character
+  ISLAND_WRONG: island ownership: F09 full actual worker drain leaves zero attempted writes and owner writes unchanged
+  ISLAND_WRONG: island ownership: INPUT_INVALID endpoint panel prior owner
+ISLAND_FAILED: 13 rule(s) wrong

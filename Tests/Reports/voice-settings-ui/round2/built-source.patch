@@ -1,0 +1,186 @@
+diff --git a/Sources/NextNotes/NextNotesApp.swift b/Sources/NextNotes/NextNotesApp.swift
+index f98768d4..49e9ce7b 100644
+--- a/Sources/NextNotes/NextNotesApp.swift
++++ b/Sources/NextNotes/NextNotesApp.swift
+@@ -125,6 +125,8 @@ enum SelfTest {
+                 exit(1)
+             }
+         }
++        // Voice previews draw authored states, never the owner's saved preferences.
++        if arguments.contains("--voice-settings-preview") { return "--voice-settings-preview" }
+         return arguments.first {
+             $0.hasPrefix("--selftest") && !harnessFlags.contains($0)
+         }
+@@ -1806,6 +1808,16 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
+             }
+             return true
+         }
++        if arguments.contains("--selftest-voice-settings") {
++            Task { @MainActor in
++                let failures = await VoiceSettingsSelfTest.run()
++                for failure in failures { writeSelfTest("VOICE_SETTINGS_WRONG: " + failure) }
++                writeSelfTest(failures.isEmpty ? "VOICE_SETTINGS_OK" : "VOICE_SETTINGS_FAILED: \(failures.count) assertions")
++                SelfTest.failed = !failures.isEmpty
++                SelfTest.requestTermination()
++            }
++            return true
++        }
+         if arguments.contains("--selftest-settings") {
+             runSettingsSelfTest()
+             return true
+diff --git a/Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift b/Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift
+index f86f7a42..76323b8b 100644
+--- a/Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift
++++ b/Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift
+@@ -16,8 +16,6 @@ struct ModelsSettingsTab: View {
+     @State private var installed = InstalledModelLibrary.shared
+     @State private var roles = ModelRoleStore.shared
+     @State private var loadNotice = ModelLoadNotice.shared
+-    @State private var pocket = PocketAgentVoice.shared
+-    @State private var kokoro = KokoroAgentVoice.shared
+     @State private var functionCalls = FunctionCallStore.shared
+     @State private var isPreviewing = false
+     @State private var previewTask: Task<Void, Never>?
+@@ -134,11 +132,8 @@ struct ModelsSettingsTab: View {
+                 await library.refreshAccessKey()
+                 await library.loadRecommended()
+             }
+-            if settings.agentVoiceEngine == "pocket" {
+-                Task { await pocket.prepare() }
+-            } else if settings.agentVoiceEngine == "kokoro", KokoroAgentVoice.isSupportedOS {
+-                Task { await kokoro.prepare() }
+-            }
++            // Normal startup owns automatic preparation. Opening this screen only
++            // observes it; Download, selection and Retry join the speech owner.
+         }
+         .onDisappear { if isPreviewing { stopPreview() } }
+         .sheet(item: $library.pendingConfirmation) { pending in
+diff --git a/Sources/NextNotes/UI/Settings/VoiceSettingsPreview.swift b/Sources/NextNotes/UI/Settings/VoiceSettingsPreview.swift
+index 06280360..c825279c 100644
+--- a/Sources/NextNotes/UI/Settings/VoiceSettingsPreview.swift
++++ b/Sources/NextNotes/UI/Settings/VoiceSettingsPreview.swift
+@@ -8,13 +8,18 @@ import SwiftUI
+ /// which is what lets every state be drawn without a real download going wrong on purpose.
+ @MainActor
+ enum VoiceSettingsPreview {
+-    private static let states: [(name: String, availability: AgentVoiceAvailability, kokoro: Bool)] = [
+-        ("ready", .ready, true),
+-        ("preparing", .preparing(progress: nil), true),
+-        ("preparing-progress", .preparing(progress: 0.4), true),
+-        ("needs-download", .needsDownload, true),
+-        ("failed", .failed, true),
+-        ("kokoro-unavailable", .ready, false),
++    private static let states: [(name: String, availability: AgentVoiceAvailability,
++                                 engine: VoiceSettingsSection<EmptyView>.Engine, kokoro: Bool)] = [
++        ("ready", .ready, .pocket, true),
++        ("preparing", .preparing(progress: nil), .pocket, true),
++        ("preparing-progress", .preparing(progress: 0.4), .pocket, true),
++        ("needs-download", .needsDownload, .pocket, true),
++        ("failed", .failed, .pocket, true),
++        ("kokoro-ready", .ready, .kokoro, true),
++        ("kokoro-preparing", .preparing(progress: nil), .kokoro, true),
++        ("kokoro-needs-download", .needsDownload, .kokoro, true),
++        ("kokoro-failed", .failed, .kokoro, true),
++        ("kokoro-unavailable", .failed, .kokoro, false),
+     ]
+ 
+     static func write(to directory: String) -> Bool {
+@@ -27,6 +32,7 @@ enum VoiceSettingsPreview {
+             let form = Form {
+                 VoiceSettingsSection(availability: state.availability,
+                                      kokoroSupported: state.kokoro,
++                                     engineForPreview: state.engine,
+                                      isPreviewing: false,
+                                      togglePreview: {}, stopPreview: {}, details: EmptyView())
+             }
+diff --git a/Sources/NextNotes/UI/Settings/VoiceSettingsSection.swift b/Sources/NextNotes/UI/Settings/VoiceSettingsSection.swift
+index c4e9a1db..52479e79 100644
+--- a/Sources/NextNotes/UI/Settings/VoiceSettingsSection.swift
++++ b/Sources/NextNotes/UI/Settings/VoiceSettingsSection.swift
+@@ -6,7 +6,7 @@ import SwiftUI
+ /// picker. Whether the chosen voice can speak right now is not decided here: it is read from
+ /// `AgentSpeechSynthesizer.availability`, the same answer the conversation uses to decide
+ /// between speaking and showing text. This view only describes that answer in plain words and
+-/// offers the one move that fits it (download, try again, or hear a sample).
++/// offers the one move that fits it (download, retry, or hear a sample).
+ ///
+ /// The sample itself stays in the Models tab, next to the scheduler call it already makes;
+ /// this view is handed a pair of closures and never speaks on its own.
+@@ -20,6 +20,8 @@ struct VoiceSettingsSection<Details: View>: View {
+     /// view draws a value rather than owning the answer.
+     let availability: AgentVoiceAvailability
+     var kokoroSupported = KokoroAgentVoice.isSupportedOS
++    /// Offscreen diagnostic only; normal Settings follows the stored selection.
++    var engineForPreview: Engine? = nil
+     let isPreviewing: Bool
+     let togglePreview: () -> Void
+     let stopPreview: () -> Void
+@@ -65,7 +67,7 @@ struct VoiceSettingsSection<Details: View>: View {
+ 
+     // MARK: Which voice
+ 
+-    private var selected: Engine { settings.agentVoiceEngine == "kokoro" ? .kokoro : .pocket }
++    private var selected: Engine { engineForPreview ?? (settings.agentVoiceEngine == "kokoro" ? .kokoro : .pocket) }
+ 
+     private func isReady(_ engine: Engine) -> Bool {
+         engine == .pocket ? pocket.isReady : kokoro.isReady
+@@ -118,7 +120,7 @@ struct VoiceSettingsSection<Details: View>: View {
+             case .ready: return "\(base) · ready"
+             case .preparing: return "Getting ready…"
+             case .needsDownload: return "\(base) · tap to download"
+-            case .failed: return "Couldn't start · tap to try again"
++            case .failed: return "Couldn't start · retry below"
+             }
+         }
+         if isPreparing(engine) { return "Getting ready…" }
+@@ -128,12 +130,27 @@ struct VoiceSettingsSection<Details: View>: View {
+     /// Choosing a voice saves the choice at once, so what this screen shows is always the voice
+     /// the app will really use. If it cannot speak yet it is fetched (or restarted after a
+     /// failure) through the speech owner's own entry, and the state below follows it.
+-    private func select(_ engine: Engine) {
++    @discardableResult
++    func select(_ engine: Engine) -> Task<Void, Never>? {
++        guard isAvailableOnThisMac(engine) else { return nil }
+         stopPreview()
+-        guard isAvailableOnThisMac(engine) else { return }
++        // Settings owns the persisted choice and advances its selection epoch.
+         settings.agentVoiceEngine = engine.rawValue
+-        if voice.availability != .ready {
+-            Task { await voice.prepareSelectedVoice() }
++        return prepareVoice(request: voice.selectedVoiceRequest)
++    }
++
++    @discardableResult
++    func retry() -> Task<Void, Never> {
++        stopPreview()
++        return prepareVoice(request: voice.selectedVoiceRequest)
++    }
++
++    private func prepareVoice(request: AgentSpeechSynthesizer.VoiceRequest) -> Task<Void, Never> {
++        Task { @MainActor in
++            // A click that has since been replaced must not clear the new voice's
++            // failure or prepare it. This check has no await before owner entry.
++            guard voice.selectedVoiceRequest == request else { return }
++            await voice.prepareSelectedVoice()
+         }
+     }
+ 
+@@ -172,7 +189,7 @@ struct VoiceSettingsSection<Details: View>: View {
+                 actionRow(
+                     title: "Your voice couldn't start",
+                     detail: "Answers show as text for now.",
+-                    button: "Try again"
++                    button: "Retry"
+                 )
+             } else {
+                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
+@@ -197,8 +214,7 @@ struct VoiceSettingsSection<Details: View>: View {
+             }
+             Spacer(minLength: DS.Space.s)
+             Button(button) {
+-                stopPreview()
+-                Task { await voice.prepareSelectedVoice() }
++                retry()
+             }
+             .buttonStyle(.borderedProminent)
+             .accessibilityHint("Gets your voice ready so replies can be spoken")

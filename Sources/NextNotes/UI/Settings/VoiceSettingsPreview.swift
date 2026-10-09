@@ -8,13 +8,18 @@ import SwiftUI
 /// which is what lets every state be drawn without a real download going wrong on purpose.
 @MainActor
 enum VoiceSettingsPreview {
-    private static let states: [(name: String, availability: AgentVoiceAvailability, kokoro: Bool)] = [
-        ("ready", .ready, true),
-        ("preparing", .preparing(progress: nil), true),
-        ("preparing-progress", .preparing(progress: 0.4), true),
-        ("needs-download", .needsDownload, true),
-        ("failed", .failed, true),
-        ("kokoro-unavailable", .ready, false),
+    private static let states: [(name: String, availability: AgentVoiceAvailability,
+                                 engine: VoiceSettingsSection<EmptyView>.Engine, kokoro: Bool)] = [
+        ("ready", .ready, .pocket, true),
+        ("preparing", .preparing(progress: nil), .pocket, true),
+        ("preparing-progress", .preparing(progress: 0.4), .pocket, true),
+        ("needs-download", .needsDownload, .pocket, true),
+        ("failed", .failed, .pocket, true),
+        ("kokoro-ready", .ready, .kokoro, true),
+        ("kokoro-preparing", .preparing(progress: nil), .kokoro, true),
+        ("kokoro-needs-download", .needsDownload, .kokoro, true),
+        ("kokoro-failed", .failed, .kokoro, true),
+        ("kokoro-unavailable", .failed, .kokoro, false),
     ]
 
     static func write(to directory: String) -> Bool {
@@ -27,6 +32,7 @@ enum VoiceSettingsPreview {
             let form = Form {
                 VoiceSettingsSection(availability: state.availability,
                                      kokoroSupported: state.kokoro,
+                                     engineForPreview: state.engine,
                                      isPreviewing: false,
                                      togglePreview: {}, stopPreview: {}, details: EmptyView())
             }

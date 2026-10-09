@@ -1,0 +1,50 @@
+{
+  "inspected": [
+    {
+      "name": "voice-failed.png",
+      "sha256": "b3162cf2cfb85cecb22127343dec37d0fbbf3c0a1069dfb5b45b91873c964053"
+    },
+    {
+      "name": "voice-kokoro-failed.png",
+      "sha256": "5e9d31e173af45de39cdd2ead7d3152eb1e244b8e61568ee83185a259972ff0b"
+    },
+    {
+      "name": "voice-kokoro-needs-download.png",
+      "sha256": "e8c5060e675f35713a72b66de59fa972e1f740ce888fcf44b14d12b8801633c3"
+    },
+    {
+      "name": "voice-kokoro-preparing.png",
+      "sha256": "a09a77e370cacbc322387a0256656ad29c9a5e171200da82ee931601bfc03b11"
+    },
+    {
+      "name": "voice-kokoro-ready.png",
+      "sha256": "8410ee4b08b9f13dc0581265bbde0ac104933e515cdf9f508e5bd168dfa8499b"
+    },
+    {
+      "name": "voice-kokoro-unavailable.png",
+      "sha256": "480868edac6ce2ffce3bc1c57fdf4a48db799cf367c62e7f27fbf9d0e17c9953"
+    },
+    {
+      "name": "voice-needs-download.png",
+      "sha256": "21b37c750e514e6460c9afd2d6b06af0018ee42cbacd3173a655acfe189d9bc3"
+    },
+    {
+      "name": "voice-preparing-progress.png",
+      "sha256": "82d27622a24bd0bd5c182eb0adee917c90776546dbe94e90aec61baa0774ba13"
+    },
+    {
+      "name": "voice-preparing.png",
+      "sha256": "882adf01d3db80b8ca5e1e783c2476e04e228b483183d5c6a8e6d2743e8328fb"
+    },
+    {
+      "name": "voice-ready.png",
+      "sha256": "268806285811900d55cb3a5d1b88eb60f7f6dd5698bc15d46339740f5386dc1c"
+    },
+    {
+      "name": "voice-text-only-lines.png",
+      "sha256": "236772a5983a5a9f1aed7bd2f71e8d53137b076a8f59fe228e6a54f27a0a380b"
+    }
+  ],
+  "forms": "Both engines have visible selected tiles and ready/preparing/download/failed states. Retry is legible and samples disabled with plain explanations while unavailable. Unsupported selected Kokoro has disabled tile and Pocket alternative. Numeric progress is authored only.",
+  "limitation": "The preparing text in the black mock line is truncated. This is the existing preview box, not the actual Island card. Physical interaction, accessibility settings and animated orb were not observed."
+}

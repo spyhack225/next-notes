@@ -1,0 +1,32 @@
+{
+  "voice-delivery": {
+    "baseline_diagnostics": 13,
+    "current_diagnostics": 13,
+    "normalized_equal": true
+  },
+  "duplex": {
+    "baseline_diagnostics": 2,
+    "current_diagnostics": 2,
+    "normalized_equal": true
+  },
+  "voice-conversation": {
+    "baseline_diagnostics": 0,
+    "current_diagnostics": 0,
+    "normalized_equal": true
+  },
+  "concurrent-voice": {
+    "baseline_diagnostics": 0,
+    "current_diagnostics": 0,
+    "normalized_equal": true
+  },
+  "voice-scheduling": {
+    "baseline_diagnostics": 0,
+    "current_diagnostics": 0,
+    "normalized_equal": true
+  },
+  "store-isolation": {
+    "baseline_diagnostics": 19,
+    "current_diagnostics": 19,
+    "normalized_equal": true
+  }
+}

@@ -125,6 +125,8 @@ enum SelfTest {
                 exit(1)
             }
         }
+        // Voice previews draw authored states, never the owner's saved preferences.
+        if arguments.contains("--voice-settings-preview") { return "--voice-settings-preview" }
         return arguments.first {
             $0.hasPrefix("--selftest") && !harnessFlags.contains($0)
         }
@@ -1802,6 +1804,16 @@ if arguments.contains("--selftest-voice-playback-resume-receipt") {
                               ? "CDP_OK: real Chromium debugger answered targets, snapshot, read_page, "
                                   + "a waited URL and an honest timeout"
                               : "CDP_FAILED: \(failures.count) leg(s) wrong")
+                SelfTest.requestTermination()
+            }
+            return true
+        }
+        if arguments.contains("--selftest-voice-settings") {
+            Task { @MainActor in
+                let failures = await VoiceSettingsSelfTest.run()
+                for failure in failures { writeSelfTest("VOICE_SETTINGS_WRONG: " + failure) }
+                writeSelfTest(failures.isEmpty ? "VOICE_SETTINGS_OK" : "VOICE_SETTINGS_FAILED: \(failures.count) assertions")
+                SelfTest.failed = !failures.isEmpty
                 SelfTest.requestTermination()
             }
             return true

@@ -1,0 +1,34 @@
+{
+  "base": "8097108a",
+  "sources": {
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": {
+      "base_sha256": "ec7495b50d948ea54729873d490b57bac6e6622b61c691ef4ab85cc37a4157a1",
+      "current_sha256": "ec7495b50d948ea54729873d490b57bac6e6622b61c691ef4ab85cc37a4157a1",
+      "identical": true
+    },
+    "Sources/NextNotes/Agent/Duplex/IslandOwnership.swift": {
+      "base_sha256": "fa32d0af8fa8c6f2e81fa592d481642824ef7d7544f4c33b6f8d3d8f0dd2e136",
+      "current_sha256": "fa32d0af8fa8c6f2e81fa592d481642824ef7d7544f4c33b6f8d3d8f0dd2e136",
+      "identical": true
+    },
+    "Sources/NextNotes/Agent/Duplex/VoiceSession.swift": {
+      "base_sha256": "b4f5862588310d44c81e6c4cd50f2f523ceee8d3b1d3879fc179ff4bfb9a873b",
+      "current_sha256": "b4f5862588310d44c81e6c4cd50f2f523ceee8d3b1d3879fc179ff4bfb9a873b",
+      "identical": true
+    },
+    "Sources/NextNotes/Agent/Duplex/IslandVoiceOwnershipSelfTest.swift": {
+      "base_sha256": "b471d65f90807775c78773e33a858223129ecac3172624b7a863b23e5af5eb66",
+      "current_sha256": "b471d65f90807775c78773e33a858223129ecac3172624b7a863b23e5af5eb66",
+      "identical": true
+    },
+    "Sources/NextNotes/UI/Island/IslandState.swift": {
+      "base_sha256": "408e4fef1431e2d88ae1638b286b57e8f3a4bf60072f36bd37d9b94f79a0fa25",
+      "current_sha256": "408e4fef1431e2d88ae1638b286b57e8f3a4bf60072f36bd37d9b94f79a0fa25",
+      "identical": true
+    },
+    "NextNotesApp.runIslandSelfTest": {
+      "identical": true
+    }
+  },
+  "finding": "RecordingSpeechBacking conforms only to AgentSpeechBacking. IslandOwnership.isEnabled requires AgentReceiptSpeechBacking; VoiceSession gates publication on it. The unchanged island fixture installs RecordingSpeechBacking and expects owned projection, then its endpoint guard requires isEnabled. Failure occurs before old IslandView checks/visible panel. Baseline native run was not repeated."
+}

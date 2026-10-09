@@ -1,0 +1,14 @@
+Sources/NextNotes/UI/Settings/ModelsSettingsTab.swift 989e62bdefaef4342e76255ceae63db62d143f9eb8ab80e22351761ced725c51
+Legacy Settings section is inside ModelsSettingsTab
+Sources/NextNotes/Support/Settings.swift 5393543b001ca9fb104176596cb48f5bde3dee7ff41af660bdd0ac1c25e365c8
+Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift ec7495b50d948ea54729873d490b57bac6e6622b61c691ef4ab85cc37a4157a1
+FAIL: failed state offers plain Retry
+PASS: selection uses preference owner and its epoch
+FAIL: selection and retry capture the current request
+FAIL: deferred action refuses a stale selection or recovery
+FAIL: explicit action clears latch through existing preparation owner
+FAIL: opening Settings does not directly prepare voice models
+FAIL: sample follows live availability rather than cached readiness
+FAIL: no Apple tile or preview catalog
+FAIL: selected failure outranks cached readiness
+VOICE_SETTINGS_WIRING_FAILED: 8

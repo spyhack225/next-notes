@@ -6,7 +6,7 @@ import SwiftUI
 /// picker. Whether the chosen voice can speak right now is not decided here: it is read from
 /// `AgentSpeechSynthesizer.availability`, the same answer the conversation uses to decide
 /// between speaking and showing text. This view only describes that answer in plain words and
-/// offers the one move that fits it (download, try again, or hear a sample).
+/// offers the one move that fits it (download, retry, or hear a sample).
 ///
 /// The sample itself stays in the Models tab, next to the scheduler call it already makes;
 /// this view is handed a pair of closures and never speaks on its own.
@@ -20,6 +20,8 @@ struct VoiceSettingsSection<Details: View>: View {
     /// view draws a value rather than owning the answer.
     let availability: AgentVoiceAvailability
     var kokoroSupported = KokoroAgentVoice.isSupportedOS
+    /// Offscreen diagnostic only; normal Settings follows the stored selection.
+    var engineForPreview: Engine? = nil
     let isPreviewing: Bool
     let togglePreview: () -> Void
     let stopPreview: () -> Void
@@ -65,7 +67,7 @@ struct VoiceSettingsSection<Details: View>: View {
 
     // MARK: Which voice
 
-    private var selected: Engine { settings.agentVoiceEngine == "kokoro" ? .kokoro : .pocket }
+    private var selected: Engine { engineForPreview ?? (settings.agentVoiceEngine == "kokoro" ? .kokoro : .pocket) }
 
     private func isReady(_ engine: Engine) -> Bool {
         engine == .pocket ? pocket.isReady : kokoro.isReady
@@ -118,7 +120,7 @@ struct VoiceSettingsSection<Details: View>: View {
             case .ready: return "\(base) · ready"
             case .preparing: return "Getting ready…"
             case .needsDownload: return "\(base) · tap to download"
-            case .failed: return "Couldn't start · tap to try again"
+            case .failed: return "Couldn't start · retry below"
             }
         }
         if isPreparing(engine) { return "Getting ready…" }
@@ -128,12 +130,27 @@ struct VoiceSettingsSection<Details: View>: View {
     /// Choosing a voice saves the choice at once, so what this screen shows is always the voice
     /// the app will really use. If it cannot speak yet it is fetched (or restarted after a
     /// failure) through the speech owner's own entry, and the state below follows it.
-    private func select(_ engine: Engine) {
+    @discardableResult
+    func select(_ engine: Engine) -> Task<Void, Never>? {
+        guard isAvailableOnThisMac(engine) else { return nil }
         stopPreview()
-        guard isAvailableOnThisMac(engine) else { return }
+        // Settings owns the persisted choice and advances its selection epoch.
         settings.agentVoiceEngine = engine.rawValue
-        if voice.availability != .ready {
-            Task { await voice.prepareSelectedVoice() }
+        return prepareVoice(request: voice.selectedVoiceRequest)
+    }
+
+    @discardableResult
+    func retry() -> Task<Void, Never> {
+        stopPreview()
+        return prepareVoice(request: voice.selectedVoiceRequest)
+    }
+
+    private func prepareVoice(request: AgentSpeechSynthesizer.VoiceRequest) -> Task<Void, Never> {
+        Task { @MainActor in
+            // A click that has since been replaced must not clear the new voice's
+            // failure or prepare it. This check has no await before owner entry.
+            guard voice.selectedVoiceRequest == request else { return }
+            await voice.prepareSelectedVoice()
         }
     }
 
@@ -172,7 +189,7 @@ struct VoiceSettingsSection<Details: View>: View {
                 actionRow(
                     title: "Your voice couldn't start",
                     detail: "Answers show as text for now.",
-                    button: "Try again"
+                    button: "Retry"
                 )
             } else {
                 VStack(alignment: .leading, spacing: DS.Space.xxs) {
@@ -197,8 +214,7 @@ struct VoiceSettingsSection<Details: View>: View {
             }
             Spacer(minLength: DS.Space.s)
             Button(button) {
-                stopPreview()
-                Task { await voice.prepareSelectedVoice() }
+                retry()
             }
             .buttonStyle(.borderedProminent)
             .accessibilityHint("Gets your voice ready so replies can be spoken")
