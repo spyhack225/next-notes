@@ -70,7 +70,7 @@ enum KokoroAgentVoice { static let isSupportedOS=true }
  var fallbackBackingForTesting:(any AgentSpeechBacking)?
  var testingBacking=false, pocketIsReady=false, kokoroIsReady=false
  var replyCanSpeak=false,selectedVoiceFailed=false,outputAvailability:AgentVoiceAvailability?
- var availability:AgentVoiceAvailability { .resolve(ready:pocketIsReady,preparing:false,failed:selectedVoiceFailed) }
+ var availability:AgentVoiceAvailability { .resolve(ready:Self.selectedEngine == "pocket" ? pocketIsReady : Self.selectedEngine == "kokoro" && kokoroIsReady,preparing:false,failed:selectedVoiceFailed || !["pocket","kokoro"].contains(Self.selectedEngine)) }
  var replyOpen=false, replyFinished=false,replyTokens:[UInt64]=[],pendingClauses:[String]=[]
  var voiceResumePending=false,voiceResumeBinding:Int?,isPausedForListening=false,didStop=false
  var currentPlaybackToken:UInt64=0,playbackTokenCounter:UInt64=0,outputGeneration:UInt64=0
@@ -104,7 +104,6 @@ enum KokoroAgentVoice { static let isSupportedOS=true }
         voiceResumePending = false
         voiceResumeBinding = nil
         isPausedForListening = false
-        selectedVoiceFailed = false
         outputAvailability = nil
         replyCanSpeak = true
         let closingReply = replyOpen
@@ -128,9 +127,9 @@ enum KokoroAgentVoice { static let isSupportedOS=true }
                 )
             } else {
                 switch Self.selectedEngine {
-                case "pocket" where pocketIsReady:
+                case "pocket" where availability == .ready:
                     backing = pocketBacking
-                case "kokoro" where KokoroAgentVoice.isSupportedOS && kokoroIsReady:
+                case "kokoro" where availability == .ready:
                     backing = kokoroBacking
                 default:
                     backing = unavailableBacking
@@ -287,7 +286,10 @@ enum KokoroAgentVoice { static let isSupportedOS=true }
   check(s.backing === s.pocketBacking,"next ready reply selects chosen Pocket")
   s.stop();Probe.selectedEngine="kokoro";s.kokoroIsReady=false;s.speak("Kokoro not ready.")
   check(!s.backing.isSpeaking && s.kokoroBacking.spoken.isEmpty,"unready Kokoro never starts loading on reply path")
-  s.stop();let voice=CountedBacking("allowed-test-voice");s.testingBacking=true;s.backing=voice;events=[]
+  s.stop();Probe.selectedEngine="pocket";s.pocketIsReady=true;s.selectedVoiceFailed=true
+  let spokenBefore=s.pocketBacking.spoken.count;s.speak("Failed voice remains written.")
+  check(s.backing === s.unavailableBacking && s.pocketBacking.spoken.count==spokenBefore && s.outputAvailability == .failed,"failed selected voice stays written on a new reply")
+  s.stop();s.selectedVoiceFailed=false;let voice=CountedBacking("allowed-test-voice");s.testingBacking=true;s.backing=voice;events=[]
   s.speak("First sentence. Untouched sentence.");s.currentClauseRendered=true;s.isPausedForListening=true;s.failCurrent()
   check(s.didStop && !s.backing.isSpeaking && s.pendingClauses.isEmpty,"allowed voice failure cancels remaining speech")
   check(s.outputAvailability == .failed,"allowed voice failure exposes text-only state")

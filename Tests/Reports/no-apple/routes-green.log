@@ -1,5 +1,6 @@
 PASS: no Apple backing owned by selector
 PASS: no default Apple route
 PASS: no reply error voice switch
-PASS: Kokoro requires readiness
+PASS: Pocket requires selected availability
+PASS: Kokoro requires selected availability
 VOICE_ROUTES_SOURCE_OK

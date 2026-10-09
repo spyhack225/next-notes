@@ -38,6 +38,8 @@ def save(): (report/'checks.json').write_text(json.dumps(results,indent=2)+'\n')
 try:
     if not checked('producer-original-compile',['swiftc','-parse-as-library',str(report/'original-probe.swift'),'-o',str(work/'original')]):raise SystemExit(1)
     if not checked('producer-red',[str(work/'original')],expected=1):raise SystemExit(1)
+    if not checked('failed-readiness-original-compile',['swiftc','-parse-as-library',str(report/'failed-readiness-original.swift'),'-o',str(work/'failed-readiness')]):raise SystemExit(1)
+    if not checked('failed-readiness-red',[str(work/'failed-readiness')],expected=1):raise SystemExit(1)
     if not checked('producer-fixed-compile',['swiftc','-parse-as-library',str(report/'fixed-probe.swift'),'-o',str(work/'fixed')]):raise SystemExit(1)
     if not checked('producer-green',[str(work/'fixed')]):raise SystemExit(1)
     if not checked('webrtc-build',['make','webrtc-audio']):raise SystemExit(1)

@@ -310,7 +310,6 @@ final class AgentSpeechSynthesizer {
         voiceResumePending = false
         voiceResumeBinding = nil
         isPausedForListening = false
-        selectedVoiceFailed = false
         outputAvailability = nil
         replyCanSpeak = true
         let closingReply = replyOpen
@@ -334,9 +333,9 @@ final class AgentSpeechSynthesizer {
                 )
             } else {
                 switch Self.selectedEngine {
-                case "pocket" where pocketIsReady:
+                case "pocket" where availability == .ready:
                     backing = pocketBacking
-                case "kokoro" where KokoroAgentVoice.isSupportedOS && kokoroIsReady:
+                case "kokoro" where availability == .ready:
                     backing = kokoroBacking
                 default:
                     backing = unavailableBacking
@@ -821,6 +820,12 @@ final class AgentSpeechSynthesizer {
         synth.prepareForStream()
         if synth.backing !== synth.pocketBacking { failures.append("voice readiness: next ready reply did not select Pocket") }
         synth.stop()
+        synth.selectedVoiceFailed = true
+        synth.speak("A failed voice remains written on the next reply.")
+        if synth.backing !== synth.unavailableBacking || synth.isSpeaking || synth.outputAvailability != .failed {
+            failures.append("voice readiness: a new reply bypassed the failed selected voice")
+        }
+        synth.selectedVoiceFailed = false
         synth.engineOverrideForTesting = "kokoro"
         synth.kokoroReadinessForTesting = false
         synth.speak("Kokoro is not ready.")
