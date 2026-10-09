@@ -74,6 +74,8 @@ final class OutputScheduler {
         var approvalID: String? = nil
         /// SAME retained batch whose heard-context primary transition was refused.
         var contextDeliveryPending = false
+        /// Availability recovery alone cannot replay a written-only old update.
+        var requiresExplicitReplay = false
     }
     private struct Active {
         var id: OutputID?
@@ -416,6 +418,9 @@ final class OutputScheduler {
         case .interrupted:
             active = nil; lastOutputEndAt = now
             for var entry in current.entries {
+                if AgentSpeechSynthesizer.shared.outputAvailability != nil {
+                    entry.requiresExplicitReplay = true
+                }
                 if let request = entry.approvalID {
                     // A barge never replays or approves the old incomplete prompt.
                     if !current.byUser, approvalStillCurrent(entry) {
@@ -441,7 +446,8 @@ final class OutputScheduler {
                     entry.eligibleAt = now.addingTimeInterval(min(pow(2, Double(attempts - 1)), 10))
                     queue.insert(entry, at: 0)
                 } else if let remaining = entry.legacyClauses, !remaining.isEmpty {
-                    queue.insert(Entry(item: nil, text: remaining.joined(separator: " "), eligibleAt: now, legacyClauses: nil), at: 0)
+                    queue.insert(Entry(item: nil, text: remaining.joined(separator: " "), eligibleAt: now,
+                                       legacyClauses: nil, requiresExplicitReplay: entry.requiresExplicitReplay), at: 0)
                 }
             }
         default: break
@@ -454,10 +460,13 @@ final class OutputScheduler {
         }
         if userHasFloor { cancelPhrasing(); lastFloorAt = now }
         guard AgentCaptureController.shared.isSessionActive, !userHasFloor,
-              AgentSpeechSynthesizer.shared.canSpeak,
               !RealtimeAgent.shared.voiceInputActive, !RealtimeAgent.shared.isThinking,
               !RealtimeAudioSession.shared.isSpeaking, !AgentSpeechSynthesizer.shared.isSpeaking,
               active == nil, phraseTask == nil, !queue.isEmpty else { return false }
+        guard AgentSpeechSynthesizer.shared.canSpeak else {
+            for index in queue.indices { queue[index].requiresExplicitReplay = true }
+            return false
+        }
         // Status consumption/expiration is already committed by the SAME row
         // owner. Remove only positive terminal delivery evidence, never absence.
         queue.removeAll { entry in
@@ -488,7 +497,8 @@ final class OutputScheduler {
             SelfTest.diagnostic("APPROVAL_WINDOW_METADATA quietSeconds=\(now.timeIntervalSince(max(lastFloorAt ?? .distantPast, lastOutputEndAt ?? .distantPast))) canonicalWindow=\(canonicalWindowOpen) inputPending=\(VoiceConversationCoordinator.shared.inputPending) queuedInput=\(AgentCaptureController.shared.voiceShadowQueuedTurn != nil)")
         }
         let eligible = queue.enumerated().filter {
-            !$0.element.contextDeliveryPending && $0.element.eligibleAt <= now && ($0.element.item == nil || (canonicalWindowOpen
+            !$0.element.contextDeliveryPending && !$0.element.requiresExplicitReplay
+                && $0.element.eligibleAt <= now && ($0.element.item == nil || (canonicalWindowOpen
                 && $0.element.item.map { self.bridge.record($0.task)?.delivery == .pending } == true))
                 && ($0.element.approvalID == nil || (approvalStillCurrent($0.element)
                     && !VoiceConversationCoordinator.shared.inputPending

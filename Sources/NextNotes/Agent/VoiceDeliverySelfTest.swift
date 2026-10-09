@@ -131,6 +131,17 @@ enum VoiceDeliverySelfTest {
               "unavailable output left speaking presentation")
         check(audio.userSpeechExcludingPlayback(written) == written,
               "unplayed written text entered echo suppression")
+        VoiceAnnouncementQueue.shared.enqueue("An old update stays written.")
+        check(!VoiceAnnouncementQueue.shared.flush(userHasFloor: false),
+              "unavailable queued announcement started audio")
+        let ready = RecordingSpeechBacking()
+        synth.useTestingBacking(ready)
+        check(!VoiceAnnouncementQueue.shared.flush(userHasFloor: false) && ready.spoken.isEmpty,
+              "availability recovery unexpectedly replayed an old update")
+        VoiceAnnouncementQueue.shared.enqueue("A new update may be spoken.")
+        check(VoiceAnnouncementQueue.shared.flush(userHasFloor: false)
+              && ready.spoken == ["A new update may be spoken."],
+              "held old update blocked the next new reply")
 
         let pcm = PCMReceiptSpeechBacking()
         synth.useTestingBacking(pcm)
