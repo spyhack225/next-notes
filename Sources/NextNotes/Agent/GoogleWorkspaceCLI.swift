@@ -211,7 +211,7 @@ actor GoogleWorkspaceCLI {
         return GoogleWorkspaceCLI(testingExecutable: safe, usesAppAccount: true, isManaged: isManaged)
     }
     func appSignInInEffect() -> Bool {
-        usesAppAccount && (GoogleTokenStore.appSignInSelected || GoogleTokenStore.hasRefreshToken)
+        usesAppAccount && GoogleTokenStore.appRouteInEffect
     }
     func managedExecutable() -> URL? {
         if let testingExecutable, usesAppAccount, testingExecutableIsManaged { return testingExecutable }
@@ -314,8 +314,12 @@ actor GoogleWorkspaceCLI {
     /// not anyone is signed in, and the four fields below are what separate "no client",
     /// "client but no account" and "ready".
     func authState() async -> WorkspaceAuthState {
-        if appSignInInEffect() {
-            guard GoogleTokenStore.hasRefreshToken else { return .signedOut }
+        let grantState = usesAppAccount ? GoogleTokenStore.readState : .absent
+        if grantState == .unavailable {
+            return .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
+        }
+        if usesAppAccount && (GoogleTokenStore.appSignInSelected || grantState != .absent) {
+            guard case .available = grantState else { return .signedOut }
             guard await GoogleAccessTokens.shared.currentClient != nil else { return .needsOAuthClient }
             return managedExecutable() == nil ? .notInstalled : .signedIn(method: "your Google account")
         }
@@ -368,6 +372,7 @@ actor GoogleWorkspaceCLI {
     /// tag is never invented — an invented tag would refuse every approval on a machine whose
     /// profile read failed, which is the worst failure a safety check can have.
     func accountTag() async -> String? {
+        if usesAppAccount, GoogleTokenStore.readState == .unavailable { return nil }
         if accountTagRead { return cachedAccountTag }
         accountTagRead = true
         cachedAccountTag = await readAccountTag()
@@ -467,14 +472,17 @@ actor GoogleWorkspaceCLI {
         _ arguments: [String],
         timeout: TimeInterval = GoogleWorkspaceCLI.defaultTimeout
     ) async throws -> WorkspaceCLIOutput {
-        let appSignedIn = appSignInInEffect()
+        let grant: GoogleTokenStore.StoredGrant?
+        do { grant = usesAppAccount ? try GoogleTokenStore.savedGrant() : nil }
+        catch { throw WorkspaceCLIError.launchFailed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }
+        let appSignedIn = usesAppAccount && (GoogleTokenStore.appSignInSelected || grant != nil)
         let executable: URL
         var additions: [String: String] = [:]
         if appSignedIn {
             guard let managed = managedExecutable() else { throw WorkspaceCLIError.notInstalled }
             executable = managed
             if let capability = GoogleCapability.needed(byArguments: arguments),
-               !capability.isGranted(by: GoogleTokenStore.grantedScopes, readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
+               !capability.isGranted(by: grant?.scopes ?? [], readOnly: arguments.first == "calendar" && !arguments.contains("insert")) {
                 throw WorkspaceCLIError.invalidRequest(capability.permissionSentence)
             }
             do {
@@ -483,6 +491,9 @@ actor GoogleWorkspaceCLI {
             } catch GoogleCalendarError.accessRevoked, GoogleCalendarError.notSignedIn {
                 throw WorkspaceCLIError.notAuthenticated
             } catch is CancellationError { throw CancellationError() }
+            catch GoogleCalendarError.tokenStoreUnreadable {
+                throw WorkspaceCLIError.launchFailed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
+            }
             catch { throw WorkspaceCLIError.launchFailed("Check your connection and try again.") }
         } else {
             guard let found = await binaryURL() else { throw WorkspaceCLIError.notInstalled }

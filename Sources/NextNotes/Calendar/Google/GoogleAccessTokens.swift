@@ -50,7 +50,7 @@ actor GoogleAccessTokens {
 
     func token(clientID: String, clientSecret: String) async throws -> String {
         try Task.checkCancellation()
-        let refresh = refreshTokenForTesting?() ?? (refreshTokenForTesting == nil ? GoogleTokenStore.refreshToken : nil)
+        let refresh = refreshTokenForTesting?() ?? (refreshTokenForTesting == nil ? try GoogleTokenStore.savedGrant()?.refreshToken : nil)
         guard let refresh else { throw GoogleCalendarError.notSignedIn }
         let identity = Identity(clientID: clientID, secret: clientSecret, refresh: refresh)
         if let cached, cached.identity == identity, cached.expiry > Date().addingTimeInterval(60) { return cached.token }
@@ -96,7 +96,8 @@ actor GoogleAccessTokens {
         inFlight = nil
     }
     func workspaceToken() async throws -> String? {
-        guard let client = currentClient, GoogleTokenStore.hasRefreshToken else {
+        let grant = try GoogleTokenStore.savedGrant()
+        guard let client = currentClient, grant != nil else {
             throw GoogleCalendarError.notSignedIn
         }
         return try await token(clientID: client.clientID, clientSecret: client.clientSecret)

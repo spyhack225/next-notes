@@ -11,6 +11,36 @@ enum GoogleTokenStore {
     private static let account = "refresh-token"
     private static let selectionKey = "googleAppSignInSelected"
     private static let fixtureSelection = Selection()
+    // The existing record owns read/write admission. Never turn a failed read into absence.
+    private static let lock = NSRecursiveLock()
+    struct StoredGrant: Sendable, Equatable {
+        let refreshToken: String
+        let scopes: Set<String>
+        let identity: Data
+    }
+    enum ReadState: Sendable, Equatable {
+        case absent
+        case available(StoredGrant)
+        case unavailable
+    }
+    private static let fixtureRead = ReadFixture()
+    static func useReadStatusForTesting(_ status: OSStatus?) {
+        precondition(GoogleAccessTokens.testHooksAdmitted)
+        fixtureRead.status = status
+    }
+    static var readState: ReadState { lock.withLock { read() } }
+    static var appRouteInEffect: Bool {
+        if appSignInSelected { return true }
+        // An unreadable record is not evidence that another account may be used.
+        return readState != .absent
+    }
+    static func savedGrant() throws -> StoredGrant? {
+        switch readState {
+        case .absent: return nil
+        case .available(let grant): return grant
+        case .unavailable: throw GoogleCalendarError.tokenStoreUnreadable
+        }
+    }
     private struct Grant: Codable {
         let refreshToken: String
         let scopes: [String]
@@ -25,20 +55,17 @@ enum GoogleTokenStore {
     }
     static var hasRefreshToken: Bool { refreshToken != nil }
     static var refreshToken: String? {
-        guard let data = read() else { return nil }
-        if let grant = try? JSONDecoder().decode(Grant.self, from: data) { return grant.refreshToken }
-        // Old versions stored a raw refresh token, never a JSON object.
-        guard data.first != UInt8(ascii: "{") else { return nil }
-        return String(data: data, encoding: .utf8)
+        guard case .available(let grant) = readState else { return nil }
+        return grant.refreshToken
     }
     static var grantedScopes: Set<String> {
-        guard let data = read() else { return [] }
-        if let grant = try? JSONDecoder().decode(Grant.self, from: data) { return Set(grant.scopes) }
-        return data.first != UInt8(ascii: "{") ? [GoogleScopes.legacyCalendar] : []
+        guard case .available(let grant) = readState else { return [] }
+        return grant.scopes
     }
 
     @discardableResult
     static func save(refreshToken: String, grantedScopes: Set<String> = [GoogleScopes.legacyCalendar]) -> Bool {
+        lock.lock(); defer { lock.unlock() }
         guard let data = try? JSONEncoder().encode(Grant(refreshToken: refreshToken, scopes: grantedScopes.sorted())) else { return false }
         let update = [kSecValueData as String: data]
         var status = SecItemUpdate(baseQuery as CFDictionary, update as CFDictionary)
@@ -59,20 +86,43 @@ enum GoogleTokenStore {
     /// Revocation retains the selected route, so a later call cannot switch to an unrelated
     /// CLI login. Only the person's explicit Disconnect forgets that choice.
     static func clear(forgetSelection: Bool = false) {
+        lock.lock(); defer { lock.unlock() }
         // Raw grants predate the preference. Preserve their route before deleting
         // the last credential evidence; a later call must still refuse a foreign login.
         if !forgetSelection, !appSignInSelected, hasRefreshToken { appSignInSelected = true }
         SecItemDelete(baseQuery as CFDictionary)
         if forgetSelection { appSignInSelected = false }
     }
-    private static func read() -> Data? {
+    private static func read() -> ReadState {
         var query = baseQuery
         query[kSecReturnData as String] = true
         query[kSecMatchLimit as String] = kSecMatchLimitOne
         var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess else { return nil }
-        return item as? Data
+        let status = fixtureRead.status ?? SecItemCopyMatching(query as CFDictionary, &item)
+        if status == errSecItemNotFound { return .absent }
+        guard status == errSecSuccess, let data = item as? Data else { return .unavailable }
+        let token: String
+        let scopes: Set<String>
+        if let grant = try? JSONDecoder().decode(Grant.self, from: data) {
+            token = grant.refreshToken
+            scopes = Set(grant.scopes)
+        } else {
+            guard data.first != UInt8(ascii: "{"), let raw = String(data: data, encoding: .utf8) else { return .unavailable }
+            token = raw
+            scopes = [GoogleScopes.legacyCalendar]
+        }
+        guard !token.isEmpty else { return .unavailable }
+        // Adopt a readable legacy grant before its credential evidence can disappear.
+        if !appSignInSelected { appSignInSelected = true }
+        return .available(StoredGrant(refreshToken: token, scopes: scopes, identity: data))
+    }
+    private final class ReadFixture: @unchecked Sendable {
+        private let lock = NSLock()
+        private var value: OSStatus?
+        var status: OSStatus? {
+            get { lock.withLock { value } }
+            set { lock.withLock { value = newValue } }
+        }
     }
     private static var baseQuery: [String: Any] {
         [kSecClass as String: kSecClassGenericPassword,

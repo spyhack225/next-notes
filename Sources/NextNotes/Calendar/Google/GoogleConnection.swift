@@ -77,6 +77,8 @@ final class GoogleConnection {
                 "Google is connected, with your approval required before anything is sent."
             case .needsMoreAccess:
                 "Some Google features need one more permission; the others are ready to use."
+            case .failed(let reason) where reason == GoogleCalendarError.tokenStoreUnreadable.localizedDescription:
+                reason
             case .failed:
                 "Google couldn’t connect; please try again."
             }
@@ -164,11 +166,22 @@ final class GoogleConnection {
     /// Re-reads where things stand. Cheap; called when a Settings pane appears.
     func refresh() async {
         guard transient == nil else { return }
+        let grantState = GoogleTokenStore.readState
+        if grantState == .unavailable {
+            state = .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
+            return
+        }
         let workspace = await dependencies.workspace()
+        if workspace == .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) {
+            state = .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription)
+            return
+        }
+        let grant: GoogleTokenStore.StoredGrant?
+        if case .available(let saved) = grantState { grant = saved } else { grant = nil }
         let derived = Self.derive(
             clientConfigured: dependencies.client() != nil,
-            hasToken: GoogleTokenStore.hasRefreshToken,
-            grantedScopes: GoogleTokenStore.grantedScopes,
+            hasToken: grant != nil,
+            grantedScopes: grant?.scopes ?? [],
             workspace: workspace)
         state = derived
         // Signed in, but the tool is not here yet: fetch it quietly, once.
@@ -213,6 +226,7 @@ final class GoogleConnection {
             defer { preparing = false }
             do {
                 try await dependencies.ensureTool()
+                guard try GoogleTokenStore.savedGrant() != nil else { await refresh(); return }
                 await dependencies.afterConnect()
                 await refresh()
             } catch {

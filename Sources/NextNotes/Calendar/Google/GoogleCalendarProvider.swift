@@ -40,11 +40,6 @@ actor GoogleCalendarProvider: CalendarProvider {
             refreshTokenForTesting: refreshTokenForTesting, clearTokenForTesting: clearTokenForTesting) : .shared
     }
 
-    private var storedRefreshToken: String? {
-        if let refreshTokenForTesting { return refreshTokenForTesting() }
-        return GoogleTokenStore.refreshToken
-    }
-
 
     /// Applied before every refresh by `CalendarService`.
     func configure(clientID: String, clientSecret: String, calendarIDs: [String]) {
@@ -56,11 +51,15 @@ actor GoogleCalendarProvider: CalendarProvider {
     }
 
     func authorizationState() -> CalendarAuthorizationState {
+        let grant: GoogleTokenStore.StoredGrant?
+        do { grant = refreshTokenForTesting == nil ? try GoogleTokenStore.savedGrant() : nil }
+        catch { return .failed(GoogleCalendarError.tokenStoreUnreadable.localizedDescription) }
         guard !clientID.trimmingCharacters(in: .whitespaces).isEmpty else {
             return .disabled(GoogleAppClient.unavailableMessage)
         }
-        guard storedRefreshToken != nil else { return .needsAuthorization }
-        if refreshTokenForTesting == nil, !GoogleScopes.coversCalendar(GoogleTokenStore.grantedScopes) {
+        let refresh = refreshTokenForTesting?() ?? grant?.refreshToken
+        guard refresh != nil else { return .needsAuthorization }
+        if refreshTokenForTesting == nil, !GoogleScopes.coversCalendar(grant?.scopes ?? []) {
             return .disabled(GoogleCapability.calendar.permissionSentence)
         }
         return .authorized
@@ -308,6 +307,7 @@ enum GoogleCalendarError: LocalizedError, Equatable {
     case notSignedIn
     case accessRevoked
     /// A rejected API access token does not establish refresh-grant revocation.
+    case tokenStoreUnreadable
     case tokenStoreFailed
     case accessTokenRejected
     case noRefreshToken
@@ -327,6 +327,8 @@ enum GoogleCalendarError: LocalizedError, Equatable {
             "Google Calendar isn't connected yet."
         case .accessRevoked:
             "Google revoked Next Notes' access. Connect the account again."
+        case .tokenStoreUnreadable:
+            "Could not read your saved Google sign-in."
         case .tokenStoreFailed:
             "Google connected, but this Mac couldn’t save the sign-in. Please try again."
         case .accessTokenRejected:

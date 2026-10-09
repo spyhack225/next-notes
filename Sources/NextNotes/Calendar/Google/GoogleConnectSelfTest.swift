@@ -41,6 +41,7 @@ enum GoogleConnectSelfTest {
         await toolInstallCases(expect)
         await runnerCases(expect)
         await calendarConsumerCases(expect)
+        await GoogleGrantReadSelfTest.run(expect)
 
         await GoogleAccessTokens.shared.invalidate()
         await GoogleAccessTokens.shared.useClient(nil)
@@ -904,9 +905,9 @@ enum GoogleConnectSelfTest {
         guard SecItemAdd(legacy as CFDictionary, nil) == errSecSuccess else {
             expect(false, "legacy grant fixture was saved"); return
         }
-        expect(GoogleTokenStore.hasRefreshToken && !GoogleTokenStore.appSignInSelected
+        expect(GoogleTokenStore.hasRefreshToken && GoogleTokenStore.appSignInSelected
                && GoogleTokenStore.grantedScopes == [GoogleScopes.legacyCalendar],
-               "actual raw legacy grant reads as calendar-only before route selection existed")
+               "actual raw legacy grant reads as calendar-only and adopts the app route")
         await tokens.invalidate()
         do {
             _ = try await runner.run(["anything"])
