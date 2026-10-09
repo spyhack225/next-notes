@@ -104,6 +104,7 @@ final class AgentSpeechSynthesizer {
         case interrupted(String, wasRendered: Bool)
     }
     static let shared = AgentSpeechSynthesizer()
+    static var appleSynthesisCallsForTesting: Int { AVSpeechBacking.synthesisCallsForTesting }
 
     /// Capability of the currently selected output route, not a playback claim.
     /// Pocket/Kokoro resume their players but provide no qualified post-resume

@@ -1,0 +1,28 @@
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.008s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.148s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.145s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.147s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.145s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.143s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.145s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.132s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.139s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.133s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.197s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.199s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.195s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.100s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.081s frontend-control provider=appleFoundation model=Apple Foundation Model
+VOICE_PIPELINE_SPAN=agent.transcript_to_first_token 0.002s model provider=appleFoundation model=Apple Foundation Model
+VOICE_ACK_CHECKS=39 failures=10
+VOICE_ACK_WRONG: eligible 0 starts ready clip
+VOICE_ACK_WRONG: rotation 0
+VOICE_ACK_WRONG: at most once 0
+VOICE_ACK_WRONG: eligible 1 starts ready clip
+VOICE_ACK_WRONG: rotation 1
+VOICE_ACK_WRONG: at most once 1
+VOICE_ACK_WRONG: eligible 2 starts ready clip
+VOICE_ACK_WRONG: rotation 2
+VOICE_ACK_WRONG: at most once 2
+VOICE_ACK_WRONG: eligible commit schedules grace independently
+VOICE_ACK_FAILED

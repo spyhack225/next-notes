@@ -1,0 +1,18 @@
+{
+  "kind": "RED no-op acknowledgement scaffold, actual coordinator/scheduler fixture; Apple synthesis counter only",
+  "source_sha256": {
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgement.swift": "68c82871bb666f2652cec19e19d4d38f90544d57f1598f819e6e2d5ee94cf2cc",
+    "Sources/NextNotes/Agent/Voice/VoiceAcknowledgementSelfTest.swift": "127b39cea63b5ba723e39428188082828b47f36c03c9fe47d7cc0a233e4a7fd7",
+    "Sources/NextNotes/Agent/Duplex/OutputScheduler.swift": "7e05a7fb8b2cbca22507f82cf6ac57e59baba431c0adef3321619553987d8464",
+    "Sources/NextNotes/Agent/VoiceConversationCoordinator.swift": "ba15ff683e4e6162497e2e40966d78b583fe44ef289a135971b90415299ee49d",
+    "Sources/NextNotes/Agent/Voice/VoiceLatencySelfTest.swift": "4337040efc982e3aede203e424075183f18a0f26b896cd06df26d521f6c7e6b5",
+    "Sources/NextNotes/Agent/Speech/AgentSpeechSynthesizer.swift": "3c14261613ccf2962ab880f691e833af720e347d7225ce5dba46bf831919c1bf"
+  },
+  "exit": 1,
+  "marker": "VOICE_ACK_FAILED",
+  "checks": 39,
+  "failures": 10,
+  "os": "macOS-27.2-arm64-arm-64bit",
+  "binary_sha256": "3dfdf63abf542584322384a4507c03cbedafce7d1a46ffbe6a55fdb78b3e08e6",
+  "fixture_sha256": "127b39cea63b5ba723e39428188082828b47f36c03c9fe47d7cc0a233e4a7fd7"
+}
