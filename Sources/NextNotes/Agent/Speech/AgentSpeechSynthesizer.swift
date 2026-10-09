@@ -142,7 +142,12 @@ final class AgentSpeechSynthesizer {
     func prepareAtLaunch() {
         guard !SelfTest.isRunning, !launchPreparationStarted else { return }
         launchPreparationStarted = true
-        Task { @MainActor in await prepareSelectedVoice() }
+        Task { @MainActor in
+            switch Self.selectedEngine {
+            case "kokoro": await KokoroAgentVoice.shared.prepare(automatic: true)
+            default: await PocketAgentVoice.shared.prepareAutomatically()
+            }
+        }
     }
 
     func prepareSelectedVoice() async {
