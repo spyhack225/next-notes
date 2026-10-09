@@ -432,7 +432,8 @@ final class AgentSpeechSynthesizer {
     /// `prepareForStream` / `speak` resets.
     func enqueueClause(_ clause: String) {
         let trimmed = clause.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, !didStop else { return }
+        guard !trimmed.isEmpty,
+              !didStop || (!replyCanSpeak && outputAvailability == .failed) else { return }
         if !replyCanSpeak {
             // Preserve written text in its existing consumer and retain an unheard
             // speech fact. Preparation must never play this stale answer later.
@@ -497,7 +498,12 @@ final class AgentSpeechSynthesizer {
         replyTokens.removeAll()
         replyOpen = false
         replyFinished = false
-        if advanceGeneration { outputGeneration &+= 1 }
+        if advanceGeneration {
+            outputGeneration &+= 1
+            // An explicit stop ends text admission too. Failed output retains
+            // this generation so its remaining stream can settle unheard.
+            replyCanSpeak = true
+        }
         currentPlaybackToken = 0
         let hadPendingAudio = onFirstAudio != nil
         didStop = true
@@ -746,10 +752,11 @@ final class AgentSpeechSynthesizer {
 
     private func fallbackCurrentClause(text: String, token: UInt64) {
         guard token == currentPlaybackToken, !didStop,
-              replyVoiceRequest == selectedVoiceRequest,
               let currentClause, !currentClause.isEmpty,
               currentClause == text || (replyOpen && text.isEmpty) else { return }
-        selectedVoiceFailed = true
+        // The token/text owns output settlement. Epochs fence only the
+        // selected voice latch: selection/preparation does not replace playback.
+        if let request = replyVoiceRequest { noteSelectedVoiceFailure(request: request) }
         outputAvailability = .failed
         replyCanSpeak = false
         // Stop the existing producer. Completed clauses stay acknowledged; the
