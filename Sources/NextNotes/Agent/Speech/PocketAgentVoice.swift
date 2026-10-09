@@ -28,6 +28,10 @@ final class PocketAgentVoice {
         manager = PocketTtsManager(defaultVoice: "alba", language: .english, directory: root,
                                    precision: .int8, placement: .gpu)
     }
+    private(set) var speechSynthesisCallsForTesting = 0
+    func noteSynthesisRequestForTesting() {
+        if SelfTest.isRunning { speechSynthesisCallsForTesting += 1 }
+    }
     private(set) var isReady = false
     private(set) var isPreparing = false
     private(set) var errorMessage: String?
@@ -297,6 +301,7 @@ final class PocketAgentVoice {
 
     func frames(for text: String, voice: String)
         async throws -> AsyncThrowingStream<PocketTtsSynthesizer.AudioFrame, Error> {
+        noteSynthesisRequestForTesting()
         try await prepareForSynthesis()
         return try await manager.synthesizeStreaming(text: text, voice: voice)
     }
@@ -576,6 +581,7 @@ final class PocketSpeechBacking: AgentReplySpeechBacking {
     func enqueue(_ text: String, token: UInt64) {
         guard speaking, !inputFinished, !text.isEmpty,
               !clauses.contains(where: { $0.token == token }) else { return }
+        voiceOwner.noteSynthesisRequestForTesting()
         let submittedAt = Date()
         clauses.append(Clause(token: token, text: text, submittedAt: submittedAt))
         let submitted = String(format: "Pocket TTS clause submitted %.3f token=%llu characters=%d",
