@@ -109,7 +109,12 @@ final class AgentSpeechSynthesizer {
     /// Pocket/Kokoro resume their players but provide no qualified post-resume
     /// receipt. Their pending shadow status must never be adopted as live UI truth.
     var supportsQualifiedResumeReceipt: Bool { backing is any AgentReceiptSpeechBacking }
-    var speechSynthesisCallsForTesting: Int { 0 }
+    /// Allowed-engine text request entries, including rejected/failed requests.
+    /// Warm predictions and prepared-PCM playback are not text request entries.
+    var speechSynthesisCallsForTesting: Int {
+        PocketAgentVoice.shared.speechSynthesisCallsForTesting
+            + KokoroAgentVoice.shared.speechSynthesisCallsForTesting
+    }
     func setVoiceReadinessForTesting(engine: String, ready: Bool) {
         guard SelfTest.isRunning else { return }
         if engine == "pocket" { pocketReadinessForTesting = ready }
