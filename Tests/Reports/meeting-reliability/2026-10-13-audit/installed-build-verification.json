@@ -1,0 +1,13 @@
+{
+  "atUTC": "2026-10-13T18:18:59.898407+00:00",
+  "sha256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+  "binaryBytes": 106415344,
+  "version": "0.2.24",
+  "bundleID": "ai.pivotstudio.nextnotes",
+  "UUID": "UUID: 61DC74FF-9F41-3B81-8B89-AA4AFC9C51C9 (arm64) /Applications/Next Notes.app/Contents/MacOS/NextNotes",
+  "signatureVerification": 0,
+  "priorOwnerBuild": "ed67302f differs; do not inherit prior meeting suite as current pass",
+  "sourceProvenance": "Installing peer relay1067 and retained build3/checks3; eight meeting producer files equal retained dictation-perf snapshot; complete independent build manifest unavailable",
+  "currentNativeTests": "UNRUN: reviewed start55 reported-free floor refuses39%; no guard relaxation, build or inference",
+  "ownerMeetingsAllTerminal": true
+}

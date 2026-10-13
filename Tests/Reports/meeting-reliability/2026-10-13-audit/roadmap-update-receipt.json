@@ -1,0 +1,16 @@
+{
+  "scope": "Requested roadmap files updated in canonical workspace; existing .gitignore explicitly excludes roadmap/, so retain local files and hashes without changing tracking policy or force-adding unrelated planning files",
+  "updatedFiles": [
+    {
+      "path": "roadmap/in-progress/MEETING-RECORDING-RELIABILITY/00-README.md",
+      "sha256": "f41da4e4697fcf72a44e3f5bd28c159f7effb8c4d5ada9be2a4e3388d1360f35",
+      "bytes": 23322
+    },
+    {
+      "path": "roadmap/in-progress/MEETING-RECORDING-RELIABILITY/STATUS.md",
+      "sha256": "d9a923283539a7934b4197559f1ca7b61dd2e087a5ec6dadf62609f93c48dfdc",
+      "bytes": 12063
+    }
+  ],
+  "roadmapComplete": false
+}

@@ -1,0 +1,20 @@
+{
+  "scope": "Hashes only, no private owner text in Git/relay",
+  "files": {
+    "OWNER-AUDIT.md": {
+      "sha256": "11b11aa9e8c28a482ae26d40ba22574cc9566c763c16e6463617005f1109e21b",
+      "bytes": 5491,
+      "retainedPrivate": true
+    },
+    "DETAILS.md": {
+      "sha256": "f9d3fd956b9c0ccdd16cd78610c4d935c9333f1a4ef6323f6563ffb8d50224da",
+      "bytes": 20134,
+      "retainedPrivate": true
+    },
+    "semantic-findings.json": {
+      "sha256": "0ce865377a0b4a895edcce0220d8cfbfd729e9abf41904b4e1d005df515f7a16",
+      "bytes": 197273,
+      "retainedPrivate": true
+    }
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "scope": "Analytical consistency with existing5s writer bound and hypothesizedhalf-rate systeminput. Not an executed writer/native reproduction or proof upstream cause.",
+  "fileFrames": 36603189,
+  "hypothesizedSystemFrames": 18301594.5,
+  "maxLeadFrames": 80000,
+  "predictedOmittedFrames": 18221594.5,
+  "observedOmittedFrames": 18220683,
+  "differenceFrames": 911.5,
+  "differenceSampleSeconds": 0.05696875,
+  "systemClockMaxFinalSeconds": 1135.817,
+  "micClockMaxFinalSeconds": 2270.86
+}

@@ -1,0 +1,150 @@
+{
+  "scope": "Final redacted audit/evidence hashes; private payloads not included",
+  "files": [
+    {
+      "path": "ACTION-PLAN.md",
+      "sha256": "4f9705377f1296b65e9717f6704a6eb47c6e87f0b04dec2c10689f7232681009",
+      "bytes": 7283
+    },
+    {
+      "path": "M3-audio-channel-statistics.json",
+      "sha256": "321e3f40e52754c5a2b0329fc081901ee4021b75f7e6afd8978de31070aa01f1",
+      "bytes": 820
+    },
+    {
+      "path": "M3-lag-retained-interval.json",
+      "sha256": "2c8820f947036f0470dcbb81f6386d8673adbe77c5c2a11bfae2a8e33a0d2ec3",
+      "bytes": 754
+    },
+    {
+      "path": "M3-retained-resource-summary.json",
+      "sha256": "856fb00c403c7c36e4e8dba7922af7a3983d34716aba3d79638ad752152e2633",
+      "bytes": 878
+    },
+    {
+      "path": "README.md",
+      "sha256": "dbb75a5b435ae120b9f764176d870a4574d0b5f93f77f9137d11e3b88de70b90",
+      "bytes": 11047
+    },
+    {
+      "path": "artifact-pins.json",
+      "sha256": "505e5971a528144ebdf69d8aa209c8d5961c5bd8014d4f86c4e10b3c5da5d686",
+      "bytes": 6880
+    },
+    {
+      "path": "capture-source/README.md",
+      "sha256": "0a1b3fcaaebed9c3eb8e03658d28330906bce4bdb6fcddc9df9090cded251c3f",
+      "bytes": 9787
+    },
+    {
+      "path": "capture-source/parent-observations-and-conditional-math.json",
+      "sha256": "313626d463b5f059386f16899cfdce944c48452ec87eab92d6466beb4c674cc2",
+      "bytes": 1529
+    },
+    {
+      "path": "capture-source/source-pins.json",
+      "sha256": "247d515d44718e4c6c031f3a5fde8ab965e273cda4741d66258dc4efdfe6c3b8",
+      "bytes": 6992
+    },
+    {
+      "path": "clock-consistency.json",
+      "sha256": "835ea38ca7c74d1bceaceda759950b49d770e3a8910e1a768e11cc1e8fc255f1",
+      "bytes": 497
+    },
+    {
+      "path": "identity/README.md",
+      "sha256": "2bbd5eb4293fe9d5c8ca3f6da7708462899b28bf91d911f265c302157bf24727",
+      "bytes": 6704
+    },
+    {
+      "path": "identity/relay-receipt.json",
+      "sha256": "04b81a97a426edf9dc0c94212226a00c5ded35688d119f884558628238b737ca",
+      "bytes": 1336
+    },
+    {
+      "path": "identity/structural-summary.json",
+      "sha256": "36774a6e3c84b052d40796fb0e148592b75674e0f1ab445d652acd5d6eef236d",
+      "bytes": 15073
+    },
+    {
+      "path": "installed-build-verification.json",
+      "sha256": "b04071dbf87b7c5fa119744fa12d543a2b6d0ea192be1df4744eb434d7f365f1",
+      "bytes": 820
+    },
+    {
+      "path": "meeting-summary.json",
+      "sha256": "68c058d66fadf90327c997a14745cee0e0ac8c6198bb42dd0fc7bb8f171d42f0",
+      "bytes": 795
+    },
+    {
+      "path": "meeting-usage-metadata.json",
+      "sha256": "6d1d994f22ed21e0207edf2493eb2f7b4944c4e81bb27d056d29993e96bac347",
+      "bytes": 24029
+    },
+    {
+      "path": "notes/NOTES-VS-TRANSCRIPTS.md",
+      "sha256": "b56f868cd4984be761bb6c8d6892b65781f98ea6ad6b32b43e590662aeb10ca3",
+      "bytes": 3710
+    },
+    {
+      "path": "notes/audit-summary.json",
+      "sha256": "a923c439dee5dd33c88d607f7e09b5e4d6db1f8b6c56fcf6c33ee40da253e044",
+      "bytes": 6735
+    },
+    {
+      "path": "oslog-oct13-coverage.json",
+      "sha256": "1f48ba9243f6368a91f4bfc75cd4cb969bc2537c6f82807e2fbb610a19541bae",
+      "bytes": 1651
+    },
+    {
+      "path": "oslog-oct9-coverage.json",
+      "sha256": "c385c8166839c93c75f1eda8ae3e1cd1a8bde2c3dfdb007f134524716542a9fa",
+      "bytes": 317
+    },
+    {
+      "path": "owned-agents-paragraph.txt",
+      "sha256": "3e2429f78d0291d7e16c8e1de5a3f4e5e4c9dda16128f6919eaabf2e55f40782",
+      "bytes": 715
+    },
+    {
+      "path": "owned-cleanup.json",
+      "sha256": "14c5066a8890ea7c30c9b29ff2803bf35ca51e1c9e7d7bd0fec1d4bcfd7486e1",
+      "bytes": 814
+    },
+    {
+      "path": "owned-performance-paragraph.txt",
+      "sha256": "fb07ac633518117ebf3beb1334dd93d4a5f5bf80dc0f11bd9636dde401aa46ce",
+      "bytes": 1686
+    },
+    {
+      "path": "owner-artifact-invariance.json",
+      "sha256": "bc153e3257d0f6d11862d2871bf2c6ce9bdd6be2f454b183c3faaeb9bc9a1126",
+      "bytes": 185
+    },
+    {
+      "path": "owner-route-context.json",
+      "sha256": "2d63110f5d3f6f21ae0c001a4f73ac83447203f0114b03727b5e68315e02316f",
+      "bytes": 447
+    },
+    {
+      "path": "private-evidence-receipt.json",
+      "sha256": "b6bf406d2e0ba6254c2d46c0175475e0a4a08db46264d93397d3a98f398295d3",
+      "bytes": 587
+    },
+    {
+      "path": "roadmap-update-receipt.json",
+      "sha256": "d1e33253874ed748c2dfafbfbd3e3749f96ca1030fed285a39efaf8de0272e51",
+      "bytes": 675
+    },
+    {
+      "path": "source-parity.json",
+      "sha256": "2ca61228c93e415182cf33765974fbc4e640cfd6dcf7a0bd0a042fdfdbe4fab4",
+      "bytes": 2609
+    },
+    {
+      "path": "structured-notes-shape.json",
+      "sha256": "1d5be61a13f0b82a7b3da67e448b8214a0885fe06fba7534878f9545958da74b",
+      "bytes": 1221
+    }
+  ]
+}

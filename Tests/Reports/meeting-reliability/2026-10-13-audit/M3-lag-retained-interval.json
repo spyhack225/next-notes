@@ -1,0 +1,29 @@
+{
+  "scope": "Retained metrics only; begins17:31:30Z, not continuous whole recording",
+  "groups": {
+    "meeting.speech_to_final:system": {
+      "n": 49,
+      "min": 892.0250840215683,
+      "median": 1028.0469340496063,
+      "max": 1137.9611339883804
+    },
+    "meeting.speech_to_partial:system": {
+      "n": 35,
+      "min": 896.794166973114,
+      "median": 1031.2633020381927,
+      "max": 1136.8725029973984
+    },
+    "meeting.speech_to_partial:mic": {
+      "n": 67,
+      "min": 0.07767798423765271,
+      "median": 0.15441397190079442,
+      "max": 0.2867160367966335
+    },
+    "meeting.speech_to_final:mic": {
+      "n": 83,
+      "min": 0.16842000961310077,
+      "median": 0.5283680152892885,
+      "max": 2.90421407222766
+    }
+  }
+}

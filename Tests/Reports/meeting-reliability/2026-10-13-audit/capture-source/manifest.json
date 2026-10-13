@@ -1,0 +1,20 @@
+{
+  "scope": "Sanitized read-only source/pin audit; parent numeric evidence and conditional arithmetic; no payload/no execution",
+  "files": [
+    {
+      "path": "README.md",
+      "SHA256": "0a1b3fcaaebed9c3eb8e03658d28330906bce4bdb6fcddc9df9090cded251c3f",
+      "bytes": 9787
+    },
+    {
+      "path": "parent-observations-and-conditional-math.json",
+      "SHA256": "313626d463b5f059386f16899cfdce944c48452ec87eab92d6466beb4c674cc2",
+      "bytes": 1529
+    },
+    {
+      "path": "source-pins.json",
+      "SHA256": "247d515d44718e4c6c031f3a5fde8ab965e273cda4741d66258dc4efdfe6c3b8",
+      "bytes": 6992
+    }
+  ]
+}

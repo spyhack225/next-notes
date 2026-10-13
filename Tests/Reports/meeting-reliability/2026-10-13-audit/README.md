@@ -1,0 +1,55 @@
+# Three-meeting reliability and quality audit — 13 October 2026
+
+Owner-authorized read-only audit of three retained meetings, their current transcript/notes versions, logs, saved audio and installed build. Public evidence uses M1/M2/M3 aliases; titles, people, raw text/audio and account errors stay in private0700/0600 diagnostics outside Git/relay. The alias mapping and detailed factual examples are in the private owner report. M1 was recorded7 October, M2 on9 October, M3 on13 October; this is not three13 October recordings.
+
+## Verdict
+
+**Meeting reliability remains FAILED for the two newer original flows.** Native live system speech exists but its transcript clock ends near half the wall duration. The writer persistently trims late system originals, and M3's saved Others channel is virtually empty after the first few seconds. Final-pass rejection protects live text; it cannot recover erased audio or fix its clock. This is distinct from the repaired7 October helper-memory runaway. The allocating/conversion producer for the new half-cadence symptom is not yet proven.
+
+The current installed0.2.24 executable503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe / UUID61DC74FF-9F41-3B81-8B89-AA4AFC9C51C9 passes strict/deep signature verification. It differs from the prior meeting-testeded673 build. Installing-peer relay1067 supplies provenance; eight relevant source files equal its retained dictation-perf snapshot. This does not supply an independently verified complete build manifest or current functional acceptance. Fresh native flags are **UNRUN**: reported memory-free39% refuses the reviewed55% start floor even though disk/swap/load preflight passes. No app/model/test/build/installation was performed by this audit.
+
+## Per-meeting capture and transcript findings
+
+| Alias | Saved duration | Recording facts | Transcript outcome | Remaining evidence |
+|---|---:|---|---|---|
+| M1 |40m05s | Current record shows normal stop/no capture gap/write failure; newer saved-trim counters are absent, not proven zero. The owner's partial-recording report cannot be resolved from this legacy row. | Long-window final529rows; live770. Final system tail ends88.638s earlier than live. | Original audio expired; cannot independently establish lost words/voice truth. Existing7 October responsiveness evidence is first/last samples only. |
+| M2 |47m40s |22,782,827 system originals trimmed; mic0; capture-gap/drop counters0. Cumulative omitted sample time23m43.927s at16k, not a measured speech-gap interval. |live-only:rejected. System227rows, max1426.918s; mic468rows, max2851.24s. System live/final rows unchanged; no final speaker labels. | Original audio expired12 October; usage retains successful live ASR and later diarization error. |
+| M3 |38m08s rounded JSON (UI38:07) |18,220,683 system originals trimmed; mic0; no reported stream loss/write failure. Actual CAF36,603,189frames /2287.699s. |live-only:rejected. System146rows/max1135.817s; mic355rows/max2270.86s. | Exact audio retained privately for replay before16 October temporary expiry; original owner files unchanged. |
+
+The M3 CAF is16kHz stereo signed16bit: mic channel has30,157,476 nonzero frames; Others has only39,680 across5 one-second bins, all in the first1–6s. All samples beyond6s are digital zero on Others. Nonzero/RMS is amplitude evidence, not speech recognition or audible ground truth. System live ASR nevertheless reports472successful windows/574.74s admitted audio and0failed windows. That excludes a blanket 'nothing was ever captured' explanation; live and saved paths diverge.
+
+Retained M3 lag samples cover only the later interval:49system finals median1028.047s/max1137.961s;83mic finals median0.528s/max2.904s.35system partials median1031.263s/max1136.873s versus67mic partials median0.154s/max0.287s. These large system values include a broken timestamp domain; they must not be called actual inference/queue time. Transcription usage lane waits remain tiny. Voice/name judgments based on those timestamps are unreliable.
+
+The owner confirms AirPods audio for these calls. AirPods model, selected microphone, Bluetooth profile and any device switch are not yet established. Native reproduction must include that route and distinguish Zoom versus browser meetings; AirPods use is context, not a proven cause.
+
+## Producer localization and limits
+
+Current/installed-associated `SystemAudioCapture.handle` wraps the borrowed IOProc AudioBufferList using the reported tap format, converts to16k, and emits an AudioChunk. `MeetingSession` computes a native-time startFrame for every packet. The writer takes that frame only for the first packet on each track, then advances solely by sample counts. The live system transcriber similarly places only its first origin, then advances by supplied samples. If system packets contain half the required16k samples per native second, both clocks compress. The mic passes the writer's5s lead bound, which fills Others with zeroes and later discards the slow system originals.
+
+A half-cadence consistency calculation predicts18,221,594.5 omitted frames versus18,220,683 observed: difference911.5frames/0.057s. Together with the two half-duration live timelines and the5s surviving saved prefix, this strongly localizes the failure family. **It is not an actual original/fixed native reproduction.** Whether the first broken producer is HAL format interpretation, channel/byte/frame shape, converter cadence, device-rate transition or another capture omission requires native ASBD/ABL/sample-time/host-time/in→out frame measurements. Do not stretch timestamps by2, enlarge queues or suppress the partial marker.
+
+`No speech detected in audio` is the FluidAudio offline diarization error for empty segmentation/embedding evidence on the **saved system channel**. It does not mean the microphone or entire meeting had no speech. M2 has one joined usage error; M3 has two, with matching13 October OS errors. Automatic pipeline eligibility rejects known saved system loss; direct Identify/Reidentify can bypass that eligibility seam. Attribution to a specific user click is unobserved. A repeated clustering attempt on this zero channel cannot recover erased sound.
+
+The existing health sample already persists saved-track loss and warns; its `meeting.resources` text includes capture-drop counters but omits saved-trim counters and per-track clock/sample coverage. Zero drop logs therefore do not certify saved coverage. This is an observability gap, not evidence that the warning never appeared.
+
+## Resources and build acceptance
+
+M2 persisted557footprint samples: peak1,027,213,832B, max sample gap6.710s, activepeak448,000B, queuedpeak0, paused0. M3 persisted448samples: peak801,524,016B, max gap5.264s, activepeak448,000B, queuedpeak0, paused0. Sampling does not establish a continuous peak, UI responsiveness or concurrent ASR+voice acceptance. Retained later M3 resource rows99 show warning pressure, footprint599,869,696–763,840,768B, storage16,966,291,456–17,015,058,432B, swap2,735,407,104–2,810,904,576B, and no counted capture drops. This audit does not establish new allocation attribution or declare warning pressure harmless.
+
+M3 final pass17.766s accepts mic but rejects system. Notes writer46.019s spans an existing29.969s length-cut cloud response and15.984s retry; no extra inference was introduced by this audit. Diarization attempts8.123/6.665s fail. M2 current regenerated writer65.492s; M1 current retained writer30.153s. Provider/model/artifact version must be joined before comparing quality; `notes.json.model` belongs to the separate local knowledge extractor, not markdown writer.
+
+## Titles, speaker identities and notes
+
+All three records are detectedCall with synthetic app/time identifiers, user-supplied titles and zero attendee roster. Current title strings and context copies are full manual names; they do not reproduce the prior automatic title. M3 OS logs retain10Google Calendar fetch failures, with private error details unavailable. Full title/event association must be repaired at discovery/matching, preserving manual edits. Roster names alone never establish a voice binding.
+
+See [identity review](identity/README.md), [notes factuality review](notes/NOTES-VS-TRANSCRIPTS.md) and [capture source review](capture-source/README.md) for final per-source scope. The private owner report retains concrete note/transcript examples. Current note review finds27 selected material omissions (M1/M2/M3:11/7/9), attribution or referent errors1/2/1, intent/resolution errors1/2/4 and stronger unsupported assertions1/2/1. Categories overlap and are not an accuracy percentage. Examples include reversed request direction, completed work promoted to future action, answered questions left open and altered numerical conditions. M1's successful markdown predates its current speaker/transcript revision after a failed regeneration; freshness is an additional contract. Current cloud raw submitted prompts/replies are absent, so exact first semantic loss remains unlocalized. The older failed local writer comparisons do not establish cause for these regenerated cloud outputs. Text comparison cannot certify ASR accuracy against speech, and expired audio cannot be recreated.
+
+## Next work and evidence
+
+[Action plan](ACTION-PLAN.md) prioritizes actual clock/capture recovery before identity and semantic notes. Every fix needs the original failing native/input contract and unchanged original/fixed checks at the responsible seam. No new store/queue/service, provider/default change, owner data rewrite or automatic recording restart is authorized by a diagnostic verdict.
+
+Evidence: [artifact pins](artifact-pins.json), [installed build](installed-build-verification.json), [source parity](source-parity.json), [audio](M3-audio-channel-statistics.json), [lag](M3-lag-retained-interval.json), [resources](M3-retained-resource-summary.json), [usage](meeting-usage-metadata.json), [clock consistency](clock-consistency.json), OS-log coverage [13 October](oslog-oct13-coverage.json)/[9 October](oslog-oct9-coverage.json). Raw logs/audio stay private. No original meeting files, models, settings or foreign staged changes are edited. Useful reproduction audio is retained; cleanup must preserve it until the original/fixed replay completes.
+
+## Audit artifact lifecycle
+
+Original20 meeting artifacts rehash unchanged, including remaining audio. No build/binary/worktree was created. Exact remaining replay corpus147,323,363logicalbytes is retained privately because temporary owner audio expires; compact relevant12app OS events and executable identity replace the redundant40MB UI/framework export. Exact owned export removal retires40,902,656allocatedbytes; global/APFS free-space gain is unmeasured. Notes worker separately retires739,783logicalbytes of duplicate newly created copies while retaining its primary snapshots/anchored cases. No unrelated cache/model/user audio/foreign worktree or bundle was cleaned. [Cleanup receipt](owned-cleanup.json).

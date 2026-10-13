@@ -1,0 +1,29 @@
+{
+  "summary": {
+    "frames": 36603189,
+    "seconds": 2287.6993125,
+    "channels": [
+      {
+        "channel": 0,
+        "nonzeroFrames": 30157476,
+        "nonzeroBins": 2256,
+        "firstNonzeroSecond": 1.0,
+        "lastNonzeroSecond": 2287.0,
+        "aboveRMS001Bins": 1712,
+        "maximumRMS": 0.2589649698639168,
+        "maximumInt16Peak": 32768
+      },
+      {
+        "channel": 1,
+        "nonzeroFrames": 39680,
+        "nonzeroBins": 5,
+        "firstNonzeroSecond": 1.0,
+        "lastNonzeroSecond": 6.0,
+        "aboveRMS001Bins": 2,
+        "maximumRMS": 0.1283470260435168,
+        "maximumInt16Peak": 30831
+      }
+    ]
+  },
+  "scope": "Read-only full native LPCM16 stereo CAF using memmapped1second windows; amplitude/nonzero measurements, not speech recognition or audible ground truth"
+}

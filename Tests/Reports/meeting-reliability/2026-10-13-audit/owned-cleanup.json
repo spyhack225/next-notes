@@ -1,0 +1,14 @@
+{
+  "scope": "Only owned redundant40MB unified-log export deleted after exact relevant12app events plus original executable identity retained privately; no original owner logs/audio/data or foreign artifacts deleted",
+  "rawExportSHA256": "e54e84f65125abb15c8bba367eb38b960a78f57adaf8282473236185987064f0",
+  "rawExportLogicalBytes": 40476057,
+  "rawExportAllocatedBytes": 40902656,
+  "retainedCompactLogicalBytes": 15668,
+  "retainedCompactSHA256": "f5f9566129625503c72900e212410dc2603c06d40d77a9b47934f8838b05155e",
+  "retainedPrivateAudioCorpusLogicalBytes": 147323363,
+  "rawOSSourceUntouched": true,
+  "sourceBuildsOrBinariesCreated": 0,
+  "worktreesCreatedOrDeleted": 0,
+  "globalDiskGain": "Not measured; allocated bytes are not APFS/global free-space gain",
+  "atUTC": "2026-10-13T18:31:13.329711+00:00"
+}

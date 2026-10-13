@@ -1,0 +1,55 @@
+{
+  "retainedStart": "2026-10-13T17:31:30Z",
+  "retainedEnd": "2026-10-13T17:41:54Z",
+  "resourceSamples": 99,
+  "physicalFootprintBytes": {
+    "min": 599869696,
+    "max": 763840768
+  },
+  "residentMemoryBytes": {
+    "min": 289980416,
+    "max": 416432128
+  },
+  "thermalState": {
+    "nominal": 99
+  },
+  "queuedBytes": {
+    "min": 0,
+    "max": 0
+  },
+  "activeBytes": {
+    "min": 0,
+    "max": 190720
+  },
+  "writerBytes": {
+    "min": 113958356,
+    "max": 145996756
+  },
+  "freeBytes": {
+    "min": 16966291456,
+    "max": 17015058432
+  },
+  "swapUsed": {
+    "min": 2735407104,
+    "max": 2810904576
+  },
+  "swapAvailable": {
+    "min": 1484062720,
+    "max": 1559560192
+  },
+  "pressure": {
+    "warning": 99
+  },
+  "missedFrames": {
+    "min": 0,
+    "max": 0
+  },
+  "missedBuffers": {
+    "min": 0,
+    "max": 0
+  },
+  "paused": {
+    "min": 0,
+    "max": 0
+  }
+}

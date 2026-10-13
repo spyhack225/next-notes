@@ -1,0 +1,11 @@
+{
+  "atUTC": "2026-10-13T18:28:54.290726+00:00",
+  "source": "Direct owner answer to audio route question",
+  "audioRoute": "AirPods",
+  "appliesTo": "Requested three meetings per question wording",
+  "microphoneSelection": "unobserved",
+  "AirPodsModel": "unobserved",
+  "BluetoothProfile": "unobserved",
+  "deviceSwitchDuringCall": "unreported/unknown",
+  "causalVerdict": "Not proven; include actual native callback format/rate observations"
+}

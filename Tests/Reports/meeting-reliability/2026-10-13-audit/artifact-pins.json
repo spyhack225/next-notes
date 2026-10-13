@@ -1,0 +1,210 @@
+[
+  {
+    "label": "M1",
+    "id": "3B92EA32-9D55-4622-A2D6-810B044792FF",
+    "start": "2026-10-07T18:06:22Z",
+    "end": "2026-10-07T18:46:27Z",
+    "captureIntegrity": {
+      "audioWriteFailed": false,
+      "captureGap": false,
+      "lastCapturedAt": "2026-10-07T18:46:21Z",
+      "missingCaptureFrames": 0,
+      "normalEndAt": "2026-10-07T18:46:27Z"
+    },
+    "performanceSummary": null,
+    "transcriptPass": "long-window",
+    "status": {
+      "state": "done"
+    },
+    "files": [
+      {
+        "name": "context.json",
+        "bytes": 23094,
+        "sha256": "0b526e1276439c364ad4269cdcc07392c3258f3df89bf62e49d690cc3fb044ea",
+        "mtimeUTC": "2026-10-10T14:59:16.610826+00:00"
+      },
+      {
+        "name": "meeting.json",
+        "bytes": 889,
+        "sha256": "5b1330315f033b5e650ff405177bb8e333a05cf4009c784fad1b73a95b52bf7d",
+        "mtimeUTC": "2026-10-10T15:00:53.786749+00:00"
+      },
+      {
+        "name": "notes.json",
+        "bytes": 406,
+        "sha256": "0ddf9509eec56be64f49b429ec210545cdb80113163d456d326e5600102cecb9",
+        "mtimeUTC": "2026-10-10T14:57:53.757907+00:00"
+      },
+      {
+        "name": "notes.md",
+        "bytes": 2642,
+        "sha256": "da0503c757f460c4faea1b6b7f7be65bfae081788a0c57156595e552a4280f33",
+        "mtimeUTC": "2026-10-10T14:57:44.944521+00:00"
+      },
+      {
+        "name": "speakers.json",
+        "bytes": 6328,
+        "sha256": "2a81b8d2927a123392f1d4e23fa0d1731e7e26c4af10bfd993132dbc2225c837",
+        "mtimeUTC": "2026-10-10T14:59:05.281722+00:00"
+      },
+      {
+        "name": "transcript.json",
+        "bytes": 118194,
+        "sha256": "cd05552dffe07c91eb4eaceb7ddf33b7cca9acf0abfe7ddf3373c2b7639b7500",
+        "mtimeUTC": "2026-10-10T14:59:05.235774+00:00"
+      },
+      {
+        "name": "transcript.live.json",
+        "bytes": 151674,
+        "sha256": "0b78a729a14d5f393a8835dd5a8ec485e0def17aa204c8812f090a2c986e8966",
+        "mtimeUTC": "2026-10-07T18:47:02.426182+00:00"
+      }
+    ]
+  },
+  {
+    "label": "M2",
+    "id": "32A8CD40-D2C1-4256-92AF-B1BCEF483481",
+    "start": "2026-10-09T17:01:16Z",
+    "end": "2026-10-09T17:48:56Z",
+    "captureIntegrity": {
+      "audioWriteFailed": false,
+      "captureGap": false,
+      "lastCapturedAt": "2026-10-09T17:48:56Z",
+      "missingCaptureFrames": 0,
+      "missingSavedMicFrames": 0,
+      "missingSavedSystemFrames": 22782827,
+      "normalEndAt": "2026-10-09T17:48:56Z"
+    },
+    "performanceSummary": {
+      "firstSampleReferenceSeconds": 813258083.670735,
+      "footprintSamples": 557,
+      "lastSampleReferenceSeconds": 813260932.109657,
+      "maximumSampleGapSeconds": 6.709504961967468,
+      "pausedSamples": 0,
+      "peakActiveBytes": 448000,
+      "peakQueuedBytes": 0,
+      "peakSampledFootprintBytes": 1027213832,
+      "peakSampledResidentBytes": 872300544,
+      "recordingStartedAtReferenceSeconds": 813258076.96123,
+      "samples": 557
+    },
+    "transcriptPass": "live-only:rejected",
+    "status": {
+      "state": "done"
+    },
+    "files": [
+      {
+        "name": "context.json",
+        "bytes": 17893,
+        "sha256": "c42adeb4509d45a7221541a40a15af33682ae111d7fb428652d66486899c31c6",
+        "mtimeUTC": "2026-10-10T13:19:10.552107+00:00"
+      },
+      {
+        "name": "meeting.json",
+        "bytes": 1375,
+        "sha256": "f4bbe9dcb7025d3cde4e35bffe6b22a58634b5d67bed60ea61571cca2a7f62f2",
+        "mtimeUTC": "2026-10-10T14:56:28.397239+00:00"
+      },
+      {
+        "name": "notes.json",
+        "bytes": 989,
+        "sha256": "2442ade3729665be9280ea7473e0eab0186415e07bf221ad5b17b1d43c59d084",
+        "mtimeUTC": "2026-10-10T14:56:28.394237+00:00"
+      },
+      {
+        "name": "notes.md",
+        "bytes": 2773,
+        "sha256": "4bd838ff273285a84970b8acdfd81ec1e236191a367a91fada9e3d51eb5b2164",
+        "mtimeUTC": "2026-10-10T14:56:07.853629+00:00"
+      },
+      {
+        "name": "transcript.json",
+        "bytes": 151588,
+        "sha256": "de0a093f8482d97dc9afd0292a892a0bc64e064ee3e9918c5deb555bd68ffe77",
+        "mtimeUTC": "2026-10-09T17:51:54.933083+00:00"
+      },
+      {
+        "name": "transcript.live.json",
+        "bytes": 174853,
+        "sha256": "238b0db952916fa62d383b611b25ad96b36ed6cc1db6634bf0d135d9ec5da2f4",
+        "mtimeUTC": "2026-10-09T17:51:54.929769+00:00"
+      }
+    ]
+  },
+  {
+    "label": "M3",
+    "id": "26CB7A67-E354-4867-A16C-4CC1EC6974F2",
+    "start": "2026-10-13T17:01:47Z",
+    "end": "2026-10-13T17:39:55Z",
+    "captureIntegrity": {
+      "audioWriteFailed": false,
+      "captureGap": false,
+      "lastCapturedAt": "2026-10-13T17:39:55Z",
+      "missingCaptureFrames": 0,
+      "missingSavedMicFrames": 0,
+      "missingSavedSystemFrames": 18220683,
+      "normalEndAt": "2026-10-13T17:39:55Z"
+    },
+    "performanceSummary": {
+      "firstSampleReferenceSeconds": 813603708.842027,
+      "footprintSamples": 448,
+      "lastSampleReferenceSeconds": 813605993.588425,
+      "maximumSampleGapSeconds": 5.263998031616211,
+      "pausedSamples": 0,
+      "peakActiveBytes": 448000,
+      "peakQueuedBytes": 0,
+      "peakSampledFootprintBytes": 801524016,
+      "peakSampledResidentBytes": 416432128,
+      "recordingStartedAtReferenceSeconds": 813603707.307215,
+      "samples": 448
+    },
+    "transcriptPass": "live-only:rejected",
+    "status": {
+      "state": "done"
+    },
+    "files": [
+      {
+        "name": "audio.caf",
+        "bytes": 146416852,
+        "sha256": "9f44418e095a8b4546aa4ef7476fd8de46c62a4f4999c63dac681e2361622282",
+        "mtimeUTC": "2026-10-13T17:39:55.139618+00:00"
+      },
+      {
+        "name": "context.json",
+        "bytes": 15732,
+        "sha256": "ed40fae9319cd5663bf71adf6827eff97a2d3bf59240f5274eed0d858ad9aaef",
+        "mtimeUTC": "2026-10-13T17:42:18.659993+00:00"
+      },
+      {
+        "name": "meeting.json",
+        "bytes": 1417,
+        "sha256": "4927998b5bc06ba64a0b2cef169d8b0b0dcf976b92d3ef1464f99df424bc90e2",
+        "mtimeUTC": "2026-10-13T17:42:18.657717+00:00"
+      },
+      {
+        "name": "notes.json",
+        "bytes": 801,
+        "sha256": "470753ebc97bc66ef92b3f9251736b3f350de9dcc21cc99443713b3607fc9ed1",
+        "mtimeUTC": "2026-10-13T17:41:05.856010+00:00"
+      },
+      {
+        "name": "notes.md",
+        "bytes": 2013,
+        "sha256": "cf490bea79bb0e6f9ce5eb4aab2ccabd716f43cf340e5663a80ae6e9362189f7",
+        "mtimeUTC": "2026-10-13T17:40:59.212406+00:00"
+      },
+      {
+        "name": "transcript.json",
+        "bytes": 110557,
+        "sha256": "a636c8c365a99bc0b5251df4f5e55e5f7d5de821f33525f243819fe927177d0b",
+        "mtimeUTC": "2026-10-13T17:40:13.103812+00:00"
+      },
+      {
+        "name": "transcript.live.json",
+        "bytes": 123293,
+        "sha256": "35360a3c9a907c254ac05710b1193869b81bd80389ef9c04298977a7f3995fa0",
+        "mtimeUTC": "2026-10-13T17:40:13.102139+00:00"
+      }
+    ]
+  }
+]

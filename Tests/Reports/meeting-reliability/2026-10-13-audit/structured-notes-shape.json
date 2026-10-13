@@ -1,0 +1,62 @@
+[
+  {
+    "label": "M1",
+    "countsNotContent": {
+      "action_items": 0,
+      "activities": 0,
+      "decisions": 0,
+      "events": 0,
+      "generation": 2909290773029799251,
+      "goals": 0,
+      "meeting_id": 36,
+      "model": 11,
+      "open_questions": 0,
+      "organizations": 0,
+      "places": 0,
+      "preferences": 0,
+      "projects": 0,
+      "topics": 0,
+      "version": 2
+    }
+  },
+  {
+    "label": "M2",
+    "countsNotContent": {
+      "action_items": 3,
+      "activities": 0,
+      "decisions": 0,
+      "events": 0,
+      "generation": 3902157450842413102,
+      "goals": 0,
+      "meeting_id": 36,
+      "model": 11,
+      "open_questions": 1,
+      "organizations": 0,
+      "places": 0,
+      "preferences": 0,
+      "projects": 0,
+      "topics": 0,
+      "version": 2
+    }
+  },
+  {
+    "label": "M3",
+    "countsNotContent": {
+      "action_items": 0,
+      "activities": 0,
+      "decisions": 0,
+      "events": 0,
+      "generation": 3936461156858910005,
+      "goals": 0,
+      "meeting_id": 36,
+      "model": 11,
+      "open_questions": 4,
+      "organizations": 0,
+      "places": 0,
+      "preferences": 0,
+      "projects": 0,
+      "topics": 0,
+      "version": 2
+    }
+  }
+]

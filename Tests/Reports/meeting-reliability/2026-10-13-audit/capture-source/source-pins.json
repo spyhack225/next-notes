@@ -1,0 +1,103 @@
+{
+  "scope": "Read-only independent source audit.12 target files byte-identical to root-supplied likely installed-source snapshot; binary-to-source build provenance not independently proved here.",
+  "files": [
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingAudioWriter.swift",
+      "currentSHA256": "11050b5382afeadbefab0d248ddeb1d7840bf036f09792bf3e211a97362c8065",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/MeetingAudioWriter.swift",
+      "snapshotSHA256": "11050b5382afeadbefab0d248ddeb1d7840bf036f09792bf3e211a97362c8065",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingSession.swift",
+      "currentSHA256": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/MeetingSession.swift",
+      "snapshotSHA256": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingResourceHealth.swift",
+      "currentSHA256": "d246de218e13612467805cb45d3a5816faf3872d75507af121b2c18cdd13cbf3",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/MeetingResourceHealth.swift",
+      "snapshotSHA256": "d246de218e13612467805cb45d3a5816faf3872d75507af121b2c18cdd13cbf3",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingModels.swift",
+      "currentSHA256": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/MeetingModels.swift",
+      "snapshotSHA256": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingPipeline.swift",
+      "currentSHA256": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/MeetingPipeline.swift",
+      "snapshotSHA256": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "currentSHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "snapshotSHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+      "currentSHA256": "5cb3aeabf3a9c7ddb1aa3f42be33ae18577e6fbc09c44a6e4358b2b0cfe6e13d",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+      "snapshotSHA256": "5cb3aeabf3a9c7ddb1aa3f42be33ae18577e6fbc09c44a6e4358b2b0cfe6e13d",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/DiarizationService.swift",
+      "currentSHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/DiarizationService.swift",
+      "snapshotSHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "currentSHA256": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "snapshotSHA256": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+      "currentSHA256": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Meetings/ChunkedTranscriber.swift",
+      "snapshotSHA256": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Core/AudioConversion.swift",
+      "currentSHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Core/AudioConversion.swift",
+      "snapshotSHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+      "sameBytes": true
+    },
+    {
+      "path": "/Users/sergekadjo/Documents/Claude/Projects/speechify/Sources/NextNotes/Core/SystemAudioCapture.swift",
+      "currentSHA256": "58d6667f55edcbc4e4512735206da740cbace9b31d66c361093ecca45ed2538b",
+      "snapshotPath": "/Users/sergekadjo/Library/Caches/NextNotesBuild/claude-worktrees/dictation-perf/Sources/NextNotes/Core/SystemAudioCapture.swift",
+      "snapshotSHA256": "58d6667f55edcbc4e4512735206da740cbace9b31d66c361093ecca45ed2538b",
+      "sameBytes": true
+    }
+  ],
+  "dependencyPins": [
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FluidAudio/Diarizer/Offline/Core/OfflineDiarizerTypes.swift",
+      "SHA256": "ff7e63e82330e48c7986ca5a5a6194a8f1a2304d2f5dd3afa1249932d8b6d271"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FluidAudio/Diarizer/Offline/Core/OfflineDiarizerManager.swift",
+      "SHA256": "08581af77c3d45cac4fab07a47639f3facd5c29c77bd02eefbb750e1a518df8b"
+    },
+    {
+      "path": "/Users/sergekadjo/Library/Caches/NextNotesBuild/scratch/checkouts/FluidAudio/Sources/FluidAudio/Diarizer/Offline/Segmentation/OfflineSegmentationProcessor.swift",
+      "SHA256": "8085de7a588cd9e1c2c7a1824a229ae9d4691d9a69301cb114fe1fb1d68d4d9f"
+    }
+  ]
+}

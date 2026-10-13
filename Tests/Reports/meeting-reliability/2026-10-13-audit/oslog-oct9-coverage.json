@@ -1,0 +1,13 @@
+{
+  "rows": 63,
+  "categories": {
+    "BiomeCascade": 40,
+    "Connections": 10,
+    "availability": 12,
+    "null": 1
+  },
+  "selectedErrors": {},
+  "rawBytes": 72732,
+  "rawPrivate": true,
+  "scope": "Unified log retained interval, informational events may be unavailable; absence is not proof no event occurred"
+}

@@ -1,0 +1,161 @@
+{
+  "at": "2026-10-13T18:26:59.618578+00:00",
+  "scope": "Current saved-note vs saved-transcript manual selected-material audit. No audio truth/model inference/native app/build verification. No meeting titles, identities or speech in public artifacts. Categories are nonexclusive and selected counts are not accuracy percentages.",
+  "meetings": [
+    {
+      "alias": "M1",
+      "recordedDateUTC": "2026-10-07",
+      "segments": 529,
+      "eligibleSpeechSegments": 519,
+      "transcriptWhitespaceWords": 7393,
+      "noteWhitespaceWords": 405,
+      "selectedIssueCounts": {
+        "missingMaterial": 11,
+        "incorrectAttributionOrReferent": 1,
+        "intentOrResolutionError": 1,
+        "unsupportedAssertion": 1,
+        "uncertainIdentityOrASR": 1
+      },
+      "artifactSHA256": {
+        "notes.json": "0ddf9509eec56be64f49b429ec210545cdb80113163d456d326e5600102cecb9",
+        "notes.md": "da0503c757f460c4faea1b6b7f7be65bfae081788a0c57156595e552a4280f33",
+        "transcript.json": "cd05552dffe07c91eb4eaceb7ddf33b7cca9acf0abfe7ddf3373c2b7639b7500"
+      },
+      "generationUsage": [
+        {
+          "ts": "2026-10-10T14:57:44Z",
+          "feature": "meeting.notes.single",
+          "pass": "single",
+          "provider": "openrouter",
+          "modelID": "nvidia/nemotron-3-super-120b-a12b:free",
+          "promptTokens": 20513,
+          "completionTokens": 1753,
+          "totalMs": 30153,
+          "finishReason": "stop",
+          "truncated": false,
+          "errorClass": null
+        },
+        {
+          "ts": "2026-10-10T15:00:53Z",
+          "feature": "meeting.notes.single",
+          "pass": "single",
+          "provider": "openrouter",
+          "modelID": "nvidia/nemotron-3-super-120b-a12b:free",
+          "promptTokens": null,
+          "completionTokens": null,
+          "totalMs": 75264,
+          "finishReason": "error",
+          "truncated": false,
+          "errorClass": "cutOff"
+        }
+      ]
+    },
+    {
+      "alias": "M2",
+      "recordedDateUTC": "2026-10-09",
+      "segments": 695,
+      "eligibleSpeechSegments": 695,
+      "transcriptWhitespaceWords": 9539,
+      "noteWhitespaceWords": 416,
+      "selectedIssueCounts": {
+        "missingMaterial": 7,
+        "incorrectAttributionOrReferent": 2,
+        "intentOrResolutionError": 2,
+        "unsupportedAssertion": 2,
+        "uncertainIdentityOrASR": 1
+      },
+      "artifactSHA256": {
+        "notes.json": "2442ade3729665be9280ea7473e0eab0186415e07bf221ad5b17b1d43c59d084",
+        "notes.md": "4bd838ff273285a84970b8acdfd81ec1e236191a367a91fada9e3d51eb5b2164",
+        "transcript.json": "de0a093f8482d97dc9afd0292a892a0bc64e064ee3e9918c5deb555bd68ffe77"
+      },
+      "generationUsage": [
+        {
+          "ts": "2026-10-10T14:56:07Z",
+          "feature": "meeting.notes.single",
+          "pass": "single",
+          "provider": "openrouter",
+          "modelID": "nvidia/nemotron-3-super-120b-a12b:free",
+          "promptTokens": 21823,
+          "completionTokens": 2618,
+          "totalMs": 65492,
+          "finishReason": "stop",
+          "truncated": false,
+          "errorClass": null
+        }
+      ]
+    },
+    {
+      "alias": "M3",
+      "recordedDateUTC": "2026-10-13",
+      "segments": 501,
+      "eligibleSpeechSegments": 501,
+      "transcriptWhitespaceWords": 7157,
+      "noteWhitespaceWords": 302,
+      "selectedIssueCounts": {
+        "missingMaterial": 9,
+        "incorrectAttributionOrReferent": 1,
+        "intentOrResolutionError": 4,
+        "unsupportedAssertion": 1
+      },
+      "artifactSHA256": {
+        "notes.json": "470753ebc97bc66ef92b3f9251736b3f350de9dcc21cc99443713b3607fc9ed1",
+        "notes.md": "cf490bea79bb0e6f9ce5eb4aab2ccabd716f43cf340e5663a80ae6e9362189f7",
+        "transcript.json": "a636c8c365a99bc0b5251df4f5e55e5f7d5de821f33525f243819fe927177d0b"
+      },
+      "generationUsage": [
+        {
+          "ts": "2026-10-13T17:40:43Z",
+          "feature": "meeting.notes.single",
+          "pass": "single",
+          "provider": "openrouter",
+          "modelID": "nvidia/nemotron-3-super-120b-a12b:free",
+          "promptTokens": 14188,
+          "completionTokens": 2584,
+          "totalMs": 29969,
+          "finishReason": "length",
+          "truncated": true,
+          "errorClass": null
+        },
+        {
+          "ts": "2026-10-13T17:40:59Z",
+          "feature": "meeting.notes.single",
+          "pass": "single",
+          "provider": "openrouter",
+          "modelID": "nvidia/nemotron-3-super-120b-a12b:free",
+          "promptTokens": 14188,
+          "completionTokens": 1468,
+          "totalMs": 15984,
+          "finishReason": "stop",
+          "truncated": false,
+          "errorClass": null
+        }
+      ]
+    }
+  ],
+  "originalOwnerArtifactCount": 20,
+  "originalOwnerArtifactsUnchanged": true,
+  "reviewedSourceCount": 9,
+  "reviewedSourcesUnchanged": true,
+  "reviewedSourceSHA256": {
+    "Sources/NextNotes/Meetings/NotesGenerator.swift": "49c62757bcd0e712d8f6337f7c77484f0f9e634c702318146824480659e2e71f",
+    "Sources/NextNotes/Meetings/NotesPrompts.swift": "f606d07f3299f3dbb499b00f81bd9b61c7f5ba6b4a7030065efffb98effee064",
+    "Sources/NextNotes/Meetings/NotesService.swift": "4ed595e6aba7e1bf04d97f22fc21d4196af402367c5d224de53e533c13e86118",
+    "Sources/NextNotes/Meetings/MeetingStore.swift": "e85d195689f965a94053a01ac6ecc83c3a34f42782294de67b46a8b196821229",
+    "Sources/NextNotes/Meetings/MeetingModels.swift": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec",
+    "Sources/NextNotes/Knowledge/Extractor.swift": "08f7f6b0f945f156404cbc4b3baa4ade5fc7379b1823f1deac6e071763465d88",
+    "Sources/NextNotes/Knowledge/KnowledgeExtractionService.swift": "5b76ba104ac78c548369f62e30866f3b7ad074fa0328c11141cf06aab480e1ee",
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0",
+    "Sources/NextNotes/Meetings/MeetingNotesContext.swift": "c5aa0becaccb46edfa6d9fc4e35c3918e68203026babd1fb38320581afd55755"
+  },
+  "privateEvidenceSHA256": {
+    "DETAILS.md": "f9d3fd956b9c0ccdd16cd78610c4d935c9333f1a4ef6323f6563ffb8d50224da",
+    "semantic-findings.json": "0ce865377a0b4a895edcce0220d8cfbfd729e9abf41904b4e1d005df515f7a16",
+    "manifest-before.json": "4fae8e47428f547d26c133defff95e86be4b9ce0770a8d5928e53ec4f321f217",
+    "manifest-after-and-readonly-receipt.json": "779d7b30f821acba0ad07ab504de488d290938be80c717875b8ff02f4a6f87b1",
+    "usage-matched.json": "eec845c0a70415f4a5fdce94c0c74bd1571aeb119764208049aca55dc7737f2c"
+  },
+  "privatePermissions": "0700 directory,0600 files",
+  "ownedRedundantPrivateCopyLogicalBytesRemoved": 739783,
+  "noOwnerDataAppSourceIndexModelMutation": true
+}

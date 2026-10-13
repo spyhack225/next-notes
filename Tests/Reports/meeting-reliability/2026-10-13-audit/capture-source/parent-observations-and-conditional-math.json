@@ -1,0 +1,36 @@
+{
+  "scope": "Numeric owner-file observations supplied by parent/root audit, not repeated here; no owner logs/audio/transcript read. Source arithmetic is conditional hypothesis, not executed actual-source regression or native rate diagnosis.",
+  "anonymousCase": "M3",
+  "savedFrames": 36603189,
+  "sampleRate": 16000,
+  "fileSeconds": 2287.6993125,
+  "nonzeroSystemFrames": 39680,
+  "nonzeroSystemOneSecondBins": 5,
+  "nonzeroSystemFirstLastSecond": [
+    1,
+    6
+  ],
+  "nonzeroMicFrames": 30157476,
+  "missingSavedSystemFrames": 18220683,
+  "missingSavedMicFrames": 0,
+  "systemLiveASRSuccessfulWindows": 472,
+  "systemLiveASRAudioSeconds": 574.74,
+  "micLiveASRSuccessfulWindows": 653,
+  "micLiveASRAudioSeconds": 1828.94,
+  "finalAcceptedMic": true,
+  "finalAcceptedSystem": false,
+  "reportedSystemTranscriptWallDriftSecondsUpTo": 1136,
+  "reportedMicDriftSecondsApproximately": 0.1,
+  "conditionalHalfCadencePropagation": {
+    "writerLeadSamples": 80000,
+    "predictedOmittedFrames": 18221594.5,
+    "observedOmittedFrames": 18220683,
+    "differenceFrames": 911.5,
+    "differenceSeconds": 0.05696875,
+    "observedOmittedFraction": 0.4977894958824489,
+    "conditionalRetainedPrefixSeconds": 5.05696875,
+    "predictedClockDriftSeconds": 1143.84965625,
+    "upstreamCauseConfirmed": false
+  },
+  "currentAutomaticDiarizeCaveat": "Known saved system loss skips automatic diarization. Direct identify/reidentify bypass automatic eligibility. Join error to exact meeting/run before attributing noSpeech to this case."
+}

@@ -1,0 +1,53 @@
+{
+  "provenance": "Retained dictation-perf snapshot named in installing peer relay1067; this equality is not independently verified complete build manifest",
+  "files": [
+    {
+      "path": "Sources/NextNotes/Core/SystemAudioCapture.swift",
+      "workingSHA256": "58d6667f55edcbc4e4512735206da740cbace9b31d66c361093ecca45ed2538b",
+      "installedAssociatedSnapshotSHA256": "58d6667f55edcbc4e4512735206da740cbace9b31d66c361093ecca45ed2538b",
+      "equal": true
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioConversion.swift",
+      "workingSHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+      "installedAssociatedSnapshotSHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe",
+      "equal": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingAudioWriter.swift",
+      "workingSHA256": "11050b5382afeadbefab0d248ddeb1d7840bf036f09792bf3e211a97362c8065",
+      "installedAssociatedSnapshotSHA256": "11050b5382afeadbefab0d248ddeb1d7840bf036f09792bf3e211a97362c8065",
+      "equal": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingSession.swift",
+      "workingSHA256": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+      "installedAssociatedSnapshotSHA256": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+      "equal": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "workingSHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "installedAssociatedSnapshotSHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "equal": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "workingSHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+      "installedAssociatedSnapshotSHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+      "equal": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingContextExtractor.swift",
+      "workingSHA256": "ab2859978588b0ab3fce8fb4d2f75c5e45afb5aac48cdc76ce8f393e37317a02",
+      "installedAssociatedSnapshotSHA256": "ab2859978588b0ab3fce8fb4d2f75c5e45afb5aac48cdc76ce8f393e37317a02",
+      "equal": true
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingTopicMergeSelfTest.swift",
+      "workingSHA256": "0c66fef4935042da043b81c5303bbc1d644d8bb4a35d7bdfd51d80e32ee4c66b",
+      "installedAssociatedSnapshotSHA256": "0c66fef4935042da043b81c5303bbc1d644d8bb4a35d7bdfd51d80e32ee4c66b",
+      "equal": true
+    }
+  ]
+}

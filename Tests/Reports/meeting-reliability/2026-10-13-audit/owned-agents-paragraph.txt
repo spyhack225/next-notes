@@ -1,0 +1,8 @@
+The13October [three-meeting audit](Tests/Reports/meeting-reliability/2026-10-13-audit/README.md)
+confirms a separate saved-system/timestamp failure in two newer long calls: live system
+time ends near halfwalltime and known savedsystemtrim persists despite capturedrops0.
+Remaining audio's Others channel is zero afterfirstfewseconds; native frame/format cause
+is still unproved. Current installed503e0e40 signature passes, fresh functional flags
+are unrun at memory admission. Read the updated reliability roadmap/repair plan before
+changing capture/clock/diarization/title/notes; do not hide partial markers, stretch times,
+guess identities or inherit older build acceptance. Raw owner examples/audio stayprivate.

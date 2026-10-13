@@ -1,0 +1,384 @@
+{
+  "date": "2026-10-13",
+  "scope": "read-only saved metadata/live/final/context/speaker map structural audit; no inference/audio/model/build/UI/owner data mutation",
+  "aliases": "M1,M2,M3 follow root request order; title/name/content/IDs retained only in private0700/0600 diagnostic",
+  "meetings": [
+    {
+      "alias": "M1",
+      "bindings": {
+        "savedMapCount": 2,
+        "mapKeysPresentInFinalGeneratedLabels": 2,
+        "mapKeysPresentInSourceDefaults": 0,
+        "orphanMapKeys": 0
+      },
+      "perTrack": {
+        "mic": {
+          "liveRows": 575,
+          "finalRows": 411,
+          "liveLastStart": 2390.6,
+          "liveLastEnd": 2391,
+          "finalLastStart": 2384.54,
+          "finalLastEnd": 2384.86,
+          "finalMinusLiveLastEndS": -6.139999999999873,
+          "liveFinalIdenticalIDs": 10,
+          "liveFinalIdenticalFullRows": 10,
+          "tail60LiveRows": 18,
+          "tail60SameWindowFinalRows": 12
+        },
+        "system": {
+          "liveRows": 195,
+          "finalRows": 118,
+          "liveLastStart": 2330.958375,
+          "liveLastEnd": 2331.3583750000003,
+          "finalLastStart": 2241.52,
+          "finalLastEnd": 2242.7200000000003,
+          "finalMinusLiveLastEndS": -88.638375,
+          "liveFinalIdenticalIDs": 0,
+          "liveFinalIdenticalFullRows": 0,
+          "tail60LiveRows": 1,
+          "tail60SameWindowFinalRows": 0
+        }
+      },
+      "finalLabels": [
+        {
+          "labelAlias": "L1",
+          "rowCount": 107,
+          "firstStart": 3.12,
+          "lastEnd": 2221.3799999999997,
+          "summedSegmentDurationS": 475.9999999999993,
+          "hasSavedBinding": true
+        },
+        {
+          "labelAlias": "L2",
+          "rowCount": 1,
+          "firstStart": 504.32,
+          "lastEnd": 510.15999999999997,
+          "summedSegmentDurationS": 5.839999999999975,
+          "hasSavedBinding": true
+        }
+      ],
+      "contextSpeakerCategories": {
+        "participants": {
+          "source-default": 2
+        },
+        "questions": {
+          "source-default": 38,
+          "saved-name-value": 2
+        },
+        "commitments": {
+          "source-default": 13,
+          "saved-name-value": 1
+        },
+        "decisions": {},
+        "deadlines": {},
+        "candidateActions": {
+          "source-default": 3
+        }
+      },
+      "tailExactComparison": {
+        "mic": {
+          "liveTailRows": 18,
+          "uniqueAnchoredExactTextRows": 2,
+          "uniqueAnchoredChangedSpeakerRows": 0,
+          "unmatchedOrAmbiguousRows": 16
+        },
+        "system": {
+          "liveTailRows": 1,
+          "uniqueAnchoredExactTextRows": 0,
+          "uniqueAnchoredChangedSpeakerRows": 0,
+          "unmatchedOrAmbiguousRows": 1
+        }
+      },
+      "durationSeconds": 2405.0,
+      "status": {
+        "state": "done"
+      },
+      "providerID": "detectedCall",
+      "titleSource": "user",
+      "titleCharacterCount": 44,
+      "savedTitleExactlyMatchesRequested": true,
+      "contextTitleEqualsSavedTitle": true,
+      "attendeeCount": 0,
+      "conferenceURLPresent": false,
+      "coveringCallIDPresent": false,
+      "calendarEventIDPresent": true,
+      "transcriptPass": "long-window",
+      "savedSystemLossFrames": null,
+      "savedMicLossFrames": null,
+      "lastSystemEndOverRecordingDuration": 0.9693797817047818,
+      "finalExplicitSpeakerRowCount": 108
+    },
+    {
+      "alias": "M2",
+      "bindings": {
+        "savedMapCount": 0,
+        "mapKeysPresentInFinalGeneratedLabels": 0,
+        "mapKeysPresentInSourceDefaults": 0,
+        "orphanMapKeys": 0
+      },
+      "perTrack": {
+        "mic": {
+          "liveRows": 641,
+          "finalRows": 468,
+          "liveLastStart": 2845.04,
+          "liveLastEnd": 2845.8399999999997,
+          "finalLastStart": 2850.2000000000003,
+          "finalLastEnd": 2851.2400000000002,
+          "finalMinusLiveLastEndS": 5.400000000000546,
+          "liveFinalIdenticalIDs": 0,
+          "liveFinalIdenticalFullRows": 0,
+          "tail60LiveRows": 16,
+          "tail60SameWindowFinalRows": 12
+        },
+        "system": {
+          "liveRows": 227,
+          "finalRows": 227,
+          "liveLastStart": 1426.3583125,
+          "liveLastEnd": 1426.9183125000002,
+          "finalLastStart": 1426.3583125,
+          "finalLastEnd": 1426.9183125000002,
+          "finalMinusLiveLastEndS": 0.0,
+          "liveFinalIdenticalIDs": 227,
+          "liveFinalIdenticalFullRows": 227,
+          "tail60LiveRows": 12,
+          "tail60SameWindowFinalRows": 12
+        }
+      },
+      "finalLabels": [],
+      "contextSpeakerCategories": {
+        "participants": {
+          "source-default": 2
+        },
+        "questions": {
+          "source-default": 40
+        },
+        "commitments": {
+          "source-default": 5
+        },
+        "decisions": {},
+        "deadlines": {},
+        "candidateActions": {}
+      },
+      "tailExactComparison": {
+        "mic": {
+          "liveTailRows": 16,
+          "uniqueAnchoredExactTextRows": 0,
+          "uniqueAnchoredChangedSpeakerRows": 0,
+          "unmatchedOrAmbiguousRows": 16
+        },
+        "system": {
+          "liveTailRows": 12,
+          "uniqueAnchoredExactTextRows": 12,
+          "uniqueAnchoredChangedSpeakerRows": 0,
+          "unmatchedOrAmbiguousRows": 0
+        }
+      },
+      "durationSeconds": 2860.0,
+      "status": {
+        "state": "done"
+      },
+      "providerID": "detectedCall",
+      "titleSource": "user",
+      "titleCharacterCount": 30,
+      "savedTitleExactlyMatchesRequested": true,
+      "contextTitleEqualsSavedTitle": true,
+      "attendeeCount": 0,
+      "conferenceURLPresent": false,
+      "coveringCallIDPresent": false,
+      "calendarEventIDPresent": true,
+      "transcriptPass": "live-only:rejected",
+      "savedSystemLossFrames": 22782827,
+      "savedMicLossFrames": 0,
+      "lastSystemEndOverRecordingDuration": 0.49892248688811197,
+      "finalExplicitSpeakerRowCount": 0
+    },
+    {
+      "alias": "M3",
+      "bindings": {
+        "savedMapCount": 0,
+        "mapKeysPresentInFinalGeneratedLabels": 0,
+        "mapKeysPresentInSourceDefaults": 0,
+        "orphanMapKeys": 0
+      },
+      "perTrack": {
+        "mic": {
+          "liveRows": 465,
+          "finalRows": 355,
+          "liveLastStart": 2271.1,
+          "liveLastEnd": 2271.5,
+          "finalLastStart": 2268.06,
+          "finalLastEnd": 2270.8599999999997,
+          "finalMinusLiveLastEndS": -0.6400000000003274,
+          "liveFinalIdenticalIDs": 0,
+          "liveFinalIdenticalFullRows": 0,
+          "tail60LiveRows": 14,
+          "tail60SameWindowFinalRows": 11
+        },
+        "system": {
+          "liveRows": 146,
+          "finalRows": 146,
+          "liveLastStart": 1134.617,
+          "liveLastEnd": 1135.817,
+          "finalLastStart": 1134.617,
+          "finalLastEnd": 1135.817,
+          "finalMinusLiveLastEndS": 0.0,
+          "liveFinalIdenticalIDs": 146,
+          "liveFinalIdenticalFullRows": 146,
+          "tail60LiveRows": 13,
+          "tail60SameWindowFinalRows": 13
+        }
+      },
+      "finalLabels": [],
+      "contextSpeakerCategories": {
+        "participants": {
+          "source-default": 2
+        },
+        "questions": {
+          "source-default": 40
+        },
+        "commitments": {
+          "source-default": 5
+        },
+        "decisions": {},
+        "deadlines": {},
+        "candidateActions": {}
+      },
+      "tailExactComparison": {
+        "mic": {
+          "liveTailRows": 14,
+          "uniqueAnchoredExactTextRows": 2,
+          "uniqueAnchoredChangedSpeakerRows": 0,
+          "unmatchedOrAmbiguousRows": 12
+        },
+        "system": {
+          "liveTailRows": 13,
+          "uniqueAnchoredExactTextRows": 13,
+          "uniqueAnchoredChangedSpeakerRows": 0,
+          "unmatchedOrAmbiguousRows": 0
+        }
+      },
+      "durationSeconds": 2288.0,
+      "status": {
+        "state": "done"
+      },
+      "providerID": "detectedCall",
+      "titleSource": "user",
+      "titleCharacterCount": 39,
+      "savedTitleExactlyMatchesRequested": true,
+      "contextTitleEqualsSavedTitle": true,
+      "attendeeCount": 0,
+      "conferenceURLPresent": false,
+      "coveringCallIDPresent": false,
+      "calendarEventIDPresent": true,
+      "transcriptPass": "live-only:rejected",
+      "savedSystemLossFrames": 18220683,
+      "savedMicLossFrames": 0,
+      "lastSystemEndOverRecordingDuration": 0.496423513986014,
+      "finalExplicitSpeakerRowCount": 0
+    }
+  ],
+  "installedNow": {
+    "binarySHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+    "binaryBytes": 106415344,
+    "bundleVersion": "1",
+    "shortVersion": "0.2.24"
+  },
+  "installedSourceProvenance": "503e exact installed source snapshot not identified in searched Reports; current/historical source comparison is not installed implementation proof",
+  "historicalInstalledAssociatedBinary": "ed67302fae3c246bbfc377be77e954a0070f17b3b4c5771cfe5e1a04e0d628ad",
+  "currentSourcePins": {
+    "Sources/NextNotes/Meetings/MeetingModels.swift": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec",
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+    "Sources/NextNotes/Meetings/FinalTranscriptService.swift": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535",
+    "Sources/NextNotes/Meetings/DiarizationService.swift": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617",
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0",
+    "Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift": "fb7eabefa11280ab747606d5b8cda47043757628be9bfd00d9e19a6588971512",
+    "Sources/NextNotes/UI/Meetings/MeetingsView.swift": "5b47d7374b6ab1ee4cdc185e6819306c317153450711408a7f30ed277d84ab23",
+    "Sources/NextNotes/Meetings/MeetingScheduler.swift": "a38b6735b0b04a1cf75bfb767814400e8199b9ef0f1abbecfddc65958ae2d298",
+    "Sources/NextNotes/Meetings/CallDetector.swift": "94049975573776009fcacb383a1ac90b9672793a3f3b35ca6a1038911f9730f2",
+    "Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift": "5eab3f11d9cdae75c5297da8bba48bbe1fb4aa3d6a089ae1dbee21ca22d466b0"
+  },
+  "historicalSourceComparisons": {
+    "Sources/NextNotes/Meetings/MeetingModels.swift": {
+      "historicalInstalledAssociatedPin": "39cacae98ac6fc6ce427d52f99ee88867bb24f73546354a3217116467dd2cbc6",
+      "currentPin": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec",
+      "same": false
+    },
+    "Sources/NextNotes/Meetings/MeetingSession.swift": {
+      "historicalInstalledAssociatedPin": "71f057224fdf6f5ed0aa6a42bcb558b6dfd10b821b7ab7c2b6dd7cb9a262ffd3",
+      "currentPin": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+      "same": false
+    },
+    "Sources/NextNotes/Meetings/ChunkedTranscriber.swift": {
+      "historicalInstalledAssociatedPin": "4eb846ddd17b168dda775b9a37ec27c1576fa05b315259debefa7de88d8cdcc3",
+      "currentPin": "9539229d01e3dfe12b10f4db995f88751bcecccc4daf50e202eb402b1069d036",
+      "same": false
+    },
+    "Sources/NextNotes/Meetings/FinalTranscriptService.swift": {
+      "historicalInstalledAssociatedPin": "a7e8e6bd45f2eef27839249a8fea018745eb5054d5d5f75861c76df87fb7b445",
+      "currentPin": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7",
+      "same": false
+    },
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift": {
+      "historicalInstalledAssociatedPin": "5952643d3b531627ce685c68f93d0c060e4f903d18e6fd4f89febd020f5082a1",
+      "currentPin": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535",
+      "same": false
+    },
+    "Sources/NextNotes/Meetings/DiarizationService.swift": {
+      "historicalInstalledAssociatedPin": "1e0f498b807f2339cca9408678b060a08059b200bfbc24b4c1def1429d745fea",
+      "currentPin": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+      "same": false
+    },
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift": {
+      "historicalInstalledAssociatedPin": null,
+      "currentPin": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617",
+      "same": false
+    },
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": {
+      "historicalInstalledAssociatedPin": "4f3b2ab86f9acae27fd2e3d39128b3b361559bc5421b2ed0fa77f39d3e25e6d4",
+      "currentPin": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+      "same": false
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": {
+      "historicalInstalledAssociatedPin": "22eb213b0a5c2a714b0cd8bf2a2381e89cc1c3bca99afc4a595489c76062dc9a",
+      "currentPin": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0",
+      "same": false
+    },
+    "Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift": {
+      "historicalInstalledAssociatedPin": "fb7eabefa11280ab747606d5b8cda47043757628be9bfd00d9e19a6588971512",
+      "currentPin": "fb7eabefa11280ab747606d5b8cda47043757628be9bfd00d9e19a6588971512",
+      "same": true
+    },
+    "Sources/NextNotes/UI/Meetings/MeetingsView.swift": {
+      "historicalInstalledAssociatedPin": "5b47d7374b6ab1ee4cdc185e6819306c317153450711408a7f30ed277d84ab23",
+      "currentPin": "5b47d7374b6ab1ee4cdc185e6819306c317153450711408a7f30ed277d84ab23",
+      "same": true
+    },
+    "Sources/NextNotes/Meetings/MeetingScheduler.swift": {
+      "historicalInstalledAssociatedPin": "a38b6735b0b04a1cf75bfb767814400e8199b9ef0f1abbecfddc65958ae2d298",
+      "currentPin": "a38b6735b0b04a1cf75bfb767814400e8199b9ef0f1abbecfddc65958ae2d298",
+      "same": true
+    },
+    "Sources/NextNotes/Meetings/CallDetector.swift": {
+      "historicalInstalledAssociatedPin": "94049975573776009fcacb383a1ac90b9672793a3f3b35ca6a1038911f9730f2",
+      "currentPin": "94049975573776009fcacb383a1ac90b9672793a3f3b35ca6a1038911f9730f2",
+      "same": true
+    },
+    "Sources/NextNotes/Calendar/Google/GoogleCalendarProvider.swift": {
+      "historicalInstalledAssociatedPin": "5eab3f11d9cdae75c5297da8bba48bbe1fb4aa3d6a089ae1dbee21ca22d466b0",
+      "currentPin": "5eab3f11d9cdae75c5297da8bba48bbe1fb4aa3d6a089ae1dbee21ca22d466b0",
+      "same": true
+    }
+  },
+  "privateStorageMode": {
+    "directory": "0700",
+    "files": "0600"
+  },
+  "noOwnerPayloadsInPublicReport": true,
+  "actualSpeakerVoiceTruthVerified": false,
+  "physicalTitleTruncationVerified": false,
+  "originalFixedProducerRegressionRun": false
+}

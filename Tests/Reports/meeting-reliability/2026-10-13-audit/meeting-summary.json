@@ -1,0 +1,23 @@
+[
+  {
+    "label": "M1",
+    "wallSecondsRoundedRecord": 2405.0,
+    "savedSystemOmittedFrames": null,
+    "omittedSampleSecondsAt16k": null,
+    "scope": "Omitted sample duration is not a measured wall-clock speech gap; legacy absent counters unknown"
+  },
+  {
+    "label": "M2",
+    "wallSecondsRoundedRecord": 2860.0,
+    "savedSystemOmittedFrames": 22782827,
+    "omittedSampleSecondsAt16k": 1423.9266875,
+    "scope": "Omitted sample duration is not a measured wall-clock speech gap; legacy absent counters unknown"
+  },
+  {
+    "label": "M3",
+    "wallSecondsRoundedRecord": 2288.0,
+    "savedSystemOmittedFrames": 18220683,
+    "omittedSampleSecondsAt16k": 1138.7926875,
+    "scope": "Omitted sample duration is not a measured wall-clock speech gap; legacy absent counters unknown"
+  }
+]
