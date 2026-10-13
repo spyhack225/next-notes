@@ -1,0 +1,11 @@
+{
+  "exit": 1,
+  "markers": [
+    "MEETING_TOPIC_MERGE_FAILED"
+  ],
+  "resultLines": [
+    "MEETING_TOPIC_MERGE_FAILED: copied temporary inputs required"
+  ],
+  "scope": "Historical15fixture native replay was refused before cases: old /private/tmp corpus no longer exists. This does not invalidate retained historical component185 result; current generic full-app50dedup+113topic passes only its scope.",
+  "precondition": "Historical private corpus unavailable; no newly reconstructed/easier source credited"
+}

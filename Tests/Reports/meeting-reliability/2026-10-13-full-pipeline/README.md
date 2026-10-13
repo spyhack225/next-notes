@@ -1,0 +1,13 @@
+# Full meeting pipeline investigation and roadmap — 13 October 2026
+
+Read [the complete 18-milestone roadmap](ROADMAP.md). It covers device-independent input/output capture, formats and route transitions; meeting preparation; participant evidence; an automatic completion card and uncertainty review; bounded original-speaker samples; current-note correction; factuality; recovery; and full-duplex performance qualification. Product implementation has not begun in this cycle.
+
+Detailed plans: [20 device configurations and 15 transitions](audio/README.md), [identity and samples](identity/README.md), [official provider access](identity/PROVIDERS.md), and [experience, state and acceptance](experience/EXPERIENCE-PLAN.md).
+
+The installed build, identified by SHA prefix `503e0e40`, has scoped green evidence for 21 distinct flags after the actual three-file native-ASR replay. Isolation remains mixed: 18 inherited browser assertions fail, and an R02 diagnostic is missing. The initial finals ABSENT result came from an omitted fixture-path argument; the explicit existing-fixture replay passes. The historical private 15-fixture replay refused before cases because its original temporary corpus is unavailable. All original attempts are retained. The 20 original meeting artifacts and 1,179 source/resource files stayed unchanged. No physical route change, provider-account/grant join, or proposed preparation/review behavior was tested.
+
+The native layout probe rejects the tested mismatch cases. A deliberately stale rate declaration is accepted and encodes half the authored duration. This demonstrates a boundary hazard, not the incident's native cause. HAL inventory supplies device context only. Current UI shows the partial-recording and “No speech detected” warnings, Identify again, and disabled Rename speakers for M3; only opening and dismissing More occurred.
+
+Removing the owner-authorized arbitrary diagnostic free-memory floor enabled bounded native checks. No production resource policy, model/default, grant or installation changed. Physical devices, semantic quality, proposed UI, and the full ASR-plus-voice reference workload remain open. Sampled maximum owned footprints were approximately 174 MB for the baseline and 145 MB for the ASR replay; these are neither total machine memory nor production limits.
+
+The task-owned 93,768-byte probe executable was retired after exact source/hash/result and no-holder checks; its allocated size was 94,208 bytes. This is no claim of equivalent global/APFS free-space gain. Compact source/results and needed private audio/semantic fixtures remain. No owner recordings, caches, models, shared compiler cache or worktrees were removed. Raw identities, voice and payloads stay outside Git and relay.

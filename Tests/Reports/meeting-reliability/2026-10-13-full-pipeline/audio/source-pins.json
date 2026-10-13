@@ -1,0 +1,79 @@
+{
+  "scope": "Read-only source-grounded broad reliability roadmap; no production/source/test implementation or native launch",
+  "pins": [
+    {
+      "path": "Sources/NextNotes/Core/AudioCaptureHub.swift",
+      "SHA256": "8e9fe3f5e404b0bfd0140eac9268b4ae4e7829079717f2821a76f536ce6bcdaa"
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioCapture.swift",
+      "SHA256": "991a2b56af83a7a7682b1d341fde09c95dbdbad4ceebb968853f46f1cd6cd270"
+    },
+    {
+      "path": "Sources/NextNotes/Core/SystemAudioCapture.swift",
+      "SHA256": "58d6667f55edcbc4e4512735206da740cbace9b31d66c361093ecca45ed2538b"
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioConversion.swift",
+      "SHA256": "2e56bb92b5963f415c08cee32fdafb30b090dcdc3a15dce615b8f310ce7326fe"
+    },
+    {
+      "path": "Sources/NextNotes/Core/AudioSinkCaptureRing.swift",
+      "SHA256": "4ca0402e30333c20329941330243399fe3cef2d7970a55ebcac1f6b69f7cd627"
+    },
+    {
+      "path": "Sources/NextNotes/Support/Permissions.swift",
+      "SHA256": "8155e5aa15905e0367d4adc73e3696cd8fa581fab94ca57cbb2b5fc2a5cf0c5b"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingSession.swift",
+      "SHA256": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingAudioWriter.swift",
+      "SHA256": "11050b5382afeadbefab0d248ddeb1d7840bf036f09792bf3e211a97362c8065"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingResourceHealth.swift",
+      "SHA256": "d246de218e13612467805cb45d3a5816faf3872d75507af121b2c18cdd13cbf3"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingModels.swift",
+      "SHA256": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/FinalTranscriptService.swift",
+      "SHA256": "e60da5cd7845bf9ba0bcd52b491ad27b15bf0b7f5e7d3c7f06c109e4fedd9dd7"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingFinalPass.swift",
+      "SHA256": "5cb3aeabf3a9c7ddb1aa3f42be33ae18577e6fbc09c44a6e4358b2b0cfe6e13d"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingPipeline.swift",
+      "SHA256": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/DiarizationService.swift",
+      "SHA256": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingDiarizer.swift",
+      "SHA256": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/AudioRetentionSelfTest.swift",
+      "SHA256": "be8f347fe10fd19b1cfe1bf6dfabe5ef2131de694bad637c290e19a0f5382d9a"
+    },
+    {
+      "path": "Sources/NextNotes/Meetings/MeetingTapRetrySelfTest.swift",
+      "SHA256": "be8605841315948ee0530ebff8330628aaf5bbd8f78a035b78e5affca73faa4d"
+    },
+    {
+      "path": "Sources/NextNotes/Agent/Speech/AgentPCMRenderer.swift",
+      "SHA256": "0c199fc3abf89765f9debb0fb326e57eb34a83ed81460946785a04347e552730"
+    }
+  ],
+  "appDispatchSHA256": "317220de1bc9014dc957150fd81cd2fc44712cdd01ce7ea9304deb423a24cad0",
+  "performanceStandardsSHA256": "84f77afd5bac09771bc62eecd78517c26f7d68db901e63d3f3962a842ab8265b"
+}

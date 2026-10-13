@@ -1,0 +1,544 @@
+{
+  "scope": "Signed current installed native model-free contracts only. Explicit owner instruction removes prior arbitrary55%free and1GB/swap admission restrictions; footprints sampled, no physical call/model/voice or semantic acceptance implied. Existing fixture timeout/exact ownership retained.",
+  "results": [
+    {
+      "case": "capture",
+      "args": [
+        "--selftest-capture"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "CAPTURE_OK"
+      ],
+      "required": [
+        "CAPTURE_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 2.678910375000669,
+      "peakSampledOwnedFootprintBytes": 141313944,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "health",
+      "args": [
+        "--selftest-meeting-health"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_HEALTH_OK"
+      ],
+      "required": [
+        "MEETING_HEALTH_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.3724822910007788,
+      "peakSampledOwnedFootprintBytes": 143263640,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "integrity",
+      "args": [
+        "--selftest-meeting-integrity"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_INTEGRITY_OK"
+      ],
+      "required": [
+        "MEETING_INTEGRITY_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.262838250000641,
+      "peakSampledOwnedFootprintBytes": 62310344,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "resources",
+      "args": [
+        "--selftest-meeting-resources"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_RESOURCES_OK"
+      ],
+      "required": [
+        "MEETING_RESOURCES_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.8720875420003722,
+      "peakSampledOwnedFootprintBytes": 145540968,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "performance",
+      "args": [
+        "--selftest-meeting-performance"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_PERFORMANCE_OK"
+      ],
+      "required": [
+        "MEETING_PERFORMANCE_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.2426112090006427,
+      "peakSampledOwnedFootprintBytes": 170035048,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "tap-retry",
+      "args": [
+        "--selftest-meeting-tap-retry"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_TAP_RETRY_OK"
+      ],
+      "required": [
+        "MEETING_TAP_RETRY_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 7.073588959000517,
+      "peakSampledOwnedFootprintBytes": 173967328,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "resume",
+      "args": [
+        "--selftest-meeting-resume"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_RESUME_OK"
+      ],
+      "required": [
+        "MEETING_RESUME_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 15.193153166999764,
+      "peakSampledOwnedFootprintBytes": 142034888,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "backlog",
+      "args": [
+        "--selftest-meeting-backlog"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_BACKLOG_OK"
+      ],
+      "required": [
+        "MEETING_BACKLOG_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 26.40726020799957,
+      "peakSampledOwnedFootprintBytes": 152946632,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "retention",
+      "args": [
+        "--selftest-audio-retention"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "AUDIO_RETENTION_OK"
+      ],
+      "required": [
+        "AUDIO_RETENTION_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.1564625000000888,
+      "peakSampledOwnedFootprintBytes": 61966304,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "retention-choices",
+      "args": [
+        "--selftest-meeting-retention-choices"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_RETENTION_CHOICES_OK"
+      ],
+      "required": [
+        "MEETING_RETENTION_CHOICES_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.2816261250000025,
+      "peakSampledOwnedFootprintBytes": 141215592,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "finals",
+      "args": [
+        "--selftest-meeting-finals"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [],
+      "required": [
+        "MEETING_FINALS_OK"
+      ],
+      "requiredPresent": false,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.124820042000465,
+      "peakSampledOwnedFootprintBytes": 62113640,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": false
+    },
+    {
+      "case": "context",
+      "args": [
+        "--selftest-meeting-context"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_SPEAKER_PROJECTION_PRE_RENAME_OK",
+        "MEETING_SPEAKER_PROJECTION_OK",
+        "MEETING_CONTEXT_OK"
+      ],
+      "required": [
+        "MEETING_SPEAKER_PROJECTION_OK",
+        "MEETING_CONTEXT_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.2884845830003542,
+      "peakSampledOwnedFootprintBytes": 59525064,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "ingest",
+      "args": [
+        "--selftest-meeting-ingest-order"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_INGEST_ORDER_OK"
+      ],
+      "required": [
+        "MEETING_INGEST_ORDER_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.1521517920000406,
+      "peakSampledOwnedFootprintBytes": 61818752,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "topic-merge",
+      "args": [
+        "--selftest-meeting-topic-merge"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_ATTRIBUTED_CONTEXT_DEDUP_OK",
+        "MEETING_TOPIC_MERGE_OK"
+      ],
+      "required": [
+        "MEETING_ATTRIBUTED_CONTEXT_DEDUP_OK",
+        "MEETING_TOPIC_MERGE_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.2081359159992644,
+      "peakSampledOwnedFootprintBytes": 56559512,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "notes-truncation",
+      "args": [
+        "--selftest-notes-truncation"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "NOTES_TRUNCATION_OK"
+      ],
+      "required": [
+        "NOTES_TRUNCATION_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.1611270409994177,
+      "peakSampledOwnedFootprintBytes": 58984296,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "notes-evidence",
+      "args": [
+        "--selftest-notes-evidence"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "NOTES_EVIDENCE_OK",
+        "NOTES_EXTRACTIVE_CONTRACT_OK"
+      ],
+      "required": [
+        "NOTES_EVIDENCE_OK",
+        "NOTES_EXTRACTIVE_CONTRACT_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.160259207999843,
+      "peakSampledOwnedFootprintBytes": 62080920,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "notes-context",
+      "args": [
+        "--selftest-notes-context"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "NOTES_CONTEXT_OK"
+      ],
+      "required": [
+        "NOTES_CONTEXT_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.1235153749994424,
+      "peakSampledOwnedFootprintBytes": 59328408,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "participant-contracts",
+      "args": [
+        "--selftest-meeting-participant-observation",
+        "contracts"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_PARTICIPANT_OBSERVATION_OK"
+      ],
+      "required": [
+        "MEETING_PARTICIPANT_OBSERVATION_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.2371399160001602,
+      "peakSampledOwnedFootprintBytes": 170084224,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "pcm-reconfiguration",
+      "args": [
+        "--selftest-pcm-reconfiguration"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "PCM_RECONFIGURATION_OK"
+      ],
+      "required": [
+        "PCM_RECONFIGURATION_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.9791047500002605,
+      "peakSampledOwnedFootprintBytes": 147556272,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "pcm-callback",
+      "args": [
+        "--selftest-pcm-callback"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "PCM_CALLBACK_OK"
+      ],
+      "required": [
+        "PCM_CALLBACK_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 1.112261541999942,
+      "peakSampledOwnedFootprintBytes": 62015288,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "usage",
+      "args": [
+        "--selftest-usage-log"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "USAGE_LOG_OK"
+      ],
+      "required": [
+        "USAGE_LOG_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 2.134797042000173,
+      "peakSampledOwnedFootprintBytes": 149833672,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    },
+    {
+      "case": "isolation",
+      "args": [
+        "--selftest-store-isolation"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "TOOLLOOP_PRODUCTION_R02_MISSING",
+        "STORE_ISOLATION_OK",
+        "TOOLLOOP_PRODUCTION_FAILED"
+      ],
+      "required": [
+        "STORE_ISOLATION_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [
+        "TOOLLOOP_PRODUCTION_R02_MISSING",
+        "TOOLLOOP_PRODUCTION_FAILED"
+      ],
+      "guard": null,
+      "joined": true,
+      "seconds": 31.788980000000265,
+      "peakSampledOwnedFootprintBytes": 145901680,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": false
+    }
+  ]
+}

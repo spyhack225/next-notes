@@ -1,0 +1,13 @@
+{
+  "atUTC": "2026-10-13T19:42:37.698569+00:00",
+  "jsonFilesParsed": 23,
+  "localMarkdownLinksResolved": 23,
+  "csvColumnShapesValid": true,
+  "childReportManifestsValid": true,
+  "reviewedCurrentSourcePinsUnchanged": 33,
+  "originalOwnerFilesUnchanged": 20,
+  "installedExecutableSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+  "strictDeepSignatureVerified": true,
+  "noOwnerNamesInMarkdown": true,
+  "scope": "Documentation/invariant verification, not physical device, provider or proposed product-flow acceptance"
+}

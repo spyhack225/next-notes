@@ -1,0 +1,17 @@
+{
+  "attempted": 22,
+  "passed": 20,
+  "finals": "Initial ABSENT: required fixture directory argument omitted. Resolved by explicit existing fixture path; original attempt retained.",
+  "finalsMarkers": [
+    "MEETING_FINALS_ABSENT"
+  ],
+  "isolation": "STORE_ISOLATION_OK plus inherited TOOLLOOP_PRODUCTION_FAILED and R02_MISSING; mixed verdict, not wholeflagpass",
+  "allOwnedTestProcessesJoined": true,
+  "owner20OriginalFilesUnchanged": true,
+  "source1179Invariant": true,
+  "peakSampledOwnedFootprintBytes": 173967328,
+  "ownerAuthorizedFixedFreeMemoryFloorRemoval": true,
+  "scope": "22distinct currentinstalled native flags;21green after actualASR explicitfixturepath repeat,1inheritedmixed isolation. InitialABSENT retained; no physicalroute/UIproactivity/fullsemantic acceptance",
+  "finalsResolvedByExplicitExistingFixturePath": true,
+  "currentDistinctFlagsWithScopedGreenEvidence": 21
+}

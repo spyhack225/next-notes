@@ -1,0 +1,22 @@
+{
+  "atUTC": "2026-10-13T19:24:51.223622+00:00",
+  "surface": "Current installed Next Notes native Meeting window via permitted CUA accessibility tree",
+  "selectedMeetingAlias": "M3",
+  "observed": {
+    "partialRows": [
+      "M2",
+      "M3"
+    ],
+    "M1CurrentPartialBadge": false,
+    "partialDetailWarning": true,
+    "systemDiarizationNoSpeechBanner": true,
+    "identifyAgainLink": true,
+    "moreMenuIdentifySpeakersEnabled": true,
+    "moreMenuRenameSpeakersDisabled": true,
+    "currentNotesDisplayed": true,
+    "manualFullTitleDisplayed": true,
+    "automaticCompletionReviewNotDemonstrated": true
+  },
+  "actions": "Read current state; open More menu then Escape; same meeting and Notes view retained. No Identify/Regenerate/rename/save/delete/audio playback/setting action",
+  "scope": "Actual current UI/menu observation, not proposed premeeting/endpopup/nativehardware proof. Raw owner names/text not retained publicly"
+}

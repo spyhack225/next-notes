@@ -1,0 +1,140 @@
+{
+  "devices" : [
+    {
+      "alias" : "device_1",
+      "bufferFrameSize" : 512,
+      "defaultInput" : false,
+      "defaultOutput" : false,
+      "input" : {
+        "bits" : 32,
+        "bytesPerFrame" : 4,
+        "bytesPerPacket" : 4,
+        "channels" : 1,
+        "flags" : 9,
+        "formatID" : 1819304813,
+        "framesPerPacket" : 1,
+        "rate" : 48000,
+        "status" : 0
+      },
+      "inputBufferShape" : [
+        {
+          "channels" : 1,
+          "dataBytes" : 2048
+        }
+      ],
+      "objectID" : 95,
+      "output" : {
+        "status" : 2003332927
+      },
+      "outputBufferShape" : [
+
+      ],
+      "transportFourCC" : "ccwd"
+    },
+    {
+      "alias" : "device_2",
+      "bufferFrameSize" : 512,
+      "defaultInput" : true,
+      "defaultOutput" : false,
+      "input" : {
+        "bits" : 32,
+        "bytesPerFrame" : 4,
+        "bytesPerPacket" : 4,
+        "channels" : 1,
+        "flags" : 9,
+        "formatID" : 1819304813,
+        "framesPerPacket" : 1,
+        "rate" : 48000,
+        "status" : 0
+      },
+      "inputBufferShape" : [
+        {
+          "channels" : 1,
+          "dataBytes" : 2048
+        }
+      ],
+      "objectID" : 90,
+      "output" : {
+        "status" : 2003332927
+      },
+      "outputBufferShape" : [
+
+      ],
+      "transportFourCC" : "bltn"
+    },
+    {
+      "alias" : "device_3",
+      "bufferFrameSize" : 512,
+      "defaultInput" : false,
+      "defaultOutput" : true,
+      "input" : {
+        "status" : 2003332927
+      },
+      "inputBufferShape" : [
+
+      ],
+      "objectID" : 83,
+      "output" : {
+        "bits" : 32,
+        "bytesPerFrame" : 8,
+        "bytesPerPacket" : 8,
+        "channels" : 2,
+        "flags" : 9,
+        "formatID" : 1819304813,
+        "framesPerPacket" : 1,
+        "rate" : 48000,
+        "status" : 0
+      },
+      "outputBufferShape" : [
+        {
+          "channels" : 2,
+          "dataBytes" : 4096
+        }
+      ],
+      "transportFourCC" : "bltn"
+    },
+    {
+      "alias" : "device_4",
+      "bufferFrameSize" : 512,
+      "defaultInput" : false,
+      "defaultOutput" : false,
+      "input" : {
+        "bits" : 32,
+        "bytesPerFrame" : 8,
+        "bytesPerPacket" : 8,
+        "channels" : 2,
+        "flags" : 9,
+        "formatID" : 1819304813,
+        "framesPerPacket" : 1,
+        "rate" : 48000,
+        "status" : 0
+      },
+      "inputBufferShape" : [
+        {
+          "channels" : 2,
+          "dataBytes" : 4096
+        }
+      ],
+      "objectID" : 50,
+      "output" : {
+        "bits" : 32,
+        "bytesPerFrame" : 8,
+        "bytesPerPacket" : 8,
+        "channels" : 2,
+        "flags" : 9,
+        "formatID" : 1819304813,
+        "framesPerPacket" : 1,
+        "rate" : 48000,
+        "status" : 0
+      },
+      "outputBufferShape" : [
+        {
+          "channels" : 2,
+          "dataBytes" : 4096
+        }
+      ],
+      "transportFourCC" : "virt"
+    }
+  ],
+  "scope" : "Read-only HAL device inventory. No device\/tap\/IOProc creation, no recording, no route change. Current device configuration is not incident callback format evidence."
+}

@@ -1,0 +1,36 @@
+{
+  "scope": "Pre-implementation universal audio reliability matrix and actual-source coverage roadmap; no native execution, product repair or install",
+  "files": [
+    {
+      "path": "README.md",
+      "SHA256": "ec7863134b20f35bde872e95894e5788d27e1c1e399fcb4a4b72699d698a63ea",
+      "bytes": 19756
+    },
+    {
+      "path": "device-route-matrix.csv",
+      "SHA256": "d24e7ea09b029f65a3e2021262155842161f0c36f447deada4f85445fb753bde",
+      "bytes": 4456
+    },
+    {
+      "path": "existing-test-coverage.json",
+      "SHA256": "ac6cc068a359de62e726f5fef7589a57a8cc1c5fac5dc816f2d8eb3f324f470f",
+      "bytes": 4014
+    },
+    {
+      "path": "failure-mode-matrix.json",
+      "SHA256": "703c5af87758a5dbc3ad6c047b06c99bf014c869918e938fc870b2add2cb23ed",
+      "bytes": 6230
+    },
+    {
+      "path": "route-transition-matrix.csv",
+      "SHA256": "5c8c491ea556ed3581f685d311c966cf3d6b7d1ca19f3d011c5775d823c7b276",
+      "bytes": 3127
+    },
+    {
+      "path": "source-pins.json",
+      "SHA256": "0a44f46a524431e6c5c1e9e749fb9f725d26fa2d19b6dfa0988ac887d9fbbbf5",
+      "bytes": 3268
+    }
+  ],
+  "integrationFormattingReceipt": "../report-normalization-receipt.json"
+}

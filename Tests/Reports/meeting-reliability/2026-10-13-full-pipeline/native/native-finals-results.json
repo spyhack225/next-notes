@@ -1,0 +1,30 @@
+{
+  "scope": "Signed installed503 actual existing three language native-ASR fixtures. Owner-authorized diagnostic free-percent/1GB threshold removal, exact owned lifecycle and sampled footprints. No hardware capture/route switch/local-notes/voice/full-meeting quality or whole-machine memory proof.",
+  "results": [
+    {
+      "case": "finals-native",
+      "args": [
+        "--selftest-meeting-finals",
+        "/Users/sergekadjo/Documents/Claude/Projects/speechify/Tests/Fixtures/meetings"
+      ],
+      "installedSHA256": "503e0e401409d05077cfe205c8b8312c1d3b13ec0d27146dfaef3ab2e9b3cbbe",
+      "exit": 0,
+      "markers": [
+        "MEETING_FINALS_OK"
+      ],
+      "required": [
+        "MEETING_FINALS_OK"
+      ],
+      "requiredPresent": true,
+      "negativeMarkers": [],
+      "guard": null,
+      "joined": true,
+      "seconds": 98.96720625000034,
+      "peakSampledOwnedFootprintBytes": 145131464,
+      "originalOwner20FilesUnchanged": true,
+      "sourceInvariant": true,
+      "sourceCount": 1179,
+      "pass": true
+    }
+  ]
+}

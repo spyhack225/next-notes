@@ -1,0 +1,45 @@
+{
+  "at": "2026-10-13T19:08:23.493013+00:00",
+  "reviewedSourceCount": 25,
+  "allReviewedSourcesUnchanged": true,
+  "sourceSHA256": {
+    "Sources/NextNotes/Calendar/CalendarService.swift": "498d90007412ff19402edf9d4701bd18b3f743ce12aeda277d65a874be5f063a",
+    "Sources/NextNotes/Calendar/CalendarProvider.swift": "d1b5ad743860761668eb8430da247c2449fc18c67e73cb2bda00aacece76413b",
+    "Sources/NextNotes/Meetings/MeetingScheduler.swift": "a38b6735b0b04a1cf75bfb767814400e8199b9ef0f1abbecfddc65958ae2d298",
+    "Sources/NextNotes/Meetings/MeetingController.swift": "8b3fb7801d7c6414df3ad749bf3a007a08fa3c25b16a02e0eea10ec1d78141a3",
+    "Sources/NextNotes/Meetings/MeetingSession.swift": "00c877ca7857dd8469fba8598e9af214d7984721ba65fc0968d3fb15b64290d7",
+    "Sources/NextNotes/Meetings/MeetingPipeline.swift": "a7f111b42b2a6b0a86ce0999a49e2badfe1a0f5cb60d5ec740f0131116610535",
+    "Sources/NextNotes/Meetings/MeetingResumer.swift": "dc9dee680641481b9a828ba7c1c51587e9d2020fdc0f0527e29623928f29d843",
+    "Sources/NextNotes/Meetings/MeetingStore.swift": "e85d195689f965a94053a01ac6ecc83c3a34f42782294de67b46a8b196821229",
+    "Sources/NextNotes/Meetings/MeetingModels.swift": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec",
+    "Sources/NextNotes/Meetings/NotesService.swift": "4ed595e6aba7e1bf04d97f22fc21d4196af402367c5d224de53e533c13e86118",
+    "Sources/NextNotes/Meetings/NotesGenerator.swift": "49c62757bcd0e712d8f6337f7c77484f0f9e634c702318146824480659e2e71f",
+    "Sources/NextNotes/Meetings/NotesPrompts.swift": "f606d07f3299f3dbb499b00f81bd9b61c7f5ba6b4a7030065efffb98effee064",
+    "Sources/NextNotes/Meetings/DiarizationService.swift": "bab6580cb224a958261af10856a40444a398f64e32e42ab4461a949ea6eefb1d",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617",
+    "Sources/NextNotes/Meetings/MeetingNotesContext.swift": "c5aa0becaccb46edfa6d9fc4e35c3918e68203026babd1fb38320581afd55755",
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0",
+    "Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift": "fb7eabefa11280ab747606d5b8cda47043757628be9bfd00d9e19a6588971512",
+    "Sources/NextNotes/UI/Island/IslandState.swift": "2bc2eca99869d16e3f1f147966e7f731350faf6b6f19e0e3c6ae22bc3d77e048",
+    "Sources/NextNotes/Support/Notifications.swift": "106cdb42d2b268e4305ba2450848db396b526c08bd0fa3fdfd5f46a52e8821d4",
+    "Sources/NextNotes/Agent/AgentService.swift": "dac7621e75a37b6814a4379c176f7dcb4802cdac2fa5e5fe7802ab29f2cadcd0",
+    "Sources/NextNotes/Agent/Schedules/AgentTriggerEvents.swift": "198fbc08093eb8f53589d0546dd7d50adc54902678f911781c3019d2b4db2f3e",
+    "Sources/NextNotes/Agent/Schedules/AgentScheduler.swift": "b7497a8d36a4460c45503132c034b7f0652cbd8c30ec52862ff00ea4a8ceac53",
+    "Sources/NextNotes/Core/Compute/ComputeScheduler.swift": "029d064485194aaa262b22666454ff289bd428516abfbc86b6cbeb34cfb2e09d",
+    "Sources/NextNotes/Knowledge/Extractor.swift": "08f7f6b0f945f156404cbc4b3baa4ade5fc7379b1823f1deac6e071763465d88",
+    "Sources/NextNotes/Knowledge/KnowledgeExtractionService.swift": "5b76ba104ac78c548369f62e30866f3b7ad074fa0328c11141cf06aab480e1ee"
+  },
+  "privateAuditEvidenceSHA256": {
+    "semantic-findings.json": "0ce865377a0b4a895edcce0220d8cfbfd729e9abf41904b4e1d005df515f7a16",
+    "DETAILS.md": "f9d3fd956b9c0ccdd16cd78610c4d935c9333f1a4ef6323f6563ffb8d50224da"
+  },
+  "privateAuditRawPayloadCopiedToReport": false,
+  "newReportOnlyPaths": [
+    "Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/experience/ACCEPTANCE-CONTRACT.json",
+    "Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/experience/EXPERIENCE-PLAN.md",
+    "Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/experience/source-pins-before.json"
+  ],
+  "noProductionUIModelBuildTestMutation": true,
+  "proposedBehaviorVerdict": "UNRUN; only read-only source contracts reviewed",
+  "oldRelatedBaselines": "Inherited/signed checks are separate, root runs current bounded flag results"
+}

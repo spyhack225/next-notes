@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-13",
+  "scope": "before-implementation source/official-primary research and report writes only",
+  "sourcePins": {
+    "Sources/NextNotes/UI/Meetings/SpeakerNamesSheet.swift": "fb7eabefa11280ab747606d5b8cda47043757628be9bfd00d9e19a6588971512",
+    "Sources/NextNotes/UI/Meetings/MeetingDetailView.swift": "ba7867e415eda37630284b90b6651d49dc70c25c020491e6ad384acfc9d5deb0",
+    "Sources/NextNotes/Meetings/MeetingParticipantObservationProbe.swift": "9a165d8adc88b303a451ddb4171b526a9353b6f51dcf8c02d24a0dedf09c8673",
+    "Sources/NextNotes/Meetings/MeetingNotesContext.swift": "c5aa0becaccb46edfa6d9fc4e35c3918e68203026babd1fb38320581afd55755",
+    "Sources/NextNotes/Meetings/MeetingContextStore.swift": "e7247c7c6c6aa76cf93a78696ecd785dc0d95b4918f3a6d619ce61a65aa1f200",
+    "Sources/NextNotes/Meetings/MeetingSpeakerProjection.swift": "b6d7c4f9aff7bb124e478fbe587337bd8e8beff66edbe289b70498493302d617",
+    "Sources/NextNotes/Meetings/NotesService.swift": "4ed595e6aba7e1bf04d97f22fc21d4196af402367c5d224de53e533c13e86118",
+    "Sources/NextNotes/Meetings/NotesGenerator.swift": "49c62757bcd0e712d8f6337f7c77484f0f9e634c702318146824480659e2e71f",
+    "Sources/NextNotes/Meetings/CallPolicy.swift": "6c4f54012d10f778335631a3d4513e2f24c4a531b9c02d62bb5250d4ffd60a4a",
+    "Sources/NextNotes/Meetings/MeetingModels.swift": "1f09b08db3ff44d549b5bf3704bc7d262e1462cbb18526ef96061c93c4e05bec",
+    "Sources/NextNotes/Meetings/SpeakerVoicePrints.swift": "7f91f6055520045953e26f0c73a375ab0afc5c4924f2dbfe95746eda27e8a07f",
+    "Sources/NextNotes/Knowledge/PersonResolutionStore.swift": "51c86ba98ee7c16fc0eeea8626d02c85653494513ca5069b4033d8ab6b285ca0",
+    "Sources/NextNotes/Knowledge/EntityResolver.swift": "8a5aa626d78d87c5912b39462aa18a25b878ee42f2228cc65c679e2f75175425",
+    "Sources/NextNotes/Calendar/CalendarProvider.swift": "d1b5ad743860761668eb8430da247c2449fc18c67e73cb2bda00aacece76413b",
+    "Sources/NextNotes/Calendar/Google/GoogleCalendarModels.swift": "e4c10a0e751e38d6c325eab9bd0cfa7f2666f8afa7b8d83d963367000f36aeaa",
+    "Sources/NextNotes/Meetings/MeetingDiarizer.swift": "297a6693fff0b32b47420326d28e80ddeacca6eb4748b7b79777400d7c70c701"
+  },
+  "reportPins": {
+    "README.md": "375ff2b2bae642342d7911f2ffbc919d62c690be42a6a71810db739b9223d253",
+    "PROVIDERS.md": "bd080f537468c970f4853561c041f2a985ccfae41a8972a4fb8ddd7e3e117a80"
+  },
+  "providerAccountOrGrantCalls": false,
+  "ownerUIOrDataMutation": false,
+  "compilerModelNativeRuns": false,
+  "canonicalSourceChanges": false,
+  "automaticNameAttributionImplemented": false,
+  "researchLimits": [
+    "Webex current official search excerpts available; some direct API pages did not render",
+    "No exact503e installed source provenance established here",
+    "No real provider observation/grant/endpoint/room/clock join verified",
+    "No full confirmation/sample/automatic-notes/popup/voice-consent flow verified"
+  ],
+  "rootOwnsImplementationAndRoadmap": true,
+  "officialZoomOverviewDirectHTMLMarkers": {
+    "sdkUsagePolicy": true,
+    "aiNotetakersUnsupported": true,
+    "externalAdmissionEffectiveDate": true
+  },
+  "sourcePinsUnchangedAtCompletion": true,
+  "relaySnapshotNote": "cursor1219 contains prior planning version; final roadmap additionally makes deferred audio-release dependency explicit. No new source or feature verdict.",
+  "integrationFormattingReceipt": "../report-normalization-receipt.json"
+}

@@ -1,0 +1,16 @@
+id,event,requiredInvariant,status
+T01,Select input before Start/during capture/while final work runs,Built-in↔Bluetooth↔USB↔virtual; keep subscribed consumers and track clock,PLANNED; actual physical event required for native coverage
+T02,Headset enters/exits simultaneous microphone/output mode,"Opening/closing conference microphone or shared hub; record actual format/profile, no AirPods branch",PLANNED; actual physical event required for native coverage
+T03,Change output only while input stable,Built-in↔Bluetooth↔USB↔display; system tap/aggregate ownership and format,PLANNED; actual physical event required for native coverage
+T04,Change exposed rate/channel/layout while recording,"Actual hardware-supported rates; mono↔stereo/multichannel, interleaved↔planar boundary",PLANNED; actual physical event required for native coverage
+T05,Unplug or power-cycle active device,"USB/dock/headset loss; fallback and reconnection, metadata preserves missing interval",PLANNED; actual physical event required for native coverage
+T06,App route differs from/default route changes,Conference app output selection versus system default; cannot infer captured route by one UID,PLANNED; actual physical event required for native coverage
+T07,Disconnect/reconnect or replace Bluetooth endpoint,Endpoint identity and old graph callbacks; source and output receipt continuity,PLANNED; actual physical event required for native coverage
+T08,Grant absent/revoked/restored with explicit owner operation,"Correct responsible process/TCC, silence≠denial; input-only or system-only failure",PLANNED; actual physical event required for native coverage
+T09,"Sleep/wake, lid/display changes, interruption",Actual OS suspension marked as gap; no claim to capture when hardware unavailable,PLANNED; actual physical event required for native coverage
+T10,Transient/sustained converter/ASR/disk overload,"Accepted packet conservation, exact counted overflow, optional work deferral; no hidden capture gate",PLANNED; actual physical event required for native coverage
+T11,Stop/quit/delete races with start or accepted callback,"Bounded HAL late cleanup, join all accepted mic/system work, no stale final/source resurrection",PLANNED; actual physical event required for native coverage
+T12,Repeated/flapping route notifications,"Old generation refusal, no task/graph leak, no duplicate stream or unreported accepted packet loss",PLANNED; actual physical event required for native coverage
+T13,"Agent speaks, pauses/resumes or fails during route switch",Output render receipt/AEC reference and simultaneous meeting capture; never false audible completion,PLANNED; actual physical event required for native coverage
+T14,Mute/gain/volume/silence/source pauses,Mic muted vs app/output muted vs actual silence; one silent track cannot erase healthy other track,PLANNED; actual physical event required for native coverage
+T15,Clock/timestamp discontinuity and missing validity flags,"Native host/sample time, converter latency, reset/new epoch, fallback clock and long-call drift",PLANNED; actual physical event required for native coverage

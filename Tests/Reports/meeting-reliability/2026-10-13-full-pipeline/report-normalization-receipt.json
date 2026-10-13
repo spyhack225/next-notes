@@ -1,0 +1,57 @@
+{
+  "atUTC": "2026-10-13T19:40:43.802851+00:00",
+  "owner": "root integration",
+  "files": [
+    {
+      "path": "audio/device-route-matrix.csv",
+      "originalSHA256": "43cea74bda3ae9011213dade41a554107b8db91fb7ee2aee0e7b5016421494bb",
+      "normalizedSHA256": "d24e7ea09b029f65a3e2021262155842161f0c36f447deada4f85445fb753bde",
+      "parsedRowsUnchanged": true,
+      "scope": "CRLF to LF only"
+    },
+    {
+      "path": "audio/route-transition-matrix.csv",
+      "originalSHA256": "e0d3de3e7de75a5cf50e218b17210dc93013305b9c039d8c6d0602de57f2bbe9",
+      "normalizedSHA256": "5c8c491ea556ed3581f685d311c966cf3d6b7d1ca19f3d011c5775d823c7b276",
+      "parsedRowsUnchanged": true,
+      "scope": "CRLF to LF only"
+    },
+    {
+      "path": "README.md",
+      "originalSHA256": "89757d597d157772acec1880dbcaead1777c475d9b288e612761f5238e027c50",
+      "normalizedSHA256": "0d17dd2ab5b313d23d5c56c55195c78531f5caccdfcb8121b25f33d9af789b6c",
+      "scope": "Prose spacing only; contracts and verdicts retained"
+    },
+    {
+      "path": "ROADMAP.md",
+      "originalSHA256": "a4b8225813f7e92c512868ffa62c100a6409e89c983f5a16a55e0a43d8f04a25",
+      "normalizedSHA256": "3851b7dc7b9f6887a998a07ab9e897d2accb3da3982606f3d3b5302d8c997fc0",
+      "scope": "Prose spacing only; contracts and verdicts retained"
+    },
+    {
+      "path": "experience/EXPERIENCE-PLAN.md",
+      "originalSHA256": "9021c114a3e6aa426a1d064e1989a04f6fd515687c04b3b39ea27be2d64eeb19",
+      "normalizedSHA256": "02cfb708ba8c7ef264d0ba24a651f8dfb8be832d91924aa089885a61215952e7",
+      "scope": "Prose spacing only; contracts and verdicts retained"
+    },
+    {
+      "path": "identity/PROVIDERS.md",
+      "originalSHA256": "dba097c0472131b3bae3de7d12873abf580de8e2189215229831366d736322eb",
+      "normalizedSHA256": "bd080f537468c970f4853561c041f2a985ccfae41a8972a4fb8ddd7e3e117a80",
+      "scope": "Prose spacing only; contracts and verdicts retained"
+    },
+    {
+      "path": "identity/README.md",
+      "originalSHA256": "7bc7b4a503326bc05e092666911edb832789d6923e6673424d6516de0e770768",
+      "normalizedSHA256": "375ff2b2bae642342d7911f2ffbc919d62c690be42a6a71810db739b9223d253",
+      "scope": "Prose spacing only; contracts and verdicts retained"
+    },
+    {
+      "path": "audio/README.md",
+      "originalSHA256": "b9e83e5b7acc24e1c69d02861c2b7df6adc46e5843f0798984b6b033dda83820",
+      "normalizedSHA256": "ec7863134b20f35bde872e95894e5788d27e1c1e399fcb4a4b72699d698a63ea",
+      "scope": "Prose spacing only; contracts and verdicts retained"
+    }
+  ],
+  "productionChanged": false
+}

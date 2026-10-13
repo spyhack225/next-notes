@@ -1,0 +1,21 @@
+{
+  "scope": "Canonical local ignored roadmapupdated; report snapshot committed, no trackingpolicy change",
+  "files": [
+    {
+      "path": "roadmap/in-progress/MEETING-RECORDING-RELIABILITY/00-README.md",
+      "sha256": "df3aa9d081e8cbcad4cb3e5597db8f988d58e9de7559efb23678fa79bfc47119",
+      "bytes": 25376
+    },
+    {
+      "path": "roadmap/in-progress/MEETING-RECORDING-RELIABILITY/STATUS.md",
+      "sha256": "2470a00d28b3cc2423222609bc114724969c917e99123c0c840a8d9e3a91f531",
+      "bytes": 13741
+    },
+    {
+      "path": "roadmap/in-progress/MEETING-RECORDING-RELIABILITY/01-FULL-PIPELINE-PLAN.md",
+      "sha256": "65bbb89f870edb7e2af9aec4e16d3547dca528b6108a425e15729408f8cbdd69",
+      "bytes": 38810
+    }
+  ],
+  "newProductImplementation": false
+}

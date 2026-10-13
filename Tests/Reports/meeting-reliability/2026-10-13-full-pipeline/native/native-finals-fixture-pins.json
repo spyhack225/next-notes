@@ -1,0 +1,25 @@
+{
+  "scope": "Existing authored fixture files found; prior default launch lacked path/env, not actual unavailable fixture corpus",
+  "files": [
+    {
+      "path": "Tests/Fixtures/meetings/fr-dialogue.wav",
+      "bytes": 1869064,
+      "sha256": "b25cfc815260c4184ef564150417b48201013ecf1baec9802914899e05e3b8c5"
+    },
+    {
+      "path": "Tests/Fixtures/meetings/fr-dialogue-phone.wav",
+      "bytes": 1869064,
+      "sha256": "5a303ec4bf9f59e54e690cc3649f1fc3db53c68bc964aab24f8b272180dec36f"
+    },
+    {
+      "path": "Tests/Fixtures/meetings/en-dialogue.wav",
+      "bytes": 1938776,
+      "sha256": "5e4c00f6c703bd20e49bd8e7470703776311169e3ba0aff8d8fd247bd875f203"
+    },
+    {
+      "path": "Tests/Fixtures/meetings/manifest.json",
+      "bytes": 13921,
+      "sha256": "7590b9e401627a5944a283192a6f4a435fb8eddda4bbf742a2fbe3be356f5875"
+    }
+  ]
+}

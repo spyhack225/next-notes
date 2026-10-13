@@ -1,0 +1,11 @@
+{
+  "scope": "Only completed owned buffer-probe executable retired after source/hash/nativecases/noholders checked; no ownerapp/data/audio/models/sharedmodulecache/worktrees removed",
+  "binarySHA256": "4293a5262b4780cb59c49de7d22440b481569a5ad17133f8d8dda1c65904b51c",
+  "logicalBytes": 93768,
+  "allocatedBytes": 94208,
+  "sharedSwiftModuleCache": "retained/reused, not exclusivelyowned",
+  "newAppBundles": 0,
+  "worktreesCreatedOrDeleted": 0,
+  "globalDiskGain": "unmeasured",
+  "atUTC": "2026-10-13T19:29:46.573309+00:00"
+}

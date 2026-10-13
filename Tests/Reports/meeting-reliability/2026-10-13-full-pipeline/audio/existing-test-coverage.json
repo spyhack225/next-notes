@@ -1,0 +1,60 @@
+{
+  "status": "Source-grounded coverage audit; no flags run by this subagent",
+  "tests": [
+    {
+      "flag": "--selftest-capture",
+      "actualScope": "Probe hub/no native input; one shared engine, subscriber survival, ordered asynchronous delivery,8 vs256packet overflow, accepted32packet meeting Stop drain, overflow report join, synthetic route restart bookkeeping, sink arithmetic",
+      "missing": "Native rate/layout/physical switch and accepted OLD-worker queued tail across reconfiguration; ASR/writer fullconsumer/word proof"
+    },
+    {
+      "flag": "--selftest-microphone [or --selftest-microphone-sink]",
+      "actualScope": "Permission-backed native input and16k subscriber,1s then forced graph rebuild then2s; >0samples/peak on both native/converted paths",
+      "missing": "Rate conservation/slope/cut chronology; physical route switch; long mixed-device clock; actual Session/CAF. Sink is opt-in, not default promotion"
+    },
+    {
+      "flag": "--selftest-systemaudio",
+      "actualScope": "Native tap on current route for3s; reports format/framecount/RMS/peak; nonzero peak printsOK; digitalzero printsSILENT",
+      "missing": "Raw aggregate stream shape/time versus converted sample rate; half-cadence may printOK; physical output/profile change; sustained delivery/drain/CAF. SILENT cause text is not definitive permission evidence"
+    },
+    {
+      "flag": "--selftest-systemaudio-timeout",
+      "actualScope": "Injected blocked HAL startup returns timeout and late cleanup; no physical device",
+      "missing": "Real route reconfiguration, native Stop accepted-tail join, lifecycle property changes"
+    },
+    {
+      "flag": "--selftest-meeting-tap-retry",
+      "actualScope": "Injected failed starts\u2192late join, first captured buffer origin, bounded attempts, Stop/start permission race",
+      "missing": "Healthy-start then stall/rate change; zero delivery permissions; realBluetooth/USB/default output event"
+    },
+    {
+      "flag": "--selftest-audio-retention",
+      "actualScope": "Actual temporary CAF writer/channel late-join padding+file readback and isolated retention/disk policies",
+      "missing": "Actual IOProc format/rate or normaldevice switches; every perchannel long-call clock"
+    },
+    {
+      "flag": "--selftest-meeting-integrity / --selftest-meeting-health",
+      "actualScope": "Isolated actual stored sticky capture loss/restart/processing/metadata and source health input rules",
+      "missing": "Hardware receipt/block loss before callback or route-induced queue discard; nonzero speech coverage"
+    },
+    {
+      "flag": "--selftest-meeting-finals",
+      "actualScope": "Long-window cut/track acceptance/live preservation/command merge with fixture substitutions",
+      "missing": "Physical rawsource receipt and recognizability; word-count acceptance does not prove semantic quality"
+    },
+    {
+      "flag": "--selftest-meeting-quiet-input --meeting-quiet-session",
+      "actualScope": "Existing isolated Session\u2192actualwriter\u2192Stop\u2192samefinalTask\u2192freshread seam; injected nativeCapture, optional actualASR; prior7word quiet baseline retained",
+      "missing": "Physical capture/route and noise workload. Default production RMS policy/experimentalpause/admission acceptance remain separate"
+    },
+    {
+      "flag": "--selftest-pcm-reconfiguration",
+      "actualScope": "Actual AgentPCMRenderer graph with forced synthetic config notification; token failure, rebuild and stale-generation refusal, no false drained receipt",
+      "missing": "Physical headphone/output changes, actual acoustic playback/AEC and simultaneous meeting tap"
+    },
+    {
+      "flag": "--selftest-duplex / --selftest-acoustic-* / native termination flags",
+      "actualScope": "Existing full-duplex/echo/owner/cancellation checks according to specific flag and substitutions",
+      "missing": "No aggregate proof of all endpoints/formats/routes, meeting capture continuity or ASR+voice reference throughput"
+    }
+  ]
+}

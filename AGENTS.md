@@ -99,6 +99,16 @@ are unrun at memory admission. Read the updated reliability roadmap/repair plan 
 changing capture/clock/diarization/title/notes; do not hide partial markers, stretch times,
 guess identities or inherit older build acceptance. Raw owner examples/audio stayprivate.
 
+The owner’s 13 October [whole meeting plan](Tests/Reports/meeting-reliability/2026-10-13-full-pipeline/ROADMAP.md)
+requires device-independent capture and route changes, preparation before calls,
+participant evidence, and an automatic completion/review card with background
+updates to current notes. This cycle removes the arbitrary diagnostic free-memory
+floor. Installed build `503e0e40` has 21 scoped native-check passes; isolation retains
+inherited nested failures. Physical devices, proactive UI and semantic acceptance
+remain open. No product implementation began in this cycle. Read the 18 milestones
+and provider/experience contracts before editing; reuse existing capture, store,
+audio-output and task seams, and preserve full duplex.
+
 ---
 
 ## Fix bugs at the source

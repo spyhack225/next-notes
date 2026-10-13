@@ -1,0 +1,91 @@
+{
+  "scope": "Actual native AVFoundation borrowedbuffer constructor with authored ABL shapes and same production constructor call. No real tap/route or product original/fixed proof. Accepted inconsistent shape is not proof incident supplies that shape.",
+  "sourceSHA256": "b488ff654982c8dff5c1967b948cca2acf879fda8b58af67fab13b618666920d",
+  "binarySHA256": "4293a5262b4780cb59c49de7d22440b481569a5ad17133f8d8dda1c65904b51c",
+  "results": [
+    {
+      "scenario": "interleaved",
+      "exit": 0,
+      "nativeBoundaryResult": {
+        "buffers": [
+          {
+            "bytes": 4096,
+            "channels": 2
+          }
+        ],
+        "constructedFrames": 512,
+        "constructedStride": 2,
+        "constructorAccepted": true,
+        "declaredTapFormat": "48kHz/interleaved/Float32/stereo",
+        "expectedTapFrames": 512,
+        "firstChannelCount": 512,
+        "firstChannelMean": 0.09999959170818329,
+        "scenario": "interleaved"
+      },
+      "stderrBytes": 0
+    },
+    {
+      "scenario": "planar",
+      "exit": 0,
+      "nativeBoundaryResult": {
+        "buffers": [
+          {
+            "bytes": 2048,
+            "channels": 1
+          },
+          {
+            "bytes": 2048,
+            "channels": 1
+          }
+        ],
+        "constructorAccepted": false,
+        "declaredTapFormat": "48kHz/interleaved/Float32/stereo",
+        "expectedTapFrames": 512,
+        "scenario": "planar"
+      },
+      "stderrBytes": 0
+    },
+    {
+      "scenario": "mono-plus-tap",
+      "exit": 0,
+      "nativeBoundaryResult": {
+        "buffers": [
+          {
+            "bytes": 2048,
+            "channels": 1
+          },
+          {
+            "bytes": 4096,
+            "channels": 2
+          }
+        ],
+        "constructorAccepted": false,
+        "declaredTapFormat": "48kHz/interleaved/Float32/stereo",
+        "expectedTapFrames": 512,
+        "scenario": "mono-plus-tap"
+      },
+      "stderrBytes": 0
+    },
+    {
+      "scenario": "tap-plus-mono",
+      "exit": 0,
+      "nativeBoundaryResult": {
+        "buffers": [
+          {
+            "bytes": 4096,
+            "channels": 2
+          },
+          {
+            "bytes": 2048,
+            "channels": 1
+          }
+        ],
+        "constructorAccepted": false,
+        "declaredTapFormat": "48kHz/interleaved/Float32/stereo",
+        "expectedTapFrames": 512,
+        "scenario": "tap-plus-mono"
+      },
+      "stderrBytes": 0
+    }
+  ]
+}

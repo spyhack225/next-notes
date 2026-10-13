@@ -1,0 +1,177 @@
+{
+  "scope": "Before-implementation design only; no production/source/UI/model/native tests run by author. Root owns signed baseline execution.",
+  "milestones": [
+    {
+      "id": "E0",
+      "change": "Pin original current failures and source dependency versions",
+      "gate": "Private27 omitted-material cases plus anchored misattribution/referent/intent/resolution/support cases; raw current prompt/reply absence retained",
+      "state": "UNRUN for new contract",
+      "newBehaviorAcceptance": "UNRUN"
+    },
+    {
+      "id": "E1",
+      "change": "Truthful source/freshness/stage projection",
+      "original": "Unknown counters or old source cannot be presented verified/current",
+      "fixedRequired": "Actual detail/notification consume integrity/pass/input-output witness; old notes remain readable",
+      "reuse": [
+        "meeting-health",
+        "meeting-integrity",
+        "meeting-finals",
+        "meeting-resume",
+        "audio-retention",
+        "meeting-tap-retry",
+        "meeting-performance"
+      ],
+      "newBehaviorAcceptance": "UNRUN"
+    },
+    {
+      "id": "E2",
+      "change": "Latest accepted corrections update text-only notes in background",
+      "original": "Current naming/clustering commit updates context but no finished note refresh",
+      "fixedRequired": [
+        "current source/output witness matches",
+        "ASR calls0 for name save",
+        "ASR calls0 after explicit successful recluster",
+        "one generation latest materially changed revision",
+        "no inference noop/scratchpad-only",
+        "stale completion refused",
+        "manual edits and save failures preserved"
+      ],
+      "reuse": [
+        "meeting-context",
+        "notes-context",
+        "meeting-resume",
+        "notes-longform",
+        "notes-truncation"
+      ],
+      "newBehaviorAcceptance": "UNRUN"
+    },
+    {
+      "id": "E3",
+      "change": "Automatic deterministic cited pre-meeting preparation",
+      "original": "Event assembler exists; no default premeeting UI consumption",
+      "fixedRequired": [
+        "actual scheduler existingtick\u2192event assembler\u2192UI",
+        "one occurrence despite duplicatecalendar",
+        "move/decline/skip/titleSource controls",
+        "no mandatorymodel",
+        "actual reader graph/file consent",
+        "no grant no inventedattendees"
+      ],
+      "reuse": [
+        "calendar",
+        "schedule",
+        "notes-context"
+      ],
+      "newBehaviorAcceptance": "UNRUN"
+    },
+    {
+      "id": "E4",
+      "change": "Conditional local uncertainty check one logical surface/revision",
+      "fixedRequired": [
+        "no-issue0popup",
+        "duplicatecallbacks1logicalreview",
+        "nonmodal/focus priority",
+        "real saved named/unknown/source-only pathways",
+        "answer oldrevision refused",
+        "dismiss/restart/no-repeat",
+        "nextcall no capturegate",
+        "localconfirmation no execution approval"
+      ],
+      "reuse": [
+        "meeting-context",
+        "island",
+        "ui-strings",
+        "meeting-live-tools",
+        "meeting-agent-evidence"
+      ],
+      "newBehaviorAcceptance": "UNRUN"
+    },
+    {
+      "id": "E5",
+      "change": "Actual writer material coverage/factuality",
+      "fixedRequired": [
+        "sameeligibleinput/brief/model/window/output allowance",
+        "private27selected omission cases recovered with ownership/qualifiers",
+        "matchedgeneric requests reversed/past-action/no-date/answered-question/nonaction/known-context controls",
+        "no fabricated name/date/action",
+        "existingpasscounts and latency retained",
+        "raw current firstloss private if explicitly admitted"
+      ],
+      "reuse": [
+        "notes-prompt-contract",
+        "notes-context",
+        "notes-longform",
+        "notes-truncation",
+        "notes-evidence",
+        "notes-replay-trace"
+      ],
+      "semanticNativeState": "UNRUN; schema and provenance cannot pass semantic gate",
+      "newBehaviorAcceptance": "UNRUN"
+    },
+    {
+      "id": "E6",
+      "change": "Existing extraction and proposal freshness",
+      "fixedRequired": [
+        "actual acceptednote save\u2192freshreader\u2192existingExtractor",
+        "notes.json model still separate extractor identity",
+        "unexecuted changed drafts held",
+        "committed receipts retained without repeat",
+        "no secondmodelchecker"
+      ],
+      "reuse": [
+        "extract",
+        "meeting-agent-evidence",
+        "meeting-action-input-contract",
+        "meeting-reconcile",
+        "meeting-reconcile-llm"
+      ],
+      "newBehaviorAcceptance": "UNRUN"
+    },
+    {
+      "id": "E7",
+      "change": "Durable recovery and reference workload",
+      "fixedRequired": [
+        "real ownedquit/restart no duplicateeffect",
+        "matchingnotes no automaticregenerate",
+        "missingaudio truthful no recoverypromise",
+        "backtobackcalls + voice/dictation refresh",
+        "reference16GB/256GB/M2M3 full-duplex responsiveness/memory/decode limits"
+      ],
+      "nativeState": "UNRUN; resource/profile owned by root",
+      "newBehaviorAcceptance": "UNRUN"
+    }
+  ],
+  "smallestExistingProducerSeams": [
+    "MeetingScheduler.runOnce / AgentTriggerEvents.meetingsUpcoming",
+    "MeetingNotesContextAssembler.brief(forEvent:)",
+    "NotesService.generate/summarize per-meeting owner",
+    "MeetingDetailView.commitSpeakerNames",
+    "DiarizationService.commitSpeakerLabels",
+    "MeetingStore metadata + notes/scratchpad saves",
+    "Notifications.postNotesReady / IslandState / NavigationState",
+    "AgentService review/reconcile/PermissionGate",
+    "KnowledgeExtractor generation"
+  ],
+  "newMetadataOnlyWhenImplemented": [
+    "actual notes input/output revision witness needed by demonstrated stale output",
+    "bounded latest requested revision in existing service entry for edit-during-run",
+    "per-meeting reviewed/dismissed revision only when persistent popup dedup ships"
+  ],
+  "noNewArchitecture": [
+    "no second store/ledger/queue",
+    "no capture/model/speaker serial gate",
+    "no semantic checker model pass",
+    "no whole-document confidence confirmation",
+    "no provider/settings maze",
+    "no blind Markdown speaker-name replacement"
+  ],
+  "userCopyTargets": [
+    "A quick check for this meeting.",
+    "Updating the notes. You can keep reading the previous version.",
+    "The names were saved. The notes could not be updated yet.",
+    "Some of the other side of the conversation was not saved.",
+    "The recording is no longer available. You can still update these notes."
+  ],
+  "copyLimit": "Targets need actual ui-strings/persona/physical flow proof; no claims of implemented copy."
+}

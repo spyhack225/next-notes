@@ -1,0 +1,96 @@
+{
+  "scope": "Source-grounded priorities, no new execution/repair. Some decisions confirmed, owner incident upstream cause still hypothesis.",
+  "modes": [
+    {
+      "id": "F01",
+      "failure": "Tap ASBD is used to wrap aggregate IOProc bytes",
+      "producer": "SystemAudioCapture.createTap/createAggregate/handle",
+      "confirmedScope": "Format provenance boundary exists; actual layout/rate mismatch is a hypothesis",
+      "neededProof": "Compare actual aggregate input stream ASBD/ABL channels/bytes/frame, native clock delta and constructed AVAudioPCMBuffer before conversion"
+    },
+    {
+      "id": "F02",
+      "failure": "Converter fails or underproduces output",
+      "producer": "AudioConversion.convert; delivery worker/system handle nil returns",
+      "confirmedScope": "Nil drops are not uniformly attributed to frame counters; half-rate cause not proved",
+      "neededProof": "Pin exact native input PCM/format; compare in frame/rate\u2192out frame/rate including resampler delay, all callbacks and tail"
+    },
+    {
+      "id": "F03",
+      "failure": "Slow-track samples compressed in time and trimmed from saved file",
+      "producer": "MeetingAudioWriter.append/alignedSamples/writePairedFrames; Session.wireTracks",
+      "confirmedScope": "Cumulative nextCaptureFrame ignores later packet stamps; conditional half-cadence propagation matches parent observations",
+      "neededProof": "Actual source timed-packet half/full/jitter fixtures\u2192CAF and live consumer; native producer rate repair then same owner flow"
+    },
+    {
+      "id": "F04",
+      "failure": "Route rebuild silently discards accepted old microphone work",
+      "producer": "AudioCaptureHub.rebuildWorkers\u2192AudioCaptureDeliveryWorker.stop/deliver",
+      "confirmedScope": "Inactive old worker refuses queued items without its drain/overflow path; physical amount unmeasured",
+      "neededProof": "Hold first old delivery, queue tail, induce actual recovery, publish new-generation input; require exact ordering/no loss or counted gap"
+    },
+    {
+      "id": "F05",
+      "failure": "System tap remains attached to initial output/clock/format",
+      "producer": "SystemAudioCapture; no route/property listeners in owner",
+      "confirmedScope": "Default UID/tap ASBD taken once; runtime route impact unproved",
+      "neededProof": "Actual output/profile/rate/unplug switch with mic stable; old/new native ownership, input frame slope and gap"
+    },
+    {
+      "id": "F06",
+      "failure": "Persistent historical heard-state/silent probe confuses current permission or route",
+      "producer": "Permissions.noteSystemAudioHeard/hasHeardSystemAudio; systemaudio probe",
+      "confirmedScope": "Historical positive is not current grant; zero frames/zero amplitude cannot uniquely diagnose why",
+      "neededProof": "Known externally playing signal+native delivery+correct responsible signed process; revoked/quiet/zero control comparisons"
+    },
+    {
+      "id": "F07",
+      "failure": "First-channel meter misses right-only audible audio",
+      "producer": "AudioConversion.level; SystemAudioCapture.handle permission note before downmix",
+      "confirmedScope": "Raw meter intentionally reads first channel; right-only signal need not set heard hint even if mono output has speech",
+      "neededProof": "Left-only/right-only/both/anti-phase explicit PCM and measured actual downmix/channel policy; capture and diagnostic verdict separate"
+    },
+    {
+      "id": "F08",
+      "failure": "Quiet recognizable speech filtered before model or cut mid-clause",
+      "producer": "ChunkedTranscriber.containsSpeech/frameIsSilent; MeetingFinalPass",
+      "confirmedScope": "Prior independent7-word native quiet case proves admission loss; repair still unaccepted",
+      "neededProof": "Same PCM actual live/final/Session/save words with independent gold, digitalzero/DC/noise and workload controls"
+    },
+    {
+      "id": "F09",
+      "failure": "System Stop closes stream before native accepted callbacks settle",
+      "producer": "SystemAudioCapture.stop async HAL teardown; Session.stop continuation.finish",
+      "confirmedScope": "Source race exists; lost pre-Stop frames not demonstrated",
+      "neededProof": "Block late lifecycle/accepted callback; Stop\u2192exact accepted-tail PCM/counter/write; no post-Stop resurrection"
+    },
+    {
+      "id": "F10",
+      "failure": "Global final error discards completed-track final work",
+      "producer": "FinalTranscriptService.run catch\u2192keepLive",
+      "confirmedScope": "Preserves existing live; partial successful finals not independently committed",
+      "neededProof": "Actual per-track injected error/cancel after first successful track\u2192save/readback/pass status; native producer error required separately"
+    },
+    {
+      "id": "F11",
+      "failure": "Speaker-identification noSpeech mistaken for full meeting silence",
+      "producer": "DiarizationService system channel; FluidAudio OfflineDiarizationError",
+      "confirmedScope": "Exact string/stage identified; known-system-loss auto skip differs manual identify",
+      "neededProof": "Mic speech/systemzero vs healthy far speech vs clipped system; truthful track outcome, notes continuation, no invented voice/whole-call verdict"
+    },
+    {
+      "id": "F12",
+      "failure": "Output graph restarts or acoustic reference loses continuity",
+      "producer": "AgentPCMRenderer configurationChanged/receipts; meeting system tap own-process exclusion",
+      "confirmedScope": "Renderer has generation handling; physical switch/echo not proved",
+      "neededProof": "Actual render timeline and acoustic output under route change alongside capture, stale token negative, no false drained receipt"
+    },
+    {
+      "id": "F13",
+      "failure": "File/track identity or channel count silently changes interpretation",
+      "producer": "AudioConversion.samples channel clamp; native writer stereo schema",
+      "confirmedScope": "Legacy reader clamps requested channel; native saved path normally stereo",
+      "neededProof": "Corrupt/truncated/mono/imported file and non16k formats; explicit authority/source policy before altering legacy behavior"
+    }
+  ]
+}
