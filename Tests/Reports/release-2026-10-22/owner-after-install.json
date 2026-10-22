@@ -1,0 +1,8 @@
+{
+  "stage": "after-install",
+  "files": 1185,
+  "bytes": 13232163231,
+  "aggregate_sha256": "8fd2bce01ec3d50d51a6df1e71041ec4494b550bd80bfc81de42566059c776c4",
+  "settings_keys": 91,
+  "unchanged": true
+}
